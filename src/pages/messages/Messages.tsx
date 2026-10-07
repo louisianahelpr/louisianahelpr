@@ -547,7 +547,18 @@ const Messages = () => {
         open={!!batchArchiveConfirm}
         onOpenChange={(o) => { if (!o) setBatchArchiveConfirm(null); }}
         title={`Hide ${batchArchiveConfirm?.length ?? 0} conversation${(batchArchiveConfirm?.length ?? 0) === 1 ? "" : "s"}?`}
-        description="This removes the selected conversations from your inbox. No messages are deleted, and a thread comes back if that person sends you a new message."
+        description={
+          // Q335: a deleted account can never send again, so "comes back if
+          // that person sends you a new message" was false for its thread
+          // (measured on prod 2026-10-07: the batch dialog promised it for a
+          // "Former member" thread; the single-hide dialog already said
+          // Recently Deleted).
+          batchArchiveConfirm?.every((c) => c.otherUserId === null)
+            ? "This removes the selected conversations from your inbox. No messages are deleted, and you can restore them from Recently Deleted."
+            : batchArchiveConfirm?.some((c) => c.otherUserId === null)
+              ? "This removes the selected conversations from your inbox. No messages are deleted. A thread comes back if that person sends you a new message; one with a deleted account stays in Recently Deleted until you restore it."
+              : "This removes the selected conversations from your inbox. No messages are deleted, and a thread comes back if that person sends you a new message."
+        }
         primaryLabel="Hide"
         primaryTone="sienna"
         primaryHaptic="warning"

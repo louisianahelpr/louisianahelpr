@@ -34,9 +34,10 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *    job out; a partial one shows what was kept.
  *  - A CANCELLED job: the same rule, charged − refunded. Both cancel doors
  *    refund the capture less what is kept and write a payment_refunds row:
- *    create-payment's cancel_escrow (less the non-refundable service fee) ends
- *    payment_status 'cancelled'; void-cancelled-payments (less the
- *    cancellation fee and the service fee) ends 'refunded'. A 'cancelled' job
+ *    create-payment's cancel_escrow (less the non-refundable service fee) and
+ *    void-cancelled-payments (less the cancellation fee and the service fee)
+ *    both end 'refunded' (Q86: cancel_escrow ended 'cancelled' before
+ *    2026-10-07, so older rows still carry that label). A 'cancelled' job
  *    whose PaymentIntent was never captured (void-cancelled-payments cancels
  *    the hold) has no refund row and no charged fee, and counts $0. On the old
  *    uncaptured-hold path void-cancelled-payments captured ONLY the fee (no

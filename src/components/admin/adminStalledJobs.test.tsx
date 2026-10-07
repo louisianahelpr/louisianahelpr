@@ -18,6 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
+import { readFileSync } from "node:fs";
 
 const rpcMock = vi.hoisted(() => vi.fn());
 const profilesRows = vi.hoisted(() => ({
@@ -119,6 +120,14 @@ describe("AdminStalledJobs — a row an admin can decide from", () => {
     expect(poster).toHaveAttribute("href", "/user/poster-1");
     expect(helper).toHaveAttribute("href", "/user/helper-1");
     expect(screen.getByRole("link", { name: /Open the job/ })).toHaveAttribute("href", `/jobs/${JOB_ID}`);
+    // Q1070: the next step after a review is one tap away: the job's admin
+    // detail, where the refund and status-override dialogs live. Before, the
+    // admin had to find the job in Jobs by hand.
+    // @mutate src/components/admin/AdminStalledJobs.tsx | to={`/admin?view=jobs&job=${row.job_id}`} | to={`/admin?view=jobs`}
+    expect(screen.getByRole("link", { name: /Refund or change status in Jobs/ })).toHaveAttribute(
+      "href",
+      `/admin?view=jobs&job=${JOB_ID}`,
+    );
     // The ladder: which nudges actually went out, and when.
     expect(screen.getByText(/Both parties reminded/)).toBeInTheDocument();
     expect(screen.getByText(/Reminded again/)).toBeInTheDocument();
@@ -134,6 +143,14 @@ describe("AdminStalledJobs — a row an admin can decide from", () => {
     expect(labels.some((l) => /release|refund|pay out|payout|charge/i.test(l))).toBe(false);
     expect(labels.some((l) => /Mark Reviewed/.test(l))).toBe(true);
     expect(screen.getByText(/Nothing here moves money/)).toBeInTheDocument();
+  });
+
+  it("Q1070: the Jobs link resolves: Admin routes view=jobs and AdminJobs opens ?job=", () => {
+    const admin = readFileSync("src/pages/admin/Admin.tsx", "utf8");
+    const jobs = readFileSync("src/components/admin/AdminJobs.tsx", "utf8");
+    expect(admin).toMatch(/case "jobs": return <AdminJobs \/>/);
+    expect(jobs).toMatch(/searchParams\.get\("job"\)/);
+    expect(jobs).toMatch(/if \(job\) \{\s*openJob\(job\)/);
   });
 });
 

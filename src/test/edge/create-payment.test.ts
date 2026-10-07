@@ -1621,6 +1621,11 @@ describe("create-payment edge function", () => {
       expect((cancelUpdate?.payload as Record<string, unknown>).status).toBe(
         "cancelled",
       );
+      // Q86 (a): a captured charge refunded less the fee is 'refunded', the
+      // label void-cancelled-payments writes for the same outcome. On main it
+      // was 'cancelled', which also means "nothing was charged".
+      // @mutate supabase/functions/create-payment/index.ts |           captureRefunded = true; |           captureRefunded = false;
+      expect((cancelUpdate?.payload as Record<string, unknown>).payment_status).toBe("refunded");
     });
 
     // @mutate supabase/functions/create-payment/index.ts | return await refuseTestModeCancel(cancelPaymentIntentId); | throw piErr;
@@ -1788,6 +1793,9 @@ describe("create-payment edge function", () => {
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
       expect((jobUpdates[jobUpdates.length - 1]?.payload as Record<string, unknown>).status).toBe("cancelled");
+      // Q86 (a): no card charge behind it, so 'cancelled' ("nothing was charged").
+      // @mutate supabase/functions/create-payment/index.ts |       let captureRefunded = false; |       let captureRefunded = true;
+      expect((jobUpdates[jobUpdates.length - 1]?.payload as Record<string, unknown>).payment_status).toBe("cancelled");
     });
 
     it("leaves a gift-funded job retryable (never cancelled) when its gift cannot be given back", async () => {
@@ -2132,6 +2140,11 @@ describe("create-payment edge function", () => {
             status: "disputed",
             title: "Disputed job",
             stripe_payment_intent_id: "pi_r",
+            // Q86 (b), POLICY (pinned 2026-10-07): the poster WON the dispute,
+            // so the $10 service fee goes back too; only Stripe's own fee is
+            // withheld. cancel_escrow keeps the service fee; this must not.
+            // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents); | const nonRefundableCents = Math.max(1000, actualOrEstimatedFeeCents(pi, capturedCents));
+            customer_fee_amount: 10,
           },
         ],
       };

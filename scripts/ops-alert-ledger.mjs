@@ -51,7 +51,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, failingRunRef, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, failingRunRef, firstSeenNightlyIssues, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, newNightlyRedSlackText, postSlackText, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 import { ALERT_ISSUE_LABELS, ALERT_LABELS, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
@@ -217,6 +217,8 @@ async function sync() {
   // new occurrence only when it changed (a "still red" comment bumps
   // updatedAt), so an hourly sync does not inflate the count.
   const known = new Map();
+  /** Issues step 1 records this run (Q1058: the new ones are posted to Slack). */
+  const recordedNow = [];
   for (const r of await sql(`SELECT sample_ref->>'issue' AS issue, last_seen FROM public.ops_alert_ledger
                                WHERE source_kind = 'nightly_red' AND sample_ref ? 'issue'`)) {
     known.set(String(r.issue), new Date(r.last_seen));
@@ -241,8 +243,18 @@ async function sync() {
         sample: `${i.title} — ${i.url}`, sampleRef: { issue: i.number, url: i.url },
         verifyKind: "workflow", verifyRef: i.title, seenAt: i.updatedAt,
       });
+      recordedNow.push(i);
     }
     log.push(`${label}: ${issues.length} open issue(s) synced`);
+  }
+
+  // 1b. Q1058: a nightly-red issue recorded for the FIRST time is posted to
+  // Slack at once, in one message (the ledger row above is the record).
+  const firstSeen = firstSeenNightlyIssues(known, recordedNow);
+  const slackText = newNightlyRedSlackText(firstSeen);
+  if (slackText) {
+    const posted = await postSlackText(slackText);
+    log.push(`Slack: ${firstSeen.length} new nightly-red issue(s) ${posted ? "posted" : "NOT posted (see the warning above)"}`);
   }
 
   // 2 + 3. close what its own detector has shown green.

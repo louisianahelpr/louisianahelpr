@@ -105,11 +105,13 @@ const LOGS_AT_CALLER = ["charge-recurring-visits/index.ts::stripe.paymentIntents
 
 /** The retrieves that go through the classifier: EXACT. */
 const CLASSIFIED = [
+  "_shared/connectGateSync.ts::stripe.accounts.retrieve(p.stripe_account_id)",
   "auto-release-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "auto-release-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "auto-resolve-disputes/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2",
+  "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",

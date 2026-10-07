@@ -20,7 +20,7 @@
  * @mutate supabase/functions/stripe-connect/index.ts | ? resetClear.eq("stripe_account_id", oldAccountId) | ? resetClear
  * @mutate supabase/functions/stripe-connect/index.ts | if (!resetUpdateErr && oldAccountId && (resetRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts | : resetClear.is("stripe_account_id", null)\n      ).select("id"); | : resetClear.is("stripe_account_id", null)\n      );
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("user_id", user.id)\n        .eq("stripe_account_id", profile.stripe_account_id)\n        .eq("stripe_identity_verified" | .eq("user_id", user.id)\n        .eq("stripe_identity_verified"
+ * @mutate supabase/functions/_shared/connectGateSync.ts | .eq("user_id", userId)\n      .eq("stripe_account_id", profile.stripe_account_id)\n      .eq("stripe_identity_verified" | .eq("user_id", userId)\n      .eq("stripe_identity_verified"
  * @mutate supabase/functions/stripe-connect/index.ts | const methodMissing = de?.statusCode === 404 \|\| de?.code === "resource_missing"; | const methodMissing = false;
  * @mutate supabase/functions/stripe-connect/index.ts | await stripe.accounts.retrieve(profile.stripe_account_id);\n        } catch {\n | } catch {\n
  */

@@ -3,10 +3,10 @@
 Script: `scripts/rollback/rollback.mjs`. Guard: `src/test/rollbackDryRunNeverMutates.test.ts`
 (a dry run of every path calls only read commands; shown red on three mutations).
 
-**Written 2026-09-23. No live drill has been run yet; the lead runs the first one.**
-Every timing below is empty until that drill records one. The script appends each
-step's duration to `~/.lh-rollback/timing.jsonl`; paste the totals into the drill log
-at the bottom.
+**Written 2026-09-23.** Live drills since: web (2026-09-27) and edge function
+(2026-10-07); see the drill log at the bottom. The script appends each step's
+duration to `~/.lh-rollback/timing.jsonl` (or `--log <file>`); paste the totals into
+the drill log.
 
 ## The rule of the script
 
@@ -104,13 +104,29 @@ migration are lost with the column, and getting them back means a database resto
 4. Verify with `edge-function-smoke.yml`, or by calling the function and checking the
    version and `updated_at` in `supabase functions list`.
 
-## The app build (not scripted)
+## The app build: ship the fix, then ask for an expedited review (owner, 2026-10-07)
 
-Nothing can pull a build off a user's phone. The options are App Store Connect
-actions (owner only): pause a phased release, remove the version from sale, or ship a
-fixed build through `deploy.yml` (lane `release`) and ask App Review for an expedited
-review. `docs/IOS_BUILD_RUNBOOK.md` has the build steps. A backend rollback (paths 2
-and 3) does reach native users, because the app calls the same Supabase project.
+Nothing can pull a build off a user's phone, and the app is never hidden from the
+App Store (owner, 2026-10-07: "no need to hide from app store ever"; Remove from
+Sale is not a rollback path here). Most breakage is fixed faster by paths 1-3: a web
+or backend rollback reaches native users at once, because the app loads the same
+Supabase project. When the fix has to be in the binary:
+
+1. Fix it on `main` the normal way (`bash scripts/land.sh`).
+2. Ship it: `bundle exec fastlane ios release` (bumps the build, archives, uploads
+   and submits for review with `automatic_release: true`), or the `release` lane of
+   `deploy.yml`. `docs/IOS_BUILD_RUNBOOK.md` has the build steps.
+3. Request an expedited review (OWNER, App Store Connect): open the submission's
+   page in App Store Connect; on the App Review contact page
+   (developer.apple.com/contact/app-store/?topic=expedite) choose "Request an
+   expedited app review", pick the app and the version just submitted, and write in
+   two or three sentences what is broken for customers right now, since which
+   version, and what the fix changes, e.g. "Version 1.0.7 crashes on launch for every
+   user on iOS 26 because <cause>; 1.0.8 fixes only that crash. Customers cannot
+   open the app until it is approved." Apple grants a limited number of expedited
+   reviews per year, so use it ONLY for real customer-facing breakage (a crash, a
+   broken sign-in, payments failing), never for a test build or a drill: there is
+   no timing drill for this step on purpose.
 
 ## Drill log
 
@@ -119,6 +135,7 @@ and 3) does reach native users, because the app calls the same Supabase project.
 | 2026-09-26 | plan (all three) | cloud session (cloud/open-audits) | 29 ms (vercel/supabase CLIs absent: reads fell back to placeholders, as designed) | — | `node scripts/rollback/rollback.mjs plan`: 16 steps printed, 0 mutating calls. |
 | 2026-09-26 | migration | cloud session (cloud/open-audits) | — | PGlite 11.9 s wall (15 ms of SQL) | Drilled on the newest migration, 20260925155322 (run_missed_cron_catch_up): down SQL = 20260923172145's body + its REVOKE/GRANT; bad x1 then revert x3, all applied. Not pushed (a drill, not an incident). |
 | 2026-09-27 | web (LIVE) | rollback-drill.yml run 36357336613 (workflow_dispatch, repo VERCEL_TOKEN) | — | rollback request→live 6 s; promote-back request→live 5 s; job ~12 s of drill | Live served 60ca5b6c2 (dpl_6qyhVSZeeTn49VH9JU9YA9j5Fwkg); rolled back to 268beee84 (dpl_AFJBz1feXcPTvKrMsTfueMYxL1cG), then promoted the original back. After restore the project showed `{"lastRollbackTarget":null}`, and the next batched deploy (308da8fe8, committed 23:09Z) went live on its own, so auto-assignment was not left off. |
-| (function live drill and App Store timing pending: the function path moves production code; App Store is owner-only) | | | | | |
+| 2026-10-07 | function (LIVE) | money lane A, local Mac (supabase CLI 2.119.0, no Docker) | — | 4.0 s total: worktree add 0.87 s, `supabase functions deploy` 2.0 s, worktree remove 0.27 s (prod list read 0.86 s) | Owner-approved same-code drill (Q835): brand-asset redeployed at main 6c159488d, so nothing changed for users. Prod version 178 → 179 (`supabase functions list`), `brand-asset?health=1` answered 200 image/png after. The local CLI bundled without Docker; the bundle hash differs from CI's (ezbr_sha256 e922cf84… → ad212802…), so expect that after a hand rollback until functions-deploy redeploys main. |
+| 2026-10-07 | App Store | — | — | — | No timing drill by design (owner): an expedited review is spent only on real customer breakage. The step is written above under "The app build". |
 
 Re-drill quarterly (docs/OPEN.md Q69).

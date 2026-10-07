@@ -207,6 +207,8 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stalled-completion-reminder]
     verify_jwt = false
+  [functions.recheck-pending-accepts]
+    verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false
   [functions.payment-confirm-reminder]

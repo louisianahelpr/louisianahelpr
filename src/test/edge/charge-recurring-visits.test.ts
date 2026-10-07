@@ -2032,6 +2032,43 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(1);
   });
 
+  // ── Q1250 (decided 2026-10-07, money lane): seed series are swept, and page ─
+  // A seed (is_seed) series' visit payments are settled by both sweeps exactly
+  // like a real one's: a pending row left alone would offer its payer "Pay"
+  // forever, and a paid row is real money under the live key. Its payer is
+  // told through the Q137 seed boundary (a seed payer is; a real recipient's
+  // row is dropped by the trigger). Its money alerts PAGE, untagged: each
+  // names a real PaymentIntent that needs a hand refund. A test-mode intent
+  // under the live key is classified and skipped (Q891), so a seed fixture
+  // never pages for that.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           title: "Paid recurring visit was never booked and the refund failed", |           seed: true, title: "Paid recurring visit was never booked and the refund failed",
+  it("Q1250: a SEED series' visit payments are swept like a real one's, and a failed refund pages untagged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // The sweeps read no is_seed at all (that is the decision), so a seed
+    // series' rows are these same rows: what is pinned is how they settle.
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({
+      sweep: {
+        rows: [
+          { id: "vp-seed-late", parent_job_id: PARENT_ID, visit_date: "2026-09-01", status: "pending", payer_id: POSTER_ID, stripe_payment_intent_id: null, stripe_session_id: null },
+          orphan,
+        ],
+      },
+    });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    stripeMock.refunds.create.mockRejectedValue(new Error("card_declined"));
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("wasn't paid in time");
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
+    expect(pages).toHaveLength(1);
+    expect((pages[0] as { seed?: boolean }).seed).not.toBe(true);
+  });
+
   it("Q415 (e) re-review: a hand refund of the amount less the fee settles even when the fee-withheld tag was never written", async () => {
     // The tag write and the mid-run refund can fail together (one Stripe
     // outage); ops then refund what the alert named, and must not be paged
@@ -2338,6 +2375,94 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
     expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_ahead");
+  });
+
+  // ── Q1247 (c): the Checkout closes BEFORE the row is expired ──────────────
+  // On main the row was flipped to expired first and its Checkout closed
+  // after: a Checkout completed in between was refunded in full by the
+  // webhook (the row was no longer pending), while this sweep had already
+  // told the payer "you weren't charged".
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               if (s?.status === "complete") { |               if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (!closed) { |             if (false) {
+  it("Q1247 (c): the visit's Checkout is closed before its row is expired", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    let rowWritesAtClose = -1;
+    stripeMock.checkout.sessions.expire.mockImplementation(async () => {
+      rowWritesAtClose = visitPaymentWrites("update").length;
+      return { status: "expired" };
+    });
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    expect(rowWritesAtClose).toBe(0);
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+  });
+
+  it("Q1247 (c): a Checkout completed mid-sweep is left for the webhook; the payer is never told they weren't charged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_ahead", status: "complete" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toContain("weren't charged");
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1247 (c) review: a visit-date row whose Checkout was paid but never settled pages (money captured, nothing booked)", async () => {
+    // @mutate supabase/functions/charge-recurring-visits/index.ts |                 if (!overIds.has(String(row.id))) { |                 if (false) {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({
+      sweep: { rows: [{ id: "vp-late", parent_job_id: PARENT_ID, visit_date: "2026-09-01", status: "pending", payer_id: POSTER_ID, stripe_payment_intent_id: null, stripe_session_id: "cs_late" }] },
+    });
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_late", status: "complete" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(reasons(b)).toContain("the webhook never settled it");
+  });
+
+  it("Q1247 (c): a Checkout that could not be closed and still reads open is not expired this run, and says so", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("stripe 503"));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_ahead", status: "open" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(reasons(b)).toContain("could not be closed");
+  });
+
+  it("Q1247 (c): a Checkout Stripe already expired is closed: the row is expired and the payer told", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_ahead", status: "expired" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("The series ended");
+    expect(b.errors).toBe(0);
   });
 
   it("Q750 (1) control: future visits of a LIVE, merely PAUSED (disputed) or unread series are left alone, and their rows are never read", async () => {

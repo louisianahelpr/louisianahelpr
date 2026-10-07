@@ -133,6 +133,21 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
     await waitFor(() => expect(acceptRpcMock).toHaveBeenCalledTimes(2));
   });
 
+  // Q997 (owner, 2026-10-07): once the Helpr's accept completes, a pop-up says
+  // the payment is held by Louisiana Helpr until the job is done.
+  // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |       setPaymentHeldSide("helpr");\n    } | \n    }
+  it("Q997: a completed accept opens the 'payment is held' pop-up for the Helpr", async () => {
+    const { result } = setup();
+    expect(result.current.paymentHeldSide).toBeNull();
+    const app = { id: "app-9", job_id: "job-9", helper_id: "user-1" } as unknown as Application;
+    act(() => { void result.current.handleHelperResponse(app, true); });
+    await waitFor(() => expect(acceptRpcMock).toHaveBeenCalledTimes(1));
+    await releaseAll();
+    await waitFor(() => expect(result.current.paymentHeldSide).toBe("helpr"));
+    act(() => { result.current.setPaymentHeldSide(null); });
+    expect(result.current.paymentHeldSide).toBeNull();
+  });
+
   it("completeJob: a tap on a DIFFERENT job while one is in flight still goes through", async () => {
     const { result } = setup();
     act(() => { void result.current.completeJob("job-1"); void result.current.completeJob("job-2"); });

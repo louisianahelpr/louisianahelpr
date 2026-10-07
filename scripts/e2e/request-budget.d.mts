@@ -22,6 +22,9 @@ export interface Budget {
   ceilingPerMinute?: number;
   perTest?: number | null;
   signIns?: number | null;
+  /** Lower stale floor for a label whose load moves with prod data; needs staleWhy. */
+  staleFraction?: number;
+  staleWhy?: string;
 }
 export declare const STALE_FRACTION: number;
 export declare function aggregate(samples: RequestSample[]): Record<string, RunAggregate>;

@@ -69,6 +69,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { supabaseBase } from "./lib/apiBase.mjs";
+import { parseSeedGateRegistry, countSeedGateRegistryKeys, discoverGateCallers, liveGateNeedle } from "./lib/seedGateRegistry.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = resolve(REPO, "supabase/migrations");
@@ -186,13 +187,16 @@ async function managementQuery(sql) {
  */
 function readRegistry() {
   const src = readFileSync(REGISTRY_FILE, "utf8");
-  const block = src.slice(src.indexOf("SEED_GATED_SURFACES"));
-  const out = [];
-  for (const m of block.matchAll(/\{\s*surface:\s*"([^"]+)",\s*object:\s*"([^"]+)"\s*\}/g)) {
-    out.push({ surface: m[1], object: m[2] });
-  }
+  const out = parseSeedGateRegistry(src);
   if (out.length === 0) {
     throw new Error(`parsed 0 entries out of SEED_GATED_SURFACES in ${REGISTRY_FILE} — the shape changed; fix this parser before trusting any result below`);
+  }
+  // Every `surface:` key must have been read: an entry the regex skips is a
+  // surface nothing below checks (deliver_parish_match_alert's `via` entry was
+  // skipped this way until 2026-10-07).
+  const keys = countSeedGateRegistryKeys(src);
+  if (keys !== out.length) {
+    throw new Error(`read ${out.length} of ${keys} SEED_GATED_SURFACES entries in ${REGISTRY_FILE} — an entry's shape is not one this parser knows; fix scripts/lib/seedGateRegistry.mjs`);
   }
   return out;
 }
@@ -207,23 +211,12 @@ function readRegistry() {
  * cannot fail for a member it is missing. Deriving the set from the migrations
  * and diffing it against the list is the only direction that can.
  */
-function discoverGateCallersFromMigrations() {
-  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
-  const header = /CREATE (?:OR REPLACE )?(?:FUNCTION|VIEW)\s+(public\.\w+)/gi;
-  const callers = new Set();
-  for (const name of files) {
-    const sql = readFileSync(resolve(MIGRATIONS_DIR, name), "utf8");
-    const heads = [...sql.matchAll(header)];
-    heads.forEach((h, i) => {
-      const body = sql.slice((h.index ?? 0) + h[0].length, i + 1 < heads.length ? heads[i + 1].index : sql.length);
-      if (body.includes(AUTHORITY)) callers.add(h[1].toLowerCase());
-    });
-    for (const d of sql.matchAll(/DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w+)/gi)) {
-      callers.delete(d[1].toLowerCase());
-    }
-  }
-  callers.delete(AUTHORITY.toLowerCase()); // the authority is not its own consumer
-  return callers;
+function discoverGateCallersFromMigrations(authority = AUTHORITY) {
+  const migrations = readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((name) => ({ name, sql: readFileSync(resolve(MIGRATIONS_DIR, name), "utf8") }));
+  return discoverGateCallers(migrations, authority);
 }
 
 /**
@@ -311,7 +304,18 @@ function checkRegistryCompleteness() {
     return registry;
   }
   const unregistered = [...discovered].filter((o) => !registered.has(o)).sort();
-  const unseen = [...registered].filter((o) => !discovered.has(o)).sort();
+  // A `via` entry is seen when its newest definition calls the predicate it
+  // delegates to (deliver_parish_match_alert -> job_announceable_to).
+  const viaCallers = new Map();
+  const seenVia = (s) => {
+    if (!s.via) return false;
+    if (!viaCallers.has(s.via)) viaCallers.set(s.via, discoverGateCallersFromMigrations(s.via));
+    return viaCallers.get(s.via).has(s.object.toLowerCase());
+  };
+  const unseen = registry
+    .filter((s) => !discovered.has(s.object.toLowerCase()) && !seenVia(s))
+    .map((s) => s.object.toLowerCase())
+    .sort();
 
   if (unregistered.length) {
     record("FAIL", "seed gate: registry is complete",
@@ -333,16 +337,20 @@ function checkRegistryCompleteness() {
 async function checkLiveGateDefinitions(registry) {
   if (!registry) return;
   const objects = [...new Set(registry.map((s) => s.object))];
+  // A `via` entry asks the gate through a gated predicate (itself registered),
+  // so its live body must name that predicate, not the flag key.
+  const needles = [...new Set(registry.map((s) => liveGateNeedle(s, FLAG_KEY)))];
+  const cols = needles.map((n, i) => `def ilike '%${n.replace(/[^a-z0-9_]/gi, "")}%' as n${i}`).join(", ");
   const res = await managementQuery(`
-    select n.nspname || '.' || p.proname as obj,
-           pg_get_functiondef(p.oid) ilike '%${FLAG_KEY}%' as gated
-      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public'
-    union all
-    select n.nspname || '.' || c.relname,
-           pg_get_viewdef(c.oid) ilike '%${FLAG_KEY}%'
-      from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public' and c.relkind in ('v','m')`);
+    select obj, ${cols} from (
+      select n.nspname || '.' || p.proname as obj, pg_get_functiondef(p.oid) as def
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.prokind = 'f'
+      union all
+      select n.nspname || '.' || c.relname, pg_get_viewdef(c.oid)
+        from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('v','m')
+    ) d`);
 
   if (!res.ok) {
     record("SKIP", "seed gate: live definitions consult the gate",
@@ -352,8 +360,9 @@ async function checkLiveGateDefinitions(registry) {
       `Set SUPABASE_ACCESS_TOKEN (a Supabase personal access token) to enable it.`);
     return;
   }
-  const live = new Map(res.rows.map((r) => [String(r.obj).toLowerCase(), r.gated === true]));
-  const missing = objects.filter((o) => live.get(o.toLowerCase()) !== true);
+  const live = new Map(res.rows.map((r) => [String(r.obj).toLowerCase(), r]));
+  const needleOf = new Map(registry.map((s) => [s.object.toLowerCase(), needles.indexOf(liveGateNeedle(s, FLAG_KEY))]));
+  const missing = objects.filter((o) => live.get(o.toLowerCase())?.[`n${needleOf.get(o.toLowerCase())}`] !== true);
   const absent = objects.filter((o) => !live.has(o.toLowerCase()));
   if (missing.length) {
     record("FAIL", "seed gate: live definitions consult the gate",

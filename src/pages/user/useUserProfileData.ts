@@ -100,12 +100,24 @@ function int(v: unknown): number | null {
 // Shared review-enrichment mapper — identical in both the initial queryFn
 // fetch and the loadMore pagination path. Lifted verbatim so behaviour is
 // preserved; both call sites previously inlined this exact same shape.
+/** The `reviews` columns both call sites select (Q806: was `any`). */
+type ReviewRow = {
+  id: string;
+  rating: number;
+  feedback: string | null;
+  created_at: string;
+  reviewer_id: string | null;
+  job_id: string | null;
+  response_text?: string | null;
+  response_at?: string | null;
+};
+
 function enrichReviewRows(
-  rows: any[],
-  nameMap: Map<any, string>,
-  jobMap: Map<any, { title: string; category: string | null }>,
+  rows: ReviewRow[],
+  nameMap: Map<string | null, string>,
+  jobMap: Map<string | null, { title: string; category: string | null }>,
 ): ProfileReview[] {
-  return rows.map((r: any) => {
+  return rows.map((r) => {
     const j = jobMap.get(r.job_id);
     return {
       id: r.id,
@@ -527,7 +539,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Use posterReviewsRes (no-limit) for accurate avgRating + reviewCount.
       // reviewsRes has a .limit(20) now — its .data can't reliably compute
       // the average across all reviews.
-      const allRatings = (posterReviewsRes?.data?.map((r: any) => r.rating) ?? []).filter(Number.isFinite) as number[];
+      const allRatings = (posterReviewsRes?.data?.map((r) => r.rating) ?? []).filter(Number.isFinite) as number[];
       /* THE HEADLINE NUMBERS. The RPC wins whenever it answered — for the
          owner as well as for a visitor, so the page cannot show one person two
          different averages depending on who is looking. The client-side
@@ -678,7 +690,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         measured: !replyRpcRes.error && !!replyRow,
       };
 
-      let reviews: any[] = [];
+      let reviews: ProfileReview[] = [];
       /* PREFERRED PATH: the DEFINER function. It already applied the reveal
          window and the cancelled-job exclusion in SQL, masked the reviewer's
          name by the same email-verified-and-not-banned rule get_safe_profiles uses,
@@ -701,8 +713,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           response_at: r.response_at ?? null,
         })) as ProfileReview[];
       } else if (reviewsRes.data && reviewsRes.data.length > 0) {
-        const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
-        const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
+        const reviewerIds = [...new Set(reviewsRes.data.map((r) => r.reviewer_id))] as string[];
+        const jobIds = [...new Set(reviewsRes.data.map((r) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
           // category pulled in alongside title so the reviews-tab filter
@@ -714,8 +726,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // error_logs rather than let the fallback hide it.
         if (profilesRes2.error) report(profilesRes2.error, { severity: "warning", tags: { source: "useUserProfileData.reviewerNames" } });
         if (jobsRes.error) report(jobsRes.error, { severity: "warning", tags: { source: "useUserProfileData.reviewJobs" } });
-        const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
-        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
+        const nameMap = new Map<string | null, string>(profilesRes2.data?.map((p) => [p.user_id, formatName(p.full_name)] as [string | null, string]) || []);
+        const jobMap = new Map<string | null, { title: string; category: string | null }>(jobsRes.data?.map((j) => [j.id, { title: j.title, category: j.category as string | null }] as [string, { title: string; category: string | null }]) || []);
         reviews = enrichReviewRows(reviewsRes.data, nameMap, jobMap);
       }
 
@@ -923,7 +935,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
 
   const reviewsFromQuery = (data?.reviews ?? []) as ProfileReview[];
   // Local reviews state for optimistic updates after saving a response.
-  const [localReviews, setLocalReviews] = useState<any[] | null>(null);
+  const [localReviews, setLocalReviews] = useState<ProfileReview[] | null>(null);
   // Sync localReviews whenever the query result changes (new fetch).
   // localReviews is used for optimistic updates after saving a response.
   useEffect(() => {
@@ -1000,14 +1012,14 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       if (!moreRows || moreRows.length === 0) return;
 
       // Enrich with reviewer names + job titles (same pattern as queryFn).
-      const reviewerIds = [...new Set(moreRows.map((r: any) => r.reviewer_id))] as string[];
-      const jobIds = [...new Set(moreRows.map((r: any) => r.job_id))] as string[];
+      const reviewerIds = [...new Set(moreRows.map((r) => r.reviewer_id))] as string[];
+      const jobIds = [...new Set(moreRows.map((r) => r.job_id))] as string[];
       const [profilesRes2, jobsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
         supabase.from("jobs").select("id, title, category").in("id", jobIds),
       ]);
-      const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
-      const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
+      const nameMap = new Map<string | null, string>(profilesRes2.data?.map((p) => [p.user_id, formatName(p.full_name)] as [string | null, string]) || []);
+      const jobMap = new Map<string | null, { title: string; category: string | null }>(jobsRes.data?.map((j) => [j.id, { title: j.title, category: j.category as string | null }] as [string, { title: string; category: string | null }]) || []);
       const enriched = enrichReviewRows(moreRows, nameMap, jobMap);
 
       setLocalReviews((prev) => [...(prev ?? reviewsFromQuery), ...enriched]);

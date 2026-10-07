@@ -4,6 +4,6 @@
     "src/hooks/useDashboardData.ts": 3,
     "src/hooks/useMapKitJs.ts": 6,
     "src/lib/lazyWithPreload.ts": 2,
-    "src/pages/user/useUserProfileData.ts": 21
+    "src/pages/user/useUserProfileData.ts": 6
   }
 }

@@ -142,10 +142,10 @@ describe("loading-state baseline keys name the same surface on every run", () =>
     expect(seed, "the run seeds its inbox fixture").toBeGreaterThan(0);
     const fin = src.indexOf("} finally {");
     expect(fin, "seeded inside the try whose finally removes it").toBeGreaterThan(seed);
-    expect(src.slice(fin, fin + 300)).toMatch(/removeInboxMessage\(helper, inboxMessageId\)/);
+    expect(src.slice(fin, fin + 300)).toMatch(/removeInboxMessage\(inboxToken, helper\.userId, inboxMessageId\)/);
     const safety = blankComments(read("scripts/audit/pressProdSafety.mjs"));
     expect(safety, "on an ACCEPTED job, so the Active tab holds it").toMatch(/status=eq\.accepted&is_seed=eq\.true/);
-    expect(safety, "sent as the helper, through RLS").toMatch(/headers\(helper, \{ Prefer: "return=representation" \}\)/);
+    expect(safety, "sent as the helper (a session minted in-process), through RLS").toMatch(/inboxHeaders\(token, \{ Prefer: "return=representation" \}\)/);
   });
 
   it("the loaded frame looks through a toast to the page beneath it (run 36342002299)", () => {

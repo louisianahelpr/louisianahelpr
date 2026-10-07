@@ -27,7 +27,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
-import { mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
+import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
@@ -689,17 +689,39 @@ export async function cleanup({ sessions, since, profilesBefore, weeklyAvailabil
  */
 export const INBOX_FIXTURE_MARKER = "[loading-states inbox fixture]";
 
+/**
+ * The inbox fixture's own session, minted IN-PROCESS (lead, 2026-10-07): the
+ * cached session file the sweep reuses is never read into these requests, and
+ * the REST base and publishable key come from the environment or the
+ * constants, so no file data reaches the fetches below (CodeQL
+ * js/file-access-to-http on the first version of this fixture).
+ */
+const INBOX_REST = () => `${(process.env.PLAYWRIGHT_SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/+$/, "")}/rest/v1`;
+const inboxHeaders = (token, extra = {}) => ({
+  apikey: process.env.PLAYWRIGHT_SUPABASE_ANON_KEY || PUBLIC_ANON_KEY,
+  Authorization: `Bearer ${token}`,
+  "Content-Type": "application/json",
+  ...extra,
+});
+
 export async function seedInboxMessage(poster, helper, runId) {
   const jobs = await prodSelect(
     poster,
     `jobs?select=id&customer_id=eq.${poster.userId}&helper_id=eq.${helper.userId}&status=eq.accepted&is_seed=eq.true&order=created_at.desc&limit=1`,
   );
   if (!jobs.length) {
-    return { id: null, note: "no accepted is_seed job between the two test accounts (e2e/job-status-fixtures/accepted.spec.ts keeps one); /messages measures whatever inbox they have" };
+    return { id: null, token: null, note: "no accepted is_seed job between the two test accounts (e2e/job-status-fixtures/accepted.spec.ts keeps one); /messages measures whatever inbox they have" };
   }
-  const res = await fetch(`${supabaseUrl()}/rest/v1/messages?select=id`, {
+  const email = process.env.PLAYWRIGHT_HELPER_EMAIL || "helpr-e2e-helper-0902@mailinator.com";
+  let token;
+  try {
+    token = (await mintAdminSession({ email, serviceKey: resolveServiceKey() })).access_token;
+  } catch (e) {
+    return { id: null, token: null, note: `could not mint the helper's session: ${String(e.message).slice(0, 200)}` };
+  }
+  const res = await fetch(`${INBOX_REST()}/messages?select=id`, {
     method: "POST",
-    headers: headers(helper, { Prefer: "return=representation" }),
+    headers: inboxHeaders(token, { Prefer: "return=representation" }),
     body: JSON.stringify({
       job_id: jobs[0].id,
       sender_id: helper.userId,
@@ -707,16 +729,16 @@ export async function seedInboxMessage(poster, helper, runId) {
       content: `${INBOX_FIXTURE_MARKER} run ${runId}. Not a real message; removed when the run ends.`,
     }),
   });
-  if (!res.ok) return { id: null, note: `insert refused: HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
+  if (!res.ok) return { id: null, token, note: `insert refused: HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
   const [m] = await res.json();
-  return { id: m?.id ?? null, note: `on job ${jobs[0].id}` };
+  return { id: m?.id ?? null, token, note: `on job ${jobs[0].id}` };
 }
 
-export async function removeInboxMessage(helper, id) {
+export async function removeInboxMessage(token, helperId, id) {
   try {
-    const res = await fetch(`${supabaseUrl()}/rest/v1/messages?id=eq.${id}&sender_id=eq.${helper.userId}&select=id`, {
+    const res = await fetch(`${INBOX_REST()}/messages?id=eq.${id}&sender_id=eq.${helperId}&select=id`, {
       method: "DELETE",
-      headers: headers(helper, { Prefer: "return=representation" }),
+      headers: inboxHeaders(token, { Prefer: "return=representation" }),
     });
     if (!res.ok) return { ok: false, note: `HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
     const rows = await res.json();

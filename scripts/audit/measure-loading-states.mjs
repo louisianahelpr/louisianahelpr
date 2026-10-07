@@ -691,6 +691,7 @@ async function main() {
   let seedJobId = "test";
   let fixtureJobId = null;
   let inboxMessageId = null;
+  let inboxToken = null;
   if (poster) {
     const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh");
     seedJobId = fixtureJobId = job.id;
@@ -701,6 +702,7 @@ async function main() {
     if (poster && helper) {
       const seeded = await seedInboxMessage(poster, helper, process.env.GITHUB_RUN_ID ?? String(Date.now()));
       inboxMessageId = seeded.id;
+      inboxToken = seeded.token;
       console.log(`${seeded.id ? "seeded" : "::warning title=no inbox fixture::did not seed"} inbox fixture message ${seeded.id ?? ""}: ${seeded.note}`);
     }
     const routeSet = deriveRouteSet({
@@ -815,7 +817,7 @@ async function main() {
     console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
   } finally {
     if (inboxMessageId) {
-      const gone = await removeInboxMessage(helper, inboxMessageId);
+      const gone = await removeInboxMessage(inboxToken, helper.userId, inboxMessageId);
       console.log(`${gone.ok ? "removed" : "::warning title=inbox fixture residue::could not remove"} inbox fixture message ${inboxMessageId}: ${gone.note}`);
     }
     if (fixtureJobId) {

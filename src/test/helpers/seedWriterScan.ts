@@ -173,7 +173,9 @@ export function scanSeedWriters(file: string, raw: string): SeedSite[] {
     const callee = calleeBefore(code, open);
     const isPost =
       /\.post$/i.test(callee) ||
-      (/(^|\.)fetch$/.test(callee) && /\bmethod\s*:\s*["'`]POST["'`]/.test(span));
+      (/(^|\.)fetch$/.test(callee) && /\bmethod\s*:\s*["'`]POST["'`]/.test(span)) ||
+      // Q1421 (2026-10-06): e2e service-role calls go through node fetch, srFetch(key, "POST", url, …) / srReq("POST", url, …).
+      (/(^|\.)(srFetch|srReq)$/.test(callee) && /["'`]POST["'`]/.test(span));
     if (isPost) push(kind, table, open - callee.length, span);
   }
 

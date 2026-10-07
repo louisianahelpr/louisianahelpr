@@ -162,7 +162,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     expect(src, "and applied as a min-height, so short tabs collapse empty space").toMatch(/minHeight/);
   });
 
-  // @mutate src/pages/profile/Profile.tsx | ) : tab === "landing" ? (\n              <ProfilePageSkeleton /> | ) : false ? (\n              <ProfilePageSkeleton />
+  // @mutate src/pages/profile/Profile.tsx | {tab === "landing" ? (\n              <ProfilePageSkeleton /> | {false ? (\n              <ProfilePageSkeleton />
   it("boots into the TAB's placeholder, never the landing's", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.

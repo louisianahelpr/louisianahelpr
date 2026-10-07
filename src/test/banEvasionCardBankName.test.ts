@@ -167,6 +167,32 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     expect(trg?.events.toLowerCase()).toMatch(/update/);
   });
 
+  // Q1416 (owner 2026-10-05 / 2026-10-07): the phone (same last 7 digits)
+  // and ID (same name + date of birth, any document) NEAR-matches only record
+  // an admin doubt-check, like the name. Behaviour:
+  // src/test/pglite/banEvasionCardBankName.pglite.mjs (NEW_MIGRATION=skip-near: 11 FAIL).
+  // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |       VALUES (NEW.user_id, 'phone_near', v_h7, v_row.id, | INSERT INTO public.user_bans (user_id, ban_type, reason, banned_by) VALUES (NEW.user_id, 'banned', 'x', NEW.user_id);\n      VALUES (NEW.user_id, 'phone_near', v_h7, v_row.id,
+  // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |   AFTER INSERT OR UPDATE OF phone ON public.profiles |   AFTER UPDATE OF phone ON public.profiles
+  // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |   SELECT CASE WHEN length(d) >= 7 THEN right(d, 7) ELSE NULL END |   SELECT CASE WHEN length(d) >= 7 THEN d ELSE NULL END
+  it("phone and ID near-matches only record it for admins (Q1416)", () => {
+    for (const [fn, kind] of [["flag_possible_ban_evasion_by_phone", "phone_near"], ["flag_possible_ban_evasion_by_identity", "identity_near"]] as const) {
+      const flag = body(fn);
+      expect(flag).toMatch(new RegExp(`insert\\s+into\\s+public\\.ban_evasion_matches[\\s\\S]{0,300}'${kind}'`, "i"));
+      expect(flag, `${fn} writes fraud_flags`).not.toMatch(/insert\s+into\s+public\.fraud_flags/i);
+      expect(flag, `${fn} writes a ban`).not.toMatch(/\bban_status\s*=|insert\s+into\s+public\.user_bans|update\s+public\.profiles|enforce_retained/i);
+    }
+    expect(body("flag_possible_ban_evasion_by_phone"), "the phone check can abort a profile edit").not.toMatch(/\bRAISE\b(?!\s+(?:WARNING|NOTICE|LOG|INFO|DEBUG)\b)/i);
+    expect(body("normalize_phone7_for_ban")).toMatch(/right\(d,\s*7\)/i);
+    const trg = triggerInventory(files.map((name) => ({ name, sql: sqlOf(name) }))).get("profiles.trg_flag_possible_ban_evasion_by_phone");
+    expect(trg?.fn).toBe("flag_possible_ban_evasion_by_phone");
+    expect(trg?.timing.toLowerCase()).toBe("after");
+    expect(trg?.events.toLowerCase()).toMatch(/insert/);
+    expect(trg?.events.toLowerCase()).toMatch(/update/);
+    // The webhook supplies the document-free hash (identity_fingerprint with no document).
+    const idv = readFileSync(join(ROOT, "supabase/functions/stripe-idv-webhook/index.ts"), "utf8");
+    expect(idv).toMatch(/p_doc_number: null,[\s\S]{0,600}flag_possible_ban_evasion_by_identity/);
+  });
+
   /**
    * lh-authz-rls (2026-10-05): fraud_flags and user_bans rows are exported to
    * the person they are about (export_my_data), so no function may copy a
@@ -240,7 +266,10 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     const review = readFileSync(join(ROOT, "src/components/admin/AdminBanEvasionReview.tsx"), "utf8");
     expect(review).toMatch(/rpc\("admin_ban_settlement_reviews"\)/);
     expect(review).toMatch(/rpc\("admin_confirm_ban_settlement"/);
-    expect(review).toMatch(/from\("ban_evasion_matches"\)[\s\S]{0,200}\.eq\("matched_on", "name"\)/);
+    // Q1416: every doubt-check kind (name, phone_near, identity_near), never an auto-ban kind.
+    expect(review).toMatch(/from\("ban_evasion_matches"\)[\s\S]{0,260}\.in\("matched_on", \[\.\.\.DOUBT_CHECK_KINDS\]\)/);
+    const kinds = /const DOUBT_CHECK_LABEL = \{([\s\S]*?)\} as const;/.exec(review)?.[1] ?? "";
+    expect([...kinds.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]).sort()).toEqual(["identity_near", "name", "phone_near"]);
     expect(dash, "possible_ban_evasion is no longer a fraud_flags type").not.toMatch(/value: "possible_ban_evasion"/);
   });
   /**

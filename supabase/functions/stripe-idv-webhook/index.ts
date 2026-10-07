@@ -372,6 +372,42 @@ serve(async (req) => {
           }
         }
 
+        // Q1416 (a): the ID NEAR-match. The same name + date of birth with a
+        // different (or missing) document number matches nothing above,
+        // because identity_fingerprint() folds the document in. The
+        // document-free hash goes to flag_possible_ban_evasion_by_identity,
+        // which keeps it server-side (copied into retained_bans if this
+        // person is ever banned) and flags a near-match for an admin
+        // doubt-check. A soft signal: never a ban, and never a reason to
+        // fail the verification, but never silent either.
+        if (firstName && lastName && dob) {
+          try {
+            const { data: nodoc, error: nodocErr } = await supabase.rpc("identity_fingerprint", {
+              p_first_name: firstName,
+              p_last_name: lastName,
+              p_dob: dob,
+              p_doc_number: null,
+            });
+            if (nodocErr) throw new Error(`identity_fingerprint (no document) failed: ${nodocErr.message}`);
+            if (nodoc) {
+              const { error: flagErr } = await supabase.rpc("flag_possible_ban_evasion_by_identity", {
+                p_user_id: userId,
+                p_nodoc_sha256: nodoc as string,
+              });
+              if (flagErr) throw new Error(`flag_possible_ban_evasion_by_identity failed: ${flagErr.message}`);
+            }
+          } catch (softErr) {
+            console.error(`[stripe-idv-webhook] Q1416 ID doubt-check did not run for ${session.id}:`, (softErr as { message?: string })?.message);
+            await postSlackOpsAlert({
+              kind: "stripe_webhook_error",
+              severity: "warning",
+              title: "Ban-evasion ID doubt-check did not run",
+              message: "A verification went through, but its document-free identity check (Q1416) failed, so a possible near-match to a banned person was not looked for. The verification itself is unaffected.",
+              fields: { "Session ID": session.id, error: String((softErr as { message?: string })?.message ?? "unknown").slice(0, 200) },
+            });
+          }
+        }
+
         // Heuristic confidence: 100 if document + selfie both verified with no errors,
         // 90 if minor issues, otherwise fall back to manual review.
         let confidence = 100;

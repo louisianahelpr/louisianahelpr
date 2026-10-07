@@ -25,12 +25,21 @@ import { toneBadgeClasses } from "@/components/admin/tones";
  *    (admin_confirm_ban_settlement); Lift unbans through the one ban write path
  *    (admin-user-actions set_ban_status), which closes the review, releases the
  *    payout hold and clears the match server-side.
- * 2. NAME MATCHES. A new or renamed account whose name matches a banned
- *    account's. A doubt check, never a ban. Kept in admin-only
+ * 2. POSSIBLE MATCHES. A new or changed account whose name, phone (same last
+ *    7 digits, Q1416) or ID (same name + date of birth with another document,
+ *    Q1416) matches a banned account's. A doubt check, never a ban. Kept in admin-only
  *    ban_evasion_matches, never in fraud_flags: those are exported to the
  *    person, and a flag appearing after they typed a name would tell them the
  *    name belongs to a banned account.
  */
+
+/** The soft (doubt-check) match kinds and how each is named to an admin. */
+const DOUBT_CHECK_LABEL = {
+  name: "Same name",
+  phone_near: "Same last 7 phone digits",
+  identity_near: "Same name and date of birth on ID",
+} as const;
+const DOUBT_CHECK_KINDS = Object.keys(DOUBT_CHECK_LABEL) as Array<keyof typeof DOUBT_CHECK_LABEL>;
 
 interface MatchRow {
   id: string;
@@ -88,7 +97,8 @@ export function AdminBanEvasionReview() {
         await supabase
           .from("ban_evasion_matches")
           .select("id, user_id, matched_on, original_ban_status, original_reason, original_recorded_at, created_at")
-          .eq("matched_on", "name")
+          // Q1416: every doubt-check kind (never the auto-ban kinds).
+          .in("matched_on", [...DOUBT_CHECK_KINDS])
           .eq("resolved", false)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -218,8 +228,8 @@ export function AdminBanEvasionReview() {
       </AdminCard>
 
       <AdminCard
-        title="Name matches"
-        subtitle="New or renamed accounts whose name matches a banned person's. Not banned: check whether it is the same person."
+        title="Possible matches"
+        subtitle="New or changed accounts whose name, phone (last 7 digits) or ID (name and date of birth) matches a banned person's. Not banned: check whether it is the same person."
       >
         {listsLoading ? (
           <p className="text-ds-11 text-muted-foreground">Loading matches…</p>
@@ -227,18 +237,21 @@ export function AdminBanEvasionReview() {
           <ErrorState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
-            title="We couldn't load the name matches."
+            title="We couldn't load the possible matches."
             body="Tap Try again. Do not read this as all-clear — nothing was checked."
             onRetry={() => names.refetch()}
           />
         ) : nameRows.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground">No name matches to check.</p>
+          <p className="text-ds-11 text-muted-foreground">No possible matches to check.</p>
         ) : (
           <ul className="space-y-2">
             {nameRows.map((m) => (
               <li key={m.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border p-3" data-testid="ban-evasion-name-match">
                 <div className="space-y-1">
                   <p className="text-ds-12 font-medium">Account {m.user_id}</p>
+                  <p className="text-ds-11 font-medium">
+                    {DOUBT_CHECK_LABEL[m.matched_on as keyof typeof DOUBT_CHECK_LABEL] ?? m.matched_on}
+                  </p>
                   <p className="text-ds-11 text-muted-foreground whitespace-pre-line">Banned account it matched — {originalBan(m)}</p>
                 </div>
                 <Button size="sm" variant="outline" disabled={busy === m.id} onClick={() => resolveName(m)}>

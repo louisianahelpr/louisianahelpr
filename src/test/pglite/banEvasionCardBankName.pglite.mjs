@@ -4,6 +4,7 @@
  *
  *   node src/test/pglite/banEvasionCardBankName.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED: the live state
+ *   NEW_MIGRATION=skip-near node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED for Q1416 only
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR).
@@ -76,6 +77,10 @@ ${src.slice(at, end)}`;
 // the standing; an unban after a confirm finishes the review's cleanup.
 // NEW_MIGRATION=skip-standing runs everything but this one (its red proof).
 const STANDING = mig("20261006035830_ban_review_decides_standing");
+// Q1416 (owner 2026-10-07): phone (same last 7 digits) and ID (same name +
+// date of birth, any document) NEAR-matches only flag for an admin.
+// NEW_MIGRATION=skip-near runs everything but this one (its red proof).
+const NEAR = mig("20261007043626_ban_evasion_phone_and_identity_near_match");
 // open_jobs_browse as its newest definition creates it (the DO / EXECUTE block).
 const VIEW_SRC = (() => {
   const src = mig("20260927012806_recurring_split_days");
@@ -266,6 +271,12 @@ if (MODE !== "skip") {
     for (let i = 0; i < 3; i++) {
       try { await db.exec(STANDING); }
       catch (e) { check(`standing migration applies (run ${i + 1})`, false, e.message); }
+    }
+  }
+  if (MODE !== "skip-near" && MODE !== "skip-standing") {
+    for (let i = 0; i < 3; i++) {
+      try { await db.exec(NEAR); }
+      catch (e) { check(`near-match migration applies (run ${i + 1})`, false, e.message); }
     }
   }
 }
@@ -925,6 +936,73 @@ const surfaces = async () => {
   await db.query(`DELETE FROM public.payout_holds WHERE helper_id = $1`, [LADR]);
   const cc = await tryQ(`INSERT INTO public.payout_transfers (job_id, helper_id, status) VALUES ($1, $2, 'pending')`, [CREWJ, LADR]);
   check("a crew member under an open review cannot claim a transfer, even with no hold row", /payout_held/.test(cc.error ?? ""), cc.error ?? "claimed");
+}
+
+// ── Q1416: near-matches only flag (owner 2026-10-05 / 2026-10-07) ─────────
+{
+  const nearRows = (id, kind) => q(`SELECT original_reason FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = $2`, [id, kind]);
+  // (b) phone: the same LAST 7 digits after normalising.
+  const PH_BANNED = "61616161-0000-4000-8000-000000000061";
+  const PH_NEAR = "62626262-0000-4000-8000-000000000062";
+  const PH_EXACT = "63636363-0000-4000-8000-000000000063";
+  const PH_OTHER = "64646464-0000-4000-8000-000000000064";
+  await newAccount(PH_BANNED, "phone.banned@p.test", "Pat Phone One");
+  await db.query(`UPDATE public.profiles SET phone = '+1 (337) 555-1234' WHERE user_id = $1`, [PH_BANNED]);
+  await adminBan(PH_BANNED, "permanently_banned", "Threats");
+  const kept = await tryQ(`SELECT phone7_sha256 FROM public.retained_bans WHERE email_sha256 = encode(sha256('phone.banned@p.test'::bytea), 'hex')`);
+  check("Q1416 a ban keeps the last-7 phone key (a salted hash)", /^[0-9a-f]{64}$/.test(kept.rows?.[0]?.phone7_sha256 ?? ""), kept.error ?? JSON.stringify(kept.rows));
+
+  await newAccount(PH_NEAR, "phone.near@p.test", "Quinn Near Two");
+  await db.query(`UPDATE public.profiles SET phone = '225-555-1234' WHERE user_id = $1`, [PH_NEAR]);
+  const near = await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_NEAR]);
+  check("Q1416 another area code, same last 7 digits: one admin doubt-check row", near.rows?.length === 1, near.error ?? `${near.rows?.length} rows`);
+  check("Q1416 …and the account is NOT banned and gets no user_bans row",
+    (await status(PH_NEAR)) === "active" && (await activeBans(PH_NEAR)).length === 0);
+
+  await newAccount(PH_EXACT, "phone.exact@p.test", "Robin Exact Three");
+  await db.query(`UPDATE public.profiles SET phone = '3375551234' WHERE user_id = $1`, [PH_EXACT]);
+  check("Q1416 the SAME full number is not a near-match (the exact key bans it elsewhere)",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_EXACT])).rows?.length === 0);
+
+  await newAccount(PH_OTHER, "phone.other@p.test", "Sam Other Four");
+  await db.query(`UPDATE public.profiles SET phone = '337-555-9999' WHERE user_id = $1`, [PH_OTHER]);
+  check("Q1416 a different last 7 digits is no match",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_OTHER])).rows?.length === 0);
+
+  // (a) ID: the same name + date of birth with a different document.
+  const ID_BANNED = "65656565-0000-4000-8000-000000000065";
+  const ID_NEAR = "66666666-0000-4000-8000-000000000066";
+  const ID_EXACT = "67676767-0000-4000-8000-000000000067";
+  const fp = async (doc) => (await one(`SELECT public.identity_fingerprint('Ann', 'Lee', '1990-01-02', $1) AS h`, [doc]))?.h;
+  const flagId = (id, h) => tryQ(`SELECT public.flag_possible_ban_evasion_by_identity($1::uuid, $2) AS r`, [id, h]);
+  const nodoc = await fp(null);
+  await newAccount(ID_BANNED, "id.banned@p.test", "Ann Lee Banned");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_BANNED, await fp("D123")]);
+  const first = await flagId(ID_BANNED, nodoc);
+  check("Q1416 the verification stores the document-free key without flagging a clean account", first.rows?.[0]?.r?.flagged === false, first.error ?? JSON.stringify(first.rows));
+  await adminBan(ID_BANNED, "permanently_banned", "Fraud");
+  const keptId = await tryQ(`SELECT identity_nodoc_sha256 FROM public.retained_bans WHERE email_sha256 = encode(sha256('id.banned@p.test'::bytea), 'hex')`);
+  check("Q1416 a ban keeps the document-free identity key", keptId.rows?.[0]?.identity_nodoc_sha256 === nodoc, keptId.error ?? JSON.stringify(keptId.rows));
+
+  await newAccount(ID_NEAR, "id.near@p.test", "Ann Lee Near");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_NEAR, await fp("X999")]);
+  const nearId = await flagId(ID_NEAR, nodoc);
+  check("Q1416 same name + DOB, another document: flagged for an admin", nearId.rows?.[0]?.r?.flagged === true && (await nearRows(ID_NEAR, "identity_near")).length === 1, nearId.error ?? JSON.stringify(nearId.rows));
+  check("Q1416 …and the account is NOT banned and gets no user_bans row",
+    (await status(ID_NEAR)) === "active" && (await activeBans(ID_NEAR)).length === 0);
+
+  await newAccount(ID_EXACT, "id.exact@p.test", "Ann Lee Exact");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_EXACT, await fp("D123")]);
+  const exactId = await flagId(ID_EXACT, nodoc);
+  check("Q1416 the SAME document is not a near-match (the exact key bans it elsewhere)", exactId.rows?.[0]?.r?.flagged === false && (await nearRows(ID_EXACT, "identity_near")).length === 0, exactId.error ?? JSON.stringify(exactId.rows));
+  const soft = await tryQ(`SELECT count(*)::int n FROM public.identity_soft_fingerprints`);
+  check("Q1416 identity_soft_fingerprints holds salted hashes only", (soft.rows?.[0]?.n ?? 0) >= 3, soft.error ?? "");
+  for (const role of ["anon", "authenticated"]) {
+    const fnp = await tryQ(`SELECT has_function_privilege('${role}', 'public.flag_possible_ban_evasion_by_identity(uuid,text)', 'EXECUTE') ok`);
+    check(`Q1416 ${role} cannot run flag_possible_ban_evasion_by_identity`, fnp.rows?.[0]?.ok === false, fnp.error ?? "");
+    const tbl = await tryQ(`SELECT has_table_privilege('${role}', 'public.identity_soft_fingerprints', 'SELECT') ok`);
+    check(`Q1416 ${role} cannot read identity_soft_fingerprints`, tbl.rows?.[0]?.ok === false, tbl.error ?? "");
+  }
 }
 
 // ── grants ─────────────────────────────────────────────────────────────────

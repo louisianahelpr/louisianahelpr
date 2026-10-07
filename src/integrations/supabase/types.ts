@@ -1698,6 +1698,24 @@ export type Database = {
           },
         ]
       }
+      identity_soft_fingerprints: {
+        Row: {
+          nodoc_sha256: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          nodoc_sha256: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          nodoc_sha256?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -4676,9 +4694,11 @@ export type Database = {
           email_sha256: string
           expires_at: string | null
           id: string
+          identity_nodoc_sha256: string | null
           identity_sha256: string | null
           name_sha256: string | null
           phone_sha256: string | null
+          phone7_sha256: string | null
           reapplied_at: string | null
           reason: string
           retained_at: string
@@ -4692,9 +4712,11 @@ export type Database = {
           email_sha256: string
           expires_at?: string | null
           id?: string
+          identity_nodoc_sha256?: string | null
           identity_sha256?: string | null
           name_sha256?: string | null
           phone_sha256?: string | null
+          phone7_sha256?: string | null
           reapplied_at?: string | null
           reason: string
           retained_at?: string
@@ -4708,9 +4730,11 @@ export type Database = {
           email_sha256?: string
           expires_at?: string | null
           id?: string
+          identity_nodoc_sha256?: string | null
           identity_sha256?: string | null
           name_sha256?: string | null
           phone_sha256?: string | null
+          phone7_sha256?: string | null
           reapplied_at?: string | null
           reason?: string
           retained_at?: string

@@ -294,6 +294,17 @@ const NO_SECTION_STACK = new Set([
  */
 const DATA_ROW_STACKS: Record<string, string> = {
   messages: '[data-testid="row-name"]',
+  // Q437 (2026-10-07, prod-audit 37540426258 / shots run 37577252735): the
+  // job lists are the account's and prod's DATA too. With one open job on
+  // prod, /home and guest /browse showed ONE card (no stack, a correct page),
+  // and poster-e2e's My Posts its empty state; the probe called each "no
+  // section stack". Fewer than two rows is UNMEASURED, never passed.
+  "browse-guest": '[data-testid="job-card"]',
+  dashboard: '[data-testid="job-card"]',
+  "complete-profile": '[data-testid="job-card"]',
+  "job-detail-1": '[data-testid="job-card"]',
+  "job-detail-missing": '[data-testid="job-card"]',
+  posts: '[data-testid="posted-job-card"]',
 };
 
 // Shown able to fail on the original (every Profile tab back on its 16px, a

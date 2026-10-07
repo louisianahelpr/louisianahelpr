@@ -385,7 +385,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           ) : stripeBones ? <EarningsWalletBones /> : null}
 
           {helperId && (
-            <div className="flex">
+            <div className="flex empty:hidden">
               <HelperStreakBadge helperId={helperId} />
             </div>
           )}

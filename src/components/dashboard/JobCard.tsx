@@ -323,7 +323,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       };
 
   return (
-    <div
+    <div data-testid="job-card"
       // h-full: the card is a grid item in both feeds (guest /jobs and the
       // authed browse grid). CSS Grid stretches the ITEM to the tallest in its
       // row, but the card sized to its own content instead, so a two-line title

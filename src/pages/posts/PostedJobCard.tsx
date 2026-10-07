@@ -296,7 +296,7 @@ function PostedJobCardInner({
            just the actions block, so the fallback below and the claim above it
            are answering the same question. */
         <JobCardPersonContext.Provider value={personCtx}>
-        <div ref={cardRef}>
+        <div ref={cardRef} data-testid="posted-job-card">
           <JobCardShell
             // EVERY card expands now, not just the ones with a description or
             // an archived-completed summary. A posted card opens collapsed

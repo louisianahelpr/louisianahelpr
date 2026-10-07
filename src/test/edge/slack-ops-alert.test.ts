@@ -358,6 +358,57 @@ describe("slack-ops-alert — every alert is also an ops alert ledger item (docs
 
 // @mutate supabase/functions/slack-ops-alert/index.ts | if (body.kind !== 'digest' && !body.fields?.['error_logs.id']) { | if (false) {
 
+/**
+ * Q1350: anon can INSERT error_logs (anyone_can_insert_errors), and
+ * send_ops_daily_digest copies each source's latest message (and the source
+ * itself, from the row's own tags) into the digest it posts here. Slack reads
+ * <!channel> and <url|label> in mrkdwn, so a browser-written row could ping
+ * the channel or plant a link dressed as ours.
+ */
+describe("slack-ops-alert — client-written text is escaped before Slack sees it (Q1350)", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEnv();
+    slackPosts = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        slackPosts.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({ ok: true, ts: "1.0" }), { status: 200 });
+      }),
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a digest line carrying a client row's <!channel> and link reaches Slack escaped", async () => {
+    const fn = await load();
+    // The digest's own line shape: format('• *%s* ×%s (%s): %s', source, n, severities, latest).
+    const message = "• *<!channel>* ×1 (error): pay here <https://evil.test|Open in admin> & now";
+    await fn.fetch(call(fn, { kind: "digest", severity: "info", title: "Daily ops digest: 1 event(s) in 24h", message, link: "/admin?view=health" }));
+    expect(slackPosts).toHaveLength(1);
+    const raw = JSON.stringify(slackPosts[0]);
+    expect(raw).not.toContain("<!channel>");
+    expect(raw).not.toContain("<https://evil.test");
+    const escaped = "• *&lt;!channel&gt;* ×1 (error): pay here &lt;https://evil.test|Open in admin&gt; &amp; now";
+    expect(slackPosts[0].blocks[1].text.text).toBe(escaped);
+    expect(slackPosts[0].text).toContain(escaped);
+    // Our own admin link is still a link.
+    expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe("</admin?view=health|Open in admin →>");
+  });
+
+  it("escapes field names and values too", async () => {
+    const fn = await load();
+    await fn.fetch(call(fn, { ...watcherBody(), fields: { "<!here>": "<!channel> & co" } }));
+    expect(slackPosts[0].blocks[2].fields[0].text).toBe("*&lt;!here&gt;:*\n&lt;!channel&gt; &amp; co");
+  });
+});
+
+// @mutate supabase/functions/slack-ops-alert/index.ts | text: { type: 'mrkdwn', text: escapeSlackText(body.message) }, | text: { type: 'mrkdwn', text: body.message },
+// @mutate supabase/functions/slack-ops-alert/index.ts | ${escapeSlackText(String(v))} | ${String(v)}
+// @mutate supabase/functions/slack-ops-alert/index.ts | *${escapeSlackText(k)}:* | *${k}:*
+// @mutate supabase/functions/slack-ops-alert/index.ts | ${escapeSlackText(body.title)} — ${escapeSlackText(body.message)} | ${body.title} — ${body.message}
+
 // ── Shown able to fail ─────────────────────────────────────────────────────
 // The whole Slack-rejection branch. Deleting it makes every refused post
 // (revoked token, renamed channel, bot never invited to the private

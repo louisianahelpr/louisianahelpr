@@ -19,7 +19,7 @@
 // With neither configured this still returns quietly, but now says so in the
 // log rather than vanishing, so a missing alarm is discoverable.
 
-import { effectiveSeverity, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
+import { effectiveSeverity, escapeSlackText, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
 import { recordOpsAlertLedger } from './opsAlertLedger.ts'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
@@ -371,7 +371,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
 
     const blocks: unknown[] = [
       { type: 'header', text: { type: 'plain_text', text: `${icon} ${input.title}`, emoji: true } },
-      { type: 'section', text: { type: 'mrkdwn', text: input.message } },
+      { type: 'section', text: { type: 'mrkdwn', text: escapeSlackText(input.message) } },
     ]
 
     if (fieldEntries.length) {
@@ -379,7 +379,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
         type: 'section',
         fields: fieldEntries.slice(0, 10).map(([k, v]) => ({
           type: 'mrkdwn',
-          text: `*${k}:*\n${String(v)}`,
+          text: `*${escapeSlackText(k)}:*\n${escapeSlackText(String(v))}`,
         })),
       })
     }
@@ -397,7 +397,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
     // ignore it harmlessly.
     const payload = {
       channel,
-      text: `${icon} ${input.title} — ${input.message}`,
+      text: `${icon} ${escapeSlackText(input.title)} — ${escapeSlackText(input.message)}`,
       blocks,
       attachments: [{ color: SEVERITY_COLOR[severity], blocks: [] }],
     }

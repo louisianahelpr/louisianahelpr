@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { JobHelprsChip } from "./JobCardMetaRow";
 
 // Q1409: a booked crew's re-listed spot says how many spots are open.
-// @mutate src/components/job-card/JobCardMetaRow.tsx |   const open = spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null; |   const open = null;
+// @mutate src/components/job-card/JobCardMetaRow.tsx |   return spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null; |   return null;
 // @mutate src/components/job-card/JobCardMetaRow.tsx | {`${open} spot${open === 1 ? "" : "s"} open`} | {`${open}`}
 
 describe("JobHelprsChip", () => {

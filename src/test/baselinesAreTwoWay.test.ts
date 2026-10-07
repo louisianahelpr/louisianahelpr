@@ -195,6 +195,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
     selfReferential: "scripts/vacuity/index.mjs:const staleD =",
     survivingMutations: "scripts/vacuity/index.mjs:const orphanSurvivors =",
     liveSkipGuards: "scripts/vacuity/index.mjs:const staleLiveSkip =",
+    mountWiring: "scripts/vacuity/index.mjs:const staleB =",
   },
 };
 

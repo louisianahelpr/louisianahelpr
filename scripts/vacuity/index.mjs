@@ -133,6 +133,29 @@ if (staleD.length)
       staleD.map((f) => `    ${f}`).join("\n"),
   );
 
+// (b) mount-wiring (Q1074): a component whose tests render it alone while
+// production mounts it from a parent no test renders. Reported since the scan
+// existed but never gated, so the list grew unseen (38 -> 44 by 2026-10-06).
+// Now ratcheted like (a) and (d): a NEW gap fails, and a closed one must leave
+// the baseline (TWO-WAY), so the number can only go down.
+const classB = scan.mount.map((m) => m.module);
+const bBaseline = new Set(baseline.mountWiring ?? []);
+const newB = scan.mount.filter((m) => !bBaseline.has(m.module));
+if (newB.length)
+  fail(
+    `${newB.length} component(s) are tested only in isolation: their tests render them, but nothing that renders their production parent is tested, so a broken mount (wrong props, never rendered) stays green.\n` +
+      `  Test the parent that mounts it (render it and assert this component appears), or remove the dead mount:\n` +
+      newB.map((m) => `    ${c.bold(m.module)}  ${c.dim(`mounted by ${m.parents.join(", ")}`)}`).join("\n"),
+  );
+else ok(`class (b) mount-wiring: ${classB.length} known, 0 new`);
+const staleB = [...bBaseline].filter((f) => !classB.includes(f));
+if (staleB.length)
+  fail(
+    `${BASELINE_PATH}.mountWiring is stale — these are no longer mount-wiring gaps (or no longer exist). ` +
+      `stale baseline entry — remove it (lower the baseline):\n` +
+      staleB.map((f) => `    ${f}`).join("\n"),
+  );
+
 // ── 3. PREFLIGHT ────────────────────────────────────────────────────────────
 const pf = await preflight();
 const pfFail = pf.filter((f) => f.severity === "fail");

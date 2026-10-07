@@ -27,8 +27,8 @@
  * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |       IF v_holder = v_uid THEN\n        v_already := v_already \|\| v_d; |       IF false THEN\n        v_already := v_already \|\| v_d;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WITH me AS (SELECT (SELECT auth.uid()) AS p_uid) |   WITH me AS (SELECT p_parent AS p_uid)
  * @mutate supabase/migrations/20260927012805_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
+ * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
+ * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
  * @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                              AND w.status::text = 'completed' |                              
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id

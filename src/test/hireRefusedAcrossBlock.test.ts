@@ -136,7 +136,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
-// @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN

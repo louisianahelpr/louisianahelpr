@@ -92,14 +92,16 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
       )}
 
       {/* What this connection actually does — gated on `auto_create_cleaning`.
-          str-ical-sync only posts a job inside `if (conn.auto_create_cleaning)`,
+          str-ical-sync only imports a checkout inside `if (conn.auto_create_cleaning)`,
           so a host who connected with the toggle off gets checkout syncing and
-          nothing else; promising auto-created jobs there is a lie they'd only
-          discover by a cleaner never showing up.
+          nothing else; promising cleaning jobs there is a lie they'd only
+          discover by a cleaner never showing up. Q768: it DRAFTS them (a
+          notice per checkout opens Post a Job pre-filled); nothing is posted
+          unpaid.
 
           cleaning_budget is a FLAT per-job budget — AddCalendarForm labels it
-          "Cleaning budget ($)" and str-ical-sync writes it straight to
-          jobs.budget — never an hourly rate, so no "/hr" suffix here. */}
+          "Cleaning budget ($)" and Post a Job pre-fills it as the job's
+          budget — never an hourly rate, so no "/hr" suffix here. */}
       {conn.auto_create_cleaning ? (
         <div
           className="flex items-center gap-2 rounded-ds-md px-3 py-2"
@@ -107,9 +109,9 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         >
           <Home className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Auto-creates <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong>{" "}
+            Drafts <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong>{" "}
             {/* Null budget means the host never set one — say so instead of
-                fabricating an $80 figure str-ical-sync won't use. */}
+                fabricating an $80 figure Post a Job won't use. */}
             {conn.cleaning_budget != null ? (
               <>at <strong style={{ color: "hsl(var(--ink-deep))" }}>${conn.cleaning_budget}</strong></>
             ) : (

@@ -156,13 +156,13 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
       });
 
       if (!res.ok) throw new Error(`Couldn't sync your calendar (${res.status}) — try again?`);
-      const body = await res.json() as { results?: Array<{ jobs_created?: number; error?: string }> };
+      const body = await res.json() as { results?: Array<{ turnovers_imported?: number; error?: string }> };
       const result = body.results?.[0];
 
       if (result?.error) {
         toast.error(`Couldn't sync — ${result.error}`);
       } else {
-        // `jobs_created` was computed by the edge function, returned, and
+        // `jobs_created` (now `turnovers_imported`, Q768) was computed by the edge function, returned, and
         // never read — the one counter this feature has was dead. A sync that
         // posted three cleaning jobs and a sync that found nothing new looked
         // identical: the only on-screen change was the "last synced" line,
@@ -171,10 +171,12 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
         // Bare `toast(...)` on purpose — `toast.success` is a no-op app-wide
         // under toastPolicy, so a confirmation written that way renders
         // nothing at all.
-        const created = result?.jobs_created ?? 0;
+        // Q768: the sync drafts each checkout (a notice opens Post a Job
+        // pre-filled); it never posts an unpaid job, so never say "posted".
+        const imported = result?.turnovers_imported ?? 0;
         toast(
-          created > 0
-            ? `Synced — ${created} cleaning ${created === 1 ? "job" : "jobs"} posted`
+          imported > 0
+            ? `Synced — ${imported} cleaning ${imported === 1 ? "job" : "jobs"} ready to post (see Notifications)`
             : "Synced — no new checkouts to cover",
         );
       }
@@ -408,7 +410,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
             ? `Remove ${connToRemove.property_name || "this calendar"}?`
             : "Remove This Calendar?"
         }
-        description="Helpr will stop syncing it and won't post any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
+        description="Helpr will stop syncing it and won't draft any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
         callout={{
           text: "This can't be undone — you'd have to paste the calendar URL in again to reconnect.",
         }}

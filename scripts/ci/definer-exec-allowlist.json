@@ -95,6 +95,7 @@
     "is_submitted_credential_object(text)": "policy",
     "job_has_crew(uuid)": "reviewed 2026-10-05 (Q14): called by the SECURITY INVOKER trigger enforce_series_columns_client_lock, which runs as the client.",
     "job_is_funded(uuid)": "policy",
+    "link_str_turnover_job(uuid, uuid)": "client",
     "mark_applications_viewed(uuid)": "client",
     "mark_helper_arrival(uuid, numeric, numeric)": "client",
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",

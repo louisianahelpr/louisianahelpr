@@ -1,3 +1,4 @@
+import { linkTurnoverJob } from "./turnoverPrefill";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,6 +160,8 @@ export interface UseJobSubmitParams {
   // covered → funds from prepaid balance, $0 charge; partial → collect the
   // difference via Stripe). Null for an ordinary post.
   giftCardId: string | null;
+  /** Q768: the imported STR turnover this post was opened from (`?turnover=`), linked to the new job. */
+  turnoverId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -207,6 +210,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     materialsNote: materialsNoteInput,
     saveCardForFuture,
     giftCardId,
+    turnoverId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -585,6 +589,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         toast.error("Your job posted, but the pet details didn't attach", {
           description: "Open the job and add them from Edit so your Helpr can see them.",
         });
+      }
+    }
+
+    /* Q768: point the imported STR turnover at this job, so its notice never
+       offers the same checkout again. Best effort: the job exists either way. */
+    if (turnoverId) {
+      try {
+        await linkTurnoverJob(turnoverId, jobData.id);
+      } catch (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkTurnover" }, context: { job_id: jobData.id } });
       }
     }
 

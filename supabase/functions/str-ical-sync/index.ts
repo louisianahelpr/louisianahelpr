@@ -1,6 +1,7 @@
 /**
  * str-ical-sync — fetch iCal feeds for active STR calendar connections,
- * detect guest checkouts in the next 7 days, and auto-create cleaning jobs.
+ * detect guest checkouts in the next 7 days, and import each as a cleaning
+ * job for the host to post (Q768: never a jobs row before payment).
  *
  * Invocation:
  *   - POST with empty body  → syncs ALL active connections
@@ -14,7 +15,7 @@
  * schedule must change it there, not here.
  *
  * Idempotent: str_processed_events has a UNIQUE(connection_id, event_uid)
- * constraint — re-running never duplicates jobs.
+ * constraint — re-running never imports (or notifies about) a checkout twice.
  */
 
 import { serve } from "../_shared/buildStamp.ts";
@@ -164,9 +165,7 @@ serve(async (req) => {
   // Compare DAY to DAY, not day to instant — see ./dates.ts for why today's
   // turnover was dropped on every single run before this.
   const { from: today, to: oneWeekOut } = lookAheadWindow(new Date());
-  const results: Array<{ connection_id: string; jobs_created?: number; error?: string }> = [];
-  /** Every job this run created is unfunded — see the block comment below. */
-  let jobsCreatedUnfunded = 0;
+  const results: Array<{ connection_id: string; turnovers_imported?: number; error?: string }> = [];
 
   for (const conn of connections) {
     try {
@@ -179,7 +178,7 @@ serve(async (req) => {
       const icalText = await fetchIcalFeed(conn.ical_url);
       const events   = parseIcal(icalText);
 
-      let jobsCreated = 0;
+      let turnoversImported = 0;
 
       for (const event of events) {
         const checkoutDate = parseIcalDate(event.dtend);
@@ -200,43 +199,23 @@ serve(async (req) => {
 
         if (existing) continue;
 
-        // Auto-create cleaning job.
-        //
-        // ⚠️ KNOWN PRODUCT GAP — these jobs are created UNFUNDED and no helper
-        // can see them. Counted in `jobs_created_unfunded` below so the number
-        // is visible rather than implied.
-        //
-        // `jobs.payment_status` defaults to 'unpaid' and nothing in this
-        // function funds it. Since migration 20260831010000 all three browse
-        // surfaces (get_ranked_open_jobs, open_jobs_browse, get_open_jobs_for_map)
-        // require payment_status IN ('escrow','payout_pending','released'), so
-        // every job this block creates is invisible to every helper on the
-        // platform. The HOST still sees it — their own surfaces read
-        // public.jobs directly — which is what makes it a trap rather than
-        // merely a no-op: the calendar sync looks like it worked.
-        //
-        // And there is no way out of that state from the UI: a repo-wide search
-        // found no client entry point that funds an already-created job (the
-        // `repay` metadata branch in stripe-webhook never had a caller and was removed, Q343). So
-        // an auto-created cleaning job is currently unfundable by the host AND
-        // unseeable by helpers.
-        //
-        // NOT "fixed" here, deliberately, because both available fixes are
-        // product decisions rather than security ones:
-        //   * making the job visible while unfunded re-opens exactly the hole
-        //     F-1 closed — a helper could accept and do the work with no escrow
-        //     behind it, which is strictly worse than the job not existing;
-        //   * charging the host unattended needs a stored card and explicit
-        //     consent this feature never collected.
-        // The honest options are a funding prompt for the host or not
-        // auto-creating at all. Raised for decision; see the audit report.
+        // Import the turnover for the host to post (Q768, owner 2026-09-27:
+        // "Import as drafts"). This used to INSERT a jobs row here, unpaid:
+        // invisible to every Helpr (browse lists only funded jobs) and, since
+        // Q767 removed Fund & Publish, unfundable by the host. Now the sync
+        // creates NO jobs row: it records the checkout (job_id NULL) and tells
+        // the host, whose tap opens Post a Job pre-filled
+        // (/post-job?turnover=<event id>, useJobFormEffects); they pay like any
+        // new post, and link_str_turnover_job points the event at that job.
+        // src/test/noJobRowBeforePayment.test.ts keeps every edge function
+        // that inserts into jobs to an exact, reasoned list.
         if (conn.auto_create_cleaning) {
           const checkoutDateStr = checkoutDate.toISOString().slice(0, 10);
 
-          // ST-007: claim the event BEFORE creating the job. The cron and the
-          // host's "Sync now" can run one connection at once; both pass the
-          // read above, and only the UNIQUE (connection_id, event_uid) index
-          // decides who owns the event. Job first meant both created one.
+          // ST-007: claim the event first. The cron and the host's "Sync now"
+          // can run one connection at once; both pass the read above, and only
+          // the UNIQUE (connection_id, event_uid) index decides who owns the
+          // event, so only one of them tells the host.
           const { data: claim, error: claimError } = await supabase
             .from('str_processed_events')
             .insert({
@@ -256,36 +235,20 @@ serve(async (req) => {
             continue;
           }
 
-          const propName = conn.property_name ?? 'property';
-          const notes    = conn.cleaning_notes
-            ? conn.cleaning_notes
-            : 'Standard turnover clean — please message for door code.';
-
-          const { data: job, error: jobError } = await supabase
-            .from('jobs')
-            .insert({
-              customer_id:      conn.user_id,
-              category:         'cleaning',
-              // public.jobs CHECKs (Q782): char_length(title) <= 32 and
-              // char_length(description) <= 1000, counted in code points. The
-              // old `STR cleaning — <name> checkout <date>` was 35+ characters
-              // for every property, so every insert would now be refused.
-              title:            Array.from(`STR clean ${checkoutDateStr} ${propName}`).slice(0, 32).join('').trim(),
-              description:      Array.from(`Cleaning needed after guest checkout on ${checkoutDateStr}. ${notes}`).slice(0, 1000).join(''),
-              budget:           conn.cleaning_budget ?? 80,
-              location:         conn.property_address ?? '',
-              date_needed:      checkoutDateStr,
-              status:           'open',
-              is_auto_created:  true,
-              is_flexible_schedule: false,
-            })
-            .select('id')
-            .single();
-
-          if (jobError) {
-            console.error('Failed to create STR cleaning job:', jobError);
-            defects.record(`${conn.id}: cleaning job insert failed: ${jobError.message}`);
-            // Release the claim so the next run retries this checkout.
+          const propName = conn.property_name ?? 'your property';
+          const { error: notifyError } = await supabase.from('notifications').insert({
+            user_id: conn.user_id,
+            title:   'Cleaning job ready to post',
+            message: `Guests check out of ${propName} on ${checkoutDateStr}. Tap to post the cleaning job.`,
+            // A change on the host's own posting work: the same category the
+            // other poster job notices use (auto-expire-jobs).
+            type:    'job_updates',
+            link:    `/post-job?turnover=${claim.id}`,
+          });
+          if (notifyError) {
+            console.error('Failed to notify host of imported turnover:', notifyError);
+            defects.record(`${conn.id}: turnover notice failed for ${event.uid}: ${notifyError.message}`);
+            // Release the claim so the next run retries (and tells them then).
             const { error: releaseError } = await supabase
               .from('str_processed_events')
               .delete()
@@ -296,19 +259,7 @@ serve(async (req) => {
             continue;
           }
 
-          // Link the claim to its job. The claim already blocks a second job;
-          // a failed link only loses the pointer, so it is a defect, not a dup.
-          const { error: peError } = await supabase
-            .from('str_processed_events')
-            .update({ job_id: job.id })
-            .eq('id', claim.id);
-          if (peError) {
-            console.error('Failed to link processed event to job:', peError);
-            defects.record(`${conn.id}: processed-event link failed for ${event.uid}: ${peError.message}`);
-          }
-
-          jobsCreated++;
-          jobsCreatedUnfunded++;
+          turnoversImported++;
         }
       }
 
@@ -318,7 +269,7 @@ serve(async (req) => {
         .update({ last_synced_at: new Date().toISOString(), last_sync_error: null })
         .eq('id', conn.id);
 
-      results.push({ connection_id: conn.id, jobs_created: jobsCreated });
+      results.push({ connection_id: conn.id, turnovers_imported: turnoversImported });
 
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -344,19 +295,7 @@ serve(async (req) => {
   }
 
   // NB: `body` is already taken by the request payload above.
-  // `jobs_created_unfunded` is reported separately from `jobs_created` on
-  // purpose. It is not a defect (nothing is broken at the transport level, and
-  // raising it as one would fire the cron watcher on every normal run until the
-  // product decision lands), but it must not be invisible either: it is the
-  // count of jobs this run created that no helper can see.
-  const summary = { synced: results.length, jobs_created_unfunded: jobsCreatedUnfunded, results };
-  if (jobsCreatedUnfunded > 0) {
-    console.warn(
-      `str-ical-sync created ${jobsCreatedUnfunded} job(s) with payment_status='unpaid'. ` +
-      `The browse RPCs require a funded status, so these are invisible to every helper ` +
-      `and the host has no UI path to fund them. See the block comment in this file.`,
-    );
-  }
+  const summary = { synced: results.length, results };
 
   // The cron path answers with the shared convention: `fn` so
   // sweep_silent_cron_failures / sweep_cron_http_failures can attribute the

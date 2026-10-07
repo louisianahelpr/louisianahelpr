@@ -36,7 +36,7 @@ const sql = readdirSync(MIG)
 /** Log-shaped tables deliberately never pruned by age, each with why. */
 const NO_AGE_PRUNE: Record<string, string> = {
   admin_audit_log: "The record of what admins did to accounts and money; kept for the life of the platform.",
-  str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync create the job again. Rows go with their connection (ON DELETE CASCADE).",
+  str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync import the checkout (and notify the host) again. Rows go with their connection (ON DELETE CASCADE).",
   cron_catchup_runs: "One claim row per missed cron slot that was re-run or alerted (5 rows on 2026-09-25); run_missed_cron_catch_up reads it to never act on a slot twice.",
 };
 

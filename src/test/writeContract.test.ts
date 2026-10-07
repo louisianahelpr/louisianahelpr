@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 // Two halves, two mutations. The first is a real bad write in src/ — the
 // defect class this guard exists for. The second disables the engine's
@@ -7,6 +8,8 @@ import { join } from "node:path";
 // @mutate src/pages/home/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
 // @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
 // @mutate scripts/audit/write-contract.mjs | if (!col) { reject("unknown_column" | if (!col) { if (false) reject("unknown_column"
+// @mutate scripts/audit/write-contract.mjs | if (by) warn("rpc_pending" | if (false) warn("rpc_pending"
+// @mutate scripts/audit/write-contract.mjs | if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none; | if (false) return none;
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
@@ -118,6 +121,78 @@ describe("write contract against the prod schema snapshot", () => {
     });
   });
 });
+describe("pending vs missing: a migration prod had not applied is told apart from a missing object (Q1072)", () => {
+  const migrationsDir = join(__dirname, "../../supabase/migrations");
+  const files = (readdirSync(migrationsDir) as string[]).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
+  // The newest migration that creates a public function the client calls.
+  const called = new Set(report.writes.filter((w: any) => w.kind === "rpc").map((w: any) => w.target as string));
+  let pick: { file: string; fn: string } | null = null;
+  for (const f of [...files].reverse()) {
+    const sql = readFileSync(join(migrationsDir, f), "utf8");
+    for (const m of sql.matchAll(/create\s+or\s+replace\s+function\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
+      if (called.has(m[1].toLowerCase())) { pick = { file: f, fn: m[1].toLowerCase() }; break; }
+    }
+    if (pick) break;
+  }
+  /** Prod as it was just before `pick.file` ran: that migration and every later one pending. */
+  const before = (): Snapshot & { appliedMigrations?: any } => {
+    const s: any = clone();
+    const applied = files.filter((f) => f < pick!.file);
+    s.appliedMigrations = { latest: applied[applied.length - 1].slice(0, 14), count: applied.length };
+    delete s.functions[pick!.fn];
+    return s;
+  };
+  const codes = (s: any) => {
+    const r = contract.runContract({ snapshot: s });
+    return { rejects: new Set(r.rejects.map((x: any) => `${x.code}:${x.target}`)), warns: new Set(r.warnings.map((x: any) => `${x.code}:${x.target}`)) };
+  };
+
+  it("the committed snapshot carries appliedMigrations, consistent with supabase/migrations", () => {
+    const snap = JSON.parse(readFileSync(join(__dirname, "../../scripts/audit/write-contract.snapshot.json"), "utf8"));
+    expect(typeof snap.appliedMigrations?.latest).toBe("string");
+    expect(snap.appliedMigrations.count).toBeGreaterThan(900); // 1010 on 2026-10-06
+    expect(files.filter((f) => f.slice(0, 14) <= snap.appliedMigrations.latest).length).toBe(snap.appliedMigrations.count);
+    expect(contract.pendingDefinitions(snap).exact).toBe(true);
+  });
+
+  it("an RPC created by a migration above `latest` is a pending warning, not a reject", () => {
+    expect(pick).not.toBeNull();
+    const c = codes(before());
+    expect(c.warns.has(`rpc_pending:${pick!.fn}`)).toBe(true);
+    expect(c.rejects.has(`rpc_missing:${pick!.fn}`)).toBe(false);
+  });
+
+  it("the same missing RPC is still a reject when no pending migration creates it", () => {
+    const s: any = clone();
+    delete s.functions[pick!.fn];
+    // Fully applied: nothing is pending, so the gap is a real missing RPC.
+    expect(codes(s).rejects.has(`rpc_missing:${pick!.fn}`)).toBe(true);
+  });
+
+  it("fails closed: no metadata, or a count that does not add up, never downgrades a missing RPC", () => {
+    const noMeta: any = before();
+    delete noMeta.appliedMigrations;
+    expect(codes(noMeta).rejects.has(`rpc_missing:${pick!.fn}`)).toBe(true);
+    const wrongCount: any = before();
+    wrongCount.appliedMigrations.count -= 1;
+    expect(codes(wrongCount).rejects.has(`rpc_missing:${pick!.fn}`)).toBe(true);
+  });
+
+  it("a table created by a pending migration is a pending warning, and a commented-out CREATE is not a definition", () => {
+    const tableWrite = report.writes.find((w: any) => w.kind !== "rpc");
+    const dir = mkdtempSync(join(tmpdir(), "wc-pending-"));
+    writeFileSync(join(dir, "20990101000000_a.sql"), `create table if not exists public.${tableWrite.target} (id uuid);\n-- create or replace function public.ghost_fn(\n`);
+    const s: any = clone();
+    s.appliedMigrations = { latest: "20990100000000", count: 0 };
+    delete s.tables[tableWrite.target];
+    const p = contract.pendingDefinitions(s, dir);
+    expect(p.tables.get(tableWrite.target)).toBe("20990101000000_a.sql");
+    expect(p.functions.has("ghost_fn")).toBe(false);
+    const problems = contract.checkWrite(tableWrite, s, p).map((x: any) => x.code);
+    expect(problems).toEqual(["table_pending"]);
+  });
+});
+
 describe("the snapshot records column-level SELECT grants (Q124)", () => {
   it("the refresh query collects SELECT column grants, and jobs has them", () => {
     const sql = readFileSync(join(__dirname, "../../scripts/audit/write-contract.sql"), "utf8");

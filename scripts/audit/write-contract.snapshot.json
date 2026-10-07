@@ -1,4 +1,8 @@
 {
+ "appliedMigrations": {
+  "count": 1010,
+  "latest": "20261006200446"
+ },
  "functions": {
   "accept_application": [
    {
@@ -896,6 +900,17 @@
     "nargs": 3
    }
   ],
+  "crew_spots_open": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "cron_catchup_last_slot": [
    {
     "anon": false,
@@ -1597,6 +1612,19 @@
     "nargs": 4
    }
   ],
+  "enforce_retained_payment_ban": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_kind",
+     "p_stripe_fingerprint"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "enforce_review_validity": [
    {
     "anon": false,
@@ -1725,6 +1753,24 @@
    }
   ],
   "fill_application_job_point_on_first_geocode": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "finish_confirmed_ban_review_on_unban": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "flag_possible_ban_evasion_by_name": [
    {
     "anon": false,
     "args": [],
@@ -2700,6 +2746,30 @@
     "nargs": 0
    }
   ],
+  "kick_payout_schedule_sync": [
+   {
+    "anon": false,
+    "args": [
+     "p_helper_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "lift_ban_settlement_review": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_admin_id",
+     "p_ban_status"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 3
+   }
+  ],
   "lock_applications_owner_columns": [
    {
     "anon": false,
@@ -2928,6 +2998,17 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "normalize_name_for_ban": [
+   {
+    "anon": false,
+    "args": [
+     "p_name"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "normalize_phone_for_ban": [
@@ -3520,6 +3601,15 @@
     "nargs": 1
    }
   ],
+  "queue_payout_schedule_freeze": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "rate_limit_hit": [
    {
     "anon": false,
@@ -3660,11 +3750,12 @@
     "args": [
      "p_credit_id",
      "p_job_id",
-     "p_user_id"
+     "p_user_id",
+     "p_retired_session"
     ],
     "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 3
+    "nargdefaults": 1,
+    "nargs": 4
    }
   ],
   "refund_monthly_free_boost": [
@@ -3680,6 +3771,24 @@
    }
   ],
   "refuse_payout_claim_while_held": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "refuse_payout_pending_during_ban_review": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "refuse_unban_during_ban_review": [
    {
     "anon": false,
     "args": [],
@@ -4670,6 +4779,24 @@
     "nargs": 0
    }
   ],
+  "sweep_open_ban_settlement_reviews": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_payout_schedule_freezes": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "sweep_release_last_chance": [
    {
     "anon": false,
@@ -5549,6 +5676,224 @@
     "before:insert|update",
     "before:insert|update|delete",
     "before:update"
+   ]
+  },
+  "ban_evasion_matches": {
+   "checks": [
+    "CHECK ((matched_on = ANY (ARRAY['card'::text, 'bank'::text, 'name'::text, 'email'::text, 'phone'::text, 'identity'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "auto_banned": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "cleared_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "match_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "matched_on": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "original_ban_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "original_expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "original_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "original_recorded_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "resolved": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "retained_ban_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "ban_evasion_matches_admin_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "ban_settlement_queue": {
+   "checks": [
+    "CHECK ((matched_on = ANY (ARRAY['card'::text, 'bank'::text])))",
+    "CHECK ((review_state = ANY (ARRAY['open'::text, 'confirmed'::text, 'lifted'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "alerted_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "decided_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "decided_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "matched_on": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "original_ban_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "original_expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "review_state": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "ban_settlement_reviews_admin_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
    ]
   },
   "cancellation_fee_transfers": {
@@ -12988,6 +13333,13 @@
      "notNull": false,
      "type": "integer"
     },
+    "crew_spots_open": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
     "customer_id": {
      "enum": null,
      "generated": false,
@@ -13656,6 +14008,57 @@
     "before:insert|update|delete"
    ]
   },
+  "payment_fingerprints": {
+   "checks": [
+    "CHECK ((fingerprint_kind = ANY (ARRAY['card'::text, 'bank'::text])))",
+    "CHECK ((fingerprint_sha256 ~ '^[0-9a-f]{64}$'::text))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "fingerprint_kind": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "fingerprint_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "first_seen_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "last_seen_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "payment_refunds": {
    "checks": [
     "CHECK ((amount_cents >= 0))"
@@ -13864,6 +14267,113 @@
     {
      "cmd": "SELECT",
      "name": "payout_holds_admin_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "after:insert|update|delete",
+    "before:insert|update|delete"
+   ]
+  },
+  "payout_schedule_freezes": {
+   "checks": [
+    "CHECK ((attempts >= 0))",
+    "CHECK ((freeze_state = ANY (ARRAY['pause_requested'::text, 'paused'::text, 'restore_requested'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "alerted_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "attempts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "freeze_error": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "freeze_state": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "prior_schedule": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "jsonb"
+    },
+    "requested_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "requested_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "stripe_account_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "verified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "payout_schedule_freezes_admin_read",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"
@@ -15473,6 +15983,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:insert|update",
     "after:update",
     "before:insert",
     "before:insert|update",
@@ -16231,6 +16742,20 @@
      "notNull": false,
      "type": "text"
     },
+    "bank_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text[]"
+    },
+    "card_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text[]"
+    },
     "email_sha256": {
      "enum": null,
      "generated": false,
@@ -16253,6 +16778,13 @@
      "type": "uuid"
     },
     "identity_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "name_sha256": {
      "enum": null,
      "generated": false,
      "hasDefault": false,

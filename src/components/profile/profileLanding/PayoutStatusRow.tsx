@@ -98,7 +98,9 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
     >
       <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
       <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug psr-body">
-        <span className="font-semibold">Finish setting up</span> — add your payout account to accept jobs and get paid.
+        {/* Accept-first (owner, 2026-10-07, Q1399): payouts are how you get
+            PAID; they never stand between a Helpr and accepting a job. */}
+        <span className="font-semibold">Finish setting up</span> — add your payout account so you can get paid.
       </p>
       <span
         className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5 psr-action"

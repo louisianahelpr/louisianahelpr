@@ -72,6 +72,7 @@ export function HelperTrackerPanel({
   initialTracking,
   onCantMakeIt,
   readOnly = false,
+  hideConfirmNotYetOpen = false,
 }: {
   app: AppliedApp;
   job: Job;
@@ -86,6 +87,9 @@ export function HelperTrackerPanel({
    *  the poster holds the job, so the tracker shows where it stopped and offers
    *  no next step — the same read-only rail the poster's card mounts. */
   readOnly?: boolean;
+  /** The section draws "until confirmation opens" in its own CountdownRows
+   *  (ConfirmedSection, owner 2026-10-07, Q1399). */
+  hideConfirmNotYetOpen?: boolean;
 }) {
   const dayOfConfirmed = helperDayOfConfirmation({
     helperConfirmedAt: job.helper_confirmed_at,
@@ -143,6 +147,7 @@ export function HelperTrackerPanel({
       jobStatus={job.status}
       helperOnTheWayAt={job.helper_on_the_way_at}
       onCantMakeIt={onCantMakeIt}
+      hideNotYetOpen={hideConfirmNotYetOpen}
     />
   );
 

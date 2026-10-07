@@ -1,4 +1,5 @@
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
+import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { CollapsedStartClock } from "@/components/job-card/CollapsedStartClock";
 import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
@@ -56,10 +57,13 @@ export function HelperCollapsedStrip({
   /** No strip on an offer: OfferedActions is its statement and carries its one clock (owner, 2026-10-05). */
   hideStatus?: boolean;
 }) {
-  const clock = showStartClock ? <CollapsedStartClock job={job} /> : null;
+  // A crew member's strip has no clock rows of its own yet, so it keeps the
+  // start pill above it. Everyone else: every time at the bottom, under the
+  // status line, soonest first, one format (owner, 2026-10-07, Q1399).
+  const clock = showStartClock && (isCrewLive || hideStatus) ? <CollapsedStartClock job={job} /> : null;
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
-    : <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />;
+    : <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
   return <>{clock}{strip}</>;
 }

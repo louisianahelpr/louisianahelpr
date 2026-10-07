@@ -69,6 +69,7 @@ export function JobConfirmation({
   onCantMakeIt,
   variant = "card",
   embedded = false,
+  hideNotYetOpen = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -111,6 +112,12 @@ export function JobConfirmation({
    *  JobCardShell). The heading, date and chips stay; only the box goes.
    *  `src/test/noNestedTrackerCard.test.ts` enforces it at every call site. */
   embedded?: boolean;
+  /** The card draws the "Confirmation opens in" clock itself, as a row of its
+   *  CountdownRows beside "until the job starts" (owner, 2026-10-07, Q1399:
+   *  every clock on the card in one place, one format, soonest first). See
+   *  confirmationOpensClock in
+   *  src/components/job-card/confirmationOpensClock.ts. */
+  hideNotYetOpen?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -175,6 +182,7 @@ export function JobConfirmation({
      Same card, same two status chips, no button — plus the clock the helpr was
      missing. The 24-hour window itself is unchanged; it just says so now. */
   if (isLiveJob && hoursUntilJob > 24) {
+    if (hideNotYetOpen) return null;
     // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the
     // two DST days, and the sweep uses the helper.
     const opensAt = new Date(confirmOpensMs(dateNeeded));

@@ -189,7 +189,7 @@ const MEASURE_NOTICE = `(() => {
   const dlg = dialogs[dialogs.length - 1];
   if (!dlg) return { error: "dialog not open" };
   const notice = [...dlg.querySelectorAll('[role="status"]')]
-    .find((n) => /can't accept an offer yet/i.test(n.textContent || ""));
+    .find((n) => /You can apply and accept offers/i.test(n.textContent || ""));
   if (!notice) return { error: "payout-gate notice not found" };
   const btn = [...dlg.querySelectorAll("button")]
     .find((b) => /^(apply now|book now)$/i.test((b.textContent || "").trim()));

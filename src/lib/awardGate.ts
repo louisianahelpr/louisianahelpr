@@ -163,9 +163,11 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return {
-        title: "Set Up Payouts to Take This Job",
+        // Accept-first (owner, 2026-10-06/07, Q1399): the accept is never the
+        // barrier; the job is fully theirs once payouts are set up.
+        title: "Set Up Payouts to Get Paid",
         body:
-          "Helpr pays through Stripe, so your payout account has to exist before a job can become yours. It takes about two minutes, and you only do it once.",
+          "Helpr pays through Stripe, so this job is fully yours once your payout account is set up. It takes about two minutes, and you only do it once.",
         ctaLabel: "Set Up Payouts",
         collect: "eventually_due",
       };
@@ -173,7 +175,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
       return {
         title: "Finish Your Stripe ID Check",
         body:
-          "Stripe still needs to confirm your ID before you can accept a job. It's part of the same Stripe setup, and you only do it once.",
+          "Stripe still needs to confirm your ID, and the job is fully yours once it does. It's part of the same Stripe setup, and you only do it once.",
         ctaLabel: "Finish Stripe Setup",
         // eventually_due: the ID gate reads every bucket (stripeIdentityVerified),
         // so a currently_due link has nothing to ask and sends them straight
@@ -231,17 +233,17 @@ export function helperApplyBlockNotice(
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return {
-        headline: "You can apply — but you can't accept an offer yet.",
+        headline: "You can apply and accept offers. Set up payouts to get paid.",
         body:
-          "Helpr pays through Stripe, so you'll need a payout account before you can accept a job you're offered. It takes about two minutes, once.",
+          "Helpr pays through Stripe. If you accept an offer first, the job becomes yours as soon as your payout account is set up. It takes about two minutes, once.",
         ctaLabel: "Set Up Payouts",
         href: "/profile?tab=payment",
       };
     case "helper_identity_unverified":
       return {
-        headline: "You can apply — but you can't accept an offer yet.",
+        headline: "You can apply and accept offers. Stripe still needs your ID.",
         body:
-          "Stripe still needs to confirm your ID before you can accept a job you're offered. Finish what Stripe is asking for and this clears on its own.",
+          "If you accept an offer first, the job becomes yours as soon as Stripe confirms your ID. Finish what Stripe is asking for and this clears on its own.",
         ctaLabel: "Finish Stripe Setup",
         href: "/profile?tab=payment",
       };
@@ -260,13 +262,37 @@ export function acceptPendingCopy(missing: readonly AcceptMissing[]): AwardBlock
     missing.includes("stripe_id") ? "finish your Stripe ID check" : null,
   ].filter(Boolean) as string[];
   const todo = steps.length === 2 ? `${steps[0]} and ${steps[1]}` : steps[0] ?? "finish your Stripe setup";
+  // NOT ACCEPTED YET, said in the first words (owner, 2026-10-07, Q1399): the
+  // job is not theirs until the setup is done, so the pop-up must not read as
+  // a finished accept.
   return {
     title: "Thanks for Accepting!",
-    body: `To fully accept, ${todo}. As soon as ${steps.length === 2 ? "both are" : "that's"} done, your accept goes through and we let the person who posted the job know.`,
+    body: `You're not booked yet. To fully accept, ${todo}. As soon as ${steps.length === 2 ? "both are" : "that's"} done, your accept goes through and we let the person who posted the job know.`,
     ctaLabel: "Finish Stripe Setup",
     // The ID step is only clearable by collecting eventually_due (see the
     // identity case in awardBlockCopy).
     collect: "eventually_due",
+  };
+}
+
+/**
+ * The Helpr's offer card after an Accept that waits on setup (owner,
+ * 2026-10-07, Q1399: "make it clear the job is NOT fully accepted until those
+ * are done ... on the card afterwards"). Names only what is still missing,
+ * from the same profile mirror of helper_accept_missing as the pop-up.
+ */
+export function pendingAcceptStatus(missing: readonly AcceptMissing[]): { headline: string; body: string } {
+  const what =
+    missing.includes("payout_setup") && missing.includes("stripe_id")
+      ? "your payout setup and Stripe ID check"
+      : missing.includes("stripe_id")
+        ? "your Stripe ID check"
+        : missing.includes("payout_setup")
+          ? "your payout setup"
+          : "Stripe to finish your setup";
+  return {
+    headline: `Not accepted yet: waiting on ${what}.`,
+    body: "The job isn't yours until that's done. Then your accept goes through and we tell the person who posted it. Tap Accept Job to see what's left.",
   };
 }
 
@@ -285,21 +311,5 @@ export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: s
       return `Stripe hasn't finished checking ${who}'s ID yet, so they can't be hired yet.`;
     case "helper_unknown":
       return `We couldn't check ${who}'s verification status — give it a moment and try again.`;
-  }
-}
-
-/**
- * The offer card's one line under its primary when the accept would be
- * refused (owner, 2026-10-05: show it up front, not after the tap). Short on
- * purpose: the full explanation is the gate dialog the same tap opens.
- */
-export function acceptGateLine(reason: AwardBlockReason): string {
-  switch (reason) {
-    case "helper_payout_setup_incomplete":
-      return "Set up payouts with Stripe to accept this job. It takes about two minutes, once.";
-    case "helper_identity_unverified":
-      return "Stripe still needs to confirm your ID before you can accept this job.";
-    case "helper_unknown":
-      return "We couldn't read your payout status. Open payout settings to check it.";
   }
 }

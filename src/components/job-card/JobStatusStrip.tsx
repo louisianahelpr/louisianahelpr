@@ -1,6 +1,7 @@
 import { AlertTriangle, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import type { JobStatusLine, JobStatusTone } from "./jobStatusLine";
 import DeadlineCountdown from "./DeadlineCountdown";
+import { CountdownRows, type CountdownClock } from "./CountdownRows";
 
 /**
  * THE COLLAPSED CARD'S STATUS LINE — one strip, on both tabs.
@@ -96,7 +97,19 @@ const TONE: Record<JobStatusTone, ToneSkin> = {
   over: { surface: "--olivewood", ink: "--olivewood", icon: XCircle },
 };
 
-export function JobStatusStrip({ line }: { line: JobStatusLine }) {
+export function JobStatusStrip({
+  line,
+  extraClocks,
+}: {
+  line: JobStatusLine;
+  /**
+   * The card's other clocks ("until the job starts", "until confirmation
+   * opens"), drawn as rows under the state's own clock (owner, 2026-10-07,
+   * Q1399: on a collapsed card every time goes at the bottom, under the
+   * status line, the one ending first listed first, in one format).
+   */
+  extraClocks?: readonly CountdownClock[] | null;
+}) {
   const skin = TONE[line.tone];
   const Icon = skin.icon;
   return (
@@ -154,7 +167,19 @@ export function JobStatusStrip({ line }: { line: JobStatusLine }) {
       )}
       {/* The state's clock, on its own row under the sentence: the same
           countdown the expanded tracker shows, in its bare form. */}
-      {line.deadline && (
+      {extraClocks && extraClocks.length > 0 ? (
+        <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
+          <CountdownRows
+            variant="bare"
+            clocks={[
+              ...(line.deadline
+                ? [{ id: "deadline", at: line.deadline.at, text: line.deadline.consequenceText, expiredText: line.deadline.expiredText }]
+                : []),
+              ...extraClocks,
+            ]}
+          />
+        </span>
+      ) : line.deadline && (
         <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
           <DeadlineCountdown
             compact

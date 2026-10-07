@@ -19,40 +19,31 @@ const when = (date: string, time: string | null) =>
  * nothing moves until it is accepted; a request unanswered by the original
  * start expires. The same control on both parties' cards: a person, not a role.
  */
-export function ScheduleChangeControl({
-  jobId,
-  jobTitle,
-  userId,
-  dateNeeded,
-  startTime,
-}: {
-  jobId: string;
-  jobTitle: string | null;
-  userId: string;
-  dateNeeded: string;
-  startTime: string | null;
-}) {
-  const [asking, setAsking] = useState(false);
-  const [date, setDate] = useState(dateNeeded);
-  const [time, setTime] = useState((startTime ?? "").slice(0, 5));
-  const [busy, setBusy] = useState(false);
-  const queryClient = useQueryClient();
-  const key = ["schedule-change", jobId];
-
-  const { data: pending } = useQuery({
-    queryKey: key,
+/** The job's open date-change request, shared by every reader of it (one cache key). */
+export function usePendingScheduleChange(jobId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["schedule-change", jobId],
+    enabled,
     staleTime: 30_000,
     queryFn: () => fetchPendingScheduleChange(jobId),
   });
+}
 
-  const settle = async () => {
+/** Re-read the request and both activity lists after a change to it. */
+function useSettleScheduleChange(jobId: string, userId: string) {
+  const queryClient = useQueryClient();
+  return async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: key }),
+      queryClient.invalidateQueries({ queryKey: ["schedule-change", jobId] }),
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.posted(userId) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.applied(userId) }),
     ]);
   };
+}
 
+function useScheduleChangeAct(jobId: string, userId: string) {
+  const [busy, setBusy] = useState(false);
+  const settle = useSettleScheduleChange(jobId, userId);
   const act = async (fn: () => Promise<string>) => {
     setBusy(true);
     try {
@@ -65,14 +56,107 @@ export function ScheduleChangeControl({
       setBusy(false);
     }
   };
+  return { busy, act };
+}
 
+/**
+ * The "new date or time" form, on its own so a card can open it from a button
+ * in its action row (owner, 2026-10-07, Q1399: on the poster's card the ask
+ * is a button left of Message) as well as from the link below.
+ */
+export function ScheduleChangeAskDialog({
+  open,
+  onOpenChange,
+  jobId,
+  jobTitle,
+  userId,
+  dateNeeded,
+  startTime,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  jobId: string;
+  jobTitle: string | null;
+  userId: string;
+  dateNeeded: string;
+  startTime: string | null;
+}) {
+  const [date, setDate] = useState(dateNeeded);
+  const [time, setTime] = useState((startTime ?? "").slice(0, 5));
+  const { busy, act } = useScheduleChangeAct(jobId, userId);
   // The form opens on the job's own date and time; sending that unchanged is
   // refused by the RPC (schedule_change_same), so the button waits for a
   // change instead of offering a press that can only fail (press run
   // 36297439015, Q772).
   const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5);
+  return (
+      <BrandConfirmDialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!busy) onOpenChange(next);
+        }}
+        title={`New date or time for "${jobTitle ?? "this job"}"`}
+        description="The other person has to accept before anything changes. If they decline or don't answer before the current start, the job stays as it is and the usual cancellation rules apply. Pay doesn't change."
+        primaryLabel={busy ? "Sending…" : "Send request"}
+        primaryDisabled={busy || !date || unchanged}
+        onPrimary={(e) => {
+          e.preventDefault();
+          void act(async () => {
+            await requestScheduleChange(jobId, date, time ? `${time}:00` : null);
+            onOpenChange(false);
+            return "Request sent. Nothing changes unless they accept.";
+          });
+        }}
+        secondaryLabel="Cancel"
+      >
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
+          <label className="space-y-1 text-ds-12 text-foreground">
+            <span className="block font-semibold">Date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
+            />
+          </label>
+          <label className="space-y-1 text-ds-12 text-foreground">
+            <span className="block font-semibold">Start time</span>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
+            />
+          </label>
+        </div>
+      </BrandConfirmDialog>
+  );
+}
+
+export function ScheduleChangeControl({
+  jobId,
+  jobTitle,
+  userId,
+  dateNeeded,
+  startTime,
+  hideAsk = false,
+}: {
+  jobId: string;
+  jobTitle: string | null;
+  userId: string;
+  dateNeeded: string;
+  startTime: string | null;
+  /** The card draws the ask as a button in its own action row (the poster's
+   *  ScheduledStep), so this block shows only the request's state. */
+  hideAsk?: boolean;
+}) {
+  const [asking, setAsking] = useState(false);
+  const { busy, act } = useScheduleChangeAct(jobId, userId);
+  const { data: pending } = usePendingScheduleChange(jobId);
+
   const askedOfMe = !!pending && pending.responder_id === userId;
   const askedByMe = !!pending && pending.requested_by === userId;
+  if (hideAsk && !pending) return null;
 
   return (
     <div className="px-4 py-2 border-t border-border/20 space-y-2" data-schedule-change onClick={(e) => e.stopPropagation()}>
@@ -128,7 +212,7 @@ export function ScheduleChangeControl({
         </p>
       )}
 
-      {!askedOfMe && (
+      {!askedOfMe && !hideAsk && (
         <button
           type="button"
           onClick={() => setAsking(true)}
@@ -139,46 +223,17 @@ export function ScheduleChangeControl({
         </button>
       )}
 
-      <BrandConfirmDialog
-        open={asking}
-        onOpenChange={(next) => {
-          if (!busy) setAsking(next);
-        }}
-        title={`New date or time for "${jobTitle ?? "this job"}"`}
-        description="The other person has to accept before anything changes. If they decline or don't answer before the current start, the job stays as it is and the usual cancellation rules apply. Pay doesn't change."
-        primaryLabel={busy ? "Sending…" : "Send request"}
-        primaryDisabled={busy || !date || unchanged}
-        onPrimary={(e) => {
-          e.preventDefault();
-          void act(async () => {
-            await requestScheduleChange(jobId, date, time ? `${time}:00` : null);
-            setAsking(false);
-            return "Request sent. Nothing changes unless they accept.";
-          });
-        }}
-        secondaryLabel="Cancel"
-      >
-        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
-          <label className="space-y-1 text-ds-12 text-foreground">
-            <span className="block font-semibold">Date</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
-            />
-          </label>
-          <label className="space-y-1 text-ds-12 text-foreground">
-            <span className="block font-semibold">Start time</span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
-            />
-          </label>
-        </div>
-      </BrandConfirmDialog>
+      {!hideAsk && (
+        <ScheduleChangeAskDialog
+          open={asking}
+          onOpenChange={setAsking}
+          jobId={jobId}
+          jobTitle={jobTitle}
+          userId={userId}
+          dateNeeded={dateNeeded}
+          startTime={startTime}
+        />
+      )}
     </div>
   );
 }

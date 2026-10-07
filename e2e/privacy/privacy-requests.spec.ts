@@ -29,6 +29,7 @@ import {
 } from "../../scripts/lib/privacyJourney.mjs";
 import { fitJobTitle, runTag } from "../../scripts/lib/jobTextBounds.mjs";
 import { mintAdminSession, playwrightTransport } from "../../scripts/lib/adminSession.mjs";
+import { srFetch } from "../serviceRoleFetch";
 
 /**
  * PRIVACY REQUESTS, END TO END, ON PROD (docs/OPEN.md Q70). Monthly:
@@ -87,7 +88,9 @@ function readServiceEnv(): { url: string; key: string } | null {
 }
 
 const svc = readServiceEnv();
-const SR: Record<string, string> = svc ? { apikey: svc.key, Authorization: `Bearer ${svc.key}`, "Content-Type": "application/json" } : {};
+/** Every service-role call goes through node fetch, never a traced Playwright request (Q1421). */
+const srReq = (method: "GET" | "POST" | "PATCH" | "DELETE", url: string, opts: { extra?: Record<string, string>; data?: unknown } = {}) =>
+  srFetch(svc?.key ?? "", method, url, opts);
 const RUN_TAG = `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`.slice(0, 16);
 const RUN_STARTED = Date.now();
 const EMAIL = disposableEmail(RUN_TAG);
@@ -96,28 +99,23 @@ const MARK = `${E2E_TITLE_MARKER} privacy-journey ${RUN_TAG}`;
 
 test.describe.configure({ mode: "serial" });
 
-async function srGet<T = unknown>(api: APIRequestContext, path: string): Promise<T> {
-  const r = await api.get(`${SUPABASE_URL}/rest/v1/${path}`, { headers: SR });
+async function srGet<T = unknown>(_api: APIRequestContext, path: string): Promise<T> {
+  const r = await srReq("GET", `${SUPABASE_URL}/rest/v1/${path}`);
   expect(r.ok(), `GET ${path.split("?")[0]} -> ${r.status()} ${await r.text().catch(() => "")}`).toBe(true);
   return (await r.json()) as T;
 }
 
 /** Service-role write returning `select` (never RETURNING *: src/test/restRepresentationNeedsSelect). */
-async function srWrite(api: APIRequestContext, method: "POST" | "PATCH", table: string, filter: string, data: unknown, select = "id") {
+async function srWrite(_api: APIRequestContext, method: "POST" | "PATCH", table: string, filter: string, data: unknown, select = "id") {
   const q = [filter, `select=${select}`].filter(Boolean).join("&");
-  const r = await api.fetch(`${SUPABASE_URL}/rest/v1/${table}?${q}`, {
-    method,
-    headers: { ...SR, Prefer: "return=representation" },
-    data: JSON.stringify(data),
-  });
+  const r = await srReq(method, `${SUPABASE_URL}/rest/v1/${table}?${q}`, { extra: { Prefer: "return=representation" }, data });
   expect(r.ok(), `${method} ${table} -> ${r.status()} ${await r.text().catch(() => "")}`).toBe(true);
   return (await r.json()) as Record<string, unknown>[];
 }
 
 /** Every object under <uid>/ in a bucket, recursively (folders have id null). */
 async function listObjects(api: APIRequestContext, bucket: string, prefix: string): Promise<string[]> {
-  const r = await api.post(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
-    headers: SR,
+  const r = await srReq("POST", `${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
     data: { prefix, limit: 1000, offset: 0 },
   });
   if (r.status() === 400 || r.status() === 404) {
@@ -168,7 +166,7 @@ async function mintSession(api: APIRequestContext, email: string): Promise<Sessi
 
 /** Fresh read of everything assertDisposable needs, then the check itself. */
 async function requireDisposable(api: APIRequestContext, userId: string) {
-  const r = await api.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+  const r = await srReq("GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
   expect(r.ok(), `auth user ${userId}: ${r.status()}`).toBe(true);
   const user = (await r.json()) as { email?: string; created_at?: string };
   const [profile] = await srGet<{ is_seed: boolean | null }[]>(api, `profiles?user_id=eq.${userId}&select=is_seed`);
@@ -199,8 +197,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
 
   await test.step("create the disposable seed account", async () => {
     // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
-    const r = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      headers: SR,
+    const r = await srReq("POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
       data: { email: EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Journey" } },
     });
     expect(r.ok(), `create ${EMAIL}: ${r.status()} ${await r.text()}`).toBe(true);
@@ -366,7 +363,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
   await ctx.close();
 
   await test.step("verify: the rows and objects themselves", async () => {
-    const authUser = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+    const authUser = await srReq("GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
     expect(authUser.status(), "auth user still exists").toBe(404);
     expect(await srGet(request, `profiles?user_id=eq.${userId}&select=user_id`), "profile row still exists").toHaveLength(0);
     for (const bucket of IDENTITY_BUCKETS)
@@ -416,7 +413,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
   let token = "";
   let deleted = false;
   const disposable = async () => {
-    const r = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+    const r = await srReq("GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
     expect(r.ok(), `auth user ${userId}: ${r.status()}`).toBe(true);
     const user = (await r.json()) as { email?: string; created_at?: string };
     const [p] = await srGet<{ is_seed: boolean | null }[]>(request, `profiles?user_id=eq.${userId}&select=is_seed`);
@@ -425,8 +422,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
   try {
     await test.step("create a disposable account that never completed its profile (no avatar)", async () => {
       // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
-      const r = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        headers: SR,
+      const r = await srReq("POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
         data: { email: INCOMPLETE_EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Incomplete" } },
       });
       expect(r.ok(), `create ${INCOMPLETE_EMAIL}: ${r.status()} ${await r.text()}`).toBe(true);
@@ -485,7 +481,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
       }
     });
     await test.step("verify: auth user and profile row are gone", async () => {
-      const authUser = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+      const authUser = await srReq("GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
       expect(authUser.status(), "auth user still exists").toBe(404);
       expect(await srGet(request, `profiles?user_id=eq.${userId}&select=user_id`), "profile row still exists").toHaveLength(0);
     });
@@ -513,7 +509,7 @@ test.afterAll(async ({ playwright }) => {
     // Test-owned rows only, each filtered by what makes it ours; every delete
     // is read back, so residue is loud, never silent.
     const del = async (label: string, path: string, mayBeGone = false) => {
-      const r = await request.delete(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { ...SR, Prefer: "return=representation" } });
+      const r = await srReq("DELETE", `${SUPABASE_URL}/rest/v1/${path}`, { extra: { Prefer: "return=representation" } });
       const rows = r.ok() ? ((await r.json()) as unknown[]) : null;
       if (!rows || (rows.length !== 1 && !(mayBeGone && rows.length === 0)))
         residue.push(`${label}: ${r.status()} ${rows ? `${rows.length} row(s)` : await r.text()}`);
@@ -527,11 +523,11 @@ test.afterAll(async ({ playwright }) => {
     // way a person would (delete-own-account, the product's own purge — never a
     // hand-rolled storage/auth delete), and only after the same fail-closed check.
     if (account && !deletedViaUi) {
-      const r = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${account.userId}`, { headers: SR });
+      const r = await srReq("GET", `${SUPABASE_URL}/auth/v1/admin/users/${account.userId}`);
       if (!r.ok() && r.status() !== 404) residue.push(`disposable account ${EMAIL}: could not read it (${r.status()})`);
       if (r.ok()) {
         const user = (await r.json()) as { email?: string; created_at?: string };
-        const prof = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${account.userId}&select=is_seed`, { headers: SR });
+        const prof = await srReq("GET", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${account.userId}&select=is_seed`);
         const [p] = prof.ok() ? ((await prof.json()) as { is_seed: boolean | null }[]) : [];
         try {
           assertDisposable({ runTag: RUN_TAG, runStartedAt: RUN_STARTED, email: user.email, isSeed: p?.is_seed ?? null, authCreatedAt: user.created_at });

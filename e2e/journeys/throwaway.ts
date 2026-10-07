@@ -26,6 +26,7 @@ import { removeUserStorageRest } from "../../scripts/lib/jobMediaRest.mjs";
 import { mintAdminSession, playwrightTransport } from "../../scripts/lib/adminSession.mjs";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
+import { serviceHeaders, srFetch } from "../serviceRoleFetch";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
@@ -53,12 +54,8 @@ export function serviceKey(): string | null {
   return key;
 }
 
-export const sr = (key: string, extra: Record<string, string> = {}) => ({
-  apikey: key,
-  Authorization: `Bearer ${key}`,
-  "Content-Type": "application/json",
-  ...extra,
-});
+/** Service-role headers, for node-fetch callers ONLY (never a Playwright request: Q1421). */
+export const sr = serviceHeaders;
 
 export type Throwaway = { userId: string; email: string; session: Session };
 
@@ -83,8 +80,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   const password = strongTestPassword();
   // seed-policy: patched — the profile comes from the signup trigger, and the profile PATCH below sets is_seed: true before anything else touches it
   const user = await ok(
-    await api.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      headers: sr(key),
+    await srFetch(key, "POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
       data: { email, password, email_confirm: true, user_metadata: { full_name: `SEED Journey ${label}` } },
     }),
     `create ${email}`,
@@ -92,7 +88,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   const userId = String(user.id);
   // The profile row comes from the signup trigger.
   for (let i = 0; i < 20; i++) {
-    const rows = await ok(await api.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, { headers: sr(key) }), "read profile");
+    const rows = await ok(await srFetch(key, "GET", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`), "read profile");
     if (rows.length) break;
     if (i === 19) throw new Error(`no profile row for ${email} after signup`);
     await new Promise((r) => setTimeout(r, 500));
@@ -117,8 +113,8 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   );
   const avatarUrl = await confirmedAvatarUrl(api, `${SUPABASE_URL}/storage/v1/object/public/avatars/${avatarPath}`);
   const patched = await ok(
-    await api.patch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, {
-      headers: sr(key, { Prefer: "return=representation" }),
+    await srFetch(key, "PATCH", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, {
+      extra: { Prefer: "return=representation" },
       data: {
         is_seed: true,
         full_name: `SEED Journey ${label}`,
@@ -137,16 +133,16 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
     "complete the throwaway profile",
   );
   if (patched.length !== 1) throw new Error(`completing ${email}'s profile matched ${patched.length} rows`);
-  await requireThrowaway(api, key, userId);
+  await requireThrowaway(key, userId);
   return { userId, email, session };
 }
 
 /** Fail closed unless `userId` is a throwaway this module made: email, is_seed, not shared. */
-export async function requireThrowaway(api: APIRequestContext, key: string, userId: string): Promise<void> {
+export async function requireThrowaway(key: string, userId: string): Promise<void> {
   if (SHARED_IDS.has(userId)) throw new Error(`REFUSED: ${userId} is a shared test account`);
-  const u = await ok(await api.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: sr(key) }), `read auth user ${userId}`);
+  const u = await ok(await srFetch(key, "GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`), `read auth user ${userId}`);
   if (!THROWAWAY_EMAIL_RE.test(String(u.email ?? ""))) throw new Error(`REFUSED: ${userId} (${u.email}) is not a journey throwaway`);
-  const [p] = await ok(await api.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=is_seed`, { headers: sr(key) }), "read is_seed");
+  const [p] = await ok(await srFetch(key, "GET", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=is_seed`), "read is_seed");
   if (!p || p.is_seed !== true) throw new Error(`REFUSED: ${userId} has no is_seed profile`);
 }
 
@@ -156,8 +152,8 @@ export async function requireThrowaway(api: APIRequestContext, key: string, user
  * deleted first, and the counts are re-read afterwards. Returns a line per
  * table for the report annotation.
  */
-export async function deleteThrowaway(api: APIRequestContext, key: string, userId: string): Promise<string[]> {
-  await requireThrowaway(api, key, userId);
+export async function deleteThrowaway(key: string, userId: string): Promise<string[]> {
+  await requireThrowaway(key, userId);
   const out: string[] = [];
   const TABLES: Array<[string, string]> = [
     ["user_violations", "user_id"],
@@ -168,38 +164,38 @@ export async function deleteThrowaway(api: APIRequestContext, key: string, userI
     ["saved_searches", "user_id"],
   ];
   for (const [table, col] of TABLES) {
-    const r = await api.delete(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${userId}&select=${col}`, {
-      headers: sr(key, { Prefer: "return=representation" }),
+    const r = await srFetch(key, "DELETE", `${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${userId}&select=${col}`, {
+      extra: { Prefer: "return=representation" },
     });
     const rows = await ok(r, `delete ${table}`);
     out.push(`${table}: ${rows.length} deleted`);
   }
   // Jobs it posted (the ban journey's positive control): unpaid, is_seed.
   const jobs = await ok(
-    await api.delete(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${userId}&is_seed=eq.true&select=id`, { headers: sr(key, { Prefer: "return=representation" }) }),
+    await srFetch(key, "DELETE", `${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${userId}&is_seed=eq.true&select=id`, { extra: { Prefer: "return=representation" } }),
     "delete throwaway jobs",
   );
   out.push(`jobs: ${jobs.length} deleted`);
   // The row stops pointing at the avatar before the object goes; then every
   // file under this throwaway's own folder, through the shared teardown helper.
   await ok(
-    await api.patch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, {
-      headers: sr(key, { Prefer: "return=representation" }),
+    await srFetch(key, "PATCH", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, {
+      extra: { Prefer: "return=representation" },
       data: { avatar_url: null },
     }),
     "clear the throwaway avatar_url",
   );
   const storage = await removeUserStorageRest({ base: SUPABASE_URL, headers: sr(key), userIds: [userId], source: "journey-throwaway" });
   out.push(`storage: ${storage.removed} removed${storage.failures.length ? ` (${storage.failures.join("; ")})` : ""}`);
-  const del = await api.delete(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: sr(key) });
+  const del = await srFetch(key, "DELETE", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
   if (!del.ok() && del.status() !== 404) throw new Error(`delete auth user ${userId}: HTTP ${del.status()} ${await del.text()}`);
   // Verify: nothing with this id remains.
   const left: string[] = [];
   for (const [table, col] of [...TABLES, ["profiles", "user_id"] as [string, string], ["jobs", "customer_id"] as [string, string]]) {
-    const rows = await ok(await api.get(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${userId}&select=${col}`, { headers: sr(key) }), `re-read ${table}`);
+    const rows = await ok(await srFetch(key, "GET", `${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${userId}&select=${col}`), `re-read ${table}`);
     if (rows.length) left.push(`${table}: ${rows.length}`);
   }
-  const gone = await api.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: sr(key) });
+  const gone = await srFetch(key, "GET", `${SUPABASE_URL}/auth/v1/admin/users/${userId}`);
   if (gone.ok()) left.push("auth.users: 1");
   if (left.length) throw new Error(`throwaway ${userId} left rows behind: ${left.join(", ")}`);
   out.push("auth user deleted; 0 rows left in any table checked");

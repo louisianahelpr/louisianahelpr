@@ -15,20 +15,21 @@
  *   3. the ensure script makes exactly that row (is_seed, escrow, open, the
  *      poster's, Cleaning) and registers it, keeps a healthy one, removes a
  *      leftover application, and replaces an ended one;
- *   4. the journey ensures it, applies, withdraws, and cleans up in a finally.
+ *   4. NOT YET: e2e/journeys/01-browse.spec.ts applying to and withdrawing from
+ *      it is left under Q1429 (its first wiring tripped CodeQL #462/#463 and was
+ *      reverted to main's spec); its guard returns with that wiring.
  *
  * @mutate supabase/migrations/20261007122020_test_fixture_jobs_cannot_be_hired.sql |   IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
  * @mutate scripts/e2e/browseFixture.mjs |     payment_status: "escrow", |     payment_status: "unpaid",
  * @mutate scripts/e2e/browseFixture.mjs |       await call("DELETE", `applications?job_id=eq.${job.id}&helper_id=eq.${helperId}&select=id`); |       // removed
  * @mutate scripts/e2e/browseFixture.mjs |     if (job && job.status === "open") { |     if (false) {
- * @mutate e2e/journeys/01-browse.spec.ts |       await page.getByRole("button", { name: "Confirm Withdrawal" }).click(); |       // removed
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { blankSqlComments } from "./helpers/blankNonCode";
 import {
   BROWSE_FIXTURE_PURPOSE,
   BROWSE_FIXTURE_TITLE,
@@ -39,7 +40,6 @@ import {
 
 const ROOT = join(__dirname, "..", "..");
 const MIGRATIONS = join(ROOT, "supabase", "migrations");
-const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
 const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
 
@@ -87,7 +87,7 @@ describe("the durable test job can be applied to, never hired (Q946)", () => {
 
 describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () => {
   it("the row is a test-only, funded-in-the-database, open Cleaning job of the poster's", () => {
-    const row = fixtureRow(POSTER, Date.parse("2026-10-07T12:00:00Z"));
+    const row = fixtureRow(POSTER, Date.parse("2024-10-07T12:00:00Z"));
     expect(row).toMatchObject({ customer_id: POSTER, status: "open", payment_status: "escrow", is_seed: true, category: "cleaning", title: BROWSE_FIXTURE_TITLE });
     expect(row).not.toHaveProperty("stripe_payment_intent_id");
     // Long enough for JobDetailDialog's Read More (> 180), within the DB's 1000 (Q949).
@@ -95,8 +95,8 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
     expect(String(row.description).length).toBeLessThanOrEqual(1000);
     expect(String(row.title).length).toBeLessThanOrEqual(32);
     expect(row).not.toHaveProperty("helper_id");
-    expect(row.date_needed).toBe("2026-11-06");
-    expect(Date.parse(String(row.created_at))).toBeLessThan(Date.parse("2026-10-07T00:00:01Z"));
+    expect(row.date_needed).toBe("2024-11-06");
+    expect(Date.parse(String(row.created_at))).toBeLessThan(Date.parse("2024-10-07T00:00:01Z"));
   });
 
   it("health is open + escrow + is_seed + the poster's + no Helpr", () => {
@@ -124,8 +124,8 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
     }) as unknown as typeof fetch;
     return { calls, impl };
   };
-  const NOW = Date.parse("2026-10-07T12:00:00Z");
-  const healthy = { id: "j1", status: "open", payment_status: "escrow", is_seed: true, customer_id: POSTER, helper_id: null, date_needed: "2026-10-30" };
+  const NOW = Date.parse("2024-10-07T12:00:00Z");
+  const healthy = { id: "j1", status: "open", payment_status: "escrow", is_seed: true, customer_id: POSTER, helper_id: null, date_needed: "2024-10-30" };
 
   it("keeps a healthy fixture and removes the helper's leftover application", async () => {
     const f = fakeFetch({ reg: [{ job_id: "j1" }], job: [healthy] });
@@ -137,10 +137,10 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
   });
 
   it("moves a fixture's date forward when it is within a week", async () => {
-    const f = fakeFetch({ reg: [{ job_id: "j1" }], job: [{ ...healthy, date_needed: "2026-10-09" }] });
+    const f = fakeFetch({ reg: [{ job_id: "j1" }], job: [{ ...healthy, date_needed: "2024-10-09" }] });
     await ensureBrowseFixture({ supabaseUrl: "https://x.supabase.co", serviceKey: "k", posterId: POSTER, helperId: HELPER, fetchImpl: f.impl, now: NOW });
     const patch = f.calls.find((c) => c.method === "PATCH");
-    expect(patch?.body).toEqual({ date_needed: "2026-11-06" });
+    expect(patch?.body).toEqual({ date_needed: "2024-11-06" });
   });
 
   it("ends a still-open fixture BEFORE unregistering it, so no open escrow job is left unprotected", async () => {
@@ -164,14 +164,3 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
   });
 });
 
-describe("the browse journey applies to the fixture and withdraws (Q946, Q1429)", () => {
-  const spec = blankComments(read("e2e/journeys/01-browse.spec.ts"));
-  it("ensures the fixture, applies, withdraws, and cleans up in a finally", () => {
-    expect(spec).toMatch(/const fixture = await ensureBrowseFixture\(/);
-    expect(spec).toMatch(/getByRole\("button", \{ name: "Apply Now" \}\)\.click\(\)/);
-    expect(spec).toMatch(/getByRole\("button", \{ name: "Confirm Withdrawal" \}\)\.click\(\)/);
-    expect(spec).toMatch(/\.toBe\(0\)/);
-    expect(spec).toMatch(/\} finally \{\s+await ensureBrowseFixture\(/);
-    expect(spec).not.toMatch(/test\.skip\(emptyBeforeLaunch/);
-  });
-});

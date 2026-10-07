@@ -63,7 +63,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         // small labels clear 4.5:1 there. At 0.9 it measures 4.86:1 — over the
         // floor, under full strength, so the header row stays quieter than the
         // ink-deep day numbers it labels.
-        weekday: "rounded-md w-9 font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink)/0.9)]",
+        // w-11 = the day cell's width (Q949, 2026-10-07): at w-9 the headers
+        // ran 36px apart over 44px day columns, so "Sa" sat 52px left of its
+        // column (measured at 375 on /post-job). Width-matched and centred,
+        // each header sits over its own column.
+        weekday: "rounded-md w-11 text-center font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink)/0.9)]",
         week: "flex w-full mt-2",
         day: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"),

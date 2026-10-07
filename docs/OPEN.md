@@ -818,7 +818,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q949** LOW Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254)
+- [ ] **Q949** LOW Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254) **STATUS 2026-10-07 (proof lane, screenshots on prod and a local build, recorded with review:record):** 1 of the 4 sites seen in its own state: ui/calendar's weekday header in DatePickerField (/post-job, 375): rgba(156,65,22,.9) on white = 5.35:1 light, rgba(229,146,108,.9) on rgb(34,37,43) = 5.40:1 dark (both over 4.5). Found on the way and fixed in this branch: the header cells were w-9 (36px) over w-11 (44px) day columns, so 'Sa' sat 52px left of Saturday (header centres 60..276 vs days 64..328 at 375); now w-11 + text-center, header centres = day centres at 375 and 1440, light and dark. Guard: src/test/calendarWeekdaysAlignWithDays.test.ts (red 2/3 on the old file; 2 @mutate, each red). Still unphotographed: JobDetailDialog's Read More (needs a description over 180 chars), ApplicantsPanel's '% applied' (needs an open panel on a job with reach), HelprWrapped's undercount warning (needs a partial query failure).
 
 ### DONE 2026-09-20 — Profile tab gutter + every Profile loading state
 Reconciled 2026-09-23; detail in the archive at the line shown.

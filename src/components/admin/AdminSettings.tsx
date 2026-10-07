@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus, X } from "lucide-react";
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
@@ -691,14 +691,36 @@ const AdminSettings = () => {
           <DialogHero title="Add Admin User" />
           <div className="space-y-4">
             <div className="flex gap-2">
-              <Input
-                type="search"
-                aria-label="Search users by name or email"
-                placeholder="Search by name or email…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-              />
+              <div className="relative flex-1">
+                <Input
+                  type="search"
+                  aria-label="Search users by name or email"
+                  placeholder="Search by name or email…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+                  className="pr-10"
+                />
+                {searchQuery && (
+                  // Q913 (owner 2026-10-07): a clear ✕ like every other search field
+                  // (index.css hides WebKit's own). Pressed off-centre by
+                  // e2e/prod-audit/search-x-off-center-press.spec.ts.
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    // Keep focus on press so iOS does not drop the keyboard and lose the
+                    // click (the BrowseSearchBar ✕'s one-press fix, owner 2026-10-01).
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      setSearchQuery("");
+                      e.currentTarget.parentElement?.querySelector("input")?.focus();
+                    }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+                  >
+                    <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+                  </button>
+                )}
+              </div>
               {/* Inert while the field is empty: `searchUsers` returns without a
                   word on a blank query, so an enabled button there was a tap
                   that did nothing (press-every-control run 35813177418,

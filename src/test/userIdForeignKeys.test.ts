@@ -31,7 +31,7 @@
  * @mutate supabase/migrations/20260926034714_user_fks_q331_deletion_backstop.sql | ADD CONSTRAINT admin_user_notes_user_id_fkey\n      FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE NOT VALID; | ADD CONSTRAINT admin_user_notes_user_id_fkey\n      NOT VALID;
  * @mutate supabase/migrations/20260926034714_user_fks_q331_deletion_backstop.sql | FOREIGN KEY (cancelled_by) REFERENCES auth.users(id) ON DELETE SET NULL NOT VALID; | NOT VALID;
  * @mutate supabase/migrations/20261007045539_person_fks_q448_named_columns.sql | FOREIGN KEY (blocker_id) REFERENCES auth.users(id) ON DELETE CASCADE NOT VALID; | NOT VALID;
- * @mutate src/test/userIdForeignKeys.test.ts | |reporter|reported| | |reporter|
+ * @mutate src/test/userIdForeignKeys.test.ts | \|reporter\|reported\| | \|reporter\|
  * @mutate supabase/migrations/20260924010547_user_fks_prefs_and_message_sender.sql | FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE; | NULL;
  */
 import { describe, it, expect } from "vitest";

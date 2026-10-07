@@ -4,7 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Gift, Users, DollarSign, Banknote, Copy } from "lucide-react";
+import { Search, Gift, Users, DollarSign, Banknote, Copy, X } from "lucide-react";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -313,8 +313,27 @@ const AdminReferrals = () => {
             placeholder="Search by name or code…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {search && (
+            // Q913 (owner 2026-10-07): a clear ✕ like every other search field
+            // (index.css hides WebKit's own). Pressed off-centre by
+            // e2e/prod-audit/search-x-off-center-press.spec.ts.
+            <button
+              type="button"
+              aria-label="Clear search"
+              // Keep focus on press so iOS does not drop the keyboard and lose the
+              // click (the BrowseSearchBar ✕'s one-press fix, owner 2026-10-01).
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                setSearch("");
+                e.currentTarget.parentElement?.querySelector("input")?.focus();
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+            >
+              <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          )}
         </div>
       )}
 

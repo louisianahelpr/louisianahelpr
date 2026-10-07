@@ -38,6 +38,8 @@
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "legal", file: "src/pages/info/Legal.tsx", | name: "legal", file: "src/pages/info/Legal.ts",
 // @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", | name: "jobs", file: "src/pages/jobs/Jobs.tsx",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
+// @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.ts",
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -52,12 +54,8 @@ const TITLE_SPEC = "e2e/prod-audit/search-keeps-title.spec.ts";
 /** Search fields that render no ✕ of their own, and why that is fine. Exact:
  * a stale entry fails, and so does a new ✕-less field missing from here. */
 const NO_X: Record<string, string> = {
-  "src/components/admin/AdminCommandPalette.tsx": "cmdk palette; Escape closes the dialog, no clear button",
-  "src/components/admin/AdminNotificationLogs.tsx": "admin filter box, always open; select-all + delete clears",
-  "src/components/admin/AdminReferrals.tsx": "admin filter box, always open; select-all + delete clears",
-  "src/components/admin/AdminSettings.tsx": "admin user lookup, always open; select-all + delete clears",
-  "src/components/admin/AdminSubscriptions.tsx": "admin filter box, always open; select-all + delete clears",
-  "src/components/admin/AdminUsers.tsx": "admin filter box, always open; select-all + delete clears",
+  // Q913 (owner, 2026-10-07): the six admin fields listed here got a clear ✕
+  // and joined the press spec; nothing is ✕-less now.
 };
 
 function walk(dir: string): string[] {
@@ -107,6 +105,13 @@ const X_FILES = sources
   .filter((s) => /"(Close|Clear) search"/.test(s.src))
   .map((s) => s.file)
   .sort();
+/** ✕ files whose field OPENS (a "Close search" ✕ that leaves the search). A
+ * file whose only ✕ is "Clear search" is a permanent field (Q913's admin
+ * filter boxes): nothing opens, so there is no title for it to cover. */
+const OPENING_X_FILES = sources
+  .filter((s) => /"Close search"/.test(s.src))
+  .map((s) => s.file)
+  .sort();
 const EXPANDING_CALLERS = sources
   .filter((s) => s.file !== "src/components/ui/ScreenHeaderRow.tsx" && /\bexpandingSearch=\{/.test(s.src))
   .map((s) => s.file)
@@ -145,9 +150,17 @@ function specRunsBothWidthsAndEngines(spec: string) {
 
 describe("every search field is driven in a real browser (inventory minus checked = empty)", () => {
   it("the source inventory is what it is (exact counts, both directions)", () => {
-    // Measured 2026-10-01: 12 search fields in 12 files; 6 render a ✕; 3 expanding header searches.
+    // Measured 2026-10-01: 12 search fields in 12 files; 6 render a ✕; 3
+    // expanding header searches. Q913 (2026-10-07): all 12 render a ✕, 6 of
+    // them (the admin boxes) a "Clear search" one on a permanent field.
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
     expect(X_FILES, "files rendering a search ✕").toEqual([
+      "src/components/admin/AdminCommandPalette.tsx",
+      "src/components/admin/AdminNotificationLogs.tsx",
+      "src/components/admin/AdminReferrals.tsx",
+      "src/components/admin/AdminSettings.tsx",
+      "src/components/admin/AdminSubscriptions.tsx",
+      "src/components/admin/AdminUsers.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
@@ -184,9 +197,20 @@ describe("every search field is driven in a real browser (inventory minus checke
     specRunsBothWidthsAndEngines(TITLE_SPEC);
     const surfaces = specSurfaces(TITLE_SPEC);
     const files = new Set(surfaces.map((s) => s.file));
-    const want = [...new Set([...X_FILES, ...EXPANDING_CALLERS])].sort();
+    const want = [...new Set([...OPENING_X_FILES, ...EXPANDING_CALLERS])].sort();
     expect(want.filter((f) => !files.has(f)), `searches the title spec never opens`).toEqual([]);
     expect([...files].filter((f) => !want.includes(f)), `title-spec surfaces naming a file with no opening search`).toEqual([]);
+  });
+
+  it("the opening searches are exactly the six that were before Q913 (a permanent field is not one)", () => {
+    expect(OPENING_X_FILES).toEqual([
+      "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
+      "src/components/messages/ConversationList.tsx",
+      "src/components/profile/SavedHelpersTab.tsx",
+      "src/pages/info/Legal.tsx",
+      "src/pages/jobs/JobsHeader.tsx",
+      "src/pages/posts/PostsHeader.tsx",
+    ]);
   });
 
   it("every search field without a ✕ is accounted for, exactly", () => {

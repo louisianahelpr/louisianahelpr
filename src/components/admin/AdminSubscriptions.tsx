@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Crown, Clock, Users } from "lucide-react";
+import { Search, Crown, Clock, Users, X } from "lucide-react";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
@@ -156,8 +156,27 @@ const AdminSubscriptions = () => {
             placeholder="Search by name, email, or tier…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {search && (
+            // Q913 (owner 2026-10-07): a clear ✕ like every other search field
+            // (index.css hides WebKit's own). Pressed off-centre by
+            // e2e/prod-audit/search-x-off-center-press.spec.ts.
+            <button
+              type="button"
+              aria-label="Clear search"
+              // Keep focus on press so iOS does not drop the keyboard and lose the
+              // click (the BrowseSearchBar ✕'s one-press fix, owner 2026-10-01).
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                setSearch("");
+                e.currentTarget.parentElement?.querySelector("input")?.focus();
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+            >
+              <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          )}
         </div>
         <div role="group" aria-label="Filter by subscription status" className="flex gap-1 shrink-0">
           {(["all", "active", "expired"] as const).map(f => (

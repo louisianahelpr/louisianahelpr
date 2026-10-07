@@ -31,25 +31,9 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
  */
 export function BrowseSearchBar({
   filters,
-  embedded = false,
   className = "",
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
-  /**
-   * Rendered as a SECTION of the filter panel rather than as the title card's
-   * own expanding search bar.
-   *
-   * The difference is what the trailing ✕ means. In the title card the field
-   * only exists while `searchOpen` is true, so its ✕ is the way OUT of search
-   * and is always present. In the panel the field is permanent — `searchOpen`
-   * does not gate it — so "close search" is not a thing that can happen, and
-   * the always-on ✕ was a control that visibly did nothing (owner: "the x in
-   * search also doesn't close it"). Worse, it was the only ✕ on screen, so it
-   * is what people reached for to dismiss the whole panel. Embedded, it
-   * appears only when there is text to clear, and the panel carries its own
-   * close button in its header.
-   */
-  embedded?: boolean;
   /**
    * Extra classes for the field's own wrapper.
    *
@@ -70,29 +54,19 @@ export function BrowseSearchBar({
   const [recent, setRecent] = useState<string[]>(() => getRecentSearches());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // When the user DOES tap the field, the iOS keyboard takes the bottom of the
-  // screen — and in the panel this field sits at the top of a scroll container
-  // whose lower half the keyboard then covers. Lift the focused field into
-  // view once the keyboard has settled. Same `useKeyboardInset` pattern
-  // Messages / PostJob / ProfileEditForm use; `block: "nearest"` because this
-  // field is near the TOP of its scroller and "center" would drag it down
-  // under the keyboard it is trying to escape.
-  // FOCUS ON OPEN — but only in the standalone header form.
+  // When the user taps the field, the iOS keyboard takes the bottom of the
+  // screen. Lift the focused field into view once the keyboard has settled.
+  // Same `useKeyboardInset` pattern Messages / PostJob / ProfileEditForm use;
+  // `block: "nearest"` because this field is near the TOP of its scroller and
+  // "center" would drag it down under the keyboard it is trying to escape.
   //
-  // The comment on the input below explains why this field must NOT autofocus:
-  // EMBEDDED, it lives inside the "Refine Your Search" sheet, opened by a
-  // filter button whose job is sort/view/category. Focusing there threw the iOS
-  // keyboard over the Category chips and half the sort row the poster came for.
-  // That reasoning is right and is left alone.
-  //
-  // It simply does not apply to the other caller. Standalone, this bar exists
-  // because the user tapped the magnifier in the header — an action whose
+  // FOCUS ON OPEN. This bar exists because the user tapped the magnifier in
+  // the header — an action whose
   // entire purpose is typing. Measured on /home at 375: tapping it swapped
   // the header for the field and left `document.activeElement` on BODY, so the
   // keyboard did not appear and the field had to be tapped a second time. Two
   // taps for one intent, on the app's primary surface.
   useEffect(() => {
-    if (embedded) return;
     const el = inputRef.current;
     if (!el) return;
     // A frame, so the header's swap has committed before focus moves — focusing
@@ -100,7 +74,7 @@ export function BrowseSearchBar({
     // page instead of raising the keyboard.
     const raf = requestAnimationFrame(() => el.focus());
     return () => cancelAnimationFrame(raf);
-  }, [embedded]);
+  }, []);
 
   const keyboardInset = useKeyboardInset();
   useEffect(() => {
@@ -144,14 +118,11 @@ export function BrowseSearchBar({
      2026-09-14, VN-6: "recents should expand like over the other stuff not
      push it down"). The list is portaled to <body> and fixed just under the
      field, the field's own width, so neither the phone title card (which
-     clips its overflow) nor the desktop strip grows. The one exception is
-     `embedded` (inside the modal filter panel): a portal outside that modal
-     would be inert and aria-hidden, so there the list stays in the panel. */
+     clips its overflow) nor the desktop strip grows. */
   const fieldRowRef = useRef<HTMLDivElement>(null);
-  const floatList = !embedded;
   const [listBox, setListBox] = useState<{ top: number; left: number; width: number } | null>(null);
   useLayoutEffect(() => {
-    if (!showRecent || !floatList) return;
+    if (!showRecent) return;
     const place = () => {
       const r = fieldRowRef.current?.getBoundingClientRect();
       if (r) setListBox({ top: Math.round(r.bottom + 6), left: Math.round(r.left), width: Math.round(r.width) });
@@ -165,7 +136,7 @@ export function BrowseSearchBar({
       window.removeEventListener("scroll", place, true);
       window.visualViewport?.removeEventListener("resize", place);
     };
-  }, [showRecent, floatList]);
+  }, [showRecent]);
 
   // Arrow/Enter/Escape/Tab model + aria-activedescendant, shared with the
   // City and Address typeaheads. No `onOpen`: this popup is the recent-search
@@ -180,11 +151,11 @@ export function BrowseSearchBar({
 
   const recentList = (
     <div
-      className={`rounded-ds-md overflow-hidden bg-card ${floatList ? "fixed z-50 pointer-events-auto" : "mt-1.5"}`}
+      className="rounded-ds-md overflow-hidden bg-card fixed z-50 pointer-events-auto"
       style={{
         border: "0.5px solid hsl(var(--olivewood) / 0.18)",
         boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",
-        ...(floatList && listBox ? { top: listBox.top, left: listBox.left, width: listBox.width } : {}),
+        ...(listBox ? { top: listBox.top, left: listBox.left, width: listBox.width } : {}),
       }}
       {...listboxProps}
       role="listbox"
@@ -239,14 +210,6 @@ export function BrowseSearchBar({
       <div ref={fieldRowRef} className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          {/* Deliberately NOT autoFocus. This field is inside the "Refine
-              Your Search" sheet, which is opened by the filter button — a
-              control whose job is sort/view/category, not text entry. Focusing
-              on open threw up the iOS keyboard every time, covering the
-              Category chips and half the sort row the poster actually came
-              for, and forcing a dismiss before they could tap anything.
-              Tapping the field still focuses it; the keyboard now appears
-              when it is asked for. */}
           <input
             ref={inputRef}
             type="search"
@@ -273,30 +236,23 @@ export function BrowseSearchBar({
                whole dismiss — query cleared AND field closed, one activation,
                the same thing the ✕ does (the focus hand-back to the magnifier
                is DashboardTitleBar's, because the trigger unmounts with this
-               row). Embedded there is nothing to close, so it clears only. */
+               row). */
             onKeyDown={(e) => {
               if (e.key !== "Escape") return;
               e.preventDefault();
               filters.setSearchQuery("");
-              if (!embedded) filters.setSearchOpen(false);
+              filters.setSearchOpen(false);
             }}
-            // `pr-10` reserves the lane the trailing ✕ sits in — so it is only
-            // reserved when the ✕ is actually rendered (see below), otherwise
-            // an empty embedded field carries 40px of dead right margin.
-            className={`w-full pl-9 ${embedded && filters.searchQuery.length === 0 ? "pr-3" : "pr-10"} h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
+            // `pr-10` reserves the lane the trailing ✕ sits in.
+            className={`w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
           />
           {/* The X lives INSIDE the field, on its right — the same shape the
               Activity search uses (owner: "instead of Cancel put X in the
               right of the search bar").
 
-              In the TITLE-CARD form it is always present, because it is the
-              way OUT of search: hiding it until there is a query would leave
-              an open search bar with no visible dismiss. In the PANEL form
-              (`embedded`) there is nothing to dismiss — the field is a
-              permanent section — so it renders only when there is text to
-              clear, instead of standing there as a control that does nothing
-              when pressed. See the `embedded` prop doc. */}
-          {(!embedded || filters.searchQuery.length > 0) && (
+              It is always present, because it is the way OUT of search:
+              hiding it until there is a query would leave an open search bar
+              with no visible dismiss. */}
           <button
             type="button"
             // ONE PRESS (owner, 2026-10-01: "press the X twice"). Without this
@@ -307,15 +263,9 @@ export function BrowseSearchBar({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               filters.setSearchQuery("");
-              if (embedded) {
-                // Stay in the field: the user asked to clear the query, not to
-                // leave the search box.
-                inputRef.current?.focus();
-              } else {
-                filters.setSearchOpen(false);
-              }
+              filters.setSearchOpen(false);
             }}
-            aria-label={embedded ? "Clear search" : "Close search"}
+            aria-label="Close search"
             // `!min-h-0 !min-w-0` — index.css's bare `button { min-height:
             // 44px; min-width: 44px }` HIG tap-target rule otherwise wins
             // over `h-7 w-7` and renders this 44x44 inside a 36px-tall bar,
@@ -325,12 +275,10 @@ export function BrowseSearchBar({
           >
             <X className="w-4 h-4" strokeWidth={2.25} />
           </button>
-          )}
         </div>
       </div>
 
-      {showRecent && !floatList && recentList}
-      {showRecent && floatList && listBox && typeof document !== "undefined" &&
+      {showRecent && listBox && typeof document !== "undefined" &&
         createPortal(recentList, document.body)}
     </div>
   );

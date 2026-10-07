@@ -13,20 +13,17 @@
 // CLASS: no element anywhere in src/ may carry a backdrop filter and a mask image
 // together, whether as one inline style object (TSX) or one CSS rule (CSS).
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankCssComments } from "./helpers/blankNonCode";
+import { trackedFiles } from "./helpers/trackedFiles";
 
+const ROOT = resolve(__dirname, "../..");
 const SRC = resolve(__dirname, "..");
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
-    else if (/\.(tsx|ts|css)$/.test(name) && !/\.test\.tsx?$/.test(name) && !p.includes(`${join("src", "test")}`)) out.push(p);
-  }
-  return out;
-}
-const FILES = walk(SRC);
+// Listed from git (Q1142): shipped source only, never tests.
+const FILES = trackedFiles("src")
+  .filter((f) => /\.(tsx|ts|css)$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("src/test/"))
+  .map((f) => join(ROOT, f));
 
 /** Every `{ … }` object literal that directly follows `style=`, brace-matched. */
 function styleObjects(code: string): string[] {

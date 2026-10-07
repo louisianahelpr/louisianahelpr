@@ -17,7 +17,8 @@
 // (scripts/lib/seedGateRegistry.mjs) over the real registry and the real
 // migration tree.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import {
   parseSeedGateRegistry,

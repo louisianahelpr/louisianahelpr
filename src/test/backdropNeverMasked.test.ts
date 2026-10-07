@@ -91,7 +91,7 @@ describe("no element carries a backdrop filter and a mask image together (Q7, We
       expect(steps[i][1], "and stronger").toBeGreaterThan(steps[i - 1][1]);
     }
     expect(steps[0][0]).toBe(1);
-    expect(steps.at(-1)![0]).toBe(0.35);
+    expect(steps[steps.length - 1][0]).toBe(0.35);
     expect(nav).toMatch(/CURTAIN_BLUR_STEPS\.map\(/);
   });
 });

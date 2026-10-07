@@ -402,11 +402,12 @@ beforeAll(async () => {
     if (mode === "noident" || mode === "noallow") {
       if (req.url?.endsWith("/config/auth")) {
         return void res.end(JSON.stringify({
-          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: true, external_google_enabled: true,
+          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: false, external_google_enabled: false,
           external_phone_enabled: false, external_anonymous_users_enabled: false, external_github_enabled: false,
           // noallow (Q445a): /home is on neither site_url's host nor the allow-list.
           site_url: mode === "noallow" ? "https://helpr.example.com" : "https://www.louisianahelpr.com",
           uri_allow_list: "https://louisianahelpr-*-louisianahelprs-projects.vercel.app/**",
+          // Apple + Google off, as SOCIAL_SIGN_IN_ENABLED says (Q1462).
           // Q446 one-account-per-person settings, all as prod has them.
           hook_before_user_created_enabled: true,
           hook_before_user_created_uri: "pg-functions://postgres/public/hook_one_account_per_person",

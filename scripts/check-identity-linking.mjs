@@ -34,6 +34,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deriveSignInIds, readSignInSources } from "./lib/nativeSignInIds.mjs";
 
 const SQL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "sql/identity-linking-scenarios.sql"), "utf8");
 const CASES = ["A", "B", "C", "D"];
@@ -156,10 +157,17 @@ if (!usePsql && verdict.identities_table !== true) {
 
 let failed = false;
 if (config) {
+  // Q1462 (owner, 2026-10-06): Apple + Google sign-in are OFF for launch. The
+  // source switch (SOCIAL_SIGN_IN_ENABLED in src/lib/socialAuth.ts) decides what
+  // the live config must say, both ways, as check-native-sign-in-config does.
+  const socialEnabled = deriveSignInIds(readSignInSources(join(dirname(fileURLToPath(import.meta.url)), ".."))).socialEnabled;
+  const socialWhy = socialEnabled
+    ? "is offered on /login and /signup"
+    : "is off for launch (SOCIAL_SIGN_IN_ENABLED is false, Q1462): a crafted request must not sign in through it";
   const want = [
     ["mailer_autoconfirm", false, "GoTrue would treat every provider email as verified and link into unverified accounts"],
-    ["external_google_enabled", true, "Continue with Google is offered on /login and /signup"],
-    ["external_apple_enabled", true, "Sign in with Apple is offered on /login and /signup"],
+    ["external_google_enabled", socialEnabled, `Continue with Google ${socialWhy}`],
+    ["external_apple_enabled", socialEnabled, `Sign in with Apple ${socialWhy}`],
   ];
   for (const [key, value, why] of want) {
     const ok = config[key] === value;
@@ -172,7 +180,9 @@ if (config) {
   // actually offers: email + Apple + Google (no phone, anonymous or other
   // provider sign-in exists in src/ or supabase/functions; lh-authz-rls review
   // of #1806).
-  const EXPECTED_SIGN_IN_METHODS = ["external_apple_enabled", "external_email_enabled", "external_google_enabled"];
+  const EXPECTED_SIGN_IN_METHODS = socialEnabled
+    ? ["external_apple_enabled", "external_email_enabled", "external_google_enabled"]
+    : ["external_email_enabled"];
   const externalKeys = Object.keys(config).filter((k) => /^external_[a-z0-9_]+_enabled$/.test(k));
   if (externalKeys.length < 5) {
     couldNot(`auth config lists only ${externalKeys.length} external_*_enabled keys — refusing to report clean`);

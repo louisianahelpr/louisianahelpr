@@ -6,8 +6,10 @@ import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
 import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
-import { JobCountdown } from "@/components/job-card/JobCountdown";
+import { CountdownRows, jobStartTarget, type CountdownClock } from "@/components/job-card/CountdownRows";
+import { posterDeadline } from "@/components/job-card/jobStatusLine";
 import { JobConfirmation } from "@/components/JobConfirmation";
+import { confirmationOpensClock } from "@/components/job-card/confirmationOpensClock";
 import { JobTracking } from "@/components/JobTracking";
 import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
 import { withDisputeSettling } from "../../components/job-card/jobStatusLine";
@@ -151,13 +153,26 @@ function PostedJobCardInner({
      mounted. On the HELPER card the same line IS load-bearing, because that
      card's step cards render while collapsed; the mutation register in
      src/test/jobCardPersonTileAboveRow.test.tsx records that asymmetry. */
+  /* AN OFFER IS NOT A HIRE (owner, 2026-10-07, Q1399, on the expanded card of
+     an unanswered offer): until the Helpr accepts (helper_confirmed_at) the
+     tile reads "Offered to <name>", the answer clock is "left for them to
+     accept", and the day-before confirmation box does not show yet. A crew
+     job's acceptance lives on its roster, so it is not judged here. */
+  const offerUnanswered = job.status === "accepted" && !!job.helper_id && !job.helper_confirmed_at && !job.is_group_job;
+  const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null;
+  const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true);
+  const posterClocks: CountdownClock[] = [
+    ...(answerDeadline ? [{ id: "answer", at: answerDeadline.at, text: answerDeadline.consequenceText, expiredText: answerDeadline.expiredText }] : []),
+    { id: "start", at: jobStartTarget(job.date_needed, job.start_time), text: "until the job starts", expiredText: "Job time has arrived" },
+    ...(posterConfirmOpens ? [posterConfirmOpens.clock] : []),
+  ];
   const helperTile = isExpanded && job.helper_id ? (
     <PersonTile
       userId={job.helper_id}
       to={`/user/${job.helper_id}`}
       name={helperName}
       avatarUrl={helperAvatars?.[job.helper_id] ?? null}
-      eyebrow="Helpr"
+      eyebrow={offerUnanswered ? "Offered to" : "Helpr"}
       onClick={(e) => e.stopPropagation()}
     />
   ) : null;
@@ -509,8 +524,13 @@ function PostedJobCardInner({
                       is read. Do not reintroduce one with a fresh argument for
                       why this particular pill is different; that argument has
                       already been made and overruled. */}
-                  {/* Job countdown */}
-                  <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+                  {/* Every clock on the card, in one place, one format,
+                      soonest first (owner, 2026-10-07, Q1399): before the
+                      Helpr accepts, "left for them to accept" and "until the
+                      job starts"; after, "until the job starts" and, while
+                      the day-before window is shut, "until confirmation
+                      opens". Guard: src/test/offerCountdownRows.test.tsx. */}
+                  <CountdownRows variant="box" clocks={posterClocks} note={posterConfirmOpens?.note} />
                   {/* No "X says they've arrived" banner (owner: "remove") —
                       the tracker's Arrived step is lit, which is the same
                       statement with the whole timeline around it.
@@ -713,7 +733,7 @@ function PostedJobCardInner({
               {(job.status === "in_progress" || job.status === "accepted") && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
                   {/* `embedded` for the same reason as the tracker above. */}
-                  <JobConfirmation embedded jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />
+                  {!offerUnanswered && <JobConfirmation embedded hideNotYetOpen jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />}
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
 
                 </div>
@@ -760,7 +780,9 @@ function PostedJobCardInner({
                 confirmingWorkingJobId={confirmingWorkingJobId}
                 onActionComplete={onActionComplete}
               />
-              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} />
+              {/* The ask itself is a button on the action row now (ScheduledStep,
+                  owner 2026-10-07); this keeps a request's state and answer. */}
+              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
             </div>
             )}
             {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM

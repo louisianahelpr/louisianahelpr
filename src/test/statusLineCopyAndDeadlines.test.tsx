@@ -17,7 +17,7 @@
  *    regen and fails here until a countdown shows it.
  */
 // @mutate src/components/job-card/jobStatusLine.ts | return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed"); | return null;
-// @mutate src/components/job-card/JobStatusStrip.tsx | {line.deadline && ( | {false && line.deadline && (
+// @mutate src/components/job-card/JobStatusStrip.tsx | ) : line.deadline && ( | ) : false && line.deadline && (
 // @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx | posterDeadline("offer_out", job) | null
 // @mutate src/components/job-card/offerClock.ts |   const hardDeadline = job?.response_deadline ?? job?.direct_offer_expires_at ?? null; |   const hardDeadline = job?.response_deadline ?? null;
 // @mutate src/components/job-card/jobStatusLine.ts | overdue_no_show: { detail: | overdue_no_show: { detail: "Day passed — mark it done or cancel", x:
@@ -215,7 +215,8 @@ it("offerClock() still reads the two columns it stands in for", () => {
 });
 
 /**
- * A file shows a clock when it renders `<DeadlineCountdown` AND reads the
+ * A file shows a clock when it renders `<DeadlineCountdown` (or the
+ * `<CountdownRows` panel) AND reads the
  * source: by column name, by `AUTO_COMPLETE_HOURS`, through a shared reader
  * (VIA_READERS), or through posterDeadline/helperDeadline for a state the
  * collapsed map says carries it.
@@ -229,7 +230,9 @@ function expandedShows(tree: string, side: Side, source: DeadlineSource): string
     .filter((p) => !isTest(p))
     .filter((p) => {
       const code = blankComments(readFileSync(p, "utf8"));
-      return code.includes("<DeadlineCountdown") && needles.some((n) => code.includes(n));
+      // <CountdownRows> is the offer and booked cards' one clock panel since
+      // 2026-10-07 (Q1399: every clock in one place, soonest first).
+      return (code.includes("<DeadlineCountdown") || code.includes("<CountdownRows")) && needles.some((n) => code.includes(n));
     })
     .map((p) => relative(ROOT, p));
 }

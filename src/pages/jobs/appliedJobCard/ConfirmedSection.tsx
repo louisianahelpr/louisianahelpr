@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasJobStarted } from "@/lib/dateUtils";
-import { JobCountdown } from "@/components/job-card/JobCountdown";
+import { CountdownRows, jobStartTarget } from "@/components/job-card/CountdownRows";
+import { confirmationOpensClock } from "@/components/job-card/confirmationOpensClock";
 import { DirectionsButton } from "./DirectionsButton";
 import { JobPetCareSheet } from "@/pages/jobs/JobPetCareSheet";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
@@ -41,6 +42,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
   // direct calls / stale tabs. Past start, the in-progress abort exit is the
   // right affordance, not cancel.
   const startPassed = hasJobStarted(job.date_needed, job.start_time);
+  const confirmOpens = confirmationOpensClock(job.date_needed, job.status, false);
 
   // The sanctioned exit (owner, 2026-08-24): cancelling a committed booking
   // reopens the job and counts a reliability strike on the shared ladder
@@ -109,10 +111,21 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
          first") — the confirmation is now simply inside the tracker rather
          than stacked above or below it. Its button ("I'm Still On", then the
          tracker's "I'm On My Way") is the row's primary and portals into it. */
-      header={<HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} />}
+      header={<HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} hideConfirmNotYetOpen />}
       notice={
         <>
-          <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+          {/* Every clock in one place, one format, soonest first (owner,
+              2026-10-07, Q1399): "until the job starts" and, while the
+              day-before window has not opened, "until confirmation opens".
+              Guard: src/test/offerCountdownRows.test.tsx. */}
+          <CountdownRows
+            variant="box"
+            clocks={[
+              { id: "start", at: jobStartTarget(job.date_needed, job.start_time), text: "until the job starts", expiredText: "Job time has arrived" },
+              ...(confirmOpens ? [confirmOpens.clock] : []),
+            ]}
+            note={confirmOpens?.note}
+          />
           {/* The pets, and everything the owner already wrote down about them.
               Self-hides when the job has none, so no category gate is needed here.
               See JobPetCareSheet — before it, a sitter arrived knowing the address

@@ -324,8 +324,15 @@ export function JobCardMetaRow({
   // its own line, so there is nothing to out-rank and no shrink weight worth
   // setting. The rule above is untouched for every card that shows a city,
   // which is every card on which it was ever measured.
+  //
+  // ON A WIDE SCREEN THE ADDRESS SHARES THE LINE (owner, 2026-10-07, the
+  // poster's card at desktop width, Q1399): from `md` up there is room, so the
+  // address sits LEFT and the date and time sit at the RIGHT of the same row
+  // (`md:mr-auto` pushes them over) instead of stacked under it. It may still
+  // wrap inside its own box rather than clip. Phone widths keep the stacked
+  // layout above. Guard: JobCardMetaRow.locationPriority.test.tsx.
   const cityFlex = fullAddress
-    ? "basis-full shrink-0 max-w-full"
+    ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto"
     : expiresAt
       ? "shrink-0 max-w-[50%]"
       : "shrink";
@@ -366,7 +373,7 @@ export function JobCardMetaRow({
           can act on; one character is not that. */}
       <div
         className={`job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 min-w-0 flex-1 overflow-hidden ${
-          fullAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
+          fullAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap"
         }`}
       >
       {/* Location → date → time, matching the home feed ("Browse Tasks")

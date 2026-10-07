@@ -1,9 +1,10 @@
-import { MessageSquare, XCircle } from "lucide-react";
+import { useState } from "react";
+import { CalendarClock, MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "../../../../components/job-card/JobActionRow";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
-import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
-import { posterDeadline } from "@/components/job-card/jobStatusLine";
+import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
+import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -34,6 +35,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  */
 export function ScheduledStep({
   job,
+  userId,
   navigate,
   onCancel,
   onConfirmArrival,
@@ -41,9 +43,18 @@ export function ScheduledStep({
   confirmingArrivalJobId,
   confirmingWorkingJobId,
 }: PosterStepCtx) {
-  // The Helpr's window to confirm the booking, the same clock the collapsed
-  // line shows (owner, 2026-10-01: every tracker deadline is visible).
-  const confirmClock = job.helper_confirmed_at ? null : posterDeadline("unconfirmed", job);
+  // The Helpr's answer-by clock is no longer drawn here: every clock on the
+  // card is one CountdownRows above the tracker (owner, 2026-10-07, Q1399).
+  //
+  // "ASK FOR A NEW DATE OR TIME" IS A BUTTON ON THIS ROW, LEFT OF MESSAGE
+  // (owner, 2026-10-07, Q1399), styled like Message; it opens the same form
+  // the link below used to. A request already open keeps its state and its
+  // answer in ScheduleChangeForJob below the row.
+  const [askOpen, setAskOpen] = useState(false);
+  const canAsk = scheduleChangeAllowed(job, userId, "poster");
+  const { data: pendingChange } = usePendingScheduleChange(job.id, canAsk);
+  const askedOfMe = !!pendingChange && pendingChange.responder_id === userId;
+  const askedByMe = !!pendingChange && pendingChange.requested_by === userId;
   return (
     <JobStepCard
       side="poster"
@@ -54,14 +65,6 @@ export function ScheduledStep({
          the shell's existing one-primary rule, not a second one. */
       notice={
         <>
-        {confirmClock && (
-          <DeadlineCountdown
-            inline
-            deadline={confirmClock.at}
-            expiredText={confirmClock.expiredText}
-            consequenceText={confirmClock.consequenceText}
-          />
-        )}
         <PosterConfirmationPrimary
           job={job}
           step="scheduled"
@@ -73,6 +76,15 @@ export function ScheduledStep({
         </>
       }
       actions={[
+        canAsk && !askedOfMe && (
+          <JobActionChip
+            key="reschedule"
+            icon={CalendarClock}
+            label={askedByMe ? "Ask for a different date or time" : "Ask for a new date or time"}
+            tone="message"
+            onClick={() => setAskOpen(true)}
+          />
+        ),
         <JobActionChip
           key="message"
           icon={MessageSquare}
@@ -90,6 +102,19 @@ export function ScheduledStep({
           onClick={() => onCancel(job)}
         />,
       ]}
+      dialogs={
+        canAsk && (
+          <ScheduleChangeAskDialog
+            open={askOpen}
+            onOpenChange={setAskOpen}
+            jobId={job.id}
+            jobTitle={job.title}
+            userId={userId}
+            dateNeeded={job.date_needed}
+            startTime={job.start_time ?? null}
+          />
+        )
+      }
     />
   );
 }

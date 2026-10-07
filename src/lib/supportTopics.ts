@@ -84,8 +84,10 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   },
   {
     key: "report",
-    label: "Report Issue",
-    description: "Report a bug, problem, or concern",
+    // Owner, 2026-10-07 (Q1028): the bug topic reads "Something's not working";
+    // it attaches the screen, route, device, build and recent errors.
+    label: "Something's not working",
+    description: "A bug, or something in the app that isn't working",
     messagePlaceholder: "Please describe the bug or technical problem…",
     messageLabel: "What went wrong?",
     submitLabel: "Report Issue",

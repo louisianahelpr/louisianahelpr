@@ -999,6 +999,28 @@ describe("execute-dispute-split edge function", () => {
       });
     });
 
+    // Q1355 (3): a FAILED refund for this dispute moved no money; re-booking
+    // it as the poster's leg closed the split with the poster never repaid.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |         (r: Stripe.Refund) => r?.metadata?.dispute_id === disputeId && r.status !== "failed" && r.status !== "canceled", |         (r: Stripe.Refund) => r?.metadata?.dispute_id === disputeId,
+    it("never adopts a FAILED refund of this dispute as the settled leg (Q1355 (3))", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720, metadata: OWN_TRANSFER }],
+      };
+      scenario.reads.payment_refunds = { rows: [] };
+      stripeMock.refunds.list.mockResolvedValue({
+        data: [{ id: "re_failed_orphan", amount: 4260, currency: "usd", status: "failed", metadata: { dispute_id: DISPUTE_ID } }],
+      });
+      const fn = await load();
+      const body = await json(await invoke(fn));
+      expect(body.stripe_refund_id).not.toBe("re_failed_orphan");
+      expect(scenario.writes.some((w) => w.table === "payment_refunds" && JSON.stringify(w.payload).includes("re_failed_orphan"))).toBe(false);
+    });
+
     it("fails closed when the prior-refund cross-check itself can't run", async () => {
       seedExecutable(scenario, {
         helperShare: 0.6,
@@ -1338,6 +1360,33 @@ describe("execute-dispute-split edge function", () => {
         { op: "eq", column: "status", value: "decided" },
         { op: "eq", column: "decided_at", value: "2026-09-14T10:00:00Z" },
       ]));
+    });
+
+    // Q1251: a sandbox Connect account under the live key was a 502 "retry"
+    // that marked the dispute failed as if Stripe were down.
+    it("an unusable Connect account answers 409, moves nothing, and names the fix on the dispute (Q1251)", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("The account acct_helper was a test account created with a testmode key, and therefore can only be used with testmode keys."), { type: "StripeInvalidRequestError", statusCode: 400 }));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("connect_account_unusable");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const failure = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed").pop();
+      expect(JSON.stringify(failure?.payload)).toContain("must be set up again");
+    });
+
+    // Q1355 (3): inside the key's ~24h window Stripe replays the original
+    // refund, including one that has since FAILED: never booked as done.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     if (refund.status === "failed" \|\| refund.status === "canceled") { |     if (false) {
+    it("a replayed refund that is 'failed' at Stripe is not booked and the split does not close (Q1355 (3))", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_replayed", amount: 4000, status: "failed", failure_reason: "expired_or_canceled_card" });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(JSON.stringify(await json(res))).toMatch(/NOT repaid/);
+      expect(scenario.writes.some((w) => w.table === "payment_refunds" && (w.op === "insert" || (w.op as string) === "upsert"))).toBe(false);
     });
 
     it("markFailed only ever writes a DECIDED row — never a superseded or re-opened one", async () => {

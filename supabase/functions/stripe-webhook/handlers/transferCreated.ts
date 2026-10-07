@@ -102,18 +102,22 @@ export async function handleTransferCreated(
         .select("id")
         .maybeSingle();
       if (jobUpdateErr) {
-        // Log loudly but don't throw: the job flip is belt-and-suspenders here —
-        // all transfer-initiating code paths (release-payout, process-scheduled-payouts,
-        // admin_release_dispute) already flip the job before this webhook fires.
-        // A failed write here leaves the job in its prior state, but the
-        // initiating path already set it correctly, so no money↔state divergence.
+        // Log loudly but don't throw: the job flip is belt-and-suspenders here.
+        // release-payout and process-scheduled-payouts flip the job themselves;
+        // admin_release_dispute flips it AFTER its transfer, pinned to the
+        // payment states it read (Q1192), so this webhook can land first and is
+        // then the confirming flip. A failed write leaves the job in its prior
+        // state, which the initiating path still moves forward.
         logStep("ERROR updating job payment_status to released", {
           error: jobUpdateErr.message,
           jobId: transferJobId,
         });
       } else if (!updatedJob) {
-        // Zero rows matched — the job doesn't exist for this ledger entry.
-        // Belt-and-suspenders path: log for auditability but don't throw.
+        // Zero rows matched: the job is gone, is a CREW job (process-scheduled-
+        // payouts releases it once every member is paid, Q444; the standing
+        // live check is money-reconciliation's crew_member_unpaid_on_released_job),
+        // or is in a state that must not become released (refunded, cancelled,
+        // chargeback). Log for auditability; never throw.
         logStep("WARN job not flipped — missing, or in a state that must not become released", {
           jobId: transferJobId,
         });

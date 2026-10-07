@@ -4,11 +4,11 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-10-06T07:39:30.843Z
+Generated from findings.jsonl as of its newest entry: 2026-10-07T04:09:05.401Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 3 open (0 open launch blockers), 355 fixed, 3 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 1095 auditable surfaces (465 navigable, 630 copy) per SURFACE.md
+- **Findings:** 1 open (0 open launch blockers), 356 fixed, 4 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Surface:** 1097 auditable surfaces (465 navigable, 632 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -26,7 +26,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-edge-functions` | REPORTED | 0 | – | 15 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 0 | – | 11 |
-| 3 | `lh-money-escrow` | REPORTED | 2 | – | 22 |
+| 3 | `lh-money-escrow` | REPORTED | 0 | – | 23 |
 | 3 | `lh-native-bridge` | REPORTED | 0 | – | 20 |
 | 4 | `lh-build-release` | REPORTED | 0 | – | 15 |
 | 4 | `lh-onboarding-auth` | REPORTED | 0 | – | 16 |
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 1095 auditable surfaces, not 46 lanes
+## Surface coverage — 1097 auditable surfaces, not 46 lanes
 
 Routes are 2% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -75,7 +75,7 @@ each naming the lane accountable for it.
 | `?tab=` variants | 29 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 25 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 154 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
-| Toast messages | 593 | `lh-copy-content` | COVERED |
+| Toast messages | 595 | `lh-copy-content` | COVERED |
 | Multi-step flows — confirmed | 20 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 16 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 39 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |

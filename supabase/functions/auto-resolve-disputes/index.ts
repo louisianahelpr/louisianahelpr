@@ -800,11 +800,12 @@ serve(async (req) => {
           defects.record(`orphan sweep job read: ${recordJobsErr.message}`);
         } else {
           // Keyed on `payment_status` — see settle_dispute_record's own gate for
-          // why. `status` / `dispute_status` / `dispute_resolved_at` are all
-          // writable by a party to the job, so trusting them here would let the
-          // side LOSING a dispute forge a settled-looking job and have this
-          // sweep permanently close their own live dispute. They are still
-          // checked, as a second condition, never as the only one.
+          // why. `status` / `dispute_status` / `dispute_resolved_at` were once
+          // writable by a party to the job; since 20260915033734
+          // (enforce_dispute_markers_server_owned) only the dispute RPCs, the
+          // server and admins move them (Q964 (5)). They stay a SECOND
+          // condition here, never the only one, so a regression in that lock
+          // still cannot let the losing side close their own live dispute.
           const settledJobs = new Map<string, "helper" | "poster">();
           for (const j of recordJobs ?? []) {
             const outcome = outcomeFromPaymentStatus(j.payment_status);

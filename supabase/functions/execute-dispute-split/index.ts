@@ -50,7 +50,7 @@
 //     anywhere could recover it. Leg 3 below is that guard replaced with an
 //     answer.)
 
-import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -840,8 +840,10 @@ serve(async (req) => {
   if (!settledRefund && isResume && refundCents > 0 && paymentIntentId) {
     try {
       const priorRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+      // Q1355 (3): a failed or canceled refund moved no money; re-booking it
+      // as this leg would close the split with the poster never repaid.
       const match = (priorRefunds?.data ?? []).find(
-        (r: Stripe.Refund) => r?.metadata?.dispute_id === disputeId,
+        (r: Stripe.Refund) => r?.metadata?.dispute_id === disputeId && r.status !== "failed" && r.status !== "canceled",
       );
       if (match) {
         console.warn(
@@ -1315,6 +1317,18 @@ serve(async (req) => {
     try {
       account = await stripe.accounts.retrieve(helper.stripe_account_id);
     } catch (e) {
+      // Q1251: an account the live key can never use (a sandbox account made
+      // under the test key, or one Stripe no longer has) is the same outcome
+      // as no payout account: 409, nothing moved, the dispute marked with what
+      // to fix. Only a genuine outage stays the 502 "retry".
+      if (isUnusableConnectAccountError(e)) {
+        console.warn(`[execute-dispute-split] Connect account ${helper.stripe_account_id} is unusable under this key:`, (e as { message?: string })?.message);
+        await markFailed(supabaseAdmin, disputeId, "helper Connect account cannot be used (must be set up again)", {}, job.id, settlementClaim);
+        return json(
+          { error: "the Helpr's payout account can't be used and must be set up again — nothing was moved", code: "connect_account_unusable" },
+          409,
+        );
+      }
       console.error(`[execute-dispute-split] accounts.retrieve failed for ${helper.stripe_account_id}:`, e);
       await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account", {}, job.id, settlementClaim);
       return json({ error: "could not verify the Helpr's payout account — retry" }, 502);
@@ -1486,6 +1500,23 @@ serve(async (req) => {
       return json(
         {
           error: `the Helpr's share was settled but the poster refund failed: ${err.message}. Retry to finish the refund.`,
+          stripe_transfer_id: transferId,
+        },
+        502,
+      );
+    }
+
+    // Q1355 (3): inside the key's ~24h window Stripe REPLAYS the original
+    // refund object, including one that has since failed. A failed or
+    // canceled refund returned nothing to the poster: never booked as done.
+    if (refund.status === "failed" || refund.status === "canceled") {
+      console.error(`[execute-dispute-split] refund ${refund.id} for dispute ${disputeId} came back '${refund.status}' (${refund.failure_reason ?? "no reason"}); not booked`);
+      await markFailed(
+        supabaseAdmin, disputeId, `refund ${refund.id} is ${refund.status} at Stripe`, { transferId, helperCents }, job.id, settlementClaim,
+      );
+      return json(
+        {
+          error: `the poster refund ${refund.id} is '${refund.status}' at Stripe, so the poster was NOT repaid. EITHER retry this settlement after 24 hours (Stripe replays the failed refund until then) OR refund them by hand in Stripe, never both: a hand refund carries no dispute id, so a later retry cannot see it.`,
           stripe_transfer_id: transferId,
         },
         502,

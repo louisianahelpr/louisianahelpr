@@ -6,7 +6,7 @@
  * Q210(b): a visit of $300 or more is never charged off-session; it is parked
  * for the payer to pay on-session. Each mutation below restores the old
  * behaviour and must turn this file red.
- * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") { | if (false) {
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (visitPayment?.status === "pending") { | if (false) {
  *
  * This function moves REAL MONEY with nobody present, so the tests below are
@@ -1727,6 +1727,85 @@ describe("charge-recurring-visits edge function", () => {
     expect((asks[0].payload as Record<string, unknown>).user_id).toBe(POSTER_ID);
   });
 
+  // Q1338 (lh-money-escrow review, 2026-10-05): the earlier-charge lookup ran
+  // only after the $300 park, so an earlier run's unbooked off-session charge
+  // of this visit was parked and the payer asked to pay it a second time.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             earlierChargeToAdopt = parkPrior.kind === "adopt"; |             earlierChargeToAdopt = false;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (parkPrior.kind === "in_flight") { |             if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") { |         if (false) {
+  describe("Q1338: a $300+ visit with an earlier unbooked charge is adopted, never parked", () => {
+    async function parkedAmount(): Promise<number> {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      await runOn(fn, "2026-09-01");
+      const amount = (visitPaymentWrites("insert")[0].payload as Record<string, unknown>).amount_cents as number;
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      return amount;
+    }
+    const earlier = (over: Record<string, unknown> = {}) => ({
+      id: "pi_offsession_unbooked", status: String("succeeded"), amount: 0, currency: "usd",
+      metadata: { type: "recurring_visit", parent_job_id: PARENT_ID, visit_date: VISIT_DATE, hold_id: HOLD_ID },
+      latest_charge: { id: "ch_earlier", amount_refunded: 0 }, ...over,
+    });
+
+    it("books the visit on the earlier charge: no park, no ask to pay, no new charge", async () => {
+      const total = await parkedAmount();
+      expect(total).toBeGreaterThanOrEqual(30000);
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ amount: total })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(b.awaitingPayment).toBe(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_offsession_unbooked");
+    });
+
+    it("an earlier charge still processing parks nothing and charges nothing this run", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ status: String("processing"), latest_charge: null })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(reasons(b)).toContain("still processing; nothing parked");
+    });
+
+    it("an earlier charge that stops being adoptable between the two lookups charges nothing off-session", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list
+        .mockResolvedValueOnce({ data: [earlier({ amount: 31000 })], has_more: false })
+        .mockResolvedValueOnce({ data: [earlier({ amount: 31000, latest_charge: { id: "ch_r", amount_refunded: 31000 } })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(reasons(b)).toContain("no longer adoptable");
+    });
+
+    it("a refunded earlier charge is not adopted: the visit is parked as before", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ amount: 31000, latest_charge: { id: "ch_r", amount_refunded: 31000 } })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(b.awaitingPayment).toBe(1);
+      expect(visitPaymentWrites("insert")).toHaveLength(1);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("a visit under $300 is still charged off-session exactly as before", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -2206,12 +2285,77 @@ describe("charge-recurring-visits edge function", () => {
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
+    // Q809 (2): a key that cannot replay the failed refund (Stripe keeps the
+    // plain key's response for a day, failed refund included).
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
       { payment_intent: "pi_orphan" },
-      { idempotencyKey: "recurring-visit-refund:pi_orphan" },
+      { idempotencyKey: "recurring-visit-refund:pi_orphan:after-re_f" },
     );
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
     expect(b.errors).toBe(0);
+  });
+
+  // Q809 (2) @mutate supabase/functions/charge-recurring-visits/index.ts |         const sweepRefundKey = deadRefunds.length > 0 |         const sweepRefundKey = false
+  it("Q809 (2): with no failed refund the sweep keeps the plain per-intent key", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    await runOn(fn, "2026-09-01");
+    expect(stripeMock.refunds.create.mock.calls[0][1]).toEqual({ idempotencyKey: "recurring-visit-refund:pi_orphan" });
+  });
+
+  // Q809 (review): inside its ~24h key window Stripe REPLAYS the original
+  // refund, including one that has since FAILED. createRefundOnce took any
+  // answer as done, so the row was settled 'refunded' on money still held.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (created?.status === "failed" \|\| created?.status === "canceled") { |   if (false) {
+  it("Q809: a refund Stripe answers as 'failed' (a replay) is never settled as refunded; ops is told to refund by hand", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_replayed", status: "failed", failure_reason: "expired_or_canceled_card" });
+    await runOn(fn, "2026-09-01");
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /refund failed/.test(a.title))).toBe(true);
+  });
+
+  // Q809 (4): a booked visit that was RESCHEDULED has date_needed != the
+  // payment's visit_date; matched by date it read as never booked and was
+  // refunded while the Helpr still came. Matched on its own PaymentIntent.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         .eq("parent_job_id", row.parent_job_id)\n        .eq("stripe_payment_intent_id", pi)\n        .limit(1); |         .eq("parent_job_id", row.parent_job_id)\n        .eq("date_needed", row.visit_date)\n        .eq("stripe_payment_intent_id", pi)\n        .limit(1);
+  it("Q809 (4): the sweep finds a paid visit's booking by its PaymentIntent, never by its (movable) date", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, existing: { rows: [{ id: "visit-moved" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    await runOn(fn, "2026-09-01");
+    const bookedRead = scenario.readQueries.find((q) => q.table === "jobs" && q.cols === "id" && q.filters.some((f) => f.column === "stripe_payment_intent_id"));
+    expect(bookedRead, JSON.stringify(scenario.readQueries.filter((q) => q.table === "jobs"))).toBeDefined();
+    expect(bookedRead!.filters.some((f) => f.column === "date_needed")).toBe(false);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["funded"]);
+  });
+
+  // Q809 (3): a payment no bigger than the card fee returns nothing: the
+  // payer is never told "refunded" for $0.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded, less the card fee" : "Your visit payment couldn't be refunded") |             ? "Your visit payment was refunded, less the card fee"
+  it("Q809 (3): a fee-withheld visit whose fee eats the whole payment is not announced as refunded", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue({ ...taggedIntent, latest_charge: { balance_transaction: { fee: 10000 } } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    await runOn(fn, "2026-09-01");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"));
+    expect(told).toContain("couldn't be refunded");
+    expect(told).not.toContain("We refunded $0.00");
   });
 
   it("Q415 (e): an idempotency conflict whose only prior refund FAILED is still a failed refund", async () => {

@@ -231,7 +231,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const wantsReplyLatency =
         !!currentUserId && (currentUserId === targetUserId || currentUserId === userId);
 
-      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes, mutualCompletedRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -383,6 +383,19 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         wantsReplyLatency
           ? supabase.rpc("get_my_reply_latency")
           : Promise.resolve({ data: null, error: null } as any),
+        // Q965: "Worked together" counts jobs the two FINISHED together. The
+        // broader count above (every job they were paired on, cancelled
+        // included) still gates messaging; the tile reads only completed ones
+        // (a profile showed 44 "worked together" against 16 completed).
+        wantsMutual
+          ? supabase
+              .from("jobs")
+              .select("id", { count: "exact", head: true })
+              .eq("status", "completed")
+              .or(
+                `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
+              )
+          : Promise.resolve({ data: null, error: null, count: 0 } as { data: null; error: null; count: number }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -558,6 +571,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Mutual jobs (#1) — silently degrade to 0 if the count read errored
       // (RLS, unexpected schema). The badge hides itself at 0.
       const mutualJobsCount = wantsMutual ? (mutualRes?.count ?? 0) : 0;
+      // The tile's number (Q965): finished together, not merely paired.
+      const workedTogetherCount = wantsMutual ? (mutualCompletedRes?.count ?? 0) : 0;
       /* See the two queries above. TRUE when there is no viewer to gate
          (own profile / signed out) because the button is not rendered in those
          cases anyway, and false-by-default there would make the gate look like
@@ -810,7 +825,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         postedJobs,
         workedJobs,
         replyLatency,
-        mutualJobsCount,
+        // The "Worked together" tile (its only reader): finished together (Q965).
+        mutualJobsCount: workedTogetherCount,
         canMessage,
         onTimeArrivalRate,
         revisionFrequency,

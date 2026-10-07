@@ -264,8 +264,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           does nothing inside the native app). It now renders a real contact
           form that works signed-out AND signed-in (prefilled from the profile).
           Authed users still get the same form as a Profile tab.
-          No PageTransition — it renders inside PublicLayout, so the fixed-nav
-          rule in the note directly below applies to it too.
+          It IS wrapped in PageTransition, as /legal and /help are: see the
+          note directly below (Q965 corrected this; it used to say it was not).
 
           NOT wrapped in <MarketingRedirect>, even though /profile?tab=support
           renders the same form from the same shared copy (lib/supportTopics.ts).
@@ -276,14 +276,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           ?topic= / ?subject= prefill that the Profile tab does not read. */}
       <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />
 
-      {/* Marketing routes intentionally skip PageTransition — its
-          motion.div sets `will-change: transform`, which establishes
-          a CSS containing block that pins the marketing Navbar's
-          `position: fixed` to the wrapper (so the nav scrolls away
-          with the page instead of staying fixed to the viewport).
-          Landing (/) also skips PageTransition for the same reason;
-          this preserves the same fixed-nav behaviour on /legal,
-          /help. */}
+      {/* PageTransition's animated motion.div sets `will-change:
+          transform`, which makes it the containing block for a
+          `position: fixed` descendant such as the marketing Navbar. This
+          comment used to say /legal and /help skip PageTransition for
+          that reason; they do not: /legal, /terms, /privacy, /rules,
+          /help and /support are all wrapped (read the routes). Whether
+          the marketing Navbar still stays fixed while those pages
+          scroll on the web is a browser check, recorded under Q965. */}
       {/* NOT wrapped in <MarketingRedirect>, and must not be.
           These are the only place the policy TEXT exists. The in-app Legal tab
           (/profile?tab=legal) is NOT a second copy of it — read LegalTab.tsx:

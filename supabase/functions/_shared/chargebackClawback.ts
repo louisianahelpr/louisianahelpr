@@ -852,7 +852,7 @@ export async function repayClawback(
       // see it as recorded, and a later transfer.failed / transfer.canceled
       // on it is handled. The ORIGINAL row stays 'reversed' (Stripe's truth);
       // 'reversal_cleared' would mean "an operator allowed a re-pay".
-      const { data: origRows } = await supabase
+      const { data: origRows, error: origErr } = await supabase
         .from("payout_transfers")
         .select("amount_cents, platform_fee_cents")
         .eq("stripe_transfer_id", row.original_transfer_id)
@@ -861,6 +861,18 @@ export async function repayClawback(
       const feeCents = orig && orig.amount_cents > 0
         ? Math.round((orig.platform_fee_cents * row.reversed_cents) / orig.amount_cents)
         : 0;
+      // Q1358: an unreadable original row used to record platform_fee_cents=0
+      // as if it were known. The re-pay row is still written (the reconciler
+      // must see the transfer), marked as an unknown fee, and paged.
+      if (origErr) {
+        logStep("WARNING: original payout row unreadable — re-pay ledger fee recorded as unknown", { disputeId: dispute.id, error: origErr.message });
+        await recordLagPage(
+          "Card dispute won — re-pay ledger row has an UNKNOWN platform fee",
+          `The original payout row for transfer ${row.original_transfer_id} could not be read, so the re-payment ${transfer.id} is recorded with platform_fee_cents 0 and metadata.platform_fee_unknown. Set its fee by hand from the original row.`,
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Transfer": transfer.id, "DB error": origErr.message.slice(0, 200) },
+          dispute.id,
+        );
+      }
       const { error: ledgerErr } = await supabase
         .from("payout_transfers")
         .upsert({
@@ -874,7 +886,12 @@ export async function repayClawback(
           status: "paid",
           initiated_by: "system",
           paid_at: new Date().toISOString(),
-          metadata: { source: REPAY_SOURCE, dispute_id: dispute.id, original_transfer_id: row.original_transfer_id },
+          metadata: {
+            source: REPAY_SOURCE,
+            dispute_id: dispute.id,
+            original_transfer_id: row.original_transfer_id,
+            ...(origErr ? { platform_fee_unknown: true } : {}),
+          },
         }, { onConflict: "stripe_transfer_id" })
         .select("id");
       if (ledgerErr) {

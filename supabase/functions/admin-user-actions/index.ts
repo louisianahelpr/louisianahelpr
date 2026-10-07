@@ -732,6 +732,21 @@ serve(async (req) => {
       // not own. Raised for a follow-up that can change all of them together.
       let stateChanged = true
       if (confirming) {
+        // Q1414: an open ban settlement review refuses the status write below
+        // (ban_review_open), but only after the user_bans row is in. Ask first
+        // and change nothing: the review is confirmed or lifted first.
+        const { data: openReviews, error: reviewErr } = await admin.from('ban_settlement_queue')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .eq('review_state', 'open')
+          .limit(1)
+        if (reviewErr) throw new Error(`Failed to check for an open ban review: ${reviewErr.message}`)
+        if (openReviews && openReviews.length > 0) {
+          return new Response(JSON.stringify({
+            error: 'This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.',
+            code: 'ban_review_open',
+          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
         const { data: existingBans, error: existingErr } = await admin.from('user_bans')
           .select('id')
           .eq('user_id', targetUserId)

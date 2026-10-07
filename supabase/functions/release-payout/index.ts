@@ -33,7 +33,7 @@
 //   - DB has UNIQUE(stripe_transfer_id) on payout_transfers, so DB also
 //     rejects dup writes
 
-import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -478,6 +478,20 @@ serve(async (req) => {
     account = await stripe.accounts.retrieve(helper.stripe_account_id);
   } catch (e) {
     const err = e as { message?: string; type?: string; code?: string };
+    // Q1251: a Connect account the live key can never use (a sandbox account
+    // made under the test key, or one Stripe no longer has) is an answer, not
+    // an outage: a retry gets the same refusal. 409 with what to do, never a
+    // 502 "retry". Nothing has moved yet.
+    if (isUnusableConnectAccountError(e)) {
+      console.warn(`[release-payout] Connect account ${helper.stripe_account_id} is unusable under this key (job ${job.id}): ${err?.message ?? ""}`);
+      return jsonResponse(
+        {
+          error: "The Helpr's payout account can't be used and must be set up again in Payment settings. Nothing was moved.",
+          code: "connect_account_unusable",
+        },
+        409,
+      );
+    }
     console.error(
       `[release-payout] accounts.retrieve failed for ${helper.stripe_account_id} (job ${job.id}):`,
       { message: err?.message, type: err?.type, code: err?.code },

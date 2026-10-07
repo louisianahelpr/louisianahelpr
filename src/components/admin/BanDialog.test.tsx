@@ -62,6 +62,16 @@ vi.mock("@/lib/biometricGate", () => ({
     (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),
 }));
 
+// Q1414: the dialog's pre-check of ban_settlement_queue.
+let reviewResult: { data: unknown; error: { message: string } | null } = { data: [], error: null };
+const reviewChain = () => {
+  const chain: Record<string, unknown> = {};
+  chain.select = () => chain;
+  chain.eq = () => chain;
+  chain.limit = () => Promise.resolve(reviewResult);
+  return chain;
+};
+
 const sampleProfile = {
   id: "profile-id-1",
   user_id: "user-id-1",
@@ -94,11 +104,42 @@ describe("BanDialog", () => {
     eqMock.mockReturnValue({ select: selectMock, then: (r: (v: unknown) => unknown) => r({ error: null }) });
     insertMock.mockResolvedValue({ error: null });
     updateMock.mockReturnValue({ eq: eqMock });
-    fromMock.mockReturnValue({
-      insert: insertMock,
-      update: updateMock,
-    });
+    fromMock.mockImplementation((table: string) =>
+      table === "ban_settlement_queue" ? reviewChain() : { insert: insertMock, update: updateMock },
+    );
+    reviewResult = { data: [], error: null };
     getUserMock.mockResolvedValue({ data: { user: { id: "admin-id" } } });
+  });
+
+  // Q1414: an open ban settlement review refuses the status write, but only at
+  // the last step, after the user_bans row and the strike were already in.
+  // The dialog now asks first and writes NOTHING.
+  // @mutate src/components/admin/BanDialog.tsx |     if ((openReviews ?? []).length > 0) { |     if (false) {
+  // @mutate src/components/admin/BanDialog.tsx |     if (reviewErr) { |     if (false) {
+  it.each([
+    ["Temp Ban", /Ban for 7 days/],
+    ["Perm Ban", /Permanently Ban/],
+    [null, /Issue Warning/],
+  ] as const)("an account under an open ban review: %s writes nothing and says why (Q1414)", async (tier, cta) => {
+    reviewResult = { data: [{ id: "review-1" }], error: null };
+    const onSuccess = vi.fn();
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    if (tier) fireEvent.click(screen.getByText(new RegExp(tier)));
+    fireEvent.click(screen.getByRole("button", { name: cta }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/ban settlement review/i)));
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("an unreadable review state fails closed: nothing written (Q1414)", async () => {
+    reviewResult = { data: null, error: { message: "boom" } };
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByText(/Perm Ban/));
+    fireEvent.click(screen.getByRole("button", { name: /Permanently Ban/ }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/couldn't check/i)));
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
   it("renders nothing when profile is null", () => {

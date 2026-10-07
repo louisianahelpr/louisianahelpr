@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { readHelperFeePercentStrict, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -886,15 +886,23 @@ serve(async (req) => {
       // falls back to the old even split.
       const crewSlot = job.is_group_job ? crewSlotByJob.get(job.id)?.get(helperId) : undefined;
       const perHelperBudget = crewSlot?.shareCents != null ? crewSlot.shareCents / 100 : job.budget / helpersCount;
-      // Resolve the helper's live subscription tier at payout time; fall back to
-      // the fee frozen on the job, then to the platform default, if the profile
-      // read fails. The default is 12 (free tier), not the legacy 10 — a wrong
-      // fallback under-collects $4 on a $200 job (see helperFees.ts).
-      const jobHelperFeePercent = await getHelperFeePercent(
+      // Resolve the helper's live subscription tier at payout time. Q1358: a
+      // tier read that FAILS skips this job this run (the next run retries)
+      // instead of transferring at a fallback rate. Only a Helpr with NO
+      // profile row (no tier to read) takes the fee frozen on the job, then the
+      // free-tier default (12, see helperFees.ts).
+      const feeRead = await readHelperFeePercentStrict(
         supabaseAdmin,
         helperId,
         job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
+      if (!feeRead.ok) {
+        console.error(`[process-scheduled-payouts] helper fee read failed for ${helperId} (job ${job.id}): ${feeRead.error}`);
+        results.push({ job_id: job.id, status: "helper_fee_read_error", error: feeRead.error });
+        jobDefect(job.id, `Helpr fee tier read ${job.id}: ${feeRead.error}`);
+        continue;
+      }
+      const jobHelperFeePercent = feeRead.percent;
       // Shared with release-payout. This used to be an unrounded
       // (perHelperBudget * pct) / 100, which disagreed with that path by a
       // cent on 2,243 (budget, tier) pairs under $200.

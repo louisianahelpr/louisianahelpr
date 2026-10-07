@@ -151,6 +151,49 @@ export async function getHelperFeePercent(
 }
 
 /**
+ * Q1358: the fee read for a path that MOVES money now. Unlike
+ * `getHelperFeePercent`, a read ERROR is not priced at the fallback: the
+ * caller skips the job this run (the next run retries), because a transient
+ * read would otherwise pay a paid-tier Helpr up to 4 points wrong, and
+ * void-cancelled-payments stores the rate on its claim row so a retry reuses
+ * it. A Helpr with NO profile row (deleted account) is not an error: there is
+ * no tier to read, so the fallback applies as before.
+ */
+export type StrictFeeRead = { ok: true; percent: number } | { ok: false; error: string };
+
+export async function readHelperFeePercentStrict(
+  admin: {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (col: string, val: string) => {
+          maybeSingle: () => PromiseLike<{ data: unknown; error: unknown }>;
+        };
+      };
+    };
+  },
+  helperId: string | null | undefined,
+  fallbackPercent: number,
+): Promise<StrictFeeRead> {
+  if (!helperId) return { ok: true, percent: fallbackPercent };
+  try {
+    const { data, error } = await admin
+      .from("profiles")
+      .select("subscription_tier, subscription_expires_at")
+      .eq("user_id", helperId)
+      .maybeSingle();
+    if (error) {
+      return { ok: false, error: String((error as { message?: string }).message ?? "tier read failed") };
+    }
+    if (!data) return { ok: true, percent: fallbackPercent };
+    const row = data as { subscription_tier: string | null; subscription_expires_at: string | null };
+    return { ok: true, percent: feePercentForTier(row.subscription_tier, row.subscription_expires_at) };
+  } catch (e) {
+    const m = (e as { message?: unknown } | null)?.message;
+    return { ok: false, error: typeof m === "string" ? m : "tier read threw" };
+  }
+}
+
+/**
  * THE helper commission, in whole cents.
  *
  * Two payout paths computed this differently and disagreed by a cent on 2,243

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T12:32Z",
+  "measured_at": "2026-10-07T14:32Z",
   "issues": {
     "readable": true,
     "open": [
@@ -42,11 +42,6 @@
       {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2462,
-        "title": "nightly-red: slow-network",
         "label": "nightly-red"
       },
       {
@@ -200,7 +195,7 @@
     "issue #2501": "Q1426",
     "ledger 090aa021e278": "Q1468",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 1ef4b10bb74a": "Q1486",
+    "ledger 1ef4b10bb74a": "Q1488",
     "ledger 254aa669dea7": "Q1469",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",

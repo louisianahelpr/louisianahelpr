@@ -198,6 +198,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-idv-webhook": {
     uncovered: "fires on a Stripe Identity verification event; the shared helper is already verified and must stay so",
   },
+  "edge:_shared/connectGateSync": {
+    uncovered:
+      "sends \"Payout account verified\" the first time a Helpr's Stripe Connect account turns payouts-enabled (stripe-connect status check or the recheck-pending-accepts sweep); the shared accounts' Connect state is fixed and a journey never completes Connect onboarding on live Stripe",
+  },
   "edge:_shared/chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
   "edge:_shared/heldTipRepay": { uncovered: STRIPE_EVENT("checkout.session.completed for a tip to a Helpr under a payout hold") },
   "edge:stripe-webhook/handlers/accountUpdated": { uncovered: STRIPE_EVENT("account.updated with a requirements change") },
@@ -210,6 +214,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/checkoutSessionCompleted": {
     uncovered: GAP("the tip leg in 04-money-outcomes (it RECORDS whether this handler's \"You received a tip!\" row lands beside the trigger's, but does not assert it: two in-app rows for one tip is a suspected duplicate)"),
   },
+  "edge:stripe-webhook/handlers/settleRecurringVisitCheckout": { uncovered: STRIPE_EVENT("checkout.session.completed for a recurring-visit payment (journeys never pay on live)") },
   "edge:stripe-webhook/handlers/settleOnboardingFee": {
     uncovered: "fires on the one-time onboarding-fee checkout; both shared accounts paid it long ago",
   },

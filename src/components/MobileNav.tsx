@@ -30,18 +30,7 @@ import {
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { DockPill } from "@/components/mobileNav/DockPill";
-
-/** The curtain band's height: the dock clearance pages reserve (safe-area + 96px) plus a 24px overhang. */
-const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + 96px + 24px)";
-
-/**
- * The dock curtain's blur (Q7): ONE unmasked layer (WebKit drops backdrop-filter beside
- * mask-image) whose hard top edge sits 8px below the nav's top edge, just under the
- * pill's top, so the pill and the FAB cover it. Chosen on the iOS 26.5 simulator
- * (2026-10-07): a full-height ramp of stepped bands drew a seam at every step.
- */
-const CURTAIN_BLUR_TOP = "8px";
-const CURTAIN_BLUR = "blur(16px) saturate(160%)";
+import { DockCurtain } from "@/components/mobileNav/DockCurtain";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -696,64 +685,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           willChange: "transform",
         }}
       >
-        {/* Frosted curtain — full-width backdrop-blur layer behind the
-            nav so any content scrolling up the page softly blurs as it
-            passes through this band, not just under the centered pill.
-            The mask gradient fades the blur to zero at the top so the
-            transition into clear content above is smooth.
-
-            The band must be at least as tall as the page-content scroll
-            clearance the fixed-shell pages reserve for the dock
-            (calc(safe-area-inset-bottom + 96px) — see PageScaffold /
-            Profile / Messages). If the curtain were shorter, the last
-            ~28px of reserved space would sit *above* the frost, so the
-            panel/cards would read as ending in a hard horizontal line
-            over bare page background rather than fading continuously
-            under the glass. We anchor the band's top to that same
-            clearance value (measured from the bottom of the viewport,
-            i.e. the bottom of this `bottom-0` nav minus its own
-            safe-area padding) and stretch the mask fade across the full
-            band so there is no perceptible cutoff edge. */}
-        {/* Q7 (2026-10-07): WebKit drops `backdrop-filter` on an element that
-            also carries `mask-image` — measured on the iOS 26.5 simulator, a
-            striped probe under the dock stayed crisp in this band while the
-            pill (no mask) blurred it; a mask on a PARENT makes a backdrop root
-            and blurs nothing. So blur and mask never share an element. An
-            unmasked blur has a hard top edge, and a stepped ramp of bands
-            showed every step as a seam (panel borders visibly cut), so the
-            blur starts CURTAIN_BLUR_TOP below this nav's own top edge, i.e.
-            just under the pill's top, where the pill and the FAB hide the
-            edge, and runs to the screen bottom. Above it the TINT below
-            (masked, no filter) fades as before. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 pointer-events-none"
-          style={{
-            top: CURTAIN_BLUR_TOP,
-            bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
-            backdropFilter: CURTAIN_BLUR,
-            WebkitBackdropFilter: CURTAIN_BLUR,
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 pointer-events-none"
-          style={{
-            // Anchor the band to the bottom of the viewport (this nav is
-            // `fixed bottom-0`; its `paddingBottom` is the safe-area inset,
-            // so `bottom: -safe-area` puts the curtain's lower edge at the
-            // true screen bottom) and give it a fixed height that covers
-            // the full dock clearance the pages reserve (safe-area + 96px)
-            // plus a 24px overhang so the fade begins in clear content.
-            bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
-            height: `calc(${CURTAIN_BAND})`,
-            // Longer fade (35% solid → transparent) so the tint ramps in
-            // gradually across the band instead of snapping on partway up.
-            maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-            background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
-          }}
-        />
+        <DockCurtain />
         {/* mx-auto at ALL widths, not just md+. The pill is capped at max-w-lg
             (512px); on a phone that exceeds the viewport so it fills edge-to-edge
             (mx-auto is a no-op there), but between ~512px and md the old `mx-3` +

@@ -22,7 +22,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 // @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))", | bottom: "calc(var(--safe-area-bottom, 0px) + 96px)",
 // @mutate src/pages/jobs/JobDetail.tsx | pt-20 pb-safe-nav | pt-20 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]
-// @mutate src/components/MobileNav.tsx | height: "calc(var(--safe-area-bottom, 0px) + 96px + 24px)", | height: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 24px)",
+// @mutate src/components/mobileNav/DockCurtain.tsx | const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + 96px + 24px)"; | const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 24px)";
 // @mutate src/components/ui/PageScaffold.tsx | import type { CSSProperties, ReactNode } from "react"; | const __q265 = "calc(var(--safe-area-bottom, 0px) + 96px)"; import type { CSSProperties, ReactNode } from "react";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -38,7 +38,7 @@ const DOCK_LITERAL = /var\(--safe-area-bottom,\s*0px\)(?:\s*\+\s*|_\+_)(?:96px|6
 const BASELINE: Record<string, number> = {
   // The dock's own frosted curtain, rendered only while the dock itself is: it
   // describes the dock's height, not clearance a page reserves for it.
-  "src/components/MobileNav.tsx": 1,
+  "src/components/mobileNav/DockCurtain.tsx": 1,
 };
 
 describe("dock clearance is not typed out per screen (Q265)", () => {

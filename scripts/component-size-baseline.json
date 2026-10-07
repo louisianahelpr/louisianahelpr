@@ -18,7 +18,7 @@
     "src/components/messages/ChatView.tsx": 610,
     "src/components/messages/ConversationList.tsx": 1849,
     "src/components/messages/ConversationRow.tsx": 615,
-    "src/components/MobileNav.tsx": 838,
+    "src/components/MobileNav.tsx": 801,
     "src/components/NotificationPanel.tsx": 971,
     "src/components/NotificationPreferences.tsx": 1025,
     "src/components/PhotoProof.tsx": 635,

@@ -1,6 +1,6 @@
-// @mutate src/components/MobileNav.tsx |             backdropFilter: CURTAIN_BLUR,\n            WebkitBackdropFilter: CURTAIN_BLUR, |             backdropFilter: CURTAIN_BLUR,\n            WebkitBackdropFilter: CURTAIN_BLUR,\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-// @mutate src/components/MobileNav.tsx |             top: CURTAIN_BLUR_TOP, |             height: "calc(var(--safe-area-bottom, 0px) + 120px)",
-// @mutate src/components/MobileNav.tsx |             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            background: | backdropFilter: "blur(32px)",\n            maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            background:
+// @mutate src/components/mobileNav/DockCurtain.tsx |           backdropFilter: CURTAIN_BLUR,\n          WebkitBackdropFilter: CURTAIN_BLUR, |           backdropFilter: CURTAIN_BLUR,\n          WebkitBackdropFilter: CURTAIN_BLUR,\n          WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
+// @mutate src/components/mobileNav/DockCurtain.tsx |           top: CURTAIN_BLUR_TOP, |           height: "calc(var(--safe-area-bottom, 0px) + 120px)",
+// @mutate src/components/mobileNav/DockCurtain.tsx |           maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n          WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n          background: | backdropFilter: "blur(32px)",\n          maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n          WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n          background:
 //
 // Q7 (owner, WebKit only: "the bottom nav isn't frosted"). Measured 2026-10-07 on
 // the iOS 26.5 simulator (WKWebView) with a striped probe under the dock: the dock
@@ -83,7 +83,7 @@ describe("no element carries a backdrop filter and a mask image together (Q7, We
   });
 
   it("the dock curtain blurs: one unmasked layer whose edge sits under the pill's top", () => {
-    const nav = blankComments(readFileSync(join(SRC, "components/MobileNav.tsx"), "utf8"));
+    const nav = blankComments(readFileSync(join(SRC, "components/mobileNav/DockCurtain.tsx"), "utf8"));
     // The edge must be hidden behind the pill: anchored to the nav's own top, a few px down.
     const top = /const CURTAIN_BLUR_TOP = "(\d+)px";/.exec(nav);
     expect(top, "CURTAIN_BLUR_TOP").not.toBeNull();

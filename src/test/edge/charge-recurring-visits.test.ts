@@ -6,7 +6,7 @@
  * Q210(b): a visit of $300 or more is never charged off-session; it is parked
  * for the payer to pay on-session. Each mutation below restores the old
  * behaviour and must turn this file red.
- * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") { | if (false) {
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (visitPayment?.status === "pending") { | if (false) {
  *
  * This function moves REAL MONEY with nobody present, so the tests below are

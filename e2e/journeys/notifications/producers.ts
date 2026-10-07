@@ -197,6 +197,8 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:review-nag-cron": { uncovered: SCHEDULED_EDGE },
   "edge:saved-helper-availability-push": { uncovered: SCHEDULED_EDGE },
   "edge:stalled-completion-reminder": { uncovered: SCHEDULED_EDGE },
+  // Q768: the turnover notice needs a test-owned STR calendar whose iCal feed has a checkout this week; no journey account has one.
+  "edge:str-ical-sync": { uncovered: SCHEDULED_EDGE },
   "edge:stripe-connect": {
     uncovered: "writes on Connect onboarding steps; the shared helper's Connect account is already onboarded and is load-bearing for every money leg",
   },

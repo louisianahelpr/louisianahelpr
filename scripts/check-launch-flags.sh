@@ -43,7 +43,7 @@ else
     -H "apikey: $key" -H "Authorization: Bearer $key" -H "Content-Type: application/json" -d '{}')
   case "$hidden" in
     true) ;;
-    false) note "seed_jobs_hidden_publicly() is FALSE on ${url#https://} — the public marketplace still shows fixture jobs. Run: npm run launch:go -- --on" ;;
+    false) note "seed_jobs_hidden_publicly() is FALSE on ${url#https://} — the public marketplace still shows fixture jobs. Run: npm run launch:go -- --on --confirm" ;;
     *) note "seed_jobs_hidden_publicly() could not be read (got: ${hidden:0:120}) — refusing to call the flag clean." ;;
   esac
 fi

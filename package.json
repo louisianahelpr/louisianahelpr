@@ -33,6 +33,7 @@
     "prepare": "husky || true",
     "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
     "launch:go": "node scripts/launch-go.mjs",
+    "launch:appstore": "node scripts/app-store-live.mjs",
     "deadcode": "knip",
     "hygiene": "node scripts/prune-git-hygiene.mjs",
     "stranded": "node scripts/stranded-work.mjs",

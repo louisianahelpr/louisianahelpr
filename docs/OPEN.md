@@ -1016,7 +1016,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### STILL OPEN from the checking work
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1074** LOW 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583) **TRIAGE 2026-10-06 (d) re-measured:** docs/audit/vacuity-report.json (generated 2026-10-06T19:34Z) lists 44 classB_mountWiring gaps.
+- [x] **Q1074** LOW 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583) **TRIAGE 2026-10-06 (d) re-measured:** docs/audit/vacuity-report.json (generated 2026-10-06T19:34Z) lists 44 classB_mountWiring gaps. **DONE 2026-10-07 (lane/remaining): gated.** The vacuity gate (scripts/vacuity/index.mjs, runs on every push to main) now ratchets class (b) mount-wiring like (a) and (d): src/test/vacuity.baseline.json `mountWiring` holds the 44 modules the scanner reports today (measured with scripts/vacuity/scan.mjs scanAll() 2026-10-07); a NEW gap fails the gate and a closed one must leave the list (stale fails), registered two-way in src/test/baselinesAreTwoWay.test.ts. Proven both ways with `node scripts/vacuity/index.mjs --no-mutate`: one entry removed -> "1 component(s) are tested only in isolation" (red), a bogus entry added -> "mountWiring is stale" (red), restored -> "class (b) mount-wiring: 44 known, 0 new". The 44 gaps themselves are not closed (each needs its parent rendered in a test); the list can only shrink now.
 
 ### NEW — LOW (from the same pass)
 Reconciled 2026-09-23; detail in the archive at the line shown.

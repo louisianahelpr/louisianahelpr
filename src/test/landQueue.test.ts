@@ -10,13 +10,14 @@
  * @mutate scripts/land-queue.mjs | const again = cancelled.filter((c) => (c.attempt ?? 1) > 1); | const again = cancelled;
  * @mutate scripts/land.sh | --add-label land-queue >/dev/null 2>&1 \|\| | --add-label other >/dev/null 2>&1 \|\|
  * @mutate scripts/land.sh | if [ "$MSS" = DIRTY ]; then | if [ "$MSS" = DIRTY ] \|\| [ "$MSS" = BEHIND ]; then
+ * @mutate scripts/land-queue.mjs |     if (/no (?:required )?checks reported on the '[^']*' branch/.test(err)) return []; |     if (false) return [];
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS } from "../../scripts/land-queue.mjs";
+import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh } from "../../scripts/land-queue.mjs";
 import { REQUIRED_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -128,5 +129,22 @@ describe("migration gate checks count in the queue", () => {
       const wfName = /^name:\s*(.+)$/m.exec(readFileSync(join(dir, file as string), "utf8"))![1].trim();
       expect(queueYml, `land-queue.yml must wake on "${wfName}"`).toContain(`"${wfName}"`);
     }
+  });
+
+  // Land queue run 37569414168 (2026-10-07 04:01Z) crashed: a PR pushed a
+  // moment earlier had no checks registered, gh exited 1 with nothing on
+  // stdout, and the advancer threw. That PR is PENDING: the queue waits on it.
+  it("a PR whose checks have not registered yet reads as pending (the queue waits), never a crash", () => {
+    const ghError = (stderr: string, stdout = "") => () => {
+      throw Object.assign(new Error("Command failed: gh pr checks"), { status: 1, stdout, stderr });
+    };
+    expect(checksFromGh(ghError("no required checks reported on the 'land/crew-hire-before-payout-d916aa74' branch\n"))).toEqual([]);
+    expect(checksFromGh(ghError("no checks reported on the 'land/x' branch\n"))).toEqual([]);
+    // still prints the JSON while checks run or one failed
+    expect(checksFromGh(ghError("", '[{"name":"Vitest","bucket":"pending","link":""}]'))).toEqual([{ name: "Vitest", bucket: "pending", link: "" }]);
+    // any other failure with no body is a real read failure
+    expect(() => checksFromGh(ghError("HTTP 502: Bad Gateway"))).toThrow(/gh pr checks/);
+    const steps = planQueue([{ number: 7, mergeStateStatus: "BLOCKED", checks: queuedChecks(checksFromGh(ghError("no required checks reported on the 'land/y' branch")), []) }]);
+    expect(steps).toEqual([{ action: "wait", number: 7 }]);
   });
 });

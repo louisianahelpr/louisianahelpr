@@ -357,6 +357,75 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
+    // Q1417 (lh-money-escrow review, 2026-10-06): the old difference session's
+    // expiry webhook can un-reserve the gift to 'sent' between create-payment's
+    // re-reserve and its stamp of the new session. Paying the new session used
+    // to log "already consumed or missing" and fund the job by the difference
+    // alone, leaving the gift spendable again.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           reclaimed = !!reclaimRow; |           reclaimed = false;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       if (g?.status === "redeemed" && giftJobId && g.job_id === giftJobId) { |       if (true) {
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |             title: "Gift card difference payment — job underfunded", |             title: "Gift card difference payment",
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     if (consumeJobId) consumeQ = consumeQ.eq("job_id", consumeJobId); |
+    describe("a difference payment whose gift was un-reserved mid-checkout (Q1417)", () => {
+      const isFirstConsume = (p: Record<string, unknown>) => p.status === "redeemed" && !("job_id" in p);
+      async function deliver(gift: Record<string, unknown> | null, reclaimRows: Array<{ id: string }> = [{ id: "gc-1" }]) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_q1417",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_d2", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_d2", metadata: { job_id: "job-1", gift_card_id: "gc-1" } } },
+        });
+        scenario.writeOverrides = [
+          { table: "gift_cards", op: "update", when: isFirstConsume, rows: [] },
+          { table: "gift_cards", op: "update", when: (p) => p.status === "redeemed" && p.job_id === "job-1", rows: reclaimRows },
+        ];
+        scenario.reads.gift_cards = { rows: gift ? [gift] : [] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const giftWrites = scenario.writes.filter((x) => x.table === "gift_cards" && x.op === "update");
+        const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
+        return { res, giftWrites, titles };
+      }
+
+      it("re-claims a gift put back to 'sent' for this job, scoped to a still-free, still-paid row", async () => {
+        const { res, giftWrites, titles } = await deliver({ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" });
+        expect(res.status).toBe(200);
+        expect(giftWrites).toHaveLength(2);
+        expect(giftWrites[1].payload).toMatchObject({ status: "redeemed", job_id: "job-1" });
+        expect(giftWrites[1].filters).toContainEqual(expect.objectContaining({ op: "or", value: "job_id.is.null,job_id.eq.job-1" }));
+        expect(giftWrites[1].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "payment_status", value: "paid" }));
+        expect(titles.some((t) => /underfunded/.test(t))).toBe(false);
+        expect(titles.some((t) => /re-claimed/.test(t))).toBe(true);
+      });
+
+      it("a redelivery after the gift was consumed for this job is quiet and writes nothing more", async () => {
+        const { res, giftWrites, titles } = await deliver({ id: "gc-1", status: "redeemed", job_id: "job-1", payment_status: "paid" });
+        expect(res.status).toBe(200);
+        expect(giftWrites).toHaveLength(1);
+        // The first consume only takes a reservation made for THIS job.
+        expect(giftWrites[0].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "job_id", value: "job-1" }));
+        expect(titles.some((t) => /underfunded|re-claimed/.test(t))).toBe(false);
+      });
+
+      it("a gift spent on ANOTHER job is never taken back; ops is paged that this job is underfunded", async () => {
+        const { res, giftWrites, titles } = await deliver({ id: "gc-1", status: "redeemed", job_id: "job-OTHER", payment_status: "paid" });
+        expect(res.status).toBe(200);
+        expect(giftWrites).toHaveLength(1);
+        expect(titles).toContain("Gift card difference payment — job underfunded");
+      });
+
+      it("a revoked gift (donation refunded) is not re-claimed and pages ops", async () => {
+        const { giftWrites, titles } = await deliver({ id: "gc-1", status: "sent", job_id: null, payment_status: "refunded" });
+        expect(giftWrites).toHaveLength(1);
+        expect(titles).toContain("Gift card difference payment — job underfunded");
+      });
+
+      it("a re-claim that loses its own race (zero rows) pages ops instead of claiming success", async () => {
+        const { giftWrites, titles } = await deliver({ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" }, []);
+        expect(giftWrites).toHaveLength(2);
+        expect(titles).toContain("Gift card difference payment — job underfunded");
+      });
+    });
+
     it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
       const fn = await loadConfigured();
       // The tip UPDATE is gated on `payment_status='pending'` and returns the
@@ -792,6 +861,25 @@ describe("stripe-webhook edge function", () => {
       expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "refunded",
       );
+    });
+
+    // Q1355 (2): the event's charge.amount_refunded is a snapshot. A
+    // redelivery after the refund FAILED still read "full" and closed the job.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const isFullRefund = liveRefundedCents >= charge.amount; |   const isFullRefund = charge.amount_refunded >= charge.amount;
+    it("a redelivered 'full' refund whose refund has since FAILED does not close the job (Q1355 (2))", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_stale",
+        type: "charge.refunded",
+        data: { object: { id: "ch_1", payment_intent: "pi_refunded", amount: 5000, amount_refunded: 5000 } },
+      });
+      stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_failed", amount: 5000, status: "failed", metadata: {} }] });
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow" }] };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const refundedFlip = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "refunded",
+      );
+      expect(refundedFlip).toBeUndefined();
     });
 
     it("leaves the job status unchanged on a PARTIAL refund (funds still in escrow)", async () => {

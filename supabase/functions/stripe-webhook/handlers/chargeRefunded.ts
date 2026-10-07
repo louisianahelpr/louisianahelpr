@@ -46,11 +46,6 @@ export async function handleChargeRefunded(
     amountRefunded: charge.amount_refunded,
   });
 
-  // Only a FULL refund flips the job to "refunded". A partial refund (e.g. a
-  // one-off duplicate-onboarding-fee correction, or a partial-dispute payout)
-  // leaves the bulk of escrow in place, so marking the whole job refunded would
-  // strand held funds in a wrong terminal state. Reconcile on the actual amounts.
-  const isFullRefund = charge.amount_refunded >= charge.amount;
   // Q1193: a webhook's Charge is the minimal form and never carries `refunds`
   // (a Charge dropped it in API version 2022-11-15, and webhook objects are not
   // expanded), so reading charge.refunds left latestRefund undefined on every
@@ -93,6 +88,19 @@ export async function handleChargeRefunded(
     (r?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
   const liveRefunds = allRefunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled");
   const ordinaryRefunds = liveRefunds.filter((r) => !isCorrection(r));
+  // Only a FULL refund flips the job to "refunded". A partial refund (e.g. a
+  // one-off duplicate-onboarding-fee correction, or a partial-dispute payout)
+  // leaves the bulk of escrow in place, so marking the whole job refunded would
+  // strand held funds in a wrong terminal state. Reconcile on the actual amounts.
+  // Q1355 (2): from the LIVE refunds Stripe lists now, not the event's
+  // charge.amount_refunded, which is a snapshot: a redelivery after an earlier
+  // refund failed still read "full" and closed a job whose money is still held.
+  // A list with no refunds at all cannot be the stale case (that list holds
+  // the failed refund); only then does the event's own figure stand in.
+  const liveRefundedCents = allRefunds.length > 0
+    ? liveRefunds.reduce((sum, r) => sum + Number(r.amount ?? 0), 0)
+    : Number(charge.amount_refunded ?? 0);
+  const isFullRefund = liveRefundedCents >= charge.amount;
   const isOnboardingFeeCorrection = liveRefunds.length > 0 && ordinaryRefunds.length === 0;
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
@@ -109,7 +117,7 @@ export async function handleChargeRefunded(
     } else {
       // Partial refunds are not auto-revoked (all-or-nothing walk), but they
       // must not be silent either — see alertPartialGiftRefund.
-      await alertPartialGiftRefund(supabase, refundPiId, charge.amount_refunded, logStep);
+      await alertPartialGiftRefund(supabase, refundPiId, liveRefundedCents, logStep);
     }
   }
 

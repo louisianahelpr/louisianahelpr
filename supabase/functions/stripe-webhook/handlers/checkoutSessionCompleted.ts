@@ -810,11 +810,16 @@ async function settleCheckoutSession(
   // funded already (the gift must not stay spent on a job it did not pay for).
   let giftConsumedHere = false;
   if (giftCardId) {
-    const { data: consumed, error: consumeErr } = await supabase
+    const consumeJobId = (session.metadata as any)?.job_id as string | undefined;
+    let consumeQ = supabase
       .from("gift_cards")
       .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
       .eq("id", giftCardId)
-      .eq("status", "reserved")
+      .eq("status", "reserved");
+    // Q1417 review nit: a gift reserved for ANOTHER job is never consumed by
+    // this job's difference payment (redeem_gift_card stamps job_id on reserve).
+    if (consumeJobId) consumeQ = consumeQ.eq("job_id", consumeJobId);
+    const { data: consumed, error: consumeErr } = await consumeQ
       // …and still FUNDED. `revoke_gift_card_for_refund` revokes reserved rows
       // (nothing has moved for them yet) by setting payment_status='refunded'
       // and leaving `status` alone. A shortfall Checkout Session lives ~24h, so
@@ -842,7 +847,81 @@ async function settleCheckoutSession(
       });
       throw new Error(`gift_cards status flip failed for session ${session.id}: ${consumeErr.message}`);
     } else if (!consumed) {
-      logStep("Reserved gift card already consumed or missing — skipping", { giftCardId });
+      // Q1417 (lh-money-escrow review, 2026-10-06): zero rows is NOT always a
+      // redelivery. On a shortfall re-tap create-payment expires the old
+      // difference session D1 and re-reserves the gift; if D1's expiry webhook
+      // lands mid-request it can find the job unpaid with no session stamped
+      // and un-reserve the gift to 'sent' before D2 is stamped. Paying D2 then
+      // matched nothing here, the job still went to escrow below, and the gift
+      // stayed spendable: the platform funded the gift part twice. So read the
+      // gift: already redeemed on THIS job is the harmless redelivery; still
+      // spendable and free (or tied to this job) is reclaimed for this job;
+      // anything else means the job is funded by the difference alone, which
+      // ops must see.
+      const giftJobId = (session.metadata as any)?.job_id as string | undefined;
+      const { data: gift, error: giftReadErr } = await supabase
+        .from("gift_cards")
+        .select("id, status, job_id, payment_status")
+        .eq("id", giftCardId)
+        .maybeSingle();
+      if (giftReadErr) {
+        throw new Error(`gift_cards read failed after a zero-row consume for session ${session.id}: ${giftReadErr.message}`);
+      }
+      const g = gift as { status?: string; job_id?: string | null; payment_status?: string } | null;
+      if (g?.status === "redeemed" && giftJobId && g.job_id === giftJobId) {
+        logStep("Reserved gift card already consumed for this job — skipping", { giftCardId });
+      } else {
+        let reclaimed = false;
+        if (
+          giftJobId &&
+          (g?.status === "sent" || g?.status === "available") &&
+          g?.payment_status === "paid" &&
+          (g.job_id == null || g.job_id === giftJobId)
+        ) {
+          const { data: reclaimRow, error: reclaimErr } = await supabase
+            .from("gift_cards")
+            .update({ status: "redeemed", redeemed_at: new Date().toISOString(), job_id: giftJobId })
+            .eq("id", giftCardId)
+            .in("status", ["sent", "available"])
+            .eq("payment_status", "paid")
+            .or(`job_id.is.null,job_id.eq.${giftJobId}`)
+            .select("id")
+            .maybeSingle();
+          if (reclaimErr) {
+            throw new Error(`gift_cards reclaim failed for session ${session.id}: ${reclaimErr.message}`);
+          }
+          reclaimed = !!reclaimRow;
+        }
+        if (reclaimed) {
+          giftConsumedHere = true;
+          logStep("Gift card un-reserved mid-checkout was re-claimed for this job", { giftCardId, sessionId: session.id });
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Gift card re-claimed on a difference payment (Q1417 race)",
+            message: "The shortfall was paid after the gift had been un-reserved by an expired checkout. The gift was re-claimed for this job, so nothing was spent twice. No action needed unless this repeats.",
+            fields: { session_id: session.id, gift_card_id: giftCardId, job_id: giftJobId ?? null },
+          });
+        } else {
+          logStep("ERROR: difference paid but the gift could not be consumed — job funded by the difference only", {
+            giftCardId, sessionId: session.id, giftStatus: g?.status ?? "missing", giftJobId: g?.job_id ?? null,
+          });
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Gift card difference payment — job underfunded",
+            message: "A recipient paid the shortfall but the gift it was meant to sit beside was not reserved for this job any more (spent elsewhere, revoked or missing). The job is funded by the difference alone. Reconcile before it pays out.",
+            fields: {
+              session_id: session.id,
+              gift_card_id: giftCardId,
+              job_id: giftJobId ?? null,
+              gift_status: g?.status ?? "missing",
+              gift_payment_status: g?.payment_status ?? null,
+              gift_job_id: g?.job_id ?? null,
+            },
+          });
+        }
+      }
     } else {
       giftConsumedHere = true;
       logStep("Reserved gift card consumed on difference payment", { giftCardId, sessionId: session.id });

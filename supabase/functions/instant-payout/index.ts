@@ -10,6 +10,7 @@ import {
   INSTANT_PAYOUT_MIN_CENTS,
 } from "../_shared/instantPayoutFee.ts";
 import { formatPayoutCents } from "../_shared/money.ts";
+import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -155,7 +156,19 @@ serve(async (req) => {
     });
 
     // Check instant-available balance on the connected account
-    const balance = await stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id });
+    // Q1251: an account the live key can never use (sandbox, or gone) is not
+    // a 500: the Helpr is told to set it up again (Payment settings clears
+    // the dead link, stripe-connect). Anything else still throws.
+    let balance: Stripe.Balance;
+    try {
+      balance = await stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id });
+    } catch (balanceErr) {
+      if (!isUnusableConnectAccountError(balanceErr)) throw balanceErr;
+      return new Response(JSON.stringify({
+        error: "Your payout account needs to be set up again. Open Payment settings to reconnect it.",
+        code: "connect_account_unusable",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+    }
     const usdInstant = balance.instant_available?.find((b) => b.currency === "usd");
     const availableCents = usdInstant?.amount ?? 0;
 

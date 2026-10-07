@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 591,
+    "calls": 593,
     "files": 150,
-    "rendering": 566,
+    "rendering": 568,
     "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 38,
-      "toast.error": 466,
+      "toast.error": 468,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 30,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 316,
+      "literal": 318,
       "template": 77,
       "dynamic": 238,
       "jsx": 0
@@ -2492,7 +2492,27 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 293,
+      "line": 161,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check whether this account is under a ban review. Nothing was changed — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 315,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2502,7 +2522,7 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 297,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

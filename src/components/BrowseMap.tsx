@@ -38,10 +38,11 @@ import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/
 import {
   LA_BOUNDS,
   MAP_DOCK_CLEARANCE,
+  readIsDark,
   type MapJob,
 } from "./browseMap/config";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
-import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
+import { useSelectedCrewSpots } from "./browseMap/useSelectedCrewSpots";
 import { useMapJobs } from "./browseMap/useMapJobs";
 import JobCard from "./dashboard/JobCard";
 import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
@@ -171,13 +172,6 @@ const PREVIEW_CARD_MAX_W = 416; // 26rem — matches the old sheet's max width.
 const PREVIEW_EDGE = 8; // keep the card this far from every map edge.
 const PREVIEW_CARET = 9; // caret height / gap between card and pin.
 
-/** Reads the app's resolved theme off `<html data-theme>` (set by
- *  `useDarkMode`) so the map's own tiles match the surrounding UI. */
-function readIsDark(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.documentElement.getAttribute("data-theme") === "dark";
-}
-
 export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
@@ -243,21 +237,8 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   useEffect(() => {
     if (selectedJobId && !selectedJob) setSelectedJobId(null);
   }, [selectedJobId, selectedJob]);
-  /* Q1464: a re-listed crew's pin card says its open spots, as the feed card
-     does. The map RPC carries no count, so the previewed crew reads it on its
-     own (best effort: on a miss the card shows the crew's size). */
-  const [crewSpots, setCrewSpots] = useState<{ id: string; open: number } | null>(null);
-  const selectedCrewId = selectedJob?.is_group_job ? selectedJob.id : null;
-  useEffect(() => {
-    if (!selectedCrewId) return;
-    let live = true;
-    void fetchCrewSpotsOpen([selectedCrewId]).then((m) => {
-      const open = m.get(selectedCrewId);
-      if (live && open != null) setCrewSpots({ id: selectedCrewId, open });
-    });
-    return () => { live = false; };
-  }, [selectedCrewId]);
-  const selectedCrewSpots = selectedJob && crewSpots?.id === selectedJob.id ? crewSpots.open : null;
+  // Q1464: the previewed crew's open spots (the map RPC has no count).
+  const selectedCrewSpots = useSelectedCrewSpots(selectedJob?.is_group_job ? selectedJob.id : null);
   /** True when the open preview was opened from the keyboard, so focus should
    *  move into the sheet and back to the pin on close (a pointer tap must NOT
    *  steal focus — that scroll-jumps the map on iOS). */

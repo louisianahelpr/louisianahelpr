@@ -7501,6 +7501,10 @@ export type Database = {
         Args: { p_admin_id: string; p_ban_status?: string; p_user_id: string }
         Returns: Json
       }
+      link_str_turnover_job: {
+        Args: { p_event_id: string; p_job_id: string }
+        Returns: boolean
+      }
       log_cron_defect: {
         Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
         Returns: undefined

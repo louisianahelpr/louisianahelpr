@@ -7821,7 +7821,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      seed_hidden_for: { Args: { p_user_id: string }; Returns: boolean }
+      seed_hidden_from_caller: { Args: never; Returns: boolean }
+      seed_hidden_in_discovery: { Args: never; Returns: boolean }
       seed_jobs_hidden_publicly: { Args: never; Returns: boolean }
+      seed_review_hidden: {
+        Args: { p_job_id: string; p_reviewee_id: string; p_reviewer_id: string }
+        Returns: boolean
+      }
       send_ops_daily_digest: { Args: never; Returns: Json }
       series_give_up_strike: {
         Args: { p_dates: string[]; p_helper: string; p_parent: string }

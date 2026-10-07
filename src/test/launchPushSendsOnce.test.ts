@@ -16,7 +16,6 @@ const SRC = readFileSync("scripts/launch-go.mjs", "utf8");
 // The script runs main() on import, so the pure parts are checked from source.
 function recipients(tokens: { user_id: string }[], prefs: { user_id: string; push_enabled?: boolean; job_matches?: boolean }[], sent: string[]) {
   const body = /export function launchPushRecipients\(tokens, prefs, alreadySent\) \{([\s\S]*?)\n\}/.exec(SRC)![1];
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
   return new Function("tokens", "prefs", "alreadySent", body)(tokens, prefs, sent) as string[];
 }
 

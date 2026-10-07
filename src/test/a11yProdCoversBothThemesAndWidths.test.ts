@@ -10,7 +10,7 @@
  * variant, each a real tag in sweepCore.ts ALL_VARIANTS.
  *
  * @mutate .github/workflows/a11y-webkit-prod.yml | 1) PICKED="phone-light,desktop-dark" ;; | 1) PICKED="phone-light" ;;
- * @mutate .github/workflows/a11y-webkit-prod.yml | echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV" | echo "$PICKED"
+ * @mutate .github/workflows/a11y-webkit-prod.yml |             esac\n          fi\n          echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV" |             esac\n          fi\n          echo "$PICKED"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

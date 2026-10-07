@@ -55,8 +55,9 @@ describe("recurring: an unready Helpr picks up a vacated visit, confirmed once p
     expect(c).toMatch(/helper_confirmed_at = CASE WHEN v_ready THEN now\(\) END/);
     expect(c).toMatch(/INSERT INTO public\.job_accept_pending \(job_id, helper_id\)/);
     expect(c).toMatch(/'pending_setup', to_jsonb\(v_pending\)/);
-    // its answer-by time is the visit's start, so it expires unconfirmed then
-    expect(c).toMatch(/ELSE \(v_d \+ COALESCE\(v_child_start, '00:00'::time\)\) AT TIME ZONE 'America\/Chicago' END/);
+    // its answer-by time is the offer cutoff before the start, so it expires unconfirmed then
+    expect(c).toMatch(/v_cutoff := public\.job_offer_cutoff\(v_d, v_child_start\)/);
+    expect(c).toMatch(/response_deadline = v_deadline/);
   });
 
   it("an unconfirmed pick-up that is reopened gives the date back (no stranded hold)", () => {

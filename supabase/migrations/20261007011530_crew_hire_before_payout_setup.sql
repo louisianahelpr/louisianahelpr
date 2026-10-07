@@ -279,6 +279,8 @@ DECLARE
   v_list text;
   v_ready boolean;
   v_pending date[] := ARRAY[]::date[];
+  v_cutoff timestamptz;
+  v_deadline timestamptz;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated';
@@ -419,17 +421,24 @@ BEGIN
         -- accept, as before. Not ready: the visit is theirs, unconfirmed, and
         -- the accept is RECORDED (job_accept_pending) and completes when Stripe
         -- reports payouts ready (complete_pending_accepts_on_setup, the same
-        -- path as a single job's Accept). Its answer-by time is the visit's
-        -- start, so unconfirmed then, expire_unanswered_offers reopens it
+        -- path as a single job's Accept). Its answer-by time is the offer
+        -- cutoff before the visit's start, so unconfirmed then, expire_unanswered_offers reopens it
         -- (complete_job_accept refuses after that time); a reopened visit
         -- releases the date (trg_release_series_hold_on_reopen, below).
         v_ready := public.helper_accept_block_reason(v_uid) IS NULL;
+        -- An unready pick-up answers by the offer cutoff (job_offer_cutoff,
+        -- the bound every offer deadline uses); a ready one is confirmed now.
+        v_cutoff := public.job_offer_cutoff(v_d, v_child_start);
+        IF v_ready THEN
+          v_deadline := NULL;
+        ELSE
+          v_deadline := LEAST((v_d + COALESCE(v_child_start, '00:00'::time)) AT TIME ZONE 'America/Chicago', v_cutoff);
+        END IF;
         UPDATE public.jobs
            SET helper_id = v_uid,
                status = 'accepted',
                helper_confirmed_at = CASE WHEN v_ready THEN now() END,
-               response_deadline = CASE WHEN v_ready THEN response_deadline
-                                        ELSE (v_d + COALESCE(v_child_start, '00:00'::time)) AT TIME ZONE 'America/Chicago' END
+               response_deadline = v_deadline
          WHERE id = v_child_id AND status = 'open' AND helper_id IS NULL;
         IF FOUND AND NOT v_ready THEN
           INSERT INTO public.job_accept_pending (job_id, helper_id)

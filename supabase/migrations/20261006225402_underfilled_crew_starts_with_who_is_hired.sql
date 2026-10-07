@@ -99,7 +99,7 @@ BEGIN
     VALUES ('start-underfilled-crews', interval '20 minutes',
             'Q1460: every 5 minutes, books a funded crew whose hiring has closed with the members who confirmed, so it can start short-handed instead of being cancelled.',
             'exempt',
-            'Most runs book nothing (no crew is at its cutoff); a run that changes nothing is the healthy state.')
+            'Most runs book nothing (no crew is at its cutoff): a run that changes nothing is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;

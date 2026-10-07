@@ -30,7 +30,7 @@ const PATH = [
   "identity_is_verified", "helper_accept_missing", "helper_accept_block_reason", "helper_award_block_reason",
   "job_payment_is_funded", "series_visit_dates", "complete_job_accept", "complete_pending_accepts_on_setup",
   "enforce_helper_award_gate", "group_member_slot", "rpc_group_member_confirm", "enforce_group_roster_award_gate",
-  "claim_series_dates", "series_release_dates",
+  "claim_series_dates", "series_release_dates", "job_offer_cutoff",
 ];
 
 const db = new PGlite();
@@ -172,9 +172,9 @@ check(r3.ok && v.helper_id === READY && v.confirmed === true && (r3.rows[0].r.pe
 // R4 (lh-money-escrow review, MEDIUM): an unconfirmed pick-up that is reopened
 // (declined, expired, swept) gives the date back, so another Helpr can take it.
 const r4 = await as(UNREADY3, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 21]) r`);
-const dl = (await q(`select response_deadline = (('${day.d}'::date + 21) + time '09:00') at time zone 'America/Chicago' as at_start from public.jobs where id='${v3}'`))[0];
+const dl = (await q(`select response_deadline = public.job_offer_cutoff('${day.d}'::date + 21, time '09:00') as at_start from public.jobs where id='${v3}'`))[0];
 check(r4.ok && (r4.rows[0].r.pending_setup ?? []).length === 1 && dl.at_start === true,
-  `[fix] R4: the pending pick-up's answer-by time is the visit's start (${JSON.stringify(r4.rows?.[0] ?? r4.err)}; ${JSON.stringify(dl)})`);
+  `[fix] R4: the pending pick-up's answer-by time is the offer cutoff before the visit's start (${JSON.stringify(r4.rows?.[0] ?? r4.err)}; ${JSON.stringify(dl)})`);
 await q(`update public.jobs set helper_id = null, status = 'open', response_deadline = null where id = '${v3}'`);
 const hold = (await q(`select count(*)::int n from public.series_visit_holds where parent_job_id='${parent}' and visit_date='${day.d}'::date + 21`))[0].n;
 const r5 = await as(READY, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 21]) r`);

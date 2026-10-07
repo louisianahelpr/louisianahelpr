@@ -1,5 +1,6 @@
 import { formatTimestamp } from "@/lib/format";
-import type { StripePayout } from "./types";
+import type { PayoutLedgerRow, StripePayout } from "./types";
+import { sumHelperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
 
 // Payout-status pills are a separate concern from job-status chips: this
 // table is the Stripe payout pipeline (`paid` / `in_transit` / `pending`
@@ -220,3 +221,36 @@ export const isAwaitingTransfer = (job: MoneyJob): boolean =>
  */
 export const firstPayoutFeeDueFrom = (jobs: readonly MoneyJob[], firstPayoutFeeDollars: number): number =>
   jobs.some(isAwaitingTransfer) ? firstPayoutFeeDollars : 0;
+
+/**
+ * Q1272 (8) / Q1273: what a set of earned jobs is worth, where a job already
+ * PAID OUT counts what was transferred (payout_transfers.amount_cents, the
+ * Helpr's own live rows), not its computed take-home. The one transfer that
+ * bore the one-time setup fee therefore reads the fee lower, so "total earned"
+ * matches what landed; the rest are computed as before, losing the fee once
+ * while it is still owed.
+ */
+export function earnedDollarsWithLedger(
+  jobs: readonly (HelperEarningsJob & MoneyJob & { id: string })[],
+  feeFallbackPercent: number,
+  firstPayoutFeeDollars: number,
+  ledger: readonly (Pick<PayoutLedgerRow, "job_id" | "amount_cents" | "status"> & { metadata?: unknown })[] | null | undefined,
+): number {
+  const transferred = new Map<string, number>();
+  for (const t of ledger ?? []) {
+    if (!t.job_id || t.status === "failed") continue;
+    // A REVERSED row keeps what was not taken back: transferReversed stamps the
+    // cumulative metadata.amount_reversed_cents (a crew pro-rata clawback is
+    // partial). A won dispute's re-pay is its own paid row. (Second
+    // lh-money-escrow review of Q1272: a reversed row used to fall back to
+    // the full computed take-home.)
+    const reversed = t.status === "reversed"
+      ? Math.max(0, Number((t.metadata as { amount_reversed_cents?: number } | null)?.amount_reversed_cents ?? t.amount_cents ?? 0))
+      : 0;
+    const kept = Math.max(0, Number(t.amount_cents ?? 0) - reversed);
+    transferred.set(t.job_id, (transferred.get(t.job_id) ?? 0) + kept);
+  }
+  const rest = jobs.filter((j) => !transferred.has(j.id));
+  const paidOut = jobs.reduce((s, j) => s + (transferred.get(j.id) ?? 0), 0) / 100;
+  return paidOut + sumHelperTakeHomeDollars(rest, feeFallbackPercent, firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars));
+}

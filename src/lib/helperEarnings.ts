@@ -76,6 +76,12 @@ export interface HelperEarningsJob {
    * the completed-jobs history surfaces and false for anything live.
    */
   payment_status?: string | null;
+  /**
+   * `jobs.status`. Q1272 (3): a DISPUTED job is settled by the dispute split
+   * or Quick Release, which never take the one-time setup fee, so its preview
+   * does not take it either.
+   */
+  status?: string | null;
 }
 
 /**
@@ -173,12 +179,14 @@ export function helperTakeHomeDollars(
 ): number {
   const shares = helperShareCount(job);
   const budget = job.budget ?? 0;
+  // Q1272 (3): the dispute split and Quick Release never take the setup fee.
+  const feeHere = job.status === "disputed" ? 0 : firstPayoutFeeDollars;
   return floorPayoutDollars(
     netAfterFirstPayoutFee(
       budget / shares -
         helperPlatformFeeDollars(job, feeFallbackPercent) +
         netUrgentFeeDollars(job.urgent_fee) / shares,
-      firstPayoutFeeDollars,
+      feeHere,
     ),
   );
 }

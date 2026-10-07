@@ -1626,6 +1626,15 @@ describe("create-payment edge function", () => {
       // was 'cancelled', which also means "nothing was charged".
       // @mutate supabase/functions/create-payment/index.ts |           captureRefunded = true; |           captureRefunded = false;
       expect((cancelUpdate?.payload as Record<string, unknown>).payment_status).toBe("refunded");
+      // Q1261 (6): a row charge.refunded wrote first ('stripe_dashboard', no
+      // initiator) is relabelled with this path and who made the refund.
+      // @mutate supabase/functions/create-payment/index.ts |       }).eq("stripe_refund_id", args.refund.id).eq("source", "stripe_dashboard").select("id"); |       }).eq("stripe_refund_id", "never").eq("source", "stripe_dashboard").select("id");
+      const relabel = scenario.writes.find((w) => w.table === "payment_refunds" && w.op === "update");
+      expect(relabel?.payload).toMatchObject({ source: "cancel_escrow", initiated_by_user_id: POSTER.id });
+      expect(relabel?.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ column: "stripe_refund_id", value: "re_1" }),
+        expect.objectContaining({ column: "source", value: "stripe_dashboard" }),
+      ]));
     });
 
     // @mutate supabase/functions/create-payment/index.ts | return await refuseTestModeCancel(cancelPaymentIntentId); | throw piErr;
@@ -3017,6 +3026,14 @@ describe("create-payment edge function", () => {
           expect((await json(res)).chargebackRaced).toBe(true);
           expect(stripeMock.transfers.create).toHaveBeenCalled();
           expect(raceAlerts()).toHaveLength(1);
+          // Q1261 (4): the page sends ops to the clawback ledger FIRST
+          // (charge.dispute.created already claws back the transfer group;
+          // reversing again takes the money twice) and names the stuck claim.
+          // @mutate supabase/functions/create-payment/index.ts | FIRST check chargeback_clawbacks for this job's dispute | Reverse the transfer by hand
+          const page = String((raceAlerts()[0] as { message?: string }).message);
+          expect(page).toMatch(/FIRST check chargeback_clawbacks/);
+          expect(page).toMatch(/takes the money twice/);
+          expect(page).toMatch(/dispute_settlement_claims where job_id = 'job-1'/);
           // Nothing after the flip ran: no dispute-record close, no audit row.
           expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
           expect(scenario.writes.some((w) => w.table === "admin_audit_log")).toBe(false);

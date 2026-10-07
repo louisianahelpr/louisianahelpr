@@ -39,10 +39,10 @@
     "src/pages/posts/PostedJobCard.tsx": 828,
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 839,
     "src/pages/profile/GiftCard.tsx": 847,
-    "src/pages/profile/HelprWrapped.tsx": 608,
+    "src/pages/profile/HelprWrapped.tsx": 607,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
     "src/pages/profile/Profile.tsx": 863,
-    "src/pages/profile/WorkRecord.tsx": 751,
+    "src/pages/profile/WorkRecord.tsx": 750,
     "src/pages/user/UserProfile.tsx": 835
   }
 }

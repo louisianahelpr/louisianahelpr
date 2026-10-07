@@ -4228,7 +4228,7 @@ async function chargebackLandedDuringSettlement(
     severity: "critical",
     title: `Quick ${moved === "transfer" ? "Release" : "Refund"} raced a chargeback — block kept, money already moved`,
     message: moved === "transfer"
-      ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). The Helpr's transfer must be clawed back: redeliver charge.dispute.funds_withdrawn for this job's dispute from the Stripe Dashboard (its clawback is idempotent per transfer) or reverse the transfer by hand.`
+      ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). FIRST check chargeback_clawbacks for this job's dispute: charge.dispute.created already runs the clawback against the job's transfer group, so the transfer may be reversed already, and reversing it again takes the money twice. Only if no clawback row covers this transfer: redeliver charge.dispute.funds_withdrawn for the dispute from the Stripe Dashboard (its clawback is idempotent per transfer). The job stays 'disputed' and this Quick Release's stamped settlement claim stays in dispute_settlement_claims (nothing clears it on its own); once reconciled, delete that row (delete from public.dispute_settlement_claims where job_id = '${jobId}') so the dispute can be closed.`
       : `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Refund's refund was in flight. The refund went out, so the job was NOT flipped to refunded (the chargeback's block stands). The card holder now has the refund AND the chargeback: respond to the dispute in Stripe with the refund as evidence.`,
     fields: { job_id: jobId, job_status: String(current.status ?? "—") },
     oncePerDayKey: `quick-settle-raced-chargeback:${jobId}`,
@@ -4727,6 +4727,24 @@ async function recordRefund(
       source: args.source,
       initiated_by_user_id: args.initiatedByUserId,
     }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+    if (!error) {
+      // Q1261 (6): charge.refunded can reach the row first (both writers
+      // upsert with ignoreDuplicates), and it labels every refund
+      // 'stripe_dashboard' with no initiator: this call's row then lost who
+      // made the refund and why. A row that only the webhook wrote is claimed
+      // here; a row another app path wrote keeps its own label. ZERO ROWS IS
+      // LEGITIMATE (the zero-row-write rule's named exception): it means the
+      // upsert above inserted the row, or another path owns it.
+      const { error: relabelErr } = await supabaseAdmin.from("payment_refunds").update({
+        source: args.source,
+        initiated_by_user_id: args.initiatedByUserId,
+        is_partial: args.isPartial ?? false,
+        reason: args.reason ?? null,
+      }).eq("stripe_refund_id", args.refund.id).eq("source", "stripe_dashboard").select("id");
+      if (relabelErr) {
+        console.error(`[create-payment] recordRefund — could not relabel the webhook's row for refund ${args.refund.id} (job ${args.jobId}):`, relabelErr.message);
+      }
+    }
     if (error) {
       console.error(`[create-payment] recordRefund — ledger write failed for refund ${args.refund.id} (job ${args.jobId}); refund succeeded, reconcile manually:`, error);
       // The refund already left Stripe, so we never throw here — but a dropped

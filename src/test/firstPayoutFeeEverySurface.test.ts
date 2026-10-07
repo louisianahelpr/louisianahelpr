@@ -25,11 +25,11 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate src/components/dashboard/JobCard.tsx | helpersCount, firstPayoutFee).netEarnings | helpersCount).netEarnings
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | isSettledForDisplay(job) ? 0 : firstPayoutFeeDollars, | 0,
 // @mutate src/components/profile/ScheduleTab.tsx | isSettledForDisplay(job) ? 0 : firstPayoutFee | 0
-// @mutate src/components/profile/EarningsTab.tsx | sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(completedJobs, firstPayoutFee)) | sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct)
+// @mutate src/components/profile/EarningsTab.tsx | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger) | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, 0, payoutLedger)
 // @mutate src/pages/profile/Profile.tsx | helperFeeFallbackPct, firstPayoutFee); | helperFeeFallbackPct);
 
 const ROOT = resolve(__dirname, "../..");
-const CALL = /(?<!function\s)\b(computeNet|helperTakeHomeDollars|sumHelperTakeHomeDollars)\s*\(/g;
+const CALL = /(?<!function\s)\b(computeNet|helperTakeHomeDollars|sumHelperTakeHomeDollars|earnedDollarsWithLedger)\s*\(/g;
 const DEFINITIONS = new Set(["src/lib/helperEarnings.ts"]);
 
 /** The text inside the balanced parentheses that open at `open`. */
@@ -74,8 +74,6 @@ const EXEMPT: Record<string, { count: number; why: string }> = {
   "src/components/profile/EarningsForecastCard.tsx": { count: 1, why: "sums inside the queryFn; the fee is applied ONCE at render with netAfterFirstPayoutFee (asserted below)" },
   "src/lib/helperAnalytics.ts": { count: 3, why: "analytics aggregates over completed jobs" },
   "src/lib/jobDisplayPay.ts": { count: 1, why: "sort key only: one constant off every job keeps the order, and jobs at or under the fee tie at the $0 the cards show" },
-  "src/pages/profile/HelprWrapped.tsx": { count: 1, why: "year-in-review recap computed inside a queryFn over completed jobs" },
-  "src/pages/profile/WorkRecord.tsx": { count: 1, why: "official earnings record built inside a queryFn over completed jobs" },
 };
 
 describe("every payout surface takes the first-payout fee off (Q753)", () => {
@@ -100,7 +98,8 @@ describe("every payout surface takes the first-payout fee off (Q753)", () => {
 
   it("the forecast applies the fee once at render", () => {
     const src = blankNonCode(readFileSync(resolve(ROOT, "src/components/profile/EarningsForecastCard.tsx"), "utf8"));
-    expect(src).toMatch(/netAfterFirstPayoutFee\(data\.projectedTotal,\s*firstPayoutFee\)/);
+    // Q1272 (6): once, at render, and only on the part still to be paid out.
+    expect(src).toMatch(/netAfterFirstPayoutFee\(projectedUnsettled,\s*projectedUnsettled > 0 \? firstPayoutFee : 0\)/);
   });
 
   it("the apply sheet and the shared sums use the one shared function", () => {

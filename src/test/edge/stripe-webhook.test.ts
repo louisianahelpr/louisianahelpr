@@ -2368,15 +2368,17 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("charge disputed"), { type: "StripeInvalidRequestError", code: "charge_disputed" }));
     const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(res.status).toBe(500);
-    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    // Listed once BEFORE the refund (Q1248 replay check), never re-read after a
+    // refusal that is not "already refunded".
+    expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
     expect(refundFailedPages()).toHaveLength(1);
   });
 
   // ── Q1247 (a): the payer hears about a refund from us ─────────────────────
   // On main every refund branch refunded and paged ops but wrote the payer
   // nothing: the money came back with no word. Each branch is driven here.
-  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     const told = alreadyRefunded ? true : await tellPayerRefunded(supabase, { |     const told = alreadyRefunded ? true : false && await tellPayerRefunded(supabase, {
-  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   if (!error && data && data.length > 0) return true; |   if (!error && data) return true;
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   const { data, error } = await supabase.from("notifications").insert({ |   const { data, error } = await supabase.from("notifications_off").insert({
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   if (!error && data && data.length > 0) return { told: true, alreadyTold: false }; |   if (!error && data) return { told: true, alreadyTold: false };
   const payerNotices = () =>
     scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert")
       .map((w) => w.payload as Record<string, unknown>);
@@ -2415,10 +2417,50 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
 
   it("Q1247 (a): a retried delivery (refund already done) does not tell the payer twice", async () => {
     scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    // The earlier delivery's notice for this payment is there.
+    scenario.reads.notifications = { rows: [{ id: "n-earlier" }] };
     stripeMock.refunds.create.mockRejectedValue(alreadyRefunded());
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
     await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(payerNotices()).toHaveLength(0);
+    expect(JSON.stringify(slackAlerts)).not.toContain("paid but not bookable");
+  });
+
+  // Second lh-money-escrow review of Q1248: a first delivery that refunded and
+  // died before the notice must not leave the payer untold on its retry.
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   if (!priorErr && (prior ?? []).length > 0) return { told: true, alreadyTold: true }; |   return { told: true, alreadyTold: true };
+  it("Q1248 review: a retry after a run that refunded but never told the payer tells them, and warns ops", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    scenario.reads.notifications = { rows: [] };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.refunds.create.mockRejectedValue(alreadyRefunded());
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(payerNotices()).toHaveLength(1);
+    expect(String(payerNotices()[0].link)).toBe("/posts?visit_refund=pi_rv");
+    expect(JSON.stringify(slackAlerts)).toContain("paid but not bookable");
+  });
+
+  // Q1248: within the key's 24h Stripe replays the first refund as a success.
+  // A redelivered event must not tell the payer, or warn ops, a second time.
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     const replayed = Boolean(created?.id) && (before ?? []).includes(created.id); |     const replayed = false;
+  it("Q1248: two deliveries of one refunded payment post exactly one warning and one payer notice", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    const refund = { id: "re_once", status: "succeeded", amount: 31500 };
+    // First delivery: nothing refunded yet; Stripe creates re_once.
+    stripeMock.refunds.list.mockResolvedValueOnce({ data: [] });
+    stripeMock.refunds.create.mockResolvedValue(refund);
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    // Redelivery within 24h: the intent already carries re_once, Stripe
+    // replays it for the same key, and the first delivery's notice is there.
+    stripeMock.refunds.list.mockResolvedValueOnce({ data: [refund] });
+    scenario.reads.notifications = { rows: [{ id: "n1" }] };
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+
+    const warnings = slackAlerts.filter((a) => JSON.stringify(a).includes("paid but not bookable"));
+    expect(warnings).toHaveLength(1);
+    expect(payerNotices()).toHaveLength(1);
   });
 
   it("Q1247 (a) review: the payer is told even when the row write after the refund fails (Stripe retries it)", async () => {

@@ -12,7 +12,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
 import { statValueSize } from "@/lib/statValueSize";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { earnedDollarsWithLedger } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { jobLocalMidnightMs } from "../../../supabase/functions/_shared/cancellationFee";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // The tab's NAME comes from the registry, not from a template rebuilt here.
@@ -52,7 +53,7 @@ interface WrappedStats {
   incomplete: boolean;
 }
 
-async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
+async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<WrappedStats> {
   // The year window is the PLATFORM's year, not UTC's. `${YEAR}-01-01T00:00Z`
   // is 6pm on Dec 31 of the previous year in Louisiana, so the UTC bounds
   // silently pulled in the last six hours of last year and dropped the last
@@ -74,7 +75,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .lte("created_at", yearEnd),
     supabase
       .from("jobs")
-      .select("id, budget, category, customer_id, helper_fee_percent, platform_fee_amount, urgent_fee, helpers_needed, is_group_job, payment_status")
+      .select("id, budget, category, customer_id, helper_fee_percent, platform_fee_amount, urgent_fee, helpers_needed, is_group_job, payment_status, status")
       .eq("helper_id", userId)
       .eq("status", "completed")
       .gte("created_at", yearStart)
@@ -159,18 +160,15 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   const totalSpent = posted
     .filter((j) => j.status === "completed")
     .reduce((acc, j) => acc + (j.budget ?? 0), 0);
-  // Total earned = helper take-home (net of the platform fee), so the same
-  // $75 job reads the same here as on analytics/work-record/Earnings. The
-  // per-job resolution (stamped fee → frozen per-job % → tier rate, plus the
-  // net urgent bonus, divided across a group job's roster) lives in
-  // `helperEarnings.ts` so this page and /work-record can't drift apart again.
-  // The group split is why `helpers_needed, is_group_job` are selected above:
-  // a $300 job needing 3 helpers paid this helper ~$100, not $300.
+  // Total earned = take-home as on /work-record and Earnings: a job already paid out counts its transfer
+  // (payout_transfers; Q1273: the one that bore the setup fee reads it lower), the rest resolve per job in
+  // helperEarnings.ts (stamped fee, frozen %, tier rate; net urgent bonus; a group job's 1/N, hence helpers_needed).
   const feeFallbackPct = tierFeePercent(
     profileRes.data?.subscription_tier ?? null,
     profileRes.data?.subscription_expires_at ?? null,
   );
-  const totalEarned = sumHelperTakeHomeDollars(completed, feeFallbackPct);
+  const ledger = unwrap(await supabase.from("payout_transfers").select("job_id, amount_cents, status, metadata").eq("helper_id", userId)) as Array<{ job_id: string; amount_cents: number; status: "pending" | "paid" | "failed" | "reversed"; metadata: unknown }>;
+  const totalEarned = earnedDollarsWithLedger(completed, feeFallbackPct, firstPayoutFee, ledger);
 
   // Unique people worked with — union of helper_ids from posted jobs (who accepted)
   // and customer_ids from completed helper jobs
@@ -283,12 +281,13 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   const { user, isReady } = useAuthReady();
   const [isSharing, setIsSharing] = useState(false);
 
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const { data: stats, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["helpr-wrapped", user?.id, YEAR],
+    queryKey: ["helpr-wrapped", user?.id, YEAR, firstPayoutFee],
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    queryFn: () => fetchWrappedStats(user!.id),
+    queryFn: () => fetchWrappedStats(user!.id, firstPayoutFee),
   });
 
   const handleShare = async () => {

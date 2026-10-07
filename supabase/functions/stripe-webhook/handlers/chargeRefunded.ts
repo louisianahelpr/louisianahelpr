@@ -63,8 +63,18 @@ export async function handleChargeRefunded(
   const listChargeRefunds = (): Promise<Stripe.Refund[]> => {
     listed ??= (async () => {
       try {
-        const list = await stripe.refunds.list({ charge: charge.id, limit: 100 });
-        return (list?.data ?? []) as Stripe.Refund[];
+        // Q1261 (7): every live refund counts (the Q450 close and the
+        // ledger), so the list is read to its end, not just its first 100.
+        const all: Stripe.Refund[] = [];
+        let startingAfter: string | undefined;
+        for (let page = 0; page < 20; page++) {
+          const list = await stripe.refunds.list({ charge: charge.id, limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) });
+          const rows = (list?.data ?? []) as Stripe.Refund[];
+          all.push(...rows);
+          if (!list?.has_more || rows.length === 0) return all;
+          startingAfter = rows[rows.length - 1].id;
+        }
+        throw new Error("more than 2,000 refunds listed; refusing to read a partial list");
       } catch (e) {
         throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`);
       }

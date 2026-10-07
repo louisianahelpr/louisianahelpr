@@ -43,7 +43,7 @@ export function useEarningsData(helperId: string) {
     queryFn: async () => {
       if (!helperId) return [];
       const result = await supabase.from("payout_transfers")
-        .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
+        .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, metadata, jobs(title)")
         .eq("helper_id", helperId)
         .order("created_at", { ascending: false })
         .limit(50);

@@ -106,15 +106,32 @@ while :; do
     REBASE=(git rebase -q origin/main)
   fi
   if ! "${REBASE[@]}"; then
-    # A stop on docs/OPEN.md alone is almost always two landings filing or
-    # noting items at the same place (five such stops on 2026-10-03, each
-    # resolved by hand the same way): merge it item by item and go on. An item
-    # both sides changed, or any other conflicted file, still stops for a
-    # person. Guard: src/test/openItemMerge.test.ts.
+    # With seven lanes landing at once (2026-10-07) every rebase stopped on the
+    # same files and looped: docs/OPEN.md and its archive, the generated docs,
+    # and the exact-count constants. scripts/lib/landRebaseResolve.mjs settles
+    # those (items merged keeping both sides, a tick wins, notes appended;
+    # generated files take main's copy and are regenerated below; a count
+    # takes main's value and landRecount.mjs measures the real one after the
+    # rebase). Any other conflicted file still stops for a person.
+    # Guards: src/test/landRebaseResolve.test.ts, src/test/openItemMerge.test.ts.
+    steps=0
     while [ -d "$(git rev-parse --git-path rebase-merge)" ] || [ -d "$(git rev-parse --git-path rebase-apply)" ]; do
+      steps=$((steps + 1))
+      if [ "$steps" -gt 400 ]; then
+        echo "land: the rebase did not finish after $steps steps; resolve it by hand (git status)." >&2
+        exit 1
+      fi
       UNMERGED=$(git diff --name-only --diff-filter=U)
-      if [ "$UNMERGED" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs; then
-        git add docs/OPEN.md
+      if [ -z "$UNMERGED" ]; then
+        # Resolved to exactly what main has: the replayed commit is empty now.
+        if git diff --cached --quiet; then
+          git rebase --skip >/dev/null 2>&1 || true
+        else
+          GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
+        fi
+        continue
+      fi
+      if node scripts/lib/landRebaseResolve.mjs; then
         # stops again if the next replayed commit conflicts; the loop looks again
         GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
         continue
@@ -123,6 +140,10 @@ while :; do
       exit 1
     done
   fi
+
+  # An exact-count constant the rebase settled with main's value gets the
+  # value measured on the rebased tree (its own guard prints it).
+  node scripts/lib/landRecount.mjs
 
   # Queue numbers are taken from each lane's own base, so two lanes file the
   # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the
@@ -216,6 +237,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     # git grep exits 1 on no match; under pipefail that ended land.sh silently.
     NAMED_TESTS="$NAMED_TESTS $( { git grep -l -F -- "$b" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' || [ $? -eq 1 ]; } | tr '\n' ' ')"
   done
+  # Tests that READ a changed migration or the queue files by path (a whole
+  # directory, a fixed path): neither the import graph nor the basename grep
+  # finds them. 2026-10-07: cronLivenessCoverage, offerDeadlineBeforeStart,
+  # openFeedsMirrored and hireRefusedAcrossBlock went red only on GitHub.
+  # Guard: src/test/landPathReaders.test.ts.
+  # shellcheck disable=SC2086
+  NAMED_TESTS="$NAMED_TESTS $(node scripts/lib/landPathReaders.mjs $CHANGED_ALL | tr '\n' ' ')"
   # Two runs: vitest intersects file filters with --changed, so they cannot share one.
   npx vitest run --changed origin/main --passWithNoTests
   # shellcheck disable=SC2086

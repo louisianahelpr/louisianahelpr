@@ -1009,7 +1009,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN, reported not built (owner decisions)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1071** LOW No rail badge count on the Stuck Jobs admin queue — Still open: Stuck Jobs queue has no live rail badge count. (archive L6440)
+- [~] **Q1071** LOW No rail badge count on the Stuck Jobs admin queue — Still open: Stuck Jobs queue has no live rail badge count. (archive L6440) **FIXED IN CODE 2026-10-07 (lane-low):** the Stuck Jobs rail item now badges the jobs escalated to a person and not resolved (admin_stalled_job_queue, the same awaitingHuman rows its screen lists; red like disputes/reports), via src/components/admin/adminBadgeFor.ts, read once per /admin visit (a failed read shows no badge and is reported; not deployed answers nothing). GUARD: src/components/admin/adminBadgeFor.test.ts (red without the stalled branch; @mutate). Seen at 1440 on prod data (local build, admin seed): prod has 0 such jobs, so no badge, correctly; a nonzero badge has not been seen on screen (needs an escalated is_seed stalled job).
 
 ### REVERTED — a deploy-lag heuristic that masked a real defect
 Reconciled 2026-09-23; detail in the archive at the line shown.

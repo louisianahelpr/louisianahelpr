@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { awaitingHuman, isMissingRpc, type StalledQueueRow } from "@/components/admin/adminStalledJobs/stalledQueue";
 import type { Tables } from "@/integrations/supabase/types";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
@@ -14,6 +15,7 @@ import AdminTopBar from "@/components/admin/AdminTopBar";
 import AdminSectionHeader from "@/components/admin/AdminSectionHeader";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
 import type { Stats, DateRange } from "@/components/admin/dashboard/types";
+import { adminBadgeFor } from "@/components/admin/adminBadgeFor";
 import { RANGE_PRESETS } from "@/components/admin/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -83,14 +85,6 @@ const VIEW_LABELS: Record<View, string> = {
     stalled: "Stuck Jobs",
   };
 
-function adminBadgeFor(id: string, unreadCounts: Record<string, number>, stats: Stats): number | undefined {
-  const uc = unreadCounts[id];
-  if (uc && uc > 0) return uc;
-  if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
-  if (id === "reports" && stats.openReports > 0) return stats.openReports;
-  if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;
-  return undefined;
-}
 
 const Admin = () => {
   // Which chrome this page owns — see the two render sites below.
@@ -152,6 +146,22 @@ const Admin = () => {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [statsLoadError, setStatsLoadError] = useState(false);
   const [unreadCountsError, setUnreadCountsError] = useState(false);
+  // Q1071: the Stuck Jobs rail badge. Read once per visit to /admin; a failed
+  // or not-yet-deployed read shows no badge (the screen itself says why).
+  const [stalledOpen, setStalledOpen] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const res = await supabase.rpc("admin_stalled_job_queue", { p_include_resolved: false });
+      if (cancelled) return;
+      if (res.error) {
+        if (!isMissingRpc(res.error)) report(res.error, { severity: "warning", tags: { source: "Admin.stalledBadge" } });
+        return;
+      }
+      setStalledOpen(awaitingHuman((res.data ?? []) as StalledQueueRow[]).length);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   // <AdminRoute> already gates this page on isAdmin; useCurrentUser here
   // supplies the shared loading flag (the redundant useAdminAuth redirect
   // hook has been removed).
@@ -480,11 +490,11 @@ const Admin = () => {
   useEffect(() => {
     const next: Record<string, number> = {};
     for (const g of adminNavGroups) for (const { id } of g.items) {
-      const n = adminBadgeFor(id, unreadCounts, stats);
+      const n = adminBadgeFor(id, unreadCounts, stats, stalledOpen);
       if (n) next[id] = n;
     }
     publishAdminBadges(next);
-  }, [unreadCounts, stats]);
+  }, [unreadCounts, stats, stalledOpen]);
 
   if (loading) {
     return (
@@ -494,10 +504,10 @@ const Admin = () => {
     );
   }
 
-  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats);
+  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats, stalledOpen);
 
   const getBadgeColor = (id: string): string => {
-    if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";
+    if (["disputes", "reports", "stalled"].includes(id)) return "bg-destructive text-destructive-foreground";
     if (["people", "support"].includes(id)) return "bg-accent text-accent-foreground";
     return "bg-primary text-primary-foreground";
   };

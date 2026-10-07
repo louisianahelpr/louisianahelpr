@@ -6,7 +6,7 @@
 export const TestTag = () => (
   <span
     data-testid="admin-test-tag"
-    className="inline-flex items-center text-ds-10 px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground font-semibold uppercase tracking-wide"
+    className="inline-flex shrink-0 items-center text-ds-10 px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground font-semibold uppercase tracking-wide"
   >
     Test
   </span>

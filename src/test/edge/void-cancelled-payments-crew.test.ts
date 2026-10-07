@@ -353,3 +353,66 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     }
   });
 });
+
+/**
+ * Q1390: a crew cancelled after a poster blocked a committed member close to
+ * the start still owes that member the block fee (crew_block_fees). It is paid
+ * from the escrow BEFORE the poster's refund and withheld from it; a fee that
+ * cannot go this run keeps the job in escrow (no refund, not settled).
+ */
+describe("void-cancelled-payments — a cancelled crew's block fee is paid before the refund (Q1390)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  const seedWithBlockFee = () => {
+    seedCancelledCrew();
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null }],
+    };
+  };
+  const blockTransfers = () =>
+    stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents; |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (!(await payBlockFees(pi))) continue; |           void payBlockFees;
+  it("pays the block fee once and withholds it from the poster's refund", async () => {
+    seedWithBlockFee();
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = blockTransfers();
+    expect(fee).toHaveLength(1);
+    expect((fee[0][1] as { idempotencyKey: string }).idempotencyKey).toBe("crew-block-fee-bf-1");
+    expect((fee[0][0] as { metadata: Record<string, unknown> }).metadata).toEqual(expect.objectContaining({ block_fee_id: "bf-1", helper_id: "member-d" }));
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_crew", amount: 33000 - 15000 - 2500 - 3000 },
+      { idempotencyKey: "cancel-refund-job-crew" },
+    );
+  });
+
+  it("a block fee that cannot be paid keeps the job in escrow: no refund, not settled", async () => {
+    seedWithBlockFee();
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string; type?: string } }) => {
+      if (params.metadata.type === "crew_block_fee") throw new Error("Stripe is down");
+      return { id: `tr_${params.metadata.helper_id}` };
+    });
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const body = JSON.parse(await res.text()) as { results?: Array<{ status?: string }> };
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((body.results ?? []).some((r) => r.status === "crew_block_fee_unpaid")).toBe(true);
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "refunded")).toBe(false);
+  });
+
+  it("an unreadable block-fee ledger moves no money for the job", async () => {
+    seedWithBlockFee();
+    scenario.reads.crew_block_fees = { error: { message: "boom" } } as never;
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+});

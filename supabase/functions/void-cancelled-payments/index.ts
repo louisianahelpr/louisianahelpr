@@ -16,6 +16,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1277,6 +1278,8 @@ serve(async (req) => {
       // next run retries).
       let crewShares: CrewShare[] | null = null;
       let jobCancellationFee: number;
+      /** Q1390: this crew's block fees (closed spots), paid before the refund. */
+      let blockFeeRows: CrewBlockFeeRow[] = [];
       // A crew cancelled BEFORE 20260925154606 has its "lead" in helper_id and
       // no ledger rows: it settles on the single path, as the code deployed
       // then did (money review MEDIUM-5). Every crew cancelled after it has no
@@ -1312,6 +1315,16 @@ serve(async (req) => {
         }
         crewShares = (shareRows ?? []) as CrewShare[];
         jobCancellationFee = priced.total;
+        // Q1390: a spot a block closed earlier owes its member a fee from this
+        // escrow; it is paid before the poster's refund and withheld from it.
+        const blockRead = await readCrewBlockFees(supabaseAdmin, job.id);
+        if (!blockRead.ok) {
+          console.error(`[void-cancelled-payments] crew block fee read failed for job ${job.id}; not settling: ${blockRead.error}`);
+          defects.record(`crew block fee read ${job.id}: ${blockRead.error} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "crew_block_fees_read_failed" });
+          continue;
+        }
+        blockFeeRows = blockRead.rows;
       } else {
         // An unfilled or ban-ended series visit carries no fee
         // (_shared/seriesRefund.ts).
@@ -1372,6 +1385,15 @@ serve(async (req) => {
       }
       const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
         crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi, singleFeePercent);
+      /** Q1390: pay every unpaid block fee; false keeps the job in escrow for the next run. */
+      const payBlockFees = async (pi: Stripe.PaymentIntent): Promise<boolean> => {
+        if (!blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) return true;
+        const chargeId = pi.latest_charge ? (typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id) : null;
+        const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, chargeId);
+        for (const p of paid.problems) defects.record(p);
+        if (!paid.allPaid) results.push({ job_id: job.id, title: job.title, status: "crew_block_fee_unpaid" });
+        return paid.allPaid;
+      };
 
       let paymentIntentId = job.stripe_payment_intent_id;
 
@@ -1421,17 +1443,22 @@ serve(async (req) => {
           // `job.cancellation_fee`, which an assigned helper could inflate to
           // capture more of the poster's hold than the schedule allows.
           const cancellationFee = jobCancellationFee;
-          if (cancellationFee > 0) {
+          const blockCents = crewBlockFeeCents(blockFeeRows);
+          if (cancellationFee > 0 || blockCents > 0) {
             // Capture ONLY the fee — Stripe auto-releases the uncaptured
             // remainder (budget + customer fee) back to the poster. Charging
             // the fee here is what a bare cancel() previously skipped, silently
-            // waiving every fee owed on an uncaptured hold.
-            const feeCents = Math.round(cancellationFee * 100);
+            // waiving every fee owed on an uncaptured hold. Q1390: plus the
+            // crew's block fees.
+            const feeCents = Math.round(cancellationFee * 100) + blockCents;
             await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
             await payCancellationFee(cancellationFee, captured);
+            // Q1390: not settled until the block fees are out; the next run
+            // finds the PaymentIntent captured and pays them there.
+            if (!(await payBlockFees(captured))) continue;
             const settledFee = await settleCancelledJob(job, {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
@@ -1484,7 +1511,11 @@ serve(async (req) => {
           const nonRefundableCents = fullSeriesRefund
             ? actualOrEstimatedFeeCents(pi, capturedCents)
             : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
-          const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
+          // Q1390: the crew's block fees are paid first and withheld from the
+          // refund; a fee that cannot go this run keeps the whole job in escrow.
+          if (!(await payBlockFees(pi))) continue;
+          const blockFeeCents = crewBlockFeeCents(blockFeeRows);
+          const refundAmount = capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents;
           // ── Ledger guard against a SECOND real refund ────────────────────
           // The idempotency key below is permanent and unsalted. That protects
           // an overlapping run within Stripe's ~24h replay window and nothing

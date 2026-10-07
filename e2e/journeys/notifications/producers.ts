@@ -198,6 +198,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/chargeRefunded": {
     uncovered: GAP("any cancel_escrow / admin refund (charge.refunded arrives in test mode); its row is not asserted"),
   },
+  "edge:_shared/crewBlockFees": {
+    uncovered: "tells a crew member their block fee was paid (Q1390); needs a poster to block a committed crew member inside 24h of the start and the job to settle, a live payout on prod; asserted in src/test/edge/process-scheduled-payouts-crew.test.ts",
+  },
   "edge:stripe-webhook/handlers/chargeRefundUpdated": { uncovered: STRIPE_EVENT("charge.refund.updated to failed (a refund the bank returned; Q1355), asserted in src/test/edge/chargeRefundUpdated.test.ts") },
   "edge:stripe-webhook/handlers/checkoutSessionExpired": { uncovered: STRIPE_EVENT("checkout.session.expired (an abandoned gift-card shortfall Checkout)") },
   "edge:stripe-webhook/handlers/checkoutSessionCompleted": {

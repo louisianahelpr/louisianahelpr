@@ -525,3 +525,92 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     }
   });
 });
+
+/**
+ * Q1390 (owner 2026-10-07, (a)): a poster who blocked a committed member close
+ * to the start owes that member a fee from the escrow; block_user_and_settle
+ * put it on crew_block_fees and closed the spot. The fee is paid ONCE, out of
+ * the closed spot's share, before the rest of that share is refunded, and the
+ * job is not settled until it is out.
+ */
+describe("process-scheduled-payouts — a crew block fee is paid from the escrow (Q1390)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  /** 2 of 3 paid; slot 2 was closed by a block: 25% of its 3333c share = 833c owed to m3. */
+  const seedBlocked = (status = "owed") => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-1", job_id: "job-crew", helper_id: "m3", slot_no: 2, share_basis_cents: 3333, fee_percent: 25, fee_cents: 833, status, stripe_transfer_id: status === "paid" ? "tr_prev" : null }],
+    };
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 2500, currency: "usd" });
+  };
+  const blockFeeTransfers = () =>
+    stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0) + a.blockFeeCents; |       const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0);
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (!paidFees.allPaid) return { ready: false, paidCents }; |         void paidFees;
+  // @mutate supabase/functions/_shared/crewBlockFees.ts |         idempotencyKey: `crew-block-fee-${row.id}`, |         idempotencyKey: `crew-block-fee-${row.id}-${Date.now()}`,
+  it("pays the blocked member's fee once (keyed on the ledger row), then refunds only the rest of the closed spot's share", async () => {
+    seedBlocked();
+    await run();
+    const fee = blockFeeTransfers();
+    expect(fee).toHaveLength(1);
+    const [params, opts] = fee[0] as [Record<string, unknown>, { idempotencyKey: string }];
+    expect(opts.idempotencyKey).toBe("crew-block-fee-bf-1");
+    expect(params).toEqual(expect.objectContaining({ destination: "acct_member", source_transaction: "ch_1", transfer_group: "job_job-crew" }));
+    expect(params.metadata).toEqual(expect.objectContaining({ block_fee_id: "bf-1", helper_id: "m3", type: "crew_block_fee" }));
+    // Whole dollars rounded down, never more than the fee.
+    expect(Number(params.amount) % 100).toBe(0);
+    expect(Number(params.amount)).toBeLessThanOrEqual(833);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "paid")).toBe(true);
+    // 3333 - 833: the fee is spent, not owed back.
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 2500 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
+  });
+
+  it("a fee transfer that fails keeps the escrow: no refund, the job is not released, the row is marked failed", async () => {
+    seedBlocked();
+    stripeMock.transfers.create.mockImplementation(async (params: { destination: string; metadata?: { type?: string } }) => {
+      if (params.metadata?.type === "crew_block_fee") throw new Error("Stripe is down");
+      return { id: `tr_${params.destination}` };
+    });
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(true);
+  });
+
+  it("a fee Stripe already shows is never paid again: the ledger is repaired", async () => {
+    seedBlocked();
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old", reversed: false, metadata: { type: "crew_block_fee", block_fee_id: "bf-1" } }] });
+    await run();
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).stripe_transfer_id === "tr_old")).toBe(true);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+  });
+
+  it("an already-paid fee is not paid again and still comes out of the refund", async () => {
+    seedBlocked("paid");
+    await run();
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+  });
+
+  it("a member who deleted their account: the fee is voided and the poster gets the whole share back", async () => {
+    seedBlocked();
+    (scenario.reads.crew_block_fees as { rows: Array<Record<string, unknown>> }).rows[0].helper_id = null;
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3333, currency: "usd" });
+    await run();
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "void")).toBe(true);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3333 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+  });
+});

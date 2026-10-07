@@ -23,6 +23,7 @@ import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewSh
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
+import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFees.ts";
 
 
 serve(async (req) => {
@@ -527,6 +528,8 @@ serve(async (req) => {
       /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
       cardLegTestMode: boolean;
       paidCents: number;
+      /** Q1390: block fees paid to members out of their closed spots' shares. */
+      blockFeeCents: number;
     }): Promise<{ ok: boolean; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
       const { job } = a;
       const slots = crewSlotByJob.get(job.id);
@@ -544,7 +547,9 @@ serve(async (req) => {
       }
       const budgetCents = Math.round(Number(job.budget ?? 0) * 100);
       const urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100);
-      const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0);
+      // Q1390: a block fee is paid out of its closed spot's share, so that
+      // much of the budget is spent, not owed back to the poster.
+      const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0) + a.blockFeeCents;
       const paidUrgent = paying.reduce((sum, m) => sum + allocateCents(urgentCents, needed, m.slotNo as number), 0);
       const unpaidBudgetCents = Math.max(0, budgetCents - paidBudget);
       const unfilledCents = unpaidBudgetCents + Math.max(0, urgentCents - paidUrgent);
@@ -824,7 +829,33 @@ serve(async (req) => {
       // rest is refunded ONCE: the payment_refunds ledger is read first (fail
       // closed), the Stripe key is per job (per dispute for a decision), and
       // the job is not released until it is done.
-      const refund = await refundUnfilledCrewShares({ ...a, paidCents });
+      // ── Q1390: a spot a block closed owes its member a fee from this escrow ──
+      // Paid BEFORE the rest is refunded, out of that spot's share; the job is
+      // not settled (refunded, released) until every fee is out, so a fee that
+      // cannot go this run keeps the escrow for the next one.
+      const blockFees = await readCrewBlockFees(supabaseAdmin, job.id);
+      if (!blockFees.ok) {
+        console.error(`[process-scheduled-payouts] crew block fee read failed for job ${job.id}: ${blockFees.error}`);
+        jobDefect(job.id, `crew block fee read ${job.id}: ${blockFees.error}`);
+        return { ready: false, paidCents };
+      }
+      if (blockFees.rows.some((r) => r.status === "owed" || r.status === "failed")) {
+        let chargeId: string | null = null;
+        if (!a.isPifFunded && a.paymentIntentId) {
+          try {
+            const piForCharge = await stripe.paymentIntents.retrieve(a.paymentIntentId, { expand: ["latest_charge"] });
+            chargeId = piForCharge.latest_charge
+              ? (typeof piForCharge.latest_charge === "string" ? piForCharge.latest_charge : piForCharge.latest_charge.id)
+              : null;
+          } catch (e) {
+            console.warn(`[process-scheduled-payouts] could not link the charge for job ${job.id}'s block fees:`, e);
+          }
+        }
+        const paidFees = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "process-scheduled-payouts" }, job, blockFees.rows, chargeId);
+        for (const p of paidFees.problems) jobDefect(job.id, p);
+        if (!paidFees.allPaid) return { ready: false, paidCents };
+      }
+      const refund = await refundUnfilledCrewShares({ ...a, paidCents, blockFeeCents: crewBlockFeeCents(blockFees.rows) });
       return { ready: refund.ok, paidCents, refundId: refund.refundId, refundCents: refund.refundCents, manual: refund.manual };
     };
 

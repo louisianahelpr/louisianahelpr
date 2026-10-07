@@ -464,6 +464,73 @@ export type Database = {
           },
         ]
       }
+      crew_block_fees: {
+        Row: {
+          created_at: string
+          failure_reason: string | null
+          fee_cents: number
+          fee_percent: number
+          helper_id: string | null
+          id: string
+          job_id: string
+          paid_at: string | null
+          share_basis_cents: number
+          slot_no: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          failure_reason?: string | null
+          fee_cents: number
+          fee_percent: number
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          share_basis_cents: number
+          slot_no: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          failure_reason?: string | null
+          fee_cents?: number
+          fee_percent?: number
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          share_basis_cents?: number
+          slot_no?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crew_cancellation_fee_shares: {
         Row: {
           committed: boolean

@@ -49,7 +49,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 26 on 2026-10-07 (lane-product, rebased on main's 28): Q333 and Q335 ticked (their screenshot halves done on prod), leaving the markerless set.
 // 30 on 2026-10-07 (ci lane): Q936 built; what is left is a live call of the deployed Vercel cron function, which no marker kind can read.
 // 29 on 2026-10-07 (ci lane, measured on main's 28 after the rebase): Q936 built; what is left is a live call of the deployed Vercel cron function, which no marker kind can read.
-const MARKERLESS_PARTLY_DONE = 26;
+const MARKERLESS_PARTLY_DONE = 27;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

@@ -213,6 +213,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // V-008: re-checks the job is not under a live direct offer; returns boolean.
     "function:deliver_saved_search_alert": "no-return",
     "function:enforce_application_job_state": "no-return",
+    // Q946: refuses a direct offer on a test fixture job; a trigger, returns NEW.
+    "function:enforce_test_fixture_job_never_hired": "no-return",
     "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",
     "function:get_messaging_closes_at": "no-return",

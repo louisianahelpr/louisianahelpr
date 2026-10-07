@@ -5548,6 +5548,32 @@ export type Database = {
         }
         Relationships: []
       }
+      test_fixture_jobs: {
+        Row: {
+          created_at: string
+          job_id: string
+          purpose: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          purpose: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          purpose?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_fixture_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_archives: {
         Row: {
           archived_at: string

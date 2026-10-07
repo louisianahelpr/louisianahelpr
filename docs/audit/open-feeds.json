@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T21:50Z",
+  "measured_at": "2026-10-07T22:30Z",
   "issues": {
     "readable": true,
     "open": [
@@ -45,11 +45,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2587,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red"
-      },
-      {
         "number": 2589,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red"
@@ -57,6 +52,11 @@
       {
         "number": 2596,
         "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2601,
+        "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red"
       }
     ]
@@ -81,12 +81,12 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 2580
+        "title": "nightly-red: staleness-watch",
+        "issue": 2589
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -94,7 +94,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
-        "issue": 2420
+        "issue": 2601
       },
       {
         "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
@@ -102,14 +102,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -135,6 +127,14 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
+      },
+      {
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-drift-detect",
+        "issue": 2596
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -231,6 +231,7 @@
     "issue #2587": "Q1506",
     "issue #2589": "Q1507",
     "issue #2596": "Q1510",
+    "issue #2601": "Q1427",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",
@@ -242,11 +243,12 @@
     "ledger 6389f98a9f66": "Q1427",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
+    "ledger 8018e82cb167": "Q1510",
     "ledger 88ecf6e765df": "Q1426",
     "ledger a5d62d53b6a4": "Q1435",
     "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
-    "ledger acf4ea2ff283": "Q1436",
+    "ledger db0fb15c4ec3": "Q1507",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
     "ledger f08d7f0fc323": "Q1512",

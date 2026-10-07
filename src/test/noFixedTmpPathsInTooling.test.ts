@@ -40,7 +40,7 @@ const SRC_RE = /\.(mjs|cjs|js|ts|tsx)$/;
 // Measured 2026-10-05 with this test's own scan.
 // Measured 2026-10-05 with this test's own scan.
 const MIN_FILES = 400; // 426 measured; a floor, since adding a script is normal
-const TMPDIR_SITES = 14; // EXACT: every tmpdir() call, all mkdtemp-wrapped. Lower or raise it in the commit that changes one.
+const TMPDIR_SITES = 15; // EXACT: every tmpdir() call, all mkdtemp-wrapped. Lower or raise it in the commit that changes one. 15 on 2026-10-07: scripts/lib/openItemMerge.mjs (git merge-file inputs, mkdtemp-wrapped).
 
 function trackedTooling(): string[] {
   const out = execFileSync("git", ["ls-files", "-z", "--", "scripts", "e2e"], {

@@ -76,6 +76,20 @@ export function resolveCountHunks(text) {
   return any ? { text: out.join("\n"), names } : null;
 }
 
+/** Read a file, or `fallback` when it is not there: one call, no exists-then-read race. */
+function readOr(path, fallback) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (e) {
+    if (e?.code === "ENOENT") return fallback;
+    throw e;
+  }
+}
+const readJsonOr = (path, fallback) => {
+  const text = readOr(path, null);
+  return text === null ? fallback : JSON.parse(text);
+};
+
 export function generatedOutputs(generated) {
   const set = new Set();
   for (const g of generated) for (const o of g.outputs ?? []) if (o !== "docs/OPEN.md" && !ARCHIVE.test(o)) set.add(o);
@@ -94,7 +108,7 @@ export async function resolveAll({ cwd = process.cwd(), log = console.log } = {}
   const generated = generatedOutputs(GENERATED);
   const gitPath = git(["rev-parse", "--git-path", "land-recount.json"], { cwd }).trim();
   const recordPath = isAbsolute(gitPath) ? gitPath : join(cwd, gitPath);
-  const record = existsSync(recordPath) ? JSON.parse(readFileSync(recordPath, "utf8")) : [];
+  const record = readJsonOr(recordPath, []);
   const resolved = [];
   const left = [];
   const notes = [];
@@ -118,8 +132,8 @@ export async function resolveAll({ cwd = process.cwd(), log = console.log } = {}
         git(["add", "--", file], { cwd });
       }
       resolved.push(`${file} (generated: main's copy, regenerated after the rebase)`);
-    } else if (/\.(ts|tsx|mjs|js)$/.test(file) && existsSync(`${cwd}/${file}`)) {
-      const r = resolveCountHunks(readFileSync(`${cwd}/${file}`, "utf8"));
+    } else if (/\.(ts|tsx|mjs|js)$/.test(file) && readOr(`${cwd}/${file}`, null) !== null) {
+      const r = resolveCountHunks(readOr(`${cwd}/${file}`, ""));
       if (!r) {
         left.push(file);
         continue;

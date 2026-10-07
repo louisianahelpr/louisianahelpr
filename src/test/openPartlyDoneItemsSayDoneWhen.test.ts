@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q1368 LOW At launch, revisit | - [~] **Q1368 LOW At launch, revisit
+// @mutate docs/OPEN.md | - [ ] **Q185 LOW OWNER launch-store tasks | - [~] **Q185 LOW OWNER launch-store tasks
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

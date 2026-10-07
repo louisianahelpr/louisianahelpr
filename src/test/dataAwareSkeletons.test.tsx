@@ -1,8 +1,8 @@
 // @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? false : cachedApps === 0;
 // @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? cachedPosts === 0 : false;
 // @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "notifications") return <NotificationsReserve />; |   // removed
-// @mutate src/components/GuestBrowseSkeleton.tsx | const cold = cachedJobs === 0; | const cold = false;
-// @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? ( | ) : false ? (
+// @mutate src/components/GuestBrowseSkeleton.tsx | {Array.from({ length: 6 }).map((_, i) => ( | {Array.from({ length: 0 }).map((_, i) => (
+// @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/components/ui/skeletons/EmptyStateSkeleton.tsx | if (data != null) n = Math.max(n, count(data)); | n = 0;
 // @mutate src/pages/post-job/EntryChoice.tsx | return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0); | return 5;
 // @mutate src/components/profile/ProfileTabFallback.tsx | reviews: [{ h: 307 }], | reviews: [{ h: 86 }, { h: "fill" }],

@@ -549,9 +549,18 @@ export function posterStatusLine(
     detail: copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival" || id === "confirm_working",
-    suffix: id === "cancelled" ? sanitizeCancellationReason(job.cancellation_reason) : null,
+    suffix: id === "cancelled" ? cancelledSuffix(job) : null,
     deadline: posterDeadline(id, job, instantRelease),
   };
+}
+
+/** The cancelled line's tail for the POSTER: the reason, and that their money
+ *  came back when it did (owner, 2026-10-06). Only on payment_status
+ *  'refunded', the state void-cancelled-payments writes after a full refund. */
+export function cancelledSuffix(job: Job): string | null {
+  const reason = sanitizeCancellationReason(job.cancellation_reason);
+  if (job.payment_status !== "refunded") return reason;
+  return reason ? `${reason} · Your payment was refunded` : "Your payment was refunded";
 }
 
 /** The clock behind each poster state that has one; null for the rest. */

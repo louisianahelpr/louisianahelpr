@@ -29,11 +29,11 @@
  * RED: before 20260926041023 the inventory test fails (no purge function, no
  * cron); each @mutate below turns one property off.
  *
- * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'cancelled')\n       AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY | AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY
- * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | 'public.payout_transfers:job_id', |
- * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | v_dry     boolean     := p_dry_run IS DISTINCT FROM false; | v_dry     boolean     := coalesce(p_dry_run, false);
+ * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'cancelled')\n       AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY | AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY
+ * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | 'public.payout_transfers:job_id', |
+ * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | v_dry     boolean     := p_dry_run IS DISTINCT FROM false; | v_dry     boolean     := coalesce(p_dry_run, false);
  * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | to_jsonb(public.run_seed_purge()) | public.run_seed_purge()
- * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | interval '7 days'); | interval '0 days');
+ * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | interval '7 days'); | interval '0 days');
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

@@ -5,7 +5,7 @@
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |         WHERE me.user_id = p_user_id AND me.is_seed IS TRUE\n          AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = me.user_id) |         WHERE me.user_id = p_user_id AND me.is_seed IS TRUE
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | AND public.seed_hidden_for(NEW.helper_id) THEN | AND public.seed_jobs_hidden_publicly() THEN
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | GRANT EXECUTE ON FUNCTION public.seed_hidden_for(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.seed_hidden_for(uuid) TO authenticated, service_role;
-// @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql | NOT is_seed OR NOT public.seed_hidden_in_discovery() | NOT is_seed OR NOT public.seed_jobs_hidden_publicly()
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | NOT is_seed OR NOT public.seed_hidden_in_discovery() | NOT is_seed OR NOT public.seed_jobs_hidden_publicly()
 //
 // Q552 (owner, 2026-10-07: "hide test profiles and test jobs NOW"): the launch
 // switch hides test ACCOUNTS too. The four profile read functions are held to

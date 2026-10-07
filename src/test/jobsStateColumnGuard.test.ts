@@ -1,7 +1,7 @@
 // Proven able to fail 2026-09-20: widening the Helpr column allow-list by one
 // money column (payout_scheduled_at) makes helper:payout_scheduled_at writable
 // with nothing constraining the value, and the ratchet reds.
-// @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql | 'status',\n    'helper_confirmed_at', | 'status',\n    'payout_scheduled_at',\n    'helper_confirmed_at',
+// @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | 'status',\n    'helper_confirmed_at', | 'status',\n    'payout_scheduled_at',\n    'helper_confirmed_at',
 // Q966: the dispute trigger stops firing on a PATCH of the two text columns.
 // @mutate supabase/migrations/20261003180355_dispute_text_server_owned.sql | dispute_resolved_at, dispute_reason, dispute_helper_response\n    ON public.jobs | dispute_resolved_at\n    ON public.jobs
 // Q966: the complaint's change check is disabled (the INSERT clear still names the column).

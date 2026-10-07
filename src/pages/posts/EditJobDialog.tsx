@@ -31,6 +31,7 @@ import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { isLaborTaxable } from "@/lib/salesTax";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { saveJobAccessNote } from "@/lib/jobAccessNotes";
+import { geocodeAddress } from "@/lib/geocode";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -140,6 +141,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     // (enforce_poster_jobs_money_lock, Q1204), so a booked job sends only the
     // one field the lock leaves open: photo proof, turned OFF. Everything else
     // is simply not sent (a re-trimmed location would read as a change).
+    // Q1499: a changed address sends its own map point. Without one the
+    // database clears the old pin (zzzzzz_jobs_location_clears_coords) and the
+    // geocoder refills it later; best-effort, like the post wizard's.
+    if (!job.helper_id && location.trim() !== (job.location ?? "").trim()) {
+      const point = await geocodeAddress(location.trim());
+      if (point) Object.assign(updateData, { latitude: point.latitude, longitude: point.longitude });
+    }
     const payload: TablesUpdate<"jobs"> = job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData;
     try {
       // The access note FIRST: it is the write most likely to be refused (the
@@ -235,7 +243,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
-              The place and details are locked once a Helpr is booked. You can still update the access and parking notes; your Helpr is told.
+              The place and details are locked once a Helpr is booked. To change them, use “Ask to change the details” on the job; everyone booked has to agree. You can still update the access and parking notes here; your Helpr is told.
             </DialogCallout>
           )}
 

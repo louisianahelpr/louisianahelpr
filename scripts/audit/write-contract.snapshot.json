@@ -3900,6 +3900,18 @@
     "nargs": 0
    }
   ],
+  "request_job_detail_change": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_changes"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "request_job_schedule_change": [
    {
     "anon": false,
@@ -3934,6 +3946,18 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "respond_job_detail_change": [
+   {
+    "anon": false,
+    "args": [
+     "p_request_id",
+     "p_accept"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "respond_job_schedule_change": [

@@ -149,6 +149,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   profile_search_rate_log: { by: ["searcher_id"] },
   crew_dispute_member_outcomes: { by: ["helper_id"] },
   job_schedule_change_requests: { by: ["requested_by", "responder_id"] },
+  // Q1254: the requests the person asked, and the answers the person gave.
+  job_detail_change_requests: { by: ["requested_by"] },
+  job_detail_change_answers: { by: ["helper_id"] },
   series_date_offers: { by: ["helper_id"] },
   series_visit_holds: { by: ["helper_id"] },
   // Q739: no person column; the poster's rows, through the job (posterReadableViaJob).

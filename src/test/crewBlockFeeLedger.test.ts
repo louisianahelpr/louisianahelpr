@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                               - (SELECT count(*)::int FROM public.crew_block_fees b WHERE b.job_id = j.id)) |                               )
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
- * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
+ * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  */
 import { describe, expect, it } from "vitest";

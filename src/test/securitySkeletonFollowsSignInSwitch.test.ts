@@ -3,7 +3,7 @@
  * The Account Security skeleton draws one bone per card the tab renders. The
  * sign-in methods card renders only while SOCIAL_SIGN_IN_ENABLED (off for
  * launch, Q1462, 1c3bff07b), and when it went off the skeleton kept its bone:
- * loading-states-refresh 37554743989 measured 6 placeholder rows -> 5 real on
+ * loading-states-refresh 37554743989 (2026-10-07) measured 6 placeholder rows -> 5 real on
  * both accounts (nightly-red #2420). The bone and the card read one switch.
  */
 import { describe, it, expect } from "vitest";

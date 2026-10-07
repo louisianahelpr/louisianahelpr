@@ -112,7 +112,7 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // two-factor; loading-states-refresh 37408930852 caught the missing bone:
   // 5 placeholder rows -> 6 real), active sessions. The sign-in methods card
   // renders only while SOCIAL_SIGN_IN_ENABLED (off for launch, Q1462), so its
-  // bone follows the same switch (loading-states-refresh 37554743989: 6
+  // bone follows the same switch (loading-states-refresh 37554743989, 2026-10-07: 6
   // placeholder rows -> 5 real once it went off).
   security: [
     { h: 74, media: 1 },

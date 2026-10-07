@@ -27,10 +27,10 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |                  AND public.job_offer_cutoff(j.date_needed, j.start_time) > now() + interval '15 minutes') |                  )
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |            WHEN j.is_group_job IS NOT TRUE OR j.parent_job_id IS NOT NULL THEN 0 |            WHEN j.is_group_job IS NOT TRUE THEN 0
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -41,6 +41,8 @@ const THIS = "20261006023437_crew_free_spot_relisted.sql";
 const PRIVATE = "20261006031016_crew_spots_open_not_client_callable.sql";
 /** Q1411 restated the same five on the crew-era bodies, plus its hide clause (banReviewHidesPostsOnCrewSurfaces.test.ts). */
 const RESTATED = "20261006042617_ban_review_hides_posts_on_crew_surfaces.sql";
+// Q552 restates the same bodies again, swapping only the seed-switch call (test accounts keep test jobs).
+const SEED_SWITCH = "20261007033530_seed_switch_hides_test_profiles.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
 
 /** Every place that decides whether a job takes applicants, and how it must read the rule. */
@@ -65,7 +67,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED], `${fn} is not the Q1409 definition or its Q1411 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH], `${fn} is not the Q1409 definition or its Q1411/Q552 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 
@@ -95,7 +97,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect([PRIVATE, RESTATED]).toContain(newestView);
+    expect([PRIVATE, RESTATED, SEED_SWITCH]).toContain(newestView);
     const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
     const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
     const view = blankSqlComments(sql.slice(at, sql.indexOf("$v$;", at)));

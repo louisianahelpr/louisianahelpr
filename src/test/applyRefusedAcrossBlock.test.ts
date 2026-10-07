@@ -82,6 +82,6 @@ describe("Q341: apply across a block is refused by the applications BEFORE INSER
 });
 
 // The C10 block check removed from the trigger.
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | IF public.are_users_blocked(NEW.helper_id, v_job.customer_id) THEN | IF false THEN
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | IF public.are_users_blocked(NEW.helper_id, v_job.customer_id) THEN | IF false THEN
 // The check written on auth.uid(), which the SECURITY DEFINER paths would miss.
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | are_users_blocked(NEW.helper_id, v_job.customer_id) | are_users_blocked(auth.uid(), v_job.customer_id)
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | are_users_blocked(NEW.helper_id, v_job.customer_id) | are_users_blocked(auth.uid(), v_job.customer_id)

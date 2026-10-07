@@ -2,7 +2,7 @@
   "_": "God-component ratchet, enforced by src/test/componentSizeRatchet.test.ts. Exact line count (wc -l) of every non-test src/**/*.tsx over 600 lines (node scripts/component-size-baseline.mjs). Exact both ways: when a file shrinks, regenerate with `node scripts/component-size-baseline.mjs --write` in the same commit; never raise or add an entry.",
   "_threshold": 600,
   "files": {
-    "src/App.tsx": 727,
+    "src/App.tsx": 714,
     "src/components/admin/AdminAnalytics.tsx": 628,
     "src/components/admin/AdminCredentialQueue.tsx": 601,
     "src/components/admin/AdminDisputes.tsx": 809,

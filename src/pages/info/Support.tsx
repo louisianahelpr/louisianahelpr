@@ -1,6 +1,8 @@
 // /support — the contact form every screen links to.
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
+import { withBugReport } from "@/lib/bugReportContext";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -211,6 +213,8 @@ const Support = () => {
   const errors = useMemo(() => validate(draft, identified), [draft, identified]);
   const isValid = Object.keys(errors).length === 0;
   const selectedTopic = findSupportTopic(draft.topic);
+  // The bug topic attaches the screen, route, device, build and recent errors (Q1028).
+  const bugContext = useBugReportContext(draft.topic === "report");
 
   const showError = (key: FieldKey) => (touched[key] ? errors[key] : undefined);
 
@@ -233,7 +237,8 @@ const Support = () => {
         email: identified ? "" : draft.email.trim(),
         topic: draft.topic,
         subject: draft.subject.trim(),
-        message: draft.message.trim(),
+        // The server caps the message at MESSAGE_MAX; withBugReport keeps the block whole.
+        message: bugContext ? withBugReport(draft.message.trim(), bugContext, MESSAGE_MAX) : draft.message.trim(),
       },
     });
     setSending(false);
@@ -497,6 +502,8 @@ const Support = () => {
                   />
                   <FieldError id="support-message-error" message={showError("message")} />
                 </div>
+
+                {bugContext && <BugReportAttachments context={bugContext} />}
 
                 <Button
                   type="submit"

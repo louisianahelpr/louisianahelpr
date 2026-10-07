@@ -9,6 +9,7 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 
+import { noteRecentError } from "@/lib/bugReportContext";
 import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
@@ -364,6 +365,8 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   if (isDevEnvironment(rawStack)) return;
 
   const message = (redact(rawMessage) ?? "").slice(0, MESSAGE_MAX_CHARS);
+  // "Report a bug" attaches the last few of these, already redacted (Q1028).
+  noteRecentError(message);
   const stack = redact(rawStack)?.slice(0, STACK_MAX_CHARS) ?? null;
   const url = sanitizeUrl(typeof window !== "undefined" ? window.location.href : null);
   const userAgent = typeof navigator !== "undefined"

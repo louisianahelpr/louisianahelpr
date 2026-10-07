@@ -73,6 +73,6 @@ describe("prod-audit runs in legs under the shared-account cap (Q889)", () => {
     expect(steps[run].env?.MESSY_INPUT_PRIOR_CREDITS).toBe(steps[down].with?.path);
   });
 });
-// @mutate .github/workflows/prod-audit.yml | e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts | e2e/prod-audit/rail-inset.spec.ts
+// @mutate .github/workflows/prod-audit.yml | -g "$GREP" e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts | -g "$GREP" e2e/prod-audit/rail-inset.spec.ts
 // @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 55 # prod-audit leg 3 (Q889) |     timeout-minutes: 120 # prod-audit leg 3 (Q889)
 // @mutate .github/workflows/prod-audit.yml |           MESSY_INPUT_PRIOR_CREDITS: messy-input-prior-credits |           MESSY_INPUT_PRIOR_CREDITS: elsewhere

@@ -4,11 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 220** (185 to do, 35 fixed with protection pending; 943 done). Feeds mirrored in: 26 from the alert ledger, 13 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 206** (168 to do, 38 fixed with protection pending; 963 done). Feeds mirrored in: 26 from the alert ledger, 13 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 5 left of 34** (4 to do, 1 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 14 red, 15 stale, 0 unknown, 44 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T10:22Z)_
-- **Remote branches:** 24 carry patches not on main, 0 fully merged, of 29 (Q79). _(2026-10-07T10:22Z)_
+- **Workflows on main:** 13 red, 15 stale, 0 unknown, 45 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T10:46Z)_
+- **Remote branches:** 23 carry patches not on main, 0 fully merged, of 28 (Q79). _(2026-10-07T10:46Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -83,7 +83,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1163 items — 943 done, 35 partly done (fixed, protection pending), 185 open.**
+**Queue: 1169 items — 963 done, 38 partly done (fixed, protection pending), 168 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -681,8 +681,8 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q1469 MEDIUM ❌ stripe chargeback lost.** Mirrored 2026-10-07 from alert-ledger row 254aa669dea7 (edge_slack: ops-alert:dispute_lost; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 254aa669dea7. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '254aa669dea71f9df7a88af8759c2125'` => closed
 - [ ] **Q1470 MEDIUM card dispute won — helpr re-paid, payout_transfers row not written.** Mirrored 2026-10-07 from alert-ledger row aa7111fce4e8 (edge_slack: ops-alert:money_at_risk; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger aa7111fce4e8. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'aa7111fce4e82b080601d066a23bdfd6'` => closed
 - [ ] **Q1471 MEDIUM ✅ stripe chargeback won.** Mirrored 2026-10-07 from alert-ledger row 71c0da6d9383 (edge_slack: ops-alert:dispute_won; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 71c0da6d9383. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '71c0da6d93831351738bd9de50f4e50e'` => closed
-- [ ] **Q1472 LOW audit finding ME-019 (sales tax - service-fee taxability reversed, unresolved): LA sales-tax treatment of the poster service fee reversed and the current position is….** Mirrored 2026-10-07 from audit-bus finding ME-019 (`node scripts/audit-bus.mjs show ME-019`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: bus ME-019. done-when: bus ME-019 closed
-- [ ] **Q1473 MEDIUM audit finding ME-043 (create-payment automatic_tax → Stripe Tax calculation for Louisiana): Stripe Tax returns $0.00 even on the ONE category the code declares ta….** Mirrored 2026-10-07 from audit-bus finding ME-043 (`node scripts/audit-bus.mjs show ME-043`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: bus ME-043. done-when: bus ME-043 closed
+- [~] **Q1472 LOW audit finding ME-019 (sales tax - service-fee taxability reversed, unresolved): LA sales-tax treatment of the poster service fee reversed and the current position is….** Mirrored 2026-10-07 from audit-bus finding ME-019 (`node scripts/audit-bus.mjs show ME-019`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: bus ME-019. done-when: bus ME-019 closed
+- [~] **Q1473 MEDIUM audit finding ME-043 (create-payment automatic_tax → Stripe Tax calculation for Louisiana): Stripe Tax returns $0.00 even on the ONE category the code declares ta….** Mirrored 2026-10-07 from audit-bus finding ME-043 (`node scripts/audit-bus.mjs show ME-043`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: bus ME-043. done-when: bus ME-043 closed
 - [ ] **Q1475 MEDIUM no device can receive a push.** Mirrored 2026-10-07 from alert-ledger row e49f68d9cbd6 (error_logs: push-tokens-empty; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e49f68d9cbd6. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e49f68d9cbd6a2ac70d216dee53051a5'` => closed
 - [ ] **Q1479 MEDIUM nightly-red: main: Supabase DB Deploy is red.** Mirrored 2026-10-07 from nightly-red issue #2543 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2543. done-when: issue #2543 closed feed: ledger 42a784cb226e. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '42a784cb226e506d814a710c96d26487'` => closed
 - [ ] **Q1480 MEDIUM db-deploy failed on main.** Mirrored 2026-10-07 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed

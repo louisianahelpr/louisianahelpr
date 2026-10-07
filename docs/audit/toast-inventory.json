@@ -1,24 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 593,
+    "calls": 597,
     "files": 150,
-    "rendering": 568,
-    "suppressedByPolicy": 25,
+    "rendering": 570,
+    "suppressedByPolicy": 27,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 38,
-      "toast.error": 468,
+      "toast.error": 470,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 30,
+      "toast.success": 32,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 318,
-      "template": 77,
+      "literal": 321,
+      "template": 78,
       "dynamic": 239,
       "jsx": 0
     }
@@ -1296,7 +1296,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 103,
+      "line": 138,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1306,7 +1306,27 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 111,
+      "line": 148,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Review lifted. A suspension earned during the review applies${applied.appliedSuspendedUntil ? ` until ${new Date(applied.appliedSuspendedUntil).toLocaleString()}` : \"\"}; the account's jobs carry on and its payouts are released."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 152,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Ban lifted with the final warning earned during the review. The account's jobs carry on and its payouts are released."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 154,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1316,7 +1336,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 115,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1336,7 +1356,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 134,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2492,7 +2512,27 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 293,
+      "line": 161,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check whether this account is under a ban review. Nothing was changed — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 315,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2502,7 +2542,7 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 297,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

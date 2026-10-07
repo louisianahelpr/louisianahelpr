@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T10:22Z",
+  "measured_at": "2026-10-07T10:46Z",
   "issues": {
     "readable": true,
     "open": [
@@ -62,11 +62,6 @@
       {
         "number": 2560,
         "title": "nightly-red: prod-errors",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2562,
-        "title": "nightly-red: main: Vitest",
         "label": "nightly-red"
       }
     ]

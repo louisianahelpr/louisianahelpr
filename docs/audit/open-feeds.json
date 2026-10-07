@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T19:41Z",
+  "measured_at": "2026-10-07T19:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -237,7 +237,7 @@
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
-    "issue #2580": "Q1509",
+    "issue #2580": "Q1513",
     "issue #2587": "Q1506",
     "issue #2589": "Q1507",
     "issue #2596": "Q1510",
@@ -260,7 +260,7 @@
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
     "ledger f08d7f0fc323": "Q1512",
-    "ledger f22e3275d50d": "Q1509",
+    "ledger f22e3275d50d": "Q1513",
     "ledger fad6897fcfae": "Q1438",
     "ledger fdf163a422f2": "Q1482"
   }

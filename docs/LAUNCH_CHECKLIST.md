@@ -54,19 +54,21 @@ Only when every other launch-list item is closed.
 2. Land the edits with `bash scripts/land.sh`, then `npm run launch:appstore`
    again: exit 0, `VERDICT: live-and-shipped`.
 
-## Step 3 — Q552: hide the fixtures
+## Step 3 — Q552: hide the fixtures (DONE early, 2026-10-07, owner: "NOW")
 
-1. `npm run launch:go -- --on --confirm`. It measures every anon surface,
-   flips `platform_settings.feature_flags.seed_jobs_hidden_publicly` to true
-   (the only thing it can write), and measures again; every surface must show
-   0 fixture rows AFTER. It refuses to flip into an empty marketplace unless
-   `--allow-empty-marketplace` is passed on purpose.
-2. `npm run check:launch` — prints "all launch flags are in their launch
-   position" (dry run 2026-10-07: FAILED, the flag is false, as it should be
-   before launch).
-3. Roll back if needed: `npm run launch:go -- --off --confirm`.
-4. Seed PROFILES and their reviews are not behind this switch (Q552's line
-   says which read paths); follow the owner's decision recorded there.
+Flipped on 2026-10-07 with `npm run launch:go -- --on --confirm`. On launch
+day, only confirm it is still on:
+
+1. `npm run check:launch` prints "all launch flags are in their launch
+   position" (green 2026-10-07 after the flip).
+2. `npm run launch:go` (report only) shows the flag true and 0 fixture rows
+   on every anon surface.
+3. Roll back only if needed: `npm run launch:go -- --off --confirm`.
+
+The switch also hides test PROFILES, their reviews and stats from real people
+and anon (migration 20261007033530). Enrolled test accounts
+(`public.test_accounts`, service role only) keep seeing test jobs and profiles;
+enrol any new harness account there.
 
 ## Step 4 — Q1368: the cold-visit outline on guest /browse
 

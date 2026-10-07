@@ -198,6 +198,7 @@ jobs:
           access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           project-ref: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
       - name: Ensure the job-status fixtures
+        timeout-minutes: 26
         run: npx playwright test --project=job-status-fixtures --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         if: ${{ !cancelled() }}
@@ -299,6 +300,7 @@ jobs:
           echo "axe sweep variants this run: $PICKED" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the prod sweep (chromium)
+        timeout-minutes: 52
         # The serial describe ignores --workers; kept on one line for
         # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
         # --output keeps each engine's test-results apart.
@@ -418,6 +420,7 @@ jobs:
           echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV"
 
       - name: Run the prod sweep (webkit)
+        timeout-minutes: 52
         env:
           SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/webkit
         run: npx playwright test --project=a11y-prod-webkit --output=test-results/webkit --reporter=list,./e2e/reporters/skipReporter.ts

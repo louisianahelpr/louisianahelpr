@@ -183,6 +183,7 @@ jobs:
 
       # Literal playwright line: src/test/e2eSpecsReachableInCi reads it as text.
       - name: Run the privacy journey
+        timeout-minutes: 26
         run: npx playwright test --project=privacy --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         # Meters every Supabase request this run made (e2e/requestMeter.mjs) and

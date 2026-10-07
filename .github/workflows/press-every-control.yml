@@ -258,6 +258,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 1, shards 1 and 2)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; an earlier leg hands the rows
         # it could not reach to the next leg instead of reporting them.
@@ -533,6 +534,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 2, shards 3 and 4)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; an earlier leg hands the rows
         # it could not reach to the next leg instead of reporting them.
@@ -808,6 +810,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 3, shards 5 and 6)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; an earlier leg hands the rows
         # it could not reach to the next leg instead of reporting them.
@@ -1083,6 +1086,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 4, shards 7 and 8)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; an earlier leg hands the rows
         # it could not reach to the next leg instead of reporting them.
@@ -1358,6 +1362,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 5, shards 9 and 10)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; an earlier leg hands the rows
         # it could not reach to the next leg instead of reporting them.
@@ -1633,6 +1638,7 @@ jobs:
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
       - name: Press every control (leg 6, shards 11 and 12)
+        timeout-minutes: 50
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
         # #1582: shards claim rows from one queue; the last leg reports every
         # row nobody reached.

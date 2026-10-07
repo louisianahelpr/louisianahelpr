@@ -10,7 +10,8 @@
     "get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric)": "reviewed 2026-10-05 (Q14): public ranked browse data (masked, seed-gated, src/config/showSeedJobs.ts); no app caller since /jobs was deleted, scripts/launch-go.mjs calls it as anon at launch.",
     "get_safe_profiles(uuid[])": "client",
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",
-    "seed_jobs_hidden_publicly()": "client"
+    "seed_jobs_hidden_publicly()": "client",
+    "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER."
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -133,7 +134,9 @@
     "set_thread_snooze(uuid, uuid, timestamp with time zone)": "client",
     "subscription_purchase_eligibility(text)": "client",
     "toggle_thread_mute(uuid, uuid)": "client",
-    "user_may_see_job_address(uuid, uuid)": "policy"
+    "user_may_see_job_address(uuid, uuid)": "policy",
+    "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE; answers only whether the launch switch hides test rows from the CALLER.",
+    "seed_review_hidden(uuid, uuid, uuid)": "reviewed 2026-10-07 (Q552): called by the reviews SELECT policy, which runs as the reader; returns only whether a review involves a test account or test job while the switch hides them from the caller (accepted LOW: reveals fixture status of a known uuid)."
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
@@ -153,6 +156,7 @@
     "has_role(uuid, app_role)": "reviewed 2026-10-05 (Q1284): policy helper used by every admin policy with auth.uid(); called directly it says whether an id is an admin. Caller-scoping filed as Q1328.",
     "job_is_funded(uuid)": "reviewed 2026-10-05 (Q1284): policy helper; whether a job's payment is funded, which browse already implies (only funded jobs are listed).",
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-05 (Q1284): the global launch switch (one boolean flag), read by every browse surface.",
-    "user_may_see_job_address(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper called with auth.uid(); called directly with another id it says whether that person is hired/offered on a job. Caller-scoping filed as Q1328."
+    "user_may_see_job_address(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper called with auth.uid(); called directly with another id it says whether that person is hired/offered on a job. Caller-scoping filed as Q1328.",
+    "seed_review_hidden(uuid, uuid, uuid)": "reviewed 2026-10-07 (Q552): reads the caller through seed_hidden_from_caller(), a definer it calls; itself takes no person-scoped action and returns a boolean about fixture status only."
   }
 }

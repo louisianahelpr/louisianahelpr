@@ -30,7 +30,7 @@ What each OPEN launch item waits on, ONE line per category (scripts/launch-statu
 - **owner-phone** (a check on the owner's iPhone, TestFlight 7115 or later): Q1313
 - **owner-payment** (a real paid job or tip; the owner enters the card): Q933 Q749 Q1116 Q362
 - **owner-crew-payment** (a real funded group job, then the owner-confirmed flip): Q1378 Q780 Q709 Q707 Q1114 Q1079
-- **owner-dashboard** (App Store Connect, Supabase, CPA): Q1045
+- **owner-dashboard** (App Store Connect, Supabase, CPA): (none)
 - **stripe-test-mode** (an owner-approved test-mode window; prod is live): Q763 Q449 Q805
 - **lead** (Claude can finish it now): Q975 Q1314 Q1461 Q1462 Q1460
 - **launch-day** (done on launch day, in order): Q552 Q1289 Q1368 Q152
@@ -1004,7 +1004,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] **Q1043** MEDIUM Set EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH to false in scripts/e2e/anon-surface-contract.mjs, so an empty guest browse fails again (owner 2026-10-01: prod stays empty of test jobs until launch)
 - [ ] **Q1131** MEDIUM Set EMPTY_IS_WARNING_BEFORE_LAUNCH to false in scripts/uptime-check.mjs (or set UPTIME_EMPTY_IS_DOWN=1 on uptime.yml), so an empty guest marketplace pages as a critical DOWN again instead of the pre-launch warning (owner 2026-10-02, "Split the alert until launch"). GUARD: src/test/uptimeEmptyIsNotDown.test.ts.
-- [ ] **Q1045** MEDIUM OWNER (App Store Connect > App Privacy, before the next submission): mark Product Interaction and Crash Data as "Linked to You" (CS-004, 2026-09-24). The app's PrivacyInfo.xcprivacy now says linked, because PostHog identify() sends the user id and Sentry setUser() sends id + email; Apple compares the label to the manifest.
+- [x] **Q1045** MEDIUM OWNER (App Store Connect > App Privacy, before the next submission): mark Product Interaction and Crash Data as "Linked to You" (CS-004, 2026-09-24). The app's PrivacyInfo.xcprivacy now says linked, because PostHog identify() sends the user id and Sentry setUser() sends id + email; Apple compares the label to the manifest. **DONE 2026-10-06 ~19:45 CT (owner, App Store Connect > App Privacy, screenshots reviewed by the lead):** Product Interaction (Analytics, Product Personalization, App Functionality) and Crash Data are declared Linked to the user's identity, not used for tracking, matching PrivacyInfo.xcprivacy; Search History added (saved searches) and Sensitive Info removed (ID verification off, Face ID on-device only); published. NO-GUARD: an App Store Connect setting outside the repo; the manifest side is guarded by the existing PrivacyInfo checks.
 
 ### Routine consolidation (2026-09-12)
 Reconciled 2026-09-23; detail in the archive at the line shown.

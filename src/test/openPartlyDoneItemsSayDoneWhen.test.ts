@@ -49,7 +49,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 26 on 2026-10-07 (lane-product, rebased on main's 28): Q333 and Q335 ticked (their screenshot halves done on prod), leaving the markerless set.
 // 23 on 2026-10-07 (HIGH lane, landing agent/high4-q1421-q1398, rebased on 24): Q1398 ticked.
 // 24 on 2026-10-07: Q913 (Money-B batch 3) is fixed and waits on the press spec run and a look at the six admin ✕s at 375 and 1440, which no marker kind can express.
-const MARKERLESS_PARTLY_DONE = 27;
+const MARKERLESS_PARTLY_DONE = 25;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

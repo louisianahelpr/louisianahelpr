@@ -173,6 +173,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the slow-network steps
+        timeout-minutes: 26
         run: npx playwright test --project=slow-network --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         # Meters every Supabase request this run made (e2e/requestMeter.mjs) and

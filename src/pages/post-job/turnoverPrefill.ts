@@ -19,7 +19,9 @@ export interface TurnoverPrefill {
   budget: string;
   location: string;
   dateNeeded: string;
-  /** The event already points at a posted job: offer nothing to post. */
+  /** The event already points at a FUNDED job: offer nothing to post. An
+   *  unpaid or cancelled one (abandoned checkout) does not count; the next
+   *  post re-points the turnover (link_str_turnover_job). */
   alreadyPosted: boolean;
 }
 
@@ -27,6 +29,8 @@ interface TurnoverRow {
   id: string;
   checkout_date: string;
   job_id: string | null;
+  /** The linked job (the host's own, so RLS lets them read it). */
+  jobs?: { status: string; payment_status: string | null } | null;
   str_calendar_connections: {
     property_name: string | null;
     property_address: string | null;
@@ -34,6 +38,9 @@ interface TurnoverRow {
     cleaning_notes: string | null;
   } | null;
 }
+
+/** The browse surfaces' funded set: a job Helprs can see. */
+const FUNDED = new Set(["escrow", "payout_pending", "released"]);
 
 /** public.jobs CHECKs (Q782): title <= 32 and description <= 1000 code points. */
 const fit = (s: string, n: number) => Array.from(s).slice(0, n).join("").trim();
@@ -49,7 +56,7 @@ export function buildTurnoverPrefill(row: TurnoverRow): TurnoverPrefill {
     budget: conn?.cleaning_budget != null ? String(conn.cleaning_budget) : "",
     location: conn?.property_address ?? "",
     dateNeeded: row.checkout_date,
-    alreadyPosted: row.job_id != null,
+    alreadyPosted: row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""),
   };
 }
 
@@ -58,7 +65,7 @@ export async function fetchTurnoverPrefill(eventId: string): Promise<TurnoverPre
   const row = unwrap(
     await supabase
       .from("str_processed_events")
-      .select("id, checkout_date, job_id, str_calendar_connections(property_name, property_address, cleaning_budget, cleaning_notes)")
+      .select("id, checkout_date, job_id, jobs(status, payment_status), str_calendar_connections(property_name, property_address, cleaning_budget, cleaning_notes)")
       .eq("id", eventId)
       .maybeSingle(),
   ) as TurnoverRow | null;

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
-import { fireSuccessMoment } from "@/lib/successMoment";
+import { fireSuccessMoment, SUCCESS_MOMENT_LIFETIME_MS } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, reasonFromMissing, UNFUNDED_AWARD_COPY, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
@@ -301,7 +301,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
     // Q997 (owner, 2026-10-07): the poster is told the payment is held.
-    setPaymentHeldSide("poster");
+    // Opened once the "Applicant hired" moment has faded, so it never lands
+    // under it (measured 2026-10-07: the check overlay covered the sentence).
+    window.setTimeout(() => setPaymentHeldSide("poster"), SUCCESS_MOMENT_LIFETIME_MS + 250);
     await refresh();
     // The poster's OWN view after hiring. Same defect as the links above:
     // "offered" is a legacy key with no chip, so this left the strip with
@@ -390,7 +392,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });
       // Q997: the Helpr is told the payment is held (a direct offer, accepted).
-      setPaymentHeldSide("helpr");
+      window.setTimeout(() => setPaymentHeldSide("helpr"), SUCCESS_MOMENT_LIFETIME_MS + 250);
       await refresh();
       setStatusFilter("accepted");
     } else {

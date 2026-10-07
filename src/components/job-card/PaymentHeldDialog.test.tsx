@@ -4,7 +4,7 @@
 // useActivityActions.inFlight.test.tsx; this file pins the pop-up itself and
 // the poster's half (a sent offer opens it).
 //
-// @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     setPaymentHeldSide("poster"); |
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     window.setTimeout(() => setPaymentHeldSide("poster"), SUCCESS_MOMENT_LIFETIME_MS + 250); |
 // @mutate src/components/job-card/PaymentHeldDialog.tsx | export const PAYMENT_HELD_SENTENCE = "The payment is held by Louisiana Helpr until the job is done."; | export const PAYMENT_HELD_SENTENCE = "";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, renderHook, act, waitFor } from "@testing-library/react";
@@ -38,7 +38,7 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn(), hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn() }));
-vi.mock("@/lib/successMoment", () => ({ fireSuccessMoment: vi.fn() }));
+vi.mock("@/lib/successMoment", () => ({ fireSuccessMoment: vi.fn(), SUCCESS_MOMENT_LIFETIME_MS: 0 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), AhaEvent: {} }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn(async () => undefined) }));

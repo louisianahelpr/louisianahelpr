@@ -27,9 +27,12 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/lib/accessibility";
+import { SUCCESS_MOMENT_LIFETIME_MS } from "@/lib/successMoment";
 
-/** How long the overlay stays up before it auto-fades. */
-const OVERLAY_LIFETIME_MS = 1300;
+/* How long the overlay stays up before it auto-fades: SUCCESS_MOMENT_LIFETIME_MS
+   (src/lib/successMoment.ts), shared so a pop-up opened after it never lands
+   under it (Q997). */
+const OVERLAY_LIFETIME_MS = SUCCESS_MOMENT_LIFETIME_MS;
 
 interface SuccessCheckProps {
   /** Diameter of the badge in px. */

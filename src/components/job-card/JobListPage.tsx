@@ -12,6 +12,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { PaymentHeldDialog } from "@/components/job-card/PaymentHeldDialog";
+import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
 
 // Tab content is lazy-split so the initial Activity chunk only contains the
@@ -575,9 +576,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             className={showEmptyState ? "flex-1 min-h-0 pb-0" : "flex-1 min-h-0 px-4 pt-3 pb-0"}
           >
           {showEmptyState ? (
-            // Empty state — a liquid-glass card that fills the panel and
-            // bleeds beneath the dock (flat bottom, no hard edge), matching
-            // the Dashboard / Messages empty-state pattern.
+            <>
+            {/* Q1465: a $300+ recurring visit waiting on the poster's payment
+                is shown even when this bucket is empty. It lived only inside
+                PostedJobsTab, which this branch replaces, so a payer landing
+                on an empty "Needs you" never saw it. Renders nothing when no
+                visit waits. */}
+            {tab === "posted" && user && <RecurringVisitPayments userId={user.id} className="mx-4 mt-3" />}
+            {/* Empty state — a liquid-glass card that fills the panel and
+                bleeds beneath the dock (flat bottom, no hard edge), matching
+                the Dashboard / Messages empty-state pattern. */}
             <ActivityEmptyState
               tab={tab}
               loadError={!!loadError}
@@ -593,6 +601,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onSelectStatusFilter={setStatusFilter}
               onClearSearch={() => { setSearchQuery(""); setSearchOpen(false); }}
             />
+            </>
           ) : (
             /* `min-h-full flex flex-col` so a SHORT list can fill the panel.
                PageScaffold's panel is a fixed-height liquid-glass card, so a

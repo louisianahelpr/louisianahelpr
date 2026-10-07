@@ -15,7 +15,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const html = readFileSync(join(root, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+// Comments stripped until none is left (a single pass can leave one behind
+// when two overlap; CodeQL js/incomplete-multi-character-sanitization).
+let html = readFileSync(join(root, "index.html"), "utf8");
+for (let prev = ""; prev !== html; ) {
+  prev = html;
+  html = html.replace(/<!--[\s\S]*?-->/g, "");
+}
 const vite = readFileSync(join(root, "vite.config.ts"), "utf8");
 
 describe("one manifest link on the served page (Q965)", () => {

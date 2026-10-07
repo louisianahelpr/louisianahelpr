@@ -21,7 +21,7 @@ const ROOT = join(__dirname, "..", "..");
 
 describe("land.sh runs the tests that read a changed file by path", () => {
   it("a changed migration brings in the migration readers that went red only on CI", () => {
-    const list: string[] = pathReaders(["supabase/migrations/20990101000000_x.sql"], { cwd: ROOT });
+    const list: string[] = pathReaders(["supabase/migrations/any-changed-migration.sql"], { cwd: ROOT });
     expect(list).toEqual(expect.arrayContaining([
       "src/test/cronLivenessCoverage.test.ts",
       "src/test/offerDeadlineBeforeStart.test.ts",

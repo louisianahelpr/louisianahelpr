@@ -4,11 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 241** (209 to do, 32 fixed with protection pending; 918 done). Feeds mirrored in: 25 from the alert ledger, 11 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Launch list: 8 left of 34** (5 to do, 3 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
+- **Open: 239** (210 to do, 29 fixed with protection pending; 922 done). Feeds mirrored in: 26 from the alert ledger, 11 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Launch list: 6 left of 34** (5 to do, 1 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 14 red, 14 stale, 0 unknown, 45 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T07:58Z)_
-- **Remote branches:** 25 carry patches not on main, 0 fully merged, of 30 (Q79). _(2026-10-07T07:58Z)_
+- **Workflows on main:** 11 red, 14 stale, 1 unknown, 47 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T08:56Z)_
+- **Remote branches:** 24 carry patches not on main, 0 fully merged, of 29 (Q79). _(2026-10-07T08:56Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -83,7 +83,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1159 items — 918 done, 32 partly done (fixed, protection pending), 209 open.**
+**Queue: 1161 items — 922 done, 29 partly done (fixed, protection pending), 210 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -707,6 +707,7 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q1475 MEDIUM no device can receive a push.** Mirrored 2026-10-07 from alert-ledger row e49f68d9cbd6 (error_logs: push-tokens-empty; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e49f68d9cbd6. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e49f68d9cbd6a2ac70d216dee53051a5'` => closed
 - [ ] **Q1479 MEDIUM nightly-red: main: Supabase DB Deploy is red.** Mirrored 2026-10-07 from nightly-red issue #2543 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2543. done-when: issue #2543 closed
 - [ ] **Q1480 MEDIUM db-deploy failed on main.** Mirrored 2026-10-07 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed
+- [ ] **Q1482 MEDIUM nightly-red: main: land queue.** Mirrored 2026-10-07 from alert-ledger row fdf163a422f2 (nightly_red: nightly-red; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger fdf163a422f2. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'fdf163a422f2bc1df11ed9646c9c0948'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -165,7 +165,10 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
   it("the same missing RPC is still a reject when no pending migration creates it", () => {
     const s: any = clone();
     delete s.functions[pick!.fn];
-    // Fully applied: nothing is pending, so the gap is a real missing RPC.
+    // Fully applied (every migration file in the tree): nothing is pending,
+    // so the gap is a real missing RPC. Set explicitly: the committed
+    // snapshot can be older than the newest migrations on main.
+    s.appliedMigrations = { latest: files[files.length - 1].slice(0, 14), count: files.length };
     expect(codes(s).rejects.has(`rpc_missing:${pick!.fn}`)).toBe(true);
   });
 

@@ -282,7 +282,7 @@ const HelpCenter = () => {
               this page is public, and /support serves guests and members. */}
           <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
             Something not working?{" "}
-            <Link to="/support?topic=report" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            <Link to="/support?topic=report" className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }}>
               Report a bug
             </Link>
           </p>

@@ -1529,6 +1529,16 @@ html.web-desktop {
   html.web-desktop .mobile-nav-frame {
     display: none !important;
   }
+  /* Q836: and nothing reserves room for it. `--bottom-nav-h` was zeroed only
+     by `html.no-bottom-nav` (MobileNav: guests, unverified, no-nav pages), so
+     a signed-in desktop page still padded every `pb-safe-nav` page and the
+     AppShell scroller by the dock's 112px (measured on prod at 1440,
+     2026-10-07: /user/:id .pb-safe-nav and the Profile scroller both 112px,
+     dock display none). Zeroed here, beside the rule that hides the dock,
+     so the two cannot disagree. */
+  html.web-desktop {
+    --bottom-nav-h: 0px;
+  }
   /* `.empty-state-dock` (EmptyState.tsx, `dock` variant) squares its bottom
      corners inline so the card bleeds under the floating mobile dock with no
      hard edge. That dock doesn't exist here — it's hidden above — so the

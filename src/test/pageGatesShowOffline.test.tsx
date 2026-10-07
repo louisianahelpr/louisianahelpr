@@ -16,6 +16,7 @@
  * (useFeedPhase over `profileQuery`). Today: AdminRoute, JobDetail, Profile.
  *
  * @mutate src/components/AdminRoute.tsx | if (isLoading && phase === "offline-empty") { | if (false) {
+ * @mutate src/hooks/useFeedPhase.ts | return online ? feedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" }, online) : "offline-empty"; | return feedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" }, online);
  * @mutate src/pages/jobs/JobDetail.tsx | {(authLoading ? authPhase : phase) === "offline-empty" ? ( | {(authLoading ? "loading" : phase) === "offline-empty" ? (
  * @mutate src/components/profile/ProfileOfflineGate.tsx | if (phase !== "offline-empty") return <>{children}</>; | return <>{children}</>;
  * @mutate src/pages/profile/Profile.tsx |             <ProfileOfflineGate tab={tab} onBack={backFromTab}>\n | \n
@@ -68,6 +69,20 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
     expect(screen.queryByText("secret admin")).toBeNull();
   });
 
+  it("AdminRoute: offline with a CACHED profile but auth still waiting (expired token) -> the offline card", () => {
+    // useOnlineStatus reads navigator.onLine; jsdom says online unless told.
+    const desc = Object.getOwnPropertyDescriptor(Navigator.prototype, "onLine");
+    Object.defineProperty(Navigator.prototype, "onLine", { configurable: true, get: () => false });
+    try {
+      loadingUser({ status: "success", fetchStatus: "idle" });
+      render(wrap(<AdminRoute><p>secret admin</p></AdminRoute>));
+      expect(screen.getByText("You're offline.")).toBeTruthy();
+      expect(screen.queryByText("secret admin")).toBeNull();
+    } finally {
+      if (desc) Object.defineProperty(Navigator.prototype, "onLine", desc);
+    }
+  });
+
   it("AdminRoute: online and still fetching -> the spinner, not the offline card (can fail)", () => {
     onlineManager.setOnline(true);
     loadingUser(FETCHING);
@@ -105,10 +120,10 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
     for (const f of GATES) {
       const src = blankComments(readFileSync(f, "utf8"));
       expect(src, `${f}: no longer gates on useCurrentUser — update this list`).toMatch(/useCurrentUser\(\)/);
-      expect(src, `${f}: gates on the profile but never reads its offline phase`).toMatch(/useFeedPhase\(\s*profileQuery\b/);
+      expect(src, `${f}: gates on the profile but never reads its offline phase`).toMatch(/useProfileWaitPhase\(\s*profileQuery\b/);
       expect(src, `${f}: reads the phase but never renders the offline card`).toMatch(/<OfflineEmptyState\b/);
       // The phase must decide what renders, not merely be computed.
-      const v = /const\s+(\w+)\s*=\s*useFeedPhase\(\s*profileQuery\b/.exec(src)?.[1];
+      const v = /const\s+(\w+)\s*=\s*useProfileWaitPhase\(\s*profileQuery\b/.exec(src)?.[1];
       expect(v, `${f}: the profile phase is not held in a variable`).toBeTruthy();
       expect(src, `${f}: ${v} never chooses the offline branch`).toMatch(new RegExp(`\\b${v}\\b[^\\n]*[!=]==\\s*"offline-empty"`));
     }

@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
-import { useFeedPhase } from "@/hooks/useFeedPhase";
+import { useProfileWaitPhase } from "@/hooks/useFeedPhase";
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -37,7 +37,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   // and `isLoading` stays true: the spinner below span for as long as the
   // connection was down. Say so instead. Grants nothing (children still need
   // a confirmed "admin").
-  const phase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
+  const phase = useProfileWaitPhase(profileQuery);
   const [retrying, setRetrying] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();

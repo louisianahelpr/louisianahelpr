@@ -348,7 +348,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <DollarSign className="w-3 h-3 text-accent shrink-0" />
-                      <span className="text-ds-11 text-accent font-medium">
+                      <span className="text-ds-11 text-[hsl(var(--sienna-ink))] font-medium">
                         {feeTier} → {cancellationFeePercent}% fee · Strike recorded
                       </span>
                     </div>

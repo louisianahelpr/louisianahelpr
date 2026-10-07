@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
  * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
- * @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND customer_id | ELSE 0 END) > 0)) AND customer_id
+ * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND customer_id | ELSE 0 END) > 0)) AND customer_id
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
@@ -175,8 +175,16 @@ describe("recurring split days (Q407 4-6)", () => {
   });
 
   it("Helprs see the terms before applying, and a series visit is never listed publicly", () => {
-    const views = [...allSql.matchAll(/CREATE OR REPLACE VIEW public\.open_jobs_browse[\s\S]*?\$v(?:iew)?\$/g)];
-    const newest = views.pop()?.[0] ?? "";
+    // The NEWEST statement: from the last CREATE to its own end (the closing
+    // $v$/$view$ tag of an EXECUTE-wrapped one, else the first `;`). A lazy
+    // match to the next `$v$` anywhere read an older definition once the
+    // newest stopped being EXECUTE-wrapped (20261007073145).
+    const at = allSql.lastIndexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
+    expect(at).toBeGreaterThan(-1);
+    const rest = allSql.slice(at);
+    const tag = /\$v(?:iew)?\$/.exec(rest);
+    const semi = rest.indexOf(";");
+    const newest = tag && tag.index < semi ? rest.slice(0, rest.indexOf(tag[0], tag.index + tag[0].length) + tag[0].length) : rest.slice(0, semi + 1);
     for (const c of ["recurrence_days", "recurrence_weeks", "series_split_ok"]) expect(newest).toContain(c);
     // Q1409 (20261006023437) widened the status test to a booked crew's re-listed spot; the series rule stands.
     // (20261006031016 counts the open spots inline instead of calling crew_spots_open.)

@@ -25,9 +25,9 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql |     materials_note\n   FROM jobs |     materials_note,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |     materials_note\n   FROM jobs |     materials_note,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

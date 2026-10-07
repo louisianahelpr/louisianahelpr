@@ -232,7 +232,9 @@ function AppliedJobCardInner({
   // The expanded body also has to render for the poster PersonTile (V6), even
   // on a job with no description of its own to show — but only while the body
   // is the one printing it.
-  const hasCardBody = showDescription || bodyCarriesTile;
+  /** Photos only inside the expanded card, above the buttons (owner 2026-10-06); pending draws its own. */
+  const showBodyPhotos = !isMinimalCard && isExpanded && !isPending && (job.photos || []).length > 0;
+  const hasCardBody = showDescription || bodyCarriesTile || showBodyPhotos;
 
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
@@ -467,6 +469,7 @@ function AppliedJobCardInner({
                 <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
               </section>
             )}
+            {showBodyPhotos && <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />}
 
             {/* The poster, as a PersonTile — the same shared tile the poster
                 card uses for the Helpr (eyebrow "Posted by"). An ownerless job
@@ -841,16 +844,12 @@ function AppliedJobCardInner({
             </div>
           )}
 
-          {/* Footer: extra details (photos, requirements, group/recurring) */}
-          {/* NO group-size line here any more — it moved into the meta row,
-              inline after the time (owner: "3 helprs needed goes to the right
-              of time"). It was the last item on the whole card, below the
-              Edit/Withdraw chips, so a fact about the job was printed
-              underneath the helper's own controls. See the `helpersNeeded`
-              prop on JobCardMetaRow above. */}
-          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring) && (
+          {/* Footer: the recurring series row */}
+          {/* No group-size line here: it moved into the meta row, after the time
+              (owner), not below the helper's controls; see `helpersNeeded`. No
+              photos here either: they sat below the buttons (owner 2026-10-06). */}
+          {!isMinimalCard && (!isFullyDone || isExpanded) && job.is_recurring && (
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
-              <JobCardPhotoStrip urls={job.photos || []} size="sm" />
               {job.is_recurring && <HelperSeriesRow job={job} userId={userId} />}
             </div>
           )}

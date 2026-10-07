@@ -74,7 +74,7 @@ export function PendingApplicationSection({
   return (
     /* `space-y-3.5` is ApplyBody's own `gap-3.5` between its blocks — the two
        screens stack their sections at the same rhythm. */
-    <div className="px-4 pb-3 space-y-3.5">
+    <div className="px-4 pb-2 space-y-2">
       <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />
 
       {/* The editable "Your Offer" price block lived here, on accept_bids
@@ -154,6 +154,10 @@ export function PendingApplicationSection({
       {/* THEIR ATTACHMENTS. The heading is `sr-only` for the same reason the
           message's label is: the region still has to be named for a screen
           reader even though the owner does not want the name drawn. */}
+      {/* Read mode shows only what was attached; adding and removing are part of
+          Edit (owner, 2026-10-06: "add cert or work sample as a button in edit
+          and remove from there"). Nothing attached and not editing: no block. */}
+      {(editing || (app.attachment_urls || []).length > 0) && (
       <section aria-labelledby={attachmentsHeadingId} className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
         <h4 id={attachmentsHeadingId} className="sr-only">Your attachments</h4>
         {/* Each row used to render a FileText icon and the filename, then embed
@@ -169,6 +173,7 @@ export function PendingApplicationSection({
         {(app.attachment_urls || []).map((url, i) => (
           <div key={i} className="flex items-center gap-1">
             <AttachmentLink url={url} index={i} variant="chip" className="flex-1 min-w-0" />
+            {editing && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }}
@@ -178,9 +183,10 @@ export function PendingApplicationSection({
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
+            )}
           </div>
         ))}
-        {(app.attachment_urls || []).length < 5 && (
+        {editing && (app.attachment_urls || []).length < 5 && (
           // `hidden` on the input is `display: none`, which takes it OUT of the
           // tab order — and a <label> is not focusable — so adding an
           // attachment was unreachable by keyboard entirely (WCAG 2.1.1). It
@@ -188,7 +194,7 @@ export function PendingApplicationSection({
           // global 44px minimum applies to `button`, not `label`. `sr-only`
           // keeps the input focusable; `min-h-11` gives the row a real target.
           <label
-            className="flex items-center gap-2 min-h-11 text-ds-12 text-primary cursor-pointer hover:underline focus-within:underline"
+            className="inline-flex items-center gap-2 min-h-11 px-4 rounded-ds-md border border-border/60 bg-background/60 text-ds-14 text-primary cursor-pointer hover:bg-background focus-within:ring-2 focus-within:ring-primary/40"
             onClick={(e) => e.stopPropagation()}
           >
             <Paperclip className="w-3.5 h-3.5" />
@@ -206,10 +212,8 @@ export function PendingApplicationSection({
             />
           </label>
         )}
-        {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
-          <p className="text-muted-foreground text-ds-12">No attachments yet</p>
-        )}
       </section>
+      )}
     </div>
   );
 }

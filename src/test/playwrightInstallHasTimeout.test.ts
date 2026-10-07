@@ -21,7 +21,7 @@
  * the parsed YAML so a comment cannot satisfy or trip it.
  */
 // @mutate .github/workflows/vacuity.yml | them rather than let the check be "green because nothing ran".\n        run: bash scripts/ci/playwright-install.sh chromium webkit | them rather than let the check be "green because nothing ran".\n        run: npx playwright install --with-deps chromium webkit
-// @mutate .github/workflows/vacuity.yml | when a browser is missing.\n        run: bash scripts/ci/playwright-install.sh chromium webkit | when a browser is missing.\n        run: npx playwright install --with-deps chromium webkit
+// @mutate .github/workflows/vacuity.yml | when a browser is missing.\n        run: bash scripts/ci/playwright-install.sh chromium webkit\n | when a browser is missing.\n        run: npx playwright install --with-deps chromium webkit\n
 // @mutate .github/workflows/e2e-happy-path.yml | timeout-minutes: 30 | timeout-minutes: 15
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

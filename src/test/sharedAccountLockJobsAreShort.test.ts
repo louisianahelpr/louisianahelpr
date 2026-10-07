@@ -18,7 +18,7 @@
  * 120, journeys + journeys-webkit 90).
  */
 // @mutate .github/workflows/slow-network.yml |     timeout-minutes: 30\n    concurrency: |     timeout-minutes: 61\n    concurrency:
-// @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 180 |     timeout-minutes: 170
+// @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 55 # prod-audit leg 2 (Q889) |     timeout-minutes: 61 # prod-audit leg 2 (Q889)
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -31,13 +31,6 @@ export const MAX_LOCKED_MINUTES = 60;
 /** Locked jobs that cannot (yet) be split below the cap. Exact, two-way. */
 // @two-way src/test/sharedAccountLockJobsAreShort.test.ts:is in ALLOWED but no longer holds
 export const ALLOWED: Record<string, { minutes: number; reason: string }> = {
-  "prod-audit.yml:prod-audit": {
-    minutes: 180,
-    reason:
-      "e2e/prod-audit/messy-input.spec.ts alone measured 77.3 test-minutes (run 36298506930); the " +
-      "project is fullyParallel:false so --shard splits by file and cannot take one file below 60. " +
-      "docs/OPEN.md Q889: split messy-input into separate specs, then drop this entry.",
-  },
 };
 
 type Job = { "timeout-minutes"?: unknown; concurrency?: string | { group?: string } };

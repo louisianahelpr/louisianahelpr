@@ -15,7 +15,7 @@
  * YAML so comments cannot satisfy it.
  */
 // @mutate .github/workflows/vacuity.yml | ' "$KEY" >> .env | ' "$KEY" > /dev/null
-// @mutate .github/workflows/vacuity.yml | ' "$SERVICE_KEY" >> .env | ' "$SERVICE_KEY" > /dev/null
+// @mutate .github/workflows/vacuity.yml | ' "$SERVICE_KEY" >> .env\n | ' "$SERVICE_KEY" > /dev/null\n
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

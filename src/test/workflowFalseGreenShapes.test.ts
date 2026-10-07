@@ -503,7 +503,7 @@ describe("a weekly workflow is never described as nightly (Q52)", () => {
 // @mutate .github/workflows/nightly-red-age.yml | >> /tmp/raw.json\n            # No `\|\| echo '[]'` | >> /tmp/raw.json \|\| echo '[]' >> /tmp/raw.json\n            # No `\|\| echo '[]'`
 // @mutate .github/workflows/migration-lint.yml | HEAD -- 'supabase/migrations/*.sql')\n          fi | HEAD -- 'supabase/migrations/*.sql' \|\| true)\n          fi
 // @mutate .github/workflows/security-audit.yml | npm audit --omit=dev --audit-level=moderate | npm audit --omit=dev --audit-level=moderate \|\| true
-// @mutate .github/workflows/prod-audit.yml | see the log above. Not checked is not clean."; exit 2 ;; | see the log above. Not checked is not clean."; exit 0 ;;
+// @mutate .github/workflows/prod-audit.yml | see the log above. Not checked is not clean."; exit 2 ;;\n | see the log above. Not checked is not clean."; exit 0 ;;\n
 // @mutate .github/workflows/press-every-control.yml | needs.press-6.result == 'success' && needs.summary.result == 'success' | needs.press-6.result != 'cancelled' && needs.summary.result == 'success'
 // @mutate .github/workflows/db-drift-detect.yml | TYPES_FRESH: ${{ steps.types_fresh.outcome }} | TYPES_FRESH: ${{ steps.types_fresh.conclusion }}
 // @mutate .github/workflows/prod-errors.yml | set -euo pipefail\n          node scripts/ops-alert-ledger.mjs sync | node scripts/ops-alert-ledger.mjs sync

@@ -177,7 +177,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.have_e2e == 'true'
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -508,7 +508,7 @@ jobs:
     needs: [scope, vacuity-e2e]
     if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_2 != '0' && needs.scope.outputs.e2e_leg_2 != '' }}
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -567,7 +567,7 @@ jobs:
       - name: Install Playwright browsers
         # Same reason as the vacuity job's install: the harness preflight fails
         # when a browser is missing.
-        run: bash scripts/ci/playwright-install.sh chromium webkit
+        run: bash scripts/ci/playwright-install.sh chromium webkit # leg 2
 
       - name: Give the build the app's public Supabase config
         # The gate rebuilds the bundle itself for Playwright guards, so it does
@@ -603,7 +603,7 @@ jobs:
               | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
             echo "::add-mask::$SERVICE_KEY"
             umask 077
-            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env # leg 2
           elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
             echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
             exit 1
@@ -623,13 +623,13 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/ci/wait-commit-deploys.mjs
+        run: node scripts/ci/wait-commit-deploys.mjs # leg 2
 
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
           ONLY: ${{ inputs.only }}
-          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }} # leg 2
         # The same scope as the unit job, narrowed to the registrations under
         # e2e/ (--e2e). This job exists only when `scope` found one.
         run: |
@@ -672,7 +672,7 @@ jobs:
     needs: [scope, vacuity-e2e-2]
     if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_3 != '0' && needs.scope.outputs.e2e_leg_3 != '' }}
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -731,7 +731,7 @@ jobs:
       - name: Install Playwright browsers
         # Same reason as the vacuity job's install: the harness preflight fails
         # when a browser is missing.
-        run: bash scripts/ci/playwright-install.sh chromium webkit
+        run: bash scripts/ci/playwright-install.sh chromium webkit # leg 3
 
       - name: Give the build the app's public Supabase config
         # The gate rebuilds the bundle itself for Playwright guards, so it does
@@ -767,7 +767,7 @@ jobs:
               | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
             echo "::add-mask::$SERVICE_KEY"
             umask 077
-            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env # leg 3
           elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
             echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
             exit 1
@@ -787,13 +787,13 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/ci/wait-commit-deploys.mjs
+        run: node scripts/ci/wait-commit-deploys.mjs # leg 3
 
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
           ONLY: ${{ inputs.only }}
-          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }} # leg 3
         # The same scope as the unit job, narrowed to the registrations under
         # e2e/ (--e2e). This job exists only when `scope` found one.
         run: |
@@ -836,7 +836,7 @@ jobs:
     needs: [scope, vacuity-e2e-3]
     if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_4 != '0' && needs.scope.outputs.e2e_leg_4 != '' }}
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -895,7 +895,7 @@ jobs:
       - name: Install Playwright browsers
         # Same reason as the vacuity job's install: the harness preflight fails
         # when a browser is missing.
-        run: bash scripts/ci/playwright-install.sh chromium webkit
+        run: bash scripts/ci/playwright-install.sh chromium webkit # leg 4
 
       - name: Give the build the app's public Supabase config
         # The gate rebuilds the bundle itself for Playwright guards, so it does
@@ -931,7 +931,7 @@ jobs:
               | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
             echo "::add-mask::$SERVICE_KEY"
             umask 077
-            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env # leg 4
           elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
             echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
             exit 1
@@ -951,13 +951,13 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/ci/wait-commit-deploys.mjs
+        run: node scripts/ci/wait-commit-deploys.mjs # leg 4
 
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
           ONLY: ${{ inputs.only }}
-          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }} # leg 4
         # The same scope as the unit job, narrowed to the registrations under
         # e2e/ (--e2e). This job exists only when `scope` found one.
         run: |

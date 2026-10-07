@@ -456,7 +456,7 @@ const Login = () => {
             what read as wrong. Splitting the two sign-in METHODS uses the width
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
-        <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full max-w-md mx-auto"}>
+        <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
         {/* noValidate: `required` stays on both inputs for semantics, but the
             browser's own validation bubble would intercept the submit and
             replace our inline messages with a native tooltip — so the "name

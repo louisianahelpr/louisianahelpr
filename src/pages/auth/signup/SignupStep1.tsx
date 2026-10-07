@@ -151,7 +151,7 @@ export function SignupStep1({
           column. Same class strings as Login on purpose — the two auth screens
           are one set, so a value invented here would drift them apart. Stacks
           below lg exactly as before. */}
-      <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full max-w-md mx-auto"}>
+      <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
       {/* The credentials column keeps this step's own `space-y-5` rather than
           Login's form rhythm: the fields, the three consent rows and Continue
           are spaced as they already were — only the column around them is new. */}

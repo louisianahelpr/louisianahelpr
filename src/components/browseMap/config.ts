@@ -120,3 +120,11 @@ export const categoryLabels = JOB_CATEGORY_LABELS;
  */
 export const MAP_DOCK_CLEARANCE =
   "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)";
+
+/** Reads the app's resolved theme off `<html data-theme>` (set by
+ *  `useDarkMode`) so the map's own tiles match the surrounding UI.
+ *  (Moved here from BrowseMap.tsx, 2026-10-07, to pay for Q1464's lines.) */
+export function readIsDark(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}

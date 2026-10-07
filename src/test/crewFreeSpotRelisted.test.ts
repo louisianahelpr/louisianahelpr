@@ -148,7 +148,9 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     // The pin's popup card (the map RPC has no count) gets it from its own read.
     const map = blankComments(readFileSync(resolve(ROOT, "src/components/BrowseMap.tsx"), "utf8"));
     expect(map).toMatch(/job=\{mapJobToEnrichedJob\(selectedJob, selectedCrewSpots\)\}/);
-    expect(map).toMatch(/fetchCrewSpotsOpen\(\[selectedCrewId\]\)/);
+    expect(map).toMatch(/useSelectedCrewSpots\(selectedJob\?\.is_group_job \? selectedJob\.id : null\)/);
+    const hook = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/useSelectedCrewSpots.ts"), "utf8"));
+    expect(hook).toMatch(/fetchCrewSpotsOpen\(\[selectedCrewId\]\)/);
     const adapter = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/mapJobToEnrichedJob.ts"), "utf8"));
     expect(adapter).toMatch(/crew_spots_open: crewSpotsOpen \?\? null/);
   });

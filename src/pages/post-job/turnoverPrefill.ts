@@ -78,7 +78,7 @@ export async function fetchTurnoverPrefill(eventId: string): Promise<TurnoverPre
  * and Post a Job then shows the job is already posted once it is linked.
  */
 export async function linkTurnoverJob(eventId: string, jobId: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("link_str_turnover_job" as never, { p_event_id: eventId, p_job_id: jobId } as never);
+  const { data, error } = await supabase.rpc("link_str_turnover_job", { p_event_id: eventId, p_job_id: jobId });
   if (error) throw error;
   return data === true;
 }

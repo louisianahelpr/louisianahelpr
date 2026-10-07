@@ -6,6 +6,20 @@ import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { hapticLight } from "@/lib/haptics";
 
+/** The fields of a MapKit reverse-geocode place this pill reads (Q806: no `any`). */
+interface MapKitPlaceLike {
+  subThoroughfare?: string;
+  thoroughfare?: string;
+  locality?: string;
+  administrativeArea?: string;
+  administrativeAreaCode?: string;
+  postCode?: string;
+  postalCode?: string;
+}
+interface MapKitGeocoderLike {
+  reverseLookup: (coord: unknown, cb: (err: unknown, data: { results?: MapKitPlaceLike[] } | null) => void) => void;
+}
+
 /** Reverse-geocode result: every field may be blank if undecodable. */
 interface ResolvedAddress {
   street: string;
@@ -110,13 +124,13 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
 
       try {
         // mapkit.Geocoder isn't in our minimal type — call defensively.
-        const GeocoderCtor = (mk as unknown as { Geocoder?: new () => any }).Geocoder;
+        const GeocoderCtor = (mk as unknown as { Geocoder?: new () => MapKitGeocoderLike }).Geocoder;
         if (!GeocoderCtor) return done(null);
         const geocoder = new GeocoderCtor();
         const coord = new mk.Coordinate(lat, lng);
-        geocoder.reverseLookup(coord, (err: any, data: any) => {
+        geocoder.reverseLookup(coord, (err, data) => {
           if (err || !data?.results?.length) return done(null);
-          const place: any = data.results[0];
+          const place = data.results[0];
           const sub = place.subThoroughfare ?? "";
           const thor = place.thoroughfare ?? "";
           const street = [sub, thor].filter(Boolean).join(" ").trim();
@@ -163,7 +177,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
         signal: AbortSignal.timeout(NOMINATIM_TIMEOUT_MS),
       });
       if (!res.ok) return null;
-      const body: any = await res.json();
+      const body = (await res.json()) as { address?: Record<string, string | undefined> } | null;
       const a = body?.address ?? {};
       const houseNumber = a.house_number ?? "";
       const road = a.road ?? a.pedestrian ?? "";

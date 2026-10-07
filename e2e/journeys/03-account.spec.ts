@@ -40,7 +40,7 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * does not change. Only the reload-and-re-read in "a notification toggle
  * persists" can see it.
  */
-// @mutate src/components/NotificationPreferences.tsx | .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });\n\n    setSavingKey(null); | .upsert({ user_id: userId, ...writable(prefs) } as any, { onConflict: "user_id" });\n\n    setSavingKey(null);
+// @mutate src/components/NotificationPreferences.tsx | .upsert({ user_id: userId, ...writable(updated) }, { onConflict: "user_id" });\n\n    setSavingKey(null); | .upsert({ user_id: userId, ...writable(prefs) }, { onConflict: "user_id" });\n\n    setSavingKey(null);
 
 const rotation = rotationFor(2);
 const RUN = Date.now().toString(36).slice(-6);

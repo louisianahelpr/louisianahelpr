@@ -81,7 +81,6 @@ const ACCEPTED = new Map<string, number>([
   ["src/pages/profile/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
   ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1 — <ChevronDown>, aria-hidden scroll hint that fades out by 160px
   ["src/pages/profile/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
-  ["src/components/PushNotificationPrompt.tsx --bark/0.85", 1], //        3.97:1 — <Bell className="w-3.5 h-3.5"> beside its own label
   ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
   // Found 2026-09-27 when the scanner learned Tailwind slash opacity (Q765).
   // The text declarations on that list were fixed; these are the glyphs.

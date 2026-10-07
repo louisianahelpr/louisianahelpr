@@ -177,7 +177,6 @@ describe("a cached count for one account never paints on another (owner 2026-10-
  *  Keyed "<file>::<key expression>". Exact both ways. */
 const DEVICE_LEVEL: Record<string, string> = {
   "src/lib/chunkReload.ts::RELOAD_COUNT": "sessionStorage reload-attempt counter for a stale chunk; per tab, not per account",
-  "src/hooks/useNotificationPermissionPrompt.ts::SESSION_COUNT_KEY": "app-session count that times the OS push-permission prompt, which is itself per device",
   "src/lib/celebrate.ts::key": "how many times this device fired a celebration confetti; never displayed",
   "src/pages/post-job/firstPostConfetti.ts::key": "how many times this device fired first-post confetti; never displayed (per-device by stated design)",
 };

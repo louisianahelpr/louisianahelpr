@@ -16,6 +16,40 @@ import { chromium, type Page } from "../prodTest";
  * it answers a request itself (`route.fulfill`), and that answer is never a
  * Supabase one (src/test/e2eNoSupabaseMocks.test.ts reads per file).
  */
+/**
+ * Q1255: pay the Checkout open in `page` IN PLACE (chromium journeys), but
+ * answer the navigation back off Stripe here, the same way payInChromium does,
+ * so the return to create-payment's APP_URL (the deployed site) is never
+ * loaded from Vercel. Returns the path + query Stripe sent the payer back to;
+ * the caller opens it on this run's local build.
+ */
+export async function payInPageAnsweringReturn(page: Page, pay: (page: Page) => Promise<void>): Promise<string> {
+  if (!/\/cs_test_[A-Za-z0-9]+/.test(page.url())) {
+    throw new Error(`refusing to pay ${page.url().slice(0, 80)}: not a cs_test_ session`);
+  }
+  let returned = "";
+  const handler = async (route: Parameters<Parameters<Page["route"]>[1]>[0]) => {
+    const req = route.request();
+    const host = new URL(req.url()).host;
+    const stripe = /(^|\.)(stripe\.com|stripe\.network|stripecdn\.com|hcaptcha\.com)$/.test(host);
+    if (req.isNavigationRequest() && !req.frame().parentFrame() && !stripe) {
+      const u = new URL(req.url());
+      returned = `${u.pathname}${u.search}`;
+      await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>returned</title>" });
+      return;
+    }
+    await route.continue().catch(() => undefined);
+  };
+  await page.route("**/*", handler);
+  try {
+    await pay(page);
+    if (!returned) throw new Error(`Stripe Checkout was paid but never navigated back (last url ${page.url().slice(0, 120)})`);
+    return returned;
+  } finally {
+    await page.unroute("**/*", handler).catch(() => undefined);
+  }
+}
+
 export async function payInChromium(checkoutUrl: string, pay: (page: Page) => Promise<void>): Promise<string> {
   if (!/\/cs_test_[A-Za-z0-9]+/.test(checkoutUrl)) {
     throw new Error(`refusing to pay ${checkoutUrl.slice(0, 80)}: not a cs_test_ session`);

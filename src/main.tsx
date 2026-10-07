@@ -19,7 +19,7 @@ import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
 import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
-import { purgeApiCache } from "./lib/apiCachePurge";
+import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePurge";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -177,6 +177,8 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
   window.addEventListener("load", () => {
     // Q1174: drop the `api-cache` an older worker filled with signed-in rows.
     void purgeApiCache();
+    // Q1264 (1): and again whenever a new worker takes control of the page.
+    purgeApiCacheOnControllerChange();
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .catch(() => {

@@ -129,15 +129,18 @@ export async function settleRecurringVisitCheckout(
     // first they hear of it. Told right after the refund and BEFORE the row
     // write below (lh-money-escrow review: a write that threw after the
     // refund, retried by Stripe more than a day later, answers "already
-    // refunded" and would never tell them). A retried delivery whose refund
-    // is already done is not told again; a notice that could not be written
-    // is named in the ops alert below.
+    // refunded" and would never tell them). Whether to tell them is decided
+    // by the NOTICE, not by the refund (second lh-money-escrow review of
+    // Q1248): a first delivery can refund and die before the notice, and its
+    // retry sees a replayed refund. The notice carries this payment's id in
+    // its link; one that already exists is not written again.
     // The person who paid is the session's payer. The row's series and date
     // are named only when that is also the row's payer (a mismatch never
     // shows one account another's visit).
     const payerId = meta?.payer_id || (row?.payer_id as string | undefined) || null;
     const rowIsPayers = Boolean(row) && row!.payer_id === payerId;
-    const told = alreadyRefunded ? true : await tellPayerRefunded(supabase, {
+    const { told, alreadyTold } = await tellPayerRefunded(supabase, {
+      pi,
       payerId,
       parentJobId: rowIsPayers ? String(row!.parent_job_id) : null,
       visitDate: rowIsPayers ? String(row!.visit_date) : null,
@@ -163,8 +166,10 @@ export async function settleRecurringVisitCheckout(
         .select("id");
       if (expErr) throw new Error(`recurring_visit_payments expire failed for ${rowId}: ${expErr.message}`);
     }
-    if (alreadyRefunded) {
-      logStep("Recurring visit payment was already refunded (retried delivery)", { rowId, pi, refundReason });
+    // A retried delivery whose earlier run already told the payer posted its
+    // ops warning right after: nothing new to say.
+    if (alreadyRefunded && alreadyTold) {
+      logStep("Recurring visit payment was already refunded and the payer told (retried delivery)", { rowId, pi, refundReason });
       return;
     }
     await postSlackOpsAlert({
@@ -175,6 +180,7 @@ export async function settleRecurringVisitCheckout(
         told ? "" : " The payer could NOT be told in the app: tell them by hand."
       }`,
       fields: { session_id: session.id, payment_intent: pi, row: rowId, payer_told: told ? "yes" : "no" },
+      oncePerDayKey: `recurring-visit-refunded:${pi}`,
     });
     return;
   }
@@ -185,15 +191,21 @@ export async function settleRecurringVisitCheckout(
 
 /**
  * Q1247 (a): the payer's notice for a recurring-visit payment refunded in
- * full. true when it was written, or when the seed boundary dropped it by
- * design (a seed series, a real recipient); false when it could not be.
+ * full, once per PaymentIntent (its id rides in the link, which /posts
+ * ignores). `told`: written now, already there, or dropped by the seed
+ * boundary by design (a seed series, a real recipient). `alreadyTold`: an
+ * earlier delivery wrote it. An unreadable check is treated as not told
+ * (a second notice at worst, never none).
  */
 async function tellPayerRefunded(
   supabase: WebhookContext["supabase"],
-  v: { payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; duplicate: boolean },
-): Promise<boolean> {
-  if (!v.payerId) return false;
-  const link = "/posts";
+  v: { pi: string; payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; duplicate: boolean },
+): Promise<{ told: boolean; alreadyTold: boolean }> {
+  if (!v.payerId) return { told: false, alreadyTold: false };
+  const link = `/posts?visit_refund=${encodeURIComponent(v.pi)}`;
+  const { data: prior, error: priorErr } = await supabase
+    .from("notifications").select("id").eq("user_id", v.payerId).eq("link", link).limit(1);
+  if (!priorErr && (prior ?? []).length > 0) return { told: true, alreadyTold: true };
   const amount = typeof v.amountCents === "number" ? ` $${(v.amountCents / 100).toFixed(2)}` : "";
   const visit = `The visit${v.visitDate ? ` on ${v.visitDate}` : ""}`;
   const { data, error } = await supabase.from("notifications").insert({
@@ -206,11 +218,12 @@ async function tellPayerRefunded(
     type: "job_updates",
     link,
   }).select("id");
-  if (!error && data && data.length > 0) return true;
+  if (!error && data && data.length > 0) return { told: true, alreadyTold: false };
   if (!error && data && data.length === 0) {
-    return (await seedBoundaryDropsRow(supabase, { user_id: v.payerId, job_id: v.parentJobId, link })) === true;
+    const dropped = (await seedBoundaryDropsRow(supabase, { user_id: v.payerId, job_id: v.parentJobId, link })) === true;
+    return { told: dropped, alreadyTold: false };
   }
-  return false;
+  return { told: false, alreadyTold: false };
 }
 
 /**
@@ -224,9 +237,25 @@ async function tellPayerRefunded(
  * failed refund and is rethrown.
  */
 async function refundInFullOnce(stripe: WebhookContext["stripe"], pi: string): Promise<{ alreadyRefunded: boolean }> {
+  // Q1248: within the key's 24 hours Stripe REPLAYS the first refund as a
+  // success, so a redelivered event (say after the row write threw) looked
+  // like a new refund: the payer was told twice and ops warned twice. The
+  // intent's refunds are listed first; a "created" refund that was already
+  // on that list is the replay, and counts as already done. Unreadable, the
+  // list proves nothing and the refund is treated as new (a second notice at
+  // worst, never a missed refund).
+  let before: string[] | null = null;
   try {
-    await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
-    return { alreadyRefunded: false };
+    const listed = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
+    before = ((listed?.data ?? []) as Stripe.Refund[]).map((r) => r.id);
+  } catch {
+    // Unreadable: the refund below is treated as new (see above).
+    before = null;
+  }
+  try {
+    const created = await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
+    const replayed = Boolean(created?.id) && (before ?? []).includes(created.id);
+    return { alreadyRefunded: replayed };
   } catch (e) {
     const err = e as { type?: string; code?: string } | null;
     const maybeDone = err?.code === "charge_already_refunded" ||

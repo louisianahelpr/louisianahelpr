@@ -14,6 +14,19 @@
  */
 const LEGACY_API_CACHE_NAME = "api-cache";
 
+/**
+ * Q1264 (1): an OLD worker still controlling the page after the purge can
+ * write `api-cache` again (skipWaiting/clientsClaim hand control over
+ * asynchronously), so the cache is purged once more each time a new worker
+ * takes control. Returns the unsubscribe. No-op without service workers.
+ */
+export function purgeApiCacheOnControllerChange(): () => void {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator) || !navigator.serviceWorker) return () => {};
+  const onChange = () => { void purgeApiCache(); };
+  navigator.serviceWorker.addEventListener("controllerchange", onChange);
+  return () => navigator.serviceWorker.removeEventListener("controllerchange", onChange);
+}
+
 export async function purgeApiCache(): Promise<void> {
   try {
     if (typeof caches === "undefined") return;

@@ -68,6 +68,7 @@ import {
   type StalledEvidence,
 } from "../_shared/stalledCompletion.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 
@@ -177,12 +178,7 @@ serve(async (req) => {
     // work over?" comparison needs start_time + estimated_hours resolved in
     // America/Chicago, which PostgREST cannot express, so it happens below
     // against the same `stalledCompletionStage` the app's card reads.
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Chicago",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
+    const today = louisianaToday(now);
 
     const scan = await scanAll<StalledJob>("in_progress with no completion stamp", (countOpt) =>
       supabase

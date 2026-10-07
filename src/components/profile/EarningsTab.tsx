@@ -31,6 +31,7 @@ import {
   completedWithin,
   isAwaitingTransfer,
   firstPayoutFeeDueFrom,
+  earnedDollarsWithLedger,
   isEarnedJob,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -152,7 +153,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   // Take-home per job: helperEarnings.ts (a group helper sees only their share,
   // #114). The one-time fee comes off a total only while a payout is still to come (Q753).
-  const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(completedJobs, firstPayoutFee));
+  const totalEarnings = earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger); // Q1272 (8): paid jobs count what landed
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
@@ -218,7 +219,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     rangeSince === null
       ? tips
       : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
-  const rangeEarnings = sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(rangeJobs, firstPayoutFee));
+  const rangeEarnings = earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger);
   // Tips land in full: the poster pays the card fee on top (ME-006).
   const rangeTips = sumHelperTipDollars(rangeTipRows);
 

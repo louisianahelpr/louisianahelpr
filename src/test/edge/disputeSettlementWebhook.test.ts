@@ -761,6 +761,20 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
     expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_10", "re_11"]);
   });
 
+  // Q1261 (7): Stripe's list says has_more past 100 refunds; every page is read.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |           if (!list?.has_more \|\| rows.length === 0) return all; |           return all;
+  it("Q1261 (7): a refunds list with more pages is read to its end (starting_after)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1261_pages", 600);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list
+      .mockResolvedValueOnce({ data: [{ id: "re_p1", amount: 300, status: "succeeded", metadata: {} }], has_more: true })
+      .mockResolvedValueOnce({ data: [{ id: "re_p2", amount: 300, status: "succeeded", metadata: {} }], has_more: false });
+    expect((await post(fn)).status).toBe(200);
+    expect(stripeMock.refunds.list).toHaveBeenLastCalledWith(expect.objectContaining({ charge: "ch_evt_q1261_pages", starting_after: "re_p1" }));
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_p1", "re_p2"]);
+  });
+
   it("a failed refunds list throws BEFORE any write, so Stripe redelivers (never a silent skip)", async () => {
     const fn = await loadConfigured();
     minimalChargeEvent("evt_q1193_down", 5000);

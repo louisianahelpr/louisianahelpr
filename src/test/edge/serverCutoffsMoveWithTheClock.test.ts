@@ -20,7 +20,7 @@
  * The SQL sweep_* functions are PGlite territory; this file covers the two
  * edge cutoffs the item names.
  */
-// @mutate supabase/functions/auto-expire-jobs/index.ts |     const today = new Intl.DateTimeFormat("en-CA", { |     const today = new Date().toISOString().slice(0, 10); const _unusedToday = new Intl.DateTimeFormat("en-CA", {
+// @mutate supabase/functions/auto-expire-jobs/index.ts |     const today = louisianaToday(); |     const today = new Date().toISOString().slice(0, 10);
 // @mutate supabase/functions/expiring-jobs-push/index.ts |     const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000); |     const in24h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";

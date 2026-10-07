@@ -28,7 +28,8 @@ import { isIdentityVerified } from "@/lib/awardGate";
 import HelprMark from "@/components/HelprMark";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { earnedDollarsWithLedger } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import {
   buildWorkRecordPdf,
   buildWorkRecordSummaryLines,
@@ -118,8 +119,9 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
   const { user } = useAuthReady();
   const userId = user?.id;
 
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["work-record", userId],
+    queryKey: ["work-record", userId, firstPayoutFee],
     enabled: !!userId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
@@ -179,14 +181,11 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       const reviewCount = rating?.count ?? 0;
       const avgRating = rating && rating.count > 0 ? Math.round(rating.avg * 10) / 10 : null;
 
-      // Total earnings, resolved PER JOB by the shared helper: the fee stamped
-      // at payout wins, then the % frozen on the row, then (legacy rows only)
-      // the tier rate — plus the net urgent bonus the helper was actually
-      // paid, and a group job's budget divided across its roster. This is an
-      // official employment/earnings document, so it must report what each job
-      // really paid, not today's tier applied backwards or a group job's full
-      // budget when only 1/N of it was transferred.
-      const totalEarnings = sumHelperTakeHomeDollars(completedJobs, feeFallbackPercent);
+      // Total earnings: what each job really paid (an official document). A job already paid out counts its
+      // transfer (payout_transfers; Q1273: the one that bore the setup fee reads it lower); the rest resolve per
+      // job (stamped fee, frozen %, tier rate; net urgent bonus; a group job's 1/N) and lose the fee once while owed.
+      const ledger = unwrap(await supabase.from("payout_transfers").select("job_id, amount_cents, status, metadata").eq("helper_id", userId)) as Array<{ job_id: string; amount_cents: number; status: "pending" | "paid" | "failed" | "reversed"; metadata: unknown }>;
+      const totalEarnings = earnedDollarsWithLedger(completedJobs, feeFallbackPercent, firstPayoutFee, ledger);
 
       // Top categories by frequency
       const catCounts = new Map<string, number>();

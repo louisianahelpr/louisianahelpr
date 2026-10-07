@@ -21,7 +21,7 @@
  *   wallet           = $245.00 available · $80.00 pending
  *   bank payout      = $120.00
  */
-// @mutate src/components/profile/EarningsTab.tsx | sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(rangeJobs, firstPayoutFee)) | sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct)
+// @mutate src/components/profile/EarningsTab.tsx | earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger) | earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, 0, payoutLedger)
 // @mutate src/components/profile/EarningsTab.tsx | const rangeTips = sumHelperTipDollars(rangeTipRows); | const rangeTips = 0;
 // @mutate src/components/profile/EarningsTab.tsx | const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending); | const pageReady = useArrivalGate(!loading && !stripeLoading, streakState.settled && !ledgerPending);
 // @mutate src/components/profile/EarningsTab.tsx | ) : stripeBones ? <EarningsWalletBones /> : null} | ) : null}

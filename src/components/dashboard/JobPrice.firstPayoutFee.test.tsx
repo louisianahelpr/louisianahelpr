@@ -10,7 +10,9 @@ import { CompactJobCard } from "./CompactJobCard";
  * sit at the data boundary (the viewer's profile row and the platform's fee
  * setting), so the real "is a fee due" predicate runs.
  */
-// @mutate src/components/dashboard/JobPrice.tsx | const firstPayoutFee = useFirstPayoutFeeDollars(); | const firstPayoutFee = 0;
+// @mutate src/components/dashboard/JobPrice.tsx | const owedFee = useFirstPayoutFeeDollars(); | const owedFee = 0;
+// @mutate src/components/dashboard/JobPrice.tsx | const firstPayoutFee = jobStatus === "disputed" ? 0 : owedFee; | const firstPayoutFee = owedFee;
+// @mutate src/components/dashboard/JobPrice.tsx | {!showBudget && firstPayoutFee > 0 && ( | {false && (
 // @mutate src/components/dashboard/CompactJobCard.tsx | const firstPayoutFee = useFirstPayoutFeeDollars(); | const firstPayoutFee = 0;
 
 const profileMock = vi.fn<() => { onboarding_fee_paid: boolean | null } | null>();
@@ -41,6 +43,20 @@ describe("first-payout fee on the price surfaces (Q753)", () => {
     render(<JobPrice budget={100} effectiveFee={10} variant={variant} />);
     expect(screen.getByText(/88/)).toBeInTheDocument();
     expect(screen.queryByText(/90/)).not.toBeInTheDocument();
+  });
+
+  it("Q1272 (2): the chip tells a screen reader why the figure is lower", () => {
+    profileMock.mockReturnValue({ onboarding_fee_paid: false });
+    feeCentsMock.mockReturnValue(200);
+    const { container } = render(<JobPrice budget={100} effectiveFee={10} />);
+    expect(container.querySelector(".sr-only")?.textContent).toMatch(/one-time \$2 setup fee taken from your first payout/);
+  });
+
+  it("Q1272 (3): a disputed job never shows the setup fee taken (the split never takes it)", () => {
+    profileMock.mockReturnValue({ onboarding_fee_paid: false });
+    feeCentsMock.mockReturnValue(200);
+    render(<JobPrice budget={100} effectiveFee={10} jobStatus="disputed" />);
+    expect(screen.getByText(/90/)).toBeInTheDocument();
   });
 
   it("JobPrice is unchanged once the fee is paid", () => {

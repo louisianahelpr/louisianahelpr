@@ -16,7 +16,7 @@
  * object; anything else is a swallow. Swallows per function must equal
  * KNOWN_SWALLOWS exactly (two-way: fixing one lowers its count here).
  *
- * @mutate supabase/migrations/20260926040817_money_sweeps_found_vs_done.sql | PERFORM public.log_cron_defect(\n        CASE WHEN rec.seed | PERFORM public.log_cron_defect_x(\n        CASE WHEN rec.seed
+ * @mutate supabase/migrations/20261007043834_error_log_readers_ignore_client_rows.sql | PERFORM public.log_cron_defect(\n        CASE WHEN rec.seed | PERFORM public.log_cron_defect_x(\n        CASE WHEN rec.seed
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

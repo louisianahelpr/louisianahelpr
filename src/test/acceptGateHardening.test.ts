@@ -34,10 +34,7 @@
  * the definition the database now runs.
  */
 // Q1187, the gate.
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql | IF TG_OP = 'UPDATE' AND current_setting('app.accept_rpc', true) IS DISTINCT FROM '1' THEN | IF false THEN
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql | AND NEW.helper_id IS NOT NULL AND NEW.helper_id = auth.uid() | AND NEW.helper_id IS NOT NULL
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql | v_takes_open_job := OLD.helper_id IS NULL AND OLD.status::text = 'open' | v_takes_open_job := OLD.status::text = 'open'
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql | IF v_takes_open_job IS NOT TRUE THEN | IF v_takes_open_job IS FALSE THEN
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | IF TG_OP = 'UPDATE' AND current_setting('app.accept_rpc', true) IS DISTINCT FROM '1' THEN | IF false THEN
 // Q1187, the one writer of an accept.
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |   PERFORM set_config('app.accept_rpc', '1', true);\n  UPDATE public.jobs |   UPDATE public.jobs
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |   PERFORM set_config('app.accept_rpc', '0', true);\n  IF NOT v_done THEN |   IF NOT v_done THEN
@@ -52,9 +49,9 @@
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | (coalesce(j.is_seed, false) OR coalesce(hp.is_seed, false)) AS seed | coalesce(j.is_seed, false) AS seed
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | OR coalesce(p_tags ->> 'source', p_tags ->> 'area', '') LIKE '%-seed' | OR false
 // Re-registered from acceptCompletesAfterStripeSetup.test.ts (its lines target 20261003193541, superseded here).
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501';\n  END IF;\n\n  v_awarding := |     RAISE NOTICE 'accept_required';\n  END IF;\n\n  v_awarding :=
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501';\n  END IF;\n\n  v_awarding := |     RAISE NOTICE 'accept_required';\n  END IF;\n\n  v_awarding :=
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |       v_name \|\| ' accepted your offer', |       'Offer update',
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       IF NOT v_no_strike THEN |       IF true THEN
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |      AND public.job_payment_is_funded(payment_status::text)\n  RETURNING |      AND true\n  RETURNING
@@ -111,10 +108,10 @@ describe("Q1187: the accept of an offer is written only by the accept RPC", () =
     expect(gate.indexOf("is_server_context()")).toBeLessThan(check);
     expect(gate.indexOf("IF NOT v_awarding THEN")).toBeLessThan(check);
     expect(check).toBeLessThan(gate.indexOf("v_reason := public.helper_accept_block_reason(NEW.helper_id);"));
-    // the one exemption is exactly the caller taking an open job with nobody on it, accepted in the same write
-    expect(gate).toMatch(
-      /v_takes_open_job := OLD\.helper_id IS NULL AND OLD\.status::text = 'open'\s+AND NEW\.helper_id IS NOT NULL AND NEW\.helper_id = auth\.uid\(\)\s+AND NEW\.status::text = 'accepted';\s+IF v_takes_open_job IS NOT TRUE THEN\s+RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501',/,
-    );
+    // Q1214 (2): no exemption any more (the series pickup sets the flag itself,
+    // src/test/seriesClaimIsAnAccept.test.ts): refused outright.
+    expect(gate.slice(check)).toMatch(/^IF TG_OP = 'UPDATE' AND current_setting\('app\.accept_rpc', true\) IS DISTINCT FROM '1' THEN\s+RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501',/);
+    expect(gate).not.toMatch(/v_takes_open_job/);
   });
 
   it("the gate's Q1180 rules still stand (nothing starts on an unaccepted offer; a re-pointed confirmation is an accept)", () => {

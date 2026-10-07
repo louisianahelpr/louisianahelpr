@@ -11,9 +11,9 @@
  * of 2026-10-03). This guard pins the pieces that make it true as the tree
  * moves on, with one registered mutation per rule.
  */
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501'; |     RAISE NOTICE 'accept_required';
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501'; |     RAISE NOTICE 'accept_required';
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
+// @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     v_name \|\| ' accepted your offer', |     'Offer update',

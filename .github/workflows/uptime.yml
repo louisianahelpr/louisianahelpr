@@ -32,8 +32,13 @@ name: Uptime
 #             before launch). NOT an outage, and NOT up either: it records its
 #             own WARNING ledger item on every such run, which stays open until
 #             a run finds rows. The launch checklist in docs/OPEN.md flips
-#             EMPTY_IS_WARNING_BEFORE_LAUNCH in scripts/uptime-check.mjs so empty
-#             is down again.
+#             EMPTY_IS_WARNING_BEFORE_LAUNCH in scripts/lib/uptimeProbe.mjs so
+#             empty is down again (here and in the Vercel heartbeat).
+#
+# NOT THE ONLY WATCHER (Q936, owner 2026-10-07): GitHub throttles this cron to
+# runs hours apart, so a Vercel Cron also runs the same check every 10 minutes
+# (vercel.json `crons` -> api/uptime-heartbeat.ts, scripts/lib/uptimeProbe.mjs)
+# and posts a critical #ops-alerts alert through slack-ops-alert on DOWN.
 #
 # TWO CONSECUTIVE FAILURES, not one — the script probes up to three rounds 30s
 # apart and reports down only when two consecutive rounds fail, so one dropped

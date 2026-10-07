@@ -179,12 +179,22 @@ const makeApp = (job: Job) =>
 // /posts — the poster's gate reason
 // ===========================================================================
 describe("Posts card: the gate reason renders BELOW the action row", () => {
-  it("the owner's own string is in the note host, and the host follows the row", () => {
-    // Nothing has happened yet: the Helpr is neither on the way nor arrived, so
-    // "Confirm They Arrived" is disabled and owes the exact sentence the owner
-    // quoted.
-    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: null, helper_arrived_at: null }))} />);
-    const line = screen.getByText(/You'll be able to confirm this once your Helpr is at the job\./);
+  /* Q1400 (owner, 2026-10-07): the poster's card no longer draws a disabled
+     "Confirm They Arrived" with "You'll be able to confirm this once your
+     Helpr is at the job." under it, so no real poster state produces that
+     gate line any more. The HOST rule (below the row, centred) is driven at
+     the poster shell instead, and the step itself is checked to draw neither
+     the box nor the line. */
+  it("a note on the poster shell lands in the host, and the host follows the row", () => {
+    render(
+      <JobStepCard
+        side="poster"
+        step="in_progress"
+        notice={<JobStepRowSlot slot="note"><p>A gate reason.</p></JobStepRowSlot>}
+        actions={[<button key="a" type="button">Message</button>]}
+      />,
+    );
+    const line = screen.getByText(/A gate reason\./);
     expect(noteHost().contains(line), "the reason must land in the row's note host").toBe(true);
     expect(
       before(row(), noteHost()),
@@ -194,13 +204,31 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
   });
 
   it("it is CENTRED, and centred by the host rather than by the caller", () => {
-    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: null, helper_arrived_at: null }))} />);
+    render(
+      <JobStepCard
+        side="poster"
+        step="in_progress"
+        notice={<JobStepRowSlot slot="note"><p>A gate reason.</p></JobStepRowSlot>}
+        actions={[<button key="a" type="button">Message</button>]}
+      />,
+    );
     expect(
       noteHost().className,
       "owner, 2026-09-19: 'center under buttons'. The class belongs on the HOST so " +
         "all four note producers share one alignment — a per-caller class is four " +
         "chances to drift.",
     ).toContain("text-center");
+  });
+
+  it("Q1400: a Helpr not yet arrived draws no arrival box and no waiting line", () => {
+    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(1), helper_arrived_at: null }))} />);
+    expect(screen.queryByRole("button", { name: /Confirm They Arrived/ })).toBeNull();
+    expect(screen.queryByText(/confirm this/i)).toBeNull();
+  });
+
+  it("Q1400 can fail: once the Helpr has arrived the box is drawn", () => {
+    wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(2), helper_arrived_at: ago(1) }))} />);
+    expect(screen.getByRole("button", { name: /Confirm They Arrived/ })).toBeEnabled();
   });
 
   it("the consequence line ('Approve to release payment…') is also below the row", () => {

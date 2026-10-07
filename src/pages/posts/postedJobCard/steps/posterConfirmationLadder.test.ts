@@ -113,9 +113,14 @@ describe("the poster's confirmation ladder is never blank while the job is live"
     // there is no box at all. That carve-out has its own inventory guard
     // (src/test/offerCardHierarchy.test.tsx); here it is excluded by name.
     const offer = (j: Job) => stepOf(j) === "scheduled" && !j.helper_confirmed_at;
+    // AND ACCEPTED-BUT-NOT-ARRIVED (owner decision Q1400, 2026-10-07): from
+    // accept until the Helpr marks themselves arrived there is nothing to
+    // confirm, so no box. Pinned by the Q1400 describe below.
+    const notArrivedYet = (j: Job) => !j.poster_confirmed_arrival_at && !j.helper_arrived_at && !(stepOf(j) === "in_progress" && near(j));
     const blank = matrix()
       .filter((j) => !j.helper_completed_at)
       .filter((j) => !offer(j))
+      .filter((j) => !notArrivedYet(j))
       .filter((j) => posterConfirmationRung(j, stepOf(j)) === null);
     // THE OWNER'S BUG, as a set: every one of these used to render an empty
     // primary slot on a card that was asking the poster for something.
@@ -204,56 +209,59 @@ describe("item 6b — a revision job keeps its confirmations", () => {
   });
 });
 
-describe("item 6c — the box is drawn before the Helpr arrives, and says the truth", () => {
-  /* THIS DESCRIBE WAS "the bad-GPS deadlock is surfaced, not resolved".
-   *
-   * Between 20260915044137 and 20260919155016, `mark_helper_arrival` REFUSED a
-   * far or fix-less arrival and wrote nothing, so `helper_arrived_at` stayed
-   * null — while the Helpr's own blocked CTA named the poster's "Confirm They
-   * Arrived" tap as the way out. This state was a real deadlock, and the box's
-   * job was to SAY so ("waiting on your Helpr's location check", amber).
-   *
-   * OWNER, 2026-09-19, ended it: the RPC now records the check-in on every
-   * call, so `helper_arrived_at` always lands. The only way to be in this state
-   * now is the ordinary one — the Helpr is on their way and has not tapped
-   * "I've Arrived" yet. So the box is still drawn and still disabled, but its
-   * reason is a WAIT, not a gate: nothing is stuck, and telling a poster their
-   * Helpr's phone has failed a check would be a worry the app invented.
+describe("Q1400 — no arrival box from accept until the Helpr marks themselves arrived", () => {
+  /* OWNER DECISION 2026-10-07 (Q1400), extending the 2026-10-05 offer rule
+   * ("no disabled primary-looking button"). This describe used to be "item 6c
+   * — the box is drawn before the Helpr arrives, and says the truth": a
+   * DISABLED "Confirm Arrival" with a waiting line under it, from accept until
+   * arrival. The owner ruled that box out: until the Helpr says they are there
+   * there is nothing to confirm, so the card draws no box at all. The status
+   * line still says where the Helpr is, and No-Show stays on the row.
    */
-  const stuck = job({
+  const accepted = job({ status: "accepted", helper_confirmed_at: T(48) });
+  const onTheWay = job({ status: "accepted", helper_confirmed_at: T(48), helper_on_the_way_at: T(1) });
+  const startedNotArrived = job({
     status: "in_progress",
     helper_confirmed_at: T(48),
     helper_on_the_way_at: T(1),
     helper_arrived_at: null,
   });
 
-  it("renders the box, disabled, instead of nothing at all", () => {
-    const rung = posterConfirmationRung(stuck, "in_progress");
-    expect(rung).toMatchObject({ action: "arrival", enabled: false, label: "Confirm They Arrived" });
+  it("an accepted job whose Helpr has not set out draws no box", () => {
+    expect(posterConfirmationRung(accepted, "scheduled")).toBeNull();
   });
 
-  it("says what is actually happening — on the way — and does not invent a failure", () => {
-    const rung = posterConfirmationRung(stuck, "in_progress")!;
-    expect(rung.reason).toMatch(/on the way/i);
-    expect(rung.reason, "no location check is pending any more").not.toMatch(/location check/i);
-    expect(rung.gate, "an ordinary wait, not a gate — nothing is stuck").toBe(false);
+  it("an accepted job whose Helpr is on the way draws no box", () => {
+    expect(posterConfirmationRung(onTheWay, "scheduled")).toBeNull();
   });
 
-  it("still never offers the poster's tap as a way around anything", () => {
-    // The tap is now the WHOLE gate rather than half of one, so there is even
-    // less room for copy that hints at an override: there is nothing to
-    // override, and "confirm them anyway" would read as an invitation to vouch
-    // for a Helpr who has not said they are there.
-    const rung = posterConfirmationRung(stuck, "in_progress")!;
-    expect(rung.enabled).toBe(false);
-    expect(rung.reason).not.toMatch(/confirm (it |them |they )?anyway|instead|override|skip/i);
+  it("an in-progress job whose Helpr has not arrived draws no box", () => {
+    expect(posterConfirmationRung(startedNotArrived, "in_progress")).toBeNull();
   });
 
-  it("a plain wait is NOT dressed up as a gate", () => {
-    const early = job({ status: "accepted", helper_confirmed_at: T(48) });
-    const rung = posterConfirmationRung(early, "scheduled")!;
-    expect(rung.gate).toBe(false);
-    expect(rung.reason).toBeTruthy();
+  it("over the whole matrix: no arrival box is ever drawn DISABLED", () => {
+    // The class, not three examples: every shape whose arrival is not yet
+    // confirmed either draws the ENABLED box or nothing.
+    const dead = matrix().filter((j) => {
+      const rung = posterConfirmationRung(j, stepOf(j));
+      return rung?.action === "arrival" && !rung.enabled;
+    });
+    expect(dead.map((j) => JSON.stringify(j))).toEqual([]);
+  });
+
+  it("can fail: the moment the Helpr marks themselves arrived the box appears, enabled", () => {
+    const arrived = job({ status: "accepted", helper_confirmed_at: T(48), helper_on_the_way_at: T(1), helper_arrived_at: T(0.5) });
+    expect(posterConfirmationRung(arrived, "scheduled")).toMatchObject({ action: "arrival", enabled: true, label: "Confirm Arrival" });
+    expect(posterConfirmationRung({ ...startedNotArrived, helper_arrived_at: T(0.5) } as Job, "in_progress")).toMatchObject({
+      action: "arrival",
+      enabled: true,
+      label: "Confirm They Arrived",
+    });
+  });
+
+  it("a near-miss arrival on the in-progress step still counts as arrived (unchanged)", () => {
+    const nearMiss = job({ ...(startedNotArrived as unknown as Fields), helper_arrival_near_miss_at: T(1) });
+    expect(posterConfirmationRung(nearMiss, "in_progress")).toMatchObject({ action: "arrival", enabled: true });
   });
 });
 
@@ -297,7 +305,8 @@ describe("item 6e — the collapsed card's signal", () => {
  * is decided in `posterConfirmationRung` and nowhere else, so it is checked
  * here and nowhere else:
  *
- *   enabled confirmation  >  disabled confirmation  >  stalled notice  >  done box
+ *   enabled confirmation  >  stalled notice  >  done box
+ *   (and no box at all before the Helpr has arrived — Q1400)
  *
  * The predicate is the SWEEP's (`completionStalled`), so a card can never
  * offer a window the cron does not enforce.
@@ -363,19 +372,18 @@ describe("item 7 — the job nobody marked done", () => {
     expect(rung?.enabled).toBe(true);
   });
 
-  it("loses to a DISABLED confirmation — the earlier blocker is the more specific truth", () => {
+  it("a Helpr who never arrived gets NO box — neither a disabled arrival box nor the stalled notice", () => {
+    // Was "loses to a DISABLED confirmation": a disabled "Confirm They Arrived"
+    // with "on the way" under it. Q1400 (owner, 2026-10-07) removed that box,
+    // and the stalled notice still must not take the slot: "nobody marked this
+    // job done" is not the truth when nobody ever turned up. No-Show is the
+    // poster's move on that row.
     const rung = posterConfirmationRung(
       stalledJob({ poster_confirmed_arrival_at: null, helper_arrived_at: null }),
       "in_progress",
       LONG_AFTER,
     );
-    expect(rung?.label).toBe("Confirm They Arrived");
-    expect(rung?.enabled).toBe(false);
-    // The Helpr never arrived, which is an EARLIER and more specific truth than
-    // "nobody marked this job done". (Was `/location check/i` until the owner's
-    // 2026-09-19 reversal made that sentence false — see the 6c block above.)
-    expect(rung?.reason, "the arrival is what is missing, not the completion").toMatch(/on the way/i);
-    expect(rung?.stalled, "this is the confirmation box, not the stalled notice").toBeUndefined();
+    expect(rung).toBeNull();
   });
 
   it("never fires once either side has marked the job done", () => {
@@ -397,3 +405,6 @@ describe("item 7 — the job nobody marked done", () => {
 // widening of a money/trust gate, which is what this file measures against the
 // legacy formulas.
 // @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | const enabled = arrivalClaimed && (step === "in_progress" | const enabled = (step === "in_progress"
+// Shown able to fail: Q1400's hide. Dropping it draws the disabled arrival box
+// again from accept until arrival, which the Q1400 describe catches.
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | if (!job.poster_confirmed_arrival_at && !arrivalClaimed) return null; | if (false) return null;

@@ -1,4 +1,4 @@
-import { CollapsedStartClock } from "@/components/job-card/CollapsedStartClock";
+import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -29,10 +29,12 @@ export function PosterStatusStrip({
   // clock, so the collapsed line must not show one (InProgressStep agrees).
   const { profile } = useCurrentUser();
   const instantRelease = !!(profile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
-  return (
-    <>
-      {showStartClock && <CollapsedStartClock job={job} />}
-      <JobStatusStrip line={posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease)} />
-    </>
-  );
+  const line = posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease);
+  // EVERY TIME AT THE BOTTOM (owner, 2026-10-07, Q1399): the start (and, once
+  // the Helpr has accepted, "until confirmation opens") go under the status
+  // line in the strip, with its own clock ("left for them to accept"),
+  // soonest first, one format, instead of a pill above the strip.
+  // Guard: src/test/offerCountdownRows.test.tsx.
+  const clocks = showStartClock ? collapsedClocks(job, true) : [];
+  return <JobStatusStrip line={line} extraClocks={clocks} />;
 }

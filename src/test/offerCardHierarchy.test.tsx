@@ -19,9 +19,12 @@
  *      Accept is never the gradient primary;
  *   4. one answer-by clock on the Helpr's offer card;
  *   5. the Helpr's offer card draws the step rail when expanded;
- *   6. the offer card never draws an enabled "Accept Job" while the accept
- *      gate has a reason; the primary IS the setup step, with one line why,
- *      and waits while the gate is unknown.
+ *   6. before the tap, the offer card's primary is "Accept Job" whatever the
+ *      accept gate says (owner, 2026-10-06: anyone can accept, payout setup
+ *      comes after; this reverses the 2026-10-05 "Set Up Payouts" primary);
+ *      only an accept already waiting on Stripe makes the setup step the
+ *      primary, full width, with one line why. The wiring through to
+ *      accept_job_offer: src/test/offerAcceptForEveryone.test.tsx.
  *
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |   if (step === "scheduled" && !job.helper_confirmed_at) return null; |   if (false) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | showStartClock={job.status === "accepted"} | showStartClock={false}
@@ -29,11 +32,18 @@
  * @mutate src/components/series/JobSeriesCardControls.tsx |   if (!expanded) return null; |   if (false) return null;
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | : setupLabel ?? (acceptPending ? "Finish Stripe Setup" : "Accept Job"); | : (acceptPending ? "Finish Stripe Setup" : "Accept Job");
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const setupStep = !gate.loading && (!!gate.reason \|\| acceptPending); |   const setupStep = false;
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       ? "Checking…" |       ? "Accept Job"
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             className="w-full rounded-ds-md" |             className="flex-1 rounded-ds-md"
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" /> | <span />
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : "Accept Job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job";
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
+ * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
+ * @mutate src/pages/posts/PostedJobCard.tsx |                   {!offerUnanswered && <JobConfirmation |                   {<JobConfirmation
+ * @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId | <JobConfirmation embedded jobId
+ * @mutate src/pages/posts/PostedJobCard.tsx |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
+ * @mutate src/pages/posts/PostedJobCard.tsx |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true);
+ * @mutate src/components/job-card/jobStatusLine.ts | "left for them to accept" | "left for them to confirm"
+ * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "They haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
+ * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx | const clocks = showStartClock ? collapsedClocks(job, true) : []; | const clocks: never[] = [];
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -42,7 +52,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { AppliedApp, Job } from "../components/job-card/activityConstants";
 import type { AwardBlockReason } from "@/lib/awardGate";
 
-const gateState: { loading: boolean; reason: AwardBlockReason | null } = { loading: false, reason: null };
+const gateState: { loading: boolean; reason: AwardBlockReason | null; missing: ("payout_setup" | "stripe_id")[] } = { loading: false, reason: null, missing: [] };
 vi.mock("@/hooks/useAwardBlockReason", () => ({
   useAcceptGate: () => gateState,
   useAwardBlockReason: () => gateState.reason,
@@ -59,7 +69,12 @@ vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,
 }));
-vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null, helperDayOfConfirmation: () => true }));
+vi.mock("@/components/JobConfirmation", () => ({
+  JobConfirmation: ({ hideNotYetOpen }: { hideNotYetOpen?: boolean }) => (
+    <div data-testid="job-confirmation" data-hide-not-yet-open={String(!!hideNotYetOpen)} />
+  ),
+  helperDayOfConfirmation: () => true,
+}));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
 vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
@@ -176,6 +191,7 @@ beforeEach(() => {
   pendingJobs.clear();
   gateState.loading = false;
   gateState.reason = null;
+  gateState.missing = [];
 });
 
 describe("1. no arrival control on the poster's card before the Helpr accepts", () => {
@@ -197,16 +213,34 @@ describe("1. no arrival control on the poster's card before the Helpr accepts", 
 });
 
 describe("2. the start clock shows on the collapsed card, both sides", () => {
-  it("poster: collapsed offer card draws Job starts in AND the answer-by clock", () => {
+  // Owner, 2026-10-07 (Q1399, spec 7): on a collapsed card BOTH times go at
+  // the bottom, under the status line, the one ending first listed first, in
+  // one format; no start pill above the strip.
+  const stripRows = () =>
+    [...document.querySelectorAll("[data-job-status-strip] [data-countdown-row]")].map((r) => r.getAttribute("data-countdown-row"));
+
+  it("poster: collapsed offer card draws the answer clock then the start clock, both in the strip", () => {
     renderPosted(offerJob, false);
-    expect(screen.getByTestId("start-clock")).toHaveTextContent("Job starts in");
-    expect(screen.getAllByTestId("answer-clock")).toHaveLength(1);
+    expect(stripRows()).toEqual(["deadline", "start"]);
+    const strip = document.querySelector("[data-job-status-strip]")!;
+    expect(strip.textContent).toMatch(/They haven't accepted yet/);
+    expect(strip.textContent).toMatch(/left for them to accept/);
+    expect(strip.textContent).toMatch(/until the job starts/);
+    expect(strip.textContent).not.toMatch(/confirm/i);
+    expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();
   });
 
-  it("Helpr: collapsed confirmed card draws Job starts in", () => {
+  it("the start first when it ends first (soonest first, whichever it is)", () => {
+    const late = { ...offerJob, response_deadline: new Date(Date.now() + 5 * 86_400_000).toISOString() } as unknown as Job;
+    renderPosted(late, false);
+    expect(stripRows()).toEqual(["start", "deadline"]);
+  });
+
+  it("Helpr: collapsed confirmed card draws the start clock in its strip", () => {
     const confirmed = { ...offerJob, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job;
     renderApplied({ ...offerApp, job: confirmed } as unknown as AppliedApp, false);
-    expect(screen.getByTestId("start-clock")).toHaveTextContent("Job starts in");
+    expect(stripRows()).toContain("start");
+    expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();
   });
 });
 
@@ -229,22 +263,31 @@ describe("3. the date-change control is behind the expand and never a second pri
 });
 
 describe("4-5. the Helpr's offer card: one answer-by clock, and the step rail when expanded", () => {
-  it("collapsed: exactly one answer-by clock, and no footer strip repeating the body", () => {
+  // One clock panel, both clocks in one format, soonest first (owner,
+  // 2026-10-07, Q1399 item 6): the start was a grey pill and the answer-by a
+  // cream box.
+  const boxRows = () =>
+    [...document.querySelectorAll('[data-countdown-rows="box"] [data-countdown-row]')].map((r) => r.getAttribute("data-countdown-row"));
+
+  it("collapsed: one clock panel (answer, then start), and no footer strip repeating the body", () => {
     renderApplied(offerApp, false);
     expect(document.querySelector("[data-job-status-strip]")).toBeNull();
-    expect(screen.getAllByTestId("answer-clock")).toHaveLength(1);
-    expect(screen.getByTestId("start-clock")).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-countdown-rows="box"]')).toHaveLength(1);
+    expect(boxRows()).toEqual(["answer", "start"]);
+    expect(screen.queryByTestId("start-clock")).toBeNull();
+    expect(screen.queryByTestId("answer-clock")).toBeNull();
     expect(screen.queryByTestId("tracker")).toBeNull();
   });
 
-  it("expanded: the step rail is there, and still one answer-by clock", () => {
+  it("expanded: the step rail is there, and still one clock panel", () => {
     renderApplied(offerApp, true);
     expect(screen.getByTestId("tracker")).toBeInTheDocument();
-    expect(screen.getAllByTestId("answer-clock")).toHaveLength(1);
+    expect(document.querySelectorAll('[data-countdown-rows="box"]')).toHaveLength(1);
+    expect(boxRows()).toEqual(["answer", "start"]);
   });
 });
 
-describe("6. the offer card's primary says what the tap will do", () => {
+describe("6. the offer card's primary is Accept before the tap, for every Helpr", () => {
   const renderOffer = () =>
     render(
       <MemoryRouter>
@@ -253,47 +296,66 @@ describe("6. the offer card's primary says what the tap will do", () => {
     );
 
   it.each([
-    ["helper_identity_unverified", "Finish Stripe Setup", /confirm your ID/],
-    ["helper_payout_setup_incomplete", "Set Up Payouts", /Set up payouts/],
-  ] as const)("gate %s: no enabled Accept Job; the primary is %s with one line why", (reason, label, line) => {
+    ["helper_identity_unverified"],
+    ["helper_payout_setup_incomplete"],
+    ["helper_unknown"],
+  ] as const)("gate %s: an enabled Accept Job beside Decline, no setup step and no gate line", (reason) => {
     gateState.reason = reason;
     renderOffer();
-    expect(screen.queryByRole("button", { name: /Accept Job/ })).toBeNull();
-    expect(screen.getByRole("button", { name: new RegExp(label) })).toBeEnabled();
-    expect(document.querySelector("[data-offer-gate-line]")?.textContent).toMatch(line);
-  });
-
-  it("gate unknown (profile loading): the primary waits, never an enabled Accept Job", () => {
-    gateState.loading = true;
-    renderOffer();
-    expect(screen.getByRole("button", { name: /Checking/ })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: /Accept Job/ })).toBeNull();
-  });
-
-  it("can fail: nothing in the way draws an enabled Accept Job and no gate line", () => {
-    renderOffer();
     expect(screen.getByRole("button", { name: /Accept Job/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup/ })).toBeNull();
     expect(document.querySelector("[data-offer-gate-line]")).toBeNull();
   });
 
-  // The clipped "Finish Stripe Setu|" at 375 (owner, iPhone Safari): the long
-  // setup label shared a two-up row with Decline. Structural check (jsdom has
-  // no layout): the setup primary is full width and ALONE in its row, and
-  // Decline steps down to a quiet text action. The pixel check (label
-  // scrollWidth <= clientWidth at 320/375/414/1440) is recorded with the
-  // screenshots under ~/.lh-shots/offer-card/.
-  it.each([
-    ["gated before the tap", () => { gateState.reason = "helper_identity_unverified"; }],
-    ["accepted, waiting on Stripe", () => { gateState.reason = "helper_identity_unverified"; pendingJobs.add("job-1"); }],
-  ] as const)("%s: the setup primary is full width and alone in its row; Decline is quiet", (_n, arrange) => {
-    arrange();
+  it("gate unknown (profile loading): Accept Job is there and enabled, never a Checking… wait", () => {
+    gateState.loading = true;
     renderOffer();
-    const primary = document.querySelector('[data-offer-primary="setup"]') as HTMLElement;
-    expect(primary).not.toBeNull();
-    expect(primary.className).toMatch(/\bw-full\b/);
-    expect(primary.parentElement!.querySelectorAll(":scope > button").length).toBe(1);
-    const decline = screen.getByRole("button", { name: /Decline this job/ });
-    expect(decline.className).not.toMatch(/btn-grad-primary|bg-primary/);
-    expect(document.querySelectorAll("[data-offer-gate-line]")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /Accept Job/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Checking/ })).toBeNull();
+  });
+
+  // After a pending accept (owner, 2026-10-07, Q1399 items 2, 3, 5): still
+  // one row, Decline LEFT of Accept, the primary still says Accept, and the
+  // card says plainly it is NOT accepted yet and what it waits on.
+  it.each([
+    [["payout_setup", "stripe_id"], /Not accepted yet: waiting on your payout setup and Stripe ID check/],
+    [["stripe_id"], /Not accepted yet: waiting on your Stripe ID check/],
+    [["payout_setup"], /Not accepted yet: waiting on your payout setup\./],
+  ] as const)("accepted, waiting on %j: Decline | Accept Job in one row, and the status says not accepted yet", (missing, line) => {
+    pendingJobs.add("job-1");
+    gateState.missing = [...missing];
+    gateState.reason = gateState.missing.includes("payout_setup") ? "helper_payout_setup_incomplete" : "helper_identity_unverified";
+    renderOffer();
+    const accept = screen.getByRole("button", { name: /Accept Job/ });
+    const row = accept.parentElement!;
+    const labels = [...row.querySelectorAll(":scope > button")].map((b) => b.textContent?.trim());
+    expect(labels).toEqual(["Decline", "Accept Job"]);
+    expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup|Decline this job/ })).toBeNull();
+    expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(line);
+  });
+});
+
+describe("7. the poster's EXPANDED offer card agrees on one state (owner, 2026-10-07, Q1399 items 9-10)", () => {
+  const rows = () =>
+    [...document.querySelectorAll('[data-countdown-rows="box"] [data-countdown-row]')].map((r) => r.getAttribute("data-countdown-row"));
+  const farOffer = { ...offerJob, date_needed: jobLocalDateISO(4) } as unknown as Job;
+
+  it("unanswered: 'Offered to' the Helpr, two clocks (answer, start) in one panel, no day-before confirmation box", () => {
+    renderPosted(farOffer, true);
+    expect(document.body.textContent).toMatch(/Offered to/);
+    expect(rows()).toEqual(["answer", "start"]);
+    expect(document.querySelectorAll('[data-countdown-rows="box"]')).toHaveLength(1);
+    const panel = document.querySelector('[data-countdown-rows="box"]')!;
+    expect(panel.textContent).toMatch(/left for them to accept/);
+    expect(panel.textContent).not.toMatch(/confirm/i);
+    expect(screen.queryByTestId("job-confirmation")).toBeNull();
+  });
+
+  it("accepted: 'Helpr', the answer clock is gone, 'until confirmation opens' joins the start in the same panel, soonest first", () => {
+    renderPosted({ ...farOffer, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job, true);
+    expect(document.body.textContent).not.toMatch(/Offered to/);
+    expect(rows()).toEqual(["confirm-opens", "start"]);
+    expect(screen.getByTestId("job-confirmation")).toHaveAttribute("data-hide-not-yet-open", "true");
   });
 });

@@ -54,7 +54,7 @@ export function useStripeConnectCheck() {
       if (error) throw await functionInvokeError(error);
       const status = data as ConnectStatus;
       if (!status.connected) {
-        return { ok: false, reason: "Connect a payout account before you can accept jobs.", needsPayoutSetup: true };
+        return { ok: false, reason: "Connect a payout account so you can get paid.", needsPayoutSetup: true };
       }
       if (!status.details_submitted) {
         return { ok: false, reason: "Your payout account setup is incomplete.", needsPayoutSetup: true };

@@ -1,5 +1,5 @@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { acceptMissingFromProfile, reasonFromMissing, type AwardBlockReason } from "@/lib/awardGate";
+import { acceptMissingFromProfile, reasonFromMissing, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 
 /**
  * Why the CURRENT user cannot be awarded a job right now, or `null` if nothing
@@ -55,15 +55,16 @@ export function useAwardBlockReason(): AwardBlockReason | null {
 
 /**
  * The same verdict, with "we don't know yet" kept apart from "nothing stops
- * you". The offer card needs the difference (owner, 2026-10-05): it shows
- * "Set Up Payouts" / "Finish Stripe Setup" as the ONE primary when the accept
- * would be refused, so it must not draw an enabled Accept Job while the profile
- * is still loading. Same derivation as useAwardBlockReason above (the client
+ * you". The offer card reads it only for the Decline confirm's no-strike
+ * promise: its Accept is offered to every Helpr whatever this says (owner,
+ * 2026-10-06: anyone can accept, payout setup comes after; Q1399). Same
+ * derivation as useAwardBlockReason above (the client
  * mirror of helper_accept_missing, which is also what accept_job_offer answers
  * the gate dialog with), so the card and the dialog cannot disagree.
  */
-export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | null } {
+export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | null; missing: AcceptMissing[] } {
   const { profile, isLoading } = useCurrentUser();
-  if (!profile) return { loading: isLoading, reason: null };
-  return { loading: false, reason: reasonFromMissing(acceptMissingFromProfile(profile)) };
+  if (!profile) return { loading: isLoading, reason: null, missing: [] };
+  const missing = acceptMissingFromProfile(profile);
+  return { loading: false, reason: reasonFromMissing(missing), missing };
 }

@@ -511,7 +511,7 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
 // stopped at the declaration, never reaching <JobCardShell> 380 lines below.
 // @mutate src/pages/posts/PostedJobCard.tsx | <JobTracking embedded includePostingSteps | <JobTracking includePostingSteps
 // Poster side, literally inside <JobCardShell> — the plain ancestor walk.
-// @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded jobId={job.id} isOwner={true} | <JobConfirmation jobId={job.id} isOwner={true}
+// @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId={job.id} isOwner={true} | <JobConfirmation hideNotYetOpen jobId={job.id} isOwner={true}
 // Helpr side, CROSS-FILE: HelperTrackerPanel is flat and its glass ancestor is
 // three files away, so only the render-graph reachability check sees this.
 // @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx | <JobTracking\n        embedded\n | <JobTracking\n

@@ -67,11 +67,25 @@ export function SeriesDatesForJob({
  * party accepts (Q407 8). `viewer: "helper"` additionally requires the viewer
  * to be the hired Helpr; the poster's card is already the poster's own job.
  */
+/** Whether this reader may ask to move this job's date or time (a booked
+ *  or offered one-time job, before the Helpr has marked it done). */
+export function scheduleChangeAllowed(
+  job: SeriesCardJob,
+  userId: string | null | undefined,
+  viewer: "poster" | "helper",
+): job is SeriesCardJob & { date_needed: string } {
+  if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return false;
+  if (viewer === "helper" && job.helper_id !== userId) return false;
+  if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return false;
+  return true;
+}
+
 export function ScheduleChangeForJob({
   job,
   userId,
   viewer,
   expanded,
+  hideAsk = false,
 }: {
   job: SeriesCardJob;
   userId: string | null | undefined;
@@ -81,11 +95,12 @@ export function ScheduleChangeForJob({
    *  2026-10-05: "Ask for a new date or time" shows only expanded, it takes
    *  too much space collapsed). Guard: src/test/offerCardHierarchy.test.tsx. */
   expanded: boolean;
+  /** The ask is a button in the card's action row instead (the poster's
+   *  ScheduledStep, owner 2026-10-07); this block keeps the request's state. */
+  hideAsk?: boolean;
 }) {
   if (!expanded) return null;
-  if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return null;
-  if (viewer === "helper" && job.helper_id !== userId) return null;
-  if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return null;
+  if (!scheduleChangeAllowed(job, userId, viewer) || !userId) return null;
   return (
     <ScheduleChangeControl
       jobId={job.id}
@@ -93,6 +108,7 @@ export function ScheduleChangeForJob({
       userId={userId}
       dateNeeded={job.date_needed}
       startTime={job.start_time ?? null}
+      hideAsk={hideAsk}
     />
   );
 }

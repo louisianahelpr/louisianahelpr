@@ -287,8 +287,11 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   listing_expired: { detail: "The listing has expired" },
   no_applicants: { detail: "No applicants yet" },
   offer_out: { detail: "Your offer is with them" },
-  unconfirmed: { detail: "They haven't confirmed" },
-  confirmed: { detail: "Booked and confirmed" },
+  /* ACCEPT, NOT CONFIRM (owner, 2026-10-07, Q1399): this is an offer the
+     Helpr has not accepted yet; "confirm" is the later day-before step
+     (JobConfirmation), and the two words on one card read as one state. */
+  unconfirmed: { detail: "They haven't accepted yet" },
+  confirmed: { detail: "Booked: they accepted" },
   /* FINDING #2: `postedActivityBucket` files any job whose DAY IS TODAY under
      Needs You (`jobIsLive`), which is right for a sort and wrong for a
      sentence — a Helpr driving over is not something the poster can act on.
@@ -326,7 +329,7 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      carries No-Show (InProgressStep), and an in-progress job whose Helpr is
      there has nothing for the poster to do until the work is submitted. */
   overdue_unhired: { detail: "Day passed, nobody hired — cancel?" },
-  overdue_unconfirmed: { detail: "Your Helpr never confirmed — cancel?" },
+  overdue_unconfirmed: { detail: "Your Helpr never accepted — cancel?" },
   overdue_not_started: { detail: "Your Helpr never started — cancel?" },
   overdue_not_arrived: { detail: "Your Helpr never arrived — cancel?" },
   overdue_no_show: { detail: "Your Helpr never arrived — No-Show?" },
@@ -563,7 +566,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
     // running (ScheduledStep shows it expanded), so the collapsed line shows it too.
     case "unconfirmed":
     case "overdue_unconfirmed":
-      return columnDeadline("response_deadline", job.response_deadline, "left for them to confirm", "Confirm window passed");
+      return columnDeadline("response_deadline", job.response_deadline, "left for them to accept", "Accept window passed");
     case "revision_out":
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
     case "revision_fixed":
@@ -637,8 +640,10 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Its answer window closed (offerClock): filed under Cancelled with the
      card's own "This offer has expired" (owner, 2026-10-03). */
   offer_expired: { detail: "The offer expired" },
-  confirm_booking: { detail: "Confirm you'll be there" },
-  confirmed: { detail: "You're confirmed" },
+  /* Accept, not confirm (owner, 2026-10-07, Q1399): confirm is the later
+     day-before step. */
+  confirm_booking: { detail: "Accept or decline it" },
+  confirmed: { detail: "You're booked" },
   today: { detail: "The job is today" },
   /* FINDING #5 on the Helpr's side. `appliedActivityBucket` lifts only TODAY's
      work into Needs You, so a job started a day early reads "Scheduled ·

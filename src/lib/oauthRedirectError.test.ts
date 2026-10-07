@@ -6,6 +6,9 @@
  * @mutate src/lib/oauthRedirectError.ts | case "user_cancelled_authorize": | case "__never__":
  * @mutate src/lib/oauthRedirectError.ts | if (!pending) return captureUnmarked(loc, hist, query, hash, get); | if (!pending) return null;
  * @mutate src/lib/oauthRedirectError.ts | if (!UNMARKED_RETURN_PATHS.includes(loc.pathname)) return null; | if (false) return null;
+ * Q1258: moved here from socialAuthOutcomes.test.ts, which only reads Login's
+ * source and survived this mutation; the behaviour test below kills it.
+ * @mutate src/lib/oauthRedirectError.ts | return code === "access_denied" \|\| code === "provider_email_needs_verification" \|\| code === "user_banned"; | return true;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {

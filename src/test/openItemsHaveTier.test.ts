@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | **Q1368 LOW At launch, revisit | **Q1368 At launch, revisit
+// @mutate docs/OPEN.md | **Q185 LOW OWNER launch-store tasks | **Q185 OWNER launch-store tasks
 // @mutate scripts/lib/openFeeds.mjs | POLISH: "LOW" }) | POLISH: "POLISH" })
 /*
  * Every open (`- [ ]`) and partly-done (`- [~]`) top-level item in

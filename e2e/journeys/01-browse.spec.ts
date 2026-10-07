@@ -2,7 +2,6 @@ import type { APIRequestContext, Page } from "@playwright/test";
 
 import { ANON, SUPABASE_URL, announceUncovered, test, expect, assertHealthy, getSession, newUserContext, rest, sessionsAvailable } from "./fixtures";
 import { BROWSE_FIXTURE_TITLE, ensureBrowseFixture } from "../../scripts/e2e/browseFixture.mjs";
-import { resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
 
@@ -161,8 +160,10 @@ test(authedTitle, async ({ browser, request, journey }) => {
   // it stays reusable; scripts/e2e/browseFixture.mjs keeps it healthy.
   const helper = await getSession(request, "helper");
   const poster = await getSession(request, "poster");
-  const serviceKey = resolveServiceKey();
-  expect(serviceKey, "the browse fixture needs the service-role key (CI secret SUPABASE_SERVICE_ROLE_KEY, or a local .env)").toBeTruthy();
+  // From the environment only (CI secret, or export it locally): a key read
+  // from .env and sent over HTTP is a CodeQL js/file-access-to-http finding.
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
+  expect(serviceKey, "the browse fixture needs the service-role key (CI secret SUPABASE_SERVICE_ROLE_KEY, or export it locally)").toBeTruthy();
   const fixture = await ensureBrowseFixture({ supabaseUrl: SUPABASE_URL, serviceKey: serviceKey!, posterId: poster.user.id, helperId: helper.user.id });
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());

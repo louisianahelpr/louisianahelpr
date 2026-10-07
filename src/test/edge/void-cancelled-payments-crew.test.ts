@@ -427,7 +427,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   });
 
   // Part F: a fee still owed on a settled job is paid by the sweep, once.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           .in("payment_status", ["released", "refunded", "cancelled"]); |           .in("payment_status", []);
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
   it("Part F pays a block fee still owed on a settled job, keyed on its row", async () => {
     scenario.reads.jobs = {
       rows: [],

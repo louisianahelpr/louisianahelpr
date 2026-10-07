@@ -335,7 +335,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   const shortPages = () =>
     (slackAlerts as Array<{ title?: string }>).filter((a) => /Crew refund short/.test(a.title ?? "")).length;
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * unpaidBudgetCents) / budgetCents) : 0; | const feeReturnCents = 0;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0; | const feeReturnCents = 0;
   it("MQ31(C): 2 of 3 filled, $12 fee + $9 tax: the poster gets 3333 + floor(1200*3333/10000)=399 + floor(900*3333/10000)=299 = 4031c, recorded at 4031", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });

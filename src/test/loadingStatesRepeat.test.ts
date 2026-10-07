@@ -29,7 +29,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | const seeded = await seedInboxMessage(poster, helper, process.env.GITHUB_RUN_ID ?? String(Date.now())); | const seeded = { id: null, note: "off" };
  * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
  * @mutate scripts/audit/measure-loading-states.mjs | const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]")); | const el = document.elementFromPoint(pr.px, pr.py);
- * @mutate docs/audit/loading-states/baseline.json | "key": "customer /jobs #1", | "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #1",
+ * @mutate docs/audit/loading-states/baseline.json | "key": "customer /profile?tab=work_record #1", | "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #1",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -30,7 +30,7 @@
 // @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled && giftCardsSettled,\n    true,\n | true,\n    savedHelpersSettled && giftCardsSettled,\n
 // @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
 // @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
-// @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
+// @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve tab="notifications" />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | {view === "earned" && !pageReady && <EarningsPageSkeleton | {view === "earned" && loading && <EarningsPageSkeleton
 // @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading, streakState.settled && !ledgerPending) | useArrivalGate(!loading, true)
 // @mutate src/components/profile/EarningsTab.tsx | streakState.settled && !ledgerPending) | streakState.settled)
@@ -165,7 +165,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     ]) {
       expect(read(f), f).toMatch(/<ProfileTabBodyReserve (tab="[a-z_]+" )?\/>/);
     }
-    expect(read("components/NotificationPreferences.tsx")).toMatch(/if \(!loaded\) return <ProfileTabBodyReserve \/>;/);
+    expect(read("components/NotificationPreferences.tsx")).toMatch(/if \(!loaded\) return <ProfileTabBodyReserve tab="notifications" \/>;/);
   });
 
   it("the security tab waits for its sessions AND two-step reads, then lands once", () => {

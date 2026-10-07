@@ -1,4 +1,4 @@
-// @mutate scripts/audit/press-every-control.mjs | const item = queue[idx++];\n          await paceToCeiling(page); | const item = queue[idx++];\n          void paceToCeiling;
+// @mutate scripts/audit/press-every-control.mjs |           await paceToCeiling(page);\n          const paceMs = Date.now() - pacedFrom; |           void paceToCeiling;\n          const paceMs = Date.now() - pacedFrom;
 // @mutate scripts/audit/press-every-control.mjs | ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), | ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM),
 // @mutate scripts/audit/press-wave.sh | export PRESS_WAVE_WIDTH="$#" | export PRESS_WAVE_WIDTH_UNUSED="$#"
 // @mutate scripts/audit/pressFailureClass.mjs |   if (used === 0 \|\| used + Math.min(burst, ceiling) <= ceiling) return 0; |   return 0;

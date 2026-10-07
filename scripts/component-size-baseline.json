@@ -33,7 +33,7 @@
     "src/pages/auth/Login.tsx": 653,
     "src/pages/auth/Signup.tsx": 686,
     "src/pages/home/Dashboard.tsx": 967,
-    "src/pages/home/DashboardGuest.tsx": 820,
+    "src/pages/home/DashboardGuest.tsx": 819,
     "src/pages/info/Legal.tsx": 736,
     "src/pages/jobs/AppliedJobCard.tsx": 868,
     "src/pages/posts/PostedJobCard.tsx": 826,

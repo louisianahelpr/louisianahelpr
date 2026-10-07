@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T06:30Z",
+  "measured_at": "2026-10-07T06:43Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,6 +53,11 @@
         "number": 2501,
         "title": "nightly-red: vacuity",
         "label": "nightly-red"
+      },
+      {
+        "number": 2543,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red"
       }
     ]
   },
@@ -82,6 +87,14 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2420
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
       },
       {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
@@ -254,6 +267,7 @@
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
+    "issue #2543": "Q1479",
     "ledger 090aa021e278": "Q1468",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
@@ -261,6 +275,7 @@
     "ledger 254aa669dea7": "Q1469",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",
+    "ledger 54ef0bfdcec3": "Q1480",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
     "ledger 71c0da6d9383": "Q1471",

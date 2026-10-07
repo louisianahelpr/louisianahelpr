@@ -47,7 +47,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 35 on 2026-10-06 (lead): Q390 (Keychain session) is built and reviewed; what is left is a TestFlight build and a real-device check (sign in, relaunch, Offload App, sign out then relaunch), which no marker kind can read.
 // 34 on 2026-10-06 (batch landing): Q1408 was ticked (24 h clean after min build 7115), leaving the markerless set.
 // 26 on 2026-10-07 (lane-product, rebased on main's 28): Q333 and Q335 ticked (their screenshot halves done on prod), leaving the markerless set.
-const MARKERLESS_PARTLY_DONE = 24;
+const MARKERLESS_PARTLY_DONE = 25;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

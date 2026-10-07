@@ -104,6 +104,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:expire_pending_direct_offers": {
     uncovered: "called only by the auto-expire-jobs edge function (scheduled) once a direct offer's window has passed; the shortest window is 1 hour",
   },
+  "sql:jobs_offer_target_gone_retires_offer": {
+    uncovered: "fires only when the Helpr a pending direct offer names deletes their account (purge or the Q448 FK); asserted in src/test/pglite/personFksQ448.pglite.mjs",
+  },
   "sql:expire_unanswered_offers": {
     uncovered: "called only by the auto-expire-jobs edge function (scheduled) once a hire's response deadline has passed, and it records a no-response strike on the Helpr",
   },
@@ -209,6 +212,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/chargeDisputeCreated": { uncovered: STRIPE_EVENT("charge.dispute.created") },
   "edge:stripe-webhook/handlers/chargeRefunded": {
     uncovered: GAP("any cancel_escrow / admin refund (charge.refunded arrives in test mode); its row is not asserted"),
+  },
+  "edge:_shared/crewBlockFees": {
+    uncovered: "tells a crew member their block fee was paid (Q1390); needs a poster to block a committed crew member inside 24h of the start and the job to settle, a live payout on prod; asserted in src/test/edge/process-scheduled-payouts-crew.test.ts",
   },
   "edge:stripe-webhook/handlers/chargeRefundUpdated": { uncovered: STRIPE_EVENT("charge.refund.updated to failed (a refund the bank returned; Q1355), asserted in src/test/edge/chargeRefundUpdated.test.ts") },
   "edge:stripe-webhook/handlers/checkoutSessionExpired": { uncovered: STRIPE_EVENT("checkout.session.expired (an abandoned gift-card shortfall Checkout)") },

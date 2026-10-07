@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Users } from "lucide-react";
+import { Search, Users, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { safeStorage } from "@/lib/safeStorage";
@@ -352,8 +352,27 @@ const AdminUsers = () => {
             placeholder="Search name, email, phone or job ID…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-ds-13 w-full pl-9"
+            className="h-9 text-ds-13 w-full pl-9 pr-10"
           />
+          {searchQuery && (
+            // Q913 (owner 2026-10-07): a clear ✕ like every other search field
+            // (index.css hides WebKit's own). Pressed off-centre by
+            // e2e/prod-audit/search-x-off-center-press.spec.ts.
+            <button
+              type="button"
+              aria-label="Clear search"
+              // Keep focus on press so iOS does not drop the keyboard and lose the
+              // click (the BrowseSearchBar ✕'s one-press fix, owner 2026-10-01).
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                setSearchQuery("");
+                e.currentTarget.parentElement?.querySelector("input")?.focus();
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+            >
+              <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+            </button>
+          )}
         </div>
         <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
           <SelectTrigger aria-label="Sort by" className="h-9 text-ds-13 sm:w-[220px]">

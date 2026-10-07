@@ -100,6 +100,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   instant_payouts: { by: ["helper_id"] },
   payout_transfers: { by: ["helper_id"] },
   crew_cancellation_fee_shares: { by: ["helper_id"] },
+  // Q1390: the member's block fee (owed when a poster blocked them close to the start).
+  crew_block_fees: { by: ["helper_id"] },
   cancellation_fee_transfers: { by: ["helper_id"] },
   payment_refunds: { by: ["customer_id"] },
   chargeback_clawbacks: { by: ["helper_id"] },
@@ -327,6 +329,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "payout_schedule_freezes.requested_by": { reason: "Q1221: the staff member who placed or released the hold" },
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },
+  "identity_soft_fingerprints.user_id": { reason: "Q1416: ban-evasion data, one salted hash of name + date of birth from the person's own ID check (no name, date or document stored); exporting it would show a banned person which of their details is fingerprinted" },
   "payment_fingerprints.user_id": { reason: "Q1324: ban-evasion data, salted hashes of Stripe card/bank fingerprints (no card or account details); the cards and accounts themselves are the person's own in Stripe, and listing which are fingerprinted would show a banned person which payment method to swap" },
   "dispute_settlement_claims.claimed_by": { reason: "transient settlement lock held by staff or a function, not the person's data" },
   "marketing_content.created_by": { reason: "staff-only marketing drafts" },

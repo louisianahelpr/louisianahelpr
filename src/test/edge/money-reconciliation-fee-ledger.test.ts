@@ -332,3 +332,57 @@ describe("money-reconciliation — cancellation-fee ledger vs Stripe (LOW-2)", (
     expect(finding(b, "cancellation_fee_stripe_transfer_without_row")?.count).toBe(1);
   });
 });
+
+/**
+ * Q1390: the crew block-fee ledger. Both settlement paths pay a block fee
+ * before they settle the job, so an unpaid row on a settled job is a member
+ * who was skipped; a Stripe block-fee transfer must name its row; and a
+ * cancelled crew may keep the block fees it paid out.
+ */
+describe("money-reconciliation — crew block fees (Q1390)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+  });
+
+  const blockRow = (over: Record<string, unknown> = {}) => ({
+    id: "bf-1", job_id: "job-f", helper_id: "member-d", fee_cents: 1250, status: "owed", stripe_transfer_id: null, ...over,
+  });
+
+  // @mutate supabase/functions/money-reconciliation/index.ts |               if (!settled.has(r.job_id)) continue; |               continue;
+  it("pages a block fee still owed on a job whose payment settled", async () => {
+    const fn = await load();
+    seed({ jobs: [chargedJob({ payment_status: "refunded" })], transfers: [feeTransfer()] });
+    scenario.reads.crew_block_fees = { rows: [blockRow()] };
+    const { b } = await run(fn);
+    expect(finding(b, "crew_block_fee_unpaid_on_settled_job")?.count).toBe(1);
+  });
+
+  it("control: a fee owed on a job that settled within the window (the hourly sweep's turn) raises nothing", async () => {
+    const fn = await load();
+    seed({ jobs: [chargedJob({ payment_status: "refunded", updated_at: ago(10 * 60 * 1000) })], transfers: [feeTransfer()] });
+    scenario.reads.crew_block_fees = { rows: [blockRow()] };
+    const { b } = await run(fn);
+    expect(finding(b, "crew_block_fee_unpaid_on_settled_job")?.count ?? 0).toBe(0);
+  });
+
+  it("control: a paid block fee, or one owed on a job still in escrow, raises nothing", async () => {
+    const fn = await load();
+    seed({ jobs: [chargedJob({ payment_status: "escrow" })], transfers: [feeTransfer(), feeTransfer({ id: "tr_bf", amount: 1100, metadata: { type: "crew_block_fee", job_id: "job-f", helper_id: "member-d", block_fee_id: "bf-2" } })] });
+    scenario.reads.crew_block_fees = { rows: [blockRow(), blockRow({ id: "bf-2", status: "paid", stripe_transfer_id: "tr_bf" })] };
+    const { b } = await run(fn);
+    expect(finding(b, "crew_block_fee_unpaid_on_settled_job")?.count ?? 0).toBe(0);
+    expect(finding(b, "crew_block_fee_stripe_transfer_without_row")?.count ?? 0).toBe(0);
+  });
+
+  // @mutate supabase/functions/money-reconciliation/index.ts |               if (row && (row.stripe_transfer_id === null \|\| row.stripe_transfer_id === t.id)) continue; |               continue;
+  it("pages a Stripe block-fee transfer that no crew_block_fees row records", async () => {
+    const fn = await load();
+    seed({ transfers: [feeTransfer(), feeTransfer({ id: "tr_orphan_bf", amount: 1100, metadata: { type: "crew_block_fee", job_id: "job-f", helper_id: "member-d", block_fee_id: "bf-gone" } })] });
+    scenario.reads.crew_block_fees = { rows: [] };
+    const { b } = await run(fn);
+    expect(finding(b, "crew_block_fee_stripe_transfer_without_row")?.count).toBe(1);
+  });
+});

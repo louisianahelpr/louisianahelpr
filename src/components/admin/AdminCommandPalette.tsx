@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import {
   Command,
@@ -41,6 +42,12 @@ const ALL_ITEMS = adminNavGroups.map((g) => ({
 
 export function AdminCommandPalette({ onSelect }: { onSelect: (view: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  // Controlled now (Q913's clear ✕), so a closed palette forgets its query
+  // the way the unmounted uncontrolled input used to.
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
 
   // Cmd-K / Ctrl-K toggles. Kept here rather than in cmdk because the palette
   // has no trigger element — it is summoned from anywhere in the console.
@@ -79,7 +86,34 @@ export function AdminCommandPalette({ onSelect }: { onSelect: (view: string) => 
             value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
           }
         >
-          <CommandInput placeholder="Search sections…" aria-label="Search admin sections" />
+          <div className="relative">
+            <CommandInput
+              placeholder="Search sections…"
+              aria-label="Search admin sections"
+              value={query}
+              onValueChange={setQuery}
+              className="pr-9"
+            />
+            {query && (
+              // Q913 (owner 2026-10-07): a clear ✕ like every other search field
+              // (index.css hides WebKit's own). Pressed off-centre by
+              // e2e/prod-audit/search-x-off-center-press.spec.ts.
+              <button
+                type="button"
+                aria-label="Clear search"
+                // Keep focus on press so iOS does not drop the keyboard and lose the
+                // click (the BrowseSearchBar ✕'s one-press fix, owner 2026-10-01).
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  setQuery("");
+                  e.currentTarget.parentElement?.querySelector("input")?.focus();
+                }}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+              >
+                <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+              </button>
+            )}
+          </div>
           <CommandList className="max-h-72">
             <CommandEmpty>No section matches.</CommandEmpty>
             {ALL_ITEMS.map((g) => (

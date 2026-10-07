@@ -133,11 +133,11 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
   },
   "auth.spec.ts": {
     runner: "e2e-real-backend.yml",
-    needs: "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD",
+    needs: "PLAYWRIGHT_TEST_USER_EMAIL + the service-role key (session minted, Q1420)",
   },
   "payment-lifecycle.spec.ts": {
     runner: "e2e-real-backend.yml",
-    needs: "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD (its public half needs nothing)",
+    needs: "PLAYWRIGHT_TEST_USER_EMAIL + the service-role key (its public half needs nothing)",
   },
   "two-role-lifecycle.spec.ts": {
     runner: "e2e-real-backend.yml",

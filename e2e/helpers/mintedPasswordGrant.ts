@@ -1,4 +1,5 @@
-import { test, type Page, type Route } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+import { test } from "../prodTest";
 import { mintAdminSession, resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 
 /**
@@ -42,7 +43,10 @@ export async function answerPasswordGrantWithMintedSession(
   const serviceKey = resolveServiceKey();
   if (!serviceKey) throw new Error("answerPasswordGrantWithMintedSession: no service-role key (SUPABASE_SERVICE_ROLE_KEY)");
   const stats: MintedGrant = { answered: 0, dropped: 0 };
-  await page.route("**/auth/v1/token?grant_type=password*", async (route: Route) => {
+  // Matched by URL parts, not a literal grant URL: this intercepts the grant,
+  // it never sends one (src/test/noAnonPasswordGrants.test.ts).
+  const isPasswordGrant = (u: URL) => u.pathname.endsWith("/auth/v1/token") && u.searchParams.get("grant_type") === "password";
+  await page.route(isPasswordGrant, async (route: Route) => {
     const req = route.request();
     if (req.method() !== "POST") return route.continue();
     const origin = req.headerValue ? await req.headerValue("origin") : null;

@@ -263,9 +263,9 @@ async function createRefundOnce(
   params: Stripe.RefundCreateParams,
   opts: { idempotencyKey: string },
 ): Promise<{ alreadyRefunded: boolean }> {
+  let created: Stripe.Refund | undefined;
   try {
-    await stripe.refunds.create(params, opts);
-    return { alreadyRefunded: false };
+    created = await stripe.refunds.create(params, opts);
   } catch (e) {
     const type = (e as { type?: string } | null)?.type;
     // Q750 (3): past the key's 24 hours, Stripe refuses a second full refund
@@ -277,6 +277,33 @@ async function createRefundOnce(
     const prior = await stripe.refunds.list({ payment_intent: String(params.payment_intent), limit: 100 });
     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
     return { alreadyRefunded: true };
+  }
+  // Q809 (review): inside the key's ~24h window Stripe REPLAYS the original
+  // refund object, including one that has since FAILED. That returned nothing
+  // to the payer: never settled as refunded (the caller pages "refund by hand").
+  if (created?.status === "failed" || created?.status === "canceled") {
+    throw new Error(`refund ${created.id} for ${String(params.payment_intent)} came back '${created.status}' (${created.failure_reason ?? "no reason"})`);
+  }
+  return { alreadyRefunded: false };
+}
+
+/**
+ * Q809 (2): the refund key for a visit's intent. Plain per intent, unless a
+ * refund of it already FAILED: then it names the newest failed refund, so a
+ * retry is a NEW refund instead of Stripe's replay of the failed one (new for
+ * each failure, the same for two overlapping runs). A list that cannot be read
+ * keeps the plain key; createRefundOnce refuses a replayed failed refund.
+ */
+async function visitRefundKey(stripe: Stripe, intentId: string): Promise<string> {
+  try {
+    const prior = await stripe.refunds.list({ payment_intent: intentId, limit: 100 });
+    const dead = (prior?.data ?? [])
+      .filter((r: Stripe.Refund) => r.status === "failed" || r.status === "canceled")
+      .sort((a: Stripe.Refund, b: Stripe.Refund) => Number(b.created ?? 0) - Number(a.created ?? 0));
+    return dead.length > 0 ? `recurring-visit-refund:${intentId}:after-${dead[0].id}` : `recurring-visit-refund:${intentId}`;
+  } catch {
+    // Unread: the plain key; a replayed failed refund is refused downstream.
+    return `recurring-visit-refund:${intentId}`;
   }
 }
 
@@ -753,11 +780,14 @@ serve(async (req) => {
 
       // status === 'paid'
       const pi = String(row.stripe_payment_intent_id);
+      // Q809 (4): matched on the visit's own PaymentIntent (unique per job,
+      // 20261007035201), NOT on date_needed = visit_date: a booked visit that
+      // was rescheduled (respond_job_schedule_change moves date_needed) read
+      // as never booked and was refunded while the Helpr still came.
       const { data: booked, error: bookedErr } = await supabase
         .from("jobs")
         .select("id")
         .eq("parent_job_id", row.parent_job_id)
-        .eq("date_needed", row.visit_date)
         .eq("stripe_payment_intent_id", pi)
         .limit(1);
       if (bookedErr) {
@@ -839,6 +869,17 @@ serve(async (req) => {
         }
         const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
         const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled");
+        // Q809 (2): a refund that failed after it was booked is re-driven here
+        // (charge.refund.updated puts the row back to 'paid'). The plain key
+        // would make Stripe REPLAY that failed refund for a day and this run
+        // would settle it as refunded again; after a failure the key names the
+        // newest failed refund, new for each failure.
+        const deadRefunds = prior.data
+          .filter((r: Stripe.Refund) => r.status === "failed" || r.status === "canceled")
+          .sort((a: Stripe.Refund, b: Stripe.Refund) => Number(b.created ?? 0) - Number(a.created ?? 0));
+        const sweepRefundKey = deadRefunds.length > 0
+          ? `recurring-visit-refund:${pi}:after-${deadRefunds[0].id}`
+          : `recurring-visit-refund:${pi}`;
         if (live.length > 0) {
           const refunded = live.reduce((sum: number, r: Stripe.Refund) => sum + (r.amount ?? 0), 0);
           // A hand refund of what the alert said (the amount less the fee)
@@ -863,9 +904,9 @@ serve(async (req) => {
           continue;
         }
         if (withholdFee) {
-          if (owedCents !== 0) ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));
+          if (owedCents !== 0) ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
         } else {
-          ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));
+          ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
         }
       } catch (e) {
         fail(`visit payment ${row.id}: paid visit was never booked and the refund of ${pi} failed (${(e as Error).message})`);
@@ -887,11 +928,19 @@ serve(async (req) => {
         const { data: n, error: nErr } = await supabase.from("notifications").insert({
           user_id: row.payer_id,
           job_id: row.parent_job_id,
-          title: kept ? "Your visit payment was refunded, less the card fee" : "Your visit payment was refunded",
+          // Q809 (3): a payment no bigger than the card fee returns nothing;
+          // never tell the payer "refunded" for $0.
+          title: kept
+            ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded, less the card fee" : "Your visit payment couldn't be refunded")
+            : "Your visit payment was refunded",
           message: kept
-            ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. We refunded $${
-              ((refundParams.amount ?? 0) / 100).toFixed(2)
-            }; the card processor's fee of $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)} can't be returned.`
+            ? ((refundParams.amount ?? 0) > 0
+              ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. We refunded $${
+                ((refundParams.amount ?? 0) / 100).toFixed(2)
+              }; the card processor's fee of $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)} can't be returned.`
+              : `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. The whole $${
+                (Number(row.amount_cents) / 100).toFixed(2)
+              } went to the card processor's fee, which can't be returned, so there was nothing left to refund.`)
             : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
           type: "job_updates",
           link,
@@ -1252,7 +1301,37 @@ serve(async (req) => {
         // 2026-09-27). An off-session charge cannot answer a 3D Secure
         // challenge, so it is never attempted at this size. Under $300 nothing
         // below changes.
-        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) {
+        // Q1338 (lh-money-escrow review, 2026-10-05): the Q1104 earlier-charge
+        // lookup used to run only AFTER this branch, so a visit an earlier run
+        // charged off-session (while it still totalled under $300) and never
+        // booked was parked here and the payer asked to pay it again. Ask
+        // Stripe first; an earlier unbooked charge of this claim falls through
+        // to the adopt path below (which books it, or pages on a mismatch) and
+        // is never parked. An earlier charge made while the visit totalled
+        // under $300 usually took a different amount, so in practice this is
+        // the Q1337 mismatch page, every run, until a person books or refunds
+        // it: never a second charge to the payer.
+        let earlierChargeToAdopt = false;
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !dryRun) {
+          const parkCard = await seriesCard(stripe, parent.stripe_payment_intent_id as string | null);
+          if (parkCard.kind === "unknown") {
+            fail(`series ${parent.id} ${visitDate}: could not read the series' saved card before parking (${parkCard.message}); nothing parked this run`);
+            continue;
+          }
+          if (parkCard.kind === "card") {
+            const parkPrior = await priorVisitIntent(stripe, parkCard.customerId, String(parent.id), visitDate, String(hold.id));
+            if (parkPrior.kind === "error") {
+              fail(`series ${parent.id} ${visitDate}: could not check Stripe for an earlier charge of this visit before parking (${parkPrior.message.slice(0, 160)}); nothing parked this run`);
+              continue;
+            }
+            if (parkPrior.kind === "in_flight") {
+              fail(`series ${parent.id} ${visitDate}: an earlier charge ${parkPrior.intentId} of this visit is still processing; nothing parked this run`);
+              continue;
+            }
+            earlierChargeToAdopt = parkPrior.kind === "adopt";
+          }
+        }
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !earlierChargeToAdopt) {
           if (dryRun) {
             results.awaitingPayment++;
             continue;
@@ -1412,6 +1491,13 @@ serve(async (req) => {
         }
         if (prior.kind === "in_flight") {
           fail(`series ${parent.id} ${visitDate}: an earlier charge ${prior.intentId} of this visit is still processing; nothing charged this run`);
+          continue;
+        }
+        // Q1338: a $300+ visit reaches here only to adopt an earlier charge.
+        // If that charge is gone by now (refunded between the two reads), it
+        // is never charged off-session: the next run parks it.
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") {
+          fail(`series ${parent.id} ${visitDate}: the earlier charge of this $300+ visit was no longer adoptable; nothing charged, the next run parks it`);
           continue;
         }
         if (prior.kind === "adopt") {
@@ -1744,7 +1830,7 @@ serve(async (req) => {
               try {
                 await stripe.refunds.create(
                   { payment_intent: intent.id },
-                  { idempotencyKey: `recurring-visit-refund:${intent.id}` },
+                  { idempotencyKey: await visitRefundKey(stripe, intent.id) },
                 );
                 fail(
                   `series ${parent.id} ${visitDate}: duplicate charge ${intent.id} refunded (visit already funded by ${String(winner.stripe_payment_intent_id)})`,
@@ -1842,15 +1928,21 @@ serve(async (req) => {
               // different intent — reporting a refund that never happened on
               // money still held. One key per intent is idempotent for the
               // retry it is actually protecting against and cannot collide.
-              { idempotencyKey: `recurring-visit-refund:${intent.id}` },
+              { idempotencyKey: await visitRefundKey(stripe, intent.id) },
             ));
           } catch (refundErr) {
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
               title: "Recurring visit charged but not created, and the refund failed",
+              // Q809 (1): a fee-withheld refund whose amount could not be
+              // worked out is still fee-withheld; never tell ops "in full".
               message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand: ${
-                refundParams.amount === undefined ? "in full" : `$${(refundParams.amount / 100).toFixed(2)} (the card fee is withheld)`
+                refundParams.amount !== undefined
+                  ? `$${(refundParams.amount / 100).toFixed(2)} (the card fee is withheld)`
+                  : seriesEndedMidRun || holderChangedMidRun
+                  ? "the amount charged LESS Stripe's card fee (the fee is withheld: the series ended or the date changed hands; the amount could not be worked out)"
+                  : "in full"
               }.`,
               fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: String(refundErr) },
             });
@@ -1872,12 +1964,16 @@ serve(async (req) => {
             const { data: n, error: nErr } = await supabase.from("notifications").insert({
               user_id: parent.customer_id,
               job_id: parent.id,
-              title: "Your visit charge was refunded, less the card fee",
-              message: `The visit on ${visitDate} wasn't booked because ${
-                seriesEndedMidRun ? "the series ended" : "the date changed hands"
-              } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee of $${
-                (withheldCents / 100).toFixed(2)
-              } can't be returned.`,
+              title: refundedCents > 0 ? "Your visit charge was refunded, less the card fee" : "Your visit charge couldn't be refunded",
+              message: refundedCents > 0
+                ? `The visit on ${visitDate} wasn't booked because ${
+                  seriesEndedMidRun ? "the series ended" : "the date changed hands"
+                } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee of $${
+                  (withheldCents / 100).toFixed(2)
+                } can't be returned.`
+                : `The visit on ${visitDate} wasn't booked because ${
+                  seriesEndedMidRun ? "the series ended" : "the date changed hands"
+                } after it was charged. The whole $${(withheldCents / 100).toFixed(2)} went to the card processor's fee, which can't be returned, so there was nothing left to refund.`,
               type: "job_updates",
               link,
             }).select("id");

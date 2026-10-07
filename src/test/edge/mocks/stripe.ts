@@ -103,6 +103,8 @@ export interface StripeMock {
   charges: {
     retrieve: ReturnType<typeof vi.fn>;
   };
+  /** Q1260: create-payment finds a raced chargeback's Stripe dispute by PaymentIntent. */
+  disputes: { list: ReturnType<typeof vi.fn> };
   subscriptions: {
     retrieve: ReturnType<typeof vi.fn>;
     /**
@@ -202,6 +204,9 @@ export const stripeMock: StripeMock = {
   charges: {
     retrieve: vi.fn(),
   },
+  disputes: {
+    list: vi.fn().mockResolvedValue({ data: [] }),
+  },
   subscriptions: {
     retrieve: vi.fn(),
     // Default to "this customer has no subscriptions" so a test that only
@@ -242,6 +247,7 @@ export function resetStripeMock() {
     stripeMock.tax.transactions,
     stripeMock.payouts,
     stripeMock.charges,
+    stripeMock.disputes,
     stripeMock.subscriptions,
     stripeMock.billingPortal.sessions,
     stripeMock.webhooks,
@@ -257,6 +263,7 @@ export function resetStripeMock() {
   // A default of "no prior refunds" keeps the sequence at 0; tests exercising a
   // repeat partial override it per-case.
   stripeMock.refunds.list.mockResolvedValue({ data: [] });
+  stripeMock.disputes.list.mockResolvedValue({ data: [] });
   // Same reasoning for the two defaults added alongside: `subscriptions.list`
   // is awaited for `.data` inside the customer-selection loop, so an unset mock
   // throws before the branch under test is reached.

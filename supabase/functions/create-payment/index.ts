@@ -31,6 +31,7 @@ import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 
 /**
@@ -2500,7 +2501,11 @@ serve(async (req) => {
       if (!releaseUpdateErr && releaseUpdated && releaseUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "completed", "released");
         if (settled) return settled;
-        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer");
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer", {
+          stripe,
+          paymentIntentId: captureResult.paymentIntentId ?? null,
+          title: job.title ?? null,
+        });
         if (raced) return raced;
       }
       if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
@@ -3188,9 +3193,10 @@ serve(async (req) => {
           // MS-6: bound a partial refund against what Stripe ACTUALLY captured
           // (budget + poster service fee + urgent fee + tax), not `job.budget`.
           // A partial can be up to the full capture; anything beyond it is an
-          // over-refund and is refused. A partial EQUAL to the capture is still
-          // a partial for a job whose escrow has NOT moved — it never cancels
-          // the job (only an omitted `amountCents` does that).
+          // over-refund and is refused. A partial that (with earlier refunds)
+          // returns the WHOLE capture is refused too (Q1320, below): it would
+          // leave the job payable on a fully refunded charge. Only an omitted
+          // `amountCents` cancels the job.
           // capturedCents is only consulted for a PARTIAL (it is the ceiling and
           // the full-capture test below). A full refund sends no `amount` and
           // refunds the whole charge on Stripe's side, so it neither needs nor
@@ -3252,6 +3258,19 @@ serve(async (req) => {
           const generalAlreadyRefundedCents = priorRefunds.data
             .filter((r) => r.status === "succeeded" || r.status === "pending")
             .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+          // Q1320: a partial that, with the refunds already on this charge,
+          // returns the WHOLE capture is a full refund in disguise. A partial
+          // takes no job claim and flips nothing, and the single-Helpr payout
+          // path reads no refund total, so the job stayed payable and a later
+          // payout could pay the Helpr on top of the poster's full refund.
+          // Refused (nothing moved): the full refund cancels the job and stops
+          // its payout, and is the action to use.
+          if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) {
+            return new Response(JSON.stringify({
+              error: `This partial refund would return the whole charge ($${(capturedCents / 100).toFixed(2)}${generalAlreadyRefundedCents > 0 ? `, counting $${(generalAlreadyRefundedCents / 100).toFixed(2)} already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
+              useFullRefund: true,
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+          }
           const reused = !isPartial
             ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, capturedCents, "admin_refund_general", priorRefunds.data)
             : null;
@@ -4218,25 +4237,95 @@ async function chargebackLandedDuringSettlement(
   supabaseAdmin: any,
   jobId: string,
   moved: "transfer" | "refund",
+  release?: { stripe: any; paymentIntentId: string | null; title: string | null },
 ): Promise<Response | null> {
   const { data: current, error } = await supabaseAdmin
     .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
   if (error || !current || current.payment_status !== "chargeback") return null;
   console.error(`[create-payment] job ${jobId}: a chargeback block landed during the ${moved} call; the flip did NOT overwrite it`);
+  // Q1260: the Quick Release transfer went out over a live chargeback. The
+  // webhooks' clawback runs on charge.dispute.created / funds_withdrawn, and
+  // both may have been processed BEFORE this transfer existed, so nothing
+  // would ever reverse it. Run the same idempotent clawback here, against the
+  // charge's own Stripe dispute (an inquiry withdraws nothing: left alone).
+  const clawbackOutcome = moved === "transfer" && release
+    ? await clawBackRacedRelease(release.stripe, supabaseAdmin, jobId, release.title, release.paymentIntentId)
+    : null;
   await postSlackOpsAlert({
     kind: "money_at_risk",
     severity: "critical",
     title: `Quick ${moved === "transfer" ? "Release" : "Refund"} raced a chargeback — block kept, money already moved`,
     message: moved === "transfer"
-      ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). FIRST check chargeback_clawbacks for this job's dispute: charge.dispute.created already runs the clawback against the job's transfer group, so the transfer may be reversed already, and reversing it again takes the money twice. Only if no clawback row covers this transfer: redeliver charge.dispute.funds_withdrawn for the dispute from the Stripe Dashboard (its clawback is idempotent per transfer). The job stays 'disputed' and this Quick Release's stamped settlement claim stays in dispute_settlement_claims (nothing clears it on its own); once reconciled, delete that row (delete from public.dispute_settlement_claims where job_id = '${jobId}') so the dispute can be closed.`
+      ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). Clawback: ${clawbackOutcome?.text ?? "not attempted"}. Before reversing anything by hand, check chargeback_clawbacks for this job's dispute: charge.dispute.created also runs the clawback against the job's transfer group, and reversing it again takes the money twice. The job stays 'disputed' and this Quick Release's stamped settlement claim stays in dispute_settlement_claims (nothing clears it on its own); once reconciled, delete that row (delete from public.dispute_settlement_claims where job_id = '${jobId}') so the dispute can be closed.`
       : `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Refund's refund was in flight. The refund went out, so the job was NOT flipped to refunded (the chargeback's block stands). The card holder now has the refund AND the chargeback: respond to the dispute in Stripe with the refund as evidence.`,
-    fields: { job_id: jobId, job_status: String(current.status ?? "—") },
-    oncePerDayKey: `quick-settle-raced-chargeback:${jobId}`,
+    fields: {
+      job_id: jobId,
+      job_status: String(current.status ?? "—"),
+      ...(clawbackOutcome ? { clawback: clawbackOutcome.kind } : {}),
+    },
+    // The outcome is in the key: a later attempt that clawed back (or failed)
+    // must not be suppressed by an earlier page with a different outcome.
+    oncePerDayKey: `quick-settle-raced-chargeback:${jobId}${clawbackOutcome ? `:${clawbackOutcome.kind}` : ""}`,
   });
   return new Response(JSON.stringify({
     error: `A card chargeback landed on this job while the ${moved} was being made. The ${moved} went out; the chargeback's block was left in place. Ops has been paged to reconcile.`,
     chargebackRaced: true,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+}
+
+/**
+ * Q1260: reverse a Quick Release transfer that landed after a real chargeback.
+ * Finds the charge's Stripe dispute, then runs the webhook's own clawback
+ * (idempotent per dispute and transfer, so a later funds_withdrawn delivery
+ * resumes, never repeats). Never throws: the outcome is a sentence for the
+ * page, and anything it could not do says to reverse the transfer by hand.
+ */
+async function clawBackRacedRelease(
+  stripe: any,
+  supabaseAdmin: any,
+  jobId: string,
+  title: string | null,
+  paymentIntentId: string | null,
+): Promise<{ kind: string; text: string }> {
+  const byHand = "redeliver charge.dispute.funds_withdrawn for this job's dispute from the Stripe Dashboard (its clawback is idempotent per transfer) or reverse the transfer by hand.";
+  if (!paymentIntentId) return { kind: "no_payment_intent", text: `no PaymentIntent on file to find the dispute: ${byHand}` };
+  let disputes: Array<{ id: string; status?: string }>;
+  try {
+    const list = await stripe.disputes.list({ payment_intent: paymentIntentId, limit: 10 });
+    disputes = (list?.data ?? []) as Array<{ id: string; status?: string }>;
+  } catch (e) {
+    return { kind: "dispute_read_failed", text: `the Stripe dispute could not be read (${caughtMessage(e).slice(0, 160)}): ${byHand}` };
+  }
+  // A live, money-moving dispute only: an inquiry (warning_*) withdrew
+  // nothing, and one already WON was paid back by its closed webhook, so a
+  // reversal now would never be repaid (review of Q1260, nit 1).
+  const real = disputes.find((d) => ["needs_response", "under_review", "lost"].includes(String(d.status ?? "")));
+  if (!real) {
+    return {
+      kind: disputes.some((d) => String(d.status ?? "").startsWith("warning_needs") || d.status === "warning_under_review")
+        ? "inquiry_only"
+        : disputes.length > 0 ? "dispute_closed" : "no_dispute_found",
+      text: disputes.some((d) => String(d.status ?? "").startsWith("warning_needs") || d.status === "warning_under_review")
+        ? "the dispute is still an inquiry, which withdraws nothing; if the bank escalates it, charge.dispute.funds_withdrawn claws the transfer back."
+        : disputes.length > 0
+        ? `the charge's dispute is already closed (${disputes.map((d) => d.status ?? "?").join(", ")}), so nothing was reversed; check the transfer against the outcome by hand.`
+        : `Stripe lists no dispute for PaymentIntent ${paymentIntentId}: ${byHand}`,
+    };
+  }
+  try {
+    const r = await clawBackReleasedPayout(
+      { stripe, supabase: supabaseAdmin, logStep: (step: string, details?: unknown) => console.log(`[create-payment] ${step}`, details ?? "") },
+      real as never,
+      { id: jobId, title },
+      { alertIfNoTransfer: true },
+    );
+    if (r.failed.length > 0) {
+      return { kind: "clawback_partial", text: `${(r.reversedNowCents / 100).toFixed(2)} dollars reversed now, but Stripe refused ${r.failed.length} transfer(s) (paged separately): reverse those by hand.` };
+    }
+    return { kind: "clawed_back", text: `reversed now: $${(r.reversedNowCents / 100).toFixed(2)} ($${(r.reversedTotalCents / 100).toFixed(2)} in total for dispute ${real.id}). A won dispute pays it back automatically.` };
+  } catch (e) {
+    return { kind: "clawback_failed", text: `the clawback failed (${caughtMessage(e).slice(0, 160)}): ${byHand}` };
+  }
 }
 
 async function alreadyResolvedDispute(

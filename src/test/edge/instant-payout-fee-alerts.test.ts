@@ -72,3 +72,16 @@ describe("instant-payout fee outcomes always reach someone (ME-015)", () => {
     expect(failedWrite()?.error_message).toMatch(/^fee_uncollected: platform_account_retrieval_failed: platform lookup timed out \| /);
   });
 });
+
+// Q1251: a sandbox Connect account under the live key used to 500 the whole
+// request; it is now a 409 telling the Helpr to reconnect, with nothing moved.
+describe("instant-payout on an unusable Connect account (Q1251)", () => {
+  it("answers 409 connect_account_unusable and moves nothing", async () => {
+    stripeMock.balance.retrieve.mockRejectedValue(Object.assign(new Error("The account acct_helper was a test account created with a testmode key, and therefore can only be used with testmode keys."), { type: "StripeInvalidRequestError", statusCode: 400 }));
+    const res = await execute();
+    expect(res.status).toBe(409);
+    expect(JSON.parse(await res.text()).code).toBe("connect_account_unusable");
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.payouts.create).not.toHaveBeenCalled();
+  });
+});

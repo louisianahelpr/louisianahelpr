@@ -587,6 +587,26 @@ describe("card-dispute clawback (Q202)", () => {
       expect(writesTo("payout_transfers", "update").some((w) => payload(w).status === "reversal_cleared")).toBe(false);
     });
 
+    // Q1358: an unreadable original row used to record platform_fee_cents=0 as
+    // if it were known. The row is still written, flagged, and paged.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |             ...(origErr ? { platform_fee_unknown: true } : {}), |             ...({}),
+    it("WON with the original payout row unreadable flags the re-pay row's fee as unknown and pages (Q1358)", async () => {
+      const fn = await load();
+      event("evt_w_led_err", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      scenario.reads.payout_transfers = {
+        rows: [],
+        selectOverrides: [{ includes: "platform_fee_cents", result: { error: { message: "read boom" } } }],
+      };
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await post(fn);
+      const ledger = writesTo("payout_transfers", "insert").map(payload).find((r) => r.stripe_transfer_id === "tr_repay");
+      expect(ledger).toMatchObject({ status: "paid", amount_cents: 9000, platform_fee_cents: 0 });
+      expect((ledger?.metadata as Record<string, unknown>).platform_fee_unknown).toBe(true);
+      expect(alerts().some((a) => /UNKNOWN platform fee/.test(a.title))).toBe(true);
+    });
+
     it("a RESUMED re-payment that already reached Stripe is adopted, never paid twice", async () => {
       const fn = await load();
       event("evt_w_res", "charge.dispute.closed", dispute("won"));

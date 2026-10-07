@@ -81,7 +81,10 @@
     <link rel="shortcut icon" href="/favicon-32.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest?v=helpr2" />
+    <!-- No <link rel="manifest"> here (Q965): the production web build's
+         VitePWA plugin injects its own, so a second one here made the served
+         page carry two (measured 2026-10-07 on www). Native builds need none.
+         Guard: src/test/oneManifestLink.test.ts. -->
 
     <!-- Fonts are SELF-HOSTED (public/fonts, @font-face at the top of
          src/index.css) as of 2026-09-09. There is deliberately no Google

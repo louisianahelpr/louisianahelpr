@@ -106,6 +106,13 @@ const EPSILON = 0.005;
 const SETTLE_WINDOW_HOURS = 2;
 /** Q1222/Q1223: held money whose Helpr is clear and still unpaid this long after its last touch was dropped. */
 const HELD_REDRIVE_STUCK_HOURS = 24;
+/**
+ * Q1294: held money the re-drive has NEVER tried (no first-attempt stamp) is
+ * measured from when it became owed, over a longer limit: a dead sweep, a hold
+ * read failing every run, or a row that fails before its claim stamp never
+ * writes that stamp, and "no stamp, not stuck" made exactly that invisible.
+ */
+const HELD_NEVER_TRIED_HOURS = 72;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
 
 /**
@@ -1410,12 +1417,12 @@ serve(async (req) => {
       const stuckBefore = Date.now() - HELD_REDRIVE_STUCK_HOURS * 3_600_000;
       const tipRes = await admin
         .from("tip_hold_redrives")
-        .select("tip_id, helper_id, status, amount_cents, failure_reason, created_at, first_repay_attempt_at")
+        .select("tip_id, helper_id, status, amount_cents, failure_reason, created_at, updated_at, first_repay_attempt_at")
         .in("status", ["owed", "reversed", "repaying", "failed", "not_reversed"])
         .limit(1000);
       const clawRes = await admin
         .from("chargeback_clawbacks")
-        .select("id, dispute_id, helper_id, status, reversed_cents, failure_reason, held_repay_owed_at, held_repay_first_attempt_at")
+        .select("id, dispute_id, helper_id, status, reversed_cents, failure_reason, updated_at, held_repay_owed_at, held_repay_first_attempt_at")
         .not("held_repay_owed_at", "is", null)
         .limit(1000);
       for (const [name, res] of [["tip_hold_redrives", tipRes], ["chargeback_clawbacks.held_repay_owed_at", clawRes]] as const) {
@@ -1424,8 +1431,8 @@ serve(async (req) => {
         }
         if (res.error) notes.push(`held-money re-drive check skipped for ${name}: not deployed yet`);
       }
-      type TipRow = { tip_id: string; helper_id: string; status: string; amount_cents: number; failure_reason: string | null; created_at: string | null; first_repay_attempt_at: string | null };
-      type ClawRow = { id: string; dispute_id: string; helper_id: string | null; status: string; reversed_cents: number; failure_reason: string | null; held_repay_first_attempt_at: string | null };
+      type TipRow = { tip_id: string; helper_id: string; status: string; amount_cents: number; failure_reason: string | null; created_at: string | null; updated_at?: string | null; first_repay_attempt_at: string | null };
+      type ClawRow = { id: string; dispute_id: string; helper_id: string | null; status: string; reversed_cents: number; failure_reason: string | null; updated_at?: string | null; held_repay_owed_at: string | null; held_repay_first_attempt_at: string | null };
       const tipRows = (tipRes.error ? [] : tipRes.data ?? []) as TipRow[];
       const clawRows = (clawRes.error ? [] : clawRes.data ?? []) as ClawRow[];
       if (tipRows.length || clawRows.length) {
@@ -1439,11 +1446,21 @@ serve(async (req) => {
           // from the re-drive's FIRST attempt with the Helpr clear. No stamp
           // yet means no attempt yet: not stuck.
           const stale = (at: string | null) => { const t = ts(at); return t !== null && t < stuckBefore; };
+          // Q1294: never tried at all, measured from when it became owed.
+          const neverTriedBefore = Date.now() - HELD_NEVER_TRIED_HOURS * 3_600_000;
+          // From the LATER of when it became owed and its last write (a
+          // reversal, a hold change), so a row is not flagged the moment a long
+          // hold lifts, before the re-drive's first chance (review of Q1294).
+          const staleUntried = (owedAt: string | null, touchedAt?: string | null) => {
+            const t = Math.max(ts(owedAt) ?? -Infinity, ts(touchedAt ?? null) ?? -Infinity);
+            return Number.isFinite(t) && t < neverTriedBefore;
+          };
           for (const r of tipRows) {
             const refused = r.status === "failed" || r.status === "not_reversed";
             const stuck = !refused && (r.status === "owed"
               ? stale(r.created_at)
-              : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at));
+              : !holdRead.holds.has(r.helper_id) &&
+                (r.first_repay_attempt_at ? stale(r.first_repay_attempt_at) : staleUntried(r.created_at, r.updated_at)));
             if (refused || stuck) {
               checks.heldMoneyNotRedriven.add({ tip_id: r.tip_id, status: r.status, amount: money(r.amount_cents / 100), reason: r.failure_reason });
             }
@@ -1451,7 +1468,7 @@ serve(async (req) => {
           for (const r of clawRows) {
             if (r.status === "repaid") continue;
             if (r.helper_id && holdRead.holds.has(r.helper_id)) continue;
-            if (!stale(r.held_repay_first_attempt_at)) continue;
+            if (!(r.held_repay_first_attempt_at ? stale(r.held_repay_first_attempt_at) : staleUntried(r.held_repay_owed_at, r.updated_at))) continue;
             checks.heldMoneyNotRedriven.add({ clawback_id: r.id, dispute_id: r.dispute_id, status: r.status, amount: money(r.reversed_cents / 100), reason: r.failure_reason });
           }
         }

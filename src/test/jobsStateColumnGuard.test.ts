@@ -261,9 +261,9 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
     // auto-release-payment's undelivered-revision sweep (revision_completed_at IS NULL).
     "poster:revision_completed_at",
     "offered:revision_completed_at",
-    // Checkout lock. Locked once set (locked_when_funded keys on it); a poster
-    // can stamp it once on an unpaid job, which blocks their own checkout and delete.
-    "poster:stripe_session_id",
+    // CLOSED 20261007032429 (Q1366): "poster:stripe_session_id" — a poster
+    // could stamp, rewrite or clear the job's Checkout Session. It is now in
+    // enforce_poster_jobs_money_lock's locked_always.
   ].sort();
 
   it("no (seat, column) pair is writable without a guard (beyond the tracked ratchet)", () => {

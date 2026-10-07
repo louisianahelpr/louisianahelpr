@@ -315,4 +315,28 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
       skips.restore();
     }
   });
+
+  // Q1358 (lh-money-escrow review of Q592): a FAILED tier read used to price
+  // the fee at the fallback and STORE that rate on the claim row, so every
+  // retry reused it. The rate is now read before ANY money moves: a failed
+  // read leaves the job unsettled in escrow (no refund, no claim, no fee), so
+  // the next Part A run prices it again. (Read after the refund, a failed
+  // read settled the job with no fee row for Part E to retry: review of the
+  // first Q1358 cut.)
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!feeRead.ok) {\n          console.error(`[void-cancelled-payments] helper fee read failed for ${job.helper_id} | if (false) {\n          console.error(`[void-cancelled-payments] helper fee read failed for ${job.helper_id}
+  it("a failed tier read settles nothing this run: no refund, no claim, no fee (Q1358)", async () => {
+    seed();
+    scenario.reads.profiles = {
+      rows: [{ stripe_account_id: "acct_helper", subscription_tier: null }],
+      selectOverrides: [{ includes: "subscription_tier", result: { error: { message: "tier read boom" } } }],
+    };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const body = JSON.parse(await res.text()) as Record<string, unknown>;
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(feeWrites("insert")).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+    expect((body.defectReasons as string[]).some((r) => r.startsWith("cancellation fee tier read job-1") && r.endsWith("not settled"))).toBe(true);
+  });
 });

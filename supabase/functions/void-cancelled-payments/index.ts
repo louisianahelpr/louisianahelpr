@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
@@ -354,6 +354,9 @@ serve(async (req) => {
       job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
       cancellationFee: number,
       pi: Stripe.PaymentIntent,
+      // Q1358: Part A resolves the rate BEFORE any money moves (a failed read
+      // there leaves the job in escrow for the next run) and hands it in here.
+      preResolvedPercent?: number,
     ) => {
       if (!(cancellationFee > 0) || !job.helper_id) return;
       const helperId = job.helper_id;
@@ -402,12 +405,35 @@ serve(async (req) => {
           job.helper_fee_percent === null || job.helper_fee_percent === undefined
             ? null
             : Number(job.helper_fee_percent);
-        commissionPercent = await getHelperFeePercent(
-          supabaseAdmin,
-          helperId,
-          (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
-            DEFAULT_TIER_FEE_PERCENT,
-        );
+        // Q1358: a FAILED tier read is not priced at the fallback: the rate
+        // is stored on the claim row below and a retry reuses it, so a
+        // transient error would fix a wrong commission for good. Part A reads
+        // it before any money moves (preResolvedPercent) and skips the whole
+        // job on an error; this read is the backstop for any other caller,
+        // and pages because nothing would retry it.
+        if (preResolvedPercent !== undefined) {
+          commissionPercent = preResolvedPercent;
+        } else {
+          const feeRead = await readHelperFeePercentStrict(
+            supabaseAdmin,
+            helperId,
+            (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
+              DEFAULT_TIER_FEE_PERCENT,
+          );
+          if (!feeRead.ok) {
+            console.error(`[void-cancelled-payments] helper fee read failed for ${helperId} (job ${job.id}); fee not priced: ${feeRead.error}`);
+            defects.record(`cancellation fee tier read ${job.id}: ${feeRead.error} — fee not sent`);
+            await postSlackOpsAlert({
+              kind: "payout_failed",
+              severity: "critical",
+              title: "Cancellation fee not paid: the Helpr's fee tier could not be read",
+              message: `The Helpr's cancellation fee for job ${job.id} was not priced or sent, and no ledger row exists for a retry to find. Pay it by hand.`,
+              fields: { job_id: job.id, helper_id: helperId, fee: cancellationFee, error: feeRead.error.slice(0, 200) },
+            });
+            return;
+          }
+          commissionPercent = feeRead.percent;
+        }
         platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
         // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
         helperPayout = roundPayoutDownCents(Math.round((cancellationFee - platformCut) * 100)) / 100;
@@ -697,12 +723,20 @@ serve(async (req) => {
           console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}) not paid: member ${share.helper_id} is on a payout hold.`);
           continue;
         }
-        const commissionPercent = await getHelperFeePercent(
+        // Q1358: skip this share this run on a failed tier read (Part D
+        // retries it) rather than paying at the fallback rate.
+        const shareFeeRead = await readHelperFeePercentStrict(
           supabaseAdmin,
           share.helper_id,
           (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
             DEFAULT_TIER_FEE_PERCENT,
         );
+        if (!shareFeeRead.ok) {
+          console.error(`[void-cancelled-payments] helper fee read failed for crew fee share ${share.id} (job ${job.id}): ${shareFeeRead.error}`);
+          defects.record(`crew fee share tier read ${share.id}: ${shareFeeRead.error} — not paid`);
+          continue;
+        }
+        const commissionPercent = shareFeeRead.percent;
         const platformCut = Math.round(shareAmount * (commissionPercent / 100) * 100) / 100;
         // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
         const memberPayout = roundPayoutDownCents(Math.round((shareAmount - platformCut) * 100)) / 100;
@@ -1282,9 +1316,62 @@ serve(async (req) => {
         // An unfilled or ban-ended series visit carries no fee
         // (_shared/seriesRefund.ts).
         jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
+        // Q738: a visit a BAN ended is refunded in full, so a late-cancel fee
+        // the booked Helpr would otherwise be owed is withheld. That was
+        // silent; it is a judgement call (whose ban, what for), so admins
+        // are told, once a day per job, and decide by hand.
+        const withheldForBan = job.series_ban_cancelled_at && job.helper_id ? computeCancellationFee(job) : 0;
+        if (jobCancellationFee === 0 && withheldForBan > 0) {
+          // Whose ban? Best effort, read only for the page: an unreadable
+          // answer says so rather than blocking the settlement.
+          const { data: banRows, error: banErr } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id, ban_status")
+            .in("user_id", [job.helper_id, job.customer_id].filter((x): x is string => !!x));
+          const banOf = (id: string | null | undefined) =>
+            banErr ? "unreadable" : ((banRows ?? []) as Array<{ user_id: string; ban_status: string | null }>).find((r) => r.user_id === id)?.ban_status ?? "none";
+          console.warn(`[void-cancelled-payments] job ${job.id}: $${withheldForBan.toFixed(2)} late-cancel fee withheld from Helpr ${job.helper_id}: the visit was ended by a ban`);
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Cancellation fee withheld: a ban ended this visit",
+            message: `A series visit ended by a ban (series_ban_cancelled_at set) is refunded in full, so the booked Helpr is not paid the $${withheldForBan.toFixed(2)} late-cancel fee they would otherwise be owed. If the ban was the poster's, decide whether to pay the Helpr by hand.`,
+            fields: {
+              job_id: job.id,
+              helper_id: job.helper_id,
+              helper_ban_status: banOf(job.helper_id),
+              poster_id: job.customer_id ?? null,
+              poster_ban_status: banOf(job.customer_id),
+              withheld_fee: withheldForBan,
+            },
+            oncePerDayKey: `ban-withheld-fee:${job.id}`,
+          });
+        }
+      }
+      // Q1358: the single Helpr's commission rate, read BEFORE any money moves.
+      // A failed read skips the whole job this run (it stays in escrow and the
+      // next run retries); priced after the refund, a failed read left the job
+      // settled with no fee row for Part E to find.
+      let singleFeePercent: number | undefined;
+      if (!crewShares && jobCancellationFee > 0 && job.helper_id) {
+        const frozen = job.helper_fee_percent === null || job.helper_fee_percent === undefined
+          ? null
+          : Number(job.helper_fee_percent);
+        const feeRead = await readHelperFeePercentStrict(
+          supabaseAdmin,
+          job.helper_id,
+          (frozen !== null && Number.isFinite(frozen) ? frozen : undefined) ?? DEFAULT_TIER_FEE_PERCENT,
+        );
+        if (!feeRead.ok) {
+          console.error(`[void-cancelled-payments] helper fee read failed for ${job.helper_id} (job ${job.id}); not settling this run: ${feeRead.error}`);
+          defects.record(`cancellation fee tier read ${job.id}: ${feeRead.error} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "helper_fee_read_failed" });
+          continue;
+        }
+        singleFeePercent = feeRead.percent;
       }
       const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
-        crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi);
+        crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi, singleFeePercent);
 
       let paymentIntentId = job.stripe_payment_intent_id;
 

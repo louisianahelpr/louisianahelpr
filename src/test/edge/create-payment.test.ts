@@ -3041,6 +3041,64 @@ describe("create-payment edge function", () => {
           expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
         });
 
+        // Q1260: the transfer that lost the race to a chargeback is clawed back
+        // HERE. The webhooks' clawback runs on charge.dispute.created and
+        // funds_withdrawn, and both can be processed before this transfer exists.
+        // @mutate supabase/functions/create-payment/index.ts |   const clawbackOutcome = moved === "transfer" && release | const clawbackOutcome = false && release
+        // @mutate supabase/functions/create-payment/index.ts |   const real = disputes.find((d) => ["needs_response", "under_review", "lost"].includes(String(d.status ?? ""))); |   const real = disputes[0];
+        describe("Quick Release that raced a chargeback reverses its own transfer (Q1260)", () => {
+          const qrTransfer = { id: "tr_d", amount: 8800, amount_reversed: 0, created: 1, destination: "acct_helper", transfer_group: "job_job-1" };
+          async function race(disputes: Array<Record<string, unknown>>) {
+            seedReleasable();
+            chargebackLanded();
+            stripeMock.disputes.list.mockResolvedValue({ data: disputes });
+            stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_qr", amount: 8800 });
+            scenario.writeSelectRows["chargeback_clawbacks:insert"] = [{ id: "cb-qr", dispute_id: "dp_qr", job_id: "job-1", helper_id: "helper-1", original_transfer_id: "tr_d", stripe_account_id: "acct_helper", transfer_amount_cents: 8800, reversed_cents: 8800, stripe_reversal_id: null, status: "reversing" }];
+            // Stripe lists the transfer only once Quick Release has made it.
+            let listed: Array<Record<string, unknown>> = [];
+            const realCreate = stripeMock.transfers.create.getMockImplementation();
+            stripeMock.transfers.create.mockImplementation(async (...args: unknown[]) => {
+              listed = [qrTransfer];
+              return realCreate ? (realCreate as (...a: unknown[]) => unknown)(...args) : { id: "tr_d", amount: 8800 };
+            });
+            stripeMock.transfers.list.mockImplementation(async () => ({ data: listed }));
+            const fn = await load();
+            const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+            return res;
+          }
+
+          it("a real chargeback: the transfer is reversed under the dispute's own idempotency key, and the page says so", async () => {
+            const res = await race([{ id: "dp_qr", status: "needs_response", amount: 11200, payment_intent: "pi_1", charge: "ch_1" }]);
+            expect(res.status).toBe(409);
+            expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: expect.any(String) }));
+            const reversal = stripeMock.transfers.createReversal.mock.calls.find((c) => c[0] === "tr_d");
+            expect(reversal, JSON.stringify(slackAlerts)).toBeDefined();
+            expect(reversal![2]).toEqual({ idempotencyKey: "clawback-dp_qr-tr_d" });
+            expect(raceAlerts()).toHaveLength(1);
+            expect(String((raceAlerts()[0] as { message?: string }).message)).toMatch(/reversed now/);
+          });
+
+          it("an inquiry withdraws nothing: no reversal, and the page says funds_withdrawn will claw back if it escalates", async () => {
+            const res = await race([{ id: "dp_inq", status: "warning_needs_response", amount: 11200, payment_intent: "pi_1", charge: "ch_1" }]);
+            expect(res.status).toBe(409);
+            expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+            expect(String((raceAlerts()[0] as { message?: string }).message)).toMatch(/still an inquiry/);
+          });
+
+          it("a dispute already WON is never reversed against (its closed webhook already ran)", async () => {
+            const res = await race([{ id: "dp_won", status: "won", amount: 11200, payment_intent: "pi_1", charge: "ch_1" }]);
+            expect(res.status).toBe(409);
+            expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+          });
+
+          it("no dispute Stripe can find: nothing reversed, the page says to reverse by hand", async () => {
+            const res = await race([]);
+            expect(res.status).toBe(409);
+            expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+            expect(String((raceAlerts()[0] as { message?: string }).message)).toMatch(/reverse the transfer by hand/);
+          });
+        });
+
         it("Quick Release: zero rows with NO chargeback behind them keeps the manual-reconciliation 500, no race page (Q1192)", async () => {
           seedReleasable();
           scenario.reads.jobs = {
@@ -3918,6 +3976,48 @@ describe("create-payment edge function", () => {
       expect(res.status).toBe(409);
       expect((await json(res)).alreadyMoved).toBe(true);
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    // Q1320: a partial that returns the whole capture (alone, or with refunds
+    // already on the charge) left the job payable: a partial takes no claim and
+    // flips nothing, and the single-Helpr payout reads no refund total. It is
+    // now refused with nothing moved; the full refund is the action to use.
+    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) { |           if (isPartial && requestedCents! > capturedCents) {
+    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) { |           if (isPartial && requestedCents! >= capturedCents) {
+    describe("a partial that returns the whole capture is refused (Q1320)", () => {
+      async function partial(amountCents: number, prior: Array<{ id: string; amount: number; status: string }>) {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, budget: 100, title: "Escrow job", status: "in_progress", payment_status: "escrow", stripe_payment_intent_id: "pi_q1320" }],
+        };
+        scenario.reads.payout_transfers = { rows: [] };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_q1320", status: "succeeded", amount: 11200, amount_received: 11200 });
+        stripeMock.refunds.list.mockResolvedValue({ data: prior });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_q1320" });
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", amountCents } }));
+      }
+
+      it("refuses a partial equal to the capture on an unpaid-out job, moving nothing", async () => {
+        const res = await partial(11200, []);
+        expect(res.status).toBe(409);
+        expect((await json(res)).useFullRefund).toBe(true);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.find((w) => w.table === "jobs" && w.op === "update")).toBeUndefined();
+      });
+
+      it("refuses a partial that, with an earlier partial, reaches the capture", async () => {
+        const res = await partial(6200, [{ id: "re_prior", amount: 5000, status: "succeeded" }]);
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      it("a failed earlier refund does not count toward the capture, and a smaller partial still goes out", async () => {
+        const res = await partial(6200, [{ id: "re_failed", amount: 5000, status: "failed" }]);
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(6200);
+      });
     });
 
     // A degenerate captured amount (non-finite / zero) makes the partial ceiling

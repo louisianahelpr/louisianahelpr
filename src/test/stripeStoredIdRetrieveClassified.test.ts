@@ -63,7 +63,7 @@ function catchBodyAfter(s: string, from: number): string | null {
   return s.slice(start, i - 1);
 }
 
-interface Site { key: string; file: string; classified: boolean; logged: boolean }
+interface Site { key: string; file: string; classified: boolean; logged: boolean; connectClassified: boolean }
 
 const files = walk(FUNCTIONS);
 const sites: Site[] = [];
@@ -83,6 +83,7 @@ for (const f of files) {
       file: rel,
       classified: body.includes("isTestObjectUnderLiveKey("),
       logged: body.includes("logTestObjectUnderLiveKey("),
+      connectClassified: body.includes("isUnusableConnectAccountError("),
     });
   }
 }
@@ -140,13 +141,42 @@ const REREAD =
 const FRESH = "an object this run created under this key moments earlier, not a stored id";
 const ABSENT =
   "swallow-to-absent by design: an unreadable prior object is replaced by a fresh one; no money moves on it";
-const ACCOUNT =
-  "a Connect account id: Stripe answers a test account under the live key with a different sentence ('test account created with a testmode key', see isUnusableConnectAccountError), not the one isTestObjectUnderLiveKey matches. STILL OPEN: Q891 follow-up";
 const EVENT =
   "an id taken from a Stripe webhook event, and stripe-webhook/index.ts refuses an event whose livemode differs from the key's mode, so it is of this key's mode";
 const PLATFORM = "reads the platform's own account/balance, not a stored id";
 
-/** The retrieves that do NOT go through it, each with why: EXACT. */
+/**
+ * Q1251: a stored CONNECT ACCOUNT id. Stripe answers a sandbox account under
+ * the live key with "…was a test account created with a testmode key", which
+ * is `isUnusableConnectAccountError`'s sentence, not `isTestObjectUnderLiveKey`'s.
+ * Every such read goes through THAT classifier: in the catch right after the
+ * retrieve (CONNECT_CLASSIFIED), or, where the read sits inside a larger try,
+ * in the catch or callback named in CONNECT_AT_CALLER. EXACT, both ways.
+ * Before Q1251, execute-dispute-split and release-payout answered 502 "retry"
+ * (and the split marked the dispute failed) and instant-payout 500'd.
+ */
+const CONNECT_CLASSIFIED = [
+  "execute-dispute-split/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
+  "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })",
+  "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
+  "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)",
+  "stripe-connect/index.ts::stripe.accounts.retrieve(created.id)",
+  "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(account.id)",
+  "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(accountId)",
+  "stripe-payouts/index.ts::stripe.accounts.retrieve(accountId)",
+  "stripe-payouts/index.ts::stripe.balance.retrieve({ stripeAccount: accountId })",
+];
+/** Connect reads classified by a caller's catch or callback: key -> the text that does it. */
+const CONNECT_AT_CALLER: Record<string, RegExp> = {
+  // The handler's outer catch: `const isStaleAccountErr = isUnusableConnectAccountError(err);`
+  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
+  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#2": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
+  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#3": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
+  // Q1221: the sync hands its retrieve to syncPayoutHold, which asks isAccountGone.
+  "payout-hold-stripe-sync/index.ts::stripe.accounts.retrieve(accountId)": /isAccountGone:\s*\(err: unknown\) => isUnusableConnectAccountError\(err\)/,
+};
+
+/** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
@@ -164,24 +194,12 @@ const EXEMPT: Record<string, string> = {
   "create-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#4": OUTER,
   "create-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#5": REREAD,
   "create-payment/index.ts::stripe.paymentIntents.retrieve(priorPi.id)": REREAD,
-  "execute-dispute-split/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)": ACCOUNT,
   "execute-dispute-split/index.ts::stripe.charges.retrieve(charge)": REREAD,
   "execute-dispute-split/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
   "instant-payout/index.ts::stripe.accounts.retrieve()": PLATFORM,
-  "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })": ACCOUNT,
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
-  // Q1221: the held Helpr's Connect account, read for its payout schedule.
-  "payout-hold-stripe-sync/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
-  "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)": ACCOUNT,
-  "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
-  "stripe-connect/index.ts::stripe.accounts.retrieve(created.id)": FRESH,
-  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)": ACCOUNT,
-  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#2": ACCOUNT,
-  "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#3": ACCOUNT,
   "stripe-idv-start/index.ts::stripe.identity.verificationSessions.retrieve(profile.idv_session_id)": ABSENT,
   "stripe-idv-webhook/index.ts::stripe.identity.verificationSessions.retrieve(session.id)": EVENT,
-  "stripe-payouts/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
-  "stripe-payouts/index.ts::stripe.balance.retrieve({ stripeAccount: accountId })": ACCOUNT,
   "_shared/chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,
   // Q1222: holdBackPaidTip runs only from checkout.session.completed; the
   // PaymentIntent is the event session's, the transfer that charge's.
@@ -190,8 +208,6 @@ const EXEMPT: Record<string, string> = {
   // Q1324: the card that paid this event's own session.
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.subscriptions.retrieve(session.subscription)": EVENT,
-  "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(account.id)": EVENT,
-  "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(accountId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefundUpdated.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(closedDispute.charge as string)": EVENT,
@@ -217,8 +233,23 @@ describe("every stored-id Stripe retrieve is classified for a test-mode id under
     expect(actual).toEqual([...CLASSIFIED].sort());
   });
 
+  // @mutate supabase/functions/release-payout/index.ts |     if (isUnusableConnectAccountError(e)) { |     if (false) {
+  // @mutate supabase/functions/instant-payout/index.ts |       if (!isUnusableConnectAccountError(balanceErr)) throw balanceErr; |       throw balanceErr;
+  it("every stored Connect account read goes through the Connect classifier (Q1251), exact both ways", () => {
+    const local = sites.filter((s) => !s.classified && s.connectClassified).map((s) => s.key).sort();
+    expect(local).toEqual([...CONNECT_CLASSIFIED].sort());
+    for (const [k, re] of Object.entries(CONNECT_AT_CALLER)) {
+      const site = sites.find((s) => s.key === k);
+      expect(site, `${k} still exists`).toBeDefined();
+      expect(sources.get(site!.file), `${k}: its caller classifies`).toMatch(re);
+    }
+  });
+
   it("the exempt list is exact, both ways: no unlisted unclassified retrieve, no stale entry", () => {
-    const actual = sites.filter((s) => !s.classified).map((s) => s.key).sort();
+    const actual = sites
+      .filter((s) => !s.classified && !s.connectClassified && !(s.key in CONNECT_AT_CALLER))
+      .map((s) => s.key)
+      .sort();
     expect(actual).toEqual(Object.keys(EXEMPT).sort());
     for (const [k, why] of Object.entries(EXEMPT)) expect(why.length, `${k} needs a reason`).toBeGreaterThan(20);
   });

@@ -43,7 +43,9 @@ export function fixtureRow(posterId, now = Date.now()) {
   return {
     customer_id: posterId,
     title: BROWSE_FIXTURE_TITLE,
-    description: "SEED test fixture (Q946) — not a real job. Test accounts only; it can be applied to and withdrawn from, never hired.",
+    // Over 180 characters on purpose: JobDetailDialog folds a longer
+    // description behind Read More, so the fixture also shows that state (Q949).
+    description: "SEED test fixture (Q946) — not a real job. It is shown only to the registered test accounts, it can be applied to and withdrawn from by the browse journey, and the database refuses any write that would hire it, offer it or move its money.",
     category: "cleaning",
     budget: 120,
     status: "open",

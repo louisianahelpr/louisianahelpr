@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-07T08:12:29.596Z",
-  "guards": 1551,
-  "registered": 1549,
+  "generated": "2026-10-07T08:56:12.277Z",
+  "guards": 1552,
+  "registered": 1550,
   "unregistered": [
     "src/test/chargebackRepayLedgerRow.test.ts",
     "src/test/crewHireBeforePayout.test.ts"

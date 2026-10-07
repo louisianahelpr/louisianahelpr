@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T07:58Z",
+  "measured_at": "2026-10-07T08:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -247,6 +247,14 @@
         "status": "verifying",
         "title": "✅ stripe chargeback won",
         "issue": null
+      },
+      {
+        "fingerprint": "fdf163a422f2bc1df11ed9646c9c0948",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: land queue",
+        "issue": null
       }
     ]
   },
@@ -292,6 +300,7 @@
     "ledger dfa53ea7538b": "Q1467",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
-    "ledger fad6897fcfae": "Q1438"
+    "ledger fad6897fcfae": "Q1438",
+    "ledger fdf163a422f2": "Q1482"
   }
 }

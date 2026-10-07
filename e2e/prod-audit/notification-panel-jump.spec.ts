@@ -28,6 +28,9 @@
 // Shown able to fail: a fade-only exit keeps the row's box until it is removed
 // in one frame, the pre-f40193ae7 geometry (~100px at 375).
 // @mutate src/components/NotificationPanel.tsx | const collapseExit = reducedMotion | const collapseExit = true
+// Q931: on the desktop website the panel's WIDTH followed its content, so the
+// last unread row leaving moved its left edge (445px with a row -> 233px).
+// @mutate src/components/NotificationPanel.tsx |  [.web-desktop_&]:w-[28rem]"> | ">
 import { test, expect, webkit, type Browser, type Page } from "../prodTest";
 import { newUserContext, sessionFor, SUPABASE_URL, ANON, rest, type Session } from "./harness";
 
@@ -159,3 +162,44 @@ for (const engine of ["chromium", "webkit"] as const) {
     }
   });
 }
+
+/**
+ * Q931, the desktop half: when the last unread row leaves, the panel keeps its
+ * width and left edge. Shrink-to-fit made the desktop panel as wide as its
+ * content, so a live row arriving or leaving moved its left edge (measured on
+ * prod at 1440, 2026-10-07: 330px empty, 445px with a row, 233px "Nothing
+ * unread"). Chromium is enough: this is layout, not an engine quirk.
+ */
+test("notification panel at 1440: the last unread row leaving keeps the panel's width and left edge (Q931)", async ({ request, browser }) => {
+  test.setTimeout(2 * 60_000);
+  const mine = await seedUnread(request, 1);
+  const ctx = await newUserContext(browser, poster);
+  const ids = mine.join(",");
+  await ctx.route(/\/rest\/v1\/notifications\?/, (route) => {
+    const req = route.request();
+    if (req.method() !== "GET" && req.method() !== "HEAD") return route.continue();
+    return route.continue({ url: `${req.url()}&id=in.(${ids})` });
+  });
+  const page = await ctx.newPage();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/home");
+  await page.getByRole("button", { name: "Notifications" }).first().click();
+  const panel = page.locator('[role="dialog"][aria-labelledby]');
+  await expect(panel).toBeVisible({ timeout: 20_000 });
+  await panel.getByRole("radio", { name: /Unread/ }).click();
+  const rows = panel.getByRole("button").filter({ hasText: TITLE });
+  await expect(rows.first()).toBeVisible({ timeout: 20_000 });
+  await page.waitForTimeout(800);
+  const box = () => panel.evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, width: r.width }; });
+  const withRow = await box();
+  await rows.first().dispatchEvent("click");
+  await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(0, { timeout: 10_000 });
+  await page.waitForTimeout(800);
+  const empty = await box();
+  const measure = `1440: with a row left=${withRow.left.toFixed(1)} width=${withRow.width.toFixed(1)}; empty left=${empty.left.toFixed(1)} width=${empty.width.toFixed(1)}`;
+  test.info().annotations.push({ type: "measure", description: measure });
+  console.log(`[notification-panel-jump] ${measure}`);
+  expect(Math.abs(empty.width - withRow.width), `the panel changed width when its last row left (${measure})`).toBeLessThanOrEqual(1);
+  expect(Math.abs(empty.left - withRow.left), `the panel's left edge moved when its last row left (${measure})`).toBeLessThanOrEqual(1);
+  await ctx.close();
+});

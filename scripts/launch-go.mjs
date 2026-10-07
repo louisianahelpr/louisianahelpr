@@ -30,7 +30,10 @@
  * -----------------
  * Exactly one row, one column: `platform_settings.feature_flags`, and only the
  * `seed_jobs_hidden_publicly` key inside it, and only when a human passes
- * `--on --confirm` or `--off --confirm`. Every other interaction with prod is a
+ * `--on --confirm` or `--off --confirm`. The one exception is the launch push
+ * (`--launch-push --confirm`, Q1313): one in-app notification per recipient
+ * (the send-once record) plus the push itself, only when every precondition
+ * passed. Every other interaction with prod is a
  * read. There is no `--yes`, no env-var escape and no default-to-flip: the bare
  * command reports and changes nothing.
  *
@@ -39,6 +42,9 @@
  *   npm run launch:go -- --on --confirm    LAUNCH: hide fixtures, then verify
  *   npm run launch:go -- --off --confirm   ROLL BACK: show fixtures again
  *   npm run launch:go -- --json            machine-readable result on stdout
+ *
+ *   npm run launch:go -- --launch-push               count who the launch push would reach
+ *   npm run launch:go -- --launch-push --confirm     SEND the one-time launch push (Q1313)
  *
  *   --allow-empty-marketplace   proceed with --on even though hiding fixtures
  *                               would leave the public marketplace with zero
@@ -557,6 +563,48 @@ async function flipFlag(current, target) {
 
 // ── main ────────────────────────────────────────────────────────────────────
 
+// ── the one-time launch push (Q1313, owner 2026-10-06) ──────────────────────
+// Copy approved by the owner word for word. Sent ONCE per person: each
+// recipient also gets an in-app notification with this exact title, and
+// anyone who already has one is skipped, so a re-run never double-sends.
+export const LAUNCH_PUSH = Object.freeze({
+  title: "Work is landing on Helpr",
+  body: "Work is landing on Helpr. Paid jobs are open now. Tap to browse.",
+  link: "/jobs",
+});
+
+/** People with a device push token whose job-match pushes are on (a missing preference row means the defaults: on). */
+export function launchPushRecipients(tokens, prefs, alreadySent) {
+  const off = new Set(prefs.filter((p) => p.push_enabled === false || p.job_matches === false).map((p) => p.user_id));
+  const sent = new Set(alreadySent);
+  return [...new Set(tokens.map((t) => t.user_id))].filter((u) => u && !off.has(u) && !sent.has(u));
+}
+
+async function launchPush(send) {
+  section(send ? "Launch push: SENDING" : "Launch push: who it would reach (nothing sent)");
+  const tokens = await rest("push_tokens?select=user_id");
+  const prefs = await rest("notification_preferences?select=user_id,push_enabled,job_matches");
+  const done = await rest(`notifications?select=user_id&title=eq.${encodeURIComponent(LAUNCH_PUSH.title)}`);
+  for (const [n, r] of [["push_tokens", tokens], ["notification_preferences", prefs], ["notifications", done]]) {
+    if (!r.ok || !Array.isArray(r.json)) { record("FAIL", "launch push", `could not read ${n}: HTTP ${r.status}`); return false; }
+  }
+  const to = launchPushRecipients(tokens.json, prefs.json, done.json.map((d) => d.user_id));
+  record(to.length ? "PASS" : "WARN", "launch push recipients", `${to.length} person(s) (${done.json.length} already sent)`);
+  if (!send) return true;
+  let okCount = 0;
+  for (const user_id of to) {
+    // In-app first: it is the send-once record, so a failed push is retried by a re-run.
+    const ins = await rest("notifications?select=id", { method: "POST", headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ user_id, title: LAUNCH_PUSH.title, message: LAUNCH_PUSH.body, type: "job_updates", link: LAUNCH_PUSH.link }) });
+    if (!ins.ok || !Array.isArray(ins.json) || ins.json.length !== 1) { record("FAIL", `launch push ${user_id}`, `in-app notice not written: HTTP ${ins.status}`); continue; }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, { method: "POST", headers: svcHeaders,
+      body: JSON.stringify({ user_id, title: "Helpr", body: LAUNCH_PUSH.body, link: LAUNCH_PUSH.link }) });
+    if (res.ok) okCount++; else record("WARN", `launch push ${user_id}`, `push HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+  record(okCount === to.length ? "PASS" : "WARN", "launch push sent", `${okCount} of ${to.length} delivered to the push service`);
+  return okCount === to.length;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const has = (f) => argv.includes(f);
@@ -565,8 +613,9 @@ async function main() {
   const confirm = has("--confirm");
   const json = has("--json");
   const allowEmpty = has("--allow-empty-marketplace");
+  const pushFlag = has("--launch-push");
 
-  const unknown = argv.filter((a) => !["--on", "--off", "--confirm", "--json", "--allow-empty-marketplace"].includes(a));
+  const unknown = argv.filter((a) => !["--on", "--off", "--confirm", "--json", "--allow-empty-marketplace", "--launch-push"].includes(a));
   if (unknown.length) { console.error(`unknown argument(s): ${unknown.join(", ")}`); process.exit(2); }
   if (on && off) { console.error("--on and --off are mutually exclusive"); process.exit(2); }
   if ((on || off) && !confirm) {
@@ -644,6 +693,8 @@ async function main() {
       }
     }
   }
+
+  if (pushFlag) ok = (await launchPush(confirm && ok)) && ok;
 
   section("Result");
   const tally = results.reduce((a, r) => ((a[r.status] = (a[r.status] || 0) + 1), a), {});

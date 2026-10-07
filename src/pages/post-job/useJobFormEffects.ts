@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { report } from "@/lib/errorLogger";
-import { JOB_READABLE_COLUMNS, readableJobRow } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRow } from "@/lib/jobColumns";
+import { fetchJobAccessNote } from "@/hooks/useJobAccessNote";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { posterFeePercentForTier } from "@/lib/posterFees";
 import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
@@ -65,6 +66,9 @@ export interface UseJobFormEffectsParams {
   setBudget: (v: string) => void;
   setEstimatedHours: (v: string) => void;
   setSpecialRequirements: (v: string) => void;
+  /** Q1461: a rebook carries the old job's materials note (optional: not every caller has the toggle). */
+  setIncludeMaterials?: (v: boolean) => void;
+  setMaterialsNote?: (v: string) => void;
   setIsRecurring: (v: boolean) => void;
   setRecurrenceInterval: (v: string) => void;
   setParish: (v: string | null) => void;
@@ -118,6 +122,8 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setBudget,
     setEstimatedHours,
     setSpecialRequirements,
+    setIncludeMaterials,
+    setMaterialsNote,
     setIsRecurring,
     setRecurrenceInterval,
     setParish,
@@ -258,7 +264,11 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     if (rebookId) {
       // Named columns, not `*`: jobs.offered_to_helper_id is not selectable
       // (20260915045110), and a rebook never copies an offer anyway.
-      supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("id", rebookId).single().then(({ data: raw, error }) => {
+      // Q1461: + the materials note, through readJobsAheadOfDb (42703 on a
+      // database behind this build: asked again without it).
+      void readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) =>
+        supabase.from("jobs").select(columns).eq("id", rebookId).single(),
+      ).then(({ data: raw, error }) => {
         if (error || !raw) {
           toast.error("Couldn't load the previous job for rebooking — please fill in the details manually.");
           return;
@@ -290,7 +300,18 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         }
         setBudget(data.budget.toString());
         setEstimatedHours(data.estimated_hours?.toString() || "");
-        setSpecialRequirements(data.special_requirements || "");
+        // Q1461: the two notes are stored apart now. Materials is on the row;
+        // the Access & Parking notes are the poster's own job_access_notes row.
+        const materials = (data as { materials_note?: string | null }).materials_note?.trim();
+        if (materials) {
+          setIncludeMaterials?.(true);
+          setMaterialsNote?.(materials);
+        }
+        fetchJobAccessNote(rebookId).then(
+          (notes) => { if (notes) setSpecialRequirements(notes); },
+          // The rebook still works without them; the poster can retype.
+          (err) => report(err, { severity: "warning", tags: { source: "useJobFormEffects.rebookAccessNote" } }),
+        );
         setIsRecurring(data.is_recurring || false);
         setRecurrenceInterval(data.recurrence_interval || "weekly");
       });

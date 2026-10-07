@@ -3,11 +3,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
-import {
-  CheckCircle2, Star,
-  XCircle,
-  Eye, Pencil, Image,
-} from "lucide-react";
+import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -35,6 +31,7 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { useCardNotes } from "@/components/job-card/JobNotes";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -110,6 +107,7 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
+  const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job
     // closes to another helper, the jobs SELECT policy hides it from a
@@ -232,7 +230,10 @@ function AppliedJobCardInner({
   // The expanded body also has to render for the poster PersonTile (V6), even
   // on a job with no description of its own to show — but only while the body
   // is the one printing it.
-  const hasCardBody = showDescription || bodyCarriesTile;
+  const showNotes = !isMinimalCard && notes !== null;
+  /** Photos only inside the expanded card, above the buttons (owner 2026-10-06); pending draws its own. */
+  const showBodyPhotos = !isMinimalCard && isExpanded && !isPending && (job.photos || []).length > 0;
+  const hasCardBody = showDescription || bodyCarriesTile || showNotes || showBodyPhotos;
 
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
@@ -417,7 +418,7 @@ function AppliedJobCardInner({
           <div
             data-job-card-body=""
             className={`px-4 pt-1 space-y-2 ${
-              hasActionSection && !isMinimalCard ? (showDescription ? "pb-2.5" : "pb-1.5") : "pb-3"
+              hasActionSection && !isMinimalCard ? (showDescription || showNotes ? "pb-2.5" : "pb-1.5") : "pb-3"
             }`}
           >
             {/* No chevron glyph on this card (owner: remove it) — the whole
@@ -467,6 +468,8 @@ function AppliedJobCardInner({
                 <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
               </section>
             )}
+            {showNotes && notes}
+            {showBodyPhotos && <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />}
 
             {/* The poster, as a PersonTile — the same shared tile the poster
                 card uses for the Helpr (eyebrow "Posted by"). An ownerless job
@@ -841,16 +844,12 @@ function AppliedJobCardInner({
             </div>
           )}
 
-          {/* Footer: extra details (photos, requirements, group/recurring) */}
-          {/* NO group-size line here any more — it moved into the meta row,
-              inline after the time (owner: "3 helprs needed goes to the right
-              of time"). It was the last item on the whole card, below the
-              Edit/Withdraw chips, so a fact about the job was printed
-              underneath the helper's own controls. See the `helpersNeeded`
-              prop on JobCardMetaRow above. */}
-          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring) && (
+          {/* Footer: the recurring series row */}
+          {/* No group-size line here: it moved into the meta row, after the time
+              (owner), not below the helper's controls; see `helpersNeeded`. No
+              photos here either: they sat below the buttons (owner 2026-10-06). */}
+          {!isMinimalCard && (!isFullyDone || isExpanded) && job.is_recurring && (
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
-              <JobCardPhotoStrip urls={job.photos || []} size="sm" />
               {job.is_recurring && <HelperSeriesRow job={job} userId={userId} />}
             </div>
           )}

@@ -248,6 +248,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Q1460: books an already-staffed crew (open -> accepted) at its hiring
+    // cutoff; a server sweep over funded crews with hired members, not a feed.
+    ["public.start_underfilled_crews", "server sweep that books staffed crews; not a feed"],
     // Q1185: completing one direct offer's accept (its own Helpr's, its job
     // locked); 'open' is the offer's precondition. Seed jobs are refused
     // through direct_accept_block_reason, a registered seed-gated surface.

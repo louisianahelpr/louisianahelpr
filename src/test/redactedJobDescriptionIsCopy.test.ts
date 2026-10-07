@@ -5,7 +5,7 @@
  * internal bracketed marker. Pins the newest migration that defines
  * purge_user_data.
  *
- * @mutate supabase/migrations/20260924072554_redacted_job_description_is_user_copy.sql |            description          = 'This job''s details were removed when the poster closed their account.', -- AL-012 user copy |            description          = '[removed at account deletion]', -- AL-012 user copy
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |            description          = 'This job''s details were removed when the poster closed their account.', -- AL-012 user copy |            description          = '[removed at account deletion]', -- AL-012 user copy
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

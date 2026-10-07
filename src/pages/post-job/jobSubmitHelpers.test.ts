@@ -28,7 +28,7 @@ const base: BuildJobInsertPayloadInput = {
   isFlexibleSchedule: false,
   estimatedHours: "2",
   budget: "100",
-  specialRequirements: "",
+  materialsNote: null,
   isRecurring: false,
   recurrenceInterval: "",
   recurrenceEndDate: "",

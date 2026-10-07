@@ -26,6 +26,7 @@ import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { useCardNotes } from "@/components/job-card/JobNotes";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -99,7 +100,9 @@ function PostedJobCardInner({
 
   // A description that merely restates the title is not a description.
   const hasDescription = job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
-  const hasRequirements = !!job.special_requirements?.trim();
+  // Q1461: the poster's two notes, labelled (they were one "Special Requirements" string).
+  const notes = useCardNotes(job, isExpanded, true);
+  const hasRequirements = notes !== null;
 
   // The tracking card carries the assigned helper's identity (see below), so
   // the standalone "Offered to …" pill row only renders on the states where no
@@ -407,12 +410,7 @@ function PostedJobCardInner({
                 {hasDescription && (
                   <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
                 )}
-                {hasRequirements && (
-                  <div className="rounded-ds-sm bg-secondary/30 p-2">
-                    <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
-                    <p className="text-ds-11 text-foreground break-words">{job.special_requirements}</p>
-                  </div>
-                )}
+                {notes}
               </div>
             )}
 

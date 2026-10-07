@@ -127,7 +127,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
-  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party"];
+  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

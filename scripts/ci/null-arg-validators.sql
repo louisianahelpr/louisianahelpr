@@ -39,6 +39,7 @@ CREATE TEMP TABLE q140_out (fn text, shape text, detail text) ON COMMIT DROP;
 CREATE TEMP TABLE q140_class (fn text PRIMARY KEY, kind text NOT NULL, why text NOT NULL) ON COMMIT DROP;
 INSERT INTO q140_class (fn, kind, why) VALUES
   ('can_message_in_job',            'allow',    'may this sender post in this job'),
+  ('can_read_job_access_notes',     'allow',    'may the caller read this job''s access and parking notes (Q1461)'),
   ('can_review_job',                'allow',    'may this party review this job'),
   ('can_send_message_in_job',       'allow',    'may the caller post in this job'),
   ('can_send_message_to_in_job',    'allow',    'may the caller message this receiver'),
@@ -122,6 +123,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
 CREATE TEMP TABLE q140_case (fn text NOT NULL, sub uuid, args text[] NOT NULL, null_at int[] NOT NULL) ON COMMIT DROP;
 INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('can_message_in_job',            NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
+  -- A posts J, so the non-NULL call is TRUE for A.
+  ('can_read_job_access_notes',     '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('can_review_job',                NULL, ARRAY['''00000000-0000-4000-8140-000000000102''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('can_send_message_in_job',       '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('can_send_message_to_in_job',    '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),

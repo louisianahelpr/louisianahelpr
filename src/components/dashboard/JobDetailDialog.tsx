@@ -1,9 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
-import {
-  Repeat, Rocket, Zap, Bookmark, Flag, Star,
-} from "lucide-react";
+import { Repeat, Rocket, Zap, Bookmark, Flag, Star } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/job-card/activityConstants";
 import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -21,6 +19,7 @@ import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
 import { askQuestionCounterpart } from "./jobDetailDialog/askQuestionCounterpart";
 import { SeriesTermsLine } from "@/components/series/SeriesTermsLine";
 import { recurrenceShapeLabel } from "@/lib/recurringSchedule";
+import { JobDetailNotes } from "@/components/job-card/JobNotes";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -899,6 +898,7 @@ const JobDetailDialog = ({
             `drivingLabel` comes from useDrivingTime, which declines to
             estimate a drive nobody drives. So the Where tile reads "~1634 mi"
             with no ETA — true, and not pretending to be a commute. */}
+        <JobDetailNotes job={job} guest={guest} viewerUserId={viewerUserId} />
         <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
         </div>
         {/* Posted-by — always visible now, no toggle (owner: "remove

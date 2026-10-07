@@ -83,6 +83,14 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "fires only when Stripe reports a Helpr's payout setup and Stripe ID done while their accept is pending; every account a journey has is a seed account whose accept is never pending (helper_accept_missing's seed carve-out), and a journey cannot finish live Stripe onboarding (Stripe is LIVE). Proven in PGlite instead (src/test/pglite/acceptCompletesAfterStripeSetup.pglite.mjs, Q1180)",
   },
+  "sql:complete_pending_crew_confirms_on_setup": {
+    uncovered:
+      "fires only when Stripe reports payouts ready for a crew member whose Confirm is pending; journey accounts are seed accounts (never pending) and a journey cannot finish live Stripe onboarding (Stripe is LIVE). Proven in PGlite instead (src/test/pglite/crewHireBeforePayout.pglite.mjs C6, 20261007011530)",
+  },
+  "sql:start_underfilled_crews": {
+    uncovered:
+      "fires only for a funded crew at its hiring cutoff with a confirmed member and an empty spot; a journey cannot fund a crew on prod (Stripe is LIVE, no 4242). Proven in PGlite instead (src/test/pglite/crewUnderfilledStarts.pglite.mjs, Q1460)",
+  },
   "sql:decline_job_offer": { uncovered: STRIKE },
   "sql:deliver_job_match": { uncovered: FANOUT },
   "sql:deliver_parish_match_alert": { uncovered: FANOUT },
@@ -101,6 +109,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:helper_abort_job": { uncovered: STRIKE },
   "sql:helper_cancel_booking": { uncovered: STRIKE },
+  "sql:job_access_notes_changed": {
+    uncovered: "Q1461: fires when the poster changes the access notes of a hired job; no journey edits them on a hired job yet (asserted in src/test/pglite/jobAccessNotes.pglite.mjs) — GAP",
+  },
   "sql:mark_helper_arrival": { uncovered: GAP("the 02-marketplace day-of ladder and settleForward (mark_helper_arrival)") },
   "sql:notify_helper_application_viewed": { uncovered: GAP("02-marketplace J3 (the poster opens the applicant)") },
   "sql:notify_helper_on_direct_offer": { driven: { spec: NOTIF, evidence: "type=eq.new_offers" } },

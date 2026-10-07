@@ -39,16 +39,16 @@
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     NEW.direct_offer_status := 'expired'; |     NULL;
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
 // @mutate src/lib/awardGate.ts |     missing.includes("stripe_id") ? "finish your Stripe ID check" : null, |     "finish your Stripe ID check",
 // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const noStrike = gate.reason !== null \|\| acceptPending; |   const noStrike = gate.reason !== null;
 // @mutate src/lib/lifecycleErrors.ts |   accept_required:\n |   accept_required_retired:\n
 // @mutate src/lib/seriesDates.ts | rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) | rpcErrorMessage("claim_series_dates", error)
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |           NEW.recurrence_end_date, NEW.series_split_ok) THEN |           NEW.recurrence_end_date, NEW.series_split_ok) AND false THEN
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) THEN |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) AND false THEN
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
 import { describe, it, expect } from "vitest";
@@ -195,7 +195,8 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     for (const derived of ["latitude", "longitude"]) expect(oldCols, derived).not.toContain(derived);
     // "still yours" only while the offer is (should-fix 6)
     expect(clear).toMatch(/CASE WHEN NEW\.direct_offer_expires_at IS NULL OR NEW\.direct_offer_expires_at > now\(\)\s+THEN ' The offer is still yours/);
-    const fires = /CREATE TRIGGER trg_jobs_clear_accept_pending\s+AFTER UPDATE OF ([^]*?) ON public\.jobs/.exec(readFileSync(join(MIG, "20261003214350_direct_offer_accept_works_like_an_offer.sql"), "utf8"));
+    // The trigger's newest CREATE (20261006204113, Q1461, added materials_note to the terms).
+    const fires = /CREATE TRIGGER trg_jobs_clear_accept_pending\s+AFTER UPDATE OF ([^]*?) ON public\.jobs/.exec(readFileSync(join(MIG, "20261006204113_job_materials_and_access_notes.sql"), "utf8"));
     const state = ["helper_id", "helper_confirmed_at", "status", "offered_to_helper_id", "direct_offer_status"];
     expect(fires![1].split(",").map((c) => c.trim()).filter((c) => !state.includes(c)).sort()).toEqual(oldCols);
     // "New application" only for a real application (the review's must-fix 2)

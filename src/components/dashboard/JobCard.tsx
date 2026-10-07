@@ -1,12 +1,11 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
-import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat,
-} from "lucide-react";
+import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { JobHelprsChip } from "@/components/job-card/JobCardMetaRow";
+import { MaterialsChip } from "@/components/job-card/JobNotes";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
@@ -734,6 +733,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
+            <MaterialsChip note={job.materials_note} />
             {job.is_group_job && (
               // THE SAME CHIP the activity cards render (JobHelprsChip, in
               // JobCardMetaRow) — one component now states "how many Helprs"

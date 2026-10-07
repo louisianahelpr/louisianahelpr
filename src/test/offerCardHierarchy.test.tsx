@@ -43,6 +43,8 @@ import type { AppliedApp, Job } from "../components/job-card/activityConstants";
 import type { AwardBlockReason } from "@/lib/awardGate";
 
 const gateState: { loading: boolean; reason: AwardBlockReason | null } = { loading: false, reason: null };
+// Q1461: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({
   useAcceptGate: () => gateState,
   useAwardBlockReason: () => gateState.reason,

@@ -239,7 +239,6 @@
     "PLAYWRIGHT_POSTER_PASSWORD": "test account password; no expiry",
     "PLAYWRIGHT_POSTER_SESSION": "test session blob refreshed by the suites that use it",
     "PLAYWRIGHT_TEST_USER_EMAIL": "test account identifier",
-    "PLAYWRIGHT_TEST_USER_PASSWORD": "test account password; no expiry",
     "PUBLISHABLE_KEY": "Supabase sb_publishable_ key; not a JWT, no expiry date",
     "REFRESH_PR_TOKEN": "optional PAT for refresh PRs (Q57); NOT set on 2026-09-23 (gh secret list), so github.token is used. A PAT expires: if one is added, move it to items with its expiry date",
     "RELEASE_PAYOUT_AUTO": "config flag",

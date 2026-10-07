@@ -208,6 +208,25 @@ serve(async (req) => {
       expiredCount++;
     }
 
+    // 2a. Q1460 (owner, 2026-10-06): an under-filled crew STARTS WITH WHO IS
+    // HIRED. Book every funded, expired, still-open crew that has at least one
+    // hired member BEFORE the cancel step below can see it ('open' -> 'accepted');
+    // the empty spots' share is refunded at payout. PGRST202 = the migration
+    // has merged but db-deploy has not finished: expected for a few minutes,
+    // and the guard in the loop below keeps such a crew from being cancelled.
+    let crewsStarted = 0;
+    {
+      const { data: crewRpc, error: crewRpcErr } = await supabase.rpc("start_underfilled_crews");
+      if (crewRpcErr) {
+        if (crewRpcErr.code !== "PGRST202") {
+          console.error("start_underfilled_crews error:", crewRpcErr);
+          defects.record(`start_underfilled_crews: ${crewRpcErr.message}`);
+        }
+      } else {
+        crewsStarted = (crewRpc as number) || 0;
+      }
+    }
+
     // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
     const { data: expiredByTime, error: expTimeErr } = await supabase
       .from("jobs")
@@ -238,6 +257,27 @@ serve(async (req) => {
       // Money review MED-3: a live series parent stays open while Helprs pick
       // its dates; cancelling it on its own date would end the whole series.
       if (isLiveSeriesParent(job, today)) continue;
+      // Q1460: a crew with a CONFIRMED member is never cancelled here; step 2a
+      // (and the 5-minute start-underfilled-crews cron) books it. If it was not
+      // booked (not deployed yet, an error, or no longer funded), leave it for
+      // the next run rather than cancel confirmed Helprs out of their pay, and
+      // record why so it is never skipped silently.
+      if (job.is_group_job === true) {
+        const { count: confirmed, error: hiredErr } = await supabase
+          .from("group_job_helpers")
+          .select("id", { count: "exact", head: true })
+          .eq("job_id", job.id)
+          .not("helper_id", "is", null)
+          .not("helper_confirmed_at", "is", null);
+        if (hiredErr) {
+          defects.record(`crew roster read for job ${job.id}: ${hiredErr.message}`);
+          continue;
+        }
+        if ((confirmed ?? 0) > 0) {
+          defects.record(`crew ${job.id} has ${confirmed} confirmed member(s) but was not booked (payment_status ${job.payment_status}); left open, not cancelled`);
+          continue;
+        }
+      }
 
       // Conditional on still being open — see the reopen guard above. Without
       // it, a helper who won this job via accept_application or
@@ -331,8 +371,9 @@ serve(async (req) => {
     return cronResult(
       "auto-expire-jobs",
       {
-        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs, expired ${unansweredExpired} unanswered offers, expired ${directOfferExpired} direct offers`,
+        message: `Expired ${expiredCount} accepted jobs, started ${crewsStarted} under-filled crews, cancelled ${cancelledCount} past-time open jobs, expired ${unansweredExpired} unanswered offers, expired ${directOfferExpired} direct offers`,
         expiredCount,
+        crewsStarted,
         cancelledCount,
         unansweredExpired,
         directOfferExpired,

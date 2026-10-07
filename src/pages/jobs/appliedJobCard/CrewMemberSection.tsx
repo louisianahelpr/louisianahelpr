@@ -30,6 +30,8 @@ import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobAc
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { AwardGateDialog } from "@/components/AwardGateDialog";
+import { reasonFromMissing, type AcceptMissing } from "@/lib/awardGate";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { helperShareCount } from "@/lib/helperEarnings";
 import { DirectionsButton } from "./DirectionsButton";
@@ -97,6 +99,9 @@ export function CrewMemberSection({
   const { request: requestPermission } = usePermissionRationale();
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  // A Confirm recorded while payouts are not set up (pending_setup): the pop-up
+  // takes them to Stripe, and the Confirm completes by itself after.
+  const [setupMissing, setSetupMissing] = useState<AcceptMissing[] | null>(null);
   // Re-render every 30 s so the 30-minute floor's "Available in N min" counts
   // down and the Done button unlocks without a refresh.
   const [, setTick] = useState(0);
@@ -166,7 +171,11 @@ export function CrewMemberSection({
 
   const onConfirm = () =>
     run("confirm", "We couldn't confirm your spot. Please try again.", async () => {
-      await confirmCrewSpot(app.job_id);
+      const r = await confirmCrewSpot(app.job_id);
+      if ("pendingMissing" in r) {
+        setSetupMissing(r.pendingMissing);
+        return null;
+      }
       return "You're confirmed for this crew.";
     });
   const onSetOut = () =>
@@ -364,6 +373,15 @@ export function CrewMemberSection({
         soloChipKey="message"
         actions={actions}
         dialogs={
+          <>
+          <AwardGateDialog
+            open={setupMissing !== null}
+            onOpenChange={(o) => {
+              if (!o) setSetupMissing(null);
+            }}
+            reason={reasonFromMissing(setupMissing ?? []) ?? "helper_payout_setup_incomplete"}
+            pendingMissing={setupMissing}
+          />
           <BrandConfirmDialog
             open={cancelOpen}
             onOpenChange={setCancelOpen}
@@ -383,6 +401,7 @@ export function CrewMemberSection({
             onPrimary={() => void onCancel()}
             secondaryLabel="Cancel"
           />
+          </>
         }
       />
     </div>

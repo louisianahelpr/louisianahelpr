@@ -24,15 +24,15 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * Behaviour (PATCH refused when booked, allowed when open, server write
  * passes, 3x replay, red on main): src/test/pglite/bookedJobLocked.pglite.mjs.
  *
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'scope_video_url',\n |     -- removed\n
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'estimated_hours',\n |     -- removed\n
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'latitude',\n |     -- removed\n
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'location',\n |     'location_x',\n
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'scope_video_url',\n |     -- removed\n
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'estimated_hours',\n |     -- removed\n
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'latitude',\n |     -- removed\n
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'location',\n |     'location_x',\n
  * @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |   NEW.created_at                  := now();\n |     -- removed\n
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'created_at'\n |     -- removed\n
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
- * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
- * @mutate src/pages/posts/EditJobDialog.tsx | special_requirements: specialReq.trim() \|\| null, | special_requirements: specialReq.trim() \|\| null, is_urgent_x: false,
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'created_at'\n |     -- removed\n
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
+ * @mutate src/pages/posts/EditJobDialog.tsx | { materials_note: materialsNote.trim() \|\| null } | { materials_note: materialsNote.trim() \|\| null, is_urgent_x: false }
  */
 
 const REPO = resolve(__dirname, "..", "..");

@@ -57,7 +57,7 @@ permissions:
 #
 # SECRETS THE OWNER MUST CREATE — see boundary-report for the live list.
 #   PLAYWRIGHT_TEST_USER_EMAIL     a real account on the target site
-#   PLAYWRIGHT_TEST_USER_PASSWORD  its password (>= 12 chars; GoTrue's real minimum)
+#   (no password: its session is minted with the service role, Q1420)
 #   PLAYWRIGHT_POSTER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_HELPER_SESSION      JSON supabase session — scripts/e2e/README.md
 #   PLAYWRIGHT_LIFECYCLE_JOB_ID    an ACCEPTED job between those two accounts
@@ -172,7 +172,6 @@ jobs:
         env:
           # Only emptiness is ever observed; no value is echoed.
           USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
-          USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
           POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
           HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
           LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
@@ -182,7 +181,9 @@ jobs:
           HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "$USER_EMAIL" ] && [ -n "$USER_PASSWORD" ]; then
+          # The account's address only: its sign-in is minted with the service
+          # role (Q1420), never its password.
+          if [ -n "$USER_EMAIL" ]; then
             echo "have_user_creds=true" >> "$GITHUB_OUTPUT"
           else
             echo "have_user_creds=false" >> "$GITHUB_OUTPUT"
@@ -306,12 +307,20 @@ jobs:
         with:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+      - name: Service-role key for the test sessions (Q1420)
+        # auth.spec.ts and payment-lifecycle.spec.ts drive the login form; its
+        # grant is answered with a session minted with this key
+        # (e2e/helpers/mintedPasswordGrant.ts), because Auth CAPTCHA refuses a
+        # CI build's password grant. After the build, so it never reaches the bundle.
+        uses: ./.github/actions/service-role-key
+        with:
+          access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          project-ref: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
       - name: auth + payment lifecycle
         env:
           REQUEST_BUDGET_LABEL: chromium-authenticated  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
-          PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
         # Kept on ONE line on purpose: src/test/e2eSpecsReachableInCi.test.ts
         # reads workflow files line by line to work out which specs CI runs,
         # and a `\` continuation would hide the spec names from it — the guard
@@ -341,7 +350,6 @@ jobs:
           REQUEST_BUDGET_LABEL: chromium-authenticated  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
-          PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
         # ONE line, for the same reason as the step above: the reachability
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
@@ -771,7 +779,7 @@ jobs:
             echo "| Leg | Result | Needs |"
             echo "| --- | --- | --- |"
             echo "| Anon surface contract | \`$ANON\` | nothing |"
-            echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD |"
+            echo "| Authenticated journeys | \`$AUTHED\` | PLAYWRIGHT_TEST_USER_EMAIL (session minted with the service role, Q1420) |"
             echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
             echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
             echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD |"
@@ -786,8 +794,8 @@ jobs:
             UNCOVERED=$((UNCOVERED+1))
           fi
           if [ "$HAVE_CREDS" != "true" ]; then
-            echo "::warning title=Uncovered surface::Authenticated journeys did NOT run — PLAYWRIGHT_TEST_USER_EMAIL / PLAYWRIGHT_TEST_USER_PASSWORD are not set. Sign-in, escrow checkout and the post-payment landing are covered by MOCKS ONLY."
-            echo "- **Authenticated journeys: NOT COVERED.** Sign-in, escrow checkout and the post-payment landing are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_TEST_USER_EMAIL\` and \`PLAYWRIGHT_TEST_USER_PASSWORD\` (password must be >= 12 characters — GoTrue's real minimum, which the client does not enforce)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=Uncovered surface::Authenticated journeys did NOT run — PLAYWRIGHT_TEST_USER_EMAIL is not set. Sign-in, escrow checkout and the post-payment landing are covered by MOCKS ONLY."
+            echo "- **Authenticated journeys: NOT COVERED.** Sign-in, escrow checkout and the post-payment landing are exercised only against \`page.route()\` mocks. Set \`PLAYWRIGHT_TEST_USER_EMAIL\` (its session is minted with the service role, Q1420)." >> "$GITHUB_STEP_SUMMARY"
             UNCOVERED=$((UNCOVERED+1))
           fi
           if [ "$HAVE_TWO_ROLE" != "true" ]; then

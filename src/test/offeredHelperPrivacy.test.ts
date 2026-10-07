@@ -35,7 +35,7 @@
 // statement text. Every group-(b) and group-(d) assertion now reads the
 // comment-BLANKED form (`DbObject.code`, `maskComments(...)`), and the
 // registered mutation below IS the comment shape, so both doors are pinned.
-// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
+// @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
 
 import { describe, it, expect } from "vitest";
 import { walkSource, readSource } from "./helpers/walkSource";
@@ -52,7 +52,7 @@ import {
   returnsOffereeColumn,
   type DbObject,
 } from "./helpers/jobsPrivacySource";
-import { JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST, JOB_SERIES_STATE_COLUMNS } from "@/lib/jobColumns";
+import { JOB_COLUMNS_AHEAD_OF_DB, JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST, JOB_SERIES_STATE_COLUMNS } from "@/lib/jobColumns";
 
 /** The migration that took the table-level SELECT off `public.jobs`. */
 const FIX_MIGRATION = "20260915045110_hide_offered_helper_from_non_posters.sql";
@@ -350,8 +350,9 @@ describe("offer privacy (c): JOB_READABLE_COLUMN_LIST is the jobs columns minus 
   const KNOWN_UNMIGRATED_COLUMNS: string[] = [];
 
   // The series-state columns are read by fetchJobSeriesState on their own
-  // (deploy order: see JOB_SERIES_STATE_COLUMNS), so they count as covered.
-  const readable = [...JOB_READABLE_COLUMN_LIST, ...JOB_SERIES_STATE_COLUMNS] as string[];
+  // (deploy order: see JOB_SERIES_STATE_COLUMNS), and the ahead-of-db ones by
+  // name through readJobsAheadOfDb (Q1461), so both count as covered.
+  const readable = [...JOB_READABLE_COLUMN_LIST, ...JOB_SERIES_STATE_COLUMNS, ...JOB_COLUMNS_AHEAD_OF_DB] as string[];
   const priv = [...JOB_PRIVATE_COLUMNS] as string[];
 
   it("the private column is the offeree, and it is not in the readable list", () => {

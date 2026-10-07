@@ -16,7 +16,8 @@ import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { isScheduleInThePast } from "@/lib/jobExpiry";
 import type { Step } from "./postJobFormTypes";
-import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
+import { materialsNoteForPost, scrollToField } from "./postJobFormHelpers";
+import { saveJobAccessNote } from "@/lib/jobAccessNotes";
 import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
@@ -203,7 +204,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     credentialTier,
     requirePhotoProof,
     includeMaterials,
-    materialsNote,
+    materialsNote: materialsNoteInput,
     saveCardForFuture,
     giftCardId,
     uploadAndAttachPhotos,
@@ -275,7 +276,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       scrollToField("start-time");
       return;
     }
-    // special_requirements is optional — no validation needed
+    // The Access & Parking notes are optional — no validation needed
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
     // checkout carrying a stale hidden budget and got charged for it.
@@ -382,15 +383,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const user = await runPreSubmitChecks();
     if (!user) return;
 
-    // When the poster opted into "I'll provide materials", append the
-    // note into special_requirements with a tagged prefix so helprs can
-    // see it on the job card. Avoids a schema migration for what's
-    // effectively a label on a freeform note.
-    const composedSpecialRequirements = composeSpecialRequirements({
-      includeMaterials,
-      materialsNote,
-      specialRequirements,
-    });
+    // Q1461: the two notes are stored apart. Materials is public and rides on
+    // the job row; Access & Parking (the `specialRequirements` field) is
+    // private to the booked Helpr and is written to job_access_notes after
+    // the insert, below.
+    const materialsNote = materialsNoteForPost({ includeMaterials, materialsNote: materialsNoteInput });
+    const accessNotes = specialRequirements.trim();
 
     const buildPayload = (opts: { withExtras: boolean }) =>
       buildJobInsertPayload({
@@ -415,7 +413,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         isFlexibleSchedule,
         estimatedHours,
         budget,
-        specialRequirements: composedSpecialRequirements,
+        // Stripped on the deploy-lag retry, like credentialTier: that retry
+        // exists for a prod that predates the column.
+        materialsNote: opts.withExtras ? materialsNote : null,
         isRecurring,
         recurrenceInterval,
         recurrenceEndDate,
@@ -445,7 +445,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // read as an edit and post a second job.
     const { expires_at: _expiresAt, ...sigFields } = buildPayload({ withExtras: true });
     void _expiresAt;
-    const sig = JSON.stringify(sigFields);
+    // The access notes are not on the payload, but they are part of what was
+    // posted: editing them between attempts is an edit.
+    const sig = JSON.stringify({ ...sigFields, accessNotes });
     const prior = attemptRef.current;
     if (prior && prior.sig !== sig) {
       // Edited since an attempt whose outcome we never heard. If that attempt's
@@ -544,6 +546,25 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
     attempt.jobId = jobData.id;
+
+    /* ACCESS & PARKING (Q1461) — private to the booked Helpr, so it is not on
+       the job row. Written like the pets below: the job exists and is paid
+       for either way, so a failure here never fails the post; it is reported
+       and the poster is told where to add it again. */
+    if (accessNotes) {
+      try {
+        await saveJobAccessNote(jobData.id, accessNotes);
+      } catch (accessErr) {
+        report(accessErr, {
+          tags: { source: "useJobSubmit.saveAccessNotes" },
+          context: { job_id: jobData.id },
+        });
+        const leak = contactLeakRejectionMessage(accessErr);
+        toast.error("Your job posted, but the access and parking notes didn't save", {
+          description: leak ?? "Open the job and add them from Edit so your Helpr can see them.",
+        });
+      }
+    }
 
     /* PETS — attach the profiles the poster picked (migration 20260823160000).
        Best-effort and non-blocking: the job exists and is paid for either way,

@@ -29,7 +29,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
- * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { existsSync, readFileSync, statSync } from "node:fs";

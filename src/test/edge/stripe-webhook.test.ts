@@ -285,7 +285,7 @@ describe("stripe-webhook edge function", () => {
     // only lands on an unfunded job, or on this same payment again.
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | ,and(stripe_payment_intent_id.eq.${piId},payment_status.eq.escrow)`) | ,stripe_payment_intent_id.eq.${piId}`)
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       .not("status", "in", "(completed,cancelled)") |
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       giftConsumedHere = true; |
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       giftConsumedHere = true;\n      logStep("Reserved gift card consumed |       logStep("Reserved gift card consumed
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) { |       if (false) {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         await refundDuplicateFunding(stripe, piId); |         void 0;
     describe("a checkout completing on a job already funded another way (Q1419)", () => {
@@ -593,7 +593,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Second review (S-D): a reversal whose row did not move pages.
-      // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (data && data.length > 0) return;\n  const { data: cur } | return;\n  const { data: cur }
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (data && data.length > 0) return;\n  const { data: cur, error: curErr } | return;\n  const { data: cur, error: curErr }
       it("a reversal whose record matched zero rows (row gone) pages critical", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [HOLD] };

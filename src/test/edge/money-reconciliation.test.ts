@@ -554,7 +554,7 @@ describe("money-reconciliation edge function", () => {
       expect(names(b)).toContain("held_money_not_redriven");
     });
 
-    // @mutate supabase/functions/money-reconciliation/index.ts | : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at)); | : stale(r.first_repay_attempt_at));
+    // @mutate supabase/functions/money-reconciliation/index.ts | : !holdRead.holds.has(r.helper_id) &&\n | : true &&\n
     it("not while the Helpr is still on hold (the re-drive is waiting on purpose)", async () => {
       const fn = await loadConfigured();
       seedCleanLedger();
@@ -565,7 +565,7 @@ describe("money-reconciliation edge function", () => {
     });
 
     // Second review (S-B): fires although every hourly attempt moved updated_at.
-    // @mutate supabase/functions/money-reconciliation/index.ts | : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at)); | : !holdRead.holds.has(r.helper_id) && stale((r as { updated_at?: string \| null }).updated_at ?? null));
+    // @mutate supabase/functions/money-reconciliation/index.ts | (r.first_repay_attempt_at ? stale(r.first_repay_attempt_at) : staleUntried(r.created_at, r.updated_at))); | stale(r.updated_at ?? null));
     it("flags a reversed tip whose Helpr is clear and whose first re-pay attempt was a day ago", async () => {
       const fn = await loadConfigured();
       seedCleanLedger();
@@ -596,7 +596,7 @@ describe("money-reconciliation edge function", () => {
     });
 
     // @mutate supabase/functions/money-reconciliation/index.ts | checks.heldMoneyNotRedriven.add({ clawback_id: r.id, | void ({ clawback_id: r.id,
-    // @mutate supabase/functions/money-reconciliation/index.ts | if (!stale(r.held_repay_first_attempt_at)) continue; | if (!stale((r as { updated_at?: string \| null }).updated_at ?? null)) continue;
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (!(r.held_repay_first_attempt_at ? stale(r.held_repay_first_attempt_at) : staleUntried(r.held_repay_owed_at, r.updated_at))) continue; | if (!stale(r.updated_at ?? null)) continue;
     it("flags a won chargeback's owed re-pay whose Helpr is clear and whose first attempt was a day ago", async () => {
       const fn = await loadConfigured();
       seedCleanLedger();

@@ -107,7 +107,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     resetSharedMocks();
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi) | payHelperCancellationFee(job, fee, pi)
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi, singleFeePercent) | payHelperCancellationFee(job, fee, pi, singleFeePercent)
   // @mutate supabase/functions/void-cancelled-payments/index.ts | (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist | /does not exist/i.test(e.message ?? "") \|\| (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist
   it("pays every member their own $50.00 share (minus commission) with its own idempotency key, and marks each paid", async () => {
     seedCancelledCrew();

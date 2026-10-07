@@ -194,7 +194,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // and ID (same name + date of birth, any document) NEAR-matches only record
   // an admin doubt-check, like the name. Behaviour:
   // src/test/pglite/banEvasionCardBankName.pglite.mjs (NEW_MIGRATION=skip-near: 11 FAIL).
-  // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |       VALUES (NEW.user_id, 'phone_near', v_h7, v_row.id, | INSERT INTO public.user_bans (user_id, ban_type, reason, banned_by) VALUES (NEW.user_id, 'banned', 'x', NEW.user_id);\n      VALUES (NEW.user_id, 'phone_near', v_h7, v_row.id,
+  // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql | a last-7 match as 'phone_near'.\n      VALUES (NEW.user_id, | a last-7 match as 'phone_near'.\n      INSERT INTO public.user_bans (user_id, ban_type, reason, banned_by) VALUES (NEW.user_id, 'banned', 'x', NEW.user_id);\n      VALUES (NEW.user_id,
   // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |   AFTER INSERT OR UPDATE OF phone ON public.profiles |   AFTER UPDATE OF phone ON public.profiles
   // @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |   SELECT CASE WHEN length(d) >= 7 THEN right(d, 7) ELSE NULL END |   SELECT CASE WHEN length(d) >= 7 THEN d ELSE NULL END
   it("phone and ID near-matches only record it for admins (Q1416)", () => {

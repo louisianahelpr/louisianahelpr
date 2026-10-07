@@ -7,8 +7,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     .delete()\n    .eq("stripe_refund_id", refund.id) |     .delete()\n    .eq("stripe_refund_id", "nothing")
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (settledAsRefunded && stillFull === false) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const settledAsRefunded = ["refunded", "cancelled", "cancelling"].includes( |   const settledAsRefunded = ["refunded"].includes(
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| removedNow; |   const notRepaid = settledAsRefunded && stillFull === false;
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (notRepaid && job?.customer_id) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| removedNow \|\| !!visitNotRepaid; |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| !!visitNotRepaid;
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (notRepaid && payerToTell) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (delErr) { |   if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";

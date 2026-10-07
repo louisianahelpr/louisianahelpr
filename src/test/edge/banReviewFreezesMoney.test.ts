@@ -24,7 +24,7 @@
  * @mutate supabase/functions/create-payment/index.ts |       if (tipReview === "payer") throw new PublicError(PAYER_UNDER_REVIEW); |       void tipReview;
  * @mutate supabase/functions/create-payment/index.ts |       if (tipHold.kind === "held" \|\| tipReview === "counterparty") { |       if (tipHold.kind === "held") {
  * @mutate supabase/functions/create-payment/index.ts |   if (lookup.users.has(payerId)) return "payer"; |   if (false) return "payer";
- * @mutate supabase/functions/admin-user-actions/index.ts |         const { error: liftErr } = await admin.rpc('lift_ban_settlement_review', { |         const { error: liftErr } = await admin.rpc('lift_ban_settlement_review_v0', {
+ * @mutate supabase/functions/admin-user-actions/index.ts |         const { data: lifted, error: liftErr } = await admin.rpc('lift_ban_settlement_review', { |         const { data: lifted, error: liftErr } = await admin.rpc('lift_ban_settlement_review_v0', {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";

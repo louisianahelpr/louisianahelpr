@@ -8,8 +8,8 @@
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.payout_transfers t WHERE t.job_id = _job.id)) | false)
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.gift_cards g WHERE g.restored_from_job_id = _job.id); | false;
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |       AND COALESCE(_dispute.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl()) | )
-// @mutate supabase/migrations/20261007130001_gift_funds_abandoned_or_failed_job.sql |   if v_job.status in ('completed', 'cancelled') then | if false then
-// @mutate supabase/migrations/20261007130001_gift_funds_abandoned_or_failed_job.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
+// @mutate supabase/migrations/20261007131422_gift_settle_clears_stale_service_fee.sql |   if v_job.status in ('completed', 'cancelled') then | if false then
+// @mutate supabase/migrations/20261007131422_gift_settle_clears_stale_service_fee.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
 // @mutate supabase/functions/create-payment/index.ts |       if (decidedDisputes && decidedDisputes.length > 0) { |       if (false) {
 // @mutate supabase/functions/create-payment/index.ts |           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`); | ;
 // @mutate src/components/admin/AdminDisputes.tsx |         (earlierMap[r.job_id] ??= []).push(r); |         void 0;

@@ -17,6 +17,7 @@ import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
+import { serviceFeeTaxCents } from "../_shared/serviceFeeTax.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -819,7 +820,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, category, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -1520,13 +1521,28 @@ serve(async (req) => {
           // never loses money regardless of payment method — cards, Klarna/
           // Affirm/Afterpay, and ACH all carry different real rates.
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          // Q1490 (owner, 2026-10-07): the tax charged on the kept service fee
+          // is kept with it (read from the session's Service fee line; null =
+          // unreadable, so only the fee is kept and the poster gets the tax).
+          const feeTaxRead = fullSeriesRefund ? 0 : await serviceFeeTaxCents(stripe, job.stripe_session_id, job.category);
+          if (feeTaxRead === null && serviceFeeCents > 0) {
+            console.warn(`[void-cancelled-payments] job ${job.id}: the service fee's tax could not be read; refunding it`);
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Cancellation refund returned the tax on a kept service fee",
+              message: `Job ${job.id} is taxable, but the Service fee line of its checkout ${job.stripe_session_id} could not be read, so the refund kept only the fee and returned its tax (Q1492: the tax should follow the fee). The platform owes that tax on the kept fee; check the session's line items.`,
+              fields: { job_id: job.id, session: String(job.stripe_session_id ?? "none") },
+              oncePerDayKey: `fee-tax-unread:${job.id}`,
+            });
+          }
           // An unfilled or ban-ended series visit gets the service fee back
           // too, but never Stripe's processing fee: the platform never absorbs
           // a fee and never refunds more than it netted (owner decision
           // Q407 (12), 2026-09-25).
           const nonRefundableCents = fullSeriesRefund
             ? actualOrEstimatedFeeCents(pi, capturedCents)
-            : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+            : Math.max(serviceFeeCents + (feeTaxRead ?? 0), actualOrEstimatedFeeCents(pi, capturedCents));
           // Q1390: the crew's block fees are tried first and withheld from the refund.
           await payBlockFees(pi);
           const blockFeeCents = crewBlockFeeCents(blockFeeRows);

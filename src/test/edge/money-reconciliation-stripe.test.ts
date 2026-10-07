@@ -212,6 +212,32 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
   });
 
+  // Q1490 (owner, 2026-10-07): on a TAXABLE job the refund keeps the tax on
+  // the kept service fee too, so the ceiling allows it (rate x fee, rounded up).
+  // @mutate supabase/functions/money-reconciliation/index.ts |             serviceFeeCents + feeTaxBoundCents, |             serviceFeeCents,
+  it("Q1490: a taxable job may also keep the tax on its kept service fee, and not a cent more", async () => {
+    const job = cancelledJob({ category: "assembly", sales_tax_rate: 0.1, payment_status: "refunded" });
+    const keep = 300 + 30; // $3 fee + 10% tax on it
+    let fn = await load();
+    seed(job, 2800 - keep);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 2800 - keep }));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
+
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    seed(job, 2800 - keep - 2);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 2800 - keep - 2 }));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
+
+    // An exempt category keeps the fee only.
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    const exempt = cancelledJob({ category: "cleaning", sales_tax_rate: 0.1, payment_status: "refunded" });
+    seed(exempt, 2800 - keep);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 2800 - keep }));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
+  });
+
   it("does not grade a job whose refund an executed dispute split decided", async () => {
     // Prod job e7e09075 (2026-09-23): dispute decided {poster:1,helper:0},
     // execution_status 'executed', $26.89 of $28 refunded. A split decision

@@ -113,6 +113,7 @@
     "supabase/functions/_shared/posterFees.ts",
     "supabase/functions/_shared/tipFees.ts",
     "supabase/functions/_shared/salesTax.ts",
+    "supabase/functions/_shared/serviceFeeTax.ts",
     "supabase/functions/_shared/recurringSchedule.ts",
     "supabase/functions/_shared/seriesRefund.ts",
     "supabase/functions/_shared/seriesParent.ts",

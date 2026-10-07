@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T23:18Z",
+  "measured_at": "2026-10-07T23:35Z",
   "issues": {
     "readable": true,
     "open": [
@@ -224,7 +224,6 @@
     ]
   },
   "mirrored": {
-    "bus ME-019": "Q1472",
     "bus ME-043": "Q1473",
     "bus TC-004": "Q226",
     "issue #1754": "Q785",

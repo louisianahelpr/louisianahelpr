@@ -15,6 +15,7 @@ import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, serviceFeeTaxCode } from "../_shared/salesTax.ts";
+import { serviceFeeTaxCents } from "../_shared/serviceFeeTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -2049,7 +2050,22 @@ serve(async (req) => {
           // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          // Q1490 (owner, 2026-10-07): the tax charged on the kept service fee
+          // is kept with it (read from the session's Service fee line; null =
+          // unreadable, so only the fee is kept and the poster gets the tax).
+          const feeTaxRead = await serviceFeeTaxCents(stripe, job.stripe_session_id, job.category);
+          if (feeTaxRead === null && serviceFeeCents > 0) {
+            console.warn(`[create-payment] cancel ${jobId}: the service fee's tax could not be read; refunding it`);
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Cancellation refund returned the tax on a kept service fee",
+              message: `Job ${jobId} is taxable, but the Service fee line of its checkout ${job.stripe_session_id} could not be read, so the refund kept only the fee and returned its tax (Q1492: the tax should follow the fee). The platform owes that tax on the kept fee; check the session's line items.`,
+              fields: { job_id: jobId, session: String(job.stripe_session_id ?? "none") },
+              oncePerDayKey: `fee-tax-unread:${jobId}`,
+            });
+          }
+          const nonRefundableCents = Math.max(serviceFeeCents + (feeTaxRead ?? 0), actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - nonRefundableCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before

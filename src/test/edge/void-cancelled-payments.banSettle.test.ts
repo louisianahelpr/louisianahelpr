@@ -1,4 +1,4 @@
-// @mutate supabase/functions/void-cancelled-payments/index.ts | : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)); | : serviceFeeCents;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | : Math.max(serviceFeeCents + (feeTaxRead ?? 0), actualOrEstimatedFeeCents(pi, capturedCents)); | : serviceFeeCents + (feeTaxRead ?? 0);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job); | jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : 0;
 /**
  * Q327: a job the permanent-ban path cancels is settled by

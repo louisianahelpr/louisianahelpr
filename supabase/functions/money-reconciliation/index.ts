@@ -56,6 +56,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { loadPayoutHolds } from "../_shared/payoutHold.ts";
 
@@ -544,7 +545,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount, category, sales_tax_rate",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -1715,8 +1716,17 @@ serve(async (req) => {
           if (job.status !== "cancelled") return;
           if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return;
           const feeCents = Math.round(expectedCancellationFee(job) * 100);
+          // Q1490 (owner, 2026-10-07): a refund keeps the tax charged on the
+          // kept service fee too. The ceiling allows it from the stored
+          // effective rate (a fraction over labor + fee since Q1485/Q1472),
+          // rounded up: a bound, not the exact line, which the refund paths
+          // read from the Checkout Session.
+          const serviceFeeCents = Math.round(money(job.customer_fee_amount) * 100);
+          const feeTaxBoundCents = isLaborTaxable(job.category as string | null)
+            ? Math.ceil(Math.min(1, Math.max(0, Number(job.sales_tax_rate) || 0)) * serviceFeeCents)
+            : 0;
           const nonRefundableCents = Math.max(
-            Math.round(money(job.customer_fee_amount) * 100),
+            serviceFeeCents + feeTaxBoundCents,
             actualOrEstimatedFeeCents(pi, capturedCents),
           );
           // Q1390: a cancelled crew also keeps the block fees it paid out.

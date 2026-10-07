@@ -286,6 +286,52 @@ describe("void-cancelled-payments — Q1345: the fee captured on an uncaptured h
     const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "refunded");
     expect(settle?.payload).toMatchObject({ cancellation_fee_status: "charged", cancellation_fee: Math.round(fee * 100) / 100 });
   });
+
+  // Q1490 (owner, 2026-10-07): the refund keeps the tax charged on the kept
+  // service fee, read from the session's Service fee line.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             : Math.max(serviceFeeCents + (feeTaxRead ?? 0), actualOrEstimatedFeeCents(pi, capturedCents)); |             : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+  it("Q1490: a taxable job's refund keeps the service fee AND the tax on it (from the session line)", async () => {
+    const job = {
+      id: "job-tax", title: "Assemble a desk", category: "assembly", stripe_session_id: "cs_tax", stripe_payment_intent_id: "pi_tax",
+      budget: 100, customer_fee_amount: 10, cancellation_fee: 0, date_needed: "2026-11-30", start_time: "09:00",
+      cancelled_at: "2026-10-07T12:00:00.000Z", helper_id: null, helper_confirmed_at: null, customer_id: "poster-1", helper_fee_percent: 10,
+    };
+    scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [job] } }], rows: [] };
+    scenario.writeSelectRows.jobs = [{ id: "job-tax" }];
+    // $100 labor + $10 fee, 10% tax on both: $121 captured.
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", status: "succeeded", amount: 12100, amount_received: 12100, latest_charge: null });
+    stripeMock.checkout.sessions.listLineItems.mockResolvedValue({ data: [
+      { description: "Helpr Job: Assemble a desk", amount_tax: 1000 },
+      { description: "Service fee", amount_tax: 100 },
+    ] });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_tax", amount: 11000 });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_tax", amount: 12100 - 1000 - 100 },
+      expect.anything(),
+    );
+  });
+
+  // Q1492 (review): an unreadable Service fee line keeps only the fee (the
+  // poster gets the tax back) and pages a warning, never a silent 0.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (feeTaxRead === null && serviceFeeCents > 0) { |           if (false) {
+  it("Q1492: an unreadable Service fee line refunds the tax and says so", async () => {
+    const job = {
+      id: "job-tax2", title: "Assemble a desk", category: "assembly", stripe_session_id: "cs_tax2", stripe_payment_intent_id: "pi_tax2",
+      budget: 100, customer_fee_amount: 10, cancellation_fee: 0, date_needed: "2026-11-30", start_time: "09:00",
+      cancelled_at: "2026-10-07T12:00:00.000Z", helper_id: null, helper_confirmed_at: null, customer_id: "poster-1", helper_fee_percent: 10,
+    };
+    scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [job] } }], rows: [] };
+    scenario.writeSelectRows.jobs = [{ id: "job-tax2" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax2", status: "succeeded", amount: 12100, amount_received: 12100, latest_charge: null });
+    stripeMock.checkout.sessions.listLineItems.mockResolvedValue({ data: [{ description: "Helpr Job: Assemble a desk", amount_tax: 1000 }] });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_tax2", amount: 11100 });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_tax2", amount: 12100 - 1000 }, expect.anything());
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /returned the tax on a kept service fee/.test(a.title))).toBe(true);
+  });
 });
 
 // ── Q891: a Stripe id minted under the TEST key, read under the LIVE key ────

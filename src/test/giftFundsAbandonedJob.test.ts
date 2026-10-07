@@ -9,7 +9,11 @@
  * Postgres): src/test/pglite/giftFundsAbandonedJob.pglite.mjs (7 PASS; 3 FAIL
  * with NEW_MIGRATION=skip, the live definition).
  *
- * @mutate supabase/migrations/20261007130001_gift_funds_abandoned_or_failed_job.sql |      or v_job.payment_status not in ('unpaid', 'abandoned', 'failed') then |      or v_job.payment_status not in ('unpaid') then
+ * @mutate supabase/migrations/20261007131422_gift_settle_clears_stale_service_fee.sql |      or v_job.payment_status not in ('unpaid', 'abandoned', 'failed') then |      or v_job.payment_status not in ('unpaid') then
+ * Q1347: the settle write also clears a stale customer_fee_amount (a fully
+ * gift-paid job charged no service fee). PGlite:
+ * src/test/pglite/giftSettleClearsFee.pglite.mjs (2 PASS; 1 FAIL before).
+ * @mutate supabase/migrations/20261007131422_gift_settle_clears_stale_service_fee.sql |   update jobs set payment_status = 'escrow', customer_fee_amount = 0 where id = p_job_id; |   update jobs set payment_status = 'escrow' where id = p_job_id;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -35,5 +39,9 @@ describe("Q1418 (a): a gift funds the same job states a card checkout re-mints o
 
   it("an open card checkout other than the one just retired is still refused", () => {
     expect(body).toMatch(/stripe_session_id is distinct from p_retired_session/i);
+  });
+
+  it("Q1347: the gift's settle write zeroes customer_fee_amount", () => {
+    expect(body).toMatch(/update jobs set payment_status = 'escrow', customer_fee_amount = 0 where id = p_job_id;/i);
   });
 });

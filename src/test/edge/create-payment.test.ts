@@ -1535,6 +1535,23 @@ describe("create-payment edge function", () => {
         return fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
       };
 
+      // Q1490 (owner, 2026-10-07): a free cancellation of a TAXABLE job keeps
+      // the service fee AND the tax on it (the session's Service fee line).
+      // @mutate supabase/functions/create-payment/index.ts |           const nonRefundableCents = Math.max(serviceFeeCents + (feeTaxRead ?? 0), actualOrEstimatedFeeCents(pi, capturedCents)); |           const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+      it("Q1490: a taxable job's free-cancel refund keeps the fee and its tax", async () => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "escrow", category: "handyman", stripe_session_id: "cs_tax", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 12100, amount_received: 12100 });
+        stripeMock.checkout.sessions.listLineItems.mockResolvedValue({ data: [{ description: "Service fee", amount_tax: 100 }] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ payment_intent: "pi_live", amount: 12100 - 1000 - 100 });
+      });
+
       it("does not take over an admin refund's claim", async () => {
         seedOpenEscrow("cancelling");
         scenario.reads.job_refund_claims = { rows: [{ claimed_by: "admin_refund_general", claimed_at: new Date().toISOString() }] };

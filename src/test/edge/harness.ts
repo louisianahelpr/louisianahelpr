@@ -576,6 +576,13 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/salesTax\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/salesTax.ts";`,
   );
+  // Q1490: `_shared/serviceFeeTax.ts` reads the Service fee line's tax from the
+  // Checkout Session; it imports only salesTax and caughtMessage (both pure),
+  // and takes the Stripe client as an argument, so the REAL module runs.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/serviceFeeTax\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/serviceFeeTax.ts";`,
+  );
 
   // Notification money formatting: `_shared/money.ts` is pure TypeScript
   // (Math.floor + toLocaleString, no Deno or remote imports), so the generated

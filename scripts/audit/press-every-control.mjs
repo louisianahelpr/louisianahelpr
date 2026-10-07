@@ -100,6 +100,25 @@ function flagValue(name) {
  * list but marked, so the report can say "redirect — covered at its target"
  * rather than pressing the same target twice.
  */
+/**
+ * Q1405: each row's wall time, from its own start to the next row's start (or
+ * `endedAt` for the last), with its press count and the time spent waiting on
+ * the request ceiling. Rows run one after another in a shard, so consecutive
+ * starts bound each row. Slowest first.
+ */
+export function rowTimings(results, endedAt) {
+  const started = results.filter((r) => typeof r.startedAt === "number");
+  return started
+    .map((r, i) => ({
+      route: r.route,
+      persona: r.persona,
+      ms: Math.max(0, (started[i + 1]?.startedAt ?? endedAt) - r.startedAt),
+      presses: r.pressed ?? 0,
+      paceMs: r.paceMs ?? 0,
+    }))
+    .sort((a, b) => b.ms - a.ms);
+}
+
 export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"), "utf8")) {
   const out = [];
   for (const m of appSrc.matchAll(/(\{\s*(\w+)\s*&&\s*)?<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)) {
@@ -1050,7 +1069,7 @@ async function main() {
         if (action === "stop") { queueStopped = true; break; }
         if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) continue; // another shard has it
       }
-      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [] };
+      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [], startedAt: Date.now(), paceMs: 0 };
       results.push(rec);
       if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
         rec.status = NOT_REACHED_STATUS;
@@ -1443,11 +1462,17 @@ async function main() {
             break;
           }
           const item = queue[idx++];
+          // Q1405: where a row's time goes. The pace wait (the request ceiling)
+          // is timed apart from the press itself; rowTimings() turns both into
+          // the "Where the time went" table in coverage.md.
+          const pacedFrom = Date.now();
           await paceToCeiling(page);
+          const paceMs = Date.now() - pacedFrom;
+          rec.paceMs += paceMs;
           const { meta } = item;
           const chain = item.chain.map((s) => s);
           const label = meta.label || `<${meta.tag}${meta.type ? ` type=${meta.type}` : ""}>`;
-          const entry = { chain: [...chain.map((s) => s.label), label], path: item.step.path, depth: item.depth, label, result: "", why: "" };
+          const entry = { chain: [...chain.map((s) => s.label), label], path: item.step.path, depth: item.depth, label, result: "", why: "", startedAt: Date.now(), paceMs };
           rec.controls.push(entry);
           rec.found++; totalFound++;
 
@@ -1959,6 +1984,10 @@ async function main() {
   lines.push("", `## Request failures that are not the app's (${nonApp.length}; telemetry ${telemetryCount})`, "", ...nonApp);
   if (sessionRefreshes.length) lines.push("", `## Routine token refreshes (${sessionRefreshes.length}) — expiry, not session deaths`, "", ...sessionRefreshes.map((r) => `- ${r.account} (${r.persona}) before ${r.noticedOn} at ${r.at}`));
   lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
+  // Q1405: the rows that cost the run its time budget, slowest first.
+  const timed = rowTimings(results, Date.now());
+  lines.push("", `## Where the time went (slowest rows)`, "", "| Row | Persona | Minutes | Presses | s / press | Pace wait (min) |", "|---|---|---|---|---|---|");
+  for (const t of timed.slice(0, 15)) lines.push(`| ${t.route} | ${t.persona} | ${(t.ms / 60_000).toFixed(1)} | ${t.presses} | ${t.presses ? (t.ms / 1000 / t.presses).toFixed(1) : "-"} | ${(t.paceMs / 60_000).toFixed(1)} |`);
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
   writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, sessionDeaths, sessionLostRows, sessionRefreshes, cleanup: cleaned, results }, null, 2));
   if (telemetryCount) console.log(`::warning title=press telemetry refused::${telemetryCount} request(s) to our own telemetry (Sentry/PostHog) were refused (429s are the reporter being rate-limited) — listed in coverage.md, not counted as control failures`);

@@ -42,7 +42,7 @@
  * the knob below, and scripts/vacuity/run.mjs specGateEnv).
  */
 // @mutate src/pages/auth/Login.tsx | if (!emailValid) { | if (false) {
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import { test as base, expect } from "../prodTest";
@@ -109,6 +109,26 @@ const CREDITS = join("test-results", "messy-input-prod", "credits");
  * assertion being proven is identical at one test and at ninety-four.
  */
 const SCOPE = (process.env.MESSY_INPUT_SCOPE ?? "").trim();
+
+/**
+ * `MESSY_INPUT_LEG=1|2` — which half of this file a prod-audit.yml leg runs
+ * (Q889). The whole file takes ~58 minutes on prod, and a job that holds the
+ * shared test accounts may hold them for at most an hour
+ * (src/test/sharedAccountLockJobsAreShort.test.ts), so it runs as two locked
+ * legs: leg 1 is the sweep, the targeted rules, the post-job steps and every
+ * EVEN explore; leg 2 is every ODD explore and the coverage check, which reads
+ * leg 1's credit files from MESSY_INPUT_PRIOR_CREDITS (the workflow hands them
+ * over as an artifact). Unset (every local run, and the vacuity gate) declares
+ * everything, exactly as before. A half's tests are not DECLARED in the other
+ * leg, so they are neither run nor reported there.
+ */
+const MESSY_INPUT_LEGS: Record<"1" | "2", ReadonlySet<string>> = {
+  "1": new Set(["sweep", "targeted", "explore-post-job", "explore-even"]),
+  "2": new Set(["explore-odd", "coverage"]),
+};
+const LEG = (process.env.MESSY_INPUT_LEG ?? "").trim();
+if (LEG && LEG !== "1" && LEG !== "2") throw new Error(`MESSY_INPUT_LEG must be 1 or 2, got ${JSON.stringify(LEG)}`);
+const legHas = (part: string) => !LEG || MESSY_INPUT_LEGS[LEG as "1" | "2"].has(part);
 const SCOPE_RE = SCOPE ? new RegExp(SCOPE) : null;
 const scoped: typeof test = ((...args: Parameters<typeof test>) =>
   !SCOPE_RE || SCOPE_RE.test(String(args[0])) ? test(...args) : test.skip(...args)) as typeof test;
@@ -203,7 +223,7 @@ async function open(browser: Browser, f: { url: string; as: Account | null; prep
 // 1. SWEEP every field on every URL-reachable form
 // ---------------------------------------------------------------------------
 
-test.describe("sweep every field on every form", () => {
+if (legHas("sweep")) test.describe("sweep every field on every form", () => {
   for (const f of FORMS) {
     scoped(`sweep: ${f.name}`, async ({ browser }, info) => {
       if (APPLICANT_SWEEPS.includes(f.name)) skipWhenUnfundedLive(runtime.applicantJob, livePay.applicant, `sweep ${f.name} opens the funded applicant fixture`);
@@ -247,7 +267,7 @@ test.describe("sweep every field on every form", () => {
 // 2. TARGETED rules — each watches the wire for the write that must (not) happen
 // ---------------------------------------------------------------------------
 
-test.describe("targeted rules", () => {
+if (legHas("targeted")) test.describe("targeted rules", () => {
   scoped("login: empty and malformed email are blocked inline; a padded email is trimmed before it leaves", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS[0]);
     const auth = watchWrites(page, /\/auth\/v1\/token/);
@@ -593,7 +613,7 @@ const EXPLORE: Explore[] = [
 test.describe("explore dialog-gated forms from real records", () => {
   test.describe.configure({ timeout: 10 * 60_000 });
 
-  scoped("post-job: every later step's fields (budget, logistics, address, checkout), never paying", async ({ browser }, info) => {
+  if (legHas("explore-post-job")) scoped("post-job: every later step's fields (budget, logistics, address, checkout), never paying", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, { url: "/post-job", as: "poster", prepare: async (p) => {
       const fresh = p.getByRole("button", { name: /start fresh/i });
       if (await fresh.isVisible().catch(() => false)) await fresh.click();
@@ -657,7 +677,7 @@ test.describe("explore dialog-gated forms from real records", () => {
     expect(problems, problems.join("\n")).toEqual([]);
   });
 
-  for (const ex of EXPLORE) {
+  for (const ex of EXPLORE.filter((_, i) => legHas(i % 2 === 0 ? "explore-even" : "explore-odd"))) {
     scoped(`explore: ${ex.name}`, async ({ browser }, info) => {
       if (ex.livePay) skipWhenUnfundedLive(fx[ex.livePay[0]], livePay[ex.livePay[1]], `explore ${ex.name} opens a funded fixture`);
       const why = ex.needs?.();
@@ -825,11 +845,20 @@ test.describe("explore dialog-gated forms from real records", () => {
 // Coverage: inventory − URL sweep − explore credits − stated gaps must be empty
 // ---------------------------------------------------------------------------
 
-scoped("coverage: every inventory file was swept, explored, or has a stated gap", async () => {
-  const files = readdirSync(CREDITS);
+if (legHas("coverage")) scoped("coverage: every inventory file was swept, explored, or has a stated gap", async () => {
+  // Leg 2 (Q889) also reads leg 1's credit files, handed over by the workflow.
+  const prior = (process.env.MESSY_INPUT_PRIOR_CREDITS ?? "").trim();
+  if (LEG === "2") {
+    const fetched = (process.env.MESSY_INPUT_PRIOR_FETCH ?? "").trim();
+    expect(fetched === "" || fetched === "success", `fetching leg 1's credit artifact answered "${fetched}"`).toBe(true);
+    expect(prior, "leg 2 needs MESSY_INPUT_PRIOR_CREDITS (leg 1's credit files)").not.toBe("");
+    expect(existsSync(prior) && readdirSync(prior).length > 0, `leg 1's credit files are missing from ${prior}: the coverage check would see only half the sweeps`).toBe(true);
+  }
+  const dirs = [CREDITS, ...(prior && existsSync(prior) ? [prior] : [])];
+  const files = dirs.flatMap((d) => readdirSync(d).map((f) => join(d, f)));
   const inventory = inventoryFiles();
   const covered = new Set(FORMS.flatMap((f) => f.covers));
-  for (const f of files) for (const c of JSON.parse(readFileSync(join(CREDITS, f), "utf8")).credited as string[]) covered.add(c);
+  for (const f of files) for (const c of JSON.parse(readFileSync(f, "utf8")).credited as string[]) covered.add(c);
   const unaccounted = inventory.filter((f) => !covered.has(f) && !GAPS[f]);
   const staleGaps = Object.keys(GAPS).filter((f) => covered.has(f) && !GAPS[f].startsWith("false positive"));
   console.log(`[messy-input prod coverage] ${covered.size} exercised, ${Object.keys(GAPS).length} gaps, ${inventory.length} inventory, ${files.length} explore credit files`);

@@ -128,7 +128,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -146,7 +146,22 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   prod-audit:
-    name: Prod audit (prod-audit)
+    name: "Prod audit (leg 1 of 4: messy input, part 1)"
+    # Q889 (2026-10-07): ONE locked job used to run the whole project (122 test-
+    # minutes on run 37521973791; messy-input alone 58) under a 180-minute
+    # timeout, three times the hour any holder of the shared accounts may take
+    # (src/test/sharedAccountLockJobsAreShort.test.ts). It now runs as FOUR
+    # sequential legs, each its own waiter + lock job at 55 minutes (55, not
+    # the 60 cap: four legs plus the budget job keep the run's worst case,
+    # 232 min, inside the 240 before open-done-when, prodWorkflowSpacing rule 5):
+    #   1  messy-input part 1 (sweep, targeted, post-job, even explores)
+    #   2  messy-input part 2 (odd explores + the coverage check, fed leg 1's
+    #      credit files through an artifact)
+    #   3  every other prod-audit spec, list A (~29 test-minutes)
+    #   4  list B (~22) + the Web Vitals lab (~13)
+    # Every prod-audit spec is named in exactly one leg
+    # (src/test/prodAuditLegs.test.ts); a new spec named in none is also
+    # caught by e2eSpecsReachableInCi.test.ts.
     needs: [preflight, wait-accounts]
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
@@ -156,19 +171,10 @@ jobs:
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false
-    # The explore half is ~45 routes, each pressing every control on the screen
-    # and re-loading between presses, at a 4-minute per-route budget. Measured
-    # locally at 2-2.5 minutes a route, so the ceiling is the sum, not one slow
-    # screen — a 120-minute job would have been killed mid-suite and reported as
-    # a failure of the app.
-    # MEASURED (docs/OPEN.md Q322, 2026-09-26): the job itself took 100 min at
-    # most (run 36003051878, 13:14:40-14:55:13Z on 2026-09-24; 51 min on the
-    # 2026-09-24 schedule, 35963166238). 300 held prod-load 5 h in the rule-5
-    # model and left the week with no free :17 slot; 180 is 1.8x the worst
-    # measured run and frees Sun and Thu 05:17.
-    timeout-minutes: 180
+    timeout-minutes: 55 # prod-audit leg 1 (Q889)
     env:
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      REQUEST_BUDGET_DIR: request-budget/leg-1
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
       PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
@@ -237,40 +243,27 @@ jobs:
       # as positional file filters that match nothing — the specs would then
       # report as run by no CI job. The optional -g goes through an env var and
       # a shell branch instead.
-      - name: Run the prod audit suites
-        timeout-minutes: 150
+      - name: Run the prod audit suites (leg 1 of 4)
+        timeout-minutes: 42 # prod-audit leg 1 suites (lockedLongStepsKeepEvidence: steps sum <= cap - 3)
         if: ${{ inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}
+          MESSY_INPUT_LEG: "1"
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/messy-input.spec.ts
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/messy-input.spec.ts
           fi
-
-      # Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,
-      # Q1158): FCP/LCP/CLS per first screen under the Lighthouse mobile and
-      # desktop profiles, and a walk of the dock/rail for taps that lead to a
-      # jump. It serves the dist/ the step above built itself, over HTTP/2
-      # (e2e/web-vitals/first-screens.spec.ts). Its own project and request
-      # budget label, so prod-audit's measured per-test number is untouched.
-      # Runs even when the audit suites above failed: an independent signal.
-      # A `grep` dispatch that names only one of the two projects finds no
-      # test in the other, hence --pass-with-no-tests on both grep branches.
-      - name: Run the first-screen Web Vitals lab budget
-        timeout-minutes: 20
+      - name: Hand leg 2 this leg's messy-input credit files (Q889)
         if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        env:
-          GREP: ${{ inputs.grep }}
-        run: |
-          set -euo pipefail
-          if [ -n "$GREP" ]; then
-            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
-          else
-            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
-          fi
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: messy-input-credits-leg-1
+          path: test-results/messy-input-prod/credits/
+          retention-days: 1
+          if-no-files-found: warn
 
       # Q89 (owner pop-up 2026-09-23): five guards (a11y-prod, trailing-icon-
       # fields, activity-tabs-visible, admin-views, messy-input) mint seeded
@@ -286,40 +279,19 @@ jobs:
           set -euo pipefail
           bash scripts/ci/playwright-install.sh webkit
           npm run vacuity -- --only "${ONLY}"
-      - name: Backend request budget (Q104)
-        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
-        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
-        # Not on a vacuity-only dispatch: the suites it budgets did not run.
-        # A `grep` dispatch runs a subset: its per-test number is not the
-        # suite's, so only the load ceiling is judged (--ceiling-only). It may
-        # also match only the web-vitals project's tests (run 37153835455:
-        # `every first screen|a tap never` ran 0 prod-audit tests, and this
-        # step failed on "no sample for this label"), hence --allow-empty.
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        env:
-          GREP: ${{ inputs.grep }}
-        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only --allow-empty}
-      - name: Backend request budget, Web Vitals lab (Q104)
-        # The web-vitals project meters under its own label. A `grep` dispatch
-        # judges the ceiling only (as the prod-audit budget above does) and,
-        # since it may run none of this project's tests, allows an empty label.
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        env:
-          GREP: ${{ inputs.grep }}
-        run: node scripts/e2e/request-budget.mjs --label web-vitals ${GREP:+--ceiling-only --allow-empty}
-      - name: Keep failure screenshots, samples and traces
+      - name: Keep failure screenshots, samples and traces (leg 1)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: prod-audit-results
+          name: prod-audit-leg-1
           # .env lives at the repo root, not under these paths, and is deleted
           # in the next step regardless.
           path: |
             test-results/
             playwright-report/
+            request-budget/
           retention-days: 14
           if-no-files-found: warn
-
       # Last check before the key is removed (it reads SUPABASE_SERVICE_ROLE_KEY
       # from .env). The suites above sign in as the shared test accounts and can
       # leave user_strikes / user_violations behind; one more harness-made
@@ -374,9 +346,662 @@ jobs:
         if: always()
         run: rm -f .env
 
+  wait-accounts-2:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue, leg 2 of 4)
+    # Q889: waits for leg 1 to let go, then queues like any holder; runs
+    # whatever leg 1's result, unless the run was cancelled.
+    needs: [preflight, prod-audit]
+    if: ${{ !cancelled() && needs.preflight.outputs.have_accounts == 'true' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  prod-audit-2:
+    name: "Prod audit (leg 2 of 4: messy input, part 2)"
+    needs: [preflight, wait-accounts-2]
+    if: ${{ !cancelled() && needs.wait-accounts-2.result == 'success' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    timeout-minutes: 55 # prod-audit leg 2 (Q889)
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      REQUEST_BUDGET_DIR: request-budget/leg-2
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      # WebKit too: notification-panel-jump.spec.ts (Q51) measures the panel
+      # edge in both engines, as the original fix was measured.
+      - run: bash scripts/ci/playwright-install.sh chromium webkit
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      # The incomplete-profile and admin seed accounts exist only as seeded
+      # rows: no password is stored for them anywhere, so a session can only be
+      # minted with the service-role key. Read it here, mask it before it can
+      # reach a log, and hand it to scripts/test-signin-link.mjs the way a local
+      # run gets it — through .env, which is gitignored and deleted below.
+      - name: Provide the service-role key to the seeded-account minter
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          # Mask first, write second: after this line the value cannot appear in
+          # a log even if a later command echoes it.
+          echo "::add-mask::$KEY"
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY"
+          } > .env
+          test -s .env
+
+      # Specs read seeded fixtures (saved Helprs, pets, credentials...). Other
+      # workflows mutate the same accounts (the 03-account journey unsaves the
+      # seeded Helpr), so a drifted fixture showed up here as a selector
+      # timeout on an empty tab (2026-09-24: favorite_helpers 0 of 2). Repair
+      # them first; --apply is idempotent and writes only seed-owned rows.
+      # The passwords re-sync the accounts CI signs in as (owner, 2026-10-01):
+      # a re-created account otherwise keeps a password no secret matches (#1582).
+      - name: Repair seed fixtures before the audit
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 2
+
+      # The playwright line stays literal: src/test/e2eSpecsReachableInCi reads
+      # these workflows as text, and a ${{ }} expression on this line is parsed
+      # as positional file filters that match nothing — the specs would then
+      # report as run by no CI job. The optional -g goes through an env var and
+      # a shell branch instead.
+      - name: Fetch leg 1's messy-input credit files (Q889)
+        id: prior
+        if: ${{ inputs.vacuity_only == '' }}
+        # A missing artifact (leg 1 died before uploading) must not stop the
+        # odd explores; the coverage check reads this outcome and fails on it.
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: messy-input-credits-leg-1
+          path: messy-input-prior-credits
+      - name: Run the prod audit suites (leg 2 of 4)
+        timeout-minutes: 42 # prod-audit leg 2 suites (lockedLongStepsKeepEvidence: steps sum <= cap - 3)
+        if: ${{ inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+          MESSY_INPUT_LEG: "2"
+          MESSY_INPUT_PRIOR_CREDITS: messy-input-prior-credits
+          MESSY_INPUT_PRIOR_FETCH: ${{ steps.prior.outcome }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/messy-input.spec.ts
+          else
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/messy-input.spec.ts
+          fi
+
+      - name: Keep failure screenshots, samples and traces (leg 2)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prod-audit-leg-2
+          # .env lives at the repo root, not under these paths, and is deleted
+          # in the next step regardless.
+          path: |
+            test-results/
+            playwright-report/
+            request-budget/
+          retention-days: 14
+          if-no-files-found: warn
+      # Last check before the key is removed (it reads SUPABASE_SERVICE_ROLE_KEY
+      # from .env). The suites above sign in as the shared test accounts and can
+      # leave user_strikes / user_violations behind; one more harness-made
+      # violation suspends the account every prod workflow uses (2026-09-13).
+      # always(): a red suite is exactly when a strike is most likely.
+      # Exit 1 = a strike on a shared account; exit 2 = could not check. BOTH
+      # fail the job (Q52, 2026-09-23): "could not read prod" used to be a
+      # ::warning:: and the job stayed green having checked nothing. Failing this
+      # step does not mask the suite result — that step's outcome is its own.
+      - name: Shared test accounts carry no strikes
+        if: always()
+        run: |
+          set +e
+          node scripts/check-test-account-strikes.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Strike on a shared test account::A harness left a strike/violation on a shared test account. Delete the test-owned rows and fix that harness's cleanup."; exit 1 ;;
+            2) echo "::error title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above. Not checked is not clean."; exit 2 ;; # leg 2
+            *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
+          esac
+
+      # Also last-before-key-removed: interruptions.spec.ts's "post a job"
+      # double-tap test mints a real Stripe checkout session, which permanently
+      # blocks the poster's own DELETE policy (20260903055308 requires
+      # stripe_session_id IS NULL) — the test's own teardown can only cancel it,
+      # not remove it (see the comment in that spec). scripts/e2e/prod-lifecycle-
+      # sweeper.mjs does not cover this: it matches a different suite's marker
+      # and deliberately runs as the poster, which is exactly the account this
+      # residue defeats. scripts/e2e/prod-audit-sweeper.mjs is the service-role
+      # equivalent for this suite's marker, needing the key this step still has.
+      # always(): a run that fails partway through is exactly when a leftover
+      # is most likely. Exit 1 = a real problem (cap exceeded or a delete
+      # failed); exit 2 = could not run (missing key or a REST error reading
+      # prod). Both fail the job (Q52) — a sweep that never ran is not clean.
+      - name: Remove leftover prod-audit jobs this run could not clean up itself
+        if: always()
+        run: |
+          set +e
+          node scripts/e2e/prod-audit-sweeper.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=prod-audit leftover cleanup failed::scripts/e2e/prod-audit-sweeper.mjs found a real problem (more than its 50-match cap, or a delete failed) — see the log above."; exit 1 ;;
+            2) echo "::error title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above."; exit 2 ;;
+            *) echo "::error::prod-audit-sweeper.mjs exited $code"; exit "$code" ;;
+          esac
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  wait-accounts-3:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue, leg 3 of 4)
+    # Q889: waits for leg 2 to let go, then queues like any holder; runs
+    # whatever leg 2's result, unless the run was cancelled.
+    needs: [preflight, prod-audit-2]
+    if: ${{ !cancelled() && needs.preflight.outputs.have_accounts == 'true' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  prod-audit-3:
+    name: "Prod audit (leg 3 of 4: specs, list A)"
+    needs: [preflight, wait-accounts-3]
+    if: ${{ !cancelled() && needs.wait-accounts-3.result == 'success' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    timeout-minutes: 55 # prod-audit leg 3 (Q889)
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      REQUEST_BUDGET_DIR: request-budget/leg-3
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      # WebKit too: notification-panel-jump.spec.ts (Q51) measures the panel
+      # edge in both engines, as the original fix was measured.
+      - run: bash scripts/ci/playwright-install.sh chromium webkit
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      # The incomplete-profile and admin seed accounts exist only as seeded
+      # rows: no password is stored for them anywhere, so a session can only be
+      # minted with the service-role key. Read it here, mask it before it can
+      # reach a log, and hand it to scripts/test-signin-link.mjs the way a local
+      # run gets it — through .env, which is gitignored and deleted below.
+      - name: Provide the service-role key to the seeded-account minter
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          # Mask first, write second: after this line the value cannot appear in
+          # a log even if a later command echoes it.
+          echo "::add-mask::$KEY"
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY"
+          } > .env
+          test -s .env
+
+      # Specs read seeded fixtures (saved Helprs, pets, credentials...). Other
+      # workflows mutate the same accounts (the 03-account journey unsaves the
+      # seeded Helpr), so a drifted fixture showed up here as a selector
+      # timeout on an empty tab (2026-09-24: favorite_helpers 0 of 2). Repair
+      # them first; --apply is idempotent and writes only seed-owned rows.
+      # The passwords re-sync the accounts CI signs in as (owner, 2026-10-01):
+      # a re-created account otherwise keeps a password no secret matches (#1582).
+      - name: Repair seed fixtures before the audit
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 3
+
+      # The playwright line stays literal: src/test/e2eSpecsReachableInCi reads
+      # these workflows as text, and a ${{ }} expression on this line is parsed
+      # as positional file filters that match nothing — the specs would then
+      # report as run by no CI job. The optional -g goes through an env var and
+      # a shell branch instead.
+      - name: Run the prod audit suites (leg 3 of 4)
+        timeout-minutes: 42 # prod-audit leg 3 suites (lockedLongStepsKeepEvidence: steps sum <= cap - 3)
+        if: ${{ inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
+          else
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/shell-spacing.spec.ts e2e/prod-audit/clipped-labels.spec.ts e2e/prod-audit/card-maps-hit-area.spec.ts e2e/prod-audit/admin-views.spec.ts e2e/prod-audit/activity-loading-reserve.spec.ts e2e/prod-audit/route-retention-signed-in.spec.ts e2e/prod-audit/activity-tabs-visible.spec.ts e2e/prod-audit/expanding-search-geometry.spec.ts e2e/prod-audit/public-page-fit.spec.ts e2e/prod-audit/notification-panel-jump.spec.ts e2e/prod-audit/profile-tab-scroll-fill.spec.ts e2e/prod-audit/reaction-chip-clearance.spec.ts
+          fi
+
+      - name: Keep failure screenshots, samples and traces (leg 3)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prod-audit-leg-3
+          # .env lives at the repo root, not under these paths, and is deleted
+          # in the next step regardless.
+          path: |
+            test-results/
+            playwright-report/
+            request-budget/
+          retention-days: 14
+          if-no-files-found: warn
+      # Last check before the key is removed (it reads SUPABASE_SERVICE_ROLE_KEY
+      # from .env). The suites above sign in as the shared test accounts and can
+      # leave user_strikes / user_violations behind; one more harness-made
+      # violation suspends the account every prod workflow uses (2026-09-13).
+      # always(): a red suite is exactly when a strike is most likely.
+      # Exit 1 = a strike on a shared account; exit 2 = could not check. BOTH
+      # fail the job (Q52, 2026-09-23): "could not read prod" used to be a
+      # ::warning:: and the job stayed green having checked nothing. Failing this
+      # step does not mask the suite result — that step's outcome is its own.
+      - name: Shared test accounts carry no strikes
+        if: always()
+        run: |
+          set +e
+          node scripts/check-test-account-strikes.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Strike on a shared test account::A harness left a strike/violation on a shared test account. Delete the test-owned rows and fix that harness's cleanup."; exit 1 ;;
+            2) echo "::error title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above. Not checked is not clean."; exit 2 ;; # leg 3
+            *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
+          esac
+
+      # Also last-before-key-removed: interruptions.spec.ts's "post a job"
+      # double-tap test mints a real Stripe checkout session, which permanently
+      # blocks the poster's own DELETE policy (20260903055308 requires
+      # stripe_session_id IS NULL) — the test's own teardown can only cancel it,
+      # not remove it (see the comment in that spec). scripts/e2e/prod-lifecycle-
+      # sweeper.mjs does not cover this: it matches a different suite's marker
+      # and deliberately runs as the poster, which is exactly the account this
+      # residue defeats. scripts/e2e/prod-audit-sweeper.mjs is the service-role
+      # equivalent for this suite's marker, needing the key this step still has.
+      # always(): a run that fails partway through is exactly when a leftover
+      # is most likely. Exit 1 = a real problem (cap exceeded or a delete
+      # failed); exit 2 = could not run (missing key or a REST error reading
+      # prod). Both fail the job (Q52) — a sweep that never ran is not clean.
+      - name: Remove leftover prod-audit jobs this run could not clean up itself
+        if: always()
+        run: |
+          set +e
+          node scripts/e2e/prod-audit-sweeper.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=prod-audit leftover cleanup failed::scripts/e2e/prod-audit-sweeper.mjs found a real problem (more than its 50-match cap, or a delete failed) — see the log above."; exit 1 ;;
+            2) echo "::error title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above."; exit 2 ;;
+            *) echo "::error::prod-audit-sweeper.mjs exited $code"; exit "$code" ;;
+          esac
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  wait-accounts-4:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue, leg 4 of 4)
+    # Q889: waits for leg 3 to let go, then queues like any holder; runs
+    # whatever leg 3's result, unless the run was cancelled.
+    needs: [preflight, prod-audit-3]
+    if: ${{ !cancelled() && needs.preflight.outputs.have_accounts == 'true' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  prod-audit-4:
+    name: "Prod audit (leg 4 of 4: specs, list B + Web Vitals)"
+    needs: [preflight, wait-accounts-4]
+    if: ${{ !cancelled() && needs.wait-accounts-4.result == 'success' && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    timeout-minutes: 55 # prod-audit leg 4 (Q889)
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      REQUEST_BUDGET_DIR: request-budget/leg-4
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      # WebKit too: notification-panel-jump.spec.ts (Q51) measures the panel
+      # edge in both engines, as the original fix was measured.
+      - run: bash scripts/ci/playwright-install.sh chromium webkit
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      # The incomplete-profile and admin seed accounts exist only as seeded
+      # rows: no password is stored for them anywhere, so a session can only be
+      # minted with the service-role key. Read it here, mask it before it can
+      # reach a log, and hand it to scripts/test-signin-link.mjs the way a local
+      # run gets it — through .env, which is gitignored and deleted below.
+      - name: Provide the service-role key to the seeded-account minter
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          # Mask first, write second: after this line the value cannot appear in
+          # a log even if a later command echoes it.
+          echo "::add-mask::$KEY"
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY"
+          } > .env
+          test -s .env
+
+      # Specs read seeded fixtures (saved Helprs, pets, credentials...). Other
+      # workflows mutate the same accounts (the 03-account journey unsaves the
+      # seeded Helpr), so a drifted fixture showed up here as a selector
+      # timeout on an empty tab (2026-09-24: favorite_helpers 0 of 2). Repair
+      # them first; --apply is idempotent and writes only seed-owned rows.
+      # The passwords re-sync the accounts CI signs in as (owner, 2026-10-01):
+      # a re-created account otherwise keeps a password no secret matches (#1582).
+      - name: Repair seed fixtures before the audit
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 4
+
+      # The playwright line stays literal: src/test/e2eSpecsReachableInCi reads
+      # these workflows as text, and a ${{ }} expression on this line is parsed
+      # as positional file filters that match nothing — the specs would then
+      # report as run by no CI job. The optional -g goes through an env var and
+      # a shell branch instead.
+      - name: Run the prod audit suites (leg 4 of 4)
+        timeout-minutes: 28 # prod-audit leg 4 suites (lockedLongStepsKeepEvidence: steps sum <= cap - 3)
+        if: ${{ inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts
+          else
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts
+          fi
+
+      # Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,
+      # Q1158): FCP/LCP/CLS per first screen under the Lighthouse mobile and
+      # desktop profiles, and a walk of the dock/rail for taps that lead to a
+      # jump. It serves the dist/ the step above built itself, over HTTP/2
+      # (e2e/web-vitals/first-screens.spec.ts). Its own project and request
+      # budget label, so prod-audit's measured per-test number is untouched.
+      # Runs even when the audit suites above failed: an independent signal.
+      # A `grep` dispatch that names only one of the two projects finds no
+      # test in the other, hence --pass-with-no-tests on both grep branches.
+      - name: Run the first-screen Web Vitals lab budget
+        timeout-minutes: 14 # leg 4: 28 + 14 = 42 of its 55
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
+          else
+            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+          fi
+
+      - name: Keep failure screenshots, samples and traces (leg 4)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prod-audit-leg-4
+          # .env lives at the repo root, not under these paths, and is deleted
+          # in the next step regardless.
+          path: |
+            test-results/
+            playwright-report/
+            request-budget/
+          retention-days: 14
+          if-no-files-found: warn
+      # Last check before the key is removed (it reads SUPABASE_SERVICE_ROLE_KEY
+      # from .env). The suites above sign in as the shared test accounts and can
+      # leave user_strikes / user_violations behind; one more harness-made
+      # violation suspends the account every prod workflow uses (2026-09-13).
+      # always(): a red suite is exactly when a strike is most likely.
+      # Exit 1 = a strike on a shared account; exit 2 = could not check. BOTH
+      # fail the job (Q52, 2026-09-23): "could not read prod" used to be a
+      # ::warning:: and the job stayed green having checked nothing. Failing this
+      # step does not mask the suite result — that step's outcome is its own.
+      - name: Shared test accounts carry no strikes
+        if: always()
+        run: |
+          set +e
+          node scripts/check-test-account-strikes.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Strike on a shared test account::A harness left a strike/violation on a shared test account. Delete the test-owned rows and fix that harness's cleanup."; exit 1 ;;
+            2) echo "::error title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above. Not checked is not clean."; exit 2 ;; # leg 4
+            *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
+          esac
+
+      # Also last-before-key-removed: interruptions.spec.ts's "post a job"
+      # double-tap test mints a real Stripe checkout session, which permanently
+      # blocks the poster's own DELETE policy (20260903055308 requires
+      # stripe_session_id IS NULL) — the test's own teardown can only cancel it,
+      # not remove it (see the comment in that spec). scripts/e2e/prod-lifecycle-
+      # sweeper.mjs does not cover this: it matches a different suite's marker
+      # and deliberately runs as the poster, which is exactly the account this
+      # residue defeats. scripts/e2e/prod-audit-sweeper.mjs is the service-role
+      # equivalent for this suite's marker, needing the key this step still has.
+      # always(): a run that fails partway through is exactly when a leftover
+      # is most likely. Exit 1 = a real problem (cap exceeded or a delete
+      # failed); exit 2 = could not run (missing key or a REST error reading
+      # prod). Both fail the job (Q52) — a sweep that never ran is not clean.
+      - name: Remove leftover prod-audit jobs this run could not clean up itself
+        if: always()
+        run: |
+          set +e
+          node scripts/e2e/prod-audit-sweeper.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=prod-audit leftover cleanup failed::scripts/e2e/prod-audit-sweeper.mjs found a real problem (more than its 50-match cap, or a delete failed) — see the log above."; exit 1 ;;
+            2) echo "::error title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above."; exit 2 ;;
+            *) echo "::error::prod-audit-sweeper.mjs exited $code"; exit "$code" ;;
+          esac
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  budget:
+    # Q889: the request budget judges the WHOLE run, every leg's samples summed
+    # (as press-every-control's summary does): per test over all four legs, and
+    # the busiest wall-clock minute (the legs run one after another, so their
+    # minutes never overlap).
+    name: Prod audit (whole-run request budget)
+    needs: [prod-audit, prod-audit-2, prod-audit-3, prod-audit-4]
+    if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Fetch every leg's samples
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: prod-audit-leg-*
+          merge-multiple: true
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        # Not on a vacuity-only dispatch: the suites it budgets did not run.
+        # A `grep` dispatch runs a subset: its per-test number is not the
+        # suite's, so only the load ceiling is judged (--ceiling-only). It may
+        # also match only the web-vitals project's tests (run 37153835455:
+        # `every first screen|a tap never` ran 0 prod-audit tests, and this
+        # step failed on "no sample for this label"), hence --allow-empty.
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit --dir request-budget/leg-1 --dir request-budget/leg-2 --dir request-budget/leg-3 --dir request-budget/leg-4 ${GREP:+--ceiling-only --allow-empty}
+      - name: Backend request budget, Web Vitals lab (Q104)
+        # The web-vitals project meters under its own label. A `grep` dispatch
+        # judges the ceiling only (as the prod-audit budget above does) and,
+        # since it may run none of this project's tests, allows an empty label.
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label web-vitals --dir request-budget/leg-4 ${GREP:+--ceiling-only --allow-empty}
+
   notify:
     name: Report nightly result
-    needs: [preflight, prod-audit]
+    needs: [preflight, prod-audit, prod-audit-2, prod-audit-3, prod-audit-4, budget]
     # A FULL run reports, whoever started it (2026-09-21; see
     # src/test/nightlyIssueSyncReachable.test.ts and e2e-journeys.yml, which
     # carried the same bug against issue #1595). Gating on `schedule` alone
@@ -404,6 +1029,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: prod-audit
-          status: ${{ needs.prod-audit.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.prod-audit.result == 'success' && (inputs.vacuity_only != '' || (needs.prod-audit-2.result == 'success' && needs.prod-audit-3.result == 'success' && needs.prod-audit-4.result == 'success' && needs.budget.result == 'success'))) && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

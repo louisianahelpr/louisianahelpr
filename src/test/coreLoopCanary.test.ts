@@ -31,7 +31,7 @@
 // @mutate e2e/canary/core-loop.spec.ts | [poster, "messages", "content"]] | ]
 // @mutate .github/workflows/core-loop-canary.yml | - cron: "47 * * * *" | - cron: "47 5 * * *"
 // @mutate .github/workflows/core-loop-canary.yml |     timeout-minutes: 40\n | \n
-// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress"); |     return false;
+// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => String(j.name ?? "").startsWith(VACUITY_E2E_JOB) && j.status === "in_progress"); |     return false;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

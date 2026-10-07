@@ -664,7 +664,7 @@ describe("prod-hitting workflow schedules", () => {
   // takes a slot, or a timeout cut that frees one, updates this list in the
   // same commit. On 2026-09-23 it was EMPTY (Q322: 84 of 84 booked); cutting
   // prod-audit's timeout from 300 to its measured 100-min max x1.8 freed two.
-  // @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 180 |     timeout-minutes: 300
+  // @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 55 # prod-audit leg 1 (Q889) |     timeout-minutes: 300 # prod-audit leg 1 (Q889)
   it("Q322: the free :17 slots in the prod-load week are exactly these", () => {
     const free = freeSlots(wfs).map(fmt);
     // 2026-09-27: open-done-when.yml took both (Sun + Thu 05:17).

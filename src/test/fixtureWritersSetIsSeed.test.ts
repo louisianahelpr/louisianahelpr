@@ -40,7 +40,7 @@
  * database test finds neither trigger.
  *
  * @mutate scripts/audit/prod-seed.mjs | payment_status: "unpaid", is_seed: true }; | payment_status: "unpaid" };
- * @mutate e2e/journeys/time-travel.spec.ts | is_seed: true, | seeded: true,
+ * @mutate e2e/journeys/time-travel.spec.ts |           is_seed: true, |           seeded: true,
  * @mutate scripts/ci/race-runner.mjs | if (!["localhost", "127.0.0.1", "::1"].includes(process.env.PGHOST | if (![].includes(process.env.PGHOST
  * @mutate scripts/create-app-review-demo-account.mjs | is_seed: true, | seeded: true,
  * @mutate supabase/migrations/20260926040523_seed_flag_derived_at_birth.sql | EXECUTE FUNCTION public.jobs_seed_from_poster(); | EXECUTE FUNCTION public.some_other_fn();

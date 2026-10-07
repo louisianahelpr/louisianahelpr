@@ -17,7 +17,7 @@
  */
 // @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --no-e2e --only "${ONLY}" |             npm run vacuity -- --only "${ONLY}"
 // @mutate .github/workflows/vacuity.yml |             npm run vacuity:all -- --no-e2e |             npm run vacuity:all
-// @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --e2e --only "${ONLY}" |             npm run vacuity -- --only "${ONLY}"
+// @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --e2e --shard 1/4 --only "${ONLY}" |             npm run vacuity -- --shard 1/4 --only "${ONLY}"
 // @mutate .github/workflows/vacuity.yml |     needs: [scope, wait-accounts]\n    if: needs.scope.outputs.have_e2e == 'true' |     needs: [scope, wait-accounts]\n    if: always()
 // @mutate .github/workflows/vacuity.yml |   vacuity:\n    name: Guards shown able to fail\n    runs-on: ubuntu-latest | name: Guards shown able to fail\n    runs-on: ubuntu-latest\n    env:\n      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
 // @mutate scripts/vacuity/run.mjs | export const kindOf = (m) => (isPlaywrightGuard(m.guard) ? "e2e" : "unit"); | export const kindOf = (m) => "unit";

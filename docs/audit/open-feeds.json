@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T10:22Z",
+  "measured_at": "2026-10-07T12:32Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,21 +53,6 @@
         "number": 2501,
         "title": "nightly-red: vacuity",
         "label": "nightly-red"
-      },
-      {
-        "number": 2543,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2560,
-        "title": "nightly-red: prod-errors",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2562,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red"
       }
     ]
   },
@@ -91,36 +76,12 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2420
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "42a784cb226e506d814a710c96d26487",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: supabase db deploy",
-        "issue": 2543
       },
       {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
@@ -171,6 +132,14 @@
         "issue": 2462
       },
       {
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-errors",
+        "issue": 2560
+      },
+      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -195,14 +164,6 @@
         "issue": null
       },
       {
-        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
-        "source_kind": "error_logs",
-        "source": "stripe-connect",
-        "status": "open",
-        "title": "stripe-connect cleared unusable payout account <id>",
-        "issue": null
-      },
-      {
         "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
         "source_kind": "nightly_red",
         "source": "prod-errors",
@@ -216,62 +177,6 @@
         "source": "sentry:?(assets/app-shared-BltHQJ6d)",
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
-        "issue": null
-      },
-      {
-        "fingerprint": "8d229551132f8f9b17226a5b38fe33c9",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "stripe inquiry escalated to a chargeback (funds withdrawn)",
-        "issue": null
-      },
-      {
-        "fingerprint": "d2d07ff8b273a91ef1dacc9c00b78626",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "stripe chargeback filed",
-        "issue": null
-      },
-      {
-        "fingerprint": "dfa53ea7538bb1524f69a087924567d7",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "card dispute on a paid job — helpr payout clawed back",
-        "issue": null
-      },
-      {
-        "fingerprint": "090aa021e2784c5242af582221e1d766",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:payout_reversed",
-        "status": "verifying",
-        "title": "helpr payout reversed for a card dispute (automatic clawback)",
-        "issue": null
-      },
-      {
-        "fingerprint": "254aa669dea71f9df7a88af8759c2125",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_lost",
-        "status": "verifying",
-        "title": "❌ stripe chargeback lost",
-        "issue": null
-      },
-      {
-        "fingerprint": "aa7111fce4e82b080601d066a23bdfd6",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:money_at_risk",
-        "status": "verifying",
-        "title": "card dispute won — helpr re-paid, payout_transfers row not written",
-        "issue": null
-      },
-      {
-        "fingerprint": "71c0da6d93831351738bd9de50f4e50e",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_won",
-        "status": "verifying",
-        "title": "✅ stripe chargeback won",
         "issue": null
       }
     ]
@@ -293,14 +198,11 @@
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
-    "issue #2543": "Q1479",
-    "issue #2560": "Q1483",
-    "issue #2562": "Q1484",
     "ledger 090aa021e278": "Q1468",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 1ef4b10bb74a": "Q1486",
     "ledger 254aa669dea7": "Q1469",
     "ledger 3a3460b71be7": "Q1428",
-    "ledger 42a784cb226e": "Q1479",
     "ledger 43d77e26f272": "Q1429",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 6205197429d4": "Q593",
@@ -319,7 +221,6 @@
     "ledger dfa53ea7538b": "Q1467",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
-    "ledger f22e3275d50d": "Q1484",
     "ledger fad6897fcfae": "Q1438",
     "ledger fdf163a422f2": "Q1482"
   }

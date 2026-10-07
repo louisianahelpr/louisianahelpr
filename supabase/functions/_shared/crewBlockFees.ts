@@ -8,8 +8,10 @@
  *     refunded (the fee comes out of the closed spot's share), and
  *   - void-cancelled-payments, when the job is cancelled instead (the fee is
  *     withheld from the poster's refund like the rest of the crew's fees).
- * Both callers settle the job only once every row is 'paid' or 'void', so a
- * fee that cannot go out this run keeps the escrow for the next run.
+ * Both callers withhold every row that is not 'void' from the poster's refund
+ * and never wait on it (lh-money-escrow review): a fee that cannot go now (a
+ * payout hold, no payout account) is retried every run by
+ * void-cancelled-payments Part F once the job has settled.
  *
  * Exactly once: the Stripe idempotency key is the ledger row's id, Stripe's
  * transfer group for the job is listed first (a transfer already out repairs
@@ -65,12 +67,12 @@ export function crewBlockFeeCents(rows: CrewBlockFeeRow[]): number {
 
 /**
  * Pay every unpaid row. `allPaid` is true only when no row is left 'owed' or
- * 'failed'; a caller must not settle the job (release it, or refund the rest)
- * until it is. `chargeId` links each transfer to the job's charge (null for a
+ * 'failed'. `chargeId` links each transfer to the job's charge (null for a
  * gift-funded job, which pays from the platform balance).
  */
 export async function payCrewBlockFees(
-  deps: { stripe: Stripe; admin: Db; fn: string },
+  /** `settled`: the job's refund has already gone (the void-cancelled sweep). */
+  deps: { stripe: Stripe; admin: Db; fn: string; settled?: boolean },
   job: { id: string; title?: string | null; helper_fee_percent?: number | string | null },
   rows: CrewBlockFeeRow[],
   chargeId: string | null,
@@ -130,7 +132,9 @@ export async function payCrewBlockFees(
         kind: "payout_failed",
         severity: "warning",
         title: "Crew block fee has no recipient",
-        message: "A crew member owed a block fee deleted their account before it was paid. The fee is no longer withheld; the poster's refund includes it.",
+        message: deps.settled
+          ? "A crew member owed a block fee deleted their account before it was paid, after the job settled with the fee withheld from the poster's refund. Refund the poster that amount by hand."
+          : "A crew member owed a block fee deleted their account before it was paid. The fee is no longer withheld; the poster's refund includes it.",
         fields: { job_id: job.id, block_fee_id: row.id, amount: feeDollars, fn },
       });
       continue;

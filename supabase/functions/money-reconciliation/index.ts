@@ -508,8 +508,8 @@ serve(async (req) => {
       // unpaid row on a settled job means the member was skipped.
       crewBlockFeeUnpaid: new Check(
         "crew_block_fee_unpaid_on_settled_job",
-        "critical",
-        "A crew_block_fees row is still owed or failed on a job whose payment has settled (released, refunded or cancelled). Both settlement paths pay a block fee before they settle the job, so the member a poster blocked was never paid their fee: pay it by hand from the platform balance.",
+        "warning",
+        `A crew_block_fees row is still owed or failed more than ${SETTLE_WINDOW_HOURS}h after its job's payment settled (released, refunded or cancelled). The fee was withheld from the poster's refund and void-cancelled-payments retries it every hour, so the member is still waiting: read failure_reason (a payout hold, no payout account) and pay it or clear the cause.`,
       ),
       crewBlockFeeStripeNoRow: new Check(
         "crew_block_fee_stripe_transfer_without_row",
@@ -781,25 +781,31 @@ serve(async (req) => {
     {
       const { data: bfRows, error: bfErr } = await admin
         .from("crew_block_fees")
-        .select("id, job_id, helper_id, fee_cents, status");
+        .select("id, job_id, helper_id, fee_cents, status, created_at");
       const bfMissing = !!bfErr && (bfErr.code === "42P01" || bfErr.code === "PGRST205");
       if (bfErr && !bfMissing) {
         notes.push(`crew block-fee checks skipped: crew_block_fees read failed (${bfErr.message})`);
       } else {
-        const rows = (bfRows ?? []) as Array<{ id: string; job_id: string; helper_id: string | null; fee_cents: number; status: string }>;
+        const rows = (bfRows ?? []) as Array<{ id: string; job_id: string; helper_id: string | null; fee_cents: number; status: string; created_at: string | null }>;
         for (const r of rows) {
           if (r.status === "paid") blockFeeCentsByJob.set(r.job_id, (blockFeeCentsByJob.get(r.job_id) ?? 0) + Number(r.fee_cents ?? 0));
         }
         const unpaid = rows.filter((r) => r.status === "owed" || r.status === "failed");
         if (unpaid.length > 0) {
           const ids = [...new Set(unpaid.map((r) => r.job_id))];
-          const { data: bfJobs, error: bfJobErr } = await admin.from("jobs").select("id, payment_status").in("id", ids);
+          const { data: bfJobs, error: bfJobErr } = await admin.from("jobs").select("id, payment_status, updated_at").in("id", ids);
           if (bfJobErr) {
             notes.push(`crew block-fee settled-job check skipped: jobs read failed (${bfJobErr.message})`);
           } else {
+            // Settled more than the window ago (the job's last write is the
+            // settlement flip); the hourly sweep has had its chances by then.
             const settled = new Set(
-              ((bfJobs ?? []) as Array<{ id: string; payment_status: string | null }>)
+              ((bfJobs ?? []) as Array<{ id: string; payment_status: string | null; updated_at: string | null }>)
                 .filter((j) => j.payment_status === "released" || j.payment_status === "refunded" || j.payment_status === "cancelled")
+                .filter((j) => {
+                  const at = ts(j.updated_at);
+                  return at === null || Date.now() - at >= SETTLE_WINDOW_MS;
+                })
                 .map((j) => j.id),
             );
             for (const r of unpaid) {

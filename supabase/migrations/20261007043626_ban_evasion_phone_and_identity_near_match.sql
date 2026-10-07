@@ -266,7 +266,9 @@ BEGIN
        -- A phone CHANGED later is enforced by nobody (lh-authz-rls review of
        -- Q1416), so on UPDATE the exact number is flagged too.
        AND (TG_OP = 'UPDATE' OR phone_sha256 IS DISTINCT FROM v_full)
-     ORDER BY retained_at DESC
+     -- The exact number first, so it is filed as 'phone' even when a newer
+     -- ban shares only the last 7 digits (lh-authz-rls re-check, nit 1).
+     ORDER BY (phone_sha256 IS NOT DISTINCT FROM v_full) DESC, retained_at DESC
      LIMIT 1;
 
     IF FOUND THEN

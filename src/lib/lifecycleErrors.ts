@@ -169,7 +169,8 @@ export const RPC_ERROR_COPY = {
   accept_group_application: {
     job_starts_too_soon: JOB_STARTS_TOO_SOON_COPY,
     ...ACCEPT_REASONS,
-    roster_full: "Every spot on this job is already filled, so no one else can be added.",
+    // Q1390: a spot a block closed counts as taken too.
+    roster_full: "Every spot on this job is taken, so no one else can be added.",
     not_a_group_job: "This job isn't set up as a group job any more. Refresh and try again.",
     invalid_helpers_needed:
       "This job doesn't say how many people it needs. Edit the job to set that, then try again.",

@@ -89,11 +89,16 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     }
   });
 
-  it("both settlement paths pay the ledger before they settle, through one shared payer", () => {
+  it("both settlement paths try the ledger and withhold it from the refund, through one shared payer; Part F sweeps the rest", () => {
     const psp = readFileSync(resolve(root, "supabase/functions/process-scheduled-payouts/index.ts"), "utf8");
     const vcp = readFileSync(resolve(root, "supabase/functions/void-cancelled-payments/index.ts"), "utf8");
-    expect(psp).toMatch(/payCrewBlockFees\([\s\S]{0,200}\);\s+for \(const p of paidFees\.problems\) jobDefect\(job\.id, p\);\s+if \(!paidFees\.allPaid\) return \{ ready: false, paidCents \};\s+\}\s+const refund = await refundUnfilledCrewShares\(\{ \.\.\.a, paidCents, blockFeeCents: crewBlockFeeCents\(blockFees\.rows\) \}\);/);
-    expect(vcp).toMatch(/if \(!\(await payBlockFees\(pi\)\)\) continue;\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);/);
+    expect(psp).toMatch(/payCrewBlockFees\([\s\S]{0,200}\);\s+for \(const p of paidFees\.problems\) jobDefect\(job\.id, p\);\s+\}\s+const refund = await refundUnfilledCrewShares\(\{ \.\.\.a, paidCents, blockFeeCents: crewBlockFeeCents\(blockFees\.rows\) \}\);/);
+    expect(psp).toMatch(/const unfilledCents = unpaidBudgetCents - blockFeeCents \+ Math\.max\(0, urgentCents - paidUrgent\);/);
+    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);\s+const refundAmount = capturedCents - Math\.round\(cancellationFee \* 100\) - blockFeeCents - nonRefundableCents;/);
+    // Part F: a fee still owed on a settled job is retried every run.
+    expect(vcp).toMatch(/\.from\("crew_block_fees"\)[\s\S]{0,200}\.in\("status", \["owed", "failed"\]\)/);
+    // The ghost-transfer guard knows a block fee is this loop's own (HIGH, lh-money-escrow review).
+    expect(vcp).toMatch(/t\.metadata\?\.type !== "cancellation_fee" && t\.metadata\?\.type !== "crew_block_fee"/);
     const shared = readFileSync(resolve(root, "supabase/functions/_shared/crewBlockFees.ts"), "utf8");
     expect(shared).toMatch(/idempotencyKey: `crew-block-fee-\$\{row\.id\}`/);
   });

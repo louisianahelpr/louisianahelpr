@@ -126,6 +126,7 @@ const CLASSIFIED = [
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)#2",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
+  "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(fj.stripe_payment_intent_id)",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(job.stripe_payment_intent_id)",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(job.stripe_payment_intent_id)#2",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",

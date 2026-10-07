@@ -457,7 +457,7 @@ export const FORMS: FormSpec[] = [
   // Every admin entry opens the gate first — see `recoverAdminGate`. The four
   // below reach their field on a healthy gate and would have reported "the
   // form did not render" on a hiccuped one, exactly as referrals did.
-  { name: "admin-settings", url: "/admin?view=settings", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSettings.tsx"] },
+  { name: "admin-settings", url: "/admin?view=settings", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSettings.tsx", "src/components/admin/settings/AdminUserSearchField.tsx"] },
   { name: "admin-people", url: "/admin?view=people", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminUsers.tsx"] },
   {
     // The referrals search box is scoped to the three list tabs and hidden on

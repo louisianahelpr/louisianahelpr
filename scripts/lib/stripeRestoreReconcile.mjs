@@ -33,6 +33,8 @@ export const DB_ID_COLUMNS = {
     { table: "disputes", column: "execution_transfer_id" },
     { table: "referral_credits", column: "stripe_transfer_id" },
     { table: "crew_cancellation_fee_shares", column: "stripe_transfer_id" },
+    // Q1390: a crew member's cancellation fee for a poster's block.
+    { table: "crew_block_fees", column: "stripe_transfer_id" },
     { table: "cancellation_fee_transfers", column: "stripe_transfer_id" },
     { table: "chargeback_clawbacks", column: "original_transfer_id" },
     { table: "chargeback_clawbacks", column: "repay_transfer_id" },

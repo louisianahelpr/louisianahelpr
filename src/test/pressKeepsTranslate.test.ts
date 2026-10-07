@@ -178,10 +178,18 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     const xs = translatedXButtons();
     const files = new Set(xs.map((x) => x.file));
     // Inventory, EXACT: the six search clear-Xs (BrowseSearchBar,
-    // ConversationList, SavedHelpersTab, PostsHeader, JobsHeader, Legal)
-    // plus ChatView's safety-banner dismiss. A new one fails here until it is
-    // reviewed; a removed one fails too.
+    // ConversationList, SavedHelpersTab, PostsHeader, JobsHeader, Legal),
+    // the six admin search clear-Xs Q913 added (AdminCommandPalette,
+    // AdminNotificationLogs, AdminReferrals, AdminSubscriptions, AdminUsers,
+    // AdminUserSearchField) plus ChatView's safety-banner dismiss. A new one
+    // fails here until it is reviewed; a removed one fails too.
     expect([...files].sort()).toEqual([
+      "src/components/admin/AdminCommandPalette.tsx",
+      "src/components/admin/AdminNotificationLogs.tsx",
+      "src/components/admin/AdminReferrals.tsx",
+      "src/components/admin/AdminSubscriptions.tsx",
+      "src/components/admin/AdminUsers.tsx",
+      "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ChatView.tsx",
       "src/components/messages/ConversationList.tsx",
@@ -190,7 +198,7 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       "src/pages/jobs/JobsHeader.tsx",
       "src/pages/posts/PostsHeader.tsx",
     ]);
-    expect(xs.length).toBe(7);
+    expect(xs.length).toBe(13);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What
@@ -204,8 +212,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       x.className.split(/\s+/).filter((c) => /press/.test(c) && !covered.has(c)).map((c) => `${x.file}:${x.line} wears ${c}`),
     );
     expect(bad, `press classes with no translate-safe :active rule:\n${bad.join("\n")}`).toEqual([]);
-    // The six search Xs are the ones that press; ChatView's dismiss has no
-    // press feedback, so it has no :active transform to lose its centring to.
-    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(6);
+    // The twelve search Xs (six app, six admin) are the ones that press;
+    // ChatView's dismiss has no press feedback, so it has no :active
+    // transform to lose its centring to.
+    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(12);
   });
 });

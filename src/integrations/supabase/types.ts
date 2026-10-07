@@ -6576,6 +6576,7 @@ export type Database = {
         Returns: string
       }
       ban_fingerprint_salt: { Args: never; Returns: string }
+      ban_standing_rank: { Args: { p_status: string }; Returns: number }
       ban_settlement_action: {
         Args: {
           p_is_crew: boolean
@@ -6826,6 +6827,10 @@ export type Database = {
           job_id: string
           new_expires_at: string
         }[]
+      }
+      flag_possible_ban_evasion_by_identity: {
+        Args: { p_nodoc_sha256: string; p_user_id: string }
+        Returns: Json
       }
       get_category_price_stats: {
         Args: { p_category: string; p_parish?: string }
@@ -7674,6 +7679,7 @@ export type Database = {
       }
       my_credential_tier: { Args: never; Returns: number }
       normalize_name_for_ban: { Args: { p_name: string }; Returns: string }
+      normalize_phone7_for_ban: { Args: { p_phone: string }; Returns: string }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
       notification_crosses_seed_boundary: {
         Args: {

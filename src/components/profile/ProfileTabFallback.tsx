@@ -234,7 +234,7 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
 export const NOTIFICATION_ROWS = 17;
 const NotificationsReserve = () => (
   <div aria-hidden data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass overflow-hidden">
-    <div className="flex justify-end gap-10 px-card py-2">
+    <div className="flex justify-end gap-4 px-card py-2">
       <Skeleton className="h-3 w-10 rounded" />
       <Skeleton className="h-3 w-12 rounded" />
     </div>
@@ -242,7 +242,7 @@ const NotificationsReserve = () => (
       <div key={i} className="flex h-[74px] items-center gap-3 border-t border-border/40 px-card">
         <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
         <Skeleton className="h-4 w-1/3 rounded" />
-        <div className="ml-auto flex gap-6">
+        <div className="ml-auto flex gap-4">
           <Skeleton className="h-7 w-12 rounded-full" />
           <Skeleton className="h-7 w-12 rounded-full" />
         </div>

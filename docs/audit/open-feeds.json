@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T15:13Z",
+  "measured_at": "2026-10-07T18:18Z",
   "issues": {
     "readable": true,
     "open": [
@@ -48,6 +48,21 @@
         "number": 2501,
         "title": "nightly-red: vacuity",
         "label": "nightly-red"
+      },
+      {
+        "number": 2580,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2587,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2589,
+        "title": "nightly-red: staleness-watch",
+        "label": "nightly-red"
       }
     ]
   },
@@ -71,12 +86,28 @@
         "issue": 2353
       },
       {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": 2580
+      },
+      {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2420
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
       },
       {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
@@ -119,22 +150,6 @@
         "issue": 2436
       },
       {
-        "fingerprint": "a8ceee56bbd5a688ee8eb2f4f8e41e69",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: slow-network",
-        "issue": 2462
-      },
-      {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 2560
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -149,6 +164,14 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
+      },
+      {
+        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
+        "source_kind": "workflow",
+        "source": "uptime",
+        "status": "open",
+        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
+        "issue": null
       },
       {
         "fingerprint": "a5d62d53b6a4bea80076ec889713b41d",
@@ -193,29 +216,27 @@
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
-    "ledger 090aa021e278": "Q1468",
+    "issue #2580": "Q1505",
+    "issue #2587": "Q1506",
+    "issue #2589": "Q1507",
+    "ledger 0e88968519a2": "Q1508",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
-    "ledger 254aa669dea7": "Q1469",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
-    "ledger 71c0da6d9383": "Q1471",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 88ecf6e765df": "Q1426",
-    "ledger 8d229551132f": "Q1477",
     "ledger a5d62d53b6a4": "Q1435",
     "ledger a8ceee56bbd5": "Q1430",
-    "ledger aa7111fce4e8": "Q1470",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger acf4ea2ff283": "Q1436",
-    "ledger d2d07ff8b273": "Q1478",
-    "ledger dfa53ea7538b": "Q1467",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
+    "ledger f22e3275d50d": "Q1505",
     "ledger fad6897fcfae": "Q1438",
     "ledger fdf163a422f2": "Q1482"
   }

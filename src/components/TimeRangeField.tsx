@@ -9,9 +9,13 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 /** The time each half currently holds, printed beside its label. `opacity`
  *  rather than `text-muted-foreground`: on the selected segment the label is
  *  parchment on the olive gloss, and a fixed muted grey there is unreadable —
- *  inheriting `currentColor` keeps the suffix subordinate in both states. */
+ *  inheriting `currentColor` keeps the suffix subordinate in both states.
+ *  80, not 70 (Q1013): the idle segment's ink is already olivewood at 0.85,
+ *  so 0.7 on top left the 11px time at 3.82:1 on the white popover (#83837c,
+ *  the overlay sweep's unexplained pair, measured on prod 2026-10-07).
+ *  src/test/timeSuffixContrast.test.ts computes it from the tokens. */
 const TimeSuffix = ({ time }: { time: string | null }) => (
-  <span className="ml-1.5 text-ds-11 font-normal tabular-nums opacity-70">
+  <span className="ml-1.5 text-ds-11 font-normal tabular-nums opacity-80">
     {formatTime12(time)}
   </span>
 );

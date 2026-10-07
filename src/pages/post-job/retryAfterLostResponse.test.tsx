@@ -27,7 +27,7 @@
 // @mutate src/pages/post-job/useJobSubmit.ts | const outcomeUnknown = !paymentData?.error && isNetworkFailure(paymentError); | const outcomeUnknown = false;
 // @mutate src/pages/post-job/useJobSubmit.ts | if (attempt.jobId) { | if (false) {
 // @mutate src/pages/post-job/useJobSubmit.ts | await openExternalUrl(paymentUrl);\n      // Handed off: | attemptRef.current = null;\n      await openExternalUrl(paymentUrl);\n      // Handed off:
-// @mutate src/pages/post-job/useJobSubmit.ts | const sig = JSON.stringify(sigFields); | const sig = JSON.stringify(buildPayload({ withExtras: true }));
+// @mutate src/pages/post-job/useJobSubmit.ts | const sig = JSON.stringify({ ...sigFields, accessNotes }); | const sig = JSON.stringify(buildPayload({ withExtras: true }));
 // @mutate src/pages/post-job/useJobSubmit.ts | ? CONNECTION_TROUBLE_COPY\n              : userFacingError( | ? String(error?.message)\n              : userFacingError(
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";

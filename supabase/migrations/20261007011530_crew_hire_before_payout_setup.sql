@@ -219,6 +219,9 @@ BEGIN
       END IF;
       DELETE FROM public.crew_confirm_pending WHERE slot_id = r.slot_id;
     EXCEPTION WHEN OTHERS THEN
+      -- seed-policy: no seed branch needed: a seed Helpr is never payout-blocked
+      -- (helper_award_block_reason's fixture carve-out), so a seed account never
+      -- has a pending crew Confirm and never reaches this log.
       INSERT INTO public.error_logs (severity, message, tags, context)
       VALUES (
         'error',

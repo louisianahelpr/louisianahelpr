@@ -40,7 +40,7 @@ import { apiBase, isLoopbackBase, supabaseBase } from "../../scripts/lib/apiBase
 import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
-const APIBASE_CALL_SITES = 22; // measured 2026-10-06: 15 single-seam scripts (+ check-native-sign-in-config, Q1323) + quota 3 + stripe-balance 2 + opsAlertLedger 1 + stripe-test-topup 1
+const APIBASE_CALL_SITES = 23; // measured 2026-10-07: 16 single-seam scripts (+ check-native-sign-in-config, Q1323; + check-job-access-notes-live, Q1461) + quota 3 + stripe-balance 2 + opsAlertLedger 1 + stripe-test-topup 1
 const SUPABASEBASE_CALL_SITES = 12; // measured 2026-10-06: pressProdSafety, prod-seed, check-test-account-strikes, prod-audit-sweeper, create-app-review-demo-account, launch-go, load-test, probes/lib/prodEnv, test-signin-link, audit-capture, probe-state-matrix, lib/adminSession (Q1314)
 const MIN_FILES = 250; // measured 2026-10-05: 290 git-tracked scripts/ sources (a scan that finds far fewer is broken, not clean)
 

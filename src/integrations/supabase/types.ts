@@ -519,6 +519,35 @@ export type Database = {
           },
         ]
       }
+      crew_confirm_pending: {
+        Row: {
+          helper_id: string
+          job_id: string
+          requested_at: string
+          slot_id: string
+        }
+        Insert: {
+          helper_id: string
+          job_id: string
+          requested_at?: string
+          slot_id: string
+        }
+        Update: {
+          helper_id?: string
+          job_id?: string
+          requested_at?: string
+          slot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_confirm_pending_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: true
+            referencedRelation: "group_job_helpers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crew_dispute_member_outcomes: {
         Row: {
           decided_at: string
@@ -7925,6 +7954,7 @@ export type Database = {
         Args: { _job_id: string; _token: string }
         Returns: boolean
       }
+      start_underfilled_crews: { Args: never; Returns: number }
       subscription_purchase_eligibility: {
         Args: { p_platform: string }
         Returns: Json

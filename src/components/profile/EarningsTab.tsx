@@ -19,7 +19,7 @@ import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { EarningsBankPayoutBones, EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { HelperStreakBadge, useHelperStreak } from "@/components/profile/HelperStreakBadge";
+import { HelperStreakBadge, streakShows, useHelperStreak } from "@/components/profile/HelperStreakBadge";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -385,7 +385,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             />
           ) : stripeBones ? <EarningsWalletBones /> : null}
 
-          {helperId && (
+          {/* Only when the badge draws (Q437): an EMPTY wrapper here still
+              took space-y-3's margin, so the Earned card sat 24px under the
+              switcher instead of the shared 12. */}
+          {helperId && streakShows(streakState.streak) && (
             <div className="flex">
               <HelperStreakBadge helperId={helperId} />
             </div>

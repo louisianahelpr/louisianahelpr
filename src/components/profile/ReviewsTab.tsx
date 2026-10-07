@@ -296,7 +296,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             /* Stable identity, not the array index — the list re-sorts, and an
                index key makes React reuse the wrong row's DOM on re-sort. Rows
                have no id, but created_at + reviewer is unique per review. */
-            <div key={`${review.created_at}-${review.reviewerName}`} className="rounded-ds-md liquid-glass p-card space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div key={`${review.created_at}-${review.reviewerName}`} data-review-row="" className="rounded-ds-md liquid-glass p-card space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ReviewStars rating={review.rating} />

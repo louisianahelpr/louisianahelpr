@@ -28,6 +28,11 @@ import { queryKeys } from "@/lib/queryKeys";
 
 const WINDOW = 50;
 const MIN_STREAK = 3;
+
+/** Does the badge draw at all? For a parent that wraps it: an empty wrapper in
+ *  a `space-y-*` stack still takes its margin (Q437: Money's sections sat 24px
+ *  apart, not 12, behind an empty streak row). */
+export const streakShows = (streak: number) => streak >= MIN_STREAK;
 const MAX_DISPLAY = 99;
 
 interface ReviewRow {
@@ -99,7 +104,7 @@ export function useHelperStreak(helperId: string) {
 export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProps) {
   const { streak } = useHelperStreak(helperId);
 
-  if (streak < MIN_STREAK) return null;
+  if (!streakShows(streak)) return null;
 
   const displayCount = streak >= MAX_DISPLAY ? `${MAX_DISPLAY}+` : String(streak);
   const label = `${displayCount} 5-star streak`;

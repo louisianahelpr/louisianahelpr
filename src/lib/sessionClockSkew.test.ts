@@ -10,7 +10,7 @@
  *
  * @mutate src/lib/sessionClockSkew.ts | if (Math.abs(s.expires_at - local) <= SKEW_TOLERANCE_S) return value; | return value;
  * @mutate src/lib/sessionClockSkew.ts | if (p && typeof p.access_token === "string" && p.access_token === v?.access_token && typeof p.expires_at === "number") { | if (false) {
- * @mutate src/integrations/supabase/client.ts | storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage()), | storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage(),
+ * @mutate src/integrations/supabase/client.ts | storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())), | storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage()),
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

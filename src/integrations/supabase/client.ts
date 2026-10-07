@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import type { Database } from './types';
 import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
+import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -73,7 +74,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     // Q995: a fast device clock read every fresh token as expired (~7 refreshes a
     // minute measured at +2 h); stored sessions carry a device-clock expires_at.
-    storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage()),
+    // Q1170 (web): the first session read waits for the entry's token refresh.
+    storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())),
     persistSession: true,
     autoRefreshToken: true,
   }

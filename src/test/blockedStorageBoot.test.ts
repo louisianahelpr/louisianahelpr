@@ -17,7 +17,7 @@ import { resolve } from "node:path";
  * the repair — restore it, don't relax this assertion.
  */
 // @mutate index.html | var probeKey = "__helpr_boot_storage_probe__";\n          window.localStorage.setItem(probeKey, "1");\n          window.localStorage.removeItem(probeKey); | return;
-// @mutate src/integrations/supabase/client.ts | : getWebAuthStorage()), | : localStorage),
+// @mutate src/integrations/supabase/client.ts | : withEntryAuthHandoff(getWebAuthStorage())), | : localStorage),
 describe("index.html blocked-storage boot repair", () => {
   const html = readFileSync(resolve(__dirname, "../../index.html"), "utf8");
 

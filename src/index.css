@@ -2424,7 +2424,12 @@ button,
 @media (prefers-reduced-motion: reduce) {
   .btn-press {
     transition: none;
-    transform: none;
+    /* Not `transform: none` (Q910): this rule is unlayered and sits after
+       Tailwind's utilities at the same specificity, so `none` erased every
+       `-translate-y-1/2` a .btn-press wears. Under Reduce Motion each search
+       clear-X sat half its height low (measured 22px off its field's centre,
+       Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0));
   }
   .btn-press:active {
     transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0));

@@ -1,13 +1,9 @@
 {
   "_": "`any` ratchet, enforced by src/test/anyRatchet.test.ts. Per-file AnyKeyword counts in non-test src/ (node scripts/any-baseline.mjs). Exact both ways: when you remove an `any`, regenerate with `node scripts/any-baseline.mjs --write` in the same commit; never raise an entry.",
   "files": {
-    "src/components/NotificationPreferences.tsx": 2,
-    "src/components/postjob/CurrentLocationPill.tsx": 5,
     "src/hooks/useDashboardData.ts": 3,
     "src/hooks/useMapKitJs.ts": 6,
-    "src/hooks/useVoiceDictation.ts": 4,
     "src/lib/lazyWithPreload.ts": 2,
-    "src/lib/posthog.ts": 3,
     "src/pages/user/useUserProfileData.ts": 21
   }
 }

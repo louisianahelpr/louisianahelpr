@@ -268,8 +268,8 @@ const NotificationPreferences = () => {
   // Both writers below send the WHOLE prefs object, so both have to drop
   // `email_enabled` while the column is still deploying (see
   // `emailMasterColumn`). One place, so the two paths cannot diverge.
-  const writable = (p: Prefs): Record<string, unknown> => {
-    const payload: Record<string, unknown> = { ...p };
+  const writable = (p: Prefs): Partial<Prefs> => {
+    const payload: Partial<Prefs> = { ...p };
     if (!emailMasterColumn) delete payload.email_enabled;
     if (!savedHelperColumn) delete payload.saved_helper_availability;
     return payload;
@@ -294,7 +294,7 @@ const NotificationPreferences = () => {
 
     const { error } = await supabase
       .from("notification_preferences")
-      .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });
+      .upsert({ user_id: userId, ...writable(updated) }, { onConflict: "user_id" });
 
     setSavingKey(null);
     if (error) {
@@ -318,7 +318,7 @@ const NotificationPreferences = () => {
     setSavingKey(key);
     const { error } = await supabase
       .from("notification_preferences")
-      .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });
+      .upsert({ user_id: userId, ...writable(updated) }, { onConflict: "user_id" });
     setSavingKey(null);
     if (error) {
       setPrefs(prefs);

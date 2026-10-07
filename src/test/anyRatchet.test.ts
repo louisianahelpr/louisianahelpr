@@ -1,5 +1,5 @@
 // @mutate src/lib/storagePath.ts | export function safeDocumentUrl( | export const anyRatchetProbe = 1 as any; export function safeDocumentUrl(
-// @mutate src/lib/posthog.ts | export function identifyUser(userId: string, props: Record<string, any> = {}) | export function identifyUser(userId: string, props: Record<string, unknown> = {})
+// @mutate src/lib/lazyWithPreload.ts | export function lazyWithPreload<T extends ComponentType<any>>( | export function lazyWithPreload<T extends ComponentType<never>>(
 /*
  * The `any` count in non-test src/ may only go DOWN, file by file (OPEN.md Q184).
  *

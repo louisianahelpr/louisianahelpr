@@ -62,14 +62,14 @@ export function initPostHog() {
   }
 }
 
-export function captureEvent(event: string, props: Record<string, any> = {}) {
+export function captureEvent(event: string, props: Record<string, unknown> = {}) {
   if (!initialized) return;
   try {
     posthog.capture(event, props);
   } catch { /* ignore */ }
 }
 
-export function captureException(err: unknown, props: Record<string, any> = {}) {
+export function captureException(err: unknown, props: Record<string, unknown> = {}) {
   if (!initialized) return;
   try {
     const error = err instanceof Error ? err : new Error(String(err));
@@ -77,7 +77,7 @@ export function captureException(err: unknown, props: Record<string, any> = {}) 
   } catch { /* ignore */ }
 }
 
-export function identifyUser(userId: string, props: Record<string, any> = {}) {
+export function identifyUser(userId: string, props: Record<string, unknown> = {}) {
   if (!initialized) return;
   try {
     posthog.identify(userId, props);

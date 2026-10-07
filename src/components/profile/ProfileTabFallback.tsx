@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
@@ -109,8 +110,17 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   availability: [{ h: 85 }, { h: 768 }],
   // Email, password, two-factor, sign-in methods (Q446 added it after
   // two-factor; loading-states-refresh 37408930852 caught the missing bone:
-  // 5 placeholder rows -> 6 real), active sessions.
-  security: [{ h: 74, media: 1 }, { h: 74, media: 1 }, { h: 74, media: 1 }, { h: 224, media: 1 }, { h: 360, media: 4 }],
+  // 5 placeholder rows -> 6 real), active sessions. The sign-in methods card
+  // renders only while SOCIAL_SIGN_IN_ENABLED (off for launch, Q1462), so its
+  // bone follows the same switch (loading-states-refresh 37554743989: 6
+  // placeholder rows -> 5 real once it went off).
+  security: [
+    { h: 74, media: 1 },
+    { h: 74, media: 1 },
+    { h: 74, media: 1 },
+    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 224, media: 1 }] : []),
+    { h: 360, media: 4 },
+  ],
   reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   support: [{ h: 469 }, { h: 43 }],

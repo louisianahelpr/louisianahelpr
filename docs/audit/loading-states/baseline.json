@@ -41,6 +41,86 @@
       "key": "customer /profile?tab=work_record #0",
       "kind": "jump",
       "was": "row 744px → 830px (+86px)"
+    },
+    {
+      "key": "customer /profile?tab=security #0",
+      "kind": "rows",
+      "was": "6 placeholder row(s) → 5 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=security #0",
+      "kind": "media",
+      "was": "8 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=security #1",
+      "kind": "rows",
+      "was": "6 placeholder row(s) → 5 real row(s)"
+    },
+    {
+      "key": "customer /profile?tab=security #1",
+      "kind": "media",
+      "was": "8 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "helper /profile?tab=security #0",
+      "kind": "rows",
+      "was": "6 placeholder row(s) → 5 real row(s)"
+    },
+    {
+      "key": "helper /profile?tab=security #0",
+      "kind": "media",
+      "was": "8 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "helper /profile?tab=security #1",
+      "kind": "rows",
+      "was": "6 placeholder row(s) → 5 real row(s)"
+    },
+    {
+      "key": "helper /profile?tab=security #1",
+      "kind": "media",
+      "was": "8 avatar/media bone(s) → 5 real"
+    },
+    {
+      "key": "customer /profile?tab=saved_helpers #0",
+      "kind": "media",
+      "was": "1 avatar/media bone(s) → 3 real"
+    },
+    {
+      "key": "customer /post-job #0",
+      "kind": "jump",
+      "was": "row 452px → 574px (+122px)"
+    },
+    {
+      "key": "customer /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #1",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 0 real row(s)"
+    },
+    {
+      "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #1",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 0 real row(s)"
+    },
+    {
+      "key": "customer /messages #0",
+      "kind": "jump",
+      "was": "row 60px → 141px (+81px)"
+    },
+    {
+      "key": "helper /messages #0",
+      "kind": "jump",
+      "was": "row 60px → 48px (-12px)"
+    },
+    {
+      "key": "helper /messages #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 4 real row(s)"
+    },
+    {
+      "key": "anon /browse #0",
+      "kind": "jump",
+      "was": "row 212px → 86px (-126px)"
     }
   ],
   "byDesign": [

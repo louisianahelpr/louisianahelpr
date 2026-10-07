@@ -163,6 +163,8 @@ async function mintSession(api: APIRequestContext, email: string): Promise<Sessi
     supabaseUrl: SUPABASE_URL,
     anonKey: ANON,
     transport: playwrightTransport(api),
+    // acceptTerms: false — each disposable account writes terms_version_accepted itself.
+    acceptTerms: false,
   })) as Session;
 }
 

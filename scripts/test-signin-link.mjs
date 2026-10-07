@@ -240,7 +240,8 @@ async function main() {
   // Q1314). Its /verify answer carries the full user object, the same one
   // GET /auth/v1/user returns: ProtectedRoute reads `email_confirmed_at` off
   // session.user, and an id-only stub bounced every authed route (2026-08-31).
-  const session = await mintAdminSession({ email: target.email, serviceKey, supabaseUrl, anonKey });
+  // acceptTerms: false — the call below does it, unless --keep-consent asks for the dialog.
+  const session = await mintAdminSession({ email: target.email, serviceKey, supabaseUrl, anonKey, acceptTerms: false });
   if (!args.includes("--keep-consent")) {
     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id);
   }

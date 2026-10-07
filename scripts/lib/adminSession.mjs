@@ -37,6 +37,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { supabaseBase } from "./apiBase.mjs";
+import { acceptCurrentTerms } from "./acceptCurrentTerms.mjs";
 
 /** The project's public (publishable) key: what a real client presents to /verify. */
 export const PUBLIC_ANON_KEY = "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";
@@ -97,6 +98,16 @@ const RETRYABLE = (status) => status === 0 || status === 429 || status >= 500;
  * JSON (access_token, refresh_token, expires_at, expires_in, token_type, user).
  * Throws with GoTrue's own status and body on any refusal, after `retries`
  * further tries of a transient failure (429, 5xx, no answer).
+ *
+ * TERMS (nightly-red #2436, 2026-10-07): the minted account is brought up to
+ * the app's current Terms, as its own "I Agree" tap would do it
+ * (./acceptCurrentTerms.mjs). The Oct 2026 bump (25936d6ca, 22:44Z
+ * 2026-10-06) put the non-dismissible TermsReconsentDialog over every page of
+ * e2e-journeys 37554735234 (5 chromium + 3 webkit failures, each screenshot
+ * the re-agree modal), because only pressProdSafety and test-signin-link
+ * accepted at mint. Here it covers every caller. `acceptTerms: false` only for
+ * a caller that writes the account's Terms itself or wants the dialog; the
+ * list is exact in src/test/sweepMintAcceptsTerms.test.ts.
  */
 export async function mintAdminSession({
   email,
@@ -107,6 +118,7 @@ export async function mintAdminSession({
   timeoutMs = 45_000,
   retries = 1,
   retryDelayMs = 2_000,
+  acceptTerms = true,
 }) {
   if (!email) throw new Error("mintAdminSession: no email given");
   if (!serviceKey) throw new Error(`mintAdminSession: no service-role key to mint ${email}'s session with (SUPABASE_SERVICE_ROLE_KEY)`);
@@ -147,7 +159,11 @@ export async function mintAdminSession({
   const errors = [];
   for (let attempt = 0; ; attempt++) {
     const r = await once();
-    if (r.session) return r.session;
+    if (r.session) {
+      // Node fetch, like generate_link: unmetered, and never in a trace.
+      if (acceptTerms) await acceptCurrentTerms(base, anonKey, r.session.access_token, r.session.user.id);
+      return r.session;
+    }
     errors.push(r.error);
     if (attempt >= retries || !RETRYABLE(r.status)) throw new Error(errors.join(" | after: "));
     await new Promise((res) => setTimeout(res, retryDelayMs));

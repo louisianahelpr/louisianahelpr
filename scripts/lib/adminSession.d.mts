@@ -31,4 +31,6 @@ export function mintAdminSession(opts: {
   timeoutMs?: number;
   retries?: number;
   retryDelayMs?: number;
+  /** Default true: bring the account up to the current Terms (scripts/lib/acceptCurrentTerms.mjs). */
+  acceptTerms?: boolean;
 }): Promise<MintedSession>;

@@ -105,6 +105,8 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
     supabaseUrl: SUPABASE_URL,
     anonKey: ANON,
     transport: playwrightTransport(api),
+    // acceptTerms: false — the profile write below sets terms_version_accepted itself.
+    acceptTerms: false,
   })) as Session;
   // Avatar through the user's own session (the bucket policy is the real one).
   const avatarPath = `${userId}/journey-throwaway.png`;

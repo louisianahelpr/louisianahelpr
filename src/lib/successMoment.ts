@@ -15,6 +15,9 @@ export interface SuccessMomentRequest {
   label: string;
 }
 
+/** How long the overlay stays up before it fades (SuccessMoment.tsx). */
+export const SUCCESS_MOMENT_LIFETIME_MS = 1300;
+
 type Listener = (req: SuccessMomentRequest) => void;
 
 let listener: Listener | null = null;

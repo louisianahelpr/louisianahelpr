@@ -52,6 +52,10 @@ const INTERNAL_HIRES: Record<string, string[]> = {
  * each must still match (else it is stale here).
  */
 const NOT_HIRES: Record<string, string> = {
+  // 20261007113957 (Q1254): sets job_detail_change_requests.status =
+  // 'accepted' (the outcome of an agreed change to a booked job's details);
+  // it hires no one and writes no application or roster row.
+  respond_job_detail_change: "marks a detail-change REQUEST accepted; hires no one",
   // 20260925154606 (Q407): an under-filled crew whose every HIRED member is
   // done is closed for staffing (open -> accepted) before the roll-up stamps
   // it done. It adds no one; every member on it was hired (and block-checked)

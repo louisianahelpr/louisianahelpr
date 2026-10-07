@@ -10,9 +10,7 @@ import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
-import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
-import { useFeedPhase } from "@/hooks/useFeedPhase";
+import { ProfileOfflineGate } from "@/components/profile/ProfileOfflineGate";
 import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
@@ -90,12 +88,7 @@ const profileScrollByKey = new Map<string, number>();
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser, profileQuery } = useCurrentUser();
-  // Q571: offline with the profile never loaded, `authLoading` stays true (the
-  // query is paused, not failing), so the skeleton below held forever and the
-  // tabs' own offline cards never mounted. Same rule as every feed: offline
-  // with nothing to show says so.
-  const profilePhase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
+  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const queryClient = useQueryClient();
   const firstPayoutFee = useFirstPayoutFeeDollars();
   const [user, setUser] = useState<User | null>(null);
@@ -599,24 +592,15 @@ const ProfilePage = () => {
                 placeholder its Suspense boundary uses — one screenful, under
                 that tab's real title — so the deep link paints one loading
                 screen instead of three and it is the right one. */}
-            {profilePhase === "offline-empty" ? (
-              <>
-                {/* A tab keeps its real header (and working back); the landing
-                    has no header of its own, so the card gets the gap a title
-                    row would have given it instead of sitting on the banner. */}
-                {tab !== "landing" ? <ProfileTabHeader title={TAB_TITLES[tab]} onBack={backFromTab} /> : <div className="h-4" aria-hidden="true" />}
-                <OfflineEmptyState
-                  body="Your profile will load here as soon as you're back online."
-                  onRetry={() => { void refreshCurrentUser(); }}
-                />
-              </>
-            ) : tab === "landing" ? (
+            <ProfileOfflineGate tab={tab} onBack={backFromTab}>
+            {tab === "landing" ? (
               <ProfilePageSkeleton />
             ) : isEarningsTabUrl() ? (
               <EarningsPageSkeleton />
             ) : (
               <ProfileTabFallback tab={tab} onBack={backFromTab} />
             )}
+            </ProfileOfflineGate>
           </div>
         </div>
       </AppShell>
@@ -648,9 +632,6 @@ const ProfilePage = () => {
   // the same helper. See src/components/profile/earningsTab/earningsTabHelpers.ts.
   // Q753: the one-time setup fee still due comes off once, as EarningsTab does.
   const totalEarnings = sumHelperTakeHomeDollars(earningsJobs.filter(isEarnedJob), helperFeeFallbackPct, firstPayoutFee);
-
-// The last-6-weeks sparkline series was computed here for the header
-  // teaser that the owner removed on 2026-08-27; nothing consumes it now.
 
   return (
     <>

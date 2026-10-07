@@ -14,6 +14,7 @@
  * Guard: src/test/landPathReaders.test.ts.
  */
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** changed-file pattern -> what a test that reads it by path names */
@@ -37,7 +38,7 @@ export function pathReaders(changed, { cwd = process.cwd() } = {}) {
   return [...tests].sort();
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) {
   const list = pathReaders(process.argv.slice(2));
   if (list.length) console.log(list.join("\n"));
 }

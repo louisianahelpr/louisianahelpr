@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Resolve the conflicts a land.sh rebase stops on, so seven lanes landing at
  * once do not each stop and loop (owner, 2026-10-07: "how do we stop the
@@ -22,9 +21,9 @@
  * Guard: src/test/landRebaseResolve.test.ts (a real git rebase in a sandbox).
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { appendArchiveNotes, mergeQueueText } from "./openItemMerge.mjs";
 
 const git = (args, opts = {}) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, ...opts });
@@ -86,7 +85,12 @@ export function generatedOutputs(generated) {
 export async function resolveAll({ cwd = process.cwd(), log = console.log } = {}) {
   const unmerged = git(["diff", "--name-only", "--diff-filter=U"], { cwd }).split("\n").filter(Boolean);
   if (!unmerged.length) return { resolved: [], left: [] };
-  const { GENERATED } = await import("../check-generated-current.mjs");
+  // From the tree being rebased when it has one (land.sh runs a frozen copy
+  // of this script from a temp dir), else the one beside this file.
+  const inTree = join(cwd, "scripts", "check-generated-current.mjs");
+  const { GENERATED } = existsSync(inTree)
+    ? await import(/* @vite-ignore */ pathToFileURL(inTree).href)
+    : await import("../check-generated-current.mjs");
   const generated = generatedOutputs(GENERATED);
   const gitPath = git(["rev-parse", "--git-path", "land-recount.json"], { cwd }).trim();
   const recordPath = isAbsolute(gitPath) ? gitPath : join(cwd, gitPath);
@@ -149,7 +153,7 @@ export async function resolveAll({ cwd = process.cwd(), log = console.log } = {}
   return { resolved, left };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) {
   const { left } = await resolveAll();
   process.exit(left.length ? 1 : 0);
 }

@@ -387,6 +387,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     STATE=$(echo "$INFO" | jq -r .state)
     if [ "$STATE" = MERGED ]; then
       echo "land: $BR merged into main."
+      # The recount record (landRecount.mjs) lives until the landing merges.
+      rm -f "$(git rev-parse --git-path land-recount.json)"
       exit 0
     fi
     if [ "$STATE" = CLOSED ]; then

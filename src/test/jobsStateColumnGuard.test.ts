@@ -56,6 +56,7 @@ const FILES = readdirSync(MIGRATIONS)
   .filter((f) => f.endsWith(".sql"))
   .sort()
   .map((name) => ({ name, sql: readFileSync(resolve(MIGRATIONS, name), "utf8") }));
+it("reads the migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => expect(FILES.length).toBeGreaterThan(900));
 
 type Fn = { name: string; body: string; file: string; secdef: boolean; returnsTrigger: boolean; clientCallable: boolean; args: { name: string; type: string }[] };
 

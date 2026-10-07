@@ -40,6 +40,10 @@ import { TIER_FEE_PERCENT } from "../../supabase/functions/_shared/helperFees";
 import { readdirSync } from "../test/helpers/trackedFiles";
 
 const PERK_KEYS = Object.keys(TIER_PERK_MATRIX.free) as TierPerkKey[];
+it("reads the real perk matrix (floor, Q1073, 2026-10-07)", () => {
+  expect(PERK_KEYS.length).toBeGreaterThan(5);
+  expect(TIER_ORDER.length).toBeGreaterThan(3);
+});
 
 /**
  * Perks a higher tier is allowed NOT to have. Exactly one, and it is not an

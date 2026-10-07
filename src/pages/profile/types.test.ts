@@ -20,6 +20,7 @@ describe("resolveTab", () => {
 
   it("passes through every real tab", () => {
     const all: Tab[] = [...(Object.keys(TAB_TITLES) as Exclude<Tab, "landing">[]), "landing"];
+    expect(all.length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(15);
     for (const tab of all) expect(resolveTab(tab)).toBe(tab);
   });
 

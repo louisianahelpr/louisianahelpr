@@ -96,6 +96,7 @@ const SURFACES: Array<[label: string, path: string, flag: string]> = [
 ];
 
 describe("every ZIP field warns on an unresolvable ZIP", () => {
+  it("covers the real ZIP surfaces (floor, Q1073, 2026-10-07)", () => expect(SURFACES.length).toBeGreaterThan(2));
   for (const [label, path, flag] of SURFACES) {
     it(`${label} renders the shared warning`, () => {
       // Rendered on the unknown-ZIP flag specifically — not on "no parish

@@ -59,6 +59,7 @@ const files = sourceFiles().map((rel) => ({
   rel,
   source: readFileSync(resolve(ROOT, rel), "utf8"),
 }));
+it("reads the real source tree (floor, Q1073, 2026-10-07)", () => expect(files.length).toBeGreaterThan(500));
 
 describe("Message wears exactly one tone, everywhere", () => {
   it("every Message chip passes tone=\"message\"", () => {

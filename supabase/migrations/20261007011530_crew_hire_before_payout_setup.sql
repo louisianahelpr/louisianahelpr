@@ -55,6 +55,14 @@ CREATE INDEX IF NOT EXISTS crew_confirm_pending_helper_idx ON public.crew_confir
 ALTER TABLE public.crew_confirm_pending ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.crew_confirm_pending FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.crew_confirm_pending TO service_role;
+-- Every public table carries the unconfirmed-email write gate (db-smoke).
+DO $$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$$;
 
 CREATE OR REPLACE FUNCTION public.enforce_group_roster_award_gate()
  RETURNS trigger

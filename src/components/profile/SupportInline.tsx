@@ -1,7 +1,9 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
+import { withBugReport } from "@/lib/bugReportContext";
 import { supabase } from "@/integrations/supabase/client";
 import { reportSubmitError } from "@/lib/reportErrors";
 import { supportScreenshotPath, withSupportScreenshot } from "@/lib/supportScreenshot";
@@ -104,10 +106,17 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
     </p>
   ) : null;
 
+/** reports.description has no length check; this keeps a bug report readable. */
+const BUG_REPORT_MAX_CHARS = 8000;
+
 export function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void }) {
   // Preselected rather than null: the form has to be usable the instant it
   // paints, and "Message Admin" is the general case the other two narrow.
-  const [category, setCategory] = useState<SupportCategory>("message");
+  // `?topic=report` ("Report a bug" on the Profile menu, Q1028) opens on the bug topic.
+  const [searchParams] = useSearchParams();
+  const [category, setCategory] = useState<SupportCategory>(
+    () => supportCategories.find((c) => c.key === searchParams.get("topic"))?.key ?? "message",
+  );
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -124,6 +133,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   const formRef = useRef<HTMLFormElement>(null);
   const selected =
     supportCategories.find((c) => c.key === category) ?? supportCategories[0];
+  // The bug topic attaches the screen, route, device, build and recent errors,
+  // listed under the message before sending (Q1028).
+  const bugContext = useBugReportContext(category === "report");
 
   const messageError = !message.trim() ? "Tell us what's going on." : undefined;
   const showMessageError = messageTouched ? messageError : undefined;
@@ -206,7 +218,8 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
       screenshotPath = await uploadScreenshot(screenshot);
     }
 
-    const description = withSupportScreenshot(message.trim(), screenshotPath);
+    const text = bugContext ? withBugReport(message.trim(), bugContext, BUG_REPORT_MAX_CHARS) : message.trim();
+    const description = withSupportScreenshot(text, screenshotPath);
 
     const { error } = await supabase.from("reports").insert({
       reporter_id: userId,
@@ -377,6 +390,8 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           />
           <FieldError id="support-message-error" message={showMessageError} />
         </div>
+
+        {bugContext && <BugReportAttachments context={bugContext} />}
 
         {selected.key === "report" && (
           <div className="space-y-1.5">

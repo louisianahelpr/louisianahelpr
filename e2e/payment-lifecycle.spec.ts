@@ -36,6 +36,10 @@ import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvaila
 // This checkout's local build, never the deployed site (e2e/localBase.ts).
 const BASE_URL = LOCAL_BASE_URL;
 
+// Q1421: this spec types a real password into the login form, and a trace
+// copies the auth request body verbatim into a PUBLIC CI artifact. No trace.
+test.use({ trace: "off" });
+
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
 // The login form is driven for real; its grant is answered with a minted session
 // (Q1420: Supabase Auth CAPTCHA refuses a CI build's password grant).

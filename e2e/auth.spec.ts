@@ -17,6 +17,10 @@ import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvaila
 // This checkout's local build, never the deployed site (e2e/localBase.ts).
 const BASE_URL = LOCAL_BASE_URL;
 
+// Q1421: this spec types a real password into the login form, and a trace
+// copies the auth request body verbatim into a PUBLIC CI artifact. No trace.
+test.use({ trace: "off" });
+
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
 const haveCreds = mintedSignInAvailable(TEST_EMAIL);
 

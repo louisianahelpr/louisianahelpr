@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isReadRpcPath, isStorageSignPath } from "../readRpc";
 import { measureLayout } from "../happy-path/auditRoutes";
+import { srFetch } from "../serviceRoleFetch";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
 
 export { newUserContext, rest, SUPABASE_URL, ANON };
@@ -737,9 +738,10 @@ export async function ensureMessyInputState(
   // restore threw "Fixture { request } from beforeAll cannot be reused").
   const undo: Array<(a: APIRequestContext) => Promise<string>> = [];
   const svc = serviceRoleKey();
-  const svcDelete = async (a: APIRequestContext, table: string, id: string) => {
+  const svcDelete = async (_a: APIRequestContext, table: string, id: string) => {
     if (!svc) return `${table}/${id}: NOT removed (no service-role key)`;
-    const r = await a.delete(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } });
+    // Node fetch, never the traced Playwright context (Q1421).
+    const r = await srFetch(svc, "DELETE", `${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`);
     return `${table}/${id}: ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`;
   };
 
@@ -788,8 +790,7 @@ export async function ensureMessyInputState(
     did.push(`submitted credential ${id}`);
     undo.push(async (a) => {
       const row = await svcDelete(a, "helper_credentials", id);
-      const del = await a.delete(`${SUPABASE_URL}/storage/v1/object/user-documents`, {
-        headers: { apikey: svcKey, Authorization: `Bearer ${svcKey}`, "Content-Type": "application/json" },
+      const del = await srFetch(svcKey, "DELETE", `${SUPABASE_URL}/storage/v1/object/user-documents`, {
         data: { prefixes: [docPath] },
       });
       return `${row}; user-documents/${docPath}: ${del.ok() ? "removed" : `NOT removed (${del.status()})`}`;

@@ -144,7 +144,7 @@ export function SeriesStrip({
             : " · complete"}
         </span>
         {canEnd && !seriesEndedOn && next && (
-          <span className="ml-auto">
+          <span className="ml-auto shrink-0">
             <EndSeriesControl jobId={jobId} jobTitle={jobTitle} userId={userId} />
           </span>
         )}

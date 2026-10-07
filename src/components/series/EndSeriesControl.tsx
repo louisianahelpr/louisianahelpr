@@ -105,8 +105,10 @@ export function EndSeriesControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="shrink-0 min-h-[44px] -my-3 px-1 text-ds-11 font-semibold underline underline-offset-2"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
+        // Q778: nowrap (it measured 44px wide at 375, "End / series" on two
+        // lines) and --sienna-ink (raw --burnt-sienna was 4.48:1 in dark at 11px).
+        className="shrink-0 min-h-[44px] -my-3 px-1 text-ds-11 font-semibold underline underline-offset-2 whitespace-nowrap"
+        style={{ color: "hsl(var(--sienna-ink))" }}
       >
         {mode === "leave" ? "Leave series" : "End series"}
       </button>

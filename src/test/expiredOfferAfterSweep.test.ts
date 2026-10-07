@@ -43,7 +43,8 @@ describe("Q1207: the sweep's expiry close keeps saying the offer expired", () =>
 
   it("the inventory is real", () => {
     expect(defs.size).toBeGreaterThan(100);
-    expect(sweep).toContain("apply_job_denial_consequence");
+    // Since Q1281 the sweep files no strike; its notices are the floor.
+    expect(sweep).toContain("you lost a job offer");
   });
 
   it("the newest sweep stamps closed_reason = 'offer_expired' on the application it closes", () => {
@@ -79,5 +80,5 @@ describe("Q1207: the sweep's expiry close keeps saying the offer expired", () =>
 });
 
 // @mutate src/components/job-card/jobStatusLine.ts |   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired"; |   if (false) return "offer_expired";
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |            SET status = 'rejected', closed_reason = 'offer_expired'\n         WHERE id = v_app_id; |            SET status = 'rejected'\n         WHERE id = v_app_id;
+// @mutate supabase/migrations/20261007125609_offers_are_free_to_refuse.sql |            SET status = 'rejected', closed_reason = 'offer_expired'\n         WHERE id = v_app_id; |            SET status = 'rejected'\n         WHERE id = v_app_id;
 // @mutate supabase/migrations/20261004184021_expired_offer_says_it_expired.sql |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired')); |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked'));

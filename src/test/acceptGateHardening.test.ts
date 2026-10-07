@@ -43,17 +43,16 @@
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } }); | await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString() }).eq("id", app.job_id); report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
 // @mutate supabase/functions/auto-expire-jobs/index.ts | .update({ status: "open", helper_id: null }) | .update({ status: "open", helper_id: null, helper_confirmed_at: new Date().toISOString() })
 // Q1188.
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E offer |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E offer
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | 'expire_unanswered_offers' \|\| CASE WHEN v_job.seed THEN '-seed' ELSE '' END | 'expire_unanswered_offers'
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | jsonb_build_object('job_id', v_job.id, 'helper_id', v_job.helper_id, 'err', SQLERRM, 'sqlstate', SQLSTATE) | jsonb_build_object('err', SQLERRM)
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | (coalesce(j.is_seed, false) OR coalesce(hp.is_seed, false)) AS seed | coalesce(j.is_seed, false) AS seed
+// @mutate supabase/migrations/20261007125609_offers_are_free_to_refuse.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E offer |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E offer
+// @mutate supabase/migrations/20261007125609_offers_are_free_to_refuse.sql | 'expire_unanswered_offers' \|\| CASE WHEN v_job.seed THEN '-seed' ELSE '' END | 'expire_unanswered_offers'
+// @mutate supabase/migrations/20261007125609_offers_are_free_to_refuse.sql | jsonb_build_object('job_id', v_job.id, 'helper_id', v_job.helper_id, 'err', SQLERRM, 'sqlstate', SQLSTATE) | jsonb_build_object('err', SQLERRM)
+// @mutate supabase/migrations/20261007125609_offers_are_free_to_refuse.sql | (coalesce(j.is_seed, false) OR coalesce(hp.is_seed, false)) AS seed | coalesce(j.is_seed, false) AS seed
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | OR coalesce(p_tags ->> 'source', p_tags ->> 'area', '') LIKE '%-seed' | OR false
 // Re-registered from acceptCompletesAfterStripeSetup.test.ts (its lines target 20261003193541, superseded here).
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501';\n  END IF;\n\n  v_awarding := |     RAISE NOTICE 'accept_required';\n  END IF;\n\n  v_awarding :=
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |       v_name \|\| ' accepted your offer', |       'Offer update',
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       IF NOT v_no_strike THEN |       IF true THEN
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |      AND public.job_payment_is_funded(payment_status::text)\n  RETURNING |      AND true\n  RETURNING
 import { describe, it, expect } from "vitest";
 import { join, relative } from "node:path";
@@ -193,7 +192,7 @@ describe("Q1187: the app writes no confirmation; an edge function only as the se
 });
 
 describe("Q1188: one offer that cannot expire never rolls back the sweep", () => {
-  it("each offer expires in its own subtransaction, the strike inside it", () => {
+  it("each offer expires in its own subtransaction, its notice inside it (no strike, Q1281)", () => {
     const sweep = body("expire_unanswered_offers");
     const loop = sweep.indexOf("LOOP");
     // 20261005184940 widened the re-read (the start columns for the capped-window no-strike rule).
@@ -202,12 +201,13 @@ describe("Q1188: one offer that cannot expire never rolls back the sweep", () =>
     expect(loop).toBeGreaterThan(-1);
     expect(begin, "the locked re-read is no longer the first statement of a per-offer block").toBe(loop);
     expect(handler).toBeGreaterThan(sweep.indexOf("v_count := v_count + 1;"));
-    const strike = sweep.indexOf("PERFORM public.apply_job_denial_consequence(");
-    expect(strike).toBeGreaterThan(begin);
-    expect(strike).toBeLessThan(handler);
+    // The per-offer work (the Helpr's notice) sits inside the block. Q1281
+    // (owner, 2026-10-05): a lapse files no strike at all any more.
+    const notice = sweep.indexOf("'You lost a job offer'");
+    expect(notice).toBeGreaterThan(begin);
+    expect(notice).toBeLessThan(handler);
+    expect(sweep).not.toMatch(/apply_job_denial_consequence\s*\(/);
     expect(sweep).toMatch(/END;\s+END LOOP;\s+RETURN v_count;/);
-    // Q1180's no-strike rule rides inside the block unchanged
-    expect(sweep).toMatch(/IF NOT v_no_strike THEN\s+PERFORM public\.apply_job_denial_consequence/);
     // the locked re-read still takes only unconfirmed offers (unassignClearsAcceptStamp's proof)
     expect(sweep).toMatch(/AND j\.helper_confirmed_at IS NULL\s+FOR UPDATE SKIP LOCKED;/);
   });

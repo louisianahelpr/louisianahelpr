@@ -175,7 +175,8 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     }
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
     // its crew pass also covers a started crew.
-    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql");
+    // ... and Q1281 once more (no strike for a lapse), crew pass unchanged.
+    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261007125609_offers_are_free_to_refuse.sql");
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);

@@ -826,7 +826,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### DONE 2026-09-20 — Profile tab gutter + every Profile loading state
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q951** LOW /jobs applied-card pitch unverified against a populated list — Open, not reached: applied-card skeleton pitch still unverified against real data. (archive L2310)
+- [x] **Q951** LOW /jobs applied-card pitch unverified against a populated list — Open, not reached: applied-card skeleton pitch still unverified against real data. (archive L2310) **DONE 2026-10-07 (proof lane, measured on prod, screenshots recorded with review:record):** helper-e2e now has 3 live applications (Waiting). /jobs?filter=waiting with the list reads held: skeleton frames at 375 top 138/280/422/564, height 130 (pitch 142); loaded rows top 138/281/424, height 131 (pitch 143); at 1440 skeleton 133/275/417 h130 vs loaded 132/275/418 h131; same x and width at both widths (~/.lh-shots/proof/q951-*.png). 1 px per row, first row aligned. Guard: e2e/prod-audit/activity-loading-reserve.spec.ts (row-height reserve for /jobs).
 
 ### VN-33(b) bad-pin exception — follow-ups from its reviews
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -963,7 +963,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Map/list parity — owner report 2026-09-21
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1016** LOW Map/list filter parity fix not yet verified in a browser (no screenshot at 375) — Map/list filter parity fix not yet verified in a browser (no screenshot at 375) (archive L5537)
+- [x] **Q1016** LOW Map/list filter parity fix not yet verified in a browser (no screenshot at 375) — Map/list filter parity fix not yet verified in a browser (no screenshot at 375) (archive L5537) **DONE 2026-10-07 (proof lane, browser on prod at 375, screenshots recorded with review:record):** guest /browse: list 1 job (open_jobs_browse 1 row), map view 1 pin (get_open_jobs_for_map 1 row, pin 'grocery run — Errands — Delcambre, LA'). helper-e2e /home, who has applied to that one job: list reads 'Nothing today' and the map view, whose RPC still returned the row, draws 0 pins and 'Empty map for now.', so the map applies the same applied-job exclusion as the list (~/.lh-shots/proof/q1016-*.png). Guard: src/test/mapFilterParity.test.ts. Seen on the way, not changed: the empty map is framed on Arkansas/Mississippi with Louisiana mostly under the empty-state card.
 
 ### App Store screenshots (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1092,7 +1092,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### FOR THE VISUAL PASS: the unread dot is now the ONLY unread signal, and it is 8px
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1090** LOW 8px unread dot needs an eyeball check at 375 and 1440 now it's the sole unread signal — Not reached — needs visual review; the 8px unread dot was called 'subtle' but not changed. (archive L7270)
+- [ ] **Q1090** LOW 8px unread dot needs an eyeball check at 375 and 1440 now it's the sole unread signal — Not reached — needs visual review; the 8px unread dot was called 'subtle' but not changed. (archive L7270) **STATUS 2026-10-07 (proof lane, looked at prod at 375, recorded as a defect with review:record):** the 8px dot is gone; unread is now a 10px info-tint mark on the avatar's top-left corner (ConversationRow UNREAD_MARK, -top-0.5 -left-0.5) plus bold name and preview. On a thread that is both PINNED and unread (poster-e2e's SEED pair job thread, 2026-10-07 ~12:20Z) the 16px sienna Pinned chip (ConversationList.tsx, absolute top-2 left-2 z-10; its comment still says 'top-right corner of the avatar') sits on the same corner and covers the unread mark: only a blue sliver shows (~/.lh-shots/proof/q1090-sess-375.png, crop q1090-crop.png). Not changed here: where the pin chip should go is a look decision. 1440 not seen: the fixture thread was cleaned up before the second shot.
 
 ### STILL OPEN from this correction
 Reconciled 2026-09-23; detail in the archive at the line shown.

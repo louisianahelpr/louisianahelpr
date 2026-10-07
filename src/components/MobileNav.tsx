@@ -31,6 +31,26 @@ import {
 } from "@/components/mobileNav/mobileNavHelpers";
 import { DockPill } from "@/components/mobileNav/DockPill";
 
+/**
+ * The dock curtain's blur ramp (Q7): [share of the band's height, filter], tallest and
+ * weakest first. Each band is unmasked (WebKit drops backdrop-filter beside mask-image),
+ * and stacked bands compound, so the blur is strongest at the bottom and fades to none
+ * at the top: the shape the old mask (`black 35% -> transparent 100%`) gave one 32px layer.
+ */
+/** The curtain band's height: the dock clearance pages reserve (safe-area + 96px) plus a 24px overhang. */
+const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + 96px + 24px)";
+
+const CURTAIN_BLUR_STEPS: readonly (readonly [number, string])[] = [
+  // Six small steps (chosen on the iOS 26.5 simulator, 2026-10-07): four 4-to-32px steps
+  // left hard seams; nine cost more layers for no visible gain over six.
+  [1, "blur(2px)"],
+  [0.8, "blur(4px)"],
+  [0.65, "blur(8px)"],
+  [0.52, "blur(12px) saturate(130%)"],
+  [0.43, "blur(16px) saturate(150%)"],
+  [0.35, "blur(20px) saturate(170%)"],
+];
+
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -702,6 +722,27 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             i.e. the bottom of this `bottom-0` nav minus its own
             safe-area padding) and stretch the mask fade across the full
             band so there is no perceptible cutoff edge. */}
+        {/* Q7 (2026-10-07): WebKit drops `backdrop-filter` on an element that
+            also carries `mask-image` — measured on the iOS 26.5 simulator, a
+            striped probe under the dock stayed crisp in this band while the
+            pill (no mask) blurred it. So blur and mask never share an
+            element: the BLUR is a stack of unmasked bands, each shorter and
+            stronger than the last (the ramp the mask used to draw: none at
+            the top, full from 35% down), and the TINT below keeps the mask,
+            which it needs for its fade and which has no filter to drop. */}
+        {CURTAIN_BLUR_STEPS.map(([share, filter]) => (
+          <div
+            key={share}
+            aria-hidden
+            className="absolute inset-x-0 pointer-events-none"
+            style={{
+              bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
+              height: `calc(${CURTAIN_BAND} * ${share})`,
+              backdropFilter: filter,
+              WebkitBackdropFilter: filter,
+            }}
+          />
+        ))}
         <div
           aria-hidden
           className="absolute inset-x-0 pointer-events-none"
@@ -713,10 +754,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // the full dock clearance the pages reserve (safe-area + 96px)
             // plus a 24px overhang so the fade begins in clear content.
             bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
-            height: "calc(var(--safe-area-bottom, 0px) + 96px + 24px)",
-            backdropFilter: "blur(32px) saturate(170%)",
-            WebkitBackdropFilter: "blur(32px) saturate(170%)",
-            // Longer fade (35% solid → transparent) so the blur ramps in
+            height: `calc(${CURTAIN_BAND})`,
+            // Longer fade (35% solid → transparent) so the tint ramps in
             // gradually across the band instead of snapping on partway up.
             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",

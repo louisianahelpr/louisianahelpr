@@ -18,7 +18,13 @@ export function readBundleId(metadataYml) {
 export function readRepoState(appStoreTs, indexHtml) {
   const url = appStoreTs.match(/export const APP_STORE_URL\s*=\s*"([^"]+)"/)?.[1] ?? null;
   const live = appStoreTs.match(/export const APP_STORE_LISTING_LIVE(?::\s*boolean)?\s*=\s*(true|false)/)?.[1];
-  const noComments = indexHtml.replace(/<!--[\s\S]*?-->/g, "");
+  // Strip comments to a fixed point (a single pass can leave a `<!--` that a
+  // removal stitched together; CodeQL js/incomplete-multi-character-sanitization).
+  let noComments = indexHtml;
+  for (let prev = ""; prev !== noComments; ) {
+    prev = noComments;
+    noComments = noComments.replace(/<!--[\s\S]*?-->/g, "");
+  }
   const banner = noComments.match(/<meta\s+name="apple-itunes-app"\s+content="app-id=(\d+)/)?.[1] ?? null;
   return {
     url,

@@ -20,6 +20,11 @@
 import "./index.css";
 import { hasToken, preloadEntryRoute } from "./boot/routePreload";
 import { startGuestJobsPrefetch } from "./boot/guestJobsPrefetch";
+import { startEntryAuthRefresh } from "./boot/entryAuthRefresh";
+
+// Q1170: a returning web visitor's expired token is refreshed beside the
+// download, before the app asks for it (see the module).
+startEntryAuthRefresh();
 
 // The app. A failed fetch here is a stale HTML page (its chunks deleted by a
 // later deploy). The index.html boot watchdog owns that case: every chunk of

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 246** (214 to do, 32 fixed with protection pending; 898 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 240** (209 to do, 31 fixed with protection pending; 906 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 13 left of 34** (10 to do, 3 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 14 stale, 0 unknown, 49 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-06T23:06Z)_

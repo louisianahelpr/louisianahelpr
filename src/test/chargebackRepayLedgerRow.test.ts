@@ -26,7 +26,7 @@ describe("chargeback re-payment rows sit outside the one-live-payout index", () 
 
   it("the writer stamps a source tag on the re-payment row", () => {
     expect(tag).toBeTruthy();
-    expect(writer).toMatch(/status: "paid",[\s\S]{0,200}metadata: \{ source: REPAY_SOURCE/);
+    expect(writer).toMatch(/status: "paid",[\s\S]{0,200}metadata: \{\s*source: REPAY_SOURCE/);
   });
 
   it("the index excludes exactly that tag and keeps the live statuses", () => {

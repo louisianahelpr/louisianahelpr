@@ -107,7 +107,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     resetSharedMocks();
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi) | payHelperCancellationFee(job, fee, pi)
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi, singleFeePercent) | payHelperCancellationFee(job, fee, pi, singleFeePercent)
   // @mutate supabase/functions/void-cancelled-payments/index.ts | (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist | /does not exist/i.test(e.message ?? "") \|\| (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist
   it("pays every member their own $50.00 share (minus commission) with its own idempotency key, and marks each paid", async () => {
     seedCancelledCrew();
@@ -126,6 +126,21 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
       { payment_intent: "pi_crew", amount: 33000 - 15000 - 3000 },
       { idempotencyKey: "cancel-refund-job-crew" },
     );
+  });
+
+  // Q1358: a member whose tier read FAILS is skipped this run (Part D retries
+  // the share), never paid at the fallback rate; the others are still paid.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!shareFeeRead.ok) { |         if (false) {
+  it("a failed tier read pays no member at the fallback rate this run (Q1358)", async () => {
+    seedCancelledCrew();
+    scenario.reads.profiles = {
+      rows: [{ stripe_account_id: "acct_member", subscription_tier: null }],
+      selectOverrides: [{ includes: "subscription_tier", result: { error: { message: "tier read boom" } } }],
+    };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers()).toEqual([]);
+    expect(ledgerFlips()).toEqual([]);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid"); | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0);

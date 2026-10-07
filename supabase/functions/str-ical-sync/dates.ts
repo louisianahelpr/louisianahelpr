@@ -4,6 +4,8 @@
 // at module load, so vitest cannot import it, and the bug this module exists to
 // fix was a one-character comparison that no code read caught.
 
+import { louisianaToday } from '../_shared/louisianaDate.ts';
+
 /** Parse `YYYYMMDD` or `YYYYMMDDTHHmmssZ` into UTC midnight of that calendar day. */
 export function parseIcalDate(icalDate: string): Date {
   const clean = icalDate.replace(/[TZ]/g, '');
@@ -34,7 +36,11 @@ export function utcDay(instant: Date): Date {
  * than a boundary that slides with whichever minute the cron happens to fire.
  */
 export function lookAheadWindow(now: Date, days = 7): { from: Date; to: Date } {
-  const from = utcDay(now);
+  // Q1265: TODAY is the Louisiana day, not the UTC one. The 00:44 UTC run is
+  // 19:44 CDT (18:44 CST) the evening before, and opening the window at the
+  // UTC day dropped that evening's own checkout, which is still today in
+  // Louisiana. Still a UTC midnight, so it compares with parseIcalDate.
+  const from = parseIcalDate(louisianaToday(now).replace(/-/g, ''));
   return { from, to: new Date(from.getTime() + days * 24 * 60 * 60 * 1000) };
 }
 

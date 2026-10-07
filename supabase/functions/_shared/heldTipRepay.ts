@@ -91,13 +91,15 @@ async function markReversed(supabase: Db, tipId: string, reversalId: string): Pr
     .eq("tip_id", tipId).eq("status", "owed").select("tip_id");
   if (error) throw new Error(`tip ${tipId} reversed (${reversalId}) but its row was not updated: ${error.message}`);
   if (data && data.length > 0) return;
-  const { data: cur } = await supabase.from("tip_hold_redrives").select("status").eq("tip_id", tipId).maybeSingle();
-  if (["reversed", "repaying", "repaid"].includes(String(cur?.status ?? ""))) return;
+  const { data: cur, error: curErr } = await supabase.from("tip_hold_redrives").select("status").eq("tip_id", tipId).maybeSingle();
+  if (!curErr && ["reversed", "repaying", "repaid"].includes(String(cur?.status ?? ""))) return;
+  // Q1358: an unreadable row is not a 'missing' one; say which it was.
+  const curLabel = curErr ? `unreadable (${curErr.message})` : String(cur?.status ?? "missing");
   await postSlackOpsAlert({
     kind: "money_at_risk",
     severity: "critical",
     title: "Held tip reversed, but its record did not move to 'reversed'",
-    message: `Tip ${tipId}'s transfer was reversed back to the platform (${reversalId}), but its tip_hold_redrives row is '${String(cur?.status ?? "missing")}', so the re-drive will not re-pay it. Set the row to 'reversed' with reversal_id ${reversalId} by hand; do NOT pay the Helpr by hand.`,
+    message: `Tip ${tipId}'s transfer was reversed back to the platform (${reversalId}), but its tip_hold_redrives row is '${curLabel}', so the re-drive will not re-pay it. Set the row to 'reversed' with reversal_id ${reversalId} by hand; do NOT pay the Helpr by hand.`,
     fields: { tip_id: tipId, reversal_id: reversalId },
   });
 }

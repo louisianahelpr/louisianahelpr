@@ -145,6 +145,28 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       return;
     }
 
+    // Q1414: while a ban settlement review is OPEN the server refuses any other
+    // change of standing (ban_review_open), but only at the LAST write: the
+    // user_bans and user_violations rows above it had already landed, so each
+    // refusal left an active ban row and an extra strike. Ask first, write
+    // nothing on an open review, and fail closed if the answer is unknown.
+    const { data: openReviews, error: reviewErr } = await supabase
+      .from("ban_settlement_queue")
+      .select("id")
+      .eq("user_id", profile.user_id)
+      .eq("review_state", "open")
+      .limit(1);
+    if (reviewErr) {
+      setBanning(false);
+      toast.error("Couldn't check whether this account is under a ban review. Nothing was changed — try again.");
+      return;
+    }
+    if ((openReviews ?? []).length > 0) {
+      setBanning(false);
+      toast.error("This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.");
+      return;
+    }
+
     try {
       if (banType === "warning") {
         const { error: vErr } = await supabase.from("user_violations").insert({

@@ -180,6 +180,45 @@ describe("admin-user-actions: an admin unban lifts the review, attributably", ()
   });
 });
 
+// Q1414 (lh-money-escrow review of fbdfa47c7, #5): confirm_message_ban wrote
+// its user_bans row BEFORE the status write that an open review refuses, so a
+// refusal left an active ban row behind. It now asks first and writes nothing.
+// @mutate supabase/functions/admin-user-actions/index.ts |         if (openReviews && openReviews.length > 0) { |         if (false) {
+describe("admin-user-actions: confirm_message_ban on an account under an open ban review (Q1414)", () => {
+  async function confirm(review: Array<{ id: string }> | { error: { message: string } }) {
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", SUPABASE_ANON_KEY: "anon" });
+    scenario.authUser = { id: "admin-1", email: "admin@example.test" };
+    scenario.rpc.has_role = true;
+    scenario.reads.profiles = { rows: [{ user_id: POSTER, email: "p@example.test", full_name: "P" }] };
+    scenario.reads.user_violations = { rows: [{ violation_type: "message_violation" }] };
+    scenario.reads.user_bans = { rows: [] };
+    scenario.reads.ban_settlement_queue = Array.isArray(review) ? { rows: review } : review;
+    const fn = await loadEdgeFunction("admin-user-actions");
+    return fn.fetch(fn.request({ headers: { Authorization: "Bearer admin-jwt" }, body: { action: "confirm_message_ban", userId: POSTER, violationId: "v-1" } }));
+  }
+
+  it("writes no ban row and no status, answers 409 ban_review_open", async () => {
+    const res = await confirm([{ id: "review-1" }]);
+    expect(res.status).toBe(409);
+    expect((await json(res)).code).toBe("ban_review_open");
+    expect(scenario.writes.some((w) => w.table === "user_bans")).toBe(false);
+    expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+  });
+
+  it("an unreadable review state fails closed: no ban row", async () => {
+    const res = await confirm({ error: { message: "boom" } });
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(scenario.writes.some((w) => w.table === "user_bans")).toBe(false);
+  });
+
+  it("no open review: the confirm goes ahead as before", async () => {
+    scenario.writeSelectRows.user_bans = [{ id: "ban-1" }];
+    const res = await confirm([]);
+    expect(res.status).toBe(200);
+    expect(scenario.writes.some((w) => w.table === "user_bans" && w.op === "insert")).toBe(true);
+  });
+});
+
 describe("auto-tip-charge: no auto-tip is charged on a frozen job", () => {
   async function run(): Promise<Response> {
     setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET });

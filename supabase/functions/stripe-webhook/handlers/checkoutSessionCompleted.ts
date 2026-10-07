@@ -23,7 +23,7 @@ import {
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
-import { taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 
 export async function handleCheckoutSessionCompleted(
@@ -900,7 +900,10 @@ async function settleCheckoutSession(
         //
         // The effective rate is the only honest one: tax over the base it was
         // charged on. Tax lands on the LABOR line only (the fees all ship as
-        // txcd_00000000), so the base is the budget.
+        // txcd_00000000), so the base is the budget. Stored as a FRACTION
+        // (effectiveSalesTaxRate): the CHECK ck_jobs_sales_tax_rate_range
+        // admits 0..1, and the percent this wrote would have failed this very
+        // escrow update on the first taxed job.
         const { data: jobRow } = await supabase
           .from("jobs")
           .select("budget")
@@ -908,10 +911,7 @@ async function settleCheckoutSession(
           .maybeSingle();
         const budgetCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
         if (budgetCents > 0) {
-          // Two decimals: rates are quoted like 10.00 / 10.50, and an
-          // unrounded float here would persist 9.999999999 for a clean 10%.
-          updateData.sales_tax_rate =
-            Math.round((taxCents / budgetCents) * 100 * 100) / 100;
+          updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents);
         } else if (taxCents === 0) {
           // A genuine zero with no base to divide by — an exempt category.
           updateData.sales_tax_rate = 0;

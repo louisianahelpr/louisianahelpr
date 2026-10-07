@@ -75,7 +75,7 @@ import {
 } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
-import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -1662,11 +1662,10 @@ serve(async (req) => {
             helper_fee_percent: helperFeePercent,
             // Derived from the amount Stripe actually calculated rather than a
             // rate we looked up ourselves — that second source of truth is the
-            // one that was retired. Rounded to 4dp so a rate like 9.95% stores
-            // as 9.95 and not a repeating float.
-            sales_tax_rate: taxCents > 0 && budgetCents > 0
-              ? Math.round((taxCents / budgetCents) * 1_000_000) / 10_000
-              : 0,
+            // one that was retired. A FRACTION (effectiveSalesTaxRate): the
+            // CHECK ck_jobs_sales_tax_rate_range admits 0..1, and the percent
+            // this wrote would have failed the visit insert after the charge.
+            sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents),
             sales_tax_amount: taxCents / 100,
             // A recurring visit is never a one-time template itself.
             is_recurring: false,

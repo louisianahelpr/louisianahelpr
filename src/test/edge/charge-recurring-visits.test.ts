@@ -1536,6 +1536,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(insertedVisits()).toHaveLength(0);
   });
 
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,
   it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -1556,6 +1557,10 @@ describe("charge-recurring-visits edge function", () => {
     const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
     expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
     expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
+    // The visit row's rate is a FRACTION (20 / 200 = 0.1): the CHECK
+    // ck_jobs_sales_tax_rate_range admits 0..1, and the percent (10) it wrote
+    // would have failed this insert after the charge.
+    expect((insertedVisits()[0].payload as Record<string, unknown>).sales_tax_rate).toBe(0.1);
   });
 
   // ═══════════════════════════════════════════════════════════════════════

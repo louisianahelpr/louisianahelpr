@@ -48,7 +48,7 @@ import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
  *
  *   cancelled  poster funds, a saved search of the helper's matches it (the
  *              saved-search alert is asserted), the poster cancels
- *              (create-payment cancel_escrow: refund, cancelled/cancelled).
+ *              (create-payment cancel_escrow: refund, cancelled/refunded since Q86).
  *   refunded   poster funds; the poster is REFUSED every create-payment admin
  *              action on it; the ADMIN issues a full Quick Refund
  *              (admin_refund_general) — cancelled/refunded plus the poster's

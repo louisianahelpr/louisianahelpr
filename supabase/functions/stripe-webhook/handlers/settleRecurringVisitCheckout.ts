@@ -4,6 +4,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { seedBoundaryDropsRow } from "../../_shared/seedBoundary.ts";
 
 /**
  * Q210(b): the payer paid a $300+ recurring visit on-session.
@@ -124,6 +125,27 @@ export async function settleRecurringVisitCheckout(
       });
       throw e;
     }
+    // Q1247 (a): the payer is told, so the money coming back is never the
+    // first they hear of it. Told right after the refund and BEFORE the row
+    // write below (lh-money-escrow review: a write that threw after the
+    // refund, retried by Stripe more than a day later, answers "already
+    // refunded" and would never tell them). A retried delivery whose refund
+    // is already done is not told again; a notice that could not be written
+    // is named in the ops alert below.
+    // The person who paid is the session's payer. The row's series and date
+    // are named only when that is also the row's payer (a mismatch never
+    // shows one account another's visit).
+    const payerId = meta?.payer_id || (row?.payer_id as string | undefined) || null;
+    const rowIsPayers = Boolean(row) && row!.payer_id === payerId;
+    const told = alreadyRefunded ? true : await tellPayerRefunded(supabase, {
+      payerId,
+      parentJobId: rowIsPayers ? String(row!.parent_job_id) : null,
+      visitDate: rowIsPayers ? String(row!.visit_date) : null,
+      amountCents: session.amount_total ?? null,
+      // A visit already paid on another PaymentIntent IS booked: this was a
+      // second payment for it, and the notice says so.
+      duplicate: rowIsPayers && row!.status === "paid",
+    });
     // The row of a series that is over stops asking to be paid: the payer's
     // "Pay" card goes, and the cron's sweep never tells them "you weren't
     // charged" about a visit they paid for and got back. A failed write throws
@@ -149,14 +171,46 @@ export async function settleRecurringVisitCheckout(
       kind: "custom",
       severity: "warning",
       title: "Recurring visit paid but not bookable — refunded",
-      message: `A recurring-visit Checkout was paid but ${refundReason}, so ${pi} was refunded in full.`,
-      fields: { session_id: session.id, payment_intent: pi, row: rowId },
+      message: `A recurring-visit Checkout was paid but ${refundReason}, so ${pi} was refunded in full.${
+        told ? "" : " The payer could NOT be told in the app: tell them by hand."
+      }`,
+      fields: { session_id: session.id, payment_intent: pi, row: rowId, payer_told: told ? "yes" : "no" },
     });
     return;
   }
 
   logStep("Recurring visit paid on-session", { rowId, pi, parent: row!.parent_job_id, visitDate: row!.visit_date });
   kickVisitBooking(String(row!.parent_job_id), logStep);
+}
+
+/**
+ * Q1247 (a): the payer's notice for a recurring-visit payment refunded in
+ * full. true when it was written, or when the seed boundary dropped it by
+ * design (a seed series, a real recipient); false when it could not be.
+ */
+async function tellPayerRefunded(
+  supabase: WebhookContext["supabase"],
+  v: { payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; duplicate: boolean },
+): Promise<boolean> {
+  if (!v.payerId) return false;
+  const link = "/posts";
+  const amount = typeof v.amountCents === "number" ? ` $${(v.amountCents / 100).toFixed(2)}` : "";
+  const visit = `The visit${v.visitDate ? ` on ${v.visitDate}` : ""}`;
+  const { data, error } = await supabase.from("notifications").insert({
+    user_id: v.payerId,
+    job_id: v.parentJobId,
+    title: "Your visit payment was refunded",
+    message: v.duplicate
+      ? `${visit} was already paid, so we refunded the second payment of${amount} in full.`
+      : `${visit} couldn't be booked, so we refunded the${amount} you paid for it in full.`,
+    type: "job_updates",
+    link,
+  }).select("id");
+  if (!error && data && data.length > 0) return true;
+  if (!error && data && data.length === 0) {
+    return (await seedBoundaryDropsRow(supabase, { user_id: v.payerId, job_id: v.parentJobId, link })) === true;
+  }
+  return false;
 }
 
 /**

@@ -14,6 +14,7 @@ import { useApplicantsState } from "./activityActions/useApplicantsState";
 import { createOfferHandlers } from "./activityActions/useOfferHandlers";
 import { createLifecycleHandlers } from "./activityActions/useLifecycleHandlers";
 import { useCardExpansion } from "./useCardExpansion";
+import type { PaymentHeldSide } from "./PaymentHeldDialog";
 
 export type { UseActivityActionsArgs } from "./activityActions/types";
 
@@ -117,6 +118,8 @@ export function useActivityActions({
   // optimistic acceptance lands.
   const [w9DialogOpen, setW9DialogOpen] = useState(false);
   const [w9Context, setW9Context] = useState<{ jobId: string; businessId: string | null } | null>(null);
+  // Q997: the "payment is held" pop-up after an offer is sent or an accept completes.
+  const [paymentHeldSide, setPaymentHeldSide] = useState<PaymentHeldSide | null>(null);
 
   // Optimistic cache helpers shared by every money-path handler.
   const { optimisticallyPatchJob, rollbackActivity } = useOptimisticJobCache(user);
@@ -147,6 +150,7 @@ export function useActivityActions({
     setAwardBlockReason,
     setW9Context,
     setW9DialogOpen,
+    setPaymentHeldSide,
     setRespondingHelperAppId,
     respondingInFlight,
   });
@@ -213,6 +217,7 @@ export function useActivityActions({
     closeAwardGate: () => { setAwardBlockReason(null); setPendingAcceptApp(null); setAcceptPendingMissing(null); },
     w9DialogOpen, setW9DialogOpen,
     w9Context,
+    paymentHeldSide, setPaymentHeldSide,
     respondingHelperAppId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,

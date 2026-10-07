@@ -441,7 +441,9 @@ test.describe.serial("gift card journey against production", () => {
       const cancelled = await fn(request, recipient!, "create-payment", { action: "cancel_escrow", jobId });
       expect(cancelled.status, `cancel_escrow on job ${leg}: ${JSON.stringify(cancelled.body)}`).toBe(200);
       const job = await readJob(request, recipient!, jobId);
-      expect(`${job.status}/${job.payment_status}`).toBe("cancelled/cancelled");
+      // Q86 (a): a job the gift covered in full has no card charge ('cancelled');
+      // one with a card shortfall had a capture refunded ('refunded').
+      expect(`${job.status}/${job.payment_status}`).toBe(job.stripe_session_id ? "cancelled/refunded" : "cancelled/cancelled");
     }
 
     // Job A took $10 of G0 (the rest had already become G1); job B took all of G1.

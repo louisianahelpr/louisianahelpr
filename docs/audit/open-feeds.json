@@ -124,14 +124,6 @@
         "issue": 2462
       },
       {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 2480
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -146,14 +138,6 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
-      },
-      {
-        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
-        "source_kind": "workflow",
-        "source": "uptime",
-        "status": "open",
-        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
-        "issue": null
       },
       {
         "fingerprint": "a5d62d53b6a4bea80076ec889713b41d",

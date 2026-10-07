@@ -321,3 +321,54 @@ export function redRunCovered({ runId, failedJobs, items }) {
   }
   return jobs.size >= failedJobs;
 }
+
+/**
+ * Q1058 (owner, 2026-10-07: "instant Slack post when the ledger sync first
+ * records a nightly_red item"). Every other alert class already reached Slack
+ * (uptime, deploys, the Stripe webhook, DB limits); a NEW nightly-red issue only
+ * opened an issue and a ledger row. `sync` step 1 now collects the issues it
+ * records for the FIRST time (no ledger row for that issue yet) and posts them
+ * in one message. An issue already known is never re-posted; one a
+ * self-recording workflow covers is not recorded, so not posted either.
+ *
+ * `known` is issue number (string) -> last_seen; `recorded` the issues step 1
+ * just recorded. Returns the ones that were new.
+ */
+export function firstSeenNightlyIssues(known, recorded) {
+  return (recorded ?? []).filter((i) => !known.has(String(i.number)));
+}
+
+/** The one Slack message for the new nightly-red issues, or null when none. */
+export function newNightlyRedSlackText(issues) {
+  if (!issues || issues.length === 0) return null;
+  const lines = issues.map((i) => `• ${i.title} — ${i.url}`);
+  return `:red_circle: New nightly-red ${issues.length === 1 ? "issue" : "issues"} (recorded in the ops ledger; it stays open until its workflow runs green):\n${lines.join("\n")}`;
+}
+
+/**
+ * Posts `text` to SLACK_WEBHOOK_URL. Never throws (the ledger write already
+ * happened and is the record); a missing secret or a refusal prints a
+ * ::warning so it shows on the run page. true = Slack accepted it.
+ */
+export async function postSlackText(text, { url = process.env.SLACK_WEBHOOK_URL, fetchImpl = globalThis.fetch } = {}) {
+  if (!url) {
+    console.log(`::warning::SLACK_WEBHOOK_URL is not set, so this was not posted to Slack: ${text}`);
+    return false;
+  }
+  try {
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      console.log(`::warning::Slack refused the new nightly-red post: HTTP ${res.status}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log(`::warning::Slack post failed: ${e instanceof Error ? e.message : String(e)}`);
+    return false;
+  }
+}

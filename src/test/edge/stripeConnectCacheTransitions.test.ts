@@ -21,16 +21,19 @@
  * @mutate supabase/functions/stripe-connect/index.ts | if (countErr \|\| recentClears === null \|\| recentClears === undefined) { | if (countErr) {
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>origin", "server")\n      .gte("created_at", sinceIso); | .eq("tags->>origin", "server");
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>kind", STALE_CLEAR_KIND)\n      .eq("tags->>origin", "server") | .eq("tags->>kind", STALE_CLEAR_KIND)
- * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND }, | tags: { source: "stripe-connect" },
+ * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, ...(isSeed | tags: { source: "stripe-connect", ...(isSeed
+ * Q1436: a seed account's clear is digest-only (tags.seed), a real one's is not.
+ * @mutate supabase/functions/stripe-connect/index.ts | ...(isSeed ? { seed: true } : {}) | ...({})
+ * @mutate supabase/functions/stripe-connect/index.ts | ...(isSeed ? { seed: true } : {}) | ...({ seed: true })
  * @mutate supabase/functions/stripe-connect/index.ts | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });\n      return "failed"; | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });
  * @mutate supabase/functions/stripe-connect/index.ts | if (check?.deleted === true) usable = false; |
  * @mutate supabase/functions/stripe-connect/index.ts | if (!isUnusableConnectAccountError(checkErr)) throw checkErr;\n            usable = false; |
  * @mutate supabase/functions/stripe-connect/index.ts | idempotencyKey = `stripe-connect-create-${user.id}-after-${created.id}`; |
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("stripe_charges_enabled", profile.stripe_charges_enabled === true)\n | \n
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("stripe_payouts_enabled", profile.stripe_payouts_enabled === true)\n        .select("id"); | .select("id");
- * @mutate supabase/functions/stripe-connect/index.ts | } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) { | } else if (nowCharges && nowPayouts && !wasEnabled) {
- * @mutate supabase/functions/stripe-connect/index.ts | } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) { | } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts) {
- * @mutate supabase/functions/stripe-connect/index.ts | } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) { | } else if (false) {
+ * @mutate supabase/functions/_shared/connectGateSync.ts | .eq("stripe_charges_enabled", profile.stripe_charges_enabled === true)\n | \n
+ * @mutate supabase/functions/_shared/connectGateSync.ts | .eq("stripe_payouts_enabled", profile.stripe_payouts_enabled === true)\n      .select("id"); | .select("id");
+ * @mutate supabase/functions/_shared/connectGateSync.ts | const opened = (cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled; | const opened = nowCharges && nowPayouts && !wasEnabled;
+ * @mutate supabase/functions/_shared/connectGateSync.ts | const opened = (cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled; | const opened = (cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts;
+ * @mutate supabase/functions/_shared/connectGateSync.ts | const opened = (cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled; | const opened = false;
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -134,6 +137,28 @@ describe("Q863 — stripe-connect stops clearing payout links after 5 in an hour
       ]),
     );
     expect(postSlackOpsAlert).not.toHaveBeenCalled();
+  });
+
+  it("Q1436: a SEED account's clear is recorded tagged seed (digest, never a ledger item); the breaker still counts it", async () => {
+    scenario.reads.error_logs = { rows: [], count: 0 };
+    scenario.writeSelectRows.profiles = [{ id: "p1", is_seed: true }];
+
+    await removeMethod();
+
+    const logs = staleClearLogs();
+    expect(logs).toHaveLength(1);
+    expect(logs[0].payload).toMatchObject({ tags: { source: "stripe-connect", kind: "stale-clear", seed: true } });
+  });
+
+  it("Q1436: a REAL account's clear is recorded untagged, so it reaches the ledger", async () => {
+    scenario.reads.error_logs = { rows: [], count: 0 };
+    scenario.writeSelectRows.profiles = [{ id: "p1", is_seed: false }];
+
+    await removeMethod();
+
+    const logs = staleClearLogs();
+    expect(logs).toHaveLength(1);
+    expect((logs[0].payload as { tags: Record<string, unknown> }).tags).not.toHaveProperty("seed");
   });
 
   it("at the cap: refuses the clear, records nothing, pages ops", async () => {

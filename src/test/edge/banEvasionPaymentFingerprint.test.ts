@@ -23,8 +23,8 @@
  * @mutate supabase/functions/_shared/paymentFingerprint.ts | return { kind: "failed", message: "enforce_retained_payment_ban returned no verdict" }; | return { kind: "ok", verdict: { banned: false, matched_on: null, already_banned: false } };
  * @mutate supabase/functions/_shared/paymentFingerprint.ts | const kind: FingerprintKind \| null = object === "bank_account" ? "bank" : object === "card" ? "card" : null; | const kind: FingerprintKind \| null = object === "card" ? "card" : null;
  * @mutate supabase/functions/stripe-webhook/handlers/_checkoutCardFingerprint.ts | await reportNotChecked(session.id, payer, check.message);\n    return; | return;
- * @mutate supabase/functions/stripe-connect/index.ts | const { data: cacheRows, error: cacheErr } = fpCheckFailed && !wasEnabled | const { data: cacheRows, error: cacheErr } = false
- * @mutate supabase/functions/stripe-connect/index.ts | if (fpCheck.kind === "banned") {\n        await postSlackOpsAlert({ | if (false) {\n        await postSlackOpsAlert({
+ * @mutate supabase/functions/_shared/connectGateSync.ts | const { data: cacheRows, error: cacheErr } = fpCheckFailed && !wasEnabled | const { data: cacheRows, error: cacheErr } = false
+ * @mutate supabase/functions/_shared/connectGateSync.ts | if (fpCheck.kind === "banned") {\n    await postSlackOpsAlert({ | if (false) {\n    await postSlackOpsAlert({
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (fpCheck.kind === "failed") {\n    throw | if (false) {\n    throw
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | const fpCheck = await enforceConnectAccountFingerprints(stripe, supabase, helperProfile.user_id, account); | const fpCheck = { kind: "clear", checked: 0 } as { kind: string; message?: string; matched_on?: string; already_banned?: boolean };
  */

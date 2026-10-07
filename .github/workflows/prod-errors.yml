@@ -163,7 +163,13 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # Q1058: a nightly-red issue the sync records for the first time is
+          # posted to Slack at once (scripts/lib/opsAlertLedger.mjs postSlackText).
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL is not set: a new nightly-red issue is recorded in the ledger but not posted to Slack"
+          fi
           set -euo pipefail
           node scripts/ops-alert-ledger.mjs sync
           # --fail-on-dupes: one workflow open twice (a nightly_red item and a

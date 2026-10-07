@@ -20,6 +20,7 @@ import type {
   EnrichedApplication,
 } from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
+import type { PaymentHeldSide } from "../PaymentHeldDialog";
 
 /**
  * Dependencies for the offer/acceptance-phase handlers, extracted verbatim
@@ -50,6 +51,8 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setAcceptPendingMissing: (missing: AcceptMissing[] | null) => void;
   setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
   setW9DialogOpen: (open: boolean) => void;
+  /** Q997: the "payment is held" pop-up, after an offer is sent or an accept completes. */
+  setPaymentHeldSide: (side: PaymentHeldSide | null) => void;
   setRespondingHelperAppId: Dispatch<SetStateAction<string | null>>;
   /**
    * Synchronous in-flight guard for handleHelperResponse (accept/decline an
@@ -80,6 +83,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setAcceptPendingMissing,
     setW9Context,
     setW9DialogOpen,
+    setPaymentHeldSide,
     setRespondingHelperAppId,
     respondingInFlight,
   } = deps;
@@ -296,6 +300,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setSelectedJob(null);
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
+    // Q997 (owner, 2026-10-07): the poster is told the payment is held.
+    setPaymentHeldSide("poster");
     await refresh();
     // The poster's OWN view after hiring. Same defect as the links above:
     // "offered" is a legacy key with no chip, so this left the strip with
@@ -383,6 +389,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     hapticSuccess();
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });
+      // Q997: the Helpr is told the payment is held (a direct offer, accepted).
+      setPaymentHeldSide("helpr");
       await refresh();
       setStatusFilter("accepted");
     } else {
@@ -427,6 +435,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (jobMeta && jobMeta.requires_w9) {
       setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
       setW9DialogOpen(true);
+    } else {
+      // Q997 (owner, 2026-10-07): the Helpr is told the payment is held. Not
+      // on top of the W-9 signature a business job requires at this moment:
+      // two modals at once would stack.
+      setPaymentHeldSide("helpr");
     }
   } catch (err) {
     // requires_w9 column missing on pre-migration prod → skip is the

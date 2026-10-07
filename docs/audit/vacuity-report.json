@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-07T07:27:24.970Z",
-  "guards": 1549,
-  "registered": 1547,
+  "generated": "2026-10-07T07:58:22.512Z",
+  "guards": 1550,
+  "registered": 1548,
   "unregistered": [
     "src/test/chargebackRepayLedgerRow.test.ts",
     "src/test/crewHireBeforePayout.test.ts"
@@ -31,7 +31,6 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/socialSignInOff.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/timeSuffixContrast.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"

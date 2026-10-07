@@ -126,7 +126,7 @@
       "hosts": [],
       "literal": { "file": "src/lib/socialAuth.ts", "text": "com.Helpr.signin" },
       "sourceOfTruth": "the JWT's exp, set when it was generated with tools/apple-jwt.html (Apple caps it at 6 months). The Management API only says whether the provider is enabled: it returns a 64-hex hash for external_apple_secret, not the JWT (measured 2026-09-24)",
-      "read": { "method": "supabase-auth-apple", "date": null, "recorded": null },
+      "read": { "method": "supabase-auth-apple", "date": "2027-04-03", "recorded": "2026-10-07 (ASSUMED: rotated 2026-10-05 with tools/apple-jwt.html at its 180-day default; owner to confirm, Q1322)" },
       "ciReadable": false
     },
     {

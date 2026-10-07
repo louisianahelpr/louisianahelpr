@@ -22,7 +22,7 @@
  * moved legs are held in place by a floor on the "time travel:" steps.
  */
 
-// @mutate e2e/journeys/time-travel.spec.ts | ["Subscription expiring", "neither | ["Offer expiring", "placeholder"],\n    ["Subscription expiring", "neither
+// @mutate e2e/journeys/time-travel.spec.ts | test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n | test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n    skipUncovered("x", "y");\n
 // @mutate e2e/journeys/02-marketplace.spec.ts | test.step("time travel: the offer counts down to its deadline, then is gone" | test.step("the offer counts down to its deadline, then is gone"
 // @mutate e2e/journeys/time-travel.spec.ts | test("a funded job's countdown chip: | test.skip("a funded job's countdown chip:
 
@@ -51,10 +51,9 @@ function walk(dir: string, out: string[] = []): string[] {
  * by e2e/journeys/notifications/producers.ts (notificationProducersCovered).
  */
 // @two-way src/test/journeyPlaceholderSkips.test.ts:a placeholder listed here no longer exists
-const PLACEHOLDER_KNOWN = [
-  "e2e/journeys/time-travel.spec.ts :: Confirm window (day before / day of)",
-  "e2e/journeys/time-travel.spec.ts :: Subscription expiring",
-];
+// Empty since Q413 (2026-10-07): the last two time-travel placeholders were
+// built (confirm window, membership end) on service-role fixtures.
+const PLACEHOLDER_KNOWN: string[] = [];
 
 export function placeholders(rel: string, src: string): string[] {
   const code = blankComments(src);
@@ -101,6 +100,9 @@ describe("no journey test is a placeholder that can only skip", () => {
     expect(steps.length).toBeGreaterThan(1);
     const tt = blankComments(readFileSync(join(root, "e2e/journeys/time-travel.spec.ts"), "utf8"));
     expect(tt).toMatch(/\btest\("a funded job's countdown chip:/);
+    // Q413: the two built legs stay built.
+    expect(tt).toMatch(/\btest\("confirm window: /);
+    expect(tt).toMatch(/\btest\("membership: /);
     expect(tt).toMatch(/await payCheckoutUrlInChromium\(/);
   });
 });

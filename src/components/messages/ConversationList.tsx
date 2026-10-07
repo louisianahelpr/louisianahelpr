@@ -1600,27 +1600,6 @@ export function ConversationList({
                       const selected = selectedKeys.has(key);
                       const row = (
                         <div className="relative">
-                          {/* Tiny pin chip — peeks over the top-right
-                              corner of the avatar so a pinned row reads at a
-                              glance. Hidden when not pinned, and while
-                              selecting (the checkbox takes that corner). */}
-                          {pinned && !selectMode && (
-                            <span role="img"
-                              aria-label="Pinned"
-                              className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
-                              style={{
-                                background: "hsl(var(--burnt-sienna) / 0.9)",
-                                boxShadow:
-                                  "0 1px 3px hsl(var(--burnt-sienna) / 0.45)",
-                              }}
-                            >
-                              <Pin
-                                className="w-2.5 h-2.5"
-                                style={{ color: "hsl(var(--parchment))" }}
-                                strokeWidth={2.4}
-                              />
-                            </span>
-                          )}
                           {/* Recently Deleted view: a real "un-hide" control,
                               not just a re-visit. Swiping isn't available
                               here (that's the archive gesture itself, and
@@ -1662,6 +1641,7 @@ export function ConversationList({
                             selectMode={selectMode}
                             selected={selected}
                             onToggleSelect={() => toggleSelect(c)}
+                            pinned={pinned}
                           />
                         </div>
                       );

@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { BellOff, Check } from "lucide-react";
+import { BellOff, Check, Pin } from "lucide-react";
 import {
   getMessageAttachmentSignedUrl,
   isImageMime,
@@ -31,6 +31,13 @@ interface ConversationRowProps {
   selected?: boolean;
   /** Toggle this row's selection (select mode only). */
   onToggleSelect?: () => void;
+  /** The viewer pinned this thread: a small Pinned chip beside the timestamp.
+   *  It used to overlay the avatar's top-left corner from the list, the same
+   *  corner the unread mark took when it moved to the avatar, and covered it
+   *  on a pinned + unread thread (Q1090, owner 2026-10-07: the unread mark
+   *  keeps its spot, the Pinned chip moves beside the timestamp). Hidden in
+   *  select mode, as before. Defaults to false. */
+  pinned?: boolean;
 }
 
 /* ── THE UNREAD SIGNAL ──────────────────────────────────────────────────────
@@ -197,6 +204,7 @@ const ConversationRowBase = ({
   selectMode = false,
   selected = false,
   onToggleSelect,
+  pinned = false,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -484,6 +492,20 @@ const ConversationRowBase = ({
                   deliberately, because two marks for one state is how the
                   trailing one got read as punctuation in the first place. */}
               <span className="ml-auto shrink-0 flex items-center gap-1.5">
+                {pinned && !selectMode && (
+                  <span
+                    role="img"
+                    aria-label="Pinned"
+                    data-testid="pinned-chip"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.9)",
+                      boxShadow: "0 1px 3px hsl(var(--burnt-sienna) / 0.45)",
+                    }}
+                  >
+                    <Pin className="w-2.5 h-2.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.4} aria-hidden />
+                  </span>
+                )}
                 <span
                   className="text-ds-11 whitespace-nowrap"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}

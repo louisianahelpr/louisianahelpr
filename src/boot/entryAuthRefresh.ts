@@ -28,10 +28,10 @@
 
 export const ENTRY_AUTH_REFRESH_KEY = "__lhEntryAuthRefresh";
 /** auth-js refreshes a session this close to expiry (EXPIRY_MARGIN_MS, 3 x 30 s). */
-export const ENTRY_REFRESH_MARGIN_MS = 90_000;
+const ENTRY_REFRESH_MARGIN_MS = 90_000;
 /** One entry refresh per this window across tabs (see the marker below). */
-export const ENTRY_REFRESH_MARK_KEY = "lh_entry_refresh_at";
-export const ENTRY_REFRESH_MARK_MS = 15_000;
+const ENTRY_REFRESH_MARK_KEY = "lh_entry_refresh_at";
+const ENTRY_REFRESH_MARK_MS = 15_000;
 
 type Stored = { access_token?: unknown; refresh_token?: unknown; expires_at?: unknown };
 type Fresh = { access_token?: unknown; refresh_token?: unknown; expires_in?: unknown; user?: unknown };

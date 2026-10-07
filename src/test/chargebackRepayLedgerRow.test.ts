@@ -4,6 +4,8 @@
  * REPAY_SOURCE out, so the tag in the index and the tag the writer stamps must
  * be the same string. Behaviour (red before, 3x replay):
  * src/test/pglite/chargebackRepayLedgerRow.pglite.mjs.
+ *
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const REPAY_SOURCE = "chargeback-repay"; | const REPAY_SOURCE = "chargeback-repaid";
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -24,7 +26,7 @@ describe("chargeback re-payment rows sit outside the one-live-payout index", () 
 
   it("the writer stamps a source tag on the re-payment row", () => {
     expect(tag).toBeTruthy();
-    expect(writer).toMatch(/status: "paid",[\s\S]{0,200}metadata: \{ source: REPAY_SOURCE/);
+    expect(writer).toMatch(/status: "paid",[\s\S]{0,200}metadata: \{\s*source: REPAY_SOURCE/);
   });
 
   it("the index excludes exactly that tag and keeps the live statuses", () => {

@@ -6,6 +6,8 @@
  *
  * Behaviour (red before, 3x replay): src/test/pglite/crewHireBeforePayout.pglite.mjs
  * (pglite is not a dependency, so CI holds the shape here).
+ *
+ * @mutate supabase/migrations/20261007011530_crew_hire_before_payout_setup.sql | 'action', 'pending_setup' | 'action', 'confirmed'
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

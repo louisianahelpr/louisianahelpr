@@ -128,7 +128,40 @@ export function useSearchParamMirror(
   const setSearchParamsRef = useRef(setSearchParams);
   setSearchParamsRef.current = setSearchParams;
 
+  /**
+   * THE WRITE THIS HOOK HAS ISSUED AND NOT YET SEEN LAND (Q1476).
+   *
+   * The ping-pong Sentry JAVASCRIPT-25 caught on /jobs (2026-10-07, and on
+   * /my-jobs three times before): a commit in which the local state AND the
+   * query string both change (a third writer, e.g. Activity's deep-link
+   * resolution or an action handler, changes a param while the filter moves)
+   * runs BOTH effects. The write effect writes `filter=waiting`; the adopt
+   * effect, in the same commit, still reads the pre-write URL (no filter),
+   * calls that an outside change and resets the filter to its default. The
+   * next commit then has both changed again, the other way round, forever:
+   * the error_logs trail is exactly `filter=waiting -> (empty) | (empty) ->
+   * filter=waiting | ...` with adopt alternating between the two.
+   *
+   * So the adopt effect asks this first: a URL equal to the one the pending
+   * write started FROM is stale (our write is about to replace it) and is not
+   * adopted. When the write lands, the write effect (which runs first) sees it
+   * as its own landing and reconciles it with the state before adopt runs.
+   */
+  const inFlightRef = useRef<{ from: string; to: string } | null>(null);
+  /** What the write effect last ran with; null before its first run. */
+  const lastSeenRef = useRef<{ stateKey: string; search: string } | null>(null);
+
   useEffect(() => {
+    // WHO MOVED (Q1476). Only the URL changed, and not by our own write
+    // landing: Back, a deep link or a notification moved it, so the URL wins
+    // and the adopt effect below pulls it into the state. Writing here would
+    // overwrite the outside change with the state it is about to replace.
+    // The first run is the same case: the entry being opened describes the view.
+    const prev = lastSeenRef.current;
+    lastSeenRef.current = { stateKey, search };
+    const pendingWrite = inFlightRef.current;
+    const ownLanding = !!pendingWrite && (search === pendingWrite.from || search === pendingWrite.to);
+    if (!prev || (prev.search !== search && prev.stateKey === stateKey && !ownLanding)) return;
     const desired: Record<string, string> = JSON.parse(stateKey);
     const next = new URLSearchParams(search);
     let changed = false;
@@ -186,6 +219,10 @@ export function useSearchParamMirror(
     if (tripped) return;
     // ───────────────────────────────────────────────────────────────────────
 
+    // Q1476: the write is now IN FLIGHT. The URL will read `next` on a later
+    // render, but the adopt effect below runs in THIS commit and still sees
+    // `search`; it must not take that pre-write URL for an outside change.
+    inFlightRef.current = { from: search, to: next.toString() };
     setSearchParamsRef.current(next, { replace: true });
     // Both deps are strings: once the write lands, `search` matches `desired`,
     // this re-runs once more, finds nothing changed, and stops.
@@ -200,6 +237,13 @@ export function useSearchParamMirror(
 
 
   useEffect(() => {
+    const pending = inFlightRef.current;
+    if (pending) {
+      if (search === pending.from) return; // stale: our write has not landed yet
+      // Landed (the write effect has already reconciled it with the state) or
+      // superseded by an outside change: either way it is no longer pending.
+      inFlightRef.current = null;
+    }
     const params = new URLSearchParams(search);
     const read = (key: string) => params.get(key) ?? "";
     const local = localRef.current;

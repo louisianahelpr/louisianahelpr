@@ -89,6 +89,16 @@ export interface BuildJobInsertPayloadInput {
  * Locks the platform fee and sales tax at creation time so later
  * settings changes never retroactively re-price an existing job.
  */
+/**
+ * Q1486: a parish sales-tax PERCENT (10.45) as the fraction jobs.sales_tax_rate
+ * holds (0.1045). The column's CHECK admits only 0..1, so this clamps there;
+ * rounded to 6 places so float noise never reaches the row.
+ */
+export function salesTaxRateFraction(percent: number): number {
+  const f = Math.min(1, Math.max(0, percent / 100));
+  return Math.round(f * 1e6) / 1e6;
+}
+
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
   const requiresW9 = input.requiresW9 ?? false;
   const credentialTier = input.credentialTier ?? 0;
@@ -225,7 +235,9 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
     platform_fee_percent: lockedFeePercent,
     platform_fee_amount: lockedFeeAmount,
-    sales_tax_rate: lockedSalesTaxRate,
+    // Q1486: the column is a FRACTION (ck_jobs_sales_tax_rate_range, 0..1);
+    // lockedSalesTaxRate is the parish PERCENT that salesTaxCents takes.
+    sales_tax_rate: salesTaxRateFraction(lockedSalesTaxRate),
     sales_tax_amount: lockedSalesTaxAmount,
     // requires_w9 column is added by migration 20260609180000 (now in the
     // generated types). Spread only when true, as before.

@@ -41,6 +41,7 @@ import {
   type MapJob,
 } from "./browseMap/config";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
+import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 import { useMapJobs } from "./browseMap/useMapJobs";
 import JobCard from "./dashboard/JobCard";
 import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
@@ -242,6 +243,21 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   useEffect(() => {
     if (selectedJobId && !selectedJob) setSelectedJobId(null);
   }, [selectedJobId, selectedJob]);
+  /* Q1464: a re-listed crew's pin card says its open spots, as the feed card
+     does. The map RPC carries no count, so the previewed crew reads it on its
+     own (best effort: on a miss the card shows the crew's size). */
+  const [crewSpots, setCrewSpots] = useState<{ id: string; open: number } | null>(null);
+  const selectedCrewId = selectedJob?.is_group_job ? selectedJob.id : null;
+  useEffect(() => {
+    if (!selectedCrewId) return;
+    let live = true;
+    void fetchCrewSpotsOpen([selectedCrewId]).then((m) => {
+      const open = m.get(selectedCrewId);
+      if (live && open != null) setCrewSpots({ id: selectedCrewId, open });
+    });
+    return () => { live = false; };
+  }, [selectedCrewId]);
+  const selectedCrewSpots = selectedJob && crewSpots?.id === selectedJob.id ? crewSpots.open : null;
   /** True when the open preview was opened from the keyboard, so focus should
    *  move into the sheet and back to the pin on close (a pointer tap must NOT
    *  steal focus — that scroll-jumps the map on iOS). */
@@ -1154,7 +1170,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             >
               <div ref={previewCardRef}>
                 <JobCard
-                  job={mapJobToEnrichedJob(selectedJob)}
+                  job={mapJobToEnrichedJob(selectedJob, selectedCrewSpots)}
                   effectiveFee={effectiveFee ?? 0}
                   onSelect={() => onJobAction?.(selectedJob.id)}
                   onApply={() => onJobAction?.(selectedJob.id)}

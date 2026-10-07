@@ -30,6 +30,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
+// @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | openCrewSpots(job.helpers_needed, job.crew_spots_open) | null
+// @mutate src/components/browseMap/fetchJobForPin.ts | fetchCrewSpotsOpen([job.id]) | Promise.resolve(new Map<string, number>())
+// @mutate src/components/BrowseMap.tsx | job={mapJobToEnrichedJob(selectedJob, selectedCrewSpots)} | job={mapJobToEnrichedJob(selectedJob)}
 // @mutate supabase/migrations/20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
 
 const ROOT = resolve(__dirname, "../..");
@@ -130,6 +133,24 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
       const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
       expect(src, `${f} selects crew_spots_open in a main list (a deploy before db-deploy would fail the whole feed)`).not.toMatch(/"id, title, description[^"\n]*\bcrew_spots_open\b/);
     }
+  });
+
+  it("Q1464: the map pin's card and the job detail dialog say the open spots too, not the crew's size", () => {
+    // The detail dialog's Helprs tile reads the same rule as the browse chip.
+    const tiles = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx"), "utf8"));
+    expect(tiles).toMatch(/openCrewSpots\(job\.helpers_needed, job\.crew_spots_open\)/);
+    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobCardMetaRow.tsx"), "utf8"));
+    expect(chip).toMatch(/const open = openCrewSpots\(count, spotsOpen\)/);
+    // A pin opened from the map (not in the loaded feed) reads the count after its row.
+    const pin = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/fetchJobForPin.ts"), "utf8"));
+    expect(pin).toMatch(/fetchCrewSpotsOpen\(\[job\.id\]\)/);
+    expect(pin, "never in the row's own select (a missing column would fail the whole lookup)").not.toMatch(/BROWSE_COLUMNS =[^;]*crew_spots_open/);
+    // The pin's popup card (the map RPC has no count) gets it from its own read.
+    const map = blankComments(readFileSync(resolve(ROOT, "src/components/BrowseMap.tsx"), "utf8"));
+    expect(map).toMatch(/job=\{mapJobToEnrichedJob\(selectedJob, selectedCrewSpots\)\}/);
+    expect(map).toMatch(/fetchCrewSpotsOpen\(\[selectedCrewId\]\)/);
+    const adapter = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/mapJobToEnrichedJob.ts"), "utf8"));
+    expect(adapter).toMatch(/crew_spots_open: crewSpotsOpen \?\? null/);
   });
 
   it("has a PGlite proof that is red on the old surfaces", () => {

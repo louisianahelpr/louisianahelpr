@@ -264,9 +264,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           does nothing inside the native app). It now renders a real contact
           form that works signed-out AND signed-in (prefilled from the profile).
           Authed users still get the same form as a Profile tab.
-          It IS wrapped in PageTransition (as /legal and /help are): see the
-          note directly below (Q965 corrected this comment, which said it
-          was not).
+          It IS wrapped in PageTransition, as /legal and /help are: see the
+          note directly below (Q965 corrected this; it used to say it was not).
 
           NOT wrapped in <MarketingRedirect>, even though /profile?tab=support
           renders the same form from the same shared copy (lib/supportTopics.ts).

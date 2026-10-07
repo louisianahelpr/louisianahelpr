@@ -26,7 +26,7 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 
-export const CREW_BLOCK_FEE_TRANSFER_TYPE = "crew_block_fee";
+const CREW_BLOCK_FEE_TRANSFER_TYPE = "crew_block_fee";
 
 export interface CrewBlockFeeRow {
   id: string;

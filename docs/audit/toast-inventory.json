@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 592,
+    "calls": 593,
     "files": 150,
-    "rendering": 567,
+    "rendering": 568,
     "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 38,
-      "toast.error": 467,
+      "toast.error": 468,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 30,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 317,
+      "literal": 318,
       "template": 77,
       "dynamic": 239,
       "jsx": 0
@@ -2982,7 +2982,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 397,
+      "line": 395,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3196,7 +3196,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 144,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3206,7 +3206,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 148,
+      "line": 152,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3216,7 +3216,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 345,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3226,7 +3226,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 353,
+      "line": 361,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3236,7 +3236,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 364,
+      "line": 372,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3246,7 +3246,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 369,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3256,7 +3256,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 518,
+      "line": 533,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3266,7 +3266,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 524,
+      "line": 539,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3276,7 +3276,17 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 529,
+      "line": 548,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This job was being updated at the same moment. Nothing changed: tap Accept again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 552,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3286,7 +3296,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 562,
+      "line": 585,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3296,7 +3306,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 566,
+      "line": 589,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3306,7 +3316,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 579,
+      "line": 602,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3316,7 +3326,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 594,
+      "line": 617,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3326,7 +3336,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 602,
+      "line": 625,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3336,7 +3346,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 626,
+      "line": 649,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6112,7 +6122,7 @@
     },
     {
       "file": "src/pages/posts/postedJobs/RecurringVisitPayments.tsx",
-      "line": 85,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6122,7 +6132,7 @@
     },
     {
       "file": "src/pages/posts/postedJobs/RecurringVisitPayments.tsx",
-      "line": 93,
+      "line": 105,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6440,7 +6450,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 290,
+      "line": 289,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6454,7 +6464,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 313,
+      "line": 312,
       "kind": "toast.error",
       "title": {
         "form": "literal",

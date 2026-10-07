@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-07T08:56:12.277Z",
-  "guards": 1552,
-  "registered": 1550,
+  "generated": "2026-10-07T09:08:20.008Z",
+  "guards": 1562,
+  "registered": 1560,
   "unregistered": [
     "src/test/chargebackRepayLedgerRow.test.ts",
     "src/test/crewHireBeforePayout.test.ts"
@@ -244,7 +244,8 @@
     {
       "module": "src/components/job-card/JobListPage.tsx",
       "tests": [
-        "src/test/desktopScreenNameIsSrOnly.test.tsx"
+        "src/test/desktopScreenNameIsSrOnly.test.tsx",
+        "src/components/job-card/JobListPage.visitPaymentCard.test.tsx"
       ],
       "parents": [
         "src/pages/posts/PostsPage.tsx",

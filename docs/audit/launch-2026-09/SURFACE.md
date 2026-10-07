@@ -23,14 +23,14 @@ reports coverage against THIS file, not against the route list.
 | Toast messages | **call site** | 591 (across 150 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 20 |
 | Multi-step flows — probable | flow | 16 |
-| Back/next navigation only | flow | 38 |
+| Back/next navigation only | flow | 39 |
 | Forms (submittable) | form | 41 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 115 |
 | Email templates | **exported template** | 19 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **463** |
+| **Navigable surfaces** (places a person can stand) | mixed | **464** |
 | **Copy surfaces** (strings a person may read) | mixed | **628** |
-| **Total auditable surface** | mixed | **1091** |
+| **Total auditable surface** | mixed | **1092** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -318,6 +318,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 
 | Component | Signals |
 |---|---|
+| `src/components/AdminRoute.tsx` | compare |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
@@ -330,7 +331,6 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
-| `src/pages/jobs/JobDetail.tsx` | compare |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
 | `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |
@@ -382,6 +382,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/ProfileEditForm.tsx` | nav-handler |
 | `src/components/profile/profileEditForm/SaveBar.tsx` | nav-handler |
 | `src/components/profile/profileEditForm/types.ts` | nav-handler |
+| `src/components/profile/ProfileOfflineGate.tsx` | nav-handler |
 | `src/components/profile/ProfileTabFallback.tsx` | nav-handler |
 | `src/components/profile/ProfileTabHeader.tsx` | nav-handler |
 | `src/components/profile/ReviewsTab.tsx` | nav-handler |

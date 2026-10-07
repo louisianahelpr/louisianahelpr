@@ -22,6 +22,11 @@ const fn = (name: string) => {
 const code = (s: string) => s.replace(/--.*$/gm, "");
 
 describe("a crew hire is an offer: the payout gate is at the member's Confirm", () => {
+  it("reads the real migration (inventory floor)", () => {
+    expect(MIG.length).toBeGreaterThan(4000);
+    expect(MIG.match(/CREATE OR REPLACE FUNCTION public\./g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  });
+
   it("the roster's hire gate keeps the funding check and no longer judges payouts", () => {
     const g = code(fn("enforce_group_roster_award_gate"));
     expect(g).toMatch(/job_payment_is_funded\(v_payment\)/);

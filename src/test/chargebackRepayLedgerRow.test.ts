@@ -17,6 +17,11 @@ describe("chargeback re-payment rows sit outside the one-live-payout index", () 
   const writer = read("supabase/functions/_shared/chargebackClawback.ts");
   const tag = /const REPAY_SOURCE = "([^"]+)"/.exec(writer)?.[1];
 
+  it("reads the real migration and writer (inventory floor)", () => {
+    expect(mig.length).toBeGreaterThan(800);
+    expect(writer.length).toBeGreaterThan(5000);
+  });
+
   it("the writer stamps a source tag on the re-payment row", () => {
     expect(tag).toBeTruthy();
     expect(writer).toMatch(/status: "paid",[\s\S]{0,200}metadata: \{ source: REPAY_SOURCE/);

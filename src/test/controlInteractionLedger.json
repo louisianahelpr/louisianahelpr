@@ -18,7 +18,6 @@
     "adhocBrightness  src/components/profile/SupportInline.tsx:453 <Link>  hover:brightness-[0.98]",
     "adhocBrightness  src/pages/user/AtAGlanceCard.tsx:108 <button>  hover:brightness-[0.98]",
     "adhocTint  src/components/CompletionPrompts.tsx:254 <button>  hover:bg-accent",
-    "adhocTint  src/components/PushNotificationPrompt.tsx:145 <button>  hover:bg-secondary/50",
     "adhocTint  src/components/ReportDialog.tsx:323 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/ReportDialog.tsx:598 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/SavedSearches.tsx:515 <button>  hover:bg-muted",

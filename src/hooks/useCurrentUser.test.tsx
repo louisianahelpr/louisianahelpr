@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, onlineManager } from "@tanstack/react-query";
 
 // Hoisted mocks
 const mocks = vi.hoisted(() => {
@@ -227,6 +227,24 @@ describe("useCurrentUser", () => {
     expect(result.current.user).toBeNull();
     expect(result.current.profile).toBeNull();
     expect(result.current.isAdmin).toBe(false);
+  });
+
+  // Q571: offline with nothing cached the profile query is PAUSED, so
+  // isLoading never clears. profileQuery carries that state out so a page gate
+  // can show its offline card instead of a skeleton that never resolves.
+  it("offline before the profile ever loaded: still loading, and profileQuery says paused", async () => {
+    mocks.authReadyState.user = { id: "u1" };
+    mocks.authReadyState.isReady = true;
+    onlineManager.setOnline(false);
+    try {
+      const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+      await waitFor(() => expect(result.current.profileQuery?.fetchStatus).toBe("paused"));
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.profileQuery?.status).toBe("pending");
+      expect(mocks.profileMaybeSingle).not.toHaveBeenCalled();
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it("returns isLoading=false when auth resolved AND no user (signed-out)", () => {
@@ -492,3 +510,4 @@ describe("useCurrentUser", () => {
 // 2026-08-31 outage that bounced a real admin to /home with nothing on
 // screen to say a lookup had failed. One flipped field is the whole regression.
 // @mutate src/hooks/useCurrentUser.ts | adminCheckFailed: !adminResult.ok | adminCheckFailed: false
+// @mutate src/hooks/useCurrentUser.ts | profileQuery: { status, fetchStatus }, | profileQuery: { status, fetchStatus: "idle" as const },

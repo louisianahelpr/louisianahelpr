@@ -5,6 +5,8 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -30,7 +32,12 @@ interface AdminRouteProps {
  * "we couldn't verify" card would be a lie in the other direction.
  */
 const AdminRoute = ({ children }: AdminRouteProps) => {
-  const { adminStatus, isLoading, refresh } = useCurrentUser();
+  const { adminStatus, isLoading, refresh, profileQuery } = useCurrentUser();
+  // Q571: offline before the role lookup ever answered, the lookup is paused
+  // and `isLoading` stays true: the spinner below span for as long as the
+  // connection was down. Say so instead. Grants nothing (children still need
+  // a confirmed "admin").
+  const phase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
   const [retrying, setRetrying] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,6 +65,17 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       context: { path: location.pathname, search: location.search },
     });
   }, [adminStatus, isLoading, location.pathname, location.search]);
+
+  if (isLoading && phase === "offline-empty") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-premium-page px-5">
+        <OfflineEmptyState
+          body="The admin panel will load here as soon as you're back online."
+          onRetry={() => { void refresh(); }}
+        />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

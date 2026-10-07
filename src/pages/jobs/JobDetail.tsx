@@ -41,7 +41,11 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading } = useCurrentUser();
+  const { user, isLoading: authLoading, profileQuery, refresh: refreshCurrentUser } = useCurrentUser();
+  // Q571: a signed-in visitor waits on their profile before the redirect below.
+  // Offline that query is paused, `authLoading` never clears, and the page held
+  // its skeleton for as long as the connection was down.
+  const authPhase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
   // The job-intent bounce lands HERE — consume a guest's pending save too.
   usePendingSaveConsumer(user?.id);
   // Capture ?ref= attribution (share / email / notif) on mount.
@@ -130,15 +134,15 @@ const JobDetail = () => {
       <div className="pt-20 pb-safe-nav px-5">
         <div className="container mx-auto max-w-md">
           <h1 className="sr-only">{headingText}</h1>
-          {authLoading || isLoading ? (
+          {(authLoading ? authPhase : phase) === "offline-empty" ? (
+            <OfflineEmptyState
+              body="This job will load here as soon as you're back online."
+              onRetry={() => { void (authLoading ? refreshCurrentUser() : refetch()); }}
+            />
+          ) : authLoading || isLoading ? (
             <div role="status" aria-busy="true" aria-label="Loading job">
               <JobCardSkeleton />
             </div>
-          ) : phase === "offline-empty" ? (
-            <OfflineEmptyState
-              body="This job will load here as soon as you're back online."
-              onRetry={() => { void refetch(); }}
-            />
           ) : isError ? (
             /* Retry really re-runs the fetch — the old handler navigated to
                /jobs under a "Try again" label, so the one button that

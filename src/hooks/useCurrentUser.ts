@@ -144,6 +144,13 @@ interface CurrentUser {
   isError: boolean;
   /** Force a re-fetch of the current user's profile (bypasses cache). */
   refresh: () => Promise<void>;
+  /**
+   * The profile query's raw TanStack state, for useFeedPhase (Q571). Offline
+   * with nothing cached, this query is PAUSED, so `isLoading` above stays true
+   * for as long as the connection is down: a page that gates on it alone holds
+   * its skeleton forever. Optional only so partial test doubles still type.
+   */
+  profileQuery?: { status: "pending" | "error" | "success"; fetchStatus: "fetching" | "paused" | "idle" };
 }
 
 const fetchCurrentUser = async (
@@ -261,7 +268,7 @@ export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, status, fetchStatus } = useQuery({
     queryKey: queryKeys.currentUser.byId(user?.id),
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
@@ -339,5 +346,6 @@ export const useCurrentUser = (): CurrentUser => {
     isLoading: !isReady || (!!user && !isError && (isLoading || !data)),
     isError: !!user && isError,
     refresh,
+    profileQuery: { status, fetchStatus },
   };
 };

@@ -6,7 +6,8 @@
 -- came from test-mode runs before Stripe went live; under the live key the
 -- journey never pays). The daily seed purge (purge_old_seed_data, cron
 -- purge-old-seed-data, live since Q65) now also deletes the certain residue:
--- unpaid, expired, older than its cutoff (14 days), seed donor, no or seed
+-- never paid (still 'pending': a refunded gift is money history and stays),
+-- expired, older than its cutoff (14 days), seed donor, no or seed
 -- recipient, on no job, parent of no gift. Batch-limited like its other steps.
 --
 -- Restated from the LIVE definition (pg_get_functiondef 2026-10-07,
@@ -147,7 +148,7 @@ BEGIN
     IF v_dry THEN
       SELECT count(*)::int INTO v_gift
         FROM (SELECT g.id FROM public.gift_cards g
-               WHERE g.payment_status IS DISTINCT FROM 'paid'
+               WHERE g.payment_status = 'pending'
                  AND g.status = 'expired'
                  AND g.created_at < v_cut
                  AND g.job_id IS NULL
@@ -159,7 +160,7 @@ BEGIN
     ELSE
       DELETE FROM public.gift_cards
        WHERE id IN (SELECT g.id FROM public.gift_cards g
-                     WHERE g.payment_status IS DISTINCT FROM 'paid'
+                     WHERE g.payment_status = 'pending'
                        AND g.status = 'expired'
                        AND g.created_at < v_cut
                        AND g.job_id IS NULL

@@ -200,7 +200,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   it("phone and ID near-matches only record it for admins (Q1416)", () => {
     for (const [fn, kind] of [["flag_possible_ban_evasion_by_phone", "phone_near"], ["flag_possible_ban_evasion_by_identity", "identity_near"]] as const) {
       const flag = body(fn);
-      expect(flag).toMatch(new RegExp(`insert\\s+into\\s+public\\.ban_evasion_matches[\\s\\S]{0,300}'${kind}'`, "i"));
+      expect(flag).toMatch(new RegExp(`insert\\s+into\\s+public\\.ban_evasion_matches[\\s\\S]{0,700}'${kind}'`, "i"));
       expect(flag, `${fn} writes fraud_flags`).not.toMatch(/insert\s+into\s+public\.fraud_flags/i);
       expect(flag, `${fn} writes a ban`).not.toMatch(/\bban_status\s*=|insert\s+into\s+public\.user_bans|update\s+public\.profiles|enforce_retained/i);
     }
@@ -292,7 +292,8 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     // Q1416: every doubt-check kind (name, phone_near, identity_near), never an auto-ban kind.
     expect(review).toMatch(/from\("ban_evasion_matches"\)[\s\S]{0,260}\.in\("matched_on", \[\.\.\.DOUBT_CHECK_KINDS\]\)/);
     const kinds = /const DOUBT_CHECK_LABEL = \{([\s\S]*?)\} as const;/.exec(review)?.[1] ?? "";
-    expect([...kinds.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]).sort()).toEqual(["identity_near", "name", "phone_near"]);
+    expect([...kinds.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]).sort()).toEqual(["identity_near", "name", "phone", "phone_near"]);
+    expect(review).toMatch(/\.in\("matched_on", \[\.\.\.DOUBT_CHECK_KINDS\]\)\s*(?:\/\/[^\n]*\n\s*)*\.eq\("auto_banned", false\)/);
     expect(dash, "possible_ban_evasion is no longer a fraud_flags type").not.toMatch(/value: "possible_ban_evasion"/);
   });
   /**

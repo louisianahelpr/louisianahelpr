@@ -1049,8 +1049,16 @@ const surfaces = async () => {
 
   await newAccount(PH_EXACT, "phone.exact@p.test", "Robin Exact Three");
   await db.query(`UPDATE public.profiles SET phone = '3375551234' WHERE user_id = $1`, [PH_EXACT]);
-  check("Q1416 a phone CHANGED to the exact banned number is flagged (no signup check runs on a change)",
-    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_EXACT])).rows?.length === 1);
+  check("Q1416 a phone CHANGED to the exact banned number is flagged as the same number (no signup check runs on a change)",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone' AND NOT auto_banned`, [PH_EXACT])).rows?.length === 1);
+  // A ban retained BEFORE the last-7 key (a deleted account's: no phone7) is
+  // still found by its exact number on a change.
+  const PH_OLD = "78787878-0000-4000-8000-000000000078";
+  await db.query(`INSERT INTO public.retained_bans (email_sha256, phone_sha256, ban_status, reason) VALUES (encode(sha256('gone.phone@p.test'::bytea), 'hex'), public.ban_fingerprint('phone', public.normalize_phone_for_ban('985-555-0000')), 'permanently_banned', 'Fraud')`);
+  await newAccount(PH_OLD, "phone.old@p.test", "Vic Oldnumber");
+  await db.query(`UPDATE public.profiles SET phone = '(985) 555-0000' WHERE user_id = $1`, [PH_OLD]);
+  check("Q1416 a phone changed to the exact number of a ban retained without a last-7 key is flagged",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone' AND NOT auto_banned`, [PH_OLD])).rows?.length === 1);
   const PH_SIGNUP = "68686868-0000-4000-8000-000000000068";
   await db.query(`INSERT INTO auth.users (id, email) VALUES ($1, 'phone.signup@p.test')`, [PH_SIGNUP]);
   await db.query(`INSERT INTO public.profiles (user_id, email, full_name, phone) VALUES ($1, 'phone.signup@p.test', 'Uma Signup', '337-555-1234')`, [PH_SIGNUP]);

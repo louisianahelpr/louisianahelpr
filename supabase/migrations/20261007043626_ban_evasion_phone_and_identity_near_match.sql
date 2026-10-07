@@ -253,9 +253,12 @@ BEGIN
     v_own_h := CASE WHEN NEW.email IS NULL OR btrim(NEW.email) = '' THEN NULL
                     ELSE encode(sha256(lower(btrim(NEW.email))::bytea), 'hex') END;
 
+    -- The full key too on UPDATE: 40 of the 41 phone bans retained before
+    -- this migration belong to deleted accounts and can never get a last-7
+    -- key (lh-authz-rls re-review), but their exact number is on file.
     SELECT * INTO v_row
       FROM public.retained_bans
-     WHERE phone7_sha256 = v_h7
+     WHERE (phone7_sha256 = v_h7 OR (TG_OP = 'UPDATE' AND phone_sha256 = v_full))
        AND (expires_at IS NULL OR expires_at > now())
        AND email_sha256 IS DISTINCT FROM v_own_h
        -- At signup the same full number is an EXACT match that
@@ -271,7 +274,12 @@ BEGIN
         user_id, matched_on, match_sha256, retained_ban_id, original_ban_status, original_reason,
         original_recorded_at, original_expires_at, auto_banned
       )
-      VALUES (NEW.user_id, 'phone_near', v_h7, v_row.id, v_row.ban_status, v_row.reason,
+      -- The exact number is the stronger signal: filed as 'phone' (not
+      -- auto-banned), a last-7 match as 'phone_near'.
+      VALUES (NEW.user_id,
+              CASE WHEN v_row.phone_sha256 = v_full THEN 'phone' ELSE 'phone_near' END,
+              CASE WHEN v_row.phone_sha256 = v_full THEN v_full ELSE v_h7 END,
+              v_row.id, v_row.ban_status, v_row.reason,
               v_row.retained_at, v_row.expires_at, false)
       ON CONFLICT (user_id, matched_on, retained_ban_id) DO NOTHING;
     END IF;

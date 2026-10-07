@@ -245,7 +245,9 @@ serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      return json(200, { success: true })
+      // Q1413: what was actually applied (a lift can keep a standing the
+      // strike ladder earned during the review).
+      return json(200, { success: true, appliedBanStatus: update.ban_status, appliedSuspendedUntil: update.auto_suspended_until ?? null })
     }
 
     if (!profile?.email) {

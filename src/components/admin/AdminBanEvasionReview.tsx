@@ -36,6 +36,7 @@ import { toneBadgeClasses } from "@/components/admin/tones";
 /** The soft (doubt-check) match kinds and how each is named to an admin. */
 const DOUBT_CHECK_LABEL = {
   name: "Same name",
+  phone: "Same phone number",
   phone_near: "Same last 7 phone digits",
   identity_near: "Same name and date of birth on ID",
 } as const;
@@ -121,6 +122,8 @@ export function AdminBanEvasionReview() {
           .select("id, user_id, matched_on, original_ban_status, original_reason, original_recorded_at, created_at")
           // Q1416: every doubt-check kind (never the auto-ban kinds).
           .in("matched_on", [...DOUBT_CHECK_KINDS])
+          // An auto-ban ('phone' at signup, card, bank) is a review above, not a doubt-check.
+          .eq("auto_banned", false)
           .eq("resolved", false)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -134,13 +137,22 @@ export function AdminBanEvasionReview() {
         unwrap(await supabase.rpc("admin_confirm_ban_settlement", { p_user_id: review.user_id }));
         toast.success("Ban confirmed. The account's jobs were settled.");
       } else {
-        await setProfileBanStatus({
+        const applied = await setProfileBanStatus({
           userId: review.user_id,
           banStatus: "active",
           suspendedUntil: null,
           rejectedMessage: "This account wasn't unbanned — it may have changed. Refresh and try again.",
         });
-        toast.success("Ban lifted. The account's jobs carry on and its payouts are released.");
+        // Q1413: the lift keeps a standing earned during the review; say so.
+        if (applied.appliedBanStatus === "temp_banned") {
+          toast.success(
+            `Review lifted. A suspension earned during the review applies${applied.appliedSuspendedUntil ? ` until ${new Date(applied.appliedSuspendedUntil).toLocaleString()}` : ""}; the account's jobs carry on and its payouts are released.`,
+          );
+        } else if (applied.appliedBanStatus === "final_warning") {
+          toast.success("Ban lifted with the final warning earned during the review. The account's jobs carry on and its payouts are released.");
+        } else {
+          toast.success("Ban lifted. The account's jobs carry on and its payouts are released.");
+        }
       }
       await qc.invalidateQueries({ queryKey: REVIEWS_KEY });
     } catch (err) {

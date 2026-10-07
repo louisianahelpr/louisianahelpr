@@ -119,12 +119,12 @@ describe("the seed purge only removes old, money-free, disposable test data (Q65
   });
 
   // Q455: the gift-card journey's residue goes too, and ONLY certain residue.
-  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                      WHERE g.payment_status IS DISTINCT FROM 'paid'\n                       AND g.status = 'expired' |                      WHERE g.status = 'expired'
+  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                      WHERE g.payment_status = 'pending'\n                       AND g.status = 'expired' |                      WHERE g.status = 'expired'
   // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = g.donor_id AND p.is_seed)\n                       AND (g.recipient_id IS NULL |                       AND (g.recipient_id IS NULL
   it("deletes only certain gift-card residue: never paid, expired, old, seed donor and recipient, no job, no child (Q455)", () => {
     const del = /DELETE\s+FROM\s+public\.gift_cards\s+WHERE\s+id\s+IN\s*\(([\s\S]*?)\);/i.exec(body)?.[1] ?? "";
     expect(del.length, "the gift step deletes through one bounded select").toBeGreaterThan(100);
-    expect(del).toMatch(/g\.payment_status\s+IS\s+DISTINCT\s+FROM\s+'paid'/i);
+    expect(del).toMatch(/g\.payment_status\s*=\s*'pending'/i);
     expect(del).toMatch(/g\.status\s*=\s*'expired'/i);
     expect(del).toMatch(/g\.created_at\s*<\s*v_cut/i);
     expect(del).toMatch(/g\.job_id\s+IS\s+NULL/i);

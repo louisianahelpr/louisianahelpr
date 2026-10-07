@@ -147,7 +147,7 @@ describe("AdminBanEvasionReview (Q1324)", () => {
     expect(await screen.findByText("Same last 7 phone digits")).toBeInTheDocument();
     expect(screen.getByText("Same name and date of birth on ID")).toBeInTheDocument();
     const kinds = inCalls.find((c) => c.col === "matched_on")?.vals ?? [];
-    expect([...kinds].sort()).toEqual(["identity_near", "name", "phone_near"]);
+    expect([...kinds].sort()).toEqual(["identity_near", "name", "phone", "phone_near"]);
   });
 
   // Q1413: strikes earned during an open review are kept; the admin deciding

@@ -218,6 +218,7 @@ function tsSites(): Site[] {
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
+  "ts:supabase/functions/str-ical-sync/index.ts#1": "own calendar's checkout ready to post (Q768): the host's own STR connection, no job exists yet",
   "ts:supabase/functions/cash-out-credits/index.ts#1": "own referral-credit cash-out",
   "ts:supabase/functions/expire-subscriptions/index.ts#1": "own subscription expired",
   "ts:supabase/functions/instant-payout/index.ts#1": "own instant payout",

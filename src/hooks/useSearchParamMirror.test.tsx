@@ -16,7 +16,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParamMirror } from "./useSearchParamMirror";
 import { report } from "@/lib/errorLogger";
@@ -245,3 +246,63 @@ describe("useSearchParamMirror circuit breaker", () => {
 // mean "do not call it". Dropping this early return is the ~200-replaceState
 // loop that WebKit throttles and then throws on, taking the route down.
 // @mutate src/hooks/useSearchParamMirror.ts | if (!changed) return; |
+
+// ── Q1476: the same-commit ping-pong ─────────────────────────────────────────
+// Sentry JAVASCRIPT-25 (2026-10-07, /jobs; and /my-jobs on 09-14, 09-19, 09-22):
+// error_logs' trail is `filter=waiting -> (empty) | (empty) -> filter=waiting`
+// with adopt alternating. It starts when ONE commit changes the local filter
+// AND the query string (a third writer: Activity's deep-link resolution strips
+// `?job=` while it sets the bucket). The write effect writes the filter; the
+// adopt effect, in that same commit, reads the PRE-write URL, calls it an
+// outside change and resets the filter; and every commit after repeats it.
+describe("Q1476 — a local change and an outside URL change in one commit settle", () => {
+  function renderActivityLike(initialEntry: string) {
+    const keys = new Set<string>();
+    let lastUrl = "";
+    let trigger: () => void = () => {};
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
+    );
+    renderHook(
+      () => {
+        const loc = useLocation();
+        keys.add(loc.key);
+        lastUrl = `${loc.pathname}${loc.search}`;
+        const [filter, setFilter] = useState("");
+        const [searchParams, setSearchParams] = useSearchParams();
+        useSearchParamMirror({ filter }, (read) => setFilter(read("filter")), "activity");
+        // The third writer, as JobListPage's deep-link effect does it: pick a
+        // bucket AND strip `job` from the URL, in one go.
+        trigger = () => {
+          setFilter("waiting");
+          const next = new URLSearchParams(searchParams);
+          next.delete("job");
+          setSearchParams(next, { replace: true });
+        };
+      },
+      { wrapper },
+    );
+    return { navigations: () => keys.size, lastUrl: () => lastUrl, fire: () => trigger() };
+  }
+
+  it("ends on the chosen filter, in a bounded number of writes, and reports nothing", async () => {
+    vi.mocked(report).mockClear();
+    const m = renderActivityLike("/jobs?job=abc");
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    const before = m.navigations();
+    await act(async () => {
+      m.fire();
+      await new Promise((r) => setTimeout(r, 200));
+    });
+    expect(vi.mocked(report), "the ping-pong tripped the runaway report").not.toHaveBeenCalled();
+    expect(m.navigations() - before, "a settle is the strip plus one write, not a stream").toBeLessThanOrEqual(3);
+    // The chosen filter survives. (`job` may come back: the mirror's write was
+    // computed off the pre-strip URL, which JobListPage documents as harmless.)
+    expect(new URL(m.lastUrl(), "http://x").searchParams.get("filter")).toBe("waiting");
+  });
+});
+
+// (The timing that starts the ping-pong is pinned in useSearchParamMirror.inflight.test.tsx,
+// which drives the hook with a router whose writes land when the test says.)

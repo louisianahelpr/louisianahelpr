@@ -18,7 +18,8 @@
  *
  * @mutate e2e/prod-audit/page-settle.spec.ts | import { test, expect } from "../prodTest"; | import { test, expect } from "@playwright/test";
  * @mutate .github/workflows/prod-audit.yml | run: node scripts/e2e/request-budget.mjs --label prod-audit | run: echo skipped
- * @mutate scripts/e2e/request-budget.mjs | else if (measured < b * STALE_FRACTION) | else if (false)
+ * @mutate scripts/e2e/request-budget.mjs | else if (measured < b * floor) | else if (false)
+ * @mutate scripts/e2e/request-budget.mjs | typeof budget.staleFraction === "number" ? budget.staleFraction : STALE_FRACTION | STALE_FRACTION
  * @mutate scripts/e2e/request-budget.mjs |     if (ceilingOnly) { |     if (true) {
  * @mutate .github/workflows/prod-audit.yml | --label prod-audit ${GREP:+--ceiling-only --allow-empty} | --label prod-audit --ceiling-only --allow-empty
  * @mutate e2e/prodTest.ts | meter.attachBrowser(browser); | void browser;
@@ -233,6 +234,26 @@ describe("backend request budgets (Q104)", () => {
     expect(subset.notes.join()).toMatch(/subset run, perTest not judged/);
     expect(judge(agg, { ceilingPerMinute: 249, perTest: 1000 }, { ceilingOnly: true }).failures.join()).toMatch(/over the 249\/min ceiling/);
     expect(judge(hollow, { ceilingPerMinute: 400 }, { ceilingOnly: true }).failures.join()).toMatch(/meter is not attached/);
+  });
+
+  // e2e-real-backend went red on every run of 2026-10-07 (nightly-red #2435):
+  // chromium-anon-surface measured 1.5-1.8 against 0.8, calibrated on an empty
+  // marketplace. Its load moves with prod's open jobs, so a label may name a
+  // lower stale floor, but only with the data that moves it written down.
+  it("a label's own staleFraction lowers its stale floor, and every one says why", () => {
+    const agg = { ...aggregate([{ label: "y", total: 3, byClass: { rest: 3 }, signIns: 0, duplicates: 0, tests: 4, minutes: { "1": 3 }, topDuplicates: {}, startedAt: 0, endedAt: 1 }]).y };
+    expect(agg.perTest).toBe(0.8);
+    expect(judge(agg, { ceilingPerMinute: 400, perTest: 1.8, signIns: 0 }).failures.join()).toMatch(/stale budget/);
+    expect(judge(agg, { ceilingPerMinute: 400, perTest: 1.8, signIns: 0, staleFraction: 0.4 }).failures).toEqual([]);
+    expect(judge(agg, { ceilingPerMinute: 400, perTest: 2.1, signIns: 0, staleFraction: 0.4 }).failures.join()).toMatch(/stale budget/);
+    const budgets = JSON.parse(read("e2e/request-budgets.json")).budgets as Record<string, { staleFraction?: number; staleWhy?: string }>;
+    const loosened = Object.entries(budgets).filter(([, b]) => b.staleFraction !== undefined);
+    expect(loosened.map(([k]) => k)).toEqual(["chromium-anon-surface"]);
+    for (const [k, b] of loosened) {
+      expect(b.staleFraction!, k).toBeGreaterThan(0);
+      expect(b.staleFraction!, k).toBeLessThan(STALE_FRACTION);
+      expect((b.staleWhy ?? "").length, `${k} lowers its stale floor without saying why`).toBeGreaterThan(40);
+    }
   });
 
   // Q430 (owner, 2026-09-27): a request-count budget for /posts?filter=done.

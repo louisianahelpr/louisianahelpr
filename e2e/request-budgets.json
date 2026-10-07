@@ -30,8 +30,10 @@
       "signIns": 0
     },
     "chromium-anon-surface": {
-      "perTest": 0.8,
-      "signIns": 0
+      "perTest": 1.8,
+      "signIns": 0,
+      "staleFraction": 0.4,
+      "staleWhy": "The guest /browse load moves with prod's open marketplace, not with the code: 7 requests over 4 tests (1.8) with at least one open group job (runs 37555475629, 37557143517, 37560865868, 2026-10-07: +get_public_profile_stats, +get_safe_profiles, +open_jobs_browse crew_spots_open), 3 (0.8) with none (the 0.8 calibration). 0.4 keeps an empty marketplace (0.8 >= 0.72) from reading as a stale budget while a real drop below it still fails."
     },
     "chromium-authenticated": {
       "perTest": 12.1,

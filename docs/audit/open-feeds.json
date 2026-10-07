@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T19:56Z",
+  "measured_at": "2026-10-07T21:29Z",
   "issues": {
     "readable": true,
     "open": [
@@ -30,11 +30,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2420,
-        "title": "nightly-red: loading-states-refresh",
-        "label": "nightly-red"
-      },
-      {
         "number": 2435,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red"
@@ -47,11 +42,6 @@
       {
         "number": 2501,
         "title": "nightly-red: vacuity",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2580,
-        "title": "nightly-red: main: Vitest",
         "label": "nightly-red"
       },
       {

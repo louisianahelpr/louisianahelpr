@@ -9,12 +9,15 @@
 --     down), while gross was the budget share alone, so gross - fee <> net and
 --     the urgent income was missing from gross on a tax export.
 --
--- Now every row with a PAID ledger entry reads the ledger for all three money
--- columns: net = what was paid, platform fee = the fee the ledger recorded,
--- gross = net + fee. So gross - fee = net on every such row, and urgent income
--- (inside the paid amount) is in gross. A single job released before the
--- ledger existed has no paid row and keeps the old recomputation (prod had 0
--- released single jobs and 0 payout_transfers rows, read-only SQL 2026-10-07).
+-- Now every row with a ledger entry reads the ledger for all three money
+-- columns: net = what the Helpr kept (paid rows, plus the unreversed part of a
+-- reversed row), platform fee = the fee recorded on it, gross = net + fee. So
+-- gross - fee = net on every such row, and urgent income (inside the paid
+-- amount) is in gross. Only a single job with NO ledger row at all (released
+-- before the ledger existed) keeps the old recomputation. Prod had 0 released
+-- single jobs and 0 payout_transfers rows (read-only SQL 2026-10-07).
+-- lh-money-escrow review of this file: partial reversals, the legacy fallback
+-- only without any ledger row, and crews excluded from the single half.
 --
 -- NOT covered (the ledger does not record it): a first payout's one-time
 -- onboarding fee and the sub-dollar remainder of rounding a payout down to
@@ -58,23 +61,40 @@ BEGIN
       j.category::text AS category,
       COALESCE(j.parish, 'Unknown') AS parish,
       CASE WHEN public.is_category_taxable(j.category) THEN 'Taxable' ELSE 'Exempt' END AS tax_status,
-      CASE WHEN pt.paid_cents IS NOT NULL
-           THEN ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2)
+      CASE WHEN pt.ledger_rows > 0
+           THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)
            ELSE j.budget END AS gross_budget,
-      CASE WHEN pt.paid_cents IS NOT NULL
-           THEN ROUND(pt.fee_cents / 100.0, 2)
+      CASE WHEN pt.ledger_rows > 0
+           THEN ROUND(COALESCE(pt.fee_cents, 0) / 100.0, 2)
            ELSE ROUND(j.budget * COALESCE(j.helper_fee_percent, 10) / 100.0, 2) END AS platform_fee,
       COALESCE(j.sales_tax_amount, 0) AS parish_tax_collected,
-      CASE WHEN pt.paid_cents IS NOT NULL
-           THEN ROUND(pt.paid_cents / 100.0, 2)
+      CASE WHEN pt.ledger_rows > 0
+           THEN ROUND(COALESCE(pt.paid_cents, 0) / 100.0, 2)
            ELSE ROUND(j.budget - (j.budget * COALESCE(j.helper_fee_percent, 10) / 100.0), 2) END AS net_payout
     FROM public.jobs j
     LEFT JOIN LATERAL (
-      SELECT SUM(p.amount_cents) AS paid_cents, SUM(COALESCE(p.platform_fee_cents, 0)) AS fee_cents
+      SELECT
+        -- What the Helpr KEPT: a paid row in full; a reversed row less the
+        -- part Stripe took back (transferReversed.ts flips the whole row to
+        -- 'reversed' even for a partial reversal and records the amount in
+        -- metadata.amount_reversed_cents; a won dispute re-pays that part as
+        -- its own 'paid' row). No recorded amount reads as fully reversed.
+        SUM(CASE WHEN p.status = 'paid' THEN p.amount_cents
+                 WHEN p.status = 'reversed' THEN GREATEST(0, p.amount_cents
+                      - COALESCE((p.metadata->>'amount_reversed_cents')::bigint, p.amount_cents)) END) AS paid_cents,
+        -- The fee on what was kept: a reversed row's fee pro-rated the same way.
+        SUM(CASE WHEN p.status = 'paid' THEN COALESCE(p.platform_fee_cents, 0)
+                 WHEN p.status = 'reversed' AND p.amount_cents > 0 THEN ROUND(COALESCE(p.platform_fee_cents, 0)::numeric
+                      * GREATEST(0, p.amount_cents - COALESCE((p.metadata->>'amount_reversed_cents')::bigint, p.amount_cents))
+                      / p.amount_cents) END) AS fee_cents,
+        COUNT(*) AS ledger_rows
       FROM public.payout_transfers p
-      WHERE p.job_id = j.id AND p.helper_id = _helper_id AND p.status = 'paid'
+      WHERE p.job_id = j.id AND p.helper_id = _helper_id
     ) pt ON true
     WHERE j.helper_id = _helper_id
+      -- A crew's members are the half below (a legacy crew lead in helper_id
+      -- would otherwise be listed twice off the same ledger rows).
+      AND j.is_group_job IS NOT TRUE
       AND j.status = 'completed'
       AND j.payment_status = 'released'
     UNION ALL
@@ -97,10 +117,24 @@ BEGIN
     FROM public.group_job_helpers g
     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'
     JOIN LATERAL (
-      SELECT SUM(p.amount_cents) AS paid_cents, SUM(COALESCE(p.platform_fee_cents, 0)) AS fee_cents
+      SELECT
+        -- What the Helpr KEPT: a paid row in full; a reversed row less the
+        -- part Stripe took back (transferReversed.ts flips the whole row to
+        -- 'reversed' even for a partial reversal and records the amount in
+        -- metadata.amount_reversed_cents; a won dispute re-pays that part as
+        -- its own 'paid' row). No recorded amount reads as fully reversed.
+        SUM(CASE WHEN p.status = 'paid' THEN p.amount_cents
+                 WHEN p.status = 'reversed' THEN GREATEST(0, p.amount_cents
+                      - COALESCE((p.metadata->>'amount_reversed_cents')::bigint, p.amount_cents)) END) AS paid_cents,
+        -- The fee on what was kept: a reversed row's fee pro-rated the same way.
+        SUM(CASE WHEN p.status = 'paid' THEN COALESCE(p.platform_fee_cents, 0)
+                 WHEN p.status = 'reversed' AND p.amount_cents > 0 THEN ROUND(COALESCE(p.platform_fee_cents, 0)::numeric
+                      * GREATEST(0, p.amount_cents - COALESCE((p.metadata->>'amount_reversed_cents')::bigint, p.amount_cents))
+                      / p.amount_cents) END) AS fee_cents,
+        COUNT(*) AS ledger_rows
       FROM public.payout_transfers p
-      WHERE p.job_id = j.id AND p.helper_id = g.helper_id AND p.status = 'paid'
-    ) pt ON pt.paid_cents IS NOT NULL
+      WHERE p.job_id = j.id AND p.helper_id = g.helper_id
+    ) pt ON pt.paid_cents > 0
     WHERE g.helper_id = _helper_id
   ) x
   WHERE x.date_completed BETWEEN _start_date AND _end_date

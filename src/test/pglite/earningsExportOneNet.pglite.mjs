@@ -15,6 +15,10 @@
  *   E2 a single job with a paid ledger row: net is what was PAID, not budget less 10%
  *   E3 a single job released before the ledger keeps the old recomputation (pin, green both ways)
  *   E4 on every ledger row, gross - fee = net
+ *   E5 a partial reversal later won: net is the full payout (kept part + re-pay row)
+ *   E6 a crew member's partial reversal lost: the kept part stays in the export
+ *   E7 a legacy crew lead in jobs.helper_id is listed once, not twice
+ * (E5-E7 from the lh-money-escrow review of this migration.)
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -45,7 +49,7 @@ const check = (name, ok, detail = "") => {
 
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const H = U(1), M2 = U(2), P = U(11);
-const CREW = U(101), SOLO = U(102), LEGACY = U(103);
+const CREW = U(101), SOLO = U(102), LEGACY = U(103), PART = U(104), CREWLOST = U(105), LEAD = U(106);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -68,7 +72,7 @@ CREATE TABLE public.group_job_helpers (
   helper_id uuid, slot_no integer, share_cents integer, helper_completed_at timestamptz,
   poster_confirmed_completion_at timestamptz, UNIQUE (job_id, helper_id));
 CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid,
-  amount_cents integer, platform_fee_cents integer, status text);
+  amount_cents integer, platform_fee_cents integer, status text, metadata jsonb DEFAULT '{}'::jsonb);
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 CREATE FUNCTION public.is_category_taxable(text) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
 
@@ -106,6 +110,21 @@ await db.exec(`
   INSERT INTO public.payout_transfers (job_id, helper_id, amount_cents, platform_fee_cents, status) VALUES
     ('${CREW}', '${H}', 9800, 1000, 'paid'),
     ('${SOLO}', '${H}', 19000, 3000, 'paid');
+  -- PART: $190 paid, $50 of it reversed by a dispute, then won: the original
+  -- row is 'reversed' (amount_reversed 5000) and a re-pay row of $50 is paid.
+  INSERT INTO public.jobs (id, customer_id, helper_id, title, category, status, is_group_job, helpers_needed, payment_status,
+                           budget, urgent_fee, helper_fee_percent, sales_tax_amount, poster_completed_at) VALUES
+    ('${PART}', '${P}', '${H}', 'Part', 'moving', 'completed', false, 1, 'released', 200, 20, 15, 0, now() - interval '4 days'),
+    ('${CREWLOST}', '${P}', NULL, 'CrewLost', 'moving', 'completed', true, 2, 'released', 200, 0, 10, 0, now() - interval '5 days'),
+    ('${LEAD}', '${P}', '${H}', 'Lead', 'moving', 'completed', true, 2, 'released', 200, 0, 10, 0, now() - interval '6 days');
+  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) VALUES
+    ('${CREWLOST}', '${H}', 0, 10000), ('${LEAD}', '${H}', 0, 10000);
+  INSERT INTO public.payout_transfers (job_id, helper_id, amount_cents, platform_fee_cents, status, metadata) VALUES
+    ('${PART}', '${H}', 19000, 3000, 'reversed', '{"amount_reversed_cents": 5000, "fully_reversed": false}'),
+    ('${PART}', '${H}', 5000, 789, 'paid', '{"source": "chargeback-repay"}'),
+    -- CREWLOST: $90 paid, $45 reversed, dispute lost: no re-pay row.
+    ('${CREWLOST}', '${H}', 9000, 1000, 'reversed', '{"amount_reversed_cents": 4500, "fully_reversed": false}'),
+    ('${LEAD}', '${H}', 9000, 1000, 'paid', '{}');
   SELECT set_config('request.jwt.claim.sub', '${H}', false);
 `);
 
@@ -120,14 +139,24 @@ check("E2 a single job's net is what was PAID (190), gross 220, fee 30 (not budg
 const legacyOk = n(legacy?.gross_budget) === 100 && n(legacy?.platform_fee) === 10 && n(legacy?.net_payout) === 90;
 if (BEFORE) console.log(`INFO  E3 (legacy pin, green both ways)  ${legacyOk}`);
 else check("E3 a single job released before the ledger keeps the old recomputation (100 / 10 / 90)", legacyOk, JSON.stringify(legacy ?? null));
-const ledgerRows = [crew, solo].filter(Boolean);
+const ledgerRows = [crew, solo, by(PART), by(CREWLOST)].filter(Boolean);
 check("E4 on every ledger row, gross - fee = net",
-  ledgerRows.length === 2 && ledgerRows.every((r) => Math.abs(n(r.gross_budget) - n(r.platform_fee) - n(r.net_payout)) < 0.005),
+  ledgerRows.length === 4 && ledgerRows.every((r) => Math.abs(n(r.gross_budget) - n(r.platform_fee) - n(r.net_payout)) < 0.005),
   JSON.stringify(ledgerRows.map((r) => [r.gross_budget, r.platform_fee, r.net_payout])));
+
+const part = by(PART);
+check("E5 a partial reversal later won: net 190 (140 kept + 50 re-paid), fee 30, gross 220",
+  n(part?.net_payout) === 190 && n(part?.platform_fee) === 30 && n(part?.gross_budget) === 220, JSON.stringify(part ?? null));
+const lost = by(CREWLOST);
+check("E6 a crew member's partial reversal lost: the kept $45 (fee 5) stays in the export",
+  n(lost?.net_payout) === 45 && n(lost?.platform_fee) === 5 && n(lost?.gross_budget) === 50, JSON.stringify(lost ?? null));
+const leadRows = rows.filter((r) => r.job_id === LEAD);
+check("E7 a legacy crew lead in jobs.helper_id is listed once", leadRows.length === 1 && n(leadRows[0].net_payout) === 90,
+  JSON.stringify(leadRows));
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  const expected = 3;
+  const expected = 6;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

@@ -4,7 +4,7 @@
 //
 // `npm run launch:appstore` (Q1289) is the launch-day step that says when the
 // App Store links come back. It must say "not live" until Apple answers BOTH
-// probes, must never call a listing live on a 404 page or an empty lookup, and
+// probes, must never call a listing live on a missing page or an empty lookup, and
 // must catch the repo naming a different app id than App Store Connect.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

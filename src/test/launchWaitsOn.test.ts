@@ -4,7 +4,7 @@
  * remembered (owner, 2026-10-06: a report said 26 items only needed a prod
  * check when half were not built).
  *
- * @mutate docs/OPEN.md | - **lead** (Claude can finish it now): Q975 Q1314 | - **lead** (Claude can finish it now): Q975
+ * @mutate docs/OPEN.md | - **lead** (Claude can finish it now): Q1314 Q1461 | - **lead** (Claude can finish it now): Q1461
  * @mutate scripts/launch-status.mjs | if (states.get(q) !== "done" && !map.has(q)) problems.push | if (false) problems.push
  * @mutate scripts/launch-status.mjs | if (!ids.includes(q)) problems.push | if (false) problems.push
  */

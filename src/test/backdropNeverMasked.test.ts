@@ -1,4 +1,5 @@
-// @mutate src/components/MobileNav.tsx |               backdropFilter: filter,\n              WebkitBackdropFilter: filter, |               backdropFilter: filter,\n              WebkitBackdropFilter: filter,\n              WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
+// @mutate src/components/MobileNav.tsx |             backdropFilter: CURTAIN_BLUR,\n            WebkitBackdropFilter: CURTAIN_BLUR, |             backdropFilter: CURTAIN_BLUR,\n            WebkitBackdropFilter: CURTAIN_BLUR,\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
+// @mutate src/components/MobileNav.tsx |             top: CURTAIN_BLUR_TOP, |             height: "calc(var(--safe-area-bottom, 0px) + 120px)",
 // @mutate src/components/MobileNav.tsx |             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            background: | backdropFilter: "blur(32px)",\n            maskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",\n            background:
 //
 // Q7 (owner, WebKit only: "the bottom nav isn't frosted"). Measured 2026-10-07 on
@@ -81,17 +82,18 @@ describe("no element carries a backdrop filter and a mask image together (Q7, We
     expect(both).toEqual([]);
   });
 
-  it("the dock curtain blurs with unmasked steps that ramp up toward the bottom", () => {
-    const nav = readFileSync(join(SRC, "components/MobileNav.tsx"), "utf8");
-    const block = nav.slice(nav.indexOf("const CURTAIN_BLUR_STEPS"), nav.indexOf("];", nav.indexOf("const CURTAIN_BLUR_STEPS")));
-    const steps = [...block.matchAll(/\[\s*([\d.]+)\s*,\s*"blur\((\d+)px\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
-    expect(steps.length).toBeGreaterThanOrEqual(4);
-    for (let i = 1; i < steps.length; i++) {
-      expect(steps[i][0], "each step shorter than the last").toBeLessThan(steps[i - 1][0]);
-      expect(steps[i][1], "and stronger").toBeGreaterThan(steps[i - 1][1]);
-    }
-    expect(steps[0][0]).toBe(1);
-    expect(steps[steps.length - 1][0]).toBe(0.35);
-    expect(nav).toMatch(/CURTAIN_BLUR_STEPS\.map\(/);
+  it("the dock curtain blurs: one unmasked layer whose edge sits under the pill's top", () => {
+    const nav = blankComments(readFileSync(join(SRC, "components/MobileNav.tsx"), "utf8"));
+    // The edge must be hidden behind the pill: anchored to the nav's own top, a few px down.
+    const top = /const CURTAIN_BLUR_TOP = "(\d+)px";/.exec(nav);
+    expect(top, "CURTAIN_BLUR_TOP").not.toBeNull();
+    expect(Number(top![1])).toBeGreaterThan(0);
+    expect(Number(top![1])).toBeLessThanOrEqual(16);
+    expect(nav).toMatch(/const CURTAIN_BLUR = "blur\(\d+px\)[^"]*";/);
+    // …and actually rendered with a backdrop filter, anchored by `top`, never by a height share.
+    const layer = styleObjects(nav).filter((s) => /backdropFilter:\s*CURTAIN_BLUR\b/.test(s));
+    expect(layer.length).toBe(1);
+    expect(layer[0]).toMatch(/top:\s*CURTAIN_BLUR_TOP/);
+    expect(layer[0]).toMatch(/WebkitBackdropFilter:\s*CURTAIN_BLUR\b/);
   });
 });

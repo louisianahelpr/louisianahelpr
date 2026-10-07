@@ -31,25 +31,17 @@ import {
 } from "@/components/mobileNav/mobileNavHelpers";
 import { DockPill } from "@/components/mobileNav/DockPill";
 
-/**
- * The dock curtain's blur ramp (Q7): [share of the band's height, filter], tallest and
- * weakest first. Each band is unmasked (WebKit drops backdrop-filter beside mask-image),
- * and stacked bands compound, so the blur is strongest at the bottom and fades to none
- * at the top: the shape the old mask (`black 35% -> transparent 100%`) gave one 32px layer.
- */
 /** The curtain band's height: the dock clearance pages reserve (safe-area + 96px) plus a 24px overhang. */
 const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + 96px + 24px)";
 
-const CURTAIN_BLUR_STEPS: readonly (readonly [number, string])[] = [
-  // Six small steps (chosen on the iOS 26.5 simulator, 2026-10-07): four 4-to-32px steps
-  // left hard seams; nine cost more layers for no visible gain over six.
-  [1, "blur(2px)"],
-  [0.8, "blur(4px)"],
-  [0.65, "blur(8px)"],
-  [0.52, "blur(12px) saturate(130%)"],
-  [0.43, "blur(16px) saturate(150%)"],
-  [0.35, "blur(20px) saturate(170%)"],
-];
+/**
+ * The dock curtain's blur (Q7): ONE unmasked layer (WebKit drops backdrop-filter beside
+ * mask-image) whose hard top edge sits 8px below the nav's top edge, just under the
+ * pill's top, so the pill and the FAB cover it. Chosen on the iOS 26.5 simulator
+ * (2026-10-07): a full-height ramp of stepped bands drew a seam at every step.
+ */
+const CURTAIN_BLUR_TOP = "8px";
+const CURTAIN_BLUR = "blur(16px) saturate(160%)";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -725,24 +717,24 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {/* Q7 (2026-10-07): WebKit drops `backdrop-filter` on an element that
             also carries `mask-image` — measured on the iOS 26.5 simulator, a
             striped probe under the dock stayed crisp in this band while the
-            pill (no mask) blurred it. So blur and mask never share an
-            element: the BLUR is a stack of unmasked bands, each shorter and
-            stronger than the last (the ramp the mask used to draw: none at
-            the top, full from 35% down), and the TINT below keeps the mask,
-            which it needs for its fade and which has no filter to drop. */}
-        {CURTAIN_BLUR_STEPS.map(([share, filter]) => (
-          <div
-            key={share}
-            aria-hidden
-            className="absolute inset-x-0 pointer-events-none"
-            style={{
-              bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
-              height: `calc(${CURTAIN_BAND} * ${share})`,
-              backdropFilter: filter,
-              WebkitBackdropFilter: filter,
-            }}
-          />
-        ))}
+            pill (no mask) blurred it; a mask on a PARENT makes a backdrop root
+            and blurs nothing. So blur and mask never share an element. An
+            unmasked blur has a hard top edge, and a stepped ramp of bands
+            showed every step as a seam (panel borders visibly cut), so the
+            blur starts CURTAIN_BLUR_TOP below this nav's own top edge, i.e.
+            just under the pill's top, where the pill and the FAB hide the
+            edge, and runs to the screen bottom. Above it the TINT below
+            (masked, no filter) fades as before. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 pointer-events-none"
+          style={{
+            top: CURTAIN_BLUR_TOP,
+            bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
+            backdropFilter: CURTAIN_BLUR,
+            WebkitBackdropFilter: CURTAIN_BLUR,
+          }}
+        />
         <div
           aria-hidden
           className="absolute inset-x-0 pointer-events-none"

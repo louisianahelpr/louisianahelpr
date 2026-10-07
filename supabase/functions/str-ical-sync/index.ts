@@ -1,6 +1,6 @@
 /**
  * str-ical-sync — fetch iCal feeds for active STR calendar connections,
- * detect guest checkouts in the next 7 days, and import each as a cleaning
+ * detect guest checkouts in the next 7 days, and record each as a cleaning
  * job for the host to post (Q768: never a jobs row before payment).
  *
  * Invocation:

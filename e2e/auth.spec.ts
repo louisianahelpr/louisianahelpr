@@ -1,22 +1,15 @@
 import { test, expect } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
+import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvailable } from "./helpers/mintedPasswordGrant";
 
 // Authenticated smoke tests. Insurance against RLS or auth-flow
 // regressions on the most-used signed-in paths.
 //
-// REQUIRES env vars to run (test is skipped otherwise so CI doesn't
-// block on missing credentials):
-//   PLAYWRIGHT_TEST_USER_EMAIL    — pre-created customer account
-//   PLAYWRIGHT_TEST_USER_PASSWORD — that account's password
-//
-// To set up the test user:
-//   1. Sign up at https://www.louisianahelpr.com/signup as a customer
-//      with a dedicated address (e.g. playwright-customer@helpr.test)
-//   2. Verify the email
-//   3. Set the env vars locally:
-//      export PLAYWRIGHT_TEST_USER_EMAIL=playwright-customer@helpr.test
-//      export PLAYWRIGHT_TEST_USER_PASSWORD=<your password>
-//   4. Run: npx playwright test e2e/auth.spec.ts
+// REQUIRES (skipped otherwise): PLAYWRIGHT_TEST_USER_EMAIL, the pre-created
+// customer account, and the service-role key. The login form is driven for
+// real; its password grant is answered with a session minted for that account
+// (e2e/helpers/mintedPasswordGrant.ts), because Supabase Auth CAPTCHA refuses a
+// CI build's grant (docs/OPEN.md Q1420/Q1314). No password is read or typed.
 //
 // The test is read-only — it signs in, checks dashboard renders, signs
 // out. No data mutations. Safe to run against production.
@@ -25,23 +18,22 @@ import { LOCAL_BASE_URL } from "./localBase";
 const BASE_URL = LOCAL_BASE_URL;
 
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
-const TEST_PASSWORD = process.env.PLAYWRIGHT_TEST_USER_PASSWORD;
-
-const haveCreds = !!TEST_EMAIL && !!TEST_PASSWORD;
+const haveCreds = mintedSignInAvailable(TEST_EMAIL);
 
 test.describe("authenticated flows", () => {
   test.skip(
     !haveCreds,
-    "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD not set — skipping",
+    "PLAYWRIGHT_TEST_USER_EMAIL or the service-role key not set — skipping",
   );
 
   test("sign in lands on dashboard or complete-profile", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
+    await answerPasswordGrantWithMintedSession(page, TEST_EMAIL!);
     await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.locator("#email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(FORM_PASSWORD);
 
     // Click submit + wait for navigation. Both /home and
     // /complete-profile are valid landing destinations (the latter for
@@ -66,9 +58,10 @@ test.describe("authenticated flows", () => {
     // Profile page fails to render any content, the wrap migration broke
     // the SELECT path.
 
+    await answerPasswordGrantWithMintedSession(page, TEST_EMAIL!);
     await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.locator("#email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(FORM_PASSWORD);
     await Promise.all([
       page.waitForURL(/\/(home|complete-profile)/, { timeout: 15_000 }),
       page.locator('button[type="submit"]').click(),

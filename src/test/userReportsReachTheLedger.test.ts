@@ -57,6 +57,8 @@ export const SURFACES: Surface[] = [
     note: "/support signed in: the admin-queue row" },
   { file: "src/pages/info/Support.tsx", kind: "invoke", target: "contact-support", channel: "contact-support",
     note: "/support, signed in or guest" },
+  { file: "src/pages/info/HelpCenter.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+    note: "Help Center \"Report a bug\" (Q1028, 2026-10-07): opens /support on the bug topic" },
   { file: "src/main.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "shake-to-report opens /support?topic=report" },
   { file: "src/pages/jobs/appliedJobCard/DisputedSection.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",

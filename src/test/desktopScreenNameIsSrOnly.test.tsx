@@ -66,6 +66,11 @@ vi.mock("@/pages/posts/PostedJobsTab", () => ({
 vi.mock("@/pages/jobs/AppliedJobsTab", () => ({
   AppliedJobsTab: () => <div data-testid="applied-tab" />,
 }));
+// Q1465: the empty posted state also mounts the visit-payment card, which
+// reads Supabase; it is irrelevant to the header row asserted here.
+vi.mock("@/pages/posts/postedJobs/RecurringVisitPayments", () => ({
+  RecurringVisitPayments: () => null,
+}));
 
 const activityData = {
   rows: [] as unknown[],

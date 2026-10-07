@@ -11,6 +11,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { todayYmd } from "@/lib/jobDate";
 import { formatJobDate } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 
 /**
  * Q210(b): recurring visits of $300 or more are never charged off-session
@@ -28,7 +29,8 @@ type PendingVisitPayment = {
   jobs: { title: string | null } | null;
 };
 
-export function RecurringVisitPayments({ userId }: { userId: string }) {
+/** `className` places it (Q1465: JobListPage insets it above the empty state). */
+export function RecurringVisitPayments({ userId, className }: { userId: string; className?: string }) {
   const [payingId, setPayingId] = useState<string | null>(null);
   const inFlight = useRef(false);
 
@@ -61,7 +63,7 @@ export function RecurringVisitPayments({ userId }: { userId: string }) {
 
   if (error) {
     return (
-      <div role="alert" className="rounded-ds-md border border-destructive/40 p-3 text-sm">
+      <div role="alert" className={cn("rounded-ds-md border border-destructive/40 p-3 text-sm", className)}>
         We couldn't check for visits waiting on payment.{" "}
         <button type="button" className="underline" onClick={() => void refetch()}>
           Try again
@@ -108,7 +110,7 @@ export function RecurringVisitPayments({ userId }: { userId: string }) {
   };
 
   return (
-    <section aria-label="Visits waiting on payment" className="flex flex-col gap-2">
+    <section aria-label="Visits waiting on payment" className={cn("flex flex-col gap-2", className)}>
       {data.map((row) => {
         const dollars = (row.amount_cents / 100).toFixed(2);
         const busy = payingId === row.id;

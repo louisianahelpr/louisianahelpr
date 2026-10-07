@@ -124,6 +124,8 @@ vi.mock("@/integrations/supabase/client", () => ({
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
 const toastMessage = vi.fn();
+// The access-notes read (Q1461) is not under test here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("sonner", () => ({
   toast: {
     error: (...a: unknown[]) => toastError(...a),

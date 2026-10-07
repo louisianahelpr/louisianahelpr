@@ -156,7 +156,7 @@ export const CommunityContent = () => (
         icon={Clock}
         title="Helpr response deadlines"
         body={
-          <p>Job offers include a <strong className="text-foreground">1–48 hour response deadline</strong>. Failing to respond or declining multiple offers triggers escalating penalties (see "When trust breaks").</p>
+          <p>Job offers include a <strong className="text-foreground">1–48 hour response deadline</strong>. Declining an offer, or letting it expire, is never a strike: nothing is committed until you accept. Backing out <em>after</em> accepting is (see "When trust breaks").</p>
         }
       />
     </PolicySection>
@@ -301,13 +301,13 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title="Job-denial strikes (Helprs)"
+        title="Backing-out strikes (Helprs, after accepting)"
         body={
           <ul className="list-disc pl-4 space-y-0.5">
             {RELIABILITY_LADDER_RUNGS.map((rung) => (
               <li key={rung}>{rung}</li>
             ))}
-            <li>Withdrawing your application <em>before</em> being selected does not count.</li>
+            <li>Withdrawing your application <em>before</em> being selected, declining an offer, or letting one expire does not count.</li>
           </ul>
         }
       />

@@ -492,7 +492,7 @@ describe("cancellation ladder — apply_cancellation_violation_consequence (SQL)
     const legal = repoFile("src/pages/info/legal/CommunitySection.tsx");
     const section = legal.slice(
       legal.indexOf("Cancellation strikes (posters)"),
-      legal.indexOf("Job-denial strikes (Helprs)"),
+      legal.indexOf("Backing-out strikes (Helprs, after accepting)"),
     );
     expect(section, "the cancellation-strike section vanished — this guard is blind").not.toBe("");
     expect(

@@ -135,11 +135,10 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
       {deadline ? (
         /* THE CONSEQUENCE IS STATED, because as of the
            `expire_unanswered_offers` sweep there is one. Letting the clock run
-           out on an offer you applied for now files the same `job_denial`
-           strike that pressing Decline does — the job reopens either way, and
-           silence used to be the free option. Warning somebody before you
-           count a strike against them is the minimum; "Accept or decline
-           before the deadline" did not say what happens if you do neither.
+           out on an offer reopens the job to everyone. Since Q1281 (owner,
+           2026-10-05) neither a decline nor a lapse is a strike, and the line
+           says so; "Accept or decline before the deadline" did not say what
+           happens if you do neither.
 
            Only shown for a HARD deadline. The derived 24-hour clock is an
            inference from `updated_at` and the server does not act on it, so
@@ -149,7 +148,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           expiredText="Response deadline expired"
           consequenceText={
             hardDeadline
-              ? "No answer counts the same as declining, and the job reopens to everyone."
+              ? "No answer by then and the job reopens to everyone (no strike)."
               : "Accept or decline before the deadline"
           }
         />

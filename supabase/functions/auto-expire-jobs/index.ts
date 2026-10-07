@@ -319,8 +319,8 @@ serve(async (req) => {
     // `updated_at` older than 24h and files no violation, so a helper who
     // ghosted an offer they had applied for walked away clean while one who
     // pressed Decline took a strike. This keys on the deadline the poster
-    // actually set and applies the same 5-strike ladder decline_job_offer
-    // does (owner: an expired offer reopens the job AND counts as a decline).
+    // actually set. Since Q1281 (owner, 2026-10-05) neither a lapse nor a
+    // decline is a strike: the offer just expires and the job reopens.
     let unansweredExpired = 0;
     // PGRST202 is deliberately NOT a defect: it means the migration merged but
     // db-deploy has not finished, which is expected for a few minutes on every

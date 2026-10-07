@@ -21,7 +21,7 @@
  * quotes a consequence must not be able to drift from the code that applies it.
  */
 
-/** Bullet-list rungs, e.g. for the poster-facing "Denial policy" dialog. */
+/** Bullet-list rungs, e.g. for the poster-facing "Reliability policy" dialog. */
 export const RELIABILITY_LADDER_RUNGS = [
   "1st — recorded, no penalty",
   "2nd — final warning",

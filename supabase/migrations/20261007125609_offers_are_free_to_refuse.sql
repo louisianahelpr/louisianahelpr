@@ -210,7 +210,7 @@ BEGIN
                THEN '" when the job started, so it went back to everyone. No strike.'
                WHEN v_no_strike
                THEN '" before your payout setup and Stripe ID were done, so it went back to everyone. No strike. Finish both so you can accept the next offer.'
-               ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
+               ELSE '" and it went back to everyone. No strike: an offer is free to refuse.'
              END,
         'expired',
         '/jobs?job=' || v_locked.id::text,
@@ -235,7 +235,7 @@ BEGIN
   -- ── THE CREW PASS (Q729, owner 2026-10-05) ───────────────────────────────
   -- A crew has no lead, so its members are found on the roster. Each member
   -- whose own reply deadline passed unconfirmed loses the spot, exactly as a
-  -- single offer expires: same strike rule and exemptions, application closed
+  -- single offer expires: no strike (Q1281), application closed
   -- as offer_expired, both sides told; the spot reopens (a full crew goes back
   -- to open). No fee: nothing was committed.
   FOR v_slot IN
@@ -324,7 +324,7 @@ BEGIN
                THEN '" when the job started, so you lost your spot. No strike.'
                WHEN v_crew_no_strike
                THEN '" before your payout setup and Stripe ID were done, so you lost your spot. No strike. Finish both so you can accept the next offer.'
-               ELSE '" and you lost your spot. Letting an offer expire counts the same as declining it.'
+               ELSE '" and you lost your spot. No strike: an offer is free to refuse.'
              END,
         'expired',
         '/jobs?job=' || v_cjob.id::text,

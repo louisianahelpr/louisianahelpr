@@ -119,6 +119,15 @@ await db.exec(`
 let crewErr = null;
 try { await db.exec("SELECT public.expire_unanswered_offers()"); } catch (e) { crewErr = e.message; }
 check("E2 an unanswered crew spot lapsing is no strike", crewErr === null && (await struck(3)) === 0, crewErr ?? `${await struck(3)} strikes`);
+// Not vacuous (review): each sweep row runs inside EXCEPTION WHEN OTHERS, so an
+// erroring row would also leave 0 strikes. Nothing was logged as an error, the
+// crew slot was really released, and both sides were told.
+const errs = Number((await db.query(`SELECT count(*)::int AS c FROM public.error_logs`)).rows[0].c);
+check("no sweep row errored (error_logs empty)", errs === 0, `${errs} error row(s)`);
+const slotLeft = Number((await db.query(`SELECT count(*)::int AS c FROM public.group_job_helpers WHERE job_id = '${id(3)}' AND helper_id = '${HELPER}'`)).rows[0].c);
+check("E2 the lapsed crew spot was released", slotLeft === 0, `${slotLeft} slot row(s) left`);
+const lapseNotes = (await db.query(`SELECT message FROM public.notifications WHERE user_id = '${HELPER}'`)).rows.map((r) => r.message);
+check("the Helpr's lapse notices say no strike", lapseNotes.length >= 2 && lapseNotes.every((m) => /No strike/.test(m)), JSON.stringify(lapseNotes));
 
 console.log(failures ? `\n${failures} FAIL` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

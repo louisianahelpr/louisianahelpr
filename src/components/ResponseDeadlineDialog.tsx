@@ -192,9 +192,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
-                Denial policy:
+                Reliability policy:
               </span>{" "}
-              Helprs who decline jobs repeatedly will face escalating consequences:
+              Your Helpr can decline or let this offer lapse without penalty. A Helpr who backs out after accepting faces escalating consequences:
             </p>
             {/* Rungs come from the shared ladder statement so this list can
                 never again disagree with what the RPC actually applies —

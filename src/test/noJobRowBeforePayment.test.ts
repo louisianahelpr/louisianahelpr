@@ -22,10 +22,10 @@ import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
 
 // @mutate supabase/functions/str-ical-sync/index.ts | const { error: notifyError } = await supabase.from('notifications').insert({ | await supabase.from('jobs').insert({ customer_id: conn.user_id, status: 'open' });\n          const { error: notifyError } = await supabase.from('notifications').insert({
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
-// @mutate src/pages/post-job/usePostJobForm.ts |  || searchParams.get("turnover")); | );
+// @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
-// @mutate src/pages/post-job/turnoverPrefill.ts |     alreadyPosted: row.job_id != null, |     alreadyPosted: false,
-// @mutate supabase/migrations/20261007145950_str_turnover_link_job.sql |      AND e.job_id IS NULL\n |\n
+// @mutate src/pages/post-job/turnoverPrefill.ts |     alreadyPosted: row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""), |     alreadyPosted: row.job_id != null,
+// @mutate supabase/migrations/20261007145950_str_turnover_link_job.sql |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id) ON DELETE SET NULL; |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id);
 
 const ROOT = resolve(__dirname, "../..");
 const INSERTS_JOBS = /from\(\s*["'`]jobs["'`]\s*\)\s*\.\s*(?:insert|upsert)\s*\(/;
@@ -67,9 +67,12 @@ describe("Q768: no server path creates a jobs row before payment", () => {
   it("the link RPC is the host's own, authenticated only, with a PGlite proof red without it", () => {
     const sql = readFileSync(resolve(ROOT, "supabase/migrations/20261007145950_str_turnover_link_job.sql"), "utf8");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.link_str_turnover_job(uuid, uuid) FROM PUBLIC, anon;");
-    expect(sql).toMatch(/AND e\.job_id IS NULL\s+AND EXISTS \(SELECT 1 FROM public\.str_calendar_connections c\s+WHERE c\.id = e\.connection_id AND c\.user_id = v_uid\)/);
+    expect(sql).toMatch(/JOIN public\.str_calendar_connections c ON c\.id = e\.connection_id\s+WHERE e\.id = p_event_id AND c\.user_id = v_uid/);
+    expect(sql, "an unpaid orphan job must stay deletable once a turnover points at it").toContain("REFERENCES public.jobs(id) ON DELETE SET NULL;");
+    expect(sql).toMatch(/j\.customer_id = v_uid AND j\.status = 'open'/);
     const proof = readFileSync(resolve(ROOT, "src/test/pglite/strTurnoverLink.pglite.mjs"), "utf8");
-    for (const c of ["L1 the host links", "L2 a turnover already linked", "L3 another account cannot", "L4 the host cannot link", "L5 anon cannot", "const expected = 5;"]) {
+    for (const c of ["L1 the host links", "L2 a turnover linked to a FUNDED job", "L3 another account cannot", "L4 the host cannot link", "L5 anon cannot",
+      "L6 an unpaid orphan job", "L7 a turnover linked to a never-funded job", "L8 one turnover per job", "const expected = 8;"]) {
       expect(proof).toContain(c);
     }
   });
@@ -81,7 +84,13 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     expect(p.title.startsWith("STR clean 2026-10-09")).toBe(true);
     expect(p).toMatchObject({ budget: "95", dateNeeded: "2026-10-09", location: conn.property_address, alreadyPosted: false });
     expect(p.description).toContain("Standard turnover clean");
-    expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-09", job_id: "j1", str_calendar_connections: conn }).alreadyPosted).toBe(true);
+    // "Already posted" only when the linked job is FUNDED (lh-authz-rls review: an abandoned checkout is not a post).
+    const linked = (status: string, payment_status: string) =>
+      buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-09", job_id: "j1", jobs: { status, payment_status }, str_calendar_connections: conn }).alreadyPosted;
+    expect(linked("open", "escrow")).toBe(true);
+    expect(linked("open", "unpaid")).toBe(false);
+    expect(linked("open", "abandoned")).toBe(false);
+    expect(linked("cancelled", "escrow")).toBe(false);
     expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-09", job_id: null, str_calendar_connections: { ...conn, cleaning_budget: null } }).budget).toBe("");
   });
 });

@@ -142,6 +142,22 @@ describe("csp-report", () => {
     expect(rateLimitCalls).toHaveLength(0);
   });
 
+  // Q1353: anyone can POST here; a report about another site's page (or a
+  // look-alike host) inserts nothing. Ours (apex and www) still lands.
+  // @mutate supabase/functions/csp-report/report.ts |   return !isOurDocument(v.documentURL); |   return !/^https?:\/\//i.test(v.documentURL);
+  // @mutate supabase/functions/csp-report/report.ts | new Set(["louisianahelpr.com", "www.louisianahelpr.com"]) | new Set(["louisianahelpr.com", "www.louisianahelpr.com", "evil.example", "louisianahelpr.com.evil.example"])
+  it("drops a report about a page on another host, keeps ours (Q1353)", async () => {
+    const fn = await load();
+    for (const doc of ["https://evil.example/page", "https://louisianahelpr.com.evil.example/", "http://localhost:5173/"]) {
+      await post(fn, legacy({ "document-uri": doc }));
+    }
+    await post(fn, reportingApi({ documentURL: "https://evil.example/jobs" }), "application/reports+json");
+    expect(inserts()).toHaveLength(0);
+    await post(fn, legacy({ "document-uri": "https://www.louisianahelpr.com/jobs" }));
+    await post(fn, legacy());
+    expect(inserts()).toHaveLength(2);
+  });
+
   it("drops a violation whose source file is an extension's", async () => {
     const fn = await load();
     await post(fn, legacy({ "blocked-uri": "inline", "source-file": "chrome-extension://abc/cs.js" }));

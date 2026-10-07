@@ -41,6 +41,7 @@ import {
   effectiveSalesTaxRate,
   laborTaxCode,
   NONTAXABLE_TAX_CODE,
+  serviceFeeTaxCode,
   TAXABLE_CATEGORIES,
   TAXABLE_LABOR_TAX_CODE,
   taxedZeroOnTaxableLouisianaLabor,
@@ -120,6 +121,16 @@ describe("Stripe tax codes (ME-043)", () => {
     }
     expect(problems).toEqual([]);
     expect(files).toBeGreaterThan(4);
+  });
+
+  // Q1472: the service fee follows the labor line (taxed exactly when it is).
+  // @mutate supabase/functions/_shared/salesTax.ts |   return laborTaxCode(category);\n} |   return NONTAXABLE_TAX_CODE;\n}
+  it("the service fee's tax code follows the labor's for every category (Q1472)", () => {
+    for (const c of [...TAXABLE_CATEGORIES, "cleaning", "yard_work", "pet_care", "", "nonsense"]) {
+      expect(serviceFeeTaxCode(c), c).toBe(laborTaxCode(c));
+    }
+    expect(serviceFeeTaxCode("assembly")).toBe(TAXABLE_LABOR_TAX_CODE);
+    expect(serviceFeeTaxCode("cleaning")).toBe(NONTAXABLE_TAX_CODE);
   });
 
   // Class guard: every edge write of jobs.sales_tax_rate goes through

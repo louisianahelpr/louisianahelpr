@@ -79,13 +79,31 @@ export function laborTaxCode(category: string | null | undefined): string {
 }
 
 /**
+ * The Stripe tax code for the poster's SERVICE FEE line (Q1472, bus ME-019).
+ *
+ * Decision (Q374 (3), lead 2026-09-27 from public sources; owner confirmed
+ * 2026-10-07): CONSERVATIVE. On a TAXABLE job the service fee is charged as
+ * part of the taxable sale and takes the labor line's code; on an exempt job it
+ * stays Nontaxable. Before this it was always Nontaxable ("until LDR
+ * clarifies"), which left roughly 1% of every taxable job's budget untaxed.
+ * The urgent bonus, its card fee, tips and the one-time setup fee stay
+ * Nontaxable. Every place that prices or previews the fee's tax reads this:
+ * create-payment (the checkout line), calculate-tax (the preview) and
+ * charge-recurring-visits (the off-session visit's tax calculation).
+ */
+export function serviceFeeTaxCode(category: string | null | undefined): string {
+  return laborTaxCode(category);
+}
+
+/**
  * Whether ANY line on the checkout is taxable.
  *
  * Kept as its own function because the answer is deliberately narrower than it
- * looks: the service fee, the urgent tip and the one-time setup fee all ship
- * with `tax_code: txcd_00000000` (non-taxable) in create-payment, so the labor
- * line is the only line tax can ever land on. If a fee's tax code changes, this
- * is the one place that has to change with it.
+ * looks: the urgent tip and the one-time setup fee ship with
+ * `tax_code: txcd_00000000` (non-taxable), and the service fee is taxed only
+ * when the labor line is (serviceFeeTaxCode, Q1472), so a checkout has a
+ * taxable line exactly when its labor is taxable. If a fee's tax code changes
+ * independently of the labor's, this is the one place that has to change.
  */
 export function hasTaxableLine(category: string | null | undefined): boolean {
   return isLaborTaxable(category);
@@ -124,8 +142,8 @@ export function salesTaxCents(
  * stored a PERCENT (10.45), so the first taxed job's escrow update, and a taxed
  * recurring visit's insert, would have failed on the CHECK (found 2026-10-07 by
  * the lh-money-escrow review; prod had no taxed job yet). `taxableBaseCents` is
- * every taxed line (today the labor). Rounded to 6 places; 0 when there is no
- * tax or no base.
+ * every taxed line: the labor plus, since Q1472, the service fee on a taxable
+ * job. Rounded to 6 places; 0 when there is no tax or no base.
  */
 export function effectiveSalesTaxRate(taxCents: number, taxableBaseCents: number): number {
   if (!(taxCents > 0) || !(taxableBaseCents > 0)) return 0;

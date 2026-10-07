@@ -241,3 +241,22 @@ export function utcDayStartIso(now: Date = new Date()): string {
 export function escapeSlackText(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
+
+/**
+ * Q1466: the alert `link` is put into Slack's `<url|label>` markup, where a
+ * `|` or `>` in the url ends the url early and lets the rest become a label
+ * or a second link, and any scheme Slack accepts is clickable. Every caller
+ * passes our own value today; this keeps a future caller passing client text
+ * from planting a link. Returns the link when it is a site-relative path
+ * ("/admin?...", never "//host") or an https:// url with no `|`, `<`, `>`,
+ * backslash or whitespace; otherwise null, and the sender leaves the link out.
+ * Backslash: a URL parser reads "/\evil.com" as "//evil.com" (lh-authz-rls
+ * review of Q1466, note 1), so a path containing one is refused too.
+ */
+export function safeSlackLink(link: unknown): string | null {
+  if (typeof link !== 'string' || link.length === 0) return null
+  if (/[|<>\\\s]/.test(link)) return null
+  if (link.startsWith('/') && !link.startsWith('//')) return link
+  if (link.startsWith('https://')) return link
+  return null
+}

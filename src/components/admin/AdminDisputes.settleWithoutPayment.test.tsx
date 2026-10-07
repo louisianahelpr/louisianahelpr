@@ -8,10 +8,12 @@
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.payout_transfers t WHERE t.job_id = _job.id)) | false)
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.gift_cards g WHERE g.restored_from_job_id = _job.id); | false;
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |       AND COALESCE(_dispute.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl()) | )
-// @mutate supabase/migrations/20261006053059_gift_refuses_while_card_checkout_open.sql |   if v_job.status in ('completed', 'cancelled') then | if false then
-// @mutate supabase/migrations/20261006053059_gift_refuses_while_card_checkout_open.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
+// @mutate supabase/migrations/20261007130001_gift_funds_abandoned_or_failed_job.sql |   if v_job.status in ('completed', 'cancelled') then | if false then
+// @mutate supabase/migrations/20261007130001_gift_funds_abandoned_or_failed_job.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
 // @mutate supabase/functions/create-payment/index.ts |       if (decidedDisputes && decidedDisputes.length > 0) { |       if (false) {
 // @mutate supabase/functions/create-payment/index.ts |           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`); | ;
+// @mutate src/components/admin/AdminDisputes.tsx |         (earlierMap[r.job_id] ??= []).push(r); |         void 0;
+// @mutate src/components/admin/adminDisputes/DisputeCard.tsx |         {earlierRecords && earlierRecords.length > 0 && <EarlierDisputes records={earlierRecords} />} |
 // @mutate src/components/admin/AdminDisputes.tsx |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again.")); | throw err;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
@@ -77,6 +79,23 @@ const PAID_STUCK_JOB = {
 };
 
 const RECORDS = [
+  // Q1327: an EARLIER dispute on the open job (re-filed since); its Helpr
+  // answer is archived on this row's own helper_response.
+  {
+    id: "dis-open-earlier",
+    job_id: "job-open",
+    opener_id: "poster-1",
+    reason: "quality",
+    evidence_urls: [],
+    status: "withdrawn",
+    created_at: "2026-09-18T00:00:00Z",
+    decided_at: null,
+    decided_by: null,
+    decision_text: null,
+    payout_split: null,
+    execution_status: null,
+    helper_response: "I was there at 9 and the poster let me in.",
+  },
   {
     id: "dis-open",
     job_id: "job-open",
@@ -430,5 +449,15 @@ describe("Q235 follow-up: a settled job can no longer be funded", () => {
       /\.or\("payment_status\.is\.null,payment_status\.in\.\(unpaid,abandoned,failed\)"\)\s*\.not\("status", "in", `\(\$\{\[\.\.\.FUNDING_CLOSED_JOB_STATUSES\]\.join\(","\)\}\)`\);/,
     );
     expect(createPayment).toMatch(/const FUNDING_CLOSED_JOB_STATUSES = new Set\(\["completed", "cancelled"\]\);/);
+  });
+});
+
+// Q1327: the card shows the job's earlier dispute, with the Helpr's answer
+// archived from it (the card used to read only the newest record per job).
+describe("AdminDisputes shows a job's earlier disputes (Q1327)", () => {
+  it("the open card lists the earlier dispute and its archived Helpr answer", async () => {
+    render(<AdminDisputes />);
+    await waitFor(() => expect(screen.getByText(/Earlier dispute on this job \(1\)/)).toBeTruthy());
+    expect(screen.getByText(/I was there at 9 and the poster let me in\./)).toBeTruthy();
   });
 });

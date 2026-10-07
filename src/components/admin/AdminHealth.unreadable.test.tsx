@@ -36,6 +36,8 @@ vi.mock("./adminHealth/useHealthData", () => ({
 vi.mock("./adminHealth/useConfigChecks", () => ({ useConfigChecks: () => ({ data: [] }) }));
 vi.mock("./adminHealth/useCronHealth", () => ({ useCronHealth: () => ({ data: [] }) }));
 vi.mock("./adminHealth/useOpenAlerts", () => ({ useOpenAlerts: () => ({ data: [] }) }));
+const csp = vi.hoisted(() => ({ rows: [] as Array<{ id: string; label: string; tone: string; detail: string }> }));
+vi.mock("./adminHealth/useCspReports", () => ({ CSP_WINDOW_HOURS: 24, useCspReports: () => ({ data: csp.rows }) }));
 vi.mock("./adminHealth/useFillRate", () => ({
   useFillRate: () => ({
     fillDays: 30, setFillDays: vi.fn(), fillSort: "parish", fillSortAsc: true,
@@ -76,6 +78,22 @@ describe("AdminHealth when its health reads fail (Q1194)", () => {
     expect(container.textContent).toContain("0 sent");
   });
 
+  // Q1287: the first read still in flight. useInstantQuery hands back the
+  // fallback object, so the zeros and the red banner used to paint on every
+  // cold load until the reads landed.
+  it("Q1287 mid-load: skeleton tiles, no zeros, no push-token banner", () => {
+    health.isError = false;
+    health.dataUpdatedAt = 0;
+    const { container } = renderIt();
+    const text = container.textContent ?? "";
+    expect(text).toContain("Loading platform health");
+    expect(text).not.toContain("0 sent");
+    expect(text).not.toContain("0 unresolved");
+    expect(text).not.toContain("No admin has registered a push token");
+    expect(text).not.toContain("No devices registered yet");
+    expect(text).not.toContain("Couldn't");
+  });
+
   it("healthy: no error and the readings render (control)", () => {
     health.isError = false;
     health.dataUpdatedAt = Date.now();
@@ -86,5 +104,25 @@ describe("AdminHealth when its health reads fail (Q1194)", () => {
 });
 
 // @mutate src/components/admin/AdminHealth.tsx |   const healthNeverLoaded = isError && !dataUpdatedAt; |   const healthNeverLoaded = false;
-// @mutate src/components/admin/AdminHealth.tsx |       {!healthNeverLoaded && adminPushTokenCount === 0 && ( |       {adminPushTokenCount === 0 && (
+// @mutate src/components/admin/AdminHealth.tsx |       {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && ( |       {!healthLoading && adminPushTokenCount === 0 && (
+// Q1287: mid-load (no error, never loaded) draws no zeros and no banner.
+// @mutate src/components/admin/AdminHealth.tsx |   const healthLoading = !isError && !dataUpdatedAt; |   const healthLoading = false;
+// @mutate src/components/admin/AdminHealth.tsx |       {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && ( |       {!healthNeverLoaded && adminPushTokenCount === 0 && (
 // @mutate src/components/admin/AdminHealth.tsx |   const healthStale = isError && !!dataUpdatedAt; |   const healthStale = false;
+
+// Q1352: the health screen draws the CSP report count (it was stored, never read).
+// @mutate src/components/admin/AdminHealth.tsx |             {cspReports.map((c) => ( |             {[].map((c: never) => (
+describe("AdminHealth shows CSP violation reports (Q1352)", () => {
+  it("draws the 24h count and each directive / blocked host", () => {
+    health.isError = false;
+    health.dataUpdatedAt = Date.now();
+    csp.rows = [
+      { id: "csp-total", label: "7 CSP violation reports in the last 24 hours", tone: "warn", detail: "" },
+      { id: "csp-a", label: "script-src-elem blocked cdn.bad.example (7×)", tone: "warn", detail: "" },
+    ];
+    const { container } = renderIt();
+    expect(container.textContent).toContain("Content Security Policy (24h)");
+    expect(container.textContent).toContain("7 CSP violation reports in the last 24 hours");
+    expect(container.textContent).toContain("script-src-elem blocked cdn.bad.example (7×)");
+  });
+});

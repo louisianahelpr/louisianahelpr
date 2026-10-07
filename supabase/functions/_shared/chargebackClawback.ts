@@ -76,10 +76,12 @@ type ClawbackRow = {
   status: string;
   /** Pins the repay claim (a compare-and-set on status AND updated_at). */
   updated_at?: string | null;
+  /** Q1291: a balance_insufficient refusal is retried under an hourly key. */
+  failure_reason?: string | null;
 };
 
 const ROW_COLS =
-  "id, dispute_id, job_id, helper_id, original_transfer_id, stripe_account_id, transfer_amount_cents, reversed_cents, stripe_reversal_id, repay_transfer_id, status, updated_at";
+  "id, dispute_id, job_id, helper_id, original_transfer_id, stripe_account_id, transfer_amount_cents, reversed_cents, stripe_reversal_id, repay_transfer_id, status, updated_at, failure_reason";
 
 /** Row statuses that mean "this transfer's money is back with the platform". */
 const CLAWED_BACK_STATUSES = ["reversed", "repaying", "repay_failed", "kept"] as const;
@@ -701,7 +703,7 @@ export async function redriveHeldClawbackRepays(ctx: ClawbackContext): Promise<H
       for (const f of res.holdErrors) out.defects.push(`clawback re-pay ${disputeId}/${f.transferId}: ${f.error}`);
       // Every row of the dispute, not just the ones this run owned: a refused
       // or in-flight sibling keeps the job in 'chargeback'.
-      if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0) {
+      if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0 && res.balanceShort.length === 0) {
         const { error: backErr } = await ctx.supabase
           .from("jobs")
           .update({ payment_status: "released" })
@@ -730,6 +732,12 @@ export type RepayResult = {
   rows: number;
   /** Sweep mode: rows still unpaid that this run did not own (a refused or in-flight sibling). */
   othersOpen: number;
+  /**
+   * Q1291: Stripe refused the re-pay for balance_insufficient (a re-drive has
+   * no source charge to draw on). Not final: the row stays owed
+   * (held_repay_owed_at) and process-scheduled-payouts retries it.
+   */
+  balanceShort: string[];
   /** Rows whose money was never taken (the reversal failed or never ran). */
   neverTaken: number;
 };
@@ -741,7 +749,7 @@ export async function repayClawback(
   job: { id: string; title?: string | null },
   opts: { fromSweep?: boolean; owned?: Map<string, SweepRow> } = {},
 ): Promise<RepayResult> {
-  const out: RepayResult = { repaidNowCents: 0, failed: [], held: [], holdErrors: [], rows: 0, neverTaken: 0, othersOpen: 0 };
+  const out: RepayResult = { repaidNowCents: 0, failed: [], held: [], holdErrors: [], rows: 0, neverTaken: 0, othersOpen: 0, balanceShort: [] };
   const { rows, error } = await readClawbackRows(supabase, dispute.id);
   if (error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${error}`);
   out.rows = rows.length;
@@ -749,6 +757,66 @@ export async function repayClawback(
 
   for (let row of rows) {
     if (row.status === "reversing" || row.status === "reverse_failed") {
+      // Q1296: in sweep mode a row the sweep does not own is not reconciled
+      // the webhook way (reconcileUnrecorded promotes it to 'reversed' with no
+      // held_repay_owed_at, which nothing would ever re-pay). Ask Stripe:
+      // nothing taken -> never taken, as before. Money taken -> it is an
+      // unpaid sibling (the job stays in 'chargeback') that the WON webhook
+      // already passed over, and a resend of that event is dedupe-skipped
+      // (stripe_webhook_events), so the sweep records it AND marks it owed in
+      // one compare-and-set; the next sweep run re-pays it through the normal
+      // claim + adopt path (lh-money-escrow review). Only a 'reversing' /
+      // 'reverse_failed' row is touched: never one a person was handed
+      // (a refused re-pay is 'repay_failed').
+      if (opts.owned && !opts.owned.has(row.id)) {
+        const taken = await existingReversal(stripe, row.original_transfer_id, dispute.id);
+        if (!taken) {
+          out.neverTaken++;
+          continue;
+        }
+        out.othersOpen++;
+        const { data: healed, error: healErr } = await supabase
+          .from("chargeback_clawbacks")
+          .update({
+            status: "reversed",
+            stripe_reversal_id: taken.id,
+            reversed_cents: taken.amount,
+            failure_reason: HELD_REPAY_MARKER,
+            held_repay_owed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id)
+          .in("status", ["reversing", "reverse_failed"])
+          .is("held_repay_owed_at", null)
+          .select("id");
+        const recorded = !healErr && !!healed && healed.length > 0;
+        if (!recorded && !healErr) {
+          // Zero rows (lh-money-escrow review): a concurrent charge.dispute.closed
+          // delivery may have recorded (even re-paid) it first. Re-read; only a
+          // row STILL unrecorded needs a person, and only then is the manual
+          // fix safe (a 'repaid' row set back to 'reversed' would be paid twice).
+          const { data: nowRow, error: nowErr } = await supabase
+            .from("chargeback_clawbacks").select("status, repay_transfer_id").eq("id", row.id).maybeSingle();
+          const st = (nowRow as { status?: string } | null)?.status;
+          if (!nowErr && st && st !== "reversing" && st !== "reverse_failed") {
+            logStep("Unowned clawback sibling already recorded by another writer", { id: row.id, status: st });
+            continue;
+          }
+        }
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: recorded ? "warning" : "critical",
+          title: recorded
+            ? "Card dispute WON — an unrecorded clawback was recorded and queued for re-pay"
+            : "Card dispute WON — a clawed-back amount was never recorded, and recording it FAILED",
+          message: recorded
+            ? `Clawback row ${row.id} (dispute ${dispute.id}) still read '${row.status}', but Stripe shows reversal ${taken.id} (${dollars(Number(taken.amount ?? 0))}) taken from the Helpr. The payout sweep recorded it and marked it owed; the next run re-pays it automatically. Do NOT pay it by hand (it would be paid twice).`
+            : `Clawback row ${row.id} (dispute ${dispute.id}) still reads '${row.status}', but Stripe shows reversal ${taken.id} (${dollars(Number(taken.amount ?? 0))}) taken from the Helpr, and the sweep could not record it (${healErr?.message ?? "matched 0 rows"}). ONLY if that row still reads 'reversing' or 'reverse_failed' with no repay_transfer_id: set it to status='reversed', stripe_reversal_id='${taken.id}', reversed_cents=${Number(taken.amount ?? 0)}, held_repay_owed_at=now(); the next payout run then re-pays it. Do NOT pay it by hand (it would be paid twice).`,
+          fields: { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "Reversal": taken.id },
+          oncePerDayKey: `clawback-unrecorded-sibling:${row.id}`,
+        });
+        continue;
+      }
       const reconciled = await reconcileUnrecorded(stripe, supabase, row, dispute.id);
       if (!reconciled) {
         out.neverTaken++;
@@ -811,7 +879,14 @@ export async function repayClawback(
     if (row.updated_at) claimQ = claimQ.eq("updated_at", row.updated_at);
     const { data: claimed, error: claimErr } = await claimQ.select("id");
     if (claimErr) throw new Error(`chargeback_clawbacks repay claim failed for ${row.id}: ${claimErr.message}`);
-    if (!claimed || claimed.length === 0) continue; // another delivery took it
+    if (!claimed || claimed.length === 0) {
+      // Another delivery took it. Q1295: that row is still unpaid as far as
+      // this run knows (the other copy's transfer may yet be refused), so it
+      // keeps the job in 'chargeback' like any open sibling, in sweep mode and
+      // in webhook mode alike (chargeDisputeClosed checks othersOpen too).
+      out.othersOpen++;
+      continue;
+    }
 
     try {
       // A resumed row may already have been paid back (a lost response, or a
@@ -830,7 +905,12 @@ export async function repayClawback(
             original_transfer_id: row.original_transfer_id,
           },
         },
-        { idempotencyKey: `clawback-repay-${dispute.id}-${row.original_transfer_id}` },
+        // Q1291 (lh-money-escrow review): Stripe can replay a saved
+        // balance_insufficient error for this key for ~24h, so a retry after a
+        // balance-short refusal carries the hour (the sweep runs hourly). Safe:
+        // a 'repay_failed' row is checked for an existing re-pay (existingRepay,
+        // above) before any create, and the claim CAS admits one runner.
+        { idempotencyKey: `clawback-repay-${dispute.id}-${row.original_transfer_id}${(row.failure_reason ?? "").startsWith("balance_insufficient") ? `-b${new Date().toISOString().slice(0, 13)}` : ""}` },
       );
       const { data: done, error: doneErr } = await setRow(
         supabase,
@@ -918,6 +998,36 @@ export async function repayClawback(
         await setRow(supabase, row.id, { status: "repay_failed", failure_reason: message }, { status: ["repaying"] });
         throw new Error(`Clawback repay for ${row.original_transfer_id} (dispute ${dispute.id}) failed transiently: ${message}`);
       }
+      if ((err as { code?: string } | null)?.code === "balance_insufficient") {
+        // Q1291: the platform balance is short right now (a re-drive after a
+        // long hold has no source charge to draw on). Not a refusal to hand to
+        // a person: the row stays OWED and the sweep retries it every run, as
+        // heldTipRepay does for a held tip. Marked owed only when it is not
+        // already (a sweep row keeps its first owed time for the age alert).
+        const { data: shortRows, error: shortErr } = await setRow(
+          supabase, row.id,
+          { status: "repay_failed", failure_reason: `balance_insufficient: ${message}` },
+          { status: ["repaying"] },
+        );
+        if (shortErr) throw new Error(`chargeback_clawbacks balance_insufficient write failed for ${row.id}: ${shortErr.message}`);
+        if (!shortRows || shortRows.length === 0) {
+          // Another writer moved the row off 'repaying' first: it is theirs now
+          // (re-read like the refused path; nothing to stamp or page here).
+          logStep("balance_insufficient re-pay: row already moved by another writer", { id: row.id });
+          out.othersOpen++;
+          continue;
+        }
+        const { error: owedErr } = await supabase
+          .from("chargeback_clawbacks")
+          .update({ held_repay_owed_at: new Date().toISOString() })
+          .eq("id", row.id)
+          .eq("status", "repay_failed")
+          .is("held_repay_owed_at", null)
+          .select("id");
+        if (owedErr) throw new Error(`chargeback_clawbacks owed marker failed for ${row.id} (balance_insufficient): ${owedErr.message}`);
+        out.balanceShort.push(row.original_transfer_id);
+        continue;
+      }
       // Stripe refused: a person pays it (the page below); the re-drive stops.
       // Q1292: ONE write takes the row out of the re-drive AND records the
       // refusal. Two writes (status, then a best-effort clear of
@@ -965,6 +1075,16 @@ export async function repayClawback(
         "Rows": out.holdErrors.map((f) => `${f.transferId}: ${f.error}`).join(" | ").slice(0, 900),
       },
       oncePerDayKey: `clawback-repay-hold-read:${dispute.id}`,
+    });
+  }
+  if (out.balanceShort.length > 0) {
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "warning",
+      title: "Card dispute WON — Helpr re-pay waits on the platform balance",
+      message: `Dispute ${dispute.id} was won, but Stripe refused paying ${out.balanceShort.length} clawed-back amount(s) back to the Helpr: the platform balance is too low (balance_insufficient). Top up the platform balance; process-scheduled-payouts retries the re-pay every run. Do NOT pay it by hand (it would be paid twice).`,
+      fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": out.balanceShort.join(", ").slice(0, 900) },
+      oncePerDayKey: `clawback-repay-balance:${dispute.id}`,
     });
   }
   if (out.held.length > 0 && !opts.fromSweep) {

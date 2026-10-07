@@ -186,6 +186,108 @@ describe("void-cancelled-payments — an unexecuted dispute decision owns the es
   });
 });
 
+// ── Q1345: an uncaptured hold's fee capture stamps what it captured ─────────
+// @mutate supabase/functions/void-cancelled-payments/index.ts |               cancellation_fee: Math.round(cancellationFee * 100) / 100,\n            }, "fee capture"); |            }, "fee capture");
+describe("void-cancelled-payments — Q1345: the fee captured on an uncaptured hold is stamped on the job", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  it("captures only the recomputed fee and writes that amount to jobs.cancellation_fee in the settling write", async () => {
+    const { computeCancellationFee } = await import("../../../supabase/functions/_shared/cancellationFee.ts");
+    const job = {
+      id: "job-hold",
+      title: "Held, cancelled late",
+      stripe_session_id: null,
+      stripe_payment_intent_id: "pi_hold",
+      budget: 100,
+      customer_fee_amount: 10,
+      cancellation_fee: 999, // client-written: never trusted, overwritten
+      date_needed: "2026-10-08",
+      start_time: "09:00",
+      cancelled_at: "2026-10-08T12:00:00.000Z",
+      helper_id: "helper-1",
+      helper_confirmed_at: "2026-10-01T00:00:00.000Z",
+      customer_id: "poster-1",
+      helper_fee_percent: 10,
+    };
+    const fee = computeCancellationFee(job as never);
+    expect(fee, "fixture must owe a fee").toBeGreaterThan(0);
+    scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [job] } }], rows: [] };
+    scenario.writeSelectRows.jobs = [{ id: "job-hold" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture", amount: 11000, latest_charge: null });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_hold", { amount_to_capture: Math.round(fee * 100) });
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).cancellation_fee_status === "charged");
+    expect(settle?.payload).toMatchObject({ payment_status: "refunded", cancellation_fee: Math.round(fee * 100) / 100 });
+  });
+
+  // Q1390 + Q1345 (merged 2026-10-07): a crew's block fees ride the same
+  // capture, but they are not the poster's cancellation fee, so the stamp is
+  // the cancellation fee alone, as on the refund path.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               cancellation_fee: Math.round(cancellationFee * 100) / 100,\n            }, "fee capture"); |               cancellation_fee: feeCents / 100,\n            }, "fee capture");
+  it("with a crew block fee, the capture includes it but the stamped cancellation_fee does not (Q1390 + Q1345)", async () => {
+    // A crew (no lead) with no cancellation-fee shares owes the poster's
+    // cancellation fee $0; the one closed spot's block fee is $5.
+    const job = {
+      id: "job-hold",
+      title: "Held crew, cancelled",
+      stripe_session_id: null,
+      stripe_payment_intent_id: "pi_hold",
+      budget: 100,
+      customer_fee_amount: 10,
+      cancellation_fee: 999, // client-written: never trusted, overwritten
+      date_needed: "2026-10-08",
+      start_time: "09:00",
+      cancelled_at: "2026-10-08T12:00:00.000Z",
+      is_group_job: true,
+      helper_id: null,
+      customer_id: "poster-1",
+      helper_fee_percent: 10,
+    };
+    scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [job] } }], rows: [] };
+    scenario.reads.crew_cancellation_fee_shares = { rows: [] };
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-1", job_id: "job-hold", helper_id: "helper-2", slot_no: 2, share_basis_cents: 5000, fee_percent: 10, fee_cents: 500, status: "paid", stripe_transfer_id: "tr_bf" }],
+    };
+    scenario.writeSelectRows.jobs = [{ id: "job-hold" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture", amount: 11000, latest_charge: null });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_hold", { amount_to_capture: 500 });
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).cancellation_fee_status === "charged");
+    expect(settle?.payload).toMatchObject({ payment_status: "refunded", cancellation_fee: 0 });
+  });
+
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             cancellation_fee: Math.round(cancellationFee * 100) / 100,\n          }, "refund"); |           }, "refund");
+  it("a captured charge's refund also stamps the server's fee on the job (review of Q1345)", async () => {
+    const { computeCancellationFee } = await import("../../../supabase/functions/_shared/cancellationFee.ts");
+    const job = {
+      id: "job-cap", title: "Captured, cancelled late", stripe_session_id: null, stripe_payment_intent_id: "pi_cap",
+      budget: 100, customer_fee_amount: 10, cancellation_fee: 999, date_needed: "2026-10-08", start_time: "09:00",
+      cancelled_at: "2026-10-08T12:00:00.000Z", helper_id: "helper-1", helper_confirmed_at: "2026-10-01T00:00:00.000Z",
+      customer_id: "poster-1", helper_fee_percent: 10,
+    };
+    const fee = computeCancellationFee(job as never);
+    expect(fee).toBeGreaterThan(0);
+    scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [job] } }], rows: [] };
+    scenario.writeSelectRows.jobs = [{ id: "job-cap" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_cap", status: "succeeded", amount: 11000, amount_received: 11000, latest_charge: null });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_cap", amount: 1000 });
+    const h = await load();
+    await h.fetch(cronReq());
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "refunded");
+    expect(settle?.payload).toMatchObject({ cancellation_fee_status: "charged", cancellation_fee: Math.round(fee * 100) / 100 });
+  });
+});
+
 // ── Q891: a Stripe id minted under the TEST key, read under the LIVE key ────
 //
 // Every job funded before prod went live (2026-09-27) holds one, and Stripe

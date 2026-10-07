@@ -1662,6 +1662,7 @@ export function ConversationList({
                             selectMode={selectMode}
                             selected={selected}
                             onToggleSelect={() => toggleSelect(c)}
+                            reserveTrailingControl={isRecentlyDeletedView}
                           />
                         </div>
                       );

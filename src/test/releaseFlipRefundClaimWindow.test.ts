@@ -10,10 +10,11 @@ import { flipJobToReleased } from "../../supabase/functions/_shared/releaseFlip"
  * every other state still fails at once.
  *
  * @mutate supabase/functions/_shared/releaseFlip.ts |       if ((now as { payment_status?: string } \| null)?.payment_status === "cancelling") { |       if (false) {
+ * @mutate supabase/functions/_shared/releaseFlip.ts |       if (rereadErr) { |       if (false) {
  */
 
 /** A fake client: each update answers the next `flips` entry; each re-read the next `reads` entry. */
-function fakeClient(flips: number[], reads: string[]) {
+function fakeClient(flips: number[], reads: string[], readError: { message: string } | null = null) {
   let f = 0;
   let r = 0;
   const calls = { updates: 0, reads: 0 };
@@ -34,6 +35,7 @@ function fakeClient(flips: number[], reads: string[]) {
         eq: () => ({
           maybeSingle: async () => {
             calls.reads++;
+            if (readError) return { data: null, error: readError };
             return { data: { payment_status: reads[Math.min(r++, reads.length - 1)] }, error: null };
           },
         }),
@@ -74,5 +76,19 @@ describe("Q1324: the release flip waits out a refund claim's put-back", () => {
     expect(out).toMatchObject({ ok: false, zeroRow: true });
     expect((out as { message: string }).message).toMatch(/cancelling/);
     expect(calls.updates).toBe(4);
+  });
+
+  it("Q1341: a failed re-read is reported (not read as 'not cancelling' silently) and still fails at once", async () => {
+    vi.useFakeTimers();
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client, calls } = fakeClient([0, 1], ["cancelling"], { message: "connection reset by peer" });
+    const p = flipJobToReleased(client, "job-1");
+    await vi.runAllTimersAsync();
+    const out = await p;
+    expect(out).toMatchObject({ ok: false, zeroRow: true });
+    expect((out as { message: string }).message).toMatch(/re-reading the job's payment_status failed: connection reset by peer/);
+    expect(calls.updates).toBe(1);
+    expect(errSpy.mock.calls.some((c) => String(c[0]).includes("connection reset by peer"))).toBe(true);
+    errSpy.mockRestore();
   });
 });

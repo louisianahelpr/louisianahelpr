@@ -353,6 +353,44 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
     expect(reportMock.mock.calls[0][1]).toMatchObject({ severity: "error", tags: { area: "keychain_session" } });
   });
 
+  // Q1412: setItem/removeItem run under auth-js's auth lock; a bridge call that
+  // never settles must not stop a token refresh or a sign-out returning.
+  // @mutate src/integrations/supabase/keychainStorageAdapter.ts |   return Promise.race([p, cap]).finally(() => clearTimeout(timer)); |   return p.finally(() => clearTimeout(timer));
+  it("Q1412: a Keychain set that never settles is capped and REPORTED; setItem returns", async () => {
+    vi.useFakeTimers();
+    try {
+      kcSetMock.mockImplementation(() => new Promise<never>(() => { /* never settles */ }));
+      const { keychainStorageAdapter, KEYCHAIN_WRITE_TIMEOUT_MS } = await loadAdapter();
+      let returned = false;
+      const p = keychainStorageAdapter.setItem(AUTH_KEY, "rotated").then(() => { returned = true; });
+      await vi.advanceTimersByTimeAsync(KEYCHAIN_WRITE_TIMEOUT_MS + 10);
+      await p;
+      expect(returned).toBe(true);
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(reportMock).toHaveBeenCalledTimes(1));
+      expect(reportMock.mock.calls[0][1]).toMatchObject({ context: { step: "setItem cap" } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Q1412: a Keychain remove that never settles is capped (no second hanging try) and REPORTED; sign-out returns", async () => {
+    vi.useFakeTimers();
+    try {
+      kcRemoveMock.mockImplementation(() => new Promise<never>(() => { /* never settles */ }));
+      const { keychainStorageAdapter, KEYCHAIN_WRITE_TIMEOUT_MS } = await loadAdapter();
+      const p = keychainStorageAdapter.removeItem(AUTH_KEY);
+      await vi.advanceTimersByTimeAsync(KEYCHAIN_WRITE_TIMEOUT_MS * 3);
+      await p;
+      expect(kcRemoveMock).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(reportMock).toHaveBeenCalled());
+      expect(reportMock.mock.calls.some((c) => (c[1] as { context?: { step?: string } }).context?.step === "sign-out remove")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("removeItem skips the Keychain for non-auth-token keys", async () => {
     const { keychainStorageAdapter } = await loadAdapter();
     localStorage.setItem(NON_AUTH_KEY, "v");
@@ -424,7 +462,7 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
 
 // Shown able to fail:
 // The awaited native mirror write (fire-and-forget re-opens rotated-token loss).
-// @mutate src/integrations/supabase/keychainStorageAdapter.ts | await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above | void SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | const done = await capKeychainWrite(SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS)); | const done = (void SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS), undefined);
 // The hard cap in front of `await hydratePromise` in client.ts.
 // @mutate src/integrations/supabase/keychainStorageAdapter.ts | new Promise<void>((resolve) => setTimeout(() => { capped = true; resolve(); }, HYDRATE_TIMEOUT_MS)), | new Promise<void>(() => { /* no cap */ }),
 // Both halves of isAuthTokenKey.

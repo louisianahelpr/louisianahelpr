@@ -92,7 +92,20 @@ export async function flipJobToReleased(
       // back a moment later. A flip landing inside that window is not a
       // split state: wait for the put-back like a transient fault. Any other
       // state (refunded, chargeback, escrow) still fails at once.
-      const { data: now } = await supabaseAdmin.from("jobs").select("payment_status").eq("id", jobId).maybeSingle();
+      const { data: now, error: rereadErr } = await supabaseAdmin
+        .from("jobs")
+        .select("payment_status")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (rereadErr) {
+        // Q1341: a failed re-read cannot tell a refund claim from a final
+        // state. Keep failing at once (never retry blind), but say why, so
+        // the page names the read that failed instead of a bare zero-row miss.
+        const why = (rereadErr as { message?: string }).message ?? "unknown error";
+        lastMessage = `zero rows matched; re-reading the job's payment_status failed: ${why}`;
+        console.error(`[releaseFlip] job ${jobId}: re-read after a zero-row flip failed: ${why}`);
+        break;
+      }
       if ((now as { payment_status?: string } | null)?.payment_status === "cancelling") {
         lastMessage = "zero rows matched: the job was under a refund claim ('cancelling')";
         console.warn(`[releaseFlip] job ${jobId} reads 'cancelling' (a refund claim) on attempt ${attempt + 1}; waiting for it to be put back`);

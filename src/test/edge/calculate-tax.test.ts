@@ -23,7 +23,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, rateLimitState } from "./mocks/shared";
-import { resetStripeMock } from "./mocks/stripe";
+import { resetStripeMock, stripeMock } from "./mocks/stripe";
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -87,5 +87,32 @@ describe("calculate-tax — cost gate", () => {
     expect(res.status).toBe(200);
     const body = JSON.parse(await res.text());
     expect(body).toEqual({ taxCents: 0, exempt: true });
+  });
+
+  // Q1472 (ME-019): on a taxable job the preview taxes the service fee with the
+  // labor, under the same code create-payment puts on the Service fee line.
+  // @mutate supabase/functions/calculate-tax/index.ts |         ...(feeCents > 0 |         ...(false
+  it("a taxable job's preview sends the service fee as its own taxed line (Q1472)", async () => {
+    scenario.authUser = { id: "u-1", email: "poster@test.dev" };
+    stripeMock.tax.calculations.create.mockResolvedValue({ tax_amount_exclusive: 1120, amount_total: 12320, line_items: { data: [] } });
+    const fn = await load();
+    const res = await fn.fetch(
+      fn.request({ headers: { Authorization: "Bearer good" }, body: { budget: 100, category: "assembly", zip: "70112", state: "LA", serviceFee: 12 } }),
+    );
+    expect(res.status).toBe(200);
+    const lines = stripeMock.tax.calculations.create.mock.calls[0][0].line_items as Array<{ amount: number; reference: string; tax_code: string }>;
+    expect(lines.map((l) => [l.reference, l.amount, l.tax_code])).toEqual([
+      ["labor", 10000, "txcd_20030000"],
+      ["service_fee", 1200, "txcd_20030000"],
+    ]);
+  });
+
+  it("a garbage or missing serviceFee sends the labor line alone (Q1472)", async () => {
+    scenario.authUser = { id: "u-1", email: "poster@test.dev" };
+    stripeMock.tax.calculations.create.mockResolvedValue({ tax_amount_exclusive: 1000, amount_total: 11000, line_items: { data: [] } });
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: { Authorization: "Bearer good" }, body: { budget: 100, category: "assembly", zip: "70112", serviceFee: "abc" } }));
+    const lines = stripeMock.tax.calculations.create.mock.calls[0][0].line_items as Array<{ reference: string }>;
+    expect(lines.map((l) => l.reference)).toEqual(["labor"]);
   });
 });

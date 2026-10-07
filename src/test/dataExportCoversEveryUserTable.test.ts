@@ -37,6 +37,10 @@
  * Q1233: a renamed live policy, and a read policy calling an unclassified function.
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties read" ON public.disputes
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | (lower(recipient_email) = lower(( SELECT auth.email() AS email))) | public.zz_mail_owner(recipient_email)
+ * Q1329: a replayed policy whose roles or PERMISSIVE/RESTRICTIVE differ from the live one.
+ * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties select" ON public.disputes AS RESTRICTIVE
+ * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes\n  AS PERMISSIVE FOR SELECT TO authenticated | CREATE POLICY "disputes parties select" ON public.disputes\n  AS PERMISSIVE FOR SELECT TO anon, authenticated
+ * @mutate src/test/helpers/dataExportInventory.ts |             if (r.needle.test(body)) live.set(k, { ...cur, roles: [r.role] }); |             void 0;
  * Q1235: a Helpr-side job sub-select on the poster's refunds.
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
@@ -52,6 +56,8 @@ import {
   POSTER_SIDE_EXEMPT,
   exportSections,
   helperReadableViaJob,
+  policyPermissive,
+  policyRoles,
   posterReadableViaJob,
   publicTables,
   replayedPolicies,
@@ -229,22 +235,28 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     expect(wider, "these sections give the Helpr rows the app's own SELECT rules never show them").toEqual([]);
   });
 
-  it("Q1233: the policy replay equals the live policies (two-way, by table, name and command)", () => {
+  it("Q1233/Q1329: the policy replay equals the live policies (two-way, by table, name, command, roles and PERMISSIVE/RESTRICTIVE)", () => {
     // The never-wider/never-narrower checks above derive readability from the
     // policies the MIGRATIONS leave. That is only prod's truth while the files
     // describe prod: 2026-10-05 four policies had been changed outside them
     // (restated by 20261005061536). Live list: the write-contract snapshot of prod.
     const snap = JSON.parse(read("scripts/audit/write-contract.snapshot.json")) as {
-      tables: Record<string, { policies?: { name: string; cmd: string }[] }>;
+      tables: Record<string, { policies?: { name: string; cmd: string; roles?: string[]; permissive?: string }[] }>;
     };
+    // Q1329: roles and PERMISSIVE/RESTRICTIVE are compared too (both are in the
+    // snapshot): a policy re-scoped or flipped outside the migrations used to pass
+    // on name + command alone. USING/WITH CHECK text is not in the snapshot yet.
     const live = new Set<string>();
-    for (const [t, v] of Object.entries(snap.tables)) for (const p of v.policies ?? []) live.add(`${t}: "${p.name}" ${p.cmd}`);
+    for (const [t, v] of Object.entries(snap.tables))
+      for (const p of v.policies ?? []) live.add(`${t}: "${p.name}" ${p.cmd} TO ${[...(p.roles ?? [])].sort().join(",")} ${p.permissive}`);
     const replay = new Set<string>();
     for (const [k, v] of replayedPolicies()) {
       if (!snap.tables[v.table]) continue; // a dropped table, or a view/other schema the snapshot does not cover
       const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(v.text)?.[1] ?? "all").toUpperCase();
-      replay.add(`${v.table}: "${k.slice(k.indexOf(":") + 1)}" ${cmd}`);
+      replay.add(`${v.table}: "${k.slice(k.indexOf(":") + 1)}" ${cmd} TO ${policyRoles(v).join(",")} ${policyPermissive(v)}`);
     }
+    // Roles and permissive are really read (floor: most live policies are not 'public').
+    expect([...live].filter((x) => / TO authenticated PERMISSIVE$/.test(x)).length).toBeGreaterThan(100);
     expect(live.size, "no policy in the write-contract snapshot").toBeGreaterThan(150);
     expect([...live].filter((x) => !replay.has(x)).sort(), "live on prod but in no migration: restate it in one").toEqual([]);
     expect([...replay].filter((x) => !live.has(x)).sort(), "in the migrations but not live: a migration must drop it, or prod lost it").toEqual([]);

@@ -41,6 +41,8 @@ interface DisputeCardProps {
   job: DisputedJob;
   filter: FilterTab;
   disputeRecords: Record<string, DisputeRecord>;
+  /** Q1327: this job's earlier disputes (re-files), newest first. */
+  earlierRecords?: DisputeRecord[];
   profiles: Record<string, string>;
   tiers: Record<string, string | null>;
   activePanelJobId: string | null;
@@ -62,12 +64,44 @@ interface DisputeCardProps {
   retrying: string | null;
 }
 
+/**
+ * Q1327: a re-filed dispute's earlier records, collapsed. Each shows when it
+ * was filed, its status, the reason, the decision text and the Helpr's answer
+ * archived on that dispute's own row (disputes.helper_response), which the
+ * card used to drop: it read only the newest record per job.
+ */
+export function EarlierDisputes({ records }: { records: DisputeRecord[] }) {
+  return (
+    <details className="rounded-ds-sm border border-border/60 bg-background/40 p-3 text-ds-11">
+      <summary className="cursor-pointer font-medium text-foreground">
+        Earlier dispute{records.length === 1 ? "" : "s"} on this job ({records.length})
+      </summary>
+      <ul className="mt-2 space-y-3">
+        {records.map((r) => (
+          <li key={r.id} className="space-y-1 min-w-0">
+            <p className="text-muted-foreground">
+              Filed {new Date(r.created_at).toLocaleString("en-US")} · {r.status}
+              {r.decided_at ? ` · decided ${new Date(r.decided_at).toLocaleString("en-US")}` : ""}
+            </p>
+            {r.reason && <p className="text-foreground break-words">Reason: "{r.reason}"</p>}
+            {r.decision_text && <p className="text-muted-foreground break-words">Decision: "{r.decision_text}"</p>}
+            <p className="text-foreground break-words">
+              Helpr's answer: {r.helper_response ? `"${r.helper_response}"` : <span className="text-muted-foreground">none on record</span>}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 // Renders one card. Shared between Open and Decided so the visual
 // layout stays consistent; resolution actions only appear for Open.
 export const DisputeCard = ({
   job,
   filter,
   disputeRecords,
+  earlierRecords,
   profiles,
   tiers,
   activePanelJobId,
@@ -191,6 +225,8 @@ export const DisputeCard = ({
             </div>
           </div>
         )}
+
+        {earlierRecords && earlierRecords.length > 0 && <EarlierDisputes records={earlierRecords} />}
 
         {record?.decided_at && (
           <div className="p-3 rounded-ds-sm bg-primary/5 border border-primary/20">

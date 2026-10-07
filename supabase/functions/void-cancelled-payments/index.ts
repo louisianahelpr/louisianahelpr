@@ -775,8 +775,16 @@ serve(async (req) => {
           if (pi.latest_charge) {
             transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
           }
+          // Q1381: Stripe replays a key's saved result (a failure included) for
+          // ~24h, so a retry of a FAILED share under the same key could not pay
+          // the member until it expired. A retry carries the UTC hour (this
+          // cron runs hourly, so each retry is a fresh request); the first
+          // attempt keeps the plain key. A second payment is still stopped by
+          // the transfer-group read above (priorByHelper), which every run does
+          // before any create.
+          const retrySuffix = share.status === "failed" ? `-r${new Date().toISOString().slice(0, 13)}` : "";
           const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
-            idempotencyKey: `cancel-fee-${job.id}-${share.helper_id}`,
+            idempotencyKey: `cancel-fee-${job.id}-${share.helper_id}${retrySuffix}`,
           });
           console.log(`Crew cancellation fee share $${shareAmount}: platform kept $${platformCut}, transferred $${memberPayout} to ${share.helper_id} for job ${job.id}`);
           await markShare(share, { status: "paid", stripe_transfer_id: transfer.id, paid_at: new Date().toISOString() }, `was paid (${transfer.id})`);
@@ -1461,9 +1469,15 @@ serve(async (req) => {
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
             await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
+            // Q1345: the captured cancellation fee is stamped on the job in the
+            // same write, so the server holds what was taken (the column was
+            // only ever client-written; poster Spent falls back to it). The
+            // crew's block fees (Q1390) ride the same capture but are not a
+            // cancellation fee: they stay out of this column, as on the refund path.
             const settledFee = await settleCancelledJob(job, {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
+              cancellation_fee: Math.round(cancellationFee * 100) / 100,
             }, "fee capture");
             if (settledFee) refunded++;
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
@@ -1635,6 +1649,10 @@ serve(async (req) => {
           const settledRefund = await settleCancelledJob(job, {
             payment_status: "refunded",
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
+            // Q1345 (lh-money-escrow review): the server's recomputed fee, kept
+            // from the captured charge, replaces the client-written column here
+            // too (poster Spent falls back to it).
+            cancellation_fee: Math.round(cancellationFee * 100) / 100,
           }, "refund");
           if (settledRefund) refunded++;
           results.push({

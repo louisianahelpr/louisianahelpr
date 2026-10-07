@@ -49,6 +49,12 @@ export interface DisputeRecord {
   decision_text: string | null;
   payout_split: { poster?: number; helper?: number } | null;
   /**
+   * The Helpr's answer to THIS dispute (Q1262 (1)): a re-file keeps the
+   * previous dispute's answer on that dispute's own row. Absent on a read
+   * before the column existed.
+   */
+  helper_response?: string | null;
+  /**
    * Settlement state for the recorded split, written by the
    * `execute-dispute-split` edge function. Absent (undefined) on any row read
    * before that migration deployed — the queue keeps rendering either way, so

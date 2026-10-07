@@ -258,10 +258,12 @@ describe("stripe-webhook edge function", () => {
     });
 
     // jobs.sales_tax_rate has CHECK ck_jobs_sales_tax_rate_range (0..1). The
-    // webhook wrote a PERCENT (11.2) in the SAME update that marks the job
-    // 'escrow', so the first taxed job would never have been funded.
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents); |           updateData.sales_tax_rate = Math.round((taxCents / budgetCents) * 100 * 100) / 100;
-    it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
+    // webhook wrote a PERCENT (10.45) in the SAME update that marks the job
+    // 'escrow', so the first taxed job would never have been funded. It now
+    // stores the fraction over every taxed line: labor + the service fee
+    // (Q1472, from the session's service_fee_cents metadata).
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents + taxedFeeCents); |           updateData.sales_tax_rate = Math.round((taxCents / budgetCents) * 100 * 100) / 100;
+    it("a taxed job's escrow write stores sales_tax_rate as a fraction over labor + service fee (fits the CHECK)", async () => {
       const fn = await loadConfigured();
       scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tax: { total_tax_amount: 1120 } } });
@@ -276,7 +278,7 @@ describe("stripe-webhook edge function", () => {
             customer_details: { address: { state: "LA" } },
             total_details: { amount_tax: 1120 },
             payment_intent: "pi_tax",
-            metadata: { job_id: "job-tax" },
+            metadata: { job_id: "job-tax", service_fee_cents: "1200" },
           },
         },
       });
@@ -285,7 +287,7 @@ describe("stripe-webhook edge function", () => {
       const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).payment_status === "escrow");
       const p = w?.payload as Record<string, unknown>;
       expect(p.sales_tax_amount).toBe(11.2);
-      expect(p.sales_tax_rate).toBe(0.112); // 1120 / 10000, a fraction
+      expect(p.sales_tax_rate).toBe(0.1); // 1120 / (10000 + 1200)
       expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
     });
 
@@ -319,7 +321,7 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       .not("status", "in", "(completed,cancelled)") |
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       giftConsumedHere = true;\n      logStep("Reserved gift card consumed |       logStep("Reserved gift card consumed
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) { |       if (false) {
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         await refundDuplicateFunding(stripe, piId); |         void 0;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const dupRefund = await refundDuplicateFunding(stripe, piId); |         const dupRefund = null;
     describe("a checkout completing on a job already funded another way (Q1419)", () => {
       const completed = () =>
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -348,6 +350,64 @@ describe("stripe-webhook edge function", () => {
         expect(res.status).toBe(200);
         expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_second" }, { idempotencyKey: "duplicate-funding-refund:pi_second" });
         expect((slackAlerts as Array<{ title: string }>).some((a) => /second payment on an already-funded job was refunded/.test(a.title))).toBe(true);
+      });
+
+      // Q1418 (d): the refund is ledgered (payment_refunds, source
+      // 'duplicate_funding') and the poster is told the second charge came back.
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     source: "duplicate_funding",\n    initiated_by_user_id: null, |     source: "stripe_dashboard",\n    initiated_by_user_id: null,
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     job_id: null,\n    customer_id: args.customerId, |     job_id: args.jobId,\n    customer_id: args.customerId,
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |   if (!inserted \|\| inserted.length === 0) return null; |   if (false) return null;
+      it("Q1418 (d): the duplicate-funding refund is ledgered and the poster is told", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_dup_led",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_second", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_second", metadata: { job_id: "job-1", customer_id: "poster-1" } } },
+        });
+        scenario.writeSelectRows.jobs = [];
+        scenario.writeSelectRows.payment_refunds = [{ id: "pr-1" }];
+        scenario.reads.jobs = { rows: [{ id: "job-1", title: "Fence", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 11200, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const led = scenario.writes.find((w) => w.table === "payment_refunds" && w.op === "insert");
+        // job_id NULL: readers that find a job's refunds by job_id alone would
+        // read it as the funded job's escrow refunded (review); kept in metadata.
+        expect(led?.payload).toMatchObject({ stripe_refund_id: "re_dup", stripe_payment_intent_id: "pi_second", amount_cents: 11200, source: "duplicate_funding", job_id: null, customer_id: "poster-1", metadata: { funded_job_id: "job-1" } });
+        const notice = scenario.writes.find((w) => w.table === "notifications" && w.op === "insert" && (w.payload as Record<string, unknown>).user_id === "poster-1");
+        expect(String((notice?.payload as Record<string, unknown>)?.message)).toMatch(/second payment of \$112\.00 was refunded/);
+      });
+
+      it("Q1418 (d): a redelivery whose ledger row already exists tells the poster nothing again", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_dup_led2",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_second", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_second", metadata: { job_id: "job-1", customer_id: "poster-1" } } },
+        });
+        scenario.writeSelectRows.jobs = [];
+        scenario.writeSelectRows.payment_refunds = [];
+        scenario.reads.jobs = { rows: [{ id: "job-1", title: "Fence", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 11200, currency: "usd" });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "poster-1")).toBe(false);
+      });
+
+      it("Q1418 (d): a late payment on a job that closed unfunded is not called a 'second' payment", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_dup_closed",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_late", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_late", metadata: { job_id: "job-1", customer_id: "poster-1" } } },
+        });
+        scenario.writeSelectRows.jobs = [];
+        scenario.writeSelectRows.payment_refunds = [{ id: "pr-2" }];
+        scenario.reads.jobs = { rows: [{ id: "job-1", title: "Fence", customer_id: "poster-1", status: "cancelled", payment_status: "unpaid", stripe_payment_intent_id: null }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_late", status: "succeeded", amount: 5000, currency: "usd" });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        const notice = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "poster-1");
+        expect(String((notice?.payload as Record<string, unknown>)?.message)).toMatch(/had already closed/);
+        expect(String((notice?.payload as Record<string, unknown>)?.message)).not.toMatch(/second payment/);
       });
 
       it("a late redelivery of the payment that DID fund the job is ignored, never refunded", async () => {
@@ -492,6 +552,30 @@ describe("stripe-webhook edge function", () => {
       expect((notif?.payload as Record<string, unknown>).user_id).toBe(
         "helper-1",
       );
+    });
+
+    // Q1344: the paid tip row carries its PaymentIntent, so posterSpend can
+    // match a refund or dispute to it.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | ...(tipPaymentIntentId ? { stripe_payment_intent_id: tipPaymentIntentId } : {}) | ...({})
+    it("Q1344: a completed tip checkout stamps tips.stripe_payment_intent_id", async () => {
+      const fn = await loadConfigured();
+      scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tip_pi",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_tip_pi",
+            mode: "payment",
+            payment_intent: "pi_tip_1",
+            customer_email: "poster@test.com",
+            metadata: { type: "tip", job_id: "job-1", tipper_id: "poster-1", helper_id: "helper-1" },
+          },
+        },
+      });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const tipWrite = scenario.writes.find((w) => w.table === "tips" && w.op === "update");
+      expect(tipWrite?.payload).toMatchObject({ payment_status: "paid", stripe_payment_intent_id: "pi_tip_1" });
     });
 
     // Q1222: a tip Checkout opened before a payout hold and paid after it. The

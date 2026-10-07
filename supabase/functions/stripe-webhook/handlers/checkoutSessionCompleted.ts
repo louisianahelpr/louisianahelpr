@@ -6,7 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { refundDuplicateFunding } from "./refundDuplicateFunding.ts";
+import { recordDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
@@ -23,7 +23,7 @@ import {
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
-import { effectiveSalesTaxRate, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, isLaborTaxable, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 
 export async function handleCheckoutSessionCompleted(
@@ -246,9 +246,15 @@ async function settleCheckoutSession(
       // re-delivery flips 0 rows — `.select()` lets us see that and skip the
       // duplicate notification. Without this gate a retried delivery would
       // re-notify the helper of a tip they were already told about.
+      // Q1344: the tip row records its PaymentIntent, so a refund or a card
+      // dispute on it (matched by PaymentIntent) can be taken off the poster's
+      // Spent total (src/lib/posterSpend.ts).
+      const tipPaymentIntentId = typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : (session.payment_intent as { id?: string } | null)?.id ?? null;
       const { data: flippedTip, error: tipError } = await supabase
         .from("tips")
-        .update({ payment_status: "paid" })
+        .update({ payment_status: "paid", ...(tipPaymentIntentId ? { stripe_payment_intent_id: tipPaymentIntentId } : {}) })
         .eq("job_id", tipJobId)
         .eq("tipper_id", tipperId)
         .eq("stripe_session_id", session.id)
@@ -978,19 +984,20 @@ async function settleCheckoutSession(
         // lived, which resolved to a rate of 0 for seven ZIP codes.
         //
         // The effective rate is the only honest one: tax over the base it was
-        // charged on. Tax lands on the LABOR line only (the fees all ship as
-        // txcd_00000000), so the base is the budget. Stored as a FRACTION
-        // (effectiveSalesTaxRate): the CHECK ck_jobs_sales_tax_rate_range
-        // admits 0..1, and the percent this wrote would have failed this very
-        // escrow update on the first taxed job.
+        // charged on: the labor line plus, on a taxable job, the service fee
+        // (Q1472; create-payment puts its cents in session metadata). Stored
+        // as a FRACTION (effectiveSalesTaxRate): the CHECK admits 0..1, and
+        // the percent this wrote would have failed the escrow update itself.
         const { data: jobRow } = await supabase
           .from("jobs")
-          .select("budget")
+          .select("budget, category")
           .eq("id", jobId)
           .maybeSingle();
         const budgetCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
+        const sessionFeeCents = Math.round(Number((session.metadata as any)?.service_fee_cents ?? 0)) || 0;
+        const taxedFeeCents = isLaborTaxable((jobRow as { category?: string } | null)?.category) ? Math.max(0, sessionFeeCents) : 0;
         if (budgetCents > 0) {
-          updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents);
+          updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents + taxedFeeCents);
         } else if (taxCents === 0) {
           // A genuine zero with no base to divide by — an exempt category.
           updateData.sales_tax_rate = 0;
@@ -1081,7 +1088,7 @@ async function settleCheckoutSession(
     if (!jobError && (!jobUpdated || jobUpdated.length === 0)) {
       const { data: funded, error: fundedErr } = await supabase
         .from("jobs")
-        .select("id, status, payment_status, stripe_payment_intent_id")
+        .select("id, status, payment_status, stripe_payment_intent_id, customer_id, title")
         .eq("id", jobId)
         .maybeSingle();
       if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) {
@@ -1091,7 +1098,23 @@ async function settleCheckoutSession(
         return;
       }
       if (!fundedErr && funded) {
-        await refundDuplicateFunding(stripe, piId);
+        const dupRefund = await refundDuplicateFunding(stripe, piId);
+        // Q1418 (d): ledger it and tell the poster, once (only the delivery
+        // whose upsert wrote the ledger row sends the notice).
+        const fundedPayment = String(funded.payment_status ?? "");
+        const recordFailure = dupRefund
+          ? await recordDuplicateFundingRefund(supabase, dupRefund, {
+              jobId,
+              sessionId: session.id ?? null,
+              customerId: ((session.metadata as any)?.customer_id as string | undefined) ?? (funded as { customer_id?: string | null }).customer_id ?? null,
+              paymentIntentId: piId,
+              jobTitle: (funded as { title?: string | null }).title ?? null,
+              // The other half of this branch: a late payment on a job that was
+              // never funded but had closed (the status guard on the write).
+              jobClosedUnfunded: ["completed", "cancelled"].includes(String(funded.status ?? ""))
+                && ["", "unpaid", "failed", "abandoned"].includes(fundedPayment),
+            })
+          : "no refund object returned";
         let giftRestored: boolean | null = null;
         if (giftCardId && giftConsumedHere) {
           const { data: restored, error: restoreErr } = await supabase
@@ -1122,6 +1145,11 @@ async function settleCheckoutSession(
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
             gift_restored: giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand",
+            refund_ledger: !recordFailure
+              ? "recorded, poster told"
+              : recordFailure.startsWith("recorded;")
+              ? `${recordFailure}: tell the poster by hand if they were not`
+              : `NOT recorded (${recordFailure}): add the payment_refunds row and tell the poster by hand`,
           },
         });
         return;

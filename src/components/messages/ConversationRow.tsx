@@ -31,6 +31,12 @@ interface ConversationRowProps {
   selected?: boolean;
   /** Toggle this row's selection (select mode only). */
   onToggleSelect?: () => void;
+  /**
+   * Q1465: the list lays a control over the row's right edge (Recently
+   * Deleted's Restore chip, ~84px with its inset), so the text column stops
+   * short of it instead of running underneath ("…corner lot" under "Restore").
+   */
+  reserveTrailingControl?: boolean;
 }
 
 /* ── THE UNREAD SIGNAL ──────────────────────────────────────────────────────
@@ -197,6 +203,7 @@ const ConversationRowBase = ({
   selectMode = false,
   selected = false,
   onToggleSelect,
+  reserveTrailingControl = false,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -401,7 +408,8 @@ const ConversationRowBase = ({
           if (selectMode) { e.stopPropagation(); onToggleSelect?.(); return; }
           openConvo(c);
         }}
-        className="flex-1 min-w-0 text-left self-center"
+        className={`flex-1 min-w-0 text-left self-center${reserveTrailingControl ? " pr-[5.5rem]" : ""}`}
+        data-reserve-trailing={reserveTrailingControl ? "" : undefined}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">

@@ -239,7 +239,8 @@ export async function handleChargeDisputeClosed(
         repaid = await repayClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
         // Q1223: a held (or unreadable-hold) row is NOT paid yet: the job stays
         // 'chargeback' until process-scheduled-payouts re-pays it and returns it.
-        if (repaid.rows > 0 && repaid.failed.length === 0 && repaid.held.length === 0 && repaid.holdErrors.length === 0) {
+        // Q1291: a re-pay waiting on the platform balance likewise keeps it.
+        if (repaid.rows > 0 && repaid.failed.length === 0 && repaid.held.length === 0 && repaid.holdErrors.length === 0 && repaid.balanceShort.length === 0 && repaid.othersOpen === 0) {
           const { data: back, error: backErr } = await supabase
             .from("jobs")
             .update({ payment_status: "released" })
@@ -381,6 +382,8 @@ export async function handleChargeDisputeClosed(
               ? "Chargeback WON — paying the Helpr back FAILED"
               : repaid.held.length + repaid.holdErrors.length > 0
               ? "Chargeback WON — Helpr re-pay waits on a payout hold"
+              : repaid.balanceShort.length > 0
+              ? "Chargeback WON — Helpr re-pay waits on the platform balance"
               : nothingTaken
               ? "Chargeback WON — nothing had been taken back"
               : "Chargeback WON — Helpr paid back automatically",
@@ -388,6 +391,8 @@ export async function handleChargeDisputeClosed(
               ? "The payout taken back when it was filed could not be paid back to the Helpr. Pay it by hand from the Admin panel."
               : repaid.held.length + repaid.holdErrors.length > 0
               ? "The payout taken back when it was filed is paid back to the Helpr automatically once their payout hold is released. Do NOT pay it by hand (it would be paid twice)."
+              : repaid.balanceShort.length > 0
+              ? "The platform balance was too low to pay the Helpr back. Top up the platform balance; it is retried automatically every payout run. Do NOT pay it by hand (it would be paid twice)."
               : nothingTaken
               ? "The Helpr's payout was never reversed (Stripe refused the clawback), so there is nothing to pay back. Nothing to release."
               : "The payout taken back when it was filed has been paid back to the Helpr. Nothing to release."}`,
@@ -421,14 +426,15 @@ export async function handleChargeDisputeClosed(
           supabase,
           "stripe-webhook.chargeDisputeClosed.won",
         );
-        // Q449: a restored decided split is the admin's to run now. The split
-        // pays the Helpr's share BEFORE it refunds the poster, and whether a
-        // charge whose card dispute was won can still be refunded is not yet
-        // verified in Stripe test mode, so the notice says to check first.
+        // Q449: a restored decided split is the admin's to run now. Q1425: a
+        // charge whose card dispute was WON can still be refunded (measured in
+        // Stripe test mode for Q449: refund re_3UNeuOKp2H4b7tEC0AswEqN4
+        // succeeded after dispute du_1UNeuSKp2H4b7tECYODoXm9E was won), so the
+        // notice no longer sends the admin to check that by hand first.
         // Keyed on what actually happened (review LOW-a): a held job that was
         // not 'chargeback', or whose restore matched no row, is neither.
         const settleNow = wonRestoredTo
-          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute. If the decision refunds the person who posted the job anything, first check in Stripe that this charge can still be refunded (its card dispute was won), because the split pays the Helpr's share before it refunds.`
+          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute.`
           : wonNeedsHuman
           ? " It stays blocked as 'chargeback', and no admin action can settle a 'chargeback' job: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold;"
           : " Settle that first;";
@@ -630,9 +636,9 @@ export async function handleChargeDisputeClosed(
     message:
       outcome === "won"
         ? repaid && repaid.rows > 0
-          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.held.length + repaid.holdErrors.length > 0 ? "not paid back yet: it waits on a payout hold and is re-paid automatically (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.held.length + repaid.holdErrors.length > 0 ? "not paid back yet: it waits on a payout hold and is re-paid automatically (see the separate alert)" : repaid.balanceShort.length > 0 ? "not paid back yet: the platform balance was too low; top it up, the re-pay is retried automatically (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
           : wonRestoredTo
-          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job's decided split had not run; its payment state is back to ${wonRestoredTo} so an admin can Retry settlement (check first that the charge can still be refunded). Do not release a full payout over it.`
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job's decided split had not run; its payment state is back to ${wonRestoredTo} so an admin can Retry settlement. Do not release a full payout over it.`
           : wonNeedsHuman
           ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job still has its own hold (${wonHoldReasons.join("; ")}), so it stays blocked as 'chargeback', which no admin action can settle: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold. Do not release a full payout over it.`
           : wonHoldReasons.length > 0

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T05:01Z",
+  "measured_at": "2026-10-07T05:36Z",
   "issues": {
     "readable": true,
     "open": [
@@ -82,6 +82,14 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2420
+      },
+      {
+        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
+        "source_kind": "error_logs",
+        "source": "push-tokens-empty",
+        "status": "open",
+        "title": "no device can receive a push",
+        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -267,6 +275,7 @@
     "ledger acf4ea2ff283": "Q1436",
     "ledger d2d07ff8b273": "Q1466",
     "ledger dfa53ea7538b": "Q1467",
+    "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1474",
     "ledger fad6897fcfae": "Q1438"
   }

@@ -26,6 +26,7 @@
 // @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents); |       payoutCents = unroundedPayoutCents - onboardingFeeCents;
 // @mutate supabase/functions/void-cancelled-payments/index.ts | amount: roundPayoutDownCents(Math.round(memberPayout * 100)), | amount: Math.round(memberPayout * 100),
 // @mutate supabase/functions/create-payment/index.ts | const amountCents = roundPayoutDownCents(Math.round(amount * 100)); | const amountCents = Math.round(amount * 100);
+// @mutate supabase/functions/_shared/crewBlockFees.ts | const payoutCents = roundPayoutDownCents(Math.round((feeDollars - platformCut) * 100)); | const payoutCents = Math.round((feeDollars - platformCut) * 100);
 // @mutate supabase/functions/_shared/money.ts | return Math.floor(whole / 100) * 100; | return whole;
 // @mutate supabase/functions/execute-dispute-split/index.ts | : `$${formatExactDollars(refundDollars)} has been refunded | : `$${formatPayoutDollars(refundDollars)} has been refunded
 // @mutate src/lib/productPrices.ts | `$${formatPrice(cents / 100)}` | `$${(cents / 100).toFixed(2)}`
@@ -56,6 +57,8 @@ const HELPR_PAYOUT_SITES: Record<string, PayoutSite> = {
   "supabase/functions/execute-dispute-split/index.ts": { kind: "var", name: "helperCents" },
   "supabase/functions/create-payment/index.ts": { kind: "var", name: "amountCents" },
   "supabase/functions/void-cancelled-payments/index.ts": { kind: "inline", count: 2 },
+  // Q1390: a crew member's cancellation fee for a block, paid from the job's escrow.
+  "supabase/functions/_shared/crewBlockFees.ts": { kind: "var", name: "payoutCents" },
 };
 
 /** Transfers that are not a Helpr's job payout, with the reason. */
@@ -79,6 +82,7 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
   "supabase/functions/release-payout/index.ts": 1,
   "supabase/functions/_shared/chargebackClawback.ts": 1,
+  "supabase/functions/_shared/crewBlockFees.ts": 1,
   "supabase/functions/_shared/heldTipRepay.ts": 1,
   "supabase/functions/void-cancelled-payments/index.ts": 2,
 };
@@ -89,6 +93,7 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
 const PAYOUT_FORMAT_ARGS: Record<string, string[]> = {
   "supabase/functions/auto-release-payment/index.ts": ["helperPayout", "helperPayout"],
   "supabase/functions/create-payment/index.ts": ["helperPayout", "helperPayout"],
+  "supabase/functions/_shared/crewBlockFees.ts": ["payoutCents / 100"],
   "supabase/functions/execute-dispute-split/index.ts": ["helperDollars"],
   "supabase/functions/instant-payout/index.ts": ["netCents"],
   "supabase/functions/process-scheduled-payouts/index.ts": ["helperPayout", "helperPayout"],
@@ -113,7 +118,7 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       if (n > 0) found[f] = n;
     }
     expect(found).toEqual(EXPECTED_TRANSFER_CALLS);
-    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(10);
+    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(11);
     // Every file is classified exactly once.
     for (const f of Object.keys(found)) {
       const classes = [f in HELPR_PAYOUT_SITES, f in NOT_A_JOB_PAYOUT].filter(Boolean).length;

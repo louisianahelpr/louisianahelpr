@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS, GuestFeedEmptySkeleton } from "@/components/GuestBrowseSkeleton";
+import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } from "@/components/GuestBrowseSkeleton";
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
@@ -574,12 +574,11 @@ const DashboardGuest = () => {
             }
           />
         </div>
-      ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? (
-        /* No list known yet (cold visit, Q722): the empty state's outline. */
-        <GuestFeedEmptySkeleton className={emptyWrapperClass} announce testId="guest-feed-empty-skeleton" />
       ) : !feedReady ? (
         /* Loading feed — shape-matched JobCardSkeletons (the dashboard's
-           primitive), so the cards swap in with no layout shift. */
+           primitive), so the cards swap in with no layout shift. A cold
+           visit draws them too (owner at launch, 2026-10-07, Q1368: real
+           jobs are public now, so an "empty" outline would flash first). */
         <div
           role="status"
           aria-live="polite"

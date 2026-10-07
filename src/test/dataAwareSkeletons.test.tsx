@@ -69,18 +69,24 @@ describe("cold visits draw the zero state, warm visits the list", () => {
   });
 
 
-  it("guest Browse: no cached feed -> the empty-state outline; a cached feed -> cards", () => {
+  // Q1368 (owner at launch, 2026-10-07): real jobs are public, so a cold
+  // guest visit draws card shapes too, never the empty outline that would
+  // flash before a full list.
+  it("guest Browse: cold or cached, the chunk skeleton draws job cards, never the empty outline (Q1368)", () => {
     const cold = withCache(() => {}, <GuestBrowseSkeleton />);
-    const coldBones = cold.container.querySelectorAll('[class*="w-[88px]"]').length;
-    expect(coldBones).toBe(1);
+    expect(cold.container.querySelectorAll('[class*="w-[88px]"]').length).toBe(0);
+    // Six JobCardSkeletons, counted by the card's own left rail (JOB_CARD_RAIL).
+    expect(cold.container.querySelectorAll('[class*="left-0 top-0 bottom-0 w-1.5"]').length).toBe(6);
+    expect(cold.container.textContent).not.toMatch(/Nothing today/);
     cleanup();
     const warm = withCache((qc) => qc.setQueryData(["guestDashboardJobs"], [{ id: "j1" }]), <GuestBrowseSkeleton />);
     expect(warm.container.querySelectorAll('[class*="w-[88px]"]').length).toBe(0);
   });
 
-  it("guest Browse's own loading frame draws the same outline until a non-empty list is known", () => {
+  it("guest Browse's own loading frame draws job cards until the feed is ready, cold visit included (Q1368)", () => {
     const src = readFileSync(resolve(import.meta.dirname, "../pages/home/DashboardGuest.tsx"), "utf8");
-    expect(src).toMatch(/\) : !feedReady && !\(jobsStatus === "success" && baseJobs\.length > 0\) \? \(\s*\/\*[^*]*\*\/\s*<GuestFeedEmptySkeleton className={emptyWrapperClass} announce/);
+    expect(src).not.toMatch(/GuestFeedEmptySkeleton/);
+    expect(src).toMatch(/\) : !feedReady \? \(\s*\/\*[^*]*\*\/\s*<div/);
   });
 
   it("post-job: four cards always, plus each conditional card only once its read says so", () => {

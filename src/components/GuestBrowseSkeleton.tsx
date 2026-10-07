@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -44,26 +43,10 @@ export const GUEST_FEED_RESERVE_CLASS = "min-h-screen md:min-h-0 content-start";
  * Deliberately light (Skeleton, JobCardSkeleton, PageHeader) so it stays in
  * the eager bundle and renders before the route chunk arrives.
  */
-/**
- * The guest feed's "Nothing today, neighbor." state as an outline, measured
- * at 375 on prod (2026-10-05): hidden eyebrow, 23px title, 3-line body
- * (63px), two 44px actions ("Notify Me When Work Lands", "Or Hire Someone
- * for a Job"). Shared by the chunk fallback and DashboardGuest's own loading
- * frame so the two are one picture (Q722). `className` is the wrapper the
- * real empty state sits in; `announce` makes the wrapper the live "Loading
- * jobs…" status (DashboardGuest's frame; the chunk fallback's root already is).
- */
-export const GuestFeedEmptySkeleton = ({ className, announce, testId }: { className: string; announce?: boolean; testId?: string }) => (
-  <div className={className} {...(announce ? { role: "status", "aria-live": "polite" as const, "aria-busy": true } : {})}>
-    {announce && <span className="sr-only">Loading jobs…</span>}
-    <EmptyStateSkeleton hiddenEyebrow titleH={23} bodyLines={3} bodyH={63} actionHeights={[44, 44]} testId={testId} />
-  </div>
-);
 
 const GuestBrowseSkeleton = () => {
-  // Data-aware (Q722): the guest feed the cache already holds. 0 = cold visit.
-  const cachedJobs = useCachedListCount<unknown[]>(["guestDashboardJobs"], (d) => (Array.isArray(d) ? d.length : 0));
-  const cold = cachedJobs === 0;
+  // Q1368 (owner at launch, 2026-10-07): cold or warm, the feed's card
+  // shapes; real jobs are public, so the empty outline (Q722) is retired here.
   if (isNativePlatform) {
     return (
   <div
@@ -88,15 +71,11 @@ const GuestBrowseSkeleton = () => {
 
     <div className="mx-auto w-full max-w-3xl lg:max-w-5xl px-4 pt-4 space-y-4">
       {/* Job card list — shape-matched to the real feed cards. */}
-      {cold ? (
-        <GuestFeedEmptySkeleton className="flex-1 min-h-full flex" />
-      ) : (
-        <div className="space-y-list">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <JobCardSkeleton key={i} />
-          ))}
-        </div>
-      )}
+      <div className="space-y-list">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <JobCardSkeleton key={i} />
+        ))}
+      </div>
     </div>
   </div>
 
@@ -132,17 +111,11 @@ const GuestBrowseSkeleton = () => {
     <PageHeader title="Browse Jobs" backTo="/" width="public" topInsetHandled />
     <div className="px-5 sm:px-8 lg:px-12 pb-16">
       <div className="mx-auto page-measure">
-        {cold ? (
-          // Cold visit (no feed in the cache): the empty state's outline, the
-          // same picture DashboardGuest's own loading frame draws (Q722).
-          <GuestFeedEmptySkeleton className="min-h-screen md:min-h-[50vh] flex" />
-        ) : (
-          <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <JobCardSkeleton key={i} />
-            ))}
-          </div>
-        )}
+        <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <JobCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     </div>
   </div>

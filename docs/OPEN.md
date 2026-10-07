@@ -4,8 +4,8 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 257** (218 to do, 39 fixed with protection pending; 886 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Launch list: 23 left of 34** (14 to do, 9 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
+- **Open: 254** (217 to do, 37 fixed with protection pending; 889 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Launch list: 20 left of 34** (13 to do, 7 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 14 stale, 0 unknown, 49 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-06T23:06Z)_
 - **Remote branches:** 16 carry patches not on main, 0 fully merged, of 20 (Q79). _(2026-10-06T23:06Z)_
@@ -83,7 +83,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1143 items — 886 done, 39 partly done (fixed, protection pending), 218 open.**
+**Queue: 1143 items — 889 done, 37 partly done (fixed, protection pending), 217 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

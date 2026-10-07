@@ -11,7 +11,7 @@
  *
  * @mutate scripts/ci/wait-commit-deploys.mjs |   if (inFlight.length) { |   if (false) {
  * @mutate scripts/ci/wait-commit-deploys.mjs |   const bad = runs.filter((r) => r.conclusion !== "success" && r.conclusion !== "skipped"); |   const bad = [];
- * @mutate .github/workflows/vacuity.yml |         run: node scripts/ci/wait-commit-deploys.mjs\n |         run: echo skipped\n
+ * @mutate .github/workflows/vacuity.yml |         run: node scripts/ci/wait-commit-deploys.mjs # e2e leg 1\n |         run: echo skipped\n
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -48,7 +48,7 @@ describe("vacuity's prod-backed registrations wait for the commit's deploys (Q43
     expect(job.permissions).toMatchObject({ actions: "read" });
     const steps = job.steps as { name?: string; run?: string; if?: string }[];
     const wait = steps.findIndex((s) => s.run === "node scripts/ci/wait-commit-deploys.mjs");
-    const gate = steps.findIndex((s) => s.name === "Vacuity gate (Playwright registrations)");
+    const gate = steps.findIndex((s) => /^Vacuity gate \(Playwright registrations/.test(s.name ?? ""));
     expect(wait).toBeGreaterThan(-1);
     expect(gate).toBeGreaterThan(wait);
     expect(steps[wait].if).toBe("github.event_name == 'push'");

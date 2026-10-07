@@ -50,6 +50,8 @@ describe("availability time suffix contrast (Q1013)", () => {
   const suffix = /const TimeSuffix[\s\S]{0,200}?opacity-(\d+)/.exec(field);
 
   it("reads the idle segment alpha and the suffix opacity from source", () => {
+    // Floor: src/index.css was 222,473 bytes on 2026-10-07.
+    expect(css.length).toBeGreaterThan(100_000);
     expect(idle, ".segmented-option colour not found").not.toBeNull();
     expect(suffix, "TimeSuffix opacity class not found").not.toBeNull();
   });

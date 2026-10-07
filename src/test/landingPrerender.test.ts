@@ -53,6 +53,7 @@ describe("the landing's build-time first paint (Q652)", () => {
       mkdirSync(join(dist, "assets"));
       writeFileSync(join(dist, "assets", "logo-1.webp"), "x");
       const ok = `${HERO}${"<p>filler</p>".repeat(500)}<img src="/assets/logo-1.webp" srcSet="/assets/logo-1.webp 96w">`;
+      expect(ok.length).toBeGreaterThan(6000); // the markup checkMarkup reads is a real page, not an empty string
       expect(assetUrls(ok)).toEqual(["/assets/logo-1.webp"]);
       expect(checkMarkup(ok, dist).problems).toEqual([]);
       expect(checkMarkup(ok.replace("Partner.", "Partner"), dist).problems.join()).toMatch(/locked hero H1/);

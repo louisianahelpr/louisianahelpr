@@ -17,12 +17,13 @@
  */
 // @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --no-e2e --only "${ONLY}" |             npm run vacuity -- --only "${ONLY}"
 // @mutate .github/workflows/vacuity.yml |             npm run vacuity:all -- --no-e2e |             npm run vacuity:all
-// @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --e2e --only "${ONLY}" |             npm run vacuity -- --only "${ONLY}"
+// @mutate .github/workflows/vacuity.yml |             npm run vacuity -- --e2e --only "${ONLY}" --budget-min 34 --done-out vacuity-legs/done-1.json |             npm run vacuity -- --only "${ONLY}" --budget-min 34 --done-out vacuity-legs/done-1.json
+// @mutate .github/workflows/vacuity.yml |             npm run vacuity:all -- --e2e --slice "${SLICE}" --budget-min 34 --done-out vacuity-legs/done-3.json | npm run vacuity:all -- --slice "${SLICE}" --budget-min 34 --done-out vacuity-legs/done-3.json
 // @mutate .github/workflows/vacuity.yml |     needs: [scope, wait-accounts]\n    if: needs.scope.outputs.have_e2e == 'true' |     needs: [scope, wait-accounts]\n    if: always()
 // @mutate .github/workflows/vacuity.yml |   vacuity:\n    name: Guards shown able to fail\n    runs-on: ubuntu-latest | name: Guards shown able to fail\n    runs-on: ubuntu-latest\n    env:\n      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
 // @mutate scripts/vacuity/run.mjs | export const kindOf = (m) => (isPlaywrightGuard(m.guard) ? "e2e" : "unit"); | export const kindOf = (m) => "unit";
 // @mutate scripts/vacuity/run.mjs |   return kind === "all" ? mutations : mutations.filter((m) => kindOf(m) === kind); |   return mutations;
-// @mutate scripts/vacuity/index.mjs | const scoped = selectKind(sel.scoped, KIND); | const scoped = sel.scoped;
+// @mutate scripts/vacuity/index.mjs | const kindScoped = selectKind(sel.scoped, KIND); | const kindScoped = sel.scoped;
 // @mutate scripts/vacuity/index.mjs | const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all"; | const KIND = "all";
 // @mutate scripts/vacuity/scope.mjs | have_e2e=${e2e > 0} | have_e2e=true
 import { describe, expect, it } from "vitest";
@@ -99,7 +100,11 @@ describe("Q551: the gate honours --e2e / --no-e2e", () => {
 
   it("reads both flags and filters the scoped registrations by kind before mutating", () => {
     expect(code).toContain('const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all";');
-    expect(code).toContain("const scoped = selectKind(sel.scoped, KIND);");
+    expect(code).toContain("const kindScoped = selectKind(sel.scoped, KIND);");
+    expect(code).toContain("let inScope = kindScoped;");
+    // Q1270: a leg runs what earlier legs left of the kind-filtered set.
+    expect(code).toContain("const scoped = remainingAfter(inScope, doneBefore);");
+    expect(code.indexOf("selectKind(sel.scoped, KIND)")).toBeLessThan(code.indexOf("runWithinBudget(scoped"));
     expect(code.indexOf("selectKind(sel.scoped, KIND)")).toBeLessThan(code.indexOf("runMutations(scoped"));
   });
 
@@ -110,6 +115,8 @@ describe("Q551: the gate honours --e2e / --no-e2e", () => {
 
 describe("Q551: vacuity.yml runs the Playwright registrations only under the lock", () => {
   const { scope: scopeJob, "wait-accounts": waiter, vacuity, "vacuity-e2e": e2e } = wf.jobs;
+  // Q1270: the e2e registrations run in legs vacuity-e2e, vacuity-e2e-2 ...
+  const legs = Object.entries(wf.jobs).filter(([k]) => /^vacuity-e2e(-\d+)?$/.test(k));
 
   it("the credential-free job names no shared-account secret and runs only --no-e2e", () => {
     expect(secretsIn(vacuity)).toEqual([]);
@@ -118,20 +125,27 @@ describe("Q551: vacuity.yml runs the Playwright registrations only under the loc
     for (const c of cmds) expect(c, c).toContain("--no-e2e");
   });
 
-  it("the lock job holds the shared accounts, queues behind the waiter, and runs only --e2e", () => {
-    expect(secretsIn(e2e).length, "vacuity-e2e must carry the credentials the e2e guards sign in with").toBeGreaterThan(3);
-    expect(e2e.concurrency).toEqual({ group: "prod-lifecycle-shared-accounts", "cancel-in-progress": false });
-    expect(needsOf(e2e)).toEqual(expect.arrayContaining(["scope", "wait-accounts"]));
-    const cmds = harness(e2e);
-    expect(cmds.length).toBeGreaterThan(2);
-    for (const c of cmds) {
-      expect(c, c).toContain("--e2e");
-      expect(c, c).not.toContain("--no-e2e");
+  it("every lock leg holds the shared accounts, queues behind its own waiter, and runs only --e2e", () => {
+    expect(legs.length, "no e2e legs found").toBeGreaterThan(1);
+    for (const [key, leg] of legs) {
+      expect(secretsIn(leg).length, `${key} must carry the credentials the e2e guards sign in with`).toBeGreaterThan(3);
+      expect(leg.concurrency, key).toEqual({ group: "prod-lifecycle-shared-accounts", "cancel-in-progress": false });
+      const waitKey = key === "vacuity-e2e" ? "wait-accounts" : key.replace("vacuity-e2e-", "wait-e2e-");
+      expect(needsOf(leg), key).toEqual(expect.arrayContaining(["scope", waitKey]));
+      expect(wf.jobs[waitKey]?.concurrency, `${waitKey} must be lock-free`).toBeUndefined();
+      const cmds = harness(leg);
+      expect(cmds.length, key).toBeGreaterThan(2);
+      for (const c of cmds) {
+        expect(c, c).toContain("--e2e");
+        expect(c, c).not.toContain("--no-e2e");
+      }
     }
   });
 
   it("neither the lock job nor its queue exists unless scope found e2e work", () => {
-    for (const j of [waiter, e2e]) {
+    const waiters = Object.entries(wf.jobs).filter(([k]) => /^wait-e2e-\d+$/.test(k)).map(([, j]) => j);
+    expect(waiters.length).toBe(legs.length - 1);
+    for (const j of [waiter, e2e, ...waiters]) {
       expect(j.if, "must be gated on scope's output").toContain("needs.scope.outputs.have_e2e == 'true'");
       expect(j.if).not.toMatch(/always\(\)/);
     }
@@ -151,6 +165,9 @@ describe("Q551: vacuity.yml runs the Playwright registrations only under the loc
     const status = String((wf.jobs.notify as { steps: { with?: { status?: string } }[] }).steps.find((s) => s.with?.status)?.with?.status);
     expect(status).toContain("needs.vacuity-e2e.result == 'success'");
     expect(status).toContain("needs.scope.outputs.have_e2e != 'true'");
-    expect(needsOf(wf.jobs.notify)).toEqual(expect.arrayContaining(["scope", "vacuity", "vacuity-e2e"]));
+    expect(needsOf(wf.jobs.notify)).toEqual(expect.arrayContaining(["scope", "vacuity", ...legs.map(([k]) => k)]));
+    // Q1270: any leg that failed or was cancelled makes the run red.
+    expect(status).toContain("!contains(needs.*.result, 'failure')");
+    expect(status).toContain("!contains(needs.*.result, 'cancelled')");
   });
 });

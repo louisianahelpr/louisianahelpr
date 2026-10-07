@@ -21,6 +21,7 @@
 import { appendFileSync } from "node:fs";
 import { changedFiles } from "./lib.mjs";
 import { collectMutations, scopeMutations, selectKind } from "./run.mjs";
+import { parseSlice, sliceOf } from "./legs.mjs";
 
 const argv = process.argv.slice(2);
 const all = argv.includes("--all");
@@ -32,7 +33,15 @@ const sel = scopeMutations(mutations, { all, only, changed: only || all ? null :
 // A registration or --only error is the gate's to report (index.mjs fails on it
 // in the unit job); here it must not hide the lock job when e2e work is selected.
 for (const e of [...errors, ...sel.errors]) console.log(`::warning title=vacuity scope::${e}`);
-const e2e = selectKind(sel.scoped, "e2e").length;
+// Q1270: a weekly run proves this week's slice of the e2e set (legs.mjs sliceOf).
+const sliceIdx = argv.indexOf("--slice");
+const slice = sliceIdx >= 0 ? argv[sliceIdx + 1] : "";
+let e2eSet = selectKind(sel.scoped, "e2e");
+if (slice) {
+  const { i, k } = parseSlice(slice);
+  e2eSet = sliceOf(e2eSet, i, k);
+}
+const e2e = e2eSet.length;
 const unit = selectKind(sel.scoped, "unit").length;
-console.log(`e2e=${e2e} unit=${unit}`);
-if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `have_e2e=${e2e > 0}\ne2e_count=${e2e}\nunit_count=${unit}\n`);
+console.log(`e2e=${e2e} unit=${unit}${slice ? ` slice=${slice}` : ""}`);
+if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `have_e2e=${e2e > 0}\ne2e_count=${e2e}\nunit_count=${unit}\nslice=${slice}\n`);

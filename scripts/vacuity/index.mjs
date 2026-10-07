@@ -24,6 +24,7 @@
  *   node scripts/vacuity/index.mjs --report     # no gate, print the full vacuity report
  *   node scripts/vacuity/index.mjs --only a,b   # mutate exactly these guard files' registrations
  *   ... --e2e | --no-e2e                        # only the Playwright registrations | none of them (Q551)
+ *   ... --budget-min N [--done f] [--done-out f] [--last-leg]   # one resumable locked leg (Q1270, legs.mjs)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -31,6 +32,7 @@ import { REPO, guardFiles, untrackedGuardFiles, parseDirectives, loadBaseline, B
 import { scanAll } from "./scan.mjs";
 import { preflight } from "./preflight.mjs";
 import { collectMutations, runMutations, scopeMutations, selectKind } from "./run.mjs";
+import { NOT_REACHED, mutationKey, nextDone, parseSlice, readDone, remainingAfter, runWithinBudget, sliceOf } from "./legs.mjs";
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -196,19 +198,69 @@ if (has("--e2e") && has("--no-e2e")) fail("--e2e and --no-e2e are opposites; pas
 const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all";
 const sel = scopeMutations(mutations, { all: ALL, only: ONLY, report: REPORT_ONLY, changed: ONLY || ALL || REPORT_ONLY ? null : changedFiles() });
 for (const e of sel.errors) fail(e);
-const scoped = selectKind(sel.scoped, KIND);
+const argOf = (f) => (argv.indexOf(f) >= 0 ? argv[argv.indexOf(f) + 1] : undefined);
+const kindScoped = selectKind(sel.scoped, KIND);
+// Q1270: --slice i/k narrows to this week's share (legs.mjs sliceOf).
+let inScope = kindScoped;
+if (argv.includes("--slice")) {
+  try {
+    const { i, k } = parseSlice(argOf("--slice"));
+    inScope = sliceOf(kindScoped, i, k);
+    console.log(`slice ${i}/${k}: ${inScope.length} of ${kindScoped.length} registration(s)`);
+  } catch (e) {
+    fail(e.message);
+    inScope = [];
+  }
+}
+
+/*
+ * Q1270: one resumable leg (scripts/vacuity/legs.mjs). --done skips what earlier
+ * legs ran, --budget-min stops starting work once spent, --done-out hands the
+ * cumulative list on, --last-leg fails on anything still left.
+ */
+const BUDGET_MIN = argOf("--budget-min") === undefined ? undefined : Number(argOf("--budget-min"));
+if (BUDGET_MIN !== undefined && !(BUDGET_MIN > 0)) fail(`--budget-min ${argOf("--budget-min")}: a positive number of minutes`);
+const DONE_IN = argOf("--done");
+const DONE_OUT = argOf("--done-out");
+const LAST_LEG = has("--last-leg");
+let doneBefore = [];
+if (DONE_IN) {
+  try {
+    doneBefore = readDone(DONE_IN);
+  } catch (e) {
+    fail(e.message);
+    doneBefore = inScope.map(mutationKey); // run nothing on a list this leg cannot read
+  }
+}
+const scoped = remainingAfter(inScope, doneBefore);
+if (DONE_IN) console.log(`leg: ${inScope.length - scoped.length} of ${inScope.length} registration(s) already run by earlier legs, ${scoped.length} left`);
+let legResults = [];
+const writeLeg = () => {
+  if (!DONE_OUT) return;
+  const done = nextDone(doneBefore, legResults);
+  const remaining = remainingAfter(inScope, done).length;
+  fs.writeFileSync(DONE_OUT, JSON.stringify({ done, remaining }, null, 2));
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `remaining=${remaining}\n`);
+  console.log(`leg: ${remaining} registration(s) left for the next leg (${DONE_OUT})`);
+  if (LAST_LEG && remaining)
+    fail(`${remaining} registration(s) were not reached by the LAST leg: the set is bigger than its legs. Add legs (scripts/ci/vacuity-legs.mjs); a partial proof is not a pass.`);
+};
 
 if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
-  console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}…`);
-  const results = runMutations(scoped, {
-    onResult: (r) => {
-      const tag =
-        r.verdict === "killed" ? c.green("killed  ") :
-        r.verdict === "SURVIVED" ? c.red("SURVIVED") :
-        c.yellow(r.verdict.padEnd(8));
-      console.log(`  ${tag} ${r.guard} ⟵ ${r.target}${r.why ? c.dim("  (" + r.why + ")") : ""}`);
-    },
-  });
+  console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}${BUDGET_MIN ? ` within ${BUDGET_MIN} min` : ""}…`);
+  const onResult = (r) => {
+    const tag =
+      r.verdict === "killed" ? c.green("killed  ") :
+      r.verdict === "SURVIVED" ? c.red("SURVIVED") :
+      c.yellow(r.verdict.padEnd(8));
+    console.log(`  ${tag} ${r.guard} ⟵ ${r.target}${r.why ? c.dim("  (" + r.why + ")") : ""}`);
+  };
+  legResults = BUDGET_MIN
+    ? runWithinBudget(scoped, { deadline: Date.now() + BUDGET_MIN * 60_000, run: runMutations, onResult })
+    : runMutations(scoped, { onResult });
+  writeLeg();
+  // What this leg did not reach belongs to the next leg; it is not a verdict.
+  const results = legResults.filter((r) => r.verdict !== NOT_REACHED);
   const key = (r) => `${r.guard}|${r.target}|${r.find}`;
   const knownSurvivors = new Set(baseline.survivingMutations ?? []);
   const survived = results.filter((r) => r.verdict === "SURVIVED");
@@ -326,7 +378,8 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
       );
   }
 } else if (!scoped.length) {
-  ok("mutation: nothing in scope (no guard or guarded file changed since origin/main)");
+  writeLeg();
+  ok(inScope.length ? `mutation: all ${inScope.length} registration(s) in scope were run by earlier legs` : "mutation: nothing in scope (no guard or guarded file changed since origin/main)");
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import { REPO, guardFiles, parseDirectives, gitIsClean, c, applyMutation, skipCensus, LIVE_PAY_SKIP_PREFIX } from "./lib.mjs";
+import { makeDistKeeper, pastDeadline, notReached } from "./legs.mjs";
 
 /**
  * Vitest's CLI entry, RESOLVED rather than guessed.
@@ -372,9 +373,28 @@ function specGateEnv(guard) {
   return GATES[guard] ?? {};
 }
 
-function runPlaywright(guard, { rebuild = false } = {}) {
+// One per process: the clean build is valid only while no source differs from it.
+let distKeeper = null;
+const dist = () =>
+  (distKeeper ??= makeDistKeeper({
+    dist: path.join(REPO, "dist"),
+    // Per process, never in node_modules: worktrees share that by symlink.
+    snapshot: path.join(fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-dist-")), "dist"),
+    build: runBuild,
+  }));
+
+/**
+ * `rebuild`: build dist/ from the (mutated) source now. `clean`: the spec must
+ * see the unmutated bundle (a baseline, or a mutation that is not
+ * bundle-affecting), so dist/ is brought back to the clean build first (Q1270).
+ */
+function runPlaywright(guard, { rebuild = false, clean = false } = {}) {
   if (rebuild) {
+    dist().mutated();
     const b = runBuild();
+    if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
+  } else if (clean) {
+    const b = dist().clean();
     if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
   }
   // The JSON report is read only to learn WHY tests skipped (Q1144).
@@ -471,8 +491,8 @@ function runPlaywright(guard, { rebuild = false } = {}) {
 }
 
 /** Dispatch one guard to the engine that can actually execute it. */
-function runGuard(guard, { rebuild = false } = {}) {
-  return isPlaywrightGuard(guard) ? runPlaywright(guard, { rebuild }) : runVitest([guard]);
+function runGuard(guard, { rebuild = false, clean = false } = {}) {
+  return isPlaywrightGuard(guard) ? runPlaywright(guard, { rebuild, clean }) : runVitest([guard]);
 }
 
 /** Collect every registered mutation, plus every registration error. */
@@ -566,7 +586,7 @@ export function collectMutations(guards = guardFiles()) {
   return { mutations, errors, exemptions };
 }
 
-export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
+export function runMutations(mutations, { onResult, allowDirty = false, deadline } = {}) {
   const results = [];
 
   /*
@@ -629,12 +649,11 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
       );
     }
   }
-  // The FIRST playwright baseline builds dist/ (the preview may be stale or
-  // absent); the rest reuse it, since nothing is mutated yet.
-  let builtOnce = false;
+  // The FIRST playwright baseline of a process builds dist/ (the preview may be
+  // stale or absent); later ones reuse that clean build, restored from its
+  // copy when an earlier mutation left dist/ rebuilt from mutated source.
   for (const g of pw) {
-    const r = runPlaywright(g, { rebuild: !builtOnce });
-    builtOnce = true;
+    const r = runPlaywright(g, { clean: true });
     if (r.green) continue;
     // Q1144: deterministic, and not a failure to observe the guard: its whole
     // fixture is unpayable before launch. Scored on its own, never retried.
@@ -656,7 +675,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
      * playwright run of a session pays the cold webServer build and is the
      * only one that can lose a race with it.
      */
-    const again = runPlaywright(g, { rebuild: false });
+    const again = runPlaywright(g, { clean: true });
     if (again.green) {
       process.stderr.write(
         `\n! ${g} was RED on its first baseline and GREEN on retry.\n` +
@@ -687,6 +706,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
       onResult?.(results.at(-1));
       continue;
     }
+    // Q1270: a leg with a time budget stops before a mutation it may not finish.
+    if (pastDeadline(deadline)) {
+      results.push(notReached(m));
+      onResult?.(results.at(-1));
+      continue;
+    }
     if (!allowDirty && !gitIsClean(m.target)) {
       results.push({ ...m, verdict: "skipped", why: `${m.target} has uncommitted changes (another lane may own it)` });
       onResult?.(results.at(-1));
@@ -699,7 +724,8 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const mutated = Buffer.from(applyMutation(original.toString("utf8"), m.find, m.replace));
     try {
       fs.writeFileSync(abs, mutated);
-      const r = runGuard(m.guard, { rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target) });
+      const pwGuard = isPlaywrightGuard(m.guard);
+      const r = runGuard(m.guard, { rebuild: pwGuard && needsRebuild(m.target), clean: pwGuard && !needsRebuild(m.target) });
       if (r.timedOut) {
         verdict = "inconclusive";
         why = r.out.trim().split("\n").slice(0, 3).join("\n      ");

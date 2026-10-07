@@ -31,7 +31,8 @@
 // @mutate e2e/canary/core-loop.spec.ts | [poster, "messages", "content"]] | ]
 // @mutate .github/workflows/core-loop-canary.yml | - cron: "47 * * * *" | - cron: "47 5 * * *"
 // @mutate .github/workflows/core-loop-canary.yml |     timeout-minutes: 40\n | \n
-// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress"); |     return false;
+// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => String(j.name).startsWith(VACUITY_E2E_JOB) && j.status === "in_progress"); |     return false;
+// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => String(j.name).startsWith(VACUITY_E2E_JOB) && j.status === "in_progress"); |     return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress");
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -218,6 +219,20 @@ describe("core-loop canary: a ghost run never stands it down", () => {
     const wf = readFileSync(join(process.cwd(), ".github", "workflows", VACUITY_WORKFLOW), "utf8");
     expect(wf).toMatch(new RegExp(`\\n  vacuity-e2e:[\\s\\S]*?\\n    name: ${VACUITY_E2E_JOB}\\n`));
     expect(sharedAccountWorkflows()).toContain(VACUITY_WORKFLOW);
+  });
+  // Q1270: the e2e registrations run in locked legs; the weekly chain outlasts STALE_RUN_MS.
+  it("any vacuity e2e leg in progress holds the accounts, for a push or a weekly run of any age; between legs nothing does", () => {
+    const wf = readFileSync(join(process.cwd(), ".github", "workflows", VACUITY_WORKFLOW), "utf8");
+    const legNames = [...wf.matchAll(/\n {2}vacuity-e2e(?:-\d+)?:\n(?: {4}#.*\n)*? {4}name: (.+)\n/g)].map((x) => x[1]);
+    expect(legNames.length).toBeGreaterThan(1);
+    for (const n of legNames) expect(n.startsWith(VACUITY_E2E_JOB), n).toBe(true);
+    const later = legNames.at(-1)!;
+    const push = { ...run("push", 60_000), path: `.github/workflows/${VACUITY_WORKFLOW}` };
+    const weekly = { ...run("schedule", STALE_RUN_MS + 3_600_000), path: `.github/workflows/${VACUITY_WORKFLOW}` };
+    for (const r of [push, weekly]) {
+      expect(holdsAccounts(r, now, [{ name: later, status: "in_progress" }]), r.event).toBe(true);
+      expect(holdsAccounts(r, now, [{ name: VACUITY_E2E_JOB, status: "completed" }, { name: "Wait for the shared accounts (queue, e2e leg 2)", status: "in_progress" }]), r.event).toBe(false);
+    }
   });
   it("a run in progress past the 10 h a real run can last does not (36796252514, 14 h)", () => {
     expect(holdsAccounts(run("workflow_dispatch", 14 * 3_600_000), now)).toBe(false);

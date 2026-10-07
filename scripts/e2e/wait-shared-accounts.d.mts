@@ -6,6 +6,9 @@
 export const LOCK: "prod-lifecycle-shared-accounts";
 /** A run created this long before `me` is a GitHub ghost; decide() skips it. */
 export const STALE_RUN_MS: number;
+/** ...unless one of its jobs started or finished within this long (a legged chain, Q1270). */
+export const ACTIVE_WITHIN_MS: number;
+export const YIELDS_BETWEEN_LEGS: Set<string>;
 export interface LockedJob {
   key: string;
   name: string;
@@ -17,7 +20,7 @@ export interface InFlightRun {
   name: string;
   path: string;
   html_url: string;
-  jobs: { name: string; status: string; conclusion?: string | null }[];
+  jobs: { name: string; status: string; conclusion?: string | null; started_at?: string | null; completed_at?: string | null }[];
 }
 /** Every job holding the lock, per workflow path. */
 export function lockedJobs(dir?: string): Inventory;
@@ -27,7 +30,7 @@ export function matchesLocked(apiName: string, locked: LockedJob[]): boolean;
 export function drivesAccounts(run: { event: string; path?: string; display_title?: string | null }): boolean;
 export const PUSH_DRIVERS: Set<string>;
 /** May the run `me` join the lock now? */
-export function decide(me: { id: number; created_at: string }, runs: InFlightRun[], inventory: Inventory): { go: boolean; why: string };
+export function decide(me: { id: number; created_at: string; now?: number }, runs: InFlightRun[], inventory: Inventory): { go: boolean; why: string };
 /** ms to wait out a GitHub API rate limit, or null when the response is not one. */
 export function rateLimitWaitMs(
   res: { status: number; headers?: Record<string, string>; body?: string },

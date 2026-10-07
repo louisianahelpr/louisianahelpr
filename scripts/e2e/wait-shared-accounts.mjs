@@ -130,7 +130,7 @@ export function matchesLocked(apiName, locked) {
  * src/test/sharedAccountLockJobsAreShort.test.ts). Between two of its legs
  * other runs may go first; every leg re-queues through its own waiter.
  */
-export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-control.yml"]);
+export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-control.yml", ".github/workflows/vacuity.yml"]);
 
 // A run created this long before us cannot still be a real queue member: its
 // wait job dies at 350 min and its longest lock job (vacuity-e2e) at 180, so a
@@ -140,7 +140,18 @@ export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-contr
 // "older run that has not reached the lock yet" and timed out (prod-audit
 // 36828817500, 6 h). Same value as the canary's STALE_RUN_MS.
 export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
-const stale = (run, me) => Date.parse(me.created_at) - Date.parse(run.created_at) > STALE_RUN_MS;
+/*
+ * ...unless one of its jobs started or finished recently (Q1270, 2026-10-07).
+ * vacuity.yml's weekly e2e set runs as a chain of short locked legs, each
+ * behind its own waiter, and the chain can outlast 10 h; between two legs its
+ * next waiter is a real queue member. A real chain moves at least once per
+ * waiter (350 min) plus leg (60 min); a ghost (36796252514) does not move.
+ */
+export const ACTIVE_WITHIN_MS = 7 * 60 * 60 * 1000;
+const lastActivity = (run) =>
+  Math.max(-Infinity, ...run.jobs.flatMap((j) => [j.started_at, j.completed_at]).map((t) => Date.parse(t ?? "")).filter(Number.isFinite));
+const stale = (run, me) =>
+  Date.parse(me.created_at) - Date.parse(run.created_at) > STALE_RUN_MS && !((me.now ?? Date.now()) - lastActivity(run) <= ACTIVE_WITHIN_MS);
 
 const older = (a, b) => (a.created_at === b.created_at ? a.id < b.id : a.created_at < b.created_at);
 
@@ -232,7 +243,7 @@ async function snapshot(repo, token, inventory) {
       name: r.name,
       path: r.path.split("@")[0],
       html_url: r.html_url,
-      jobs: jobs.map((j) => ({ name: j.name, status: j.status, conclusion: j.conclusion })),
+      jobs: jobs.map((j) => ({ name: j.name, status: j.status, conclusion: j.conclusion, started_at: j.started_at, completed_at: j.completed_at })),
     });
   }
   return runs;

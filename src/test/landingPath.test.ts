@@ -9,7 +9,8 @@
 // @mutate scripts/land.sh |   SUBJECTS=$(git log --format=%s origin/main..HEAD) |   SUBJECTS=$(git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT")
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # Per push: ratchet | VACUITY_PUSH_BEFORE: ""\n        # Per push: ratchet
-// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # The same scope as the unit job | VACUITY_PUSH_BEFORE: ""\n        # The same scope as the unit job
+// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} # e2e leg 1\n | VACUITY_PUSH_BEFORE: "" # e2e leg 1\n
+// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} # e2e leg 4\n | VACUITY_PUSH_BEFORE: "" # e2e leg 4\n
 // @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
 // @mutate scripts/land.sh |     if ! node scripts/perf/critical-path.mjs --check; then |     if false; then
 // @mutate scripts/land.sh | grep -qE '^(src/\|public/ | grep -qE '^(public/
@@ -202,7 +203,10 @@ describe("landing path (Q44)", () => {
       // `scope` job that decides whether the latter runs, Q551) takes it, or the
       // three would disagree about what the push changed.
       const jobs = (parse(yml) as { jobs: Record<string, { steps?: { env?: Record<string, string> }[] }> }).jobs;
-      for (const j of ["scope", "vacuity", "vacuity-e2e"])
+      // Q1270: every e2e leg, not only the first.
+      const legs = Object.keys(jobs).filter((k) => /^vacuity-e2e(-\d+)?$/.test(k));
+      expect(legs.length).toBeGreaterThan(1);
+      for (const j of ["scope", "vacuity", ...legs])
         expect(
           (jobs[j].steps ?? []).some((s) => s.env?.VACUITY_PUSH_BEFORE === "${{ github.event.before }}"),
           `${j} does not scope by the push`,

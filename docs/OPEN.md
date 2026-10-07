@@ -1055,7 +1055,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — prod profile load really is over budget
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] **Q1078** MEDIUM 6237.9ms profile load vs 6000ms budget; auto-heal fires only after error card paints — Open: profile-load auto-heal still runs after the error card paints; decision on budget vs pre-empt not recorded. (archive L6729) **CLOSED AS OBSOLETE 2026-10-07 (lane-product):** the 6237.9 ms read no longer reaches the card. useCurrentUser's retry now accepts the first attempt's abandoned read when it lands inside ORPHAN_REUSE_WINDOW_MS (2 s), so a read that misses the 6 s timeout by a fraction loads the account without the error card (src/hooks/useCurrentUser.test.tsx "an answer that lands after the first attempt's timeout still loads the account": an 8 s answer loads). Measured on prod: error_logs rows from ProtectedRoute.profileFetchError (written whenever the card paints) over the last 21 days = 5, all on 2026-09-22 (the pg_cron outage day), 0 since. No budget change needed; the guard is that test.
 
 ### BREAKAGE (d) — reviews. OWNER DECISIONS NEEDED
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -128,7 +128,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is vacuity-e2e (180; prod-audit is two 60-min legs since Q889).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -146,7 +146,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   prod-audit:
-    name: Prod audit (prod-audit)
+    name: Prod audit (prod-audit, leg ${{ matrix.leg }})
     needs: [preflight, wait-accounts]
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
@@ -161,13 +161,22 @@ jobs:
     # locally at 2-2.5 minutes a route, so the ceiling is the sum, not one slow
     # screen — a 120-minute job would have been killed mid-suite and reported as
     # a failure of the app.
-    # MEASURED (docs/OPEN.md Q322, 2026-09-26): the job itself took 100 min at
-    # most (run 36003051878, 13:14:40-14:55:13Z on 2026-09-24; 51 min on the
-    # 2026-09-24 schedule, 35963166238). 300 held prod-load 5 h in the rule-5
-    # model and left the week with no free :17 slot; 180 is 1.8x the worst
-    # measured run and frees Sun and Thu 05:17.
-    timeout-minutes: 180
+    # TWO LEGS, each under the one-hour shared-account cap (Q889, 2026-10-07;
+    # sharedAccountLockJobsAreShort.test.ts). The one job held the accounts
+    # for 68 min on the last full run (37183911901: 53.0 test-min of
+    # prod-audit + 11.4 of web-vitals + setup), under a 180-min timeout. The
+    # specs split by e2e/prod-audit/legs.json (leg a 30.7, leg b 22.3 + the
+    # web-vitals project, from that run's log); max-parallel 1, so the legs
+    # take the lock one after the other, never side by side.
+    timeout-minutes: 60
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        leg: [a, b]
     env:
+      LEG: ${{ matrix.leg }}
+      REQUEST_BUDGET_DIR: request-budget/leg-${{ matrix.leg }}
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
       PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
@@ -238,16 +247,19 @@ jobs:
       # report as run by no CI job. The optional -g goes through an env var and
       # a shell branch instead.
       - name: Run the prod audit suites
-        timeout-minutes: 150
+        timeout-minutes: 37
         if: ${{ inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
+          FILES=$(node scripts/e2e/prod-audit-leg.mjs "$LEG")
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
+            # shellcheck disable=SC2086
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" $FILES
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+            # shellcheck disable=SC2086
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts $FILES
           fi
 
       # Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,
@@ -261,7 +273,7 @@ jobs:
       # test in the other, hence --pass-with-no-tests on both grep branches.
       - name: Run the first-screen Web Vitals lab budget
         timeout-minutes: 20
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        if: ${{ !cancelled() && inputs.vacuity_only == '' && matrix.leg == 'b' }}
         env:
           GREP: ${{ inputs.grep }}
         run: |
@@ -278,7 +290,7 @@ jobs:
       # not hold. They are proven HERE, where the key already is, rather than
       # giving another workflow the admin key.
       - name: Prove service-role guards able to fail (Q89)
-        if: ${{ inputs.vacuity_only != '' }}
+        if: ${{ inputs.vacuity_only != '' && matrix.leg == 'a' }}
         env:
           # Through env, never interpolated into the script (injection-safe).
           ONLY: ${{ inputs.vacuity_only }}
@@ -286,37 +298,17 @@ jobs:
           set -euo pipefail
           bash scripts/ci/playwright-install.sh webkit
           npm run vacuity -- --only "${ONLY}"
-      - name: Backend request budget (Q104)
-        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
-        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
-        # Not on a vacuity-only dispatch: the suites it budgets did not run.
-        # A `grep` dispatch runs a subset: its per-test number is not the
-        # suite's, so only the load ceiling is judged (--ceiling-only). It may
-        # also match only the web-vitals project's tests (run 37153835455:
-        # `every first screen|a tap never` ran 0 prod-audit tests, and this
-        # step failed on "no sample for this label"), hence --allow-empty.
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        env:
-          GREP: ${{ inputs.grep }}
-        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only --allow-empty}
-      - name: Backend request budget, Web Vitals lab (Q104)
-        # The web-vitals project meters under its own label. A `grep` dispatch
-        # judges the ceiling only (as the prod-audit budget above does) and,
-        # since it may run none of this project's tests, allows an empty label.
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        env:
-          GREP: ${{ inputs.grep }}
-        run: node scripts/e2e/request-budget.mjs --label web-vitals ${GREP:+--ceiling-only --allow-empty}
       - name: Keep failure screenshots, samples and traces
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: prod-audit-results
+          name: prod-audit-results-${{ matrix.leg }}
           # .env lives at the repo root, not under these paths, and is deleted
           # in the next step regardless.
           path: |
             test-results/
             playwright-report/
+            request-budget/
           retention-days: 14
           if-no-files-found: warn
 
@@ -374,9 +366,50 @@ jobs:
         if: always()
         run: rm -f .env
 
+  budget:
+    # Q104 over the WHOLE run: the budget is measured per test across the full
+    # suite, so the two legs' meter samples are judged together (the
+    # press-every-control pattern). Not locked: it reads artifacts only.
+    name: Prod audit (whole-run request budget)
+    needs: [prod-audit]
+    if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Fetch both legs' meter samples
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: prod-audit-results-*
+          merge-multiple: true
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        # Not on a vacuity-only dispatch: the suites it budgets did not run.
+        # A `grep` dispatch runs a subset: its per-test number is not the
+        # suite's, so only the load ceiling is judged (--ceiling-only). It may
+        # also match only the web-vitals project's tests (run 37153835455:
+        # `every first screen|a tap never` ran 0 prod-audit tests, and this
+        # step failed on "no sample for this label"), hence --allow-empty.
+        if: ${{ !cancelled() }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit --dir request-budget/leg-a --dir request-budget/leg-b ${GREP:+--ceiling-only --allow-empty}
+      - name: Backend request budget, Web Vitals lab (Q104)
+        # The web-vitals project meters under its own label. A `grep` dispatch
+        # judges the ceiling only (as the prod-audit budget above does) and,
+        # since it may run none of this project's tests, allows an empty label.
+        if: ${{ !cancelled() }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label web-vitals --dir request-budget/leg-a --dir request-budget/leg-b ${GREP:+--ceiling-only --allow-empty}
+
   notify:
     name: Report nightly result
-    needs: [preflight, prod-audit]
+    needs: [preflight, prod-audit, budget]
     # A FULL run reports, whoever started it (2026-09-21; see
     # src/test/nightlyIssueSyncReachable.test.ts and e2e-journeys.yml, which
     # carried the same bug against issue #1595). Gating on `schedule` alone
@@ -404,6 +437,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: prod-audit
-          status: ${{ needs.prod-audit.result == 'success' && 'success' || 'failure' }}
+          status: ${{ needs.prod-audit.result == 'success' && needs.budget.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

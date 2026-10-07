@@ -31,7 +31,7 @@ const DRIVES_ACCOUNTS = new Set(["schedule", "workflow_dispatch"]);
 const SHARED_SECRET = /\bPLAYWRIGHT_(POSTER|HELPER)_(EMAIL|PASSWORD|SESSION)\b/;
 
 // A run "in progress" longer than this is a GitHub ghost, not a lock holder:
-// its queue job dies at 350 min and the longest lock job (prod-audit) at 180,
+// its queue job dies at 350 min and the longest lock job (vacuity-e2e) at 180,
 // so a real run is done inside ~8.8 h. Same value as
 // scripts/e2e/wait-shared-accounts.mjs STALE_RUN_MS. On 2026-10-01 e2e-real-backend run 36796252514 sat in_progress for 14 h+
 // while every cancel answered "not in progress"; the canary stood down hourly

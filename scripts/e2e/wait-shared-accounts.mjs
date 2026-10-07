@@ -133,7 +133,7 @@ export function matchesLocked(apiName, locked) {
 export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-control.yml"]);
 
 // A run created this long before us cannot still be a real queue member: its
-// wait job dies at 350 min and its longest lock job (prod-audit) at 180, so a
+// wait job dies at 350 min and its longest lock job (vacuity-e2e) at 180, so a
 // legitimate run is done inside ~8.8 h. Anything older is a GitHub ghost. On
 // 2026-10-01 e2e-real-backend 36796252514 showed in_progress for 14 h+ while
 // every cancel answered "not in progress"; every queue waited behind it as an

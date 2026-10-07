@@ -1,0 +1,32 @@
+{
+  "_": "Q889 (2026-10-07): prod-audit runs as two locked legs, each under the one-hour shared-account cap (sharedAccountLockJobsAreShort). Every e2e/prod-audit/*.spec.ts is in exactly one leg (src/test/prodAuditLegs.test.ts). Balanced on per-spec test minutes from the last full scheduled run, 37183911901 (2026-10-04): leg a 30.7 min, leg b 22.3 min plus the web-vitals project (11.4 min), which runs in leg b. public-page-fit.spec.ts (one guest test, added 2026-10-05) postdates that run and is unmeasured; it went to the lighter leg b. Re-balance from a newer full run's log when a leg nears its step timeout.",
+  "a": [
+    "rail-inset.spec.ts",
+    "clipped-labels.spec.ts",
+    "messy-input.spec.ts",
+    "card-maps-hit-area.spec.ts",
+    "activity-loading-reserve.spec.ts",
+    "route-retention-signed-in.spec.ts",
+    "search-x-off-center-press.spec.ts",
+    "search-keeps-title.spec.ts",
+    "expanding-search-geometry.spec.ts",
+    "admin-tabs-and-rows.spec.ts",
+    "notification-panel-corners.spec.ts",
+    "reaction-chip-clearance.spec.ts",
+    "search-close-one-press.spec.ts",
+    "saved-helper-row.spec.ts"
+  ],
+  "b": [
+    "shell-spacing.spec.ts",
+    "page-settle.spec.ts",
+    "admin-views.spec.ts",
+    "profile-title-alignment.spec.ts",
+    "activity-tabs-visible.spec.ts",
+    "deep-links.spec.ts",
+    "interruptions.spec.ts",
+    "account-reads-per-document.spec.ts",
+    "profile-tab-scroll-fill.spec.ts",
+    "notification-panel-jump.spec.ts",
+    "public-page-fit.spec.ts"
+  ]
+}

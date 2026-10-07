@@ -17,7 +17,7 @@
  * the step (not the job), and the later evidence and restore steps run.
  */
 // @mutate .github/workflows/a11y-webkit-prod.yml |       - name: Run the prod sweep (chromium)\n        timeout-minutes: 52 |       - name: Run the prod sweep (chromium)
-// @mutate .github/workflows/prod-audit.yml |         timeout-minutes: 150 |         timeout-minutes: 178
+// @mutate .github/workflows/prod-audit.yml |       - name: Run the prod audit suites\n        timeout-minutes: 37 |       - name: Run the prod audit suites\n        timeout-minutes: 41
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";

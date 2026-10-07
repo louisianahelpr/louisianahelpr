@@ -18,7 +18,7 @@
  * 120, journeys + journeys-webkit 90).
  */
 // @mutate .github/workflows/slow-network.yml |     timeout-minutes: 30\n    concurrency: |     timeout-minutes: 61\n    concurrency:
-// @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 180 |     timeout-minutes: 170
+// @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 60\n    strategy: |     timeout-minutes: 61\n    strategy:
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -36,13 +36,6 @@ export const ALLOWED: Record<string, { minutes: number; reason: string }> = {
     reason:
       "the weekly full set runs 96 Playwright registrations at ~98 s each (about 157 min) in one locked job; " +
       "docs/OPEN.md Q1270: shard it into legs under an hour, then drop this entry.",
-  },
-  "prod-audit.yml:prod-audit": {
-    minutes: 180,
-    reason:
-      "e2e/prod-audit/messy-input.spec.ts alone measured 77.3 test-minutes (run 36298506930); the " +
-      "project is fullyParallel:false so --shard splits by file and cannot take one file below 60. " +
-      "docs/OPEN.md Q889: split messy-input into separate specs, then drop this entry.",
   },
 };
 

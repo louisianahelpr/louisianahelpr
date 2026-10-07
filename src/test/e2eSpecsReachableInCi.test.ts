@@ -18,11 +18,14 @@
 //     classifier reads ~0 and reds. The mutation gate can only replace text in
 //     a GUARDED file, and this classifier is in the guard itself, so no
 //     `@mutate` can express it.
+// @mutate e2e/prod-audit/legs.json |     "notification-panel-jump.spec.ts",\n    "public-page-fit.spec.ts" |     "public-page-fit.spec.ts"
+// @mutate scripts/e2e/prod-audit-leg.mjs |   return files.map((f) => `e2e/prod-audit/${f}`); |   return [];
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]"; | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT] ";
 // @mutate .github/workflows/e2e-real-backend.yml | \n  anon-surface:\n    needs: prod-load-turn\n    name: Anon surface contract (real prod, read-only, no credentials)\n | \n  anon-surface:\n    needs: prod-load-turn\n    name: Anon surface contract (real prod, read-only, no credentials)\n    if: ${{ secrets.E2E_SUPABASE_URL != '' }}\n
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 /**
  * Every Playwright spec in this repo must be RUN by some CI job — or be
@@ -227,7 +230,7 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
       if (line.startsWith("#")) continue;
 
       if (/(^|\s|`)(npx\s+)?playwright\s+test\b/.test(line)) {
-        for (const command of expandMatrix(line, src)) found.push({ workflow: file, command });
+        for (const command of expandMatrix(resolveSpecLists(line, src), src)) found.push({ workflow: file, command });
         continue;
       }
       const npmRun = /npm\s+run\s+([a-zA-Z0-9:_-]+)/.exec(line);
@@ -237,6 +240,32 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
     }
   }
   return found;
+}
+
+/**
+ * Q889: a spec list a workflow builds from a checked-in file, in exactly the
+ * shape `FILES=$(node scripts/e2e/<x>.mjs "$LEG")` where `LEG: ${{ matrix.leg }}`
+ * and `leg: [a, b]` sit in the same file (prod-audit.yml's two locked legs,
+ * e2e/prod-audit/legs.json). The script is RUN once per matrix value, so the
+ * files credited are the ones CI is handed, not a second copy of the list.
+ * Every value must print a non-empty list or the variable is left alone (an
+ * unknown scope, which credits nothing): an empty substitution would leave the
+ * command with no positional filter and credit the WHOLE project.
+ */
+function resolveSpecLists(line: string, src: string): string {
+  let out = line;
+  for (const m of src.matchAll(/(\w+)=\$\(node (scripts\/e2e\/[\w.-]+\.mjs) "\$(\w+)"\)/g)) {
+    const [, name, script, argVar] = m;
+    const use = new RegExp(`\\$${name}\\b`, "g");
+    if (!use.test(out)) continue;
+    const key = new RegExp(`^\\s*${argVar}:\\s*\\$\\{\\{\\s*matrix\\.(\\w+)\\s*\\}\\}\\s*$`, "m").exec(src)?.[1];
+    const inline = key ? new RegExp(`^\\s*${key}:\\s*\\[([^\\]]*)\\]\\s*$`, "m").exec(src)?.[1] : undefined;
+    const values = (inline ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+    const lists = values.map((v) => spawnSync(process.execPath, [join(REPO, script), v], { encoding: "utf8" }));
+    if (!values.length || lists.some((r) => r.status !== 0 || !r.stdout.trim())) continue;
+    out = out.replace(use, lists.map((r) => r.stdout.trim()).join(" "));
+  }
+  return out;
 }
 
 /**

@@ -71,7 +71,7 @@ export function lockQueueViolations(dir = WF_DIR): string[] {
         const perms = wj.permissions;
         if (typeof perms !== "object" || perms.actions !== "read")
           out.push(`${file}:${w} needs \`permissions: actions: read\` to see the queue`);
-        if ((wj["timeout-minutes"] ?? 0) < 180) out.push(`${file}:${w} times out before the longest holder (prod-audit, 180 min) can finish`);
+        if ((wj["timeout-minutes"] ?? 0) < 180) out.push(`${file}:${w} times out before the longest holder (vacuity-e2e, 180 min) can finish`);
       }
     }
   }

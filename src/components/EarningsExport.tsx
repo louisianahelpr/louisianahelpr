@@ -167,7 +167,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     };
     const headers = [
       "Date", "Job Title", "Category", "Parish", "Tax Status",
-      "Gross Budget (USD)", "Platform Fee (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)",
+      "Gross Earnings (USD)", "Platform Fee (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)",
     ];
     const lines = [headers.join(",")];
     let totGross = 0, totFee = 0, totTax = 0, totNet = 0;

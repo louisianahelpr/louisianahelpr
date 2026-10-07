@@ -121,7 +121,8 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     expect(body("get_neighbor_hire_count")).toMatch(/OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p_helper_id\)\)/);
     expect(body("get_helper_tiers")).toMatch(/LEFT JOIN public\.jobs j\s+ON j\.helper_id = p\.user_id\s+OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p\.user_id\)\)/);
     expect(body("get_helper_tiers")).toMatch(/OR EXISTS \(SELECT 1 FROM public\.group_job_helpers gg WHERE gg\.helper_id = p\.user_id\)/);
-    expect(body("get_helper_earnings_export")).toMatch(/WHERE p\.job_id = j\.id AND p\.helper_id = g\.helper_id AND p\.status = 'paid'[\s\S]*WHERE g\.helper_id = _helper_id/);
+    // Q1379: the crew half reads every ledger row and lists a member only with money kept (paid, or a reversal's remainder).
+    expect(body("get_helper_earnings_export")).toMatch(/WHERE p\.job_id = j\.id AND p\.helper_id = g\.helper_id\s+\) pt ON pt\.paid_cents > 0\s+WHERE g\.helper_id = _helper_id/);
     expect(body("settle_one_off_jobs_for_banned_account")).toMatch(/OR \(j\.is_group_job IS TRUE\s+AND j\.status::text IN \('completed', 'cancelled'\)\s+AND j\.payment_status IN \('escrow', 'payout_pending'\)\s+AND EXISTS \(SELECT 1 FROM public\.group_job_helpers g\s+WHERE g\.job_id = j\.id AND g\.helper_id = p_user\)/);
     const proof = readFileSync(resolve(root, "src/test/pglite/crewCountsAndBanAlert.pglite.mjs"), "utf8");
     expect(proof).toContain("effectiveDefs(DIR, { before: THIS })");

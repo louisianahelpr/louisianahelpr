@@ -8,7 +8,7 @@
 
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { effectiveSeverity, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
+import { effectiveSeverity, escapeSlackText, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
 import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -80,7 +80,7 @@ function buildBlocks(body: AlertBody, severity: AlertSeverity) {
     },
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: body.message },
+      text: { type: 'mrkdwn', text: escapeSlackText(body.message) },
     },
   ]
 
@@ -89,7 +89,7 @@ function buildBlocks(body: AlertBody, severity: AlertSeverity) {
       type: 'section',
       fields: fieldEntries.slice(0, 10).map(([k, v]) => ({
         type: 'mrkdwn',
-        text: `*${k}:*\n${String(v)}`,
+        text: `*${escapeSlackText(k)}:*\n${escapeSlackText(String(v))}`,
       })),
     })
   }
@@ -194,7 +194,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         channel,
-        text: `${SEVERITY_ICON[severity]} ${body.title} — ${body.message}`,
+        text: `${SEVERITY_ICON[severity]} ${escapeSlackText(body.title)} — ${escapeSlackText(body.message)}`,
         blocks,
         attachments: [
           { color: SEVERITY_COLOR[severity], blocks: [] },

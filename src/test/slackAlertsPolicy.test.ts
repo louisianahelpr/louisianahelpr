@@ -252,3 +252,46 @@ describe("postSlackOpsAlert: non-critical always-post kinds have an hourly ceili
 // Proof this guard can fail: lift the hourly ceiling and an unauthenticated
 // support form can bury the critical pages this channel exists for.
 // @mutate supabase/functions/_shared/slack-alerts.ts | const ALWAYS_POST_HOURLY_CAP = 12 | const ALWAYS_POST_HOURLY_CAP = 100000
+
+// Q1350: a support request's subject and name are typed by anyone (the form
+// works signed out). Slack reads <!channel> and <url|label> in mrkdwn, so an
+// unescaped field pings the channel or dresses a link as ours.
+describe("postSlackOpsAlert: text a person wrote reaches Slack escaped (Q1350)", () => {
+  beforeEach(() => {
+    calls = [];
+    firstRowId = null;
+    lookupFails = false;
+    postsThisHour = 0;
+    slackStatus = 200;
+    install();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (globalThis as any).Deno;
+  });
+
+  it("escapes & < > in the message, the field values and the fallback text", async () => {
+    await post({
+      kind: "support_request",
+      severity: "info",
+      message: "<!channel> help & <https://evil.test|Open in admin>",
+      fields: { From: "<!here> Mallory", Email: "a@b.test" },
+    });
+    const sent = slackPosts();
+    expect(sent).toHaveLength(1);
+    const raw = String(sent[0].init?.body);
+    const payload = JSON.parse(raw);
+    expect(raw).not.toContain("<!channel>");
+    expect(raw).not.toContain("<!here>");
+    expect(raw).not.toContain("<https://evil.test");
+    const escaped = "&lt;!channel&gt; help &amp; &lt;https://evil.test|Open in admin&gt;";
+    expect(payload.text).toContain(escaped);
+    expect(payload.blocks[1].text.text).toBe(escaped);
+    expect(payload.blocks[2].fields[0].text).toBe("*From:*\n&lt;!here&gt; Mallory");
+  });
+});
+
+// @mutate supabase/functions/_shared/slack-alerts.ts | text: escapeSlackText(input.message) } }, | text: input.message } },
+// @mutate supabase/functions/_shared/slack-alerts.ts | ${escapeSlackText(String(v))} | ${String(v)}
+// @mutate supabase/functions/_shared/slack-alerts.ts | ${escapeSlackText(input.title)} — ${escapeSlackText(input.message)} | ${input.title} — ${input.message}
+// @mutate supabase/functions/_shared/alertPolicy.ts | .replace(/</g, '&lt;') |

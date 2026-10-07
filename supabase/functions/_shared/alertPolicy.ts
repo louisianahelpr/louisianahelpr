@@ -227,3 +227,17 @@ export function alertSubjectFromLink(link: string | null | undefined): { jobId?:
 export function utcDayStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()
 }
+
+/**
+ * Slack's three control characters, escaped (Q1350). Every mrkdwn string an
+ * alert posts can carry text a person wrote: a support request's subject and
+ * name, and the daily digest's error_logs messages and sources, which anon can
+ * INSERT (anyone_can_insert_errors). Unescaped, `<!channel>` pings the whole
+ * channel and `<https://x|Open in admin>` dresses a link as ours. No alert
+ * uses Slack link or mention markup on purpose (grep of every caller,
+ * 2026-10-07), so both senders escape all of it; *bold* and _italic_ keep
+ * working because only & < > change.
+ */
+export function escapeSlackText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}

@@ -11,9 +11,9 @@ import { EMPTY_FORM, PLATFORM_HELP, PLATFORM_LABELS } from "./types";
 // ---------------------------------------------------------------------------
 // Cleaning-budget validation
 //
-// `cleaning_budget` is the FLAT dollar budget every auto-posted cleaning job
-// is created with (str-ical-sync writes it straight to `jobs.budget`), so it
-// is real money the host is committing to. The input advertises min/max, but
+// `cleaning_budget` is the FLAT dollar budget every imported cleaning job is
+// pre-filled with (str-ical-sync imports each checkout; Post a Job fills the
+// budget from it, Q768), so it is real money the host is committing to. The input advertises min/max, but
 // it lives outside a <form> so browser constraint validation never fires —
 // these bounds are the ones actually enforced, in the UI and again at save.
 // ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ export function AddCalendarForm({
               Auto-create cleaning job
             </Label>
             <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Post a job automatically after each checkout
+              Get a cleaning job ready to post after each checkout
             </p>
           </div>
           <Switch

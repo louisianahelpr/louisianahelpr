@@ -36,7 +36,8 @@ export function usePostJobForm() {
   // in with the intent already chosen, so they skip the entry landing and
   // drop straight into the pre-filled form. Everyone else sees the
   // start-fresh / draft / template choice first, which declutters the page.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
+  // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -286,6 +287,7 @@ export function usePostJobForm() {
     setMaterialsNote,
     setIsRecurring,
     setRecurrenceInterval,
+    setDateNeeded,
     setParish,
     setOfferToHelperId,
     setOfferToHelperName,
@@ -404,6 +406,7 @@ export function usePostJobForm() {
     materialsNote,
     saveCardForFuture,
     giftCardId,
+    turnoverId: searchParams.get("turnover"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

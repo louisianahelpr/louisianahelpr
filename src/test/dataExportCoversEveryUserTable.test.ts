@@ -252,7 +252,8 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // The readability derivations read policy TEXT; a helper function hides
     // who it admits. Each one a read policy calls is classified here (EXACT).
     // @two-way src/test/dataExportCoversEveryUserTable.test.ts:stale KNOWN entry: no read policy calls it any more
-    const KNOWN = new Set(["are_users_blocked", "has_role", "is_series_party", "user_may_see_job_address"]);
+    // seed_review_hidden (Q552): hides test-account reviews from real readers once the launch switch is on; it never widens what a reader sees.
+    const KNOWN = new Set(["are_users_blocked", "has_role", "is_series_party", "seed_review_hidden", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

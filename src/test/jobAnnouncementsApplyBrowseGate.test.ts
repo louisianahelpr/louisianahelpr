@@ -228,7 +228,8 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
       ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]\)/],
       ["offer", /offered_to_helper_id IS NULL OR \(direct_offer_status = ANY \(ARRAY\['declined'::text, 'expired'::text\]\)\)/],
       ["clock", /created_at <= early_access_cutoff\(\)/],
-      ["fixture", /NOT is_seed OR NOT seed_jobs_hidden_publicly\(\)/],
+      // Q552: the feed spares a test account (seed_hidden_in_discovery); the announcement keeps the plain switch, stricter, which is allowed.
+      ["fixture", /NOT is_seed OR NOT (?:public\.)?(?:seed_jobs_hidden_publicly|seed_hidden_in_discovery)\(\)/],
       ["credential", /COALESCE\(credential_tier, 0\) = 0 OR .*my_credential_tier\(\)/],
       ["review", /^\(NOT \(EXISTS \( SELECT 1 FROM ban_settlement_queue q WHERE q\.user_id = jobs\.customer_id AND q\.review_state = 'open'::text\)\)\)/],
     ];

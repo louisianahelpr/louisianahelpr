@@ -43,8 +43,15 @@ function markersFor(object: string): string[] {
     `CREATE FUNCTION ${object}(`,
     `CREATE OR REPLACE VIEW ${object} `,
     `CREATE VIEW ${object} `,
+    // A view statement whose name ends its line (`CREATE OR REPLACE VIEW
+    // public.open_jobs_browse\nWITH (security_invoker = false)`). Without these
+    // the suite graded open_jobs_browse from 20260907034811 while four newer
+    // statements had replaced it (found 2026-10-07, Q552).
+    `CREATE OR REPLACE VIEW ${object}\n`,
+    `CREATE VIEW ${object}\n`,
   ];
 }
+const isViewMarker = (m: string) => / VIEW /.test(m);
 
 /**
  * The last definition of `object` anywhere in the tree, as the SQL text of
@@ -55,13 +62,19 @@ function latestDefinition(object: string): { file: string; body: string } {
   for (let i = FILES.length - 1; i >= 0; i--) {
     const { name, sql } = FILES[i];
     let start = -1;
+    let view = false;
     for (const marker of markersFor(object)) {
       const at = sql.lastIndexOf(marker);
-      if (at > start) start = at;
+      if (at > start) {
+        start = at;
+        view = isViewMarker(marker);
+      }
     }
     if (start === -1) continue;
 
-    const tagMatch = sql.slice(start).match(/AS (\$[A-Za-z_]*\$)/);
+    // A view has no dollar-quoted body of its own: the next `AS $tag$` belongs
+    // to whatever statement follows it.
+    const tagMatch = view ? null : sql.slice(start).match(/AS (\$[A-Za-z_]*\$)/);
     if (tagMatch) {
       const tag = tagMatch[1];
       const bodyStart = sql.indexOf(tag, start) + tag.length;

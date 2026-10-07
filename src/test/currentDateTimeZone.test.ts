@@ -19,7 +19,7 @@
  * and nightly (scripts/ci/current-date-time-zone.sql via
  * scripts/check-live-privileges.mjs), where a dashboard edit would show.
  */
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |  SET "TimeZone" TO 'America/Chicago'\nAS $fn$\nDECLARE\n  v_job record; | AS $fn$\nDECLARE\n  v_job record;
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |  SET "TimeZone" TO 'America/Chicago'\nAS $fn$\nDECLARE\n  v_job record; | AS $fn$\nDECLARE\n  v_job record;
 // @mutate scripts/check-live-privileges.mjs | coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders, | '[]'::json AS current_date_offenders,
 // @mutate .github/workflows/db-smoke.yml | -f scripts/ci/current-date-time-zone.sql) | -f /dev/null)
 import { describe, it, expect } from "vitest";

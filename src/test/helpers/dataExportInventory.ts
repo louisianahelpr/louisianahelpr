@@ -301,6 +301,9 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // Q552: the service-role-only enrolment of the platform's OWN test accounts
+  // (the launch switch keeps test jobs visible to them). No member is ever in it.
+  "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },
   // Staff-only records and ban-evasion data. Staff notes, fraud flags and
   // shadowbans ABOUT the person are exported (owner, 2026-09-26, Q290); what
   // stays out is who on staff wrote or applied them, and records that are the

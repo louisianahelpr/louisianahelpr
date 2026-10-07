@@ -161,71 +161,71 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
-  // ── Fee fallback when the helper's PROFILE READ FAILS ────────────────────
+  // ── A FAILED tier read skips the job this run (Q1358) ────────────────────
   //
-  // The twin of the same block in release-payout.test.ts, and it exists as a
-  // PAIR on purpose: either path can settle the same job depending on whether
-  // release was manual or automatic, so if the two disagree on this fallback
-  // the commission a helper is charged depends on which one reached them
-  // first. Both must resolve the FREE rate (12), derived from
-  // DEFAULT_TIER_FEE_PERCENT rather than a literal.
-  describe("fee fallback on a failed tier read", () => {
-    function failTierRead() {
+  // This used to price the transfer at the fallback (the frozen percent, then
+  // the free 12), so a paid-tier Helpr was paid up to 4 points wrong on a
+  // transient read (lh-money-escrow review of Q592, 2026-10-05). The job now
+  // stays payout_pending and the next run pays it at the real rate. A Helpr
+  // with NO profile row (deleted) has no tier to read, so the fallback still
+  // applies there: the frozen percent, then DEFAULT_TIER_FEE_PERCENT.
+  //
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (!feeRead.ok) { |       if (false) {
+  describe("fee read failure skips the job; no tier row falls back (Q1358)", () => {
+    function tierRead(result: { error?: { message: string }; rows?: Array<Record<string, unknown>> }) {
       const healthy = scenario.reads.profiles;
       scenario.reads.profiles = {
         ...healthy,
-        selectOverrides: [
-          {
-            includes: "subscription_tier",
-            result: { error: { message: "tier read boom" } },
-          },
-        ],
+        selectOverrides: [{ includes: "subscription_tier", result }],
       };
     }
 
-    it("falls back to the FREE rate (12) when the job carries no frozen percent", async () => {
-      // helper_fee_percent null is the gift card shape: create-payment's
-      // gift card branch returns before the escrow stamp, so nothing was frozen.
-      seedPayableJob(scenario, {
-        job: { helper_fee_percent: null, platform_fee_amount: null },
-        profile: { onboarding_fee_paid: true },
-      });
-      failTierRead();
-
-      const fn = await load();
-      const res = await fn.fetch(
-        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
-      );
-      expect(res.status).toBe(200);
-
-      // The percent COMMITTED to the job is the direct observation of what the
-      // fallback resolved to. $100 budget at 12% → $12.00 platform cut.
-      const jobWrite = scenario.writes.find(
-        (w) => w.table === "jobs" && w.op === "update",
-      );
-      expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(12);
-      expect((jobWrite?.payload as Record<string, unknown>).platform_fee_amount).toBe(12);
-
-      // …and the money that actually moved matches it: $100 − $12 = $88.
-      const transferArgs = stripeMock.transfers.create.mock.calls[0][0];
-      expect(transferArgs.amount).toBe(8800);
-    });
-
-    it("still prefers the rate FROZEN on the job over the free rate", async () => {
+    it("a failed tier read moves no money and leaves the job for the next run", async () => {
       seedPayableJob(scenario, {
         job: { helper_fee_percent: 8 },
         profile: { onboarding_fee_paid: true },
       });
-      failTierRead();
+      tierRead({ error: { message: "tier read boom" } });
+
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "helper_fee_read_error" });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.find((w) => w.table === "jobs" && w.op === "update")).toBeUndefined();
+    });
+
+    it("no tier row at all falls back to the FREE rate (12) when the job carries no frozen percent", async () => {
+      seedPayableJob(scenario, {
+        job: { helper_fee_percent: null, platform_fee_amount: null },
+        profile: { onboarding_fee_paid: true },
+      });
+      tierRead({ rows: [] });
 
       const fn = await load();
       const res = await fn.fetch(
         fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
       );
       expect(res.status).toBe(200);
-      const jobWrite = scenario.writes.find(
-        (w) => w.table === "jobs" && w.op === "update",
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(12);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
+    });
+
+    it("no tier row prefers the rate FROZEN on the job over the free rate", async () => {
+      seedPayableJob(scenario, {
+        job: { helper_fee_percent: 8 },
+        profile: { onboarding_fee_paid: true },
+      });
+      tierRead({ rows: [] });
+
+      const fn = await load();
+      await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
       );
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
       expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(8);
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9200);
     });

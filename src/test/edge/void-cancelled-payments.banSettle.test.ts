@@ -24,7 +24,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret-ban";
 
@@ -130,5 +130,31 @@ describe("void-cancelled-payments settles a ban-cancelled job like a poster canc
       { payment_intent: "pi_ban", amount: captured - 2000 },
       { idempotencyKey: "cancel-refund-job-ban" },
     );
+  });
+  // Q738: a series visit a BAN ended is refunded in full, which withholds the
+  // late-cancel fee the booked Helpr would otherwise be owed. That used to be
+  // silent; admins are now told so a person decides.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (jobCancellationFee === 0 && withheldForBan > 0) { |         if (false) {
+  it("a ban-ended series visit that withholds a booked Helpr's fee pages admins (Q738)", async () => {
+    seedBanCancelled({ helper: true, serviceFee: 20, stripeFeeCents: 668 });
+    const base = scenario.reads.jobs.selectOverrides![0].result.rows![0];
+    scenario.reads.jobs.selectOverrides![0].result.rows = [{ ...base, parent_job_id: "series-1", recurrence_days: null }];
+    scenario.reads.jobs.selectOverrides!.push({ includes: "series_ban_cancelled_at", result: { rows: [{ series_ban_cancelled_at: "2024-06-25T04:00:00Z" }] } });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    const page = (slackAlerts as Array<{ title: string; fields?: Record<string, unknown> }>).find((a) => a.title === "Cancellation fee withheld: a ban ended this visit");
+    expect(page, JSON.stringify(slackAlerts)).toBeDefined();
+    expect(page!.fields).toMatchObject({ job_id: "job-ban", helper_id: "helper-1", withheld_fee: 50 });
+  });
+
+  it("a ban-ended visit with no booked Helpr withholds nothing and pages nothing (Q738 control)", async () => {
+    seedBanCancelled({ helper: false, serviceFee: 20, stripeFeeCents: 668 });
+    const base = scenario.reads.jobs.selectOverrides![0].result.rows![0];
+    scenario.reads.jobs.selectOverrides![0].result.rows = [{ ...base, parent_job_id: "series-1", recurrence_days: null }];
+    scenario.reads.jobs.selectOverrides!.push({ includes: "series_ban_cancelled_at", result: { rows: [{ series_ban_cancelled_at: "2024-06-25T04:00:00Z" }] } });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /a ban ended this visit/.test(a.title))).toBe(false);
   });
 });

@@ -106,7 +106,10 @@ const DOCUMENT_SCROLL_ROUTES = [
 // internal scroll container without the viewport lock that makes it work, on
 // three quarters of the legal surface, which is precisely the ghosting bug the
 // paragraph above exists to prevent. Caught by shellConsistency.test.ts.
-const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse"];
+// /help and /support (Q965): PublicLayout renders AppShell for them on native
+// (useAppChrome), the same internal-scroll container as Legal, so they need
+// the same lock; they were on DOCUMENT_SCROLL_ROUTES only.
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

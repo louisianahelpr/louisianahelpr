@@ -140,6 +140,27 @@ describe("release-payout edge function", () => {
     resetSharedMocks();
   });
 
+  // Q1251: a sandbox Connect account under the live key is an answer, not an
+  // outage. It was a 502 "retry" that no retry could ever clear.
+  describe("an unusable Connect account (Q1251)", () => {
+    it("answers 409 with what to do, moves nothing; a real outage stays 502", async () => {
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("The account acct_helper was a test account created with a testmode key, and therefore can only be used with testmode keys."), { type: "StripeInvalidRequestError", statusCode: 400 }));
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("connect_account_unusable");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("connection reset"), { type: "StripeConnectionError" }));
+      const fn2 = await load();
+      const res2 = await fn2.fetch(fn2.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res2.status).toBe(502);
+    });
+  });
+
   describe("authorization", () => {
     it("OPTIONS preflight returns 200", async () => {
       const fn = await load();

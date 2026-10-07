@@ -128,6 +128,21 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     );
   });
 
+  // Q1358: a member whose tier read FAILS is skipped this run (Part D retries
+  // the share), never paid at the fallback rate; the others are still paid.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!shareFeeRead.ok) { |         if (false) {
+  it("a failed tier read pays no member at the fallback rate this run (Q1358)", async () => {
+    seedCancelledCrew();
+    scenario.reads.profiles = {
+      rows: [{ stripe_account_id: "acct_member", subscription_tier: null }],
+      selectOverrides: [{ includes: "subscription_tier", result: { error: { message: "tier read boom" } } }],
+    };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers()).toEqual([]);
+    expect(ledgerFlips()).toEqual([]);
+  });
+
   // @mutate supabase/functions/void-cancelled-payments/index.ts | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid"); | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0);
   it("never pays a share the ledger already marks paid", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({

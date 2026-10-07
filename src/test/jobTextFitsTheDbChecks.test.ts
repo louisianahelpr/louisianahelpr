@@ -39,7 +39,6 @@
  * @mutate scripts/lib/jobTextBounds.mjs | export const JOB_TITLE_MAX = 32; | export const JOB_TITLE_MAX = 40;
  * @mutate scripts/probes/completion-race.prod.mjs | title: fitJobTitle(`RACE-COMPLETE ${label} ${tag()}`), | title: `RACE-COMPLETE ${label} ${tag()}`,
  * @mutate e2e/journeys/abuse/idor-and-authz.spec.ts | fitJobTitle(`${E2E_TITLE_MARKER} idor ${runTag(runId, 7)}`) | `${E2E_TITLE_MARKER} idor ${runTag(runId, 7)}`
- * @mutate supabase/functions/str-ical-sync/index.ts | ${propName}`).slice(0, 32) | ${propName}`).slice(0, 40)
  * @mutate .github/workflows/db-smoke.yml | '[CI smoke] post-job triggers', | '[CI smoke] post-job trigger check',
  * @mutate supabase/seed.sql | 'QA: Payout pending past due', | 'QA: Payout pending well past its scheduled time',
  */
@@ -274,7 +273,8 @@ describe("Q782: every jobs writer fits jobs_title_length / jobs_description_leng
     const files = writerFiles();
     // Floor, not a count: 2026-09-27 found 20. Fewer means a shape stopped matching.
     expect(files.length).toBeGreaterThan(15);
-    expect(files).toContain("supabase/functions/str-ical-sync/index.ts");
+    // str-ical-sync wrote job titles until Q768 (it imports checkouts now; Post a Job builds the title, turnoverPrefill.ts).
+    expect(files).toContain("supabase/functions/charge-recurring-visits/index.ts");
     expect(files).toContain("scripts/probes/completion-race.prod.mjs");
     expect(files).toContain("e2e/prod-lifecycle.spec.ts");
   });

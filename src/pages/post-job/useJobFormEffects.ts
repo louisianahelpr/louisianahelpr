@@ -1,3 +1,4 @@
+import { fetchTurnoverPrefill } from "./turnoverPrefill";
 import { useEffect, useCallback, useRef } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -71,6 +72,8 @@ export interface UseJobFormEffectsParams {
   setMaterialsNote?: (v: string) => void;
   setIsRecurring: (v: boolean) => void;
   setRecurrenceInterval: (v: string) => void;
+  /** Q768: an imported STR turnover pre-fills the checkout date. */
+  setDateNeeded?: (v: string) => void;
   setParish: (v: string | null) => void;
   setOfferToHelperId: (v: string | null) => void;
   setOfferToHelperName: (v: string) => void;
@@ -126,6 +129,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setMaterialsNote,
     setIsRecurring,
     setRecurrenceInterval,
+    setDateNeeded,
     setParish,
     setOfferToHelperId,
     setOfferToHelperName,
@@ -317,6 +321,48 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       });
       return;
     }
+  }, [searchParams]);
+
+  // Q768: an imported STR turnover (`?turnover=<event id>`, from the sync's
+  // notice) pre-fills a cleaning job. The sync no longer creates an unpaid
+  // job; the host posts and pays here like any new job.
+  useEffect(() => {
+    const turnoverId = searchParams.get("turnover");
+    if (!turnoverId) return;
+    let live = true;
+    fetchTurnoverPrefill(turnoverId).then(
+      (p) => {
+        if (!live) return;
+        if (!p) {
+          toast.error("Couldn't load that checkout — fill in the cleaning job yourself.");
+          return;
+        }
+        if (p.alreadyPosted) {
+          toast("You already posted the cleaning job for this checkout.");
+          return;
+        }
+        setCategory("cleaning");
+        setTitle(p.title);
+        setDescription(p.description);
+        if (p.budget) setBudget(p.budget);
+        setDateNeeded?.(p.dateNeeded);
+        const parsedLoc = parseLocationIntoFields(p.location);
+        if (parsedLoc.city !== undefined) {
+          setStreetAddress(parsedLoc.streetAddress);
+          setCity(parsedLoc.city);
+          setAddrState(parsedLoc.addrState ?? "");
+          setZipCode(parsedLoc.zipCode ?? "");
+        } else {
+          setStreetAddress(p.location);
+        }
+      },
+      (err) => {
+        report(err, { severity: "warning", tags: { source: "useJobFormEffects.turnoverPrefill" } });
+        if (live) toast.error("Couldn't load that checkout — fill in the cleaning job yourself.");
+      },
+    );
+    return () => { live = false; };
+    // The setters are stable useState setters; the param is the trigger.
   }, [searchParams]);
 
   /*

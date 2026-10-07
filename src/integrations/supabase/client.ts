@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import type { Database } from './types';
 import { keychainStorageAdapter } from './keychainStorageAdapter';
+import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -70,7 +71,9 @@ function getWebAuthStorage(): Storage {
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage(),
+    // Q995: a fast device clock read every fresh token as expired (~7 refreshes a
+    // minute measured at +2 h); stored sessions carry a device-clock expires_at.
+    storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage()),
     persistSession: true,
     autoRefreshToken: true,
   }

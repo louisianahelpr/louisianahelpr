@@ -41,6 +41,8 @@
  * @mutate src/pages/messages/useMessagesData.ts |       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt), |       (c) => c.otherUserId === null \|\| !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
  * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.otherUserId === null ? row : (
  * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
+ * @mutate src/pages/messages/Messages.tsx | batchArchiveConfirm?.every((c) => c.otherUserId === null) | false
+ * @mutate src/pages/messages/Messages.tsx | : batchArchiveConfirm?.some((c) => c.otherUserId === null) | : false
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -224,6 +226,21 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     const sigs = [...src.matchAll(/export function (archiveConversation|unarchiveConversation|isArchived)\(([^)]*)\)/g)];
     expect(sigs.length).toBe(3);
     for (const [, name, params] of sigs) expect(params, name).toMatch(/otherUserId: string \| null/);
+  });
+
+  it("neither hide dialog promises a deleted account will message again (Q335)", () => {
+    const page = blankComments(read("src/pages/messages/Messages.tsx"));
+    // Every place the page says a thread "comes back" on a new message must
+    // sit under a branch that has already ruled out a deleted account.
+    const promises = [...page.matchAll(/send(?:s)? you a new message/g)].map((m) => m.index!);
+    expect(promises.length).toBeGreaterThan(1);
+    for (const at of promises) {
+      const before = page.slice(Math.max(0, at - 700), at);
+      expect(before, `a "new message" promise at offset ${at} is not behind an otherUserId === null branch`).toMatch(/otherUserId === null\)?\s*\?/);
+    }
+    expect(page).toMatch(/batchArchiveConfirm\?\.every\(\(c\) => c\.otherUserId === null\)\s*\?\s*"[^"]*Recently Deleted/);
+    // A mixed selection names both outcomes, never only the "new message" one.
+    expect(page).toMatch(/:\s*batchArchiveConfirm\?\.some\(\(c\) => c\.otherUserId === null\)\s*\?\s*"[^"]*deleted account stays in Recently Deleted/);
   });
 
   it("no archive path skips a deleted-account thread", () => {

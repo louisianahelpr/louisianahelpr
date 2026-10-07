@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-07T19:41:38.827Z",
-  "guards": 1588,
-  "registered": 1587,
+  "generated": "2026-10-07T21:29:37.029Z",
+  "guards": 1590,
+  "registered": 1589,
   "unregistered": [
     "src/hooks/useBugReportScreen.test.ts"
   ],

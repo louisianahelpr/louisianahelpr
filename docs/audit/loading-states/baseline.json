@@ -250,6 +250,18 @@
       "kind": "jump",
       "was": "row 344px → 398px (+54px): saved-helprs list taller than the 344px silhouette, grows below (run 37279084782, 2026-10-05)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "anon /browse #0",
+      "kind": "jump",
+      "was": "row 212px → 65px (-147px)",
+      "ruling": "Owner decision 2026-10-05 (Q722, docs/OPEN.md; src/test/dataAwareSkeletons.test.tsx): a COLD guest visit to Browse draws the feed's zero state (\"Nothing today, neighbor.\") because nothing about the feed is known in that frame; a warm visit draws the cached cards. So when prod has public jobs, a cold anon /browse measures the zero-state outline collapsing into the cards (2026-10-07: the one public job, 212px outline -> one 86px card, 2 rows -> 3), and when it has none it does not breach at all; either is the decision working as made (Q1427)."
+    },
+    {
+      "key": "anon /browse #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)",
+      "ruling": "Owner decision 2026-10-05 (Q722, docs/OPEN.md; src/test/dataAwareSkeletons.test.tsx): a COLD guest visit to Browse draws the feed's zero state (\"Nothing today, neighbor.\") because nothing about the feed is known in that frame; a warm visit draws the cached cards. So when prod has public jobs, a cold anon /browse measures the zero-state outline collapsing into the cards (2026-10-07: the one public job, 212px outline -> one 86px card, 2 rows -> 3), and when it has none it does not breach at all; either is the decision working as made (Q1427)."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

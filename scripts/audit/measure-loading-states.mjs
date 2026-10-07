@@ -23,8 +23,8 @@
  * NO MOCK MODE (owner, said twice). Every response is a real prod response
  * from the shared test accounts; the only intervention is TIMING: data
  * requests wait at a gate until the loading frame has been measured, then go
- * to prod untouched. The one WRITE is the /jobs/:id fixture job (see main),
- * created and removed by the run. Holding a real request is not mocking it — the bytes that
+ * to prod untouched. The WRITES are the /jobs/:id fixture job and one inbox
+ * fixture message (Q1427; see main), both created and removed by the run. Holding a real request is not mocking it — the bytes that
  * arrive are the bytes prod sent.
  *
  * WHICH FRAME IS "THE LOADING FRAME". A page loads in stages: a route
@@ -59,7 +59,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
-import { createPressJob, mintAccounts, removeFixtureJob } from "./pressProdSafety.mjs";
+import { createPressJob, mintAccounts, removeFixtureJob, removeInboxMessage, seedInboxMessage } from "./pressProdSafety.mjs";
 import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -229,6 +229,11 @@ const MEASURE = ([sel, probes]) => {
       // avatar-classed box, counted only when no ancestor already counted.
       media: (() => {
         const isMedia = (e) => {
+          // A CONTROL is not media (Q1427): Saved Helprs' round 44px search
+          // button read as a third avatar against the skeleton's one bone.
+          // Controls are counted under `controls`; an avatar INSIDE a control
+          // is still its own <img>/avatar element and still counts.
+          if (e.tagName === "BUTTON" || e.tagName === "A" || e.getAttribute("role") === "button") return false;
           if (e.tagName === "IMG" || /avatar/i.test(String(e.className?.baseVal ?? e.className ?? ""))) return true;
           if (!/rounded-full/.test(String(e.className))) return false;
           const b = e.getBoundingClientRect();
@@ -678,18 +683,26 @@ async function main() {
   // baseline could not settle on /jobs/:id. The fixture is press-every-
   // control's (createPressJob: open, unpaid, is_seed, parish null so no helper
   // fan-out), the same every run, and removeFixtureJob deletes that one job in
-  // the finally below. It is this run's ONLY write to prod. The id still
+  // the finally below. Its other write is the inbox fixture message (Q1427), removed there too. The id still
   // differs per run, so check-loading-state-shape.mjs keys it as /jobs/:id.
   // Guarded by src/test/loadingStatesRepeat.test.ts.
   const poster = sessions.customer;
   const helper = sessions.helper;
   let seedJobId = "test";
   let fixtureJobId = null;
+  let inboxMessageId = null;
   if (poster) {
     const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh");
     seedJobId = fixtureJobId = job.id;
   }
   try {
+    // The inbox fixture (Q1427; see seedInboxMessage): /messages measures a
+    // populated inbox every run, not whatever threads the accounts have left.
+    if (poster && helper) {
+      const seeded = await seedInboxMessage(poster, helper, process.env.GITHUB_RUN_ID ?? String(Date.now()));
+      inboxMessageId = seeded.id;
+      console.log(`${seeded.id ? "seeded" : "::warning title=no inbox fixture::did not seed"} inbox fixture message ${seeded.id ?? ""}: ${seeded.note}`);
+    }
     const routeSet = deriveRouteSet({
       seedJobId,
       helperId: helper?.userId ?? "test",
@@ -801,6 +814,10 @@ async function main() {
     writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
     console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
   } finally {
+    if (inboxMessageId) {
+      const gone = await removeInboxMessage(helper, inboxMessageId);
+      console.log(`${gone.ok ? "removed" : "::warning title=inbox fixture residue::could not remove"} inbox fixture message ${inboxMessageId}: ${gone.note}`);
+    }
     if (fixtureJobId) {
       const gone = await removeFixtureJob(poster, fixtureJobId);
       console.log(`${gone.ok ? "removed" : "::warning title=fixture job residue::could not remove"} fixture job ${fixtureJobId}: ${gone.note}`);

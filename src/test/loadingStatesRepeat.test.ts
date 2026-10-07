@@ -26,6 +26,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh"); | const [job] = await (await fetch("about:blank")).json();
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
+ * @mutate scripts/audit/measure-loading-states.mjs | const seeded = await seedInboxMessage(poster, helper, process.env.GITHUB_RUN_ID ?? String(Date.now())); | const seeded = { id: null, note: "off" };
  * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
  * @mutate scripts/audit/measure-loading-states.mjs | const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]")); | const el = document.elementFromPoint(pr.px, pr.py);
  * @mutate docs/audit/loading-states/baseline.json | "key": "customer /jobs #1", | "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #1",
@@ -128,7 +129,23 @@ describe("loading-state baseline keys name the same surface on every run", () =>
     expect(src.slice(0, made!.index)).toMatch(/const job = await createPressJob\(poster,/);
     const fin = src.indexOf("} finally {");
     expect(fin, "the fixture is removed in a finally").toBeGreaterThan(made!.index);
-    expect(src.slice(fin, fin + 400)).toMatch(/removeFixtureJob\(poster, fixtureJobId\)/);
+    expect(src.slice(fin, fin + 800)).toMatch(/removeFixtureJob\(poster, fixtureJobId\)/);
+  });
+
+  it("/messages measures a populated inbox the run seeds and removes (Q1427)", () => {
+    // 2026-10-07: both test accounts' inboxes emptied (a thread archived, the
+    // rest deleted by the 10-06 trace clean-up) and every run went red on
+    // data: 6 conversation bones -> the empty state. The run brings its own
+    // thread, sent as the helper on the accounts' accepted is_seed job.
+    const src = blankComments(read(MEASURER));
+    const seed = src.indexOf("await seedInboxMessage(poster, helper,");
+    expect(seed, "the run seeds its inbox fixture").toBeGreaterThan(0);
+    const fin = src.indexOf("} finally {");
+    expect(fin, "seeded inside the try whose finally removes it").toBeGreaterThan(seed);
+    expect(src.slice(fin, fin + 300)).toMatch(/removeInboxMessage\(helper, inboxMessageId\)/);
+    const safety = blankComments(read("scripts/audit/pressProdSafety.mjs"));
+    expect(safety, "on an ACCEPTED job, so the Active tab holds it").toMatch(/status=eq\.accepted&is_seed=eq\.true/);
+    expect(safety, "sent as the helper, through RLS").toMatch(/headers\(helper, \{ Prefer: "return=representation" \}\)/);
   });
 
   it("the loaded frame looks through a toast to the page beneath it (run 36342002299)", () => {
@@ -146,7 +163,7 @@ describe("loading-state baseline keys name the same surface on every run", () =>
     // result measured after that is not a measurement of the fixture.
     const src = blankComments(read(MEASURER));
     const fin = src.indexOf("} finally {");
-    const tail = src.slice(fin, fin + 1500);
+    const tail = src.slice(fin, fin + 2000);
     expect(tail).toMatch(/if \(gone\.note === "already gone"\) \{[\s\S]*?process\.exitCode = 1;/);
     expect(read("scripts/audit/pressProdSafety.mjs")).toMatch(/return \{ ok: true, note: "already gone" \}/);
   });

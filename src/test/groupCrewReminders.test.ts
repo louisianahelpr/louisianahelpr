@@ -36,16 +36,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       IF v_member_fee > 0 THEN |       IF false THEN
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");

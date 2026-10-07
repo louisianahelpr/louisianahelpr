@@ -20,7 +20,8 @@ import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
-import { createThrowaway, deleteThrowaway, serviceKey, sr, type Throwaway } from "./throwaway";
+import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
+import { srFetch } from "../serviceRoleFetch";
 
 /**
  * Journeys 9-11: the admin and safety outcomes nothing else drove on the real
@@ -259,7 +260,7 @@ test.describe.serial("admin and safety journeys", () => {
     let victim: Throwaway | null = null;
     journey.cleanup("delete the throwaway", async () => {
       if (!victim) return;
-      const lines = await deleteThrowaway(request, key!, victim.userId);
+      const lines = await deleteThrowaway(key!, victim.userId);
       test.info().annotations.push({ type: "cleanup", description: lines.join("; ") });
     });
 
@@ -303,7 +304,7 @@ test.describe.serial("admin and safety journeys", () => {
       await journey.milestone(ap, "ban-dialog");
       await ban.getByRole("button", { name: "Permanently Ban" }).click();
       await expect(ban).toBeHidden({ timeout: 30_000 });
-      const r = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${v.userId}&select=ban_status`, { headers: sr(key!) });
+      const r = await srFetch(key!, "GET", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${v.userId}&select=ban_status`);
       expect(((await r.json()) as { ban_status: string }[])[0]?.ban_status).toBe("permanently_banned");
       await assertHealthy(ap, "admin after ban");
     });
@@ -329,7 +330,7 @@ test.describe.serial("admin and safety journeys", () => {
       const jobBody = await job.text();
       expect(job.status(), `a banned account posted a job: ${jobBody}`).toBe(403);
       expect(jobBody).toContain("account_restricted");
-      const [own] = (await (await request.get(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${v.userId}&select=id`, { headers: sr(key!) })).json()) as { id: string }[];
+      const [own] = (await (await srFetch(key!, "GET", `${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${v.userId}&select=id`)).json()) as { id: string }[];
       const msg = await request.post(`${SUPABASE_URL}/rest/v1/messages?select=id`, {
         headers: rest(v.session, { Prefer: "return=representation" }),
         data: { job_id: own.id, sender_id: v.userId, receiver_id: poster.user.id, content: `ban journey ${RUN}` },
@@ -379,7 +380,7 @@ test.describe.serial("admin and safety journeys", () => {
     // LIFO: the throwaway goes last, after the job is unwound.
     journey.cleanup("delete the throwaway Helpr", async () => {
       if (!helpr) return;
-      const lines = await deleteThrowaway(request, key!, helpr.userId);
+      const lines = await deleteThrowaway(key!, helpr.userId);
       test.info().annotations.push({ type: "cleanup", description: lines.join("; ") });
     });
     journey.cleanup("unwind the job and its notifications", async () => {
@@ -401,7 +402,7 @@ test.describe.serial("admin and safety journeys", () => {
       }
       // Every notification the journey fanned out on this job, any recipient
       // (the client alerts every admin), by service role: none is a real event.
-      const del = await request.delete(`${SUPABASE_URL}/rest/v1/notifications?job_id=eq.${jobId}&select=id`, { headers: sr(key!, { Prefer: "return=representation" }) });
+      const del = await srFetch(key!, "DELETE", `${SUPABASE_URL}/rest/v1/notifications?job_id=eq.${jobId}&select=id`, { extra: { Prefer: "return=representation" } });
       if (!del.ok()) throw new Error(`deleting job notifications: ${del.status()} ${await del.text()}`);
       const n = ((await del.json()) as unknown[]).length;
       const after = await readJob(request, poster, jobId);
@@ -481,7 +482,7 @@ test.describe.serial("admin and safety journeys", () => {
       const h = helpr!;
       const viol = (await (await request.get(`${SUPABASE_URL}/rest/v1/user_violations?user_id=eq.${h.userId}&select=violation_type,job_id,reported_by,action_taken`, { headers: rest(h.session) })).json()) as Record<string, string>[];
       expect(viol).toEqual([{ violation_type: "no_show", job_id: jobId, reported_by: poster.user.id, action_taken: "warning" }]);
-      const prof = (await (await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${h.userId}&select=ban_status`, { headers: sr(key!) })).json()) as { ban_status: string }[];
+      const prof = (await (await srFetch(key!, "GET", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${h.userId}&select=ban_status`)).json()) as { ban_status: string }[];
       expect(prof[0].ban_status, "a first no-show is the warning rung").toBe("final_warning");
       const told = (await (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${h.userId}&select=title`, { headers: rest(h.session) })).json()) as { title: string }[];
       expect(told.map((n) => n.title), "the Helpr was not told").toContain("⚠️ No-show warning");

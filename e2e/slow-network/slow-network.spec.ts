@@ -41,6 +41,10 @@ import { COLD_LOAD_BUDGET_MS, HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle 
  * @mutate-exempt Runs only against prod with PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD (GitHub secrets) and drives shared accounts, funds via Stripe test mode and posts rows; a mutation run is many such runs. Its STRUCTURE is guarded by src/test/slowNetworkCoversEverySteps.test.ts (5 @mutate lines, all red 2026-09-23: a step or mode dropped, the exactly-once check removed, a throttle removed, a fake route, the 1-worker wiring). GAP, stated plainly: written 2026-09-23 in a session with no prod access, so it has not yet been SEEN failing live; by code read post/pay-start/message drop were expected red (docs/OPEN.md Q267, Q268), fixed by cloud/q267-q270-retries (client keys + migration 20260923181707), which the first nightly run after it lands will confirm or refute.
  */
 
+// Q1421: this spec types a real password into the login form, and a trace
+// copies the auth request body verbatim into a PUBLIC CI artifact. No trace.
+test.use({ trace: "off" });
+
 const RUN = Date.now().toString(36).slice(-6);
 
 // ─── network control ──────────────────────────────────────────────────────────

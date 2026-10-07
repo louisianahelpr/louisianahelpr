@@ -369,9 +369,15 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <td className="px-4 py-2.5 text-ds-11">
                     {CATEGORY_LABEL[row.category] ?? row.category}
                   </td>
-                  <td className="px-4 py-2.5 max-w-[200px] truncate">
-                    {row.recipient_email || <span className="text-muted-foreground">—</span>}
-                    {row.is_seed && <> <TestTag /></>}
+                  {/* Q442: the tag sits BESIDE the truncating email, never inside
+                      it; inside, the ellipsis clipped it off every seed row. */}
+                  <td className="px-4 py-2.5 max-w-[200px]">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate">
+                        {row.recipient_email || <span className="text-muted-foreground">—</span>}
+                      </span>
+                      {row.is_seed && <TestTag />}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
                     <div className="truncate">{row.subject || <span className="text-muted-foreground">—</span>}</div>
@@ -428,9 +434,11 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   </div>
                   {/* Recipient + category */}
                   <div className="flex items-center justify-between gap-2 text-ds-13">
-                    <span className="truncate text-foreground">
-                      {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
-                      {row.is_seed && <> <TestTag /></>}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate text-foreground">
+                        {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
+                      </span>
+                      {row.is_seed && <TestTag />}
                     </span>
                     <span className="text-ds-11 text-muted-foreground flex-shrink-0">
                       {CATEGORY_LABEL[row.category] ?? row.category}

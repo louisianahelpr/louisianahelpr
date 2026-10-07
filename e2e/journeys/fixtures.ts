@@ -17,6 +17,7 @@ import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScr
 import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
+import { acceptCurrentTerms } from "../../scripts/lib/acceptCurrentTerms.mjs";
 
 /**
  * Shared plumbing for the USER JOURNEY suite (e2e/journeys/*).
@@ -153,6 +154,14 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
       ).toBe(true);
       throw second;
     });
+    // A Terms bump puts every shared account behind the non-dismissible
+    // re-consent dialog, and every journey then presses the modal instead of
+    // the page: e2e-journeys 37554735234 (2026-10-07, nightly-red #2436) lost
+    // 4 of its 5 failures to it ("Please Take a Moment to Re-Agree" over
+    // /post-job, /profile and /messages) after LATEST_TERMS_VERSION moved to
+    // "Oct 2026". Accept the current Terms as the user, exactly as "I Agree"
+    // would; the local path (scripts/test-signin-link.mjs) already does.
+    await acceptCurrentTerms(SUPABASE_URL, ANON, session.access_token, session.user.id); // TERMS-CONSENT at mint
   } else {
     // GoTrue rate-limits magic links (429), so a minted session is reused from
     // disk while its access token has 20+ minutes left AND GoTrue still accepts

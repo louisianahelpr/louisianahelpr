@@ -5,7 +5,8 @@
  * recurring"). Migration 20261007011530.
  *
  * Behaviour (red before, 3x replay): src/test/pglite/crewHireBeforePayout.pglite.mjs
- * (pglite is not a dependency, so CI holds the shape here).
+ * (pglite is not a dependency, so CI holds the shape here). *
+ * @mutate src/lib/crewLifecycle.ts | answer.action === "pending_setup" | answer.action === "pending"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

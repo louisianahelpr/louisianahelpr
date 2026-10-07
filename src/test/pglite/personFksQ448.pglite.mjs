@@ -30,9 +30,13 @@ const check = (n, ok, d = "") => {
 
 const db = new PGlite();
 await db.exec(`
+CREATE ROLE anon; CREATE ROLE authenticated;
 CREATE SCHEMA auth;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
-CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), offered_to_helper_id uuid);
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), offered_to_helper_id uuid,
+  customer_id uuid, title text, direct_offer_status text);
+CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
+  title text NOT NULL, message text NOT NULL, type text, link text);
 CREATE TABLE public.group_job_helpers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
 CREATE TABLE public.helper_availability (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), helper_id uuid NOT NULL);
 CREATE TABLE public.user_blocks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), blocker_id uuid NOT NULL, blocked_id uuid NOT NULL);
@@ -52,7 +56,10 @@ await db.exec(`
 INSERT INTO public.helper_availability (helper_id) VALUES ('${GONE}'), ('${A}'), ('${B}');
 INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${A}', '${GONE}'), ('${A}', '${B}');
 INSERT INTO public.reports (reporter_id, reported_id) VALUES ('${GONE}', '${A}'), ('${B}', '${A}');
-INSERT INTO public.jobs (offered_to_helper_id) VALUES ('${B}'), ('${A}');
+INSERT INTO public.jobs (offered_to_helper_id, customer_id, title, direct_offer_status)
+  VALUES ('${B}', '${A}', 'Fence fix', 'pending'), ('${A}', '${B}', 'Lawn', 'pending');
+-- An answered offer to B: its status is history and stays.
+INSERT INTO public.jobs (offered_to_helper_id, customer_id, title, direct_offer_status) VALUES ('${B}', '${A}', 'Old', 'declined');
 INSERT INTO public.group_job_helpers (helper_id) VALUES ('${B}');
 INSERT INTO public.recurring_visit_payments (payer_id, helper_id, amount_cents) VALUES ('${B}', '${A}', 5000);
 INSERT INTO public.job_tracking (helper_id) VALUES ('${B}');
@@ -113,8 +120,15 @@ check("deleting an account keeps the report and anonymises its reporter",
 check("deleting an account keeps the crew roster slot, helper anonymised",
   (await n(`SELECT count(*)::int n FROM public.group_job_helpers WHERE helper_id IS NULL`)) === 1);
 check("deleting an account clears a direct offer to it and keeps the job",
-  (await n(`SELECT count(*)::int n FROM public.jobs WHERE offered_to_helper_id IS NULL`)) === 1
-  && (await n(`SELECT count(*)::int n FROM public.jobs`)) === 2);
+  (await n(`SELECT count(*)::int n FROM public.jobs WHERE offered_to_helper_id IS NULL`)) === 2
+  && (await n(`SELECT count(*)::int n FROM public.jobs`)) === 3);
+check("a pending direct offer to a deleted account is retired, not left pending with no target (review finding 3)",
+  (await n(`SELECT count(*)::int n FROM public.jobs WHERE title = 'Fence fix' AND direct_offer_status = 'expired'`)) === 1);
+check("an answered offer keeps its status", (await n(`SELECT count(*)::int n FROM public.jobs WHERE title = 'Old' AND direct_offer_status = 'declined'`)) === 1);
+check("the poster is told the offer closed and the job is open to everyone",
+  (await n(`SELECT count(*)::int n FROM public.notifications WHERE user_id = '${A}' AND title = 'Direct offer closed' AND message LIKE '%Fence fix%open to everyone%' AND link LIKE '/posts?job=%'`)) === 1);
+check("an offer to a live account is untouched",
+  (await n(`SELECT count(*)::int n FROM public.jobs WHERE title = 'Lawn' AND direct_offer_status = 'pending' AND offered_to_helper_id = '${A}'`)) === 1);
 check("deleting an account keeps a visit payment (money history), payer anonymised, the other party kept",
   (await n(`SELECT count(*)::int n FROM public.recurring_visit_payments WHERE payer_id IS NULL AND helper_id = '${A}' AND amount_cents = 5000`)) === 1);
 check("deleting an account keeps a crew dispute outcome, helper anonymised",

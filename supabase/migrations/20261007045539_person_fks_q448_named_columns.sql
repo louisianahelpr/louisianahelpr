@@ -217,3 +217,44 @@ BEGIN
     ALTER TABLE public.crew_dispute_member_outcomes VALIDATE CONSTRAINT crew_dispute_member_outcomes_helper_id_fkey;
   END IF;
 END $q448$;
+
+-- A direct offer whose target account is gone is retired (lh-authz-rls review
+-- of Q448, finding 3). purge_user_data step 4p NULLs offered_to_helper_id and
+-- leaves direct_offer_status 'pending'; the new FK does the same. That row is
+-- public in open_jobs_browse (offered_to_helper_id IS NULL) while the poster's
+-- card still says the offer is out, and expire_pending_direct_offers later
+-- tells them it "was not accepted" (the Q1325 state). Clients cannot reach
+-- this: enforce_hire_columns_rpc_only refuses any client change to the column.
+-- Measured 2026-10-07: 0 jobs in that state on prod (3 pending offers, each
+-- with a live target).
+CREATE OR REPLACE FUNCTION public.jobs_offer_target_gone_retires_offer()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $fn$
+BEGIN
+  IF OLD.offered_to_helper_id IS NOT NULL
+     AND NEW.offered_to_helper_id IS NULL
+     AND NEW.direct_offer_status = 'pending' THEN
+    NEW.direct_offer_status := 'expired';
+    IF NEW.customer_id IS NOT NULL THEN
+      INSERT INTO public.notifications (user_id, title, message, type, link)
+      VALUES (NEW.customer_id,
+              'Direct offer closed',
+              'The Helpr you offered "' || COALESCE(NEW.title, 'your job')
+                || '" to is no longer on Helpr. The job is now open to everyone.',
+              'job_updates',
+              '/posts?job=' || NEW.id::text);
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.jobs_offer_target_gone_retires_offer() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS zzz_jobs_offer_target_gone_retires_offer ON public.jobs;
+CREATE TRIGGER zzz_jobs_offer_target_gone_retires_offer
+  BEFORE UPDATE OF offered_to_helper_id ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.jobs_offer_target_gone_retires_offer();

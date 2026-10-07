@@ -5238,6 +5238,24 @@ export type Database = {
         }
         Relationships: []
       }
+      test_accounts: {
+        Row: {
+          enrolled_at: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          enrolled_at?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          enrolled_at?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       thread_archives: {
         Row: {
           archived_at: string

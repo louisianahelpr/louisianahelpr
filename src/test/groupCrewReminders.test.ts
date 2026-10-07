@@ -29,8 +29,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
-// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
-// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id AND p.status = 'paid' |       WHERE false
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
@@ -90,7 +90,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       const b = body(fn);
       expect(b, `${fn} is gone`).not.toHaveLength(0);
       expect(b, `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 (or Q731) definition`).toBe(fn === "get_public_profile_stats" ? CREW_COUNTS : THIS);
+      // 20261007033530 (Q552) restates get_public_profile_stats with its seed clauses only.
+      const want = fn === "get_public_profile_stats" ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql"] : [THIS];
+      expect(want, `${fn} is not the Q728 (or Q731/Q552) definition`).toContain(EFFECTIVE.get(fn)?.file);
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
       expect(body(fn), `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);

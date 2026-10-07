@@ -32,8 +32,8 @@
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF v_job.date_needed IS NOT NULL AND v_job.date_needed < CURRENT_DATE THEN |   IF false THEN
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
+// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |   IF v_job.date_needed IS NOT NULL AND v_job.date_needed < CURRENT_DATE THEN |   IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN

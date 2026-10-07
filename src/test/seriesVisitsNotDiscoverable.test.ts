@@ -24,7 +24,11 @@ import { latestDefinitions } from "./helpers/jobsPrivacySource";
 
 const GATES = ["seed_jobs_hidden_publicly", "early_access_cutoff", "job_announceable_to"];
 /** The gates themselves and the pure location mask are helpers, not surfaces. */
-const HELPERS = new Set(["function:seed_jobs_hidden_publicly", "function:early_access_cutoff", "function:mask_job_location"]);
+// Q552: the test-account carve-out predicates read the switch; they list nothing.
+const HELPERS = new Set([
+  "function:seed_jobs_hidden_publicly", "function:early_access_cutoff", "function:mask_job_location",
+  "function:seed_hidden_for", "function:seed_hidden_in_discovery", "function:seed_hidden_from_caller",
+]);
 
 const excludesVisits = (code: string) =>
   /parent_job_id\s+IS\s+NULL/i.test(code) ||

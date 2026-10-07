@@ -93,9 +93,9 @@ export const SEED_GATED_SURFACES = [
   // reachable — get_ranked_open_jobs is granted to anon, so it can be called
   // directly whether or not a screen renders it. It simply has no client
   // caller any more (src/pages/jobs/useOpenJobsFeed.ts went with the page).
-  { surface: "anon ranked-jobs RPC (no client caller)", object: "public.get_ranked_open_jobs" },
-  { surface: "dashboard browse list", object: "public.open_jobs_browse" },
-  { surface: "map", object: "public.get_open_jobs_for_map" },
+  { surface: "anon ranked-jobs RPC (no client caller)", object: "public.get_ranked_open_jobs", via: "public.seed_hidden_in_discovery" },
+  { surface: "dashboard browse list", object: "public.open_jobs_browse", via: "public.seed_hidden_in_discovery" },
+  { surface: "map", object: "public.get_open_jobs_for_map", via: "public.seed_hidden_in_discovery" },
   // MISSING UNTIL 2026-09-02, and the omission was the whole bug. The parity
   // test below asserts the seed gate on every surface in THIS list, so a
   // surface absent from it is not merely unchecked — it makes the suite pass
@@ -134,7 +134,7 @@ export const SEED_GATED_SURFACES = [
   // Q1185 (20261003214350): a direct offer's accept is refused on a seed job
   // the launch switch hides, at the tap and at the deferred completion; this
   // is the one list both consult.
-  { surface: "direct offer accept (tap and deferred completion)", object: "public.direct_accept_block_reason" },
+  { surface: "direct offer accept (tap and deferred completion)", object: "public.direct_accept_block_reason", via: "public.seed_hidden_for" },
   // MISSING UNTIL 2026-09-03, and it never had the gate at all — unlike the
   // entry above it, which was gated but unregistered. The daily per-parish
   // digest email counted fixture jobs, and at the time it was found EVERY open
@@ -154,10 +154,27 @@ export const SEED_GATED_SURFACES = [
   // filters were hidden in the feed and never refused at apply). It calls
   // `seed_jobs_hidden_publicly()` directly, which is why the caller-half of
   // the parity discovery found it the moment it landed.
-  { surface: "apply-path refusal (write side)", object: "public.enforce_application_job_state" },
+  { surface: "apply-path refusal (write side)", object: "public.enforce_application_job_state", via: "public.seed_hidden_for" },
   // ADDED 2026-09-26 with 20260926193006 (Q392). The one predicate every job
   // announcement (instant parish push, saved-search and parish alerts) asks
   // before telling a Helpr about a job; it calls `seed_jobs_hidden_publicly()`
   // so a fixture job is never announced once the launch switch flips.
   { surface: "job announcement predicate", object: "public.job_announceable_to" },
+  // ADDED 2026-10-07 with 20261007033530 (Q552, owner: "hide test profiles and
+  // test jobs NOW"). The same switch hides test ACCOUNTS: one predicate (false
+  // for an admin and for a test account, so the journeys between two test
+  // accounts keep working) asked by the four profile read paths and, through
+  // seed_review_hidden, by the reviews read policy (that policy's own guard is
+  // src/test/seedSwitchHidesProfiles.test.ts; a policy is not a function).
+  { surface: "test-account visibility predicate", object: "public.seed_hidden_from_caller" },
+  { surface: "review visibility (reviews read policy)", object: "public.seed_review_hidden", via: "public.seed_hidden_from_caller" },
+  // Discovery hides test rows from admins too (the owner browses as an admin).
+  { surface: "test-account discovery predicate", object: "public.seed_hidden_in_discovery" },
+  { surface: "member search by name", object: "public.search_profiles_by_name", via: "public.seed_hidden_in_discovery" },
+  { surface: "public profile rows", object: "public.get_safe_profiles", via: "public.seed_hidden_from_caller" },
+  { surface: "public profile stats", object: "public.get_public_profile_stats", via: "public.seed_hidden_from_caller" },
+  { surface: "public profile reviews list", object: "public.get_public_profile_reviews", via: "public.seed_hidden_from_caller" },
+  // Q552 (B): the write gates ask about the APPLICANT / offered Helpr, not the caller.
+  { surface: "test-account carve-out by user (write gates)", object: "public.seed_hidden_for" },
+  { surface: "parish activity card", object: "public.get_parish_activity", via: "public.seed_hidden_in_discovery" },
 ] as const;

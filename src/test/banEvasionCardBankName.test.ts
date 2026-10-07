@@ -42,7 +42,7 @@
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261006035830_ban_review_decides_standing.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n  THEN |   THEN
- * @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |           v_own_reason,\n           p_user_id, |           v_row.reason,\n           p_user_id,
  */
@@ -306,7 +306,8 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
       notify_saved_searches_on_new_job: "same: only queues; delivery is deliver_saved_search_alert, which carries the clause",
       direct_accept_block_reason: "explains a refusal to the offered Helpr; the accept's own application insert is refused by enforce_application_job_state C13",
     };
-    const spellers = [...defs.keys()].filter((fn) => /seed_jobs_hidden_publicly\(\)/.test(body(fn)) && /offered_to_helper_id/.test(body(fn)));
+    // Q552: the gate is also spelled through the test-account carve-out predicates.
+    const spellers = [...defs.keys()].filter((fn) => /(?:seed_jobs_hidden_publicly\(\)|seed_hidden_in_discovery\(\)|seed_hidden_for\()/.test(body(fn)) && /offered_to_helper_id/.test(body(fn)));
     expect(spellers.length, "inventory floor").toBeGreaterThanOrEqual(7);
     const missing = spellers.filter((fn) => !NOT_A_SURFACE[fn] && !/ban_settlement_queue q\s+WHERE q\.user_id = [a-z_.]*customer_id AND q\.review_state = 'open'/.test(body(fn)));
     expect(missing).toEqual([]);

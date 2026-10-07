@@ -144,7 +144,7 @@ describe("every person-id column (*user_id, *_by) has a foreign key or a stated 
   // (2026-10-04). A new
   // person column moves this; so does a scanner that stops reading a file.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(72); // +job_refund_claims.actor_user_id (Q1323, 2026-10-05); +payment_fingerprints.user_id, ban_evasion_matches.user_id, ban_settlement_queue.user_id/.decided_by (Q1324), payout_schedule_freezes.requested_by (Q1221), 2026-10-06, each with a FK
+    expect(all.size).toBe(73); // +test_accounts.user_id (Q552, 2026-10-07, FK to auth.users); +job_refund_claims.actor_user_id (Q1323, 2026-10-05); +payment_fingerprints.user_id, ban_evasion_matches.user_id, ban_settlement_queue.user_id/.decided_by (Q1324), payout_schedule_freezes.requested_by (Q1221), 2026-10-06, each with a FK
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id"]) {

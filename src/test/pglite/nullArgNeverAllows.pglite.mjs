@@ -106,6 +106,8 @@ CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
+CREATE TABLE public.job_detail_change_requests (id uuid PRIMARY KEY, job_id uuid, requested_by uuid, changed_fields text[], expires_at timestamptz);
+CREATE TABLE public.job_detail_change_answers (request_id uuid, helper_id uuid, answer text DEFAULT 'pending');
 -- is_system: can_send_message_to_in_job counts only the caller's own messages (Q1169, 20261004001242).
 CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, created_at timestamptz DEFAULT now(), is_system boolean NOT NULL DEFAULT false);
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
@@ -127,7 +129,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
-  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes"];
+  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
+  "can_read_job_detail_change"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

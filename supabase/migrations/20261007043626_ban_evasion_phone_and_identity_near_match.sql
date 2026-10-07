@@ -55,6 +55,17 @@ EXCEPTION WHEN undefined_object THEN NULL;
 END;
 $$;
 
+-- Q807: the unconfirmed-email gate goes on every public table through its own
+-- attacher (idempotent; it skips tables that already carry it). Its writers
+-- are service-role (stripe-idv-webhook), which the gate lets through.
+DO $gates$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gates$;
+
 -- ── 3. The two new doubt-check kinds ───────────────────────────────────────
 ALTER TABLE public.ban_evasion_matches DROP CONSTRAINT IF EXISTS ban_evasion_matches_matched_on_check;
 ALTER TABLE public.ban_evasion_matches ADD CONSTRAINT ban_evasion_matches_matched_on_check

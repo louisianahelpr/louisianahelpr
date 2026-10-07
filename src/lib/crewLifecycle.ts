@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import type { AcceptMissing } from "@/lib/awardGate";
 
 /**
  * A CREW MEMBER'S OWN LIFECYCLE (Q1382, owner 2026-10-05: group jobs ON at
@@ -145,10 +146,22 @@ function stampOrThrow(data: unknown, key: string, rpc: string): string {
   return v;
 }
 
-export async function confirmCrewSpot(jobId: string): Promise<string> {
+/**
+ * A member's Confirm. Payouts not set up yet: the server RECORDS the Confirm
+ * and completes it when Stripe reports payouts ready (20261007011530, owner
+ * 2026-10-06: anyone can be hired, they set payouts up after accepting), and
+ * answers `pending_setup` with what is missing, like a single job's Accept.
+ */
+export type CrewConfirmResult = { confirmedAt: string } | { pendingMissing: AcceptMissing[] };
+
+export async function confirmCrewSpot(jobId: string): Promise<CrewConfirmResult> {
   const { data, error } = await supabase.rpc("rpc_group_member_confirm", { _job_id: jobId });
   if (error) throw new CrewActionError(rpcErrorMessage("rpc_group_member_confirm", error), error, error.message);
-  return stampOrThrow(data, "helper_confirmed_at", "rpc_group_member_confirm");
+  const answer = (data ?? {}) as { action?: string; missing?: AcceptMissing[] };
+  if (answer.action === "pending_setup") {
+    return { pendingMissing: answer.missing?.length ? answer.missing : ["payout_setup"] };
+  }
+  return { confirmedAt: stampOrThrow(data, "helper_confirmed_at", "rpc_group_member_confirm") };
 }
 
 export async function crewMemberOnTheWay(

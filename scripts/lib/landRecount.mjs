@@ -14,7 +14,7 @@
  * Guard: src/test/landRebaseResolve.test.ts.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** The measured value vitest printed for constant `value`, or null. */
@@ -28,6 +28,16 @@ export function setConstant(text, name, value) {
   return text.replace(new RegExp(`^(\\s*(?:export\\s+)?const ${name} = )\\d+;`, "m"), `$1${value};`);
 }
 
+/** A file's text, or null when it is not there: one call, no exists-then-read race. */
+function readOr(path) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (e) {
+    if (e?.code === "ENOENT") return null;
+    throw e;
+  }
+}
+
 function runTest(file, cwd) {
   const r = spawnSync("npx", ["vitest", "run", file], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   return { ok: r.status === 0, out: `${r.stdout}\n${r.stderr}` };
@@ -36,17 +46,18 @@ function runTest(file, cwd) {
 export function recount({ cwd = process.cwd(), log = console.log, run = runTest } = {}) {
   const recordPath = execFileSync("git", ["rev-parse", "--git-path", "land-recount.json"], { cwd, encoding: "utf8" }).trim();
   const abs = recordPath.startsWith("/") ? recordPath : `${cwd}/${recordPath}`;
-  if (!existsSync(abs)) return { changed: [], failed: [] };
-  const record = JSON.parse(readFileSync(abs, "utf8"));
+  const recordText = readOr(abs);
+  if (recordText === null) return { changed: [], failed: [] };
+  const record = JSON.parse(recordText);
   const changed = [];
   const failed = [];
   for (const file of [...new Set(record.map((r) => r.file))]) {
     const path = `${cwd}/${file}`;
-    if (!existsSync(path)) continue;
+    if (readOr(path) === null) continue;
     for (let round = 0; round < 3; round++) {
       const first = run(file, cwd);
       if (first.ok) break;
-      let text = readFileSync(path, "utf8");
+      let text = readOr(path) ?? "";
       let moved = false;
       for (const { name } of record.filter((r) => r.file === file)) {
         const cur = new RegExp(`const ${name} = (\\d+);`).exec(text);

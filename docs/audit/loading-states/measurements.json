@@ -4893,14 +4893,14 @@
     {
       "url": "/profile?tab=security",
       "persona": "customer",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1964,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 2171,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=security",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_profile_tab_security.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/sec/customer_profile_tab_security.loading.png",
       "loading": {
         "found": 15,
         "docH": 812,
@@ -4995,7 +4995,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_profile_tab_security.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/sec/customer_profile_tab_security.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -5216,14 +5216,14 @@
     {
       "url": "/profile?tab=security",
       "persona": "helper",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1971,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 2174,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=security",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_profile_tab_security.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/sec/helper_profile_tab_security.loading.png",
       "loading": {
         "found": 15,
         "docH": 812,
@@ -5318,7 +5318,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_profile_tab_security.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/sec/helper_profile_tab_security.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -5539,7 +5539,7 @@
     {
       "url": "/profile?tab=security",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -8539,14 +8539,14 @@
     {
       "url": "/profile?tab=notifications",
       "persona": "helper",
-      "base": "http://127.0.0.1:4797",
-      "capturedAt": 2065,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1971,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=notifications",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q201/helper_profile_tab_notifications.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_profile_tab_notifications.loading.png",
       "loading": {
         "found": 72,
         "docH": 812,
@@ -8605,7 +8605,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q201/helper_profile_tab_notifications.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_profile_tab_notifications.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -8728,14 +8728,14 @@
     {
       "url": "/profile?tab=notifications",
       "persona": "customer",
-      "base": "http://127.0.0.1:4797",
-      "capturedAt": 2068,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1973,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=notifications",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q201/customer_profile_tab_notifications.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_profile_tab_notifications.loading.png",
       "loading": {
         "found": 72,
         "docH": 812,
@@ -8794,7 +8794,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q201/customer_profile_tab_notifications.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_profile_tab_notifications.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -8917,7 +8917,7 @@
     {
       "url": "/profile?tab=notifications",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -10672,14 +10672,14 @@
     {
       "url": "/profile?tab=saved_helpers",
       "persona": "customer",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 32834,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1985,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=saved_helpers",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_profile_tab_saved_helpers.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_profile_tab_saved_helpers.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -10774,7 +10774,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_profile_tab_saved_helpers.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_profile_tab_saved_helpers.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -10796,7 +10796,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 465.9
+              "h": 416
             },
             "containerRect": {
               "x": 8,
@@ -10805,7 +10805,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 398,
+            "rowH": 348,
             "rect": {
               "x": 8,
               "y": 0,
@@ -10813,12 +10813,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 74,
-            "textLeaves": 9,
+            "elements": 68,
+            "textLeaves": 8,
             "media": 2,
             "controls": 12,
             "placeholders": 0,
-            "text": "Saved HelprsFilterRecent activity2 savedHHHallie H.SEED Great with fences.Offer a JobJ0Jean-Baptiste 0.Offer a Job"
+            "text": "Saved HelprsFilterRecent activity2 savedHHHallie H.Offer a JobJ0Jean-Baptiste 0.Offer a Job"
           },
           {
             "found": true,
@@ -10867,7 +10867,7 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 465.9
+            "h": 416
           },
           "skeletonContainer": {
             "x": 0,
@@ -10881,7 +10881,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 53.9,
+          "deltaRowPx": 4,
           "deltaContainerPx": 0,
           "rows": [
             2,
@@ -10889,9 +10889,9 @@
           ],
           "rowH": [
             344,
-            398
+            348
           ],
-          "deltaRowH": 54,
+          "deltaRowH": 4,
           "media": [
             1,
             2
@@ -10902,10 +10902,10 @@
           ],
           "textLeaves": [
             1,
-            9
+            8
           ],
           "placeholderCount": 4,
-          "shapeMatch": false
+          "shapeMatch": true
         },
         {
           "path": "div#root > nav > div:nth-of-type(3)",
@@ -10960,10 +10960,10 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 53.9,
-      "worstDeltaRowH": 54,
+      "worstDeltaRowPx": 4,
+      "worstDeltaRowH": 4,
       "worstDeltaRows": 0,
-      "shapeMismatches": 1,
+      "shapeMismatches": 0,
       "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
@@ -10979,7 +10979,7 @@
     {
       "url": "/profile?tab=saved_helpers",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -10992,14 +10992,14 @@
     {
       "url": "/profile?tab=saved_helpers",
       "persona": "helper",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1974,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1981,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=saved_helpers",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_profile_tab_saved_helpers.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_profile_tab_saved_helpers.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -11094,7 +11094,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_profile_tab_saved_helpers.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_profile_tab_saved_helpers.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -16526,14 +16526,14 @@
     {
       "url": "/post-job",
       "persona": "customer",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1977,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1968,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/post-job",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_post_job.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_post_job.loading.png",
       "loading": {
         "found": 14,
         "docH": 812,
@@ -16628,7 +16628,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_post_job.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_post_job.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -16833,14 +16833,14 @@
     {
       "url": "/post-job",
       "persona": "helper",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1992,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 2023,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/post-job",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_post_job.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_post_job.loading.png",
       "loading": {
         "found": 14,
         "docH": 812,
@@ -16935,7 +16935,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_post_job.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_post_job.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17140,7 +17140,7 @@
     {
       "url": "/post-job",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -17153,14 +17153,14 @@
     {
       "url": "/jobs",
       "persona": "helper",
-      "base": "http://127.0.0.1:4797",
-      "capturedAt": 1994,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1964,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/jobs",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q201/helper_jobs.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_jobs.loading.png",
       "loading": {
         "found": 9,
         "docH": 812,
@@ -17215,7 +17215,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q201/helper_jobs.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_jobs.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17259,7 +17259,7 @@
             "media": 1,
             "controls": 3,
             "placeholders": 0,
-            "text": "My JobsNo jobs in this viewNothing under needs you \u2014 but you have 3 in Waiting.Show Waiting (3)"
+            "text": "My JobsNo jobs in this viewNothing under needs you \u2014 but you have 2 in Waiting and 1 in Cancelled.Show Waiting (2)"
           }
         ]
       },
@@ -17338,14 +17338,14 @@
     {
       "url": "/jobs",
       "persona": "customer",
-      "base": "http://127.0.0.1:4797",
-      "capturedAt": 1968,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1962,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/jobs",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q201/customer_jobs.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_jobs.loading.png",
       "loading": {
         "found": 9,
         "docH": 812,
@@ -17400,7 +17400,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q201/customer_jobs.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_jobs.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17523,7 +17523,7 @@
     {
       "url": "/jobs",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -19742,14 +19742,14 @@
     {
       "url": "/messages",
       "persona": "customer",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 43426,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1969,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/messages",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_messages.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_messages.loading.png",
       "loading": {
         "found": 31,
         "docH": 812,
@@ -19844,7 +19844,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_messages.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_messages.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -19904,7 +19904,7 @@
             "media": 1,
             "controls": 1,
             "placeholders": 0,
-            "text": "HHHallie H.Accepted11mSEED pair job for prod-audit[loading-states inbox fixture] run 1791373902118. Not a real message; removed when the run ends."
+            "text": "HHHallie H.AcceptednowSEED pair job for prod-audit[loading-states inbox fixture] run 1791387692512. Not a real message; removed when the run ends."
           },
           {
             "found": true,
@@ -20065,14 +20065,14 @@
     {
       "url": "/messages",
       "persona": "helper",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 43338,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1999,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/messages",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_messages.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_messages.loading.png",
       "loading": {
         "found": 31,
         "docH": 812,
@@ -20167,7 +20167,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/helper_messages.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/helper_messages.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -20223,7 +20223,7 @@
             "media": 1,
             "controls": 1,
             "placeholders": 0,
-            "text": "PPPerry P.Accepted11mSEED pair job for prod-auditYou:[loading-states inbox fixture] run 1791373902118. Not a real message; removed when the run ends."
+            "text": "PPPerry P.AcceptednowSEED pair job for prod-auditYou:[loading-states inbox fixture] run 1791387692512. Not a real message; removed when the run ends."
           },
           {
             "found": true,
@@ -20384,7 +20384,7 @@
     {
       "url": "/messages",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
+      "base": "http://127.0.0.1:4798",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -22242,14 +22242,14 @@
     {
       "url": "/browse",
       "persona": "customer",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 2006,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 35694,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/home",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_browse.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_browse.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -22340,21 +22340,22 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/customer_browse.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/customer_browse.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "div > div > div > div > div > div > div > div > div:nth-of-type(5) > div > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 143,
-            "h": 19
-          },
           "div#root > nav": {
             "y": 748,
             "h": 64
           }
         },
-        "shifts": [],
+        "shifts": [
+          {
+            "t": 2634.5,
+            "v": 0.0003626953456769152
+          }
+        ],
         "clusters": [
           {
             "found": true,
@@ -22379,12 +22380,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 71,
-            "textLeaves": 10,
-            "media": 1,
-            "controls": 5,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
             "placeholders": 0,
-            "text": "1HomeNot interestedApplyErrandsgrocery run$8Delcambre\u00b7Wed, Oct 7\u00b79:45 AM2 Helprs needed\u00b72 hours left"
+            "text": "5HomeAll quiet \u2014 for nowNothing today, Perry.New jobs post throughout the day \u2014 fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           },
           {
             "found": true,
@@ -22420,19 +22421,19 @@
       },
       "status": "redirected",
       "note": "left the route between frames: /browse \u2192 /home",
-      "requests": 45
+      "requests": 40
     },
     {
       "url": "/browse",
       "persona": "anon",
-      "base": "http://127.0.0.1:4793",
-      "capturedAt": 1982,
+      "base": "http://127.0.0.1:4798",
+      "capturedAt": 1973,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/browse",
-      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/after-full/anon_browse.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/q1427/final/anon_browse.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -22493,14 +22494,14 @@
       "shiftsAtLoading": 0,
       "placeholdersLeft": [],
       "placeholdersLeftCount": 0,
-      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/after-full/anon_browse.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/q1427/final/anon_browse.loaded.png",
       "loaded": {
         "found": 0,
-        "docH": 812,
+        "docH": 898,
         "landmarks": {
           "main#main-content": {
             "y": 0,
-            "h": 812
+            "h": 897.8
           },
           "main#main-content > div > div > nav": {
             "y": 0,
@@ -22510,24 +22511,20 @@
             "y": 81.7,
             "h": 24.6
           },
-          "main#main-content > div > div > div:nth-of-type(3) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 160,
-            "h": 19
-          },
           "main#main-content > div > div > footer": {
-            "y": 498.6,
+            "y": 584.4,
             "h": 313.4
           },
           "main#main-content > div > div > footer > div > div:nth-of-type(1) > div:nth-of-type(2) > h2": {
-            "y": 639.4,
+            "y": 725.1,
             "h": 15.9
           },
           "main#main-content > div > div > footer > div > div:nth-of-type(1) > div:nth-of-type(3) > h2": {
-            "y": 639.4,
+            "y": 725.1,
             "h": 15.9
           },
           "main#main-content > div > div > footer > div > div:nth-of-type(1) > div:nth-of-type(4) > h2": {
-            "y": 639.4,
+            "y": 725.1,
             "h": 15.9
           }
         },
@@ -22539,29 +22536,29 @@
               "x": 20,
               "y": 128,
               "w": 335,
-              "h": 101.8
+              "h": 392.4
             },
             "containerRect": {
               "x": 0,
               "y": 128,
               "w": 375,
-              "h": 165.8
+              "h": 456.4
             },
-            "rows": 3,
-            "rowH": 65,
+            "rows": 2,
+            "rowH": 212,
             "rect": {
               "x": 0,
               "y": 128,
               "w": 375,
-              "h": 165.8
+              "h": 456.4
             },
-            "scrollH": 166,
-            "elements": 35,
-            "textLeaves": 7,
-            "media": 0,
-            "controls": 0,
+            "scrollH": 456,
+            "elements": 14,
+            "textLeaves": 4,
+            "media": 1,
+            "controls": 2,
             "placeholders": 0,
-            "text": "Errandsgrocery run$8Delcambre\u00b7Wed, Oct 7\u00b79:45 AM2 Helprs needed\u00b72 hours left"
+            "text": "All quiet \u2014 for nowNothing today, neighbor.New jobs post throughout the day \u2014 fresh work lands here as neighbors post it. Check back soon.Notify Me When Work La"
           }
         ]
       },
@@ -22580,7 +22577,7 @@
             "x": 20,
             "y": 128,
             "w": 335,
-            "h": 101.8
+            "h": 392.4
           },
           "skeletonContainer": {
             "x": 0,
@@ -22592,50 +22589,50 @@
             "x": 0,
             "y": 128,
             "w": 375,
-            "h": 165.8
+            "h": 456.4
           },
-          "deltaRowPx": -290.2,
-          "deltaContainerPx": -290.2,
+          "deltaRowPx": 0.4,
+          "deltaContainerPx": 0.4,
           "rows": [
             2,
-            3
+            2
           ],
           "rowH": [
             212,
-            65
+            212
           ],
-          "deltaRowH": -147,
+          "deltaRowH": 0,
           "media": [
             1,
-            0
+            1
           ],
           "controls": [
             0,
-            0
+            2
           ],
           "textLeaves": [
             0,
-            7
+            4
           ],
           "placeholderCount": 8,
-          "shapeMatch": false
+          "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -290.2,
-      "worstDeltaRowH": -147,
-      "worstDeltaRows": 1,
-      "shapeMismatches": 1,
+      "worstDeltaRowPx": 0.4,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
       "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
       "landmarksCompared": 3,
-      "docHDelta": 0,
+      "docHDelta": 86,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 7
+      "requests": 2
     },
     {
       "url": "/rules",
@@ -23124,5 +23121,5 @@
       "requests": 12
     }
   ],
-  "note": "Q1427/Q201 (2026-10-07): a full local run against prod (lane product-ci, macOS Chromium at 375) with /profile?tab=notifications and /jobs re-measured after the Q201 skeletons; the three /profile landing rows are CI's (loading-states-refresh, Linux), because the landing identity card's text wraps 18px taller on macOS fonts. The bot's next run replaces this file."
+  "note": "Q1427/Q201 (2026-10-07, lane product-ci): a full local run against prod (macOS Chromium, 375) with security, saved_helpers, post-job, messages, browse, notifications and /jobs re-measured on the rebased build; /user/<helper> kept from the full run (a journey was editing that profile's bio during the re-measure); the three /profile landing rows are CI's (Linux), as macOS wraps that card 18px taller. The bot's next run replaces this file."
 }

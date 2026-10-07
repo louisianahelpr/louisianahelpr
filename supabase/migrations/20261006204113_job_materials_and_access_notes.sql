@@ -250,6 +250,7 @@ DECLARE
   v_visit    record;
   v_visits   uuid[] := '{}';
   v_visit_helprs uuid[] := '{}';
+  v_poster_name text;
 BEGIN
   IF current_setting('app.access_notes_server_write', true) = '1' THEN
     RETURN NULL;
@@ -267,6 +268,9 @@ BEGIN
   IF NOT FOUND OR v_status IN ('completed', 'cancelled') THEN
     RETURN NULL;
   END IF;
+  -- After the FOUND test above (this SELECT would reset it): the poster's
+  -- name for the notice, never a role word.
+  SELECT NULLIF(btrim(p.full_name), '') INTO v_poster_name FROM public.profiles p WHERE p.user_id = v_customer;
 
   -- The series' live visits (locked like the job) carry the same notes.
   FOR v_visit IN
@@ -290,7 +294,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
   SELECT DISTINCT r.uid,
          'Access notes updated',
-         'The poster updated the access and parking notes for "' || COALESCE(v_title, 'your job')
+         COALESCE(v_poster_name, 'The person who posted it') || ' updated the access and parking notes for "' || COALESCE(v_title, 'your job')
            || '". Open the job to see them before you go.',
          'job_updates',
          '/jobs?job=' || v_job::text,

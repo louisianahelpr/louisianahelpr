@@ -120,12 +120,8 @@ function seriesRpcError(error: { code?: string | null; message?: string | null }
   return new Error(copy ?? error.message ?? "Something went wrong. Please try again.");
 }
 
-/**
- * `alreadyYours`: dates the caller already held (a double tap; review LOW-6).
- * `pendingSetup`: picked-up visits that are theirs once payouts are set up
- * (20261007011530; the accept completes by itself then).
- */
-export interface ClaimResult { claimed: string[]; taken: string[]; refused: string[]; alreadyYours: string[]; pendingSetup: string[] }
+/** `alreadyYours`: dates the caller already held (a double tap; review LOW-6). */
+export interface ClaimResult { claimed: string[]; taken: string[]; refused: string[]; alreadyYours: string[] }
 
 /** Pick visit dates (the first Helpr, an offered Helpr, or a pick-up). */
 export async function claimSeriesDates(jobId: string, dates: string[]): Promise<ClaimResult> {
@@ -133,11 +129,8 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
   // The accept gate judges each visit the dates confirm, from a trigger, so
   // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
   if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error));
-  const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[]; pending_setup?: string[] };
-  return {
-    claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [],
-    pendingSetup: r.pending_setup ?? [],
-  };
+  const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[] };
+  return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [] };
 }
 
 /** Hand dates back to the series. `strike` = one started within 24 hours. */

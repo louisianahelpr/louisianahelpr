@@ -45,8 +45,9 @@ describe("prod-seed CI-password accounts", () => {
   it("CI_PASSWORD_ACCOUNTS is exactly the owned accounts a workflow signs in by password", () => {
     const owned = new Set(ownedKeys());
     const secrets = workflowPasswordSecrets();
-    // 5 PLAYWRIGHT_*_PASSWORD secrets across the workflows (measured 2026-10-01).
-    expect(secrets.size).toBeGreaterThanOrEqual(5);
+    // 4 PLAYWRIGHT_*_PASSWORD secrets across the workflows (measured 2026-10-07:
+    // PLAYWRIGHT_TEST_USER_PASSWORD left e2e-real-backend with Q1420's minted grant).
+    expect(secrets.size).toBeGreaterThanOrEqual(4);
     const fromWorkflows: Record<string, string> = {};
     for (const secret of secrets) {
       const key = secret.replace(/^PLAYWRIGHT_/, "").replace(/_PASSWORD$/, "").toLowerCase();

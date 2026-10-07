@@ -157,13 +157,10 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(gate.body.indexOf("cannot_apply_to_own_job")).toBeLessThan(flag);
     expect(gate.body.indexOf("applicant_blocked")).toBeLessThan(flag);
     expect(gate.body.indexOf("job_not_open")).toBeGreaterThan(flag);
-    // Exactly one writer of the flag: claim_series_dates, as first written and
-    // as restated by 20261007011530 (an unready Helpr's pick-up is pending
-    // setup); each file sets it once, inside that function.
+    // Exactly one writer of the flag in the whole tree.
     const setters = files.filter((f) => /set_config\('app\.series_claim_rpc',\s*'1'/.test(blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"))));
-    expect(setters).toEqual(["20260927012806_recurring_split_days.sql", "20261007011530_crew_hire_before_payout_setup.sql"]);
-    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(2);
-    expect(claim.match(/set_config\('app\.series_claim_rpc',\s*'1'/g)?.length).toBe(1);
+    expect(setters).toEqual(["20260927012806_recurring_split_days.sql"]);
+    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(1);
   });
 
   it("the split choice is locked after hire, and hire seeds the holds", () => {

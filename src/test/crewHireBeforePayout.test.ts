@@ -47,26 +47,3 @@ describe("a crew hire is an offer: the payout gate is at the member's Confirm", 
     expect(ui).toMatch(/<AwardGateDialog[\s\S]*pendingMissing=\{setupMissing\}/);
   });
 });
-
-describe("recurring: an unready Helpr picks up a vacated visit, confirmed once payouts are set up", () => {
-  it("the pick-up confirms only a ready Helpr and records the accept otherwise", () => {
-    const c = code(fn("claim_series_dates"));
-    expect(c).toMatch(/v_ready := public\.helper_accept_block_reason\(v_uid\) IS NULL/);
-    expect(c).toMatch(/helper_confirmed_at = CASE WHEN v_ready THEN now\(\) END/);
-    expect(c).toMatch(/INSERT INTO public\.job_accept_pending \(job_id, helper_id\)/);
-    expect(c).toMatch(/'pending_setup', to_jsonb\(v_pending\)/);
-    // its answer-by time is the offer cutoff before the start, so it expires unconfirmed then
-    expect(c).toMatch(/v_cutoff := public\.job_offer_cutoff\(v_d, v_child_start\)/);
-    expect(c).toMatch(/response_deadline = v_deadline/);
-  });
-
-  it("an unconfirmed pick-up that is reopened gives the date back (no stranded hold)", () => {
-    expect(code(fn("release_series_hold_on_reopen"))).toMatch(/public\.series_release_dates\(NEW\.parent_job_id, OLD\.helper_id, ARRAY\[NEW\.date_needed\]/);
-    expect(MIG).toMatch(/CREATE TRIGGER trg_release_series_hold_on_reopen\s+AFTER UPDATE OF helper_id ON public\.jobs[\s\S]*?OLD\.helper_confirmed_at IS NULL\)/);
-  });
-
-  it("the app reads pending_setup and opens the pop-up", () => {
-    expect(read("src/lib/seriesDates.ts")).toMatch(/pendingSetup: r\.pending_setup \?\? \[\]/);
-    expect(read("src/components/series/SeriesDatesPanel.tsx")).toMatch(/if \(r\.pendingSetup\.length > 0\) setSetupOpen\(true\)/);
-  });
-});

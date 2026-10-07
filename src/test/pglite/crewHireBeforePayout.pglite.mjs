@@ -3,7 +3,7 @@
  * PGlite proof for 20261007011530_crew_hire_before_payout_setup (owner,
  * 2026-10-06: "you can offer job to anyone, they would set it up after
  * accepting. this is not an exception, it's the rule"; "should also be set this
- * way for recurring").
+ * way for recurring"; the recurring half stays gated, see the migration header).
  *
  *   node src/test/pglite/crewHireBeforePayout.pglite.mjs            # after (3x replay)
  *   NEW_MIGRATION=skip node src/test/pglite/crewHireBeforePayout.pglite.mjs   # RED: prod before it
@@ -30,8 +30,7 @@ const PATH = [
   "identity_is_verified", "helper_accept_missing", "helper_accept_block_reason", "helper_award_block_reason",
   "job_payment_is_funded", "series_visit_dates", "complete_job_accept", "complete_pending_accepts_on_setup",
   "enforce_helper_award_gate", "group_member_slot", "rpc_group_member_confirm", "enforce_group_roster_award_gate",
-  "claim_series_dates", "series_release_dates", "job_offer_cutoff",
-];
+  ];
 
 const db = new PGlite();
 await db.exec(baseSchema(THIS));
@@ -130,57 +129,6 @@ if (!SKIP) {
   const t = await as(UNREADY, `select * from public.crew_confirm_pending`);
   check(!t.ok, `[fix] C9: clients cannot read crew_confirm_pending (${t.ok ? "readable" : t.err})`);
 }
-
-// ---- recurring: picking up a vacated, funded visit ----------------------
-const parent = (await q(`insert into public.jobs (customer_id, helper_id, status, payment_status, date_needed, start_time,
-  recurrence_days, recurrence_weeks, recurring_helper_id, helper_confirmed_at)
-  values ('${POSTER}', '${READY}', 'accepted', 'escrow', '${day.d}', '09:00', array[${day.dow}]::smallint[], 4, '${READY}', now())
-  returning id`))[0].id;
-await db.exec(`set session_replication_role = replica`);
-const visitFor = async (offset) => (await q(`insert into public.jobs (customer_id, parent_job_id, status, payment_status, date_needed, start_time)
-  values ('${POSTER}', '${parent}', 'open', 'escrow', '${day.d}'::date + ${offset}, '09:00') returning id`))[0].id;
-const v1 = await visitFor(7);
-const v2 = await visitFor(14);
-await db.exec(`set session_replication_role = origin`);
-await q(`insert into public.series_date_offers values ('${parent}', '${UNREADY2}'), ('${parent}', '${READY}')`);
-await q(`insert into public.recurring_visit_releases (parent_job_id, helper_id, visit_date) values ('${parent}', '${POSTER}', '${day.d}'::date + 7), ('${parent}', '${POSTER}', '${day.d}'::date + 14)`);
-const visit = async (id) => (await q(`select status::text, helper_id, helper_confirmed_at is not null as confirmed from public.jobs where id='${id}'`))[0];
-
-const v3 = await (async () => { await db.exec(`set session_replication_role = replica`); const id = await visitFor(21); await db.exec(`set session_replication_role = origin`); return id; })();
-await q(`insert into public.series_date_offers values ('${parent}', '${UNREADY3}')`);
-await q(`insert into public.recurring_visit_releases (parent_job_id, helper_id, visit_date) values ('${parent}', '${POSTER}', '${day.d}'::date + 21)`);
-const r1 = await as(UNREADY2, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 7]) r`);
-let v = await visit(v1);
-check(r1.ok && v.helper_id === UNREADY2 && v.status === "accepted" && v.confirmed === false
-  && (r1.rows[0].r.pending_setup ?? []).length === 1,
-  `[fix] R1: an unready Helpr picks up a vacated visit: theirs, unconfirmed, pending setup (${JSON.stringify(r1.rows?.[0] ?? r1.err)}; ${JSON.stringify(v)})`);
-if (r1.ok) {
-  await q(`update public.profiles set stripe_account_id = 'acct_new2', stripe_payouts_enabled = true where user_id = '${UNREADY2}'`);
-  v = await visit(v1);
-  const poster = await q(`select title from public.notifications where job_id='${v1}' and user_id='${POSTER}'`);
-  const logs = await q(`select message, context->>'err' err from public.error_logs`);
-  check(v.confirmed === true && poster.length === 1 && logs.length === 0,
-    `[fix] R2: payouts ready -> the picked-up visit's accept completes and the poster is told (${JSON.stringify(v)}; ${JSON.stringify(poster)}; logs ${JSON.stringify(logs)})`);
-} else {
-  check(false, "[fix] R2: not reached (the claim was refused)");
-}
-const r3 = await as(READY, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 14]) r`);
-v = await visit(v2);
-check(r3.ok && v.helper_id === READY && v.confirmed === true && (r3.rows[0].r.pending_setup ?? []).length === 0,
-  `[keep] R3: a ready Helpr's pick-up books and confirms in one write (${JSON.stringify(r3.rows?.[0] ?? r3.err)}; ${JSON.stringify(v)})`);
-
-// R4 (lh-money-escrow review, MEDIUM): an unconfirmed pick-up that is reopened
-// (declined, expired, swept) gives the date back, so another Helpr can take it.
-const r4 = await as(UNREADY3, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 21]) r`);
-const dl = (await q(`select response_deadline = public.job_offer_cutoff('${day.d}'::date + 21, time '09:00') as at_start from public.jobs where id='${v3}'`))[0];
-check(r4.ok && (r4.rows[0].r.pending_setup ?? []).length === 1 && dl.at_start === true,
-  `[fix] R4: the pending pick-up's answer-by time is the offer cutoff before the visit's start (${JSON.stringify(r4.rows?.[0] ?? r4.err)}; ${JSON.stringify(dl)})`);
-await q(`update public.jobs set helper_id = null, status = 'open', response_deadline = null where id = '${v3}'`);
-const hold = (await q(`select count(*)::int n from public.series_visit_holds where parent_job_id='${parent}' and visit_date='${day.d}'::date + 21`))[0].n;
-const r5 = await as(READY, `select public.claim_series_dates('${parent}', array['${day.d}'::date + 21]) r`);
-v = await visit(v3);
-check(hold === 0 && r5.ok && (r5.rows[0].r.claimed ?? []).length === 1 && v.helper_id === READY && v.confirmed === true,
-  `[fix] R5: reopened unconfirmed, the date is released and another Helpr takes it (hold ${hold}; ${JSON.stringify(r5.rows?.[0] ?? r5.err)}; ${JSON.stringify(v)})`);
 
 console.log(failures() ? `\n${failures()} FAILED${SKIP ? " (expected on the before state: the [fix] checks)" : ""}` : "\nALL PASS");
 process.exit(failures() ? 1 : 0);

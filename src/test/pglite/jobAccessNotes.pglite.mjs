@@ -89,7 +89,7 @@ CREATE TABLE public.applications (id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
 CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
 CREATE TABLE public.job_accept_pending (job_id uuid, helper_id uuid);
 CREATE TABLE public.notifications (id uuid DEFAULT gen_random_uuid(), user_id uuid, title text, message text, type text, link text, job_id uuid, read boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE public.profiles (user_id uuid, is_seed boolean DEFAULT false);
+CREATE TABLE public.profiles (user_id uuid, is_seed boolean DEFAULT false, full_name text);
 CREATE TYPE public.app_role AS ENUM ('admin', 'user');
 CREATE TABLE public.user_roles (user_id uuid, role public.app_role);
 CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public

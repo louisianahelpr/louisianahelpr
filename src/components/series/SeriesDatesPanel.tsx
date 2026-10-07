@@ -4,7 +4,6 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { AwardGateDialog } from "@/components/AwardGateDialog";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatName } from "@/lib/utils";
 import { hapticError } from "@/lib/haptics";
@@ -60,8 +59,6 @@ export function SeriesDatesPanel({
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmGiveUp, setConfirmGiveUp] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Picked-up visits waiting on payout setup (claim_series_dates pending_setup).
-  const [setupOpen, setSetupOpen] = useState(false);
   const queryClient = useQueryClient();
   const key = ["series-dates", jobId, userId];
 
@@ -214,7 +211,6 @@ export function SeriesDatesPanel({
                       return r.alreadyYours.length === 1 ? "That date is already yours." : "Those dates are already yours.";
                     }
                     if (r.claimed.length === 0) throw new Error("Those dates were taken or can't be booked in time any more.");
-                    if (r.pendingSetup.length > 0) setSetupOpen(true);
                     const lost = r.taken.length + r.refused.length;
                     return `You have ${r.claimed.length} more date${r.claimed.length === 1 ? "" : "s"}.${lost ? ` ${lost} couldn't be added.` : ""}`;
                   })
@@ -287,12 +283,6 @@ export function SeriesDatesPanel({
           });
         }}
         secondaryLabel="Cancel"
-      />
-      <AwardGateDialog
-        open={setupOpen}
-        onOpenChange={setSetupOpen}
-        reason="helper_payout_setup_incomplete"
-        pendingMissing={["payout_setup"]}
       />
     </div>
   );

@@ -4,7 +4,7 @@
  * pushes are on, and nobody who already has it gets it twice.
  *
  * @mutate scripts/launch-go.mjs |   body: "Work is landing on Helpr. Paid jobs are open now. Tap to browse.", |   body: "Paid jobs are open.",
- * @mutate scripts/launch-go.mjs | p.push_enabled === false || p.job_matches === false | p.push_enabled === false
+ * @mutate scripts/launch-go.mjs | p.push_enabled === false \|\| p.job_matches === false | p.push_enabled === false
  * @mutate scripts/launch-go.mjs | !off.has(u) && !sent.has(u) | !off.has(u)
  * @mutate scripts/launch-go.mjs |   if (pushFlag) ok = (await launchPush(confirm && ok)) && ok; |   if (pushFlag) ok = (await launchPush(true)) && ok;
  */

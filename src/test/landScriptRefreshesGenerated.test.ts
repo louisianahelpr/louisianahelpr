@@ -74,7 +74,7 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
     // Success only on MERGED; DIRTY loops back to the rebase (BEHIND is the
     // land queue's since 2026-10-05: src/test/landQueue.test.ts).
-    expect(pr).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s*echo "land: \$BR merged into main\."\n\s*exit 0/);
+    expect(pr).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s*echo "land: \$BR merged into main\."\n(?:[ \t]*(?:#[^\n]*)?\n)*(?:\s*rm -f "\$\(git rev-parse --git-path land-recount\.json\)"\n)?\s*exit 0/);
     expect(pr).toMatch(/if \[ "\$MSS" = DIRTY \]; then\n\s*echo "land: \$BR conflicts with main; rebasing it here[^"]*"\n\s*break/);
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
     expect(brief).toMatch(/It is the ONLY way\s+onto main \(Q44\)/);

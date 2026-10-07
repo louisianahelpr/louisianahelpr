@@ -2096,6 +2096,123 @@ export type Database = {
           },
         ]
       }
+      job_detail_change_answers: {
+        Row: {
+          answer: string
+          answered_at: string | null
+          created_at: string
+          helper_id: string
+          request_id: string
+        }
+        Insert: {
+          answer?: string
+          answered_at?: string | null
+          created_at?: string
+          helper_id: string
+          request_id: string
+        }
+        Update: {
+          answer?: string
+          answered_at?: string | null
+          created_at?: string
+          helper_id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_detail_change_answers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "job_detail_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_detail_change_requests: {
+        Row: {
+          changed_fields: string[]
+          created_at: string
+          decided_at: string | null
+          expires_at: string
+          id: string
+          job_id: string
+          new_description: string | null
+          new_latitude: number | null
+          new_location: string | null
+          new_longitude: number | null
+          new_materials_note: string | null
+          new_title: string | null
+          old_description: string | null
+          old_location: string | null
+          old_materials_note: string | null
+          old_title: string | null
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          changed_fields: string[]
+          created_at?: string
+          decided_at?: string | null
+          expires_at: string
+          id?: string
+          job_id: string
+          new_description?: string | null
+          new_latitude?: number | null
+          new_location?: string | null
+          new_longitude?: number | null
+          new_materials_note?: string | null
+          new_title?: string | null
+          old_description?: string | null
+          old_location?: string | null
+          old_materials_note?: string | null
+          old_title?: string | null
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          changed_fields?: string[]
+          created_at?: string
+          decided_at?: string | null
+          expires_at?: string
+          id?: string
+          job_id?: string
+          new_description?: string | null
+          new_latitude?: number | null
+          new_location?: string | null
+          new_longitude?: number | null
+          new_materials_note?: string | null
+          new_title?: string | null
+          old_description?: string | null
+          old_location?: string | null
+          old_materials_note?: string | null
+          old_title?: string | null
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_detail_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_detail_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_detail_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_match_queue: {
         Row: {
           attempts: number
@@ -6597,6 +6714,10 @@ export type Database = {
         Returns: boolean
       }
       can_read_job_access_notes: { Args: { _job_id: string }; Returns: boolean }
+      can_read_job_detail_change: {
+        Args: { _request_id: string }
+        Returns: boolean
+      }
       can_review_job: {
         Args: { _job_id: string; _reviewer_id: string }
         Returns: boolean
@@ -7570,6 +7691,7 @@ export type Database = {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
       }
+      job_booked_helpr_ids: { Args: { p_job_id: string }; Returns: string[] }
       job_has_crew: { Args: { p_job: string }; Returns: boolean }
       job_hours_until_start: {
         Args: { p_at: string; p_date_needed: string; p_start_time: string }
@@ -7884,6 +8006,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      request_job_detail_change: {
+        Args: { p_changes: Json; p_job_id: string }
+        Returns: Json
+      }
       request_job_schedule_change: {
         Args: { p_date: string; p_job_id: string; p_start_time: string }
         Returns: Json
@@ -7893,6 +8019,10 @@ export type Database = {
         Returns: number
       }
       resolve_stalled_job_flag: { Args: { p_job_id: string }; Returns: boolean }
+      respond_job_detail_change: {
+        Args: { p_accept: boolean; p_request_id: string }
+        Returns: Json
+      }
       respond_job_schedule_change: {
         Args: { p_accept: boolean; p_request_id: string }
         Returns: Json

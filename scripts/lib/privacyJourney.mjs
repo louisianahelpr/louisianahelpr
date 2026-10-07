@@ -100,7 +100,8 @@ export const EXPORT_SECTIONS = [
   "str_calendar_connections", "thread_archives", "thread_mutes", "thread_pins", "nps_responses",
   "analytics_events", "error_logs", "admin_user_notes", "fraud_flags", "helper_shadowbans", "payout_holds",
   "application_rate_log", "profile_search_rate_log", "job_pets", "job_access_notes",
-  "crew_dispute_member_outcomes", "job_schedule_change_requests", "series_date_offers", "series_visit_holds",
+  "crew_dispute_member_outcomes", "job_schedule_change_requests", "job_detail_change_requests", "job_detail_change_answers",
+  "series_date_offers", "series_visit_holds",
   "storage_objects",
 ];
 

@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.status::text IN ('open', 'accepted') |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.date_needed > (now() AT TIME ZONE 'America/Chicago')::date\n             AND c.status::text IN ('open', 'accepted')
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.live AND v_p.series_split_ok THEN |       IF false THEN
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     EXCEPTION WHEN OTHERS THEN\n      RAISE WARNING | EXCEPTION WHEN division_by_zero THEN\n      RAISE WARNING
- * @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
+ * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |          WHERE u.uid IS NOT NULL AND u.uid <> p_user |          WHERE u.uid IS NOT NULL
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon;
  */

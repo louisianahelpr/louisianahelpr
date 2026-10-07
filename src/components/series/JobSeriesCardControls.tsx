@@ -2,6 +2,7 @@ import { RefreshCw } from "lucide-react";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
+import { DetailChangeControl } from "@/components/schedule/DetailChangeControl";
 import { formatRecurrenceInterval, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -27,6 +28,10 @@ export type SeriesCardJob = {
   is_group_job?: boolean | null;
   recurrence_interval?: string | null;
   recurrence_end_date?: string | null;
+  // Q1254: the place and details an agreed change request proposes to replace.
+  description?: string | null;
+  location?: string | null;
+  materials_note?: string | null;
 };
 
 /**
@@ -66,6 +71,12 @@ export function SeriesDatesForJob({
  * A booked one-time job's date/time changes only by a request the other
  * party accepts (Q407 8). `viewer: "helper"` additionally requires the viewer
  * to be the hired Helpr; the poster's card is already the poster's own job.
+ *
+ * Beside it, the place and details change only by a request every booked
+ * Helpr accepts (Q1254). That one covers a crew too: the poster's card asks
+ * once its roster names a Helpr; a Helpr's card answers only a request that
+ * asked them (the read itself says so: RLS returns the request only to the
+ * poster and the Helprs asked).
  */
 export function ScheduleChangeForJob({
   job,
@@ -82,18 +93,42 @@ export function ScheduleChangeForJob({
    *  too much space collapsed). Guard: src/test/offerCardHierarchy.test.tsx. */
   expanded: boolean;
 }) {
-  if (!expanded) return null;
-  if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return null;
-  if (viewer === "helper" && job.helper_id !== userId) return null;
-  if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return null;
+  if (!expanded || !userId) return null;
+  const notSeries = !job.parent_job_id && !job.recurrence_days?.length && !!job.date_needed;
+  const schedule =
+    job.status === "accepted" && !!job.helper_id && !job.helper_completed_at &&
+    (viewer === "poster" || job.helper_id === userId) && notSeries && !job.is_group_job;
+  const details =
+    (job.status === "accepted" || job.status === "open") && !job.helper_completed_at && notSeries &&
+    (job.is_group_job ? true : !!job.helper_id && (viewer === "poster" || job.helper_id === userId));
+  if (!schedule && !details) return null;
   return (
-    <ScheduleChangeControl
-      jobId={job.id}
-      jobTitle={job.title}
-      userId={userId}
-      dateNeeded={job.date_needed}
-      startTime={job.start_time ?? null}
-    />
+    <>
+      {schedule && (
+        <ScheduleChangeControl
+          jobId={job.id}
+          jobTitle={job.title}
+          userId={userId}
+          dateNeeded={job.date_needed as string}
+          startTime={job.start_time ?? null}
+        />
+      )}
+      {details && (
+        <DetailChangeControl
+          jobId={job.id}
+          jobTitle={job.title}
+          userId={userId}
+          viewer={viewer}
+          isCrew={!!job.is_group_job}
+          current={{
+            title: job.title ?? "",
+            description: job.description ?? "",
+            location: job.location ?? "",
+            materials_note: job.materials_note ?? "",
+          }}
+        />
+      )}
+    </>
   );
 }
 

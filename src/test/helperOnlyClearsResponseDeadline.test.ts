@@ -69,4 +69,4 @@ describe("Q1202: the Helpr only clears jobs.response_deadline", () => {
   });
 });
 
-// @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |   IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline AND NEW.response_deadline IS NOT NULL THEN |   IF false THEN
+// @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline AND NEW.response_deadline IS NOT NULL THEN |   IF false THEN

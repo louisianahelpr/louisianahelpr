@@ -296,6 +296,33 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted, so you can't answer requests right now.",
     not_authenticated: "Please sign in again to answer this request.",
   },
+  // DetailChangeControl — the poster asks to change a booked job's place or details (Q1254).
+  request_job_detail_change: {
+    not_authorized: "Only the person who posted this job can ask to change its details.",
+    detail_change_not_one_time: "A recurring series keeps its details; change them from the series instead.",
+    detail_change_not_booked: "Nobody is booked on this job, so you can edit it directly. Refresh and check.",
+    detail_change_too_late: "The job has already started, so its details can't be changed now.",
+    detail_change_title_required: "Give the job a title.",
+    detail_change_title_too_long: "Keep the title to 32 characters.",
+    detail_change_description_required: "Say what the job is.",
+    detail_change_description_too_long: "Keep the description to 1,000 characters.",
+    detail_change_location_required: "Add the address.",
+    detail_change_location_too_long: "Keep the address to 500 characters.",
+    detail_change_location_unmapped: "We couldn't find that address on the map. Check the street, city and ZIP, then try again.",
+    detail_change_materials_too_long: "Keep the materials note to 500 characters.",
+    detail_change_same: "Those are the details the job already has.",
+    detail_change_invalid: "Only the title, description, address and materials note can be changed this way.",
+    account_restricted: "Your account is restricted, so you can't ask for changes right now.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to ask for a change.",
+  },
+  respond_job_detail_change: {
+    not_authorized: "Only a Helpr booked on this job can answer this request.",
+    request_not_found: "That request no longer exists. Refresh to see the job as it is.",
+    detail_change_invalid: "Something went wrong. Please try again.",
+    account_restricted: "Your account is restricted, so you can't answer requests right now.",
+    not_authenticated: "Please sign in again to answer this request.",
+  },
   // SeriesDatesPanel — picking visit dates on a series (Q407 5).
   claim_series_dates: {
     not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",

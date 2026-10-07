@@ -135,6 +135,24 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     }
   });
 
+  it("Q1464: the map pin's card and the job detail dialog say the open spots too, not the crew's size", () => {
+    // The detail dialog's Helprs tile reads the same rule as the browse chip.
+    const tiles = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx"), "utf8"));
+    expect(tiles).toMatch(/openCrewSpots\(job\.helpers_needed, job\.crew_spots_open\)/);
+    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobCardMetaRow.tsx"), "utf8"));
+    expect(chip).toMatch(/const open = openCrewSpots\(count, spotsOpen\)/);
+    // A pin opened from the map (not in the loaded feed) reads the count after its row.
+    const pin = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/fetchJobForPin.ts"), "utf8"));
+    expect(pin).toMatch(/fetchCrewSpotsOpen\(\[job\.id\]\)/);
+    expect(pin, "never in the row's own select (a missing column would fail the whole lookup)").not.toMatch(/BROWSE_COLUMNS =[^;]*crew_spots_open/);
+    // The pin's popup card (the map RPC has no count) gets it from its own read.
+    const map = blankComments(readFileSync(resolve(ROOT, "src/components/BrowseMap.tsx"), "utf8"));
+    expect(map).toMatch(/job=\{mapJobToEnrichedJob\(selectedJob, selectedCrewSpots\)\}/);
+    expect(map).toMatch(/fetchCrewSpotsOpen\(\[selectedCrewId\]\)/);
+    const adapter = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/mapJobToEnrichedJob.ts"), "utf8"));
+    expect(adapter).toMatch(/crew_spots_open: crewSpotsOpen \?\? null/);
+  });
+
   it("has a PGlite proof that is red on the old surfaces", () => {
     const proof = resolve(ROOT, "src/test/pglite/crewFreeSpotRelisted.pglite.mjs");
     expect(existsSync(proof)).toBe(true);

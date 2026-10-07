@@ -7,6 +7,7 @@ import { jobDateMs, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
+import { openCrewSpots } from "@/components/job-card/JobCardMetaRow";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -145,19 +146,24 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           // above — the payout is the budget SPLIT this many ways — so it
           // belongs beside where/when, not buried in a status pill.
           ...(job.is_group_job && (job.helpers_needed ?? 0) > 1
-            ? [{
+            ? [(() => {
+                // Q1464: a re-listed crew (Q1409) says its open spots, as the
+                // browse chip does, not the crew's size.
+                const open = openCrewSpots(job.helpers_needed, job.crew_spots_open);
+                return {
                 Icon: Users,
                 label: "Helprs",
                 // A bare number reads fine next to "Abbeville"/"Sat, Aug 29"
                 // (both nouns), but a bare "3" answers no visible question —
                 // the word makes it self-contained.
-                value: `${job.helpers_needed} Helprs`,
+                value: open != null ? `${open} spot${open === 1 ? "" : "s"} open` : `${job.helpers_needed} Helprs`,
                 sub: null,
                 href: null,
                 onClick: undefined,
                 expanded: undefined,
                 urgent: false,
-              }]
+              };
+            })()]
             : []),
           // Estimated-hours tile removed (owner, 2026-08-30: "delete
           // globally, no longer used or an option anywhere") — the post

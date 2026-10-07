@@ -153,3 +153,29 @@ describe("JobStatTiles is mounted with a job that carries the flexible flag", ()
 // The exact line the owner photographed on 2026-09-19: two tiles laid into
 // three columns leaves the third one empty.
 // @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx | rowItems.length >= 4 ? "grid-cols-4" : rowItems.length === 3 ? "grid-cols-3" : "grid-cols-2" | rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"
+
+/**
+ * Q1464: a booked crew a member left is re-listed for its free spot (Q1409).
+ * The browse chip says "1 spot open"; the detail dialog's Helprs tile said the
+ * crew's size ("3 Helprs"), so the same job read two ways a tap apart.
+ */
+describe("JobStatTiles — a re-listed crew's tile says its open spots (Q1464)", () => {
+  it("a crew of 3 with 1 spot open reads '1 spot open', not '3 Helprs'", () => {
+    render(<JobStatTiles job={makeJob({ is_group_job: true, helpers_needed: 3, crew_spots_open: 1 })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("1 spot open")).toBeTruthy();
+    expect(screen.queryByText("3 Helprs")).toBeNull();
+  });
+
+  it("a staffing crew (every spot open) and an unknown count keep the size", () => {
+    render(<JobStatTiles job={makeJob({ is_group_job: true, helpers_needed: 3, crew_spots_open: 3 })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("3 Helprs")).toBeTruthy();
+    cleanup();
+    render(<JobStatTiles job={makeJob({ is_group_job: true, helpers_needed: 3, crew_spots_open: null })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("3 Helprs")).toBeTruthy();
+  });
+
+  it("two spots open reads plural", () => {
+    render(<JobStatTiles job={makeJob({ is_group_job: true, helpers_needed: 4, crew_spots_open: 2 })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("2 spots open")).toBeTruthy();
+  });
+});

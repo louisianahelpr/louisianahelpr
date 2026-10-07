@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T08:56Z",
+  "measured_at": "2026-10-07T09:08Z",
   "issues": {
     "readable": true,
     "open": [
@@ -62,201 +62,9 @@
     ]
   },
   "ledger": {
-    "readable": true,
-    "open": [
-      {
-        "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-audit",
-        "issue": 2245
-      },
-      {
-        "fingerprint": "7e141f206640992d5c398b4e39d71f94",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: press-every-control",
-        "issue": 2353
-      },
-      {
-        "fingerprint": "6389f98a9f666200913c7cf501dc289d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: loading-states-refresh",
-        "issue": 2420
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
-        "source_kind": "error_logs",
-        "source": "push-tokens-empty",
-        "status": "open",
-        "title": "no device can receive a push",
-        "issue": null
-      },
-      {
-        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: vacuity",
-        "issue": 2501
-      },
-      {
-        "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: nightly-red-age",
-        "issue": 2244
-      },
-      {
-        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-real-backend",
-        "issue": 2435
-      },
-      {
-        "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-journeys",
-        "issue": 2436
-      },
-      {
-        "fingerprint": "a8ceee56bbd5a688ee8eb2f4f8e41e69",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: slow-network",
-        "issue": 2462
-      },
-      {
-        "fingerprint": "6205197429d4e577570e7970d3a22f83",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: a11y-webkit-prod",
-        "issue": 2375
-      },
-      {
-        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: branch-prune",
-        "issue": 2366
-      },
-      {
-        "fingerprint": "a5d62d53b6a4bea80076ec889713b41d",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/browse · undefined is not an object (evaluating 'l.displayname')",
-        "issue": null
-      },
-      {
-        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
-        "source_kind": "error_logs",
-        "source": "stripe-connect",
-        "status": "open",
-        "title": "stripe-connect cleared unusable payout account <id>",
-        "issue": null
-      },
-      {
-        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
-        "source_kind": "nightly_red",
-        "source": "prod-errors",
-        "status": "open",
-        "title": "prod-errors: real users are hitting error screens",
-        "issue": 2478
-      },
-      {
-        "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/app-shared-BltHQJ6d)",
-        "status": "open",
-        "title": "error: usesearchparammirror runaway writes",
-        "issue": null
-      },
-      {
-        "fingerprint": "8d229551132f8f9b17226a5b38fe33c9",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "stripe inquiry escalated to a chargeback (funds withdrawn)",
-        "issue": null
-      },
-      {
-        "fingerprint": "d2d07ff8b273a91ef1dacc9c00b78626",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "stripe chargeback filed",
-        "issue": null
-      },
-      {
-        "fingerprint": "dfa53ea7538bb1524f69a087924567d7",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_filed",
-        "status": "verifying",
-        "title": "card dispute on a paid job — helpr payout clawed back",
-        "issue": null
-      },
-      {
-        "fingerprint": "090aa021e2784c5242af582221e1d766",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:payout_reversed",
-        "status": "verifying",
-        "title": "helpr payout reversed for a card dispute (automatic clawback)",
-        "issue": null
-      },
-      {
-        "fingerprint": "254aa669dea71f9df7a88af8759c2125",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_lost",
-        "status": "verifying",
-        "title": "❌ stripe chargeback lost",
-        "issue": null
-      },
-      {
-        "fingerprint": "aa7111fce4e82b080601d066a23bdfd6",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:money_at_risk",
-        "status": "verifying",
-        "title": "card dispute won — helpr re-paid, payout_transfers row not written",
-        "issue": null
-      },
-      {
-        "fingerprint": "71c0da6d93831351738bd9de50f4e50e",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:dispute_won",
-        "status": "verifying",
-        "title": "✅ stripe chargeback won",
-        "issue": null
-      },
-      {
-        "fingerprint": "fdf163a422f2bc1df11ed9646c9c0948",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: land queue",
-        "issue": null
-      }
-    ]
+    "readable": false,
+    "error": "Command failed: supabase db query --linked -o json SELECT fingerprint, source_kind, source, status, sample_ref,",
+    "open": []
   },
   "mirrored": {
     "bus ME-019": "Q1472",
@@ -277,9 +85,7 @@
     "issue #2501": "Q1426",
     "issue #2543": "Q1479",
     "ledger 090aa021e278": "Q1468",
-    "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 1ef4b10bb74a": "Q1437",
     "ledger 254aa669dea7": "Q1469",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",

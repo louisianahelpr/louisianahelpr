@@ -1340,6 +1340,20 @@ describe("execute-dispute-split edge function", () => {
       ]));
     });
 
+    // Q1251: a sandbox Connect account under the live key was a 502 "retry"
+    // that marked the dispute failed as if Stripe were down.
+    it("an unusable Connect account answers 409, moves nothing, and names the fix on the dispute (Q1251)", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("The account acct_helper was a test account created with a testmode key, and therefore can only be used with testmode keys."), { type: "StripeInvalidRequestError", statusCode: 400 }));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("connect_account_unusable");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const failure = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed").pop();
+      expect(JSON.stringify(failure?.payload)).toContain("must be set up again");
+    });
+
     it("markFailed only ever writes a DECIDED row — never a superseded or re-opened one", async () => {
       seedExecutable(scenario);
       stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: false, charges_enabled: true });

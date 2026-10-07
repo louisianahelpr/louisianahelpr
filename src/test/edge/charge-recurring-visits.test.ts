@@ -1722,6 +1722,85 @@ describe("charge-recurring-visits edge function", () => {
     expect((asks[0].payload as Record<string, unknown>).user_id).toBe(POSTER_ID);
   });
 
+  // Q1338 (lh-money-escrow review, 2026-10-05): the earlier-charge lookup ran
+  // only after the $300 park, so an earlier run's unbooked off-session charge
+  // of this visit was parked and the payer asked to pay it a second time.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             earlierChargeToAdopt = parkPrior.kind === "adopt"; |             earlierChargeToAdopt = false;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (parkPrior.kind === "in_flight") { |             if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") { |         if (false) {
+  describe("Q1338: a $300+ visit with an earlier unbooked charge is adopted, never parked", () => {
+    async function parkedAmount(): Promise<number> {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      await runOn(fn, "2026-09-01");
+      const amount = (visitPaymentWrites("insert")[0].payload as Record<string, unknown>).amount_cents as number;
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      return amount;
+    }
+    const earlier = (over: Record<string, unknown> = {}) => ({
+      id: "pi_offsession_unbooked", status: String("succeeded"), amount: 0, currency: "usd",
+      metadata: { type: "recurring_visit", parent_job_id: PARENT_ID, visit_date: VISIT_DATE, hold_id: HOLD_ID },
+      latest_charge: { id: "ch_earlier", amount_refunded: 0 }, ...over,
+    });
+
+    it("books the visit on the earlier charge: no park, no ask to pay, no new charge", async () => {
+      const total = await parkedAmount();
+      expect(total).toBeGreaterThanOrEqual(30000);
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ amount: total })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(b.awaitingPayment).toBe(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_offsession_unbooked");
+    });
+
+    it("an earlier charge still processing parks nothing and charges nothing this run", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ status: String("processing"), latest_charge: null })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(reasons(b)).toContain("still processing; nothing parked");
+    });
+
+    it("an earlier charge that stops being adoptable between the two lookups charges nothing off-session", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list
+        .mockResolvedValueOnce({ data: [earlier({ amount: 31000 })], has_more: false })
+        .mockResolvedValueOnce({ data: [earlier({ amount: 31000, latest_charge: { id: "ch_r", amount_refunded: 31000 } })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(visitPaymentWrites("insert")).toHaveLength(0);
+      expect(reasons(b)).toContain("no longer adoptable");
+    });
+
+    it("a refunded earlier charge is not adopted: the visit is parked as before", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({});
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [earlier({ amount: 31000, latest_charge: { id: "ch_r", amount_refunded: 31000 } })], has_more: false });
+      const b = await body(await runOn(fn, "2026-09-01"));
+      expect(b.awaitingPayment).toBe(1);
+      expect(visitPaymentWrites("insert")).toHaveLength(1);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("a visit under $300 is still charged off-session exactly as before", async () => {
     const fn = await loadConfigured();
     seedHappyPath();

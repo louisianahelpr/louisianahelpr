@@ -607,6 +607,50 @@ describe("money-reconciliation edge function", () => {
       expect(names(b)).toContain("held_money_not_redriven");
     });
 
+    // Q1294 (third lh-money-escrow review of Q1222/Q1223): a row the re-drive
+    // NEVER tried has no first-attempt stamp, so "no stamp, not stuck" hid a
+    // dead sweep for good. It now ages from when the money became owed, over a
+    // longer limit (72h).
+    // @mutate supabase/functions/money-reconciliation/index.ts |                 (r.first_repay_attempt_at ? stale(r.first_repay_attempt_at) : staleUntried(r.created_at, r.updated_at))); |                 stale(r.first_repay_attempt_at));
+    // @mutate supabase/functions/money-reconciliation/index.ts |             if (!(r.held_repay_first_attempt_at ? stale(r.held_repay_first_attempt_at) : staleUntried(r.held_repay_owed_at, r.updated_at))) continue; |             if (!stale(r.held_repay_first_attempt_at)) continue;
+    it("flags held money the re-drive never tried once it has been owed past the longer limit (Q1294)", async () => {
+      const ancient = new Date(Date.now() - 4 * 86_400_000).toISOString();
+      for (const seed of [
+        () => { scenario.reads.tip_hold_redrives = { rows: [tip({ created_at: ancient, updated_at: ancient, first_repay_attempt_at: null })] }; },
+        () => {
+          scenario.reads.chargeback_clawbacks = {
+            rows: [{ id: "cb-1", dispute_id: "dp_1", helper_id: "helper-1", status: "reversed", reversed_cents: 9000, failure_reason: null, updated_at: ancient, held_repay_owed_at: ancient, held_repay_first_attempt_at: null }],
+          };
+        },
+      ]) {
+        resetSupabaseMock(); resetSharedMocks();
+        const fn = await loadConfigured();
+        seedCleanLedger();
+        seed();
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(names(b)).toContain("held_money_not_redriven");
+      }
+    });
+
+    it("a never-tried row touched recently (a hold just lifted) is not flagged yet (Q1294 review)", async () => {
+      const ancient = new Date(Date.now() - 4 * 86_400_000).toISOString();
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip({ created_at: ancient, updated_at: fresh, first_repay_attempt_at: null })] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("held_money_not_redriven");
+    });
+
+    it("never-tried held money still waits while its Helpr is on hold (Q1294 control)", async () => {
+      const ancient = new Date(Date.now() - 4 * 86_400_000).toISOString();
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip({ created_at: ancient, first_repay_attempt_at: null })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("held_money_not_redriven");
+    });
+
     it("before the migration is deployed it is a note, never a crash", async () => {
       const fn = await loadConfigured();
       seedCleanLedger();

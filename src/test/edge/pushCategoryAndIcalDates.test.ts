@@ -125,9 +125,22 @@ describe("str-ical look-ahead window", () => {
   });
 
   it("still drops yesterday's checkout", () => {
-    const now = new Date("2026-09-02T00:44:00Z");
+    // 12:44 UTC is 07:44 CDT: the Louisiana and UTC days agree.
+    const now = new Date("2026-09-02T12:44:00Z");
     expect(isInLookAhead(parseIcalDate("20260901"), now)).toBe(false);
     expect(isInLookAhead(parseIcalDate("20260830"), now)).toBe(false);
+  });
+
+  // Q1265: the window opens on the LOUISIANA day. The 00:44 UTC run is 19:44
+  // CDT the evening before; that evening's checkout is still today there.
+  // @mutate supabase/functions/str-ical-sync/dates.ts |   const from = parseIcalDate(louisianaToday(now).replace(/-/g, '')); |   const from = utcDay(now);
+  it("keeps the Louisiana day's checkout on the evening runs (Q1265)", () => {
+    const evening = new Date("2026-10-02T00:44:00Z"); // 19:44 CDT, Oct 1
+    expect(isInLookAhead(parseIcalDate("20261001"), evening)).toBe(true);
+    expect(isInLookAhead(parseIcalDate("20260930"), evening)).toBe(false);
+    const winter = new Date("2026-12-02T00:44:00Z"); // 18:44 CST, Dec 1
+    expect(isInLookAhead(parseIcalDate("20261201"), winter)).toBe(true);
+    expect(lookAheadWindow(evening).from.toISOString()).toBe("2026-10-01T00:00:00.000Z");
   });
 
   it("keeps a whole 7 days of look-ahead and drops day 8", () => {
@@ -139,7 +152,9 @@ describe("str-ical look-ahead window", () => {
   it("does not slide the far edge with the time of day the cron fires", () => {
     // The old `Date.now() + 7d` far edge moved with the clock: a 00:44 run and
     // an 18:44 run on the same date disagreed about whether day +7 was in.
-    const early = lookAheadWindow(new Date("2026-09-02T00:44:00Z"));
+    // (06:44 UTC, not 00:44: the 00:44 run is the evening before in
+    // Louisiana, which is the Louisiana day the window opens on, Q1265.)
+    const early = lookAheadWindow(new Date("2026-09-02T06:44:00Z"));
     const late = lookAheadWindow(new Date("2026-09-02T18:44:00Z"));
     expect(early.from.toISOString()).toBe(late.from.toISOString());
     expect(early.to.toISOString()).toBe(late.to.toISOString());
@@ -147,5 +162,5 @@ describe("str-ical look-ahead window", () => {
   });
 });
 
-// @mutate supabase/functions/str-ical-sync/dates.ts | const from = utcDay(now); | const from = now;
+// @mutate supabase/functions/str-ical-sync/dates.ts | const from = parseIcalDate(louisianaToday(now).replace(/-/g, '')); | const from = now;
 // @mutate supabase/functions/send-push-notification/category.ts | path.startsWith('/jobs')) { | path.includes('accepted')) {

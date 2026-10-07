@@ -1201,7 +1201,37 @@ serve(async (req) => {
         // 2026-09-27). An off-session charge cannot answer a 3D Secure
         // challenge, so it is never attempted at this size. Under $300 nothing
         // below changes.
-        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) {
+        // Q1338 (lh-money-escrow review, 2026-10-05): the Q1104 earlier-charge
+        // lookup used to run only AFTER this branch, so a visit an earlier run
+        // charged off-session (while it still totalled under $300) and never
+        // booked was parked here and the payer asked to pay it again. Ask
+        // Stripe first; an earlier unbooked charge of this claim falls through
+        // to the adopt path below (which books it, or pages on a mismatch) and
+        // is never parked. An earlier charge made while the visit totalled
+        // under $300 usually took a different amount, so in practice this is
+        // the Q1337 mismatch page, every run, until a person books or refunds
+        // it: never a second charge to the payer.
+        let earlierChargeToAdopt = false;
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !dryRun) {
+          const parkCard = await seriesCard(stripe, parent.stripe_payment_intent_id as string | null);
+          if (parkCard.kind === "unknown") {
+            fail(`series ${parent.id} ${visitDate}: could not read the series' saved card before parking (${parkCard.message}); nothing parked this run`);
+            continue;
+          }
+          if (parkCard.kind === "card") {
+            const parkPrior = await priorVisitIntent(stripe, parkCard.customerId, String(parent.id), visitDate, String(hold.id));
+            if (parkPrior.kind === "error") {
+              fail(`series ${parent.id} ${visitDate}: could not check Stripe for an earlier charge of this visit before parking (${parkPrior.message.slice(0, 160)}); nothing parked this run`);
+              continue;
+            }
+            if (parkPrior.kind === "in_flight") {
+              fail(`series ${parent.id} ${visitDate}: an earlier charge ${parkPrior.intentId} of this visit is still processing; nothing parked this run`);
+              continue;
+            }
+            earlierChargeToAdopt = parkPrior.kind === "adopt";
+          }
+        }
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !earlierChargeToAdopt) {
           if (dryRun) {
             results.awaitingPayment++;
             continue;
@@ -1361,6 +1391,13 @@ serve(async (req) => {
         }
         if (prior.kind === "in_flight") {
           fail(`series ${parent.id} ${visitDate}: an earlier charge ${prior.intentId} of this visit is still processing; nothing charged this run`);
+          continue;
+        }
+        // Q1338: a $300+ visit reaches here only to adopt an earlier charge.
+        // If that charge is gone by now (refunded between the two reads), it
+        // is never charged off-session: the next run parks it.
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && prior.kind !== "adopt") {
+          fail(`series ${parent.id} ${visitDate}: the earlier charge of this $300+ visit was no longer adoptable; nothing charged, the next run parks it`);
           continue;
         }
         if (prior.kind === "adopt") {

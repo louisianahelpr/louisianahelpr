@@ -50,7 +50,7 @@
 //     anywhere could recover it. Leg 3 below is that guard replaced with an
 //     answer.)
 
-import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -1315,6 +1315,18 @@ serve(async (req) => {
     try {
       account = await stripe.accounts.retrieve(helper.stripe_account_id);
     } catch (e) {
+      // Q1251: an account the live key can never use (a sandbox account made
+      // under the test key, or one Stripe no longer has) is the same outcome
+      // as no payout account: 409, nothing moved, the dispute marked with what
+      // to fix. Only a genuine outage stays the 502 "retry".
+      if (isUnusableConnectAccountError(e)) {
+        console.warn(`[execute-dispute-split] Connect account ${helper.stripe_account_id} is unusable under this key:`, (e as { message?: string })?.message);
+        await markFailed(supabaseAdmin, disputeId, "helper Connect account cannot be used (must be set up again)", {}, job.id, settlementClaim);
+        return json(
+          { error: "the Helpr's payout account can't be used and must be set up again — nothing was moved", code: "connect_account_unusable" },
+          409,
+        );
+      }
       console.error(`[execute-dispute-split] accounts.retrieve failed for ${helper.stripe_account_id}:`, e);
       await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account", {}, job.id, settlementClaim);
       return json({ error: "could not verify the Helpr's payout account — retry" }, 502);

@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
-import { PaymentHeldDialog } from "@/components/job-card/PaymentHeldDialog";
+import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { type Tab } from "@/components/job-card/activityConstants";
 
@@ -26,11 +26,7 @@ const AppliedJobsTab = lazy(() =>
 );
 
 // Dialogs mount only on a user action, so lazy-loading keeps their subtrees
-// out of the initial chunk entirely.
-const AwardGateDialog = lazy(() =>
-  import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
-);
-const W9CollectionDialog = lazy(() => import("@/components/W9CollectionDialog"));
+// out of the initial chunk entirely (the offer pop-ups: ActivityOfferDialogs).
 // Same "Report" surface Browse uses (Dashboard.tsx) — a Done-tab job on
 // My Posts gets the identical dialog, reportedType="job".
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
@@ -756,31 +752,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         helperNames={helperNames}
         onRefresh={refresh}
       />
-      {actions.awardBlockReason && (
-        <Suspense fallback={null}>
-          <AwardGateDialog
-            open={!!actions.awardBlockReason}
-            onOpenChange={(o) => {
-              if (!o) actions.closeAwardGate();
-            }}
-            reason={actions.awardBlockReason}
-            pendingMissing={actions.acceptPendingMissing}
-          />
-        </Suspense>
-      )}
-      {actions.w9Context && user && (
-        <Suspense fallback={null}>
-          <W9CollectionDialog
-            open={actions.w9DialogOpen}
-            onOpenChange={actions.setW9DialogOpen}
-            jobId={actions.w9Context.jobId}
-            helperId={user.id}
-            businessId={actions.w9Context.businessId}
-          />
-        </Suspense>
-      )}
-      {/* Q997: "the payment is held" after an offer is sent or an accept completes. */}
-      <PaymentHeldDialog side={actions.paymentHeldSide} onClose={() => actions.setPaymentHeldSide(null)} />
+      <ActivityOfferDialogs actions={actions} userId={user?.id ?? null} />
       {reportJobId && (
         <Suspense fallback={null}>
           <ReportDialog

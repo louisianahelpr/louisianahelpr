@@ -144,6 +144,10 @@ jobs:
     timeout-minutes: 10
     outputs:
       have_e2e: ${{ steps.scope.outputs.have_e2e }}
+      # Q1270: registrations per e2e leg (run.mjs E2E_LEGS = 4); 0 skips a leg.
+      e2e_leg_2: ${{ steps.scope.outputs.e2e_leg_2 }}
+      e2e_leg_3: ${{ steps.scope.outputs.e2e_leg_3 }}
+      e2e_leg_4: ${{ steps.scope.outputs.e2e_leg_4 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -352,11 +356,14 @@ jobs:
     # found a Playwright registration to run: a push that changed none never
     # waits behind a press run. 180 minutes, the longest any holder may take
     # (the waiter's 350-minute queue plus this is the 8.8 h a real run is done
-    # inside, wait-shared-accounts.mjs STALE_RUN_MS): the weekly full set has 96
-    # Playwright registrations at ~98 s each, about 157 minutes. That is over the
-    # one-hour cap (sharedAccountLockJobsAreShort.test.ts ALLOWED); docs/OPEN.md
-    # Q1270 shards it into legs under an hour.
-    name: Playwright guards shown able to fail
+    # inside, wait-shared-accounts.mjs STALE_RUN_MS): the weekly full set has 99
+    # Playwright registrations at ~98 s each, about 160 minutes, over the
+    # one-hour cap on a lock holder (sharedAccountLockJobsAreShort.test.ts). So
+    # (Q1270) the set runs in FOUR sequential legs, this job and vacuity-e2e-2..4,
+    # each waiting its own turn in the queue and holding the lock for one quarter
+    # (`--shard k/4`, run.mjs selectShard: ~25 registrations, ~41 min). A leg
+    # with nothing in it (scope's e2e_leg_<k> = 0, most pushes) is skipped.
+    name: Playwright guards shown able to fail (leg 1 of 4)
     needs: [scope, wait-accounts]
     if: needs.scope.outputs.have_e2e == 'true'
     runs-on: ubuntu-latest
@@ -364,7 +371,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    timeout-minutes: 180
+    timeout-minutes: 57 # e2e leg 1 (Q1270)
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false
@@ -463,11 +470,503 @@ jobs:
         # e2e/ (--e2e). This job exists only when `scope` found one.
         run: |
           if [ -n "${ONLY}" ]; then
-            npm run vacuity -- --e2e --only "${ONLY}"
+            npm run vacuity -- --e2e --shard 1/4 --only "${ONLY}"
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
-            npm run vacuity:all -- --e2e
+            npm run vacuity:all -- --e2e --shard 1/4
           else
-            npm run vacuity -- --e2e
+            npm run vacuity -- --e2e --shard 1/4
+          fi
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after vacuity — along
+  # with 13 other scheduled workflows — was found failing with nobody told.
+  # The drift detector had been red for THREE CONSECUTIVE DAYS (09-20, 09-21,
+  # 09-22) and the nightly DB backup had not succeeded since 09-21; both are
+  # invisible unless somebody opens the Actions tab, which is exactly the
+  # thing the owner said nobody does.
+  #
+  # `nightly-issue-sync` opens/updates ONE `nightly-red` issue for this
+  # workflow and closes it on the next green run, which is what makes the
+  # "Nightly reds nobody read" gate able to see it at all.
+  #
+  # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
+  # commit and the PR; filing an issue for it would make the label noisy and
+  # teach people to ignore it.
+  wait-accounts-2:
+    # Q743: the job-level lock `vacuity-e2e` takes is NOT a queue. GitHub keeps
+    # ONE pending job per concurrency group and CANCELS it when a third arrives.
+    # This lock-free job waits its turn first and joins the group only when that
+    # bumps nobody (scripts/e2e/wait-shared-accounts.mjs;
+    # src/test/sharedAccountLockQueues.test.ts). Only when `scope` found e2e work.
+    name: Wait for the shared accounts (queue, e2e leg 2 of 4)
+    # Q1270: leg 2 waits for leg 1 to let go of the accounts, then queues like
+    # any other holder. Runs whatever leg 1's result was, unless the run was
+    # cancelled, so a red leg never leaves the rest of the set unproved.
+    needs: [scope, vacuity-e2e]
+    if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_2 != '0' && needs.scope.outputs.e2e_leg_2 != '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  vacuity-e2e-2:
+    # Leg 2 of 4 of vacuity-e2e (Q1270); see that job for every step's reason.
+    name: Playwright guards shown able to fail (leg 2 of 4)
+    needs: [scope, wait-accounts-2]
+    if: ${{ !cancelled() && needs.wait-accounts-2.result == 'success' }}
+    runs-on: ubuntu-latest
+    # actions: read for the deploy wait (it lists this commit's deploy runs).
+    permissions:
+      contents: read
+      actions: read
+    timeout-minutes: 57 # e2e leg 2 (Q1270)
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        # Full history: the per-push scope is a diff against origin/main, and a
+        # shallow clone has no merge base to diff against.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        # Same reason as the vacuity job's install: the harness preflight fails
+        # when a browser is missing.
+        run: bash scripts/ci/playwright-install.sh chromium webkit
+
+      - name: Give the build the app's public Supabase config
+        # The gate rebuilds the bundle itself for Playwright guards, so it does
+        # not go through .github/actions/local-preview and needs VITE_* here.
+        # Both values are publishable — the same pair prod-audit.yml falls back
+        # to in plain text — and no secret is written by this step.
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}"
+          } > .env
+          test -s .env
+
+      - name: Give prod-backed e2e guards the service-role key
+        # e2e registrations (prod-audit, a11y-prod, journeys) mint their test
+        # sessions through scripts/test-signin-link.mjs, which needs
+        # SUPABASE_SERVICE_ROLE_KEY in .env. Without it every such guard is
+        # red BEFORE its mutation and reports INCONCLUSIVE: run 35935153284
+        # (2026-09-23, nightly-red #1731) had 5 of 11 registrations
+        # inconclusive with "ERROR: .env is missing VITE_SUPABASE_URL and/or
+        # SUPABASE_SERVICE_ROLE_KEY". Minted the same way prod-audit.yml does.
+        # Guard: src/test/vacuityWorkflowsProvideServiceRole.test.ts.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            SERVICE_KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+            echo "::add-mask::$SERVICE_KEY"
+            umask 077
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+          elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
+            exit 1
+          else
+            # A push run without the secret. Not a false green: an e2e
+            # registration in its changed set comes back INCONCLUSIVE, which
+            # the gate itself fails on.
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
+          fi
+
+      # Q432: a push that lands a migration or an edge function starts its
+      # deploys at the same moment as this job. Until they finish, the
+      # prod-backed registrations test the old backend and read RED before any
+      # mutation (vacuity 36215687625). Wait for this commit's db-deploy and
+      # functions-deploy runs, if it has any (bounded; never fails the job).
+      - name: Wait for this commit's prod deploys
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/wait-commit-deploys.mjs
+
+      - name: Vacuity gate (Playwright registrations)
+        env:
+          # Through env, never interpolated into the script (injection-safe).
+          ONLY: ${{ inputs.only }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+        # The same scope as the unit job, narrowed to the registrations under
+        # e2e/ (--e2e). This job exists only when `scope` found one.
+        run: |
+          if [ -n "${ONLY}" ]; then
+            npm run vacuity -- --e2e --shard 2/4 --only "${ONLY}"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
+            npm run vacuity:all -- --e2e --shard 2/4
+          else
+            npm run vacuity -- --e2e --shard 2/4
+          fi
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after vacuity — along
+  # with 13 other scheduled workflows — was found failing with nobody told.
+  # The drift detector had been red for THREE CONSECUTIVE DAYS (09-20, 09-21,
+  # 09-22) and the nightly DB backup had not succeeded since 09-21; both are
+  # invisible unless somebody opens the Actions tab, which is exactly the
+  # thing the owner said nobody does.
+  #
+  # `nightly-issue-sync` opens/updates ONE `nightly-red` issue for this
+  # workflow and closes it on the next green run, which is what makes the
+  # "Nightly reds nobody read" gate able to see it at all.
+  #
+  # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
+  # commit and the PR; filing an issue for it would make the label noisy and
+  # teach people to ignore it.
+  wait-accounts-3:
+    # Q743: the job-level lock `vacuity-e2e` takes is NOT a queue. GitHub keeps
+    # ONE pending job per concurrency group and CANCELS it when a third arrives.
+    # This lock-free job waits its turn first and joins the group only when that
+    # bumps nobody (scripts/e2e/wait-shared-accounts.mjs;
+    # src/test/sharedAccountLockQueues.test.ts). Only when `scope` found e2e work.
+    name: Wait for the shared accounts (queue, e2e leg 3 of 4)
+    # Q1270: leg 3 waits for leg 2 to let go of the accounts, then queues like
+    # any other holder. Runs whatever leg 2's result was, unless the run was
+    # cancelled, so a red leg never leaves the rest of the set unproved.
+    needs: [scope, vacuity-e2e-2]
+    if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_3 != '0' && needs.scope.outputs.e2e_leg_3 != '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  vacuity-e2e-3:
+    # Leg 3 of 4 of vacuity-e2e (Q1270); see that job for every step's reason.
+    name: Playwright guards shown able to fail (leg 3 of 4)
+    needs: [scope, wait-accounts-3]
+    if: ${{ !cancelled() && needs.wait-accounts-3.result == 'success' }}
+    runs-on: ubuntu-latest
+    # actions: read for the deploy wait (it lists this commit's deploy runs).
+    permissions:
+      contents: read
+      actions: read
+    timeout-minutes: 57 # e2e leg 3 (Q1270)
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        # Full history: the per-push scope is a diff against origin/main, and a
+        # shallow clone has no merge base to diff against.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        # Same reason as the vacuity job's install: the harness preflight fails
+        # when a browser is missing.
+        run: bash scripts/ci/playwright-install.sh chromium webkit
+
+      - name: Give the build the app's public Supabase config
+        # The gate rebuilds the bundle itself for Playwright guards, so it does
+        # not go through .github/actions/local-preview and needs VITE_* here.
+        # Both values are publishable — the same pair prod-audit.yml falls back
+        # to in plain text — and no secret is written by this step.
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}"
+          } > .env
+          test -s .env
+
+      - name: Give prod-backed e2e guards the service-role key
+        # e2e registrations (prod-audit, a11y-prod, journeys) mint their test
+        # sessions through scripts/test-signin-link.mjs, which needs
+        # SUPABASE_SERVICE_ROLE_KEY in .env. Without it every such guard is
+        # red BEFORE its mutation and reports INCONCLUSIVE: run 35935153284
+        # (2026-09-23, nightly-red #1731) had 5 of 11 registrations
+        # inconclusive with "ERROR: .env is missing VITE_SUPABASE_URL and/or
+        # SUPABASE_SERVICE_ROLE_KEY". Minted the same way prod-audit.yml does.
+        # Guard: src/test/vacuityWorkflowsProvideServiceRole.test.ts.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            SERVICE_KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+            echo "::add-mask::$SERVICE_KEY"
+            umask 077
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+          elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
+            exit 1
+          else
+            # A push run without the secret. Not a false green: an e2e
+            # registration in its changed set comes back INCONCLUSIVE, which
+            # the gate itself fails on.
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
+          fi
+
+      # Q432: a push that lands a migration or an edge function starts its
+      # deploys at the same moment as this job. Until they finish, the
+      # prod-backed registrations test the old backend and read RED before any
+      # mutation (vacuity 36215687625). Wait for this commit's db-deploy and
+      # functions-deploy runs, if it has any (bounded; never fails the job).
+      - name: Wait for this commit's prod deploys
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/wait-commit-deploys.mjs
+
+      - name: Vacuity gate (Playwright registrations)
+        env:
+          # Through env, never interpolated into the script (injection-safe).
+          ONLY: ${{ inputs.only }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+        # The same scope as the unit job, narrowed to the registrations under
+        # e2e/ (--e2e). This job exists only when `scope` found one.
+        run: |
+          if [ -n "${ONLY}" ]; then
+            npm run vacuity -- --e2e --shard 3/4 --only "${ONLY}"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
+            npm run vacuity:all -- --e2e --shard 3/4
+          else
+            npm run vacuity -- --e2e --shard 3/4
+          fi
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after vacuity — along
+  # with 13 other scheduled workflows — was found failing with nobody told.
+  # The drift detector had been red for THREE CONSECUTIVE DAYS (09-20, 09-21,
+  # 09-22) and the nightly DB backup had not succeeded since 09-21; both are
+  # invisible unless somebody opens the Actions tab, which is exactly the
+  # thing the owner said nobody does.
+  #
+  # `nightly-issue-sync` opens/updates ONE `nightly-red` issue for this
+  # workflow and closes it on the next green run, which is what makes the
+  # "Nightly reds nobody read" gate able to see it at all.
+  #
+  # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
+  # commit and the PR; filing an issue for it would make the label noisy and
+  # teach people to ignore it.
+  wait-accounts-4:
+    # Q743: the job-level lock `vacuity-e2e` takes is NOT a queue. GitHub keeps
+    # ONE pending job per concurrency group and CANCELS it when a third arrives.
+    # This lock-free job waits its turn first and joins the group only when that
+    # bumps nobody (scripts/e2e/wait-shared-accounts.mjs;
+    # src/test/sharedAccountLockQueues.test.ts). Only when `scope` found e2e work.
+    name: Wait for the shared accounts (queue, e2e leg 4 of 4)
+    # Q1270: leg 4 waits for leg 3 to let go of the accounts, then queues like
+    # any other holder. Runs whatever leg 3's result was, unless the run was
+    # cancelled, so a red leg never leaves the rest of the set unproved.
+    needs: [scope, vacuity-e2e-3]
+    if: ${{ !cancelled() && needs.scope.outputs.e2e_leg_4 != '0' && needs.scope.outputs.e2e_leg_4 != '' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  vacuity-e2e-4:
+    # Leg 4 of 4 of vacuity-e2e (Q1270); see that job for every step's reason.
+    name: Playwright guards shown able to fail (leg 4 of 4)
+    needs: [scope, wait-accounts-4]
+    if: ${{ !cancelled() && needs.wait-accounts-4.result == 'success' }}
+    runs-on: ubuntu-latest
+    # actions: read for the deploy wait (it lists this commit's deploy runs).
+    permissions:
+      contents: read
+      actions: read
+    timeout-minutes: 57 # e2e leg 4 (Q1270)
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        # Full history: the per-push scope is a diff against origin/main, and a
+        # shallow clone has no merge base to diff against.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        # Same reason as the vacuity job's install: the harness preflight fails
+        # when a browser is missing.
+        run: bash scripts/ci/playwright-install.sh chromium webkit
+
+      - name: Give the build the app's public Supabase config
+        # The gate rebuilds the bundle itself for Playwright guards, so it does
+        # not go through .github/actions/local-preview and needs VITE_* here.
+        # Both values are publishable — the same pair prod-audit.yml falls back
+        # to in plain text — and no secret is written by this step.
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}"
+          } > .env
+          test -s .env
+
+      - name: Give prod-backed e2e guards the service-role key
+        # e2e registrations (prod-audit, a11y-prod, journeys) mint their test
+        # sessions through scripts/test-signin-link.mjs, which needs
+        # SUPABASE_SERVICE_ROLE_KEY in .env. Without it every such guard is
+        # red BEFORE its mutation and reports INCONCLUSIVE: run 35935153284
+        # (2026-09-23, nightly-red #1731) had 5 of 11 registrations
+        # inconclusive with "ERROR: .env is missing VITE_SUPABASE_URL and/or
+        # SUPABASE_SERVICE_ROLE_KEY". Minted the same way prod-audit.yml does.
+        # Guard: src/test/vacuityWorkflowsProvideServiceRole.test.ts.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            SERVICE_KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+            echo "::add-mask::$SERVICE_KEY"
+            umask 077
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+          elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
+            exit 1
+          else
+            # A push run without the secret. Not a false green: an e2e
+            # registration in its changed set comes back INCONCLUSIVE, which
+            # the gate itself fails on.
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
+          fi
+
+      # Q432: a push that lands a migration or an edge function starts its
+      # deploys at the same moment as this job. Until they finish, the
+      # prod-backed registrations test the old backend and read RED before any
+      # mutation (vacuity 36215687625). Wait for this commit's db-deploy and
+      # functions-deploy runs, if it has any (bounded; never fails the job).
+      - name: Wait for this commit's prod deploys
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/wait-commit-deploys.mjs
+
+      - name: Vacuity gate (Playwright registrations)
+        env:
+          # Through env, never interpolated into the script (injection-safe).
+          ONLY: ${{ inputs.only }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+        # The same scope as the unit job, narrowed to the registrations under
+        # e2e/ (--e2e). This job exists only when `scope` found one.
+        run: |
+          if [ -n "${ONLY}" ]; then
+            npm run vacuity -- --e2e --shard 4/4 --only "${ONLY}"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
+            npm run vacuity:all -- --e2e --shard 4/4
+          else
+            npm run vacuity -- --e2e --shard 4/4
           fi
 
       - name: Remove the service-role key from the runner
@@ -490,7 +989,7 @@ jobs:
   # teach people to ignore it.
   notify:
     name: Report nightly result
-    needs: [scope, vacuity, vacuity-e2e]
+    needs: [scope, vacuity, vacuity-e2e, vacuity-e2e-2, vacuity-e2e-3, vacuity-e2e-4]
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -506,6 +1005,6 @@ jobs:
           workflow-name: vacuity
           # vacuity-e2e does not run when no Playwright registration was in scope
           # (Q551), so it is required to succeed exactly when scope said it ran.
-          status: ${{ needs.scope.result == 'success' && needs.vacuity.result == 'success' && (needs.scope.outputs.have_e2e != 'true' || needs.vacuity-e2e.result == 'success') && 'success' || 'failure' }}
+          status: ${{ needs.scope.result == 'success' && needs.vacuity.result == 'success' && (needs.scope.outputs.have_e2e != 'true' || needs.vacuity-e2e.result == 'success') && (needs.scope.outputs.e2e_leg_2 == '0' || needs.vacuity-e2e-2.result == 'success') && (needs.scope.outputs.e2e_leg_3 == '0' || needs.vacuity-e2e-3.result == 'success') && (needs.scope.outputs.e2e_leg_4 == '0' || needs.vacuity-e2e-4.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

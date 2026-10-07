@@ -22,7 +22,7 @@
 // @mutate .github/workflows/vacuity.yml |   vacuity:\n    name: Guards shown able to fail\n    runs-on: ubuntu-latest | name: Guards shown able to fail\n    runs-on: ubuntu-latest\n    env:\n      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
 // @mutate scripts/vacuity/run.mjs | export const kindOf = (m) => (isPlaywrightGuard(m.guard) ? "e2e" : "unit"); | export const kindOf = (m) => "unit";
 // @mutate scripts/vacuity/run.mjs |   return kind === "all" ? mutations : mutations.filter((m) => kindOf(m) === kind); |   return mutations;
-// @mutate scripts/vacuity/index.mjs | const scoped = selectKind(sel.scoped, KIND); | const scoped = sel.scoped;
+// @mutate scripts/vacuity/index.mjs | const kinded = selectKind(sel.scoped, KIND); | const kinded = sel.scoped;
 // @mutate scripts/vacuity/index.mjs | const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all"; | const KIND = "all";
 // @mutate scripts/vacuity/scope.mjs | have_e2e=${e2e > 0} | have_e2e=true
 import { describe, expect, it } from "vitest";
@@ -99,7 +99,8 @@ describe("Q551: the gate honours --e2e / --no-e2e", () => {
 
   it("reads both flags and filters the scoped registrations by kind before mutating", () => {
     expect(code).toContain('const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all";');
-    expect(code).toContain("const scoped = selectKind(sel.scoped, KIND);");
+    expect(code).toContain("const kinded = selectKind(sel.scoped, KIND);");
+    expect(code).toContain("const scoped = SHARD ? selectShard(kinded, Number(SHARD[1]), Number(SHARD[2])) : kinded;");
     expect(code.indexOf("selectKind(sel.scoped, KIND)")).toBeLessThan(code.indexOf("runMutations(scoped"));
   });
 

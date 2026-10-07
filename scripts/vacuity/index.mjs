@@ -30,7 +30,7 @@ import path from "node:path";
 import { REPO, guardFiles, untrackedGuardFiles, parseDirectives, loadBaseline, BASELINE_PATH, changedFiles, c } from "./lib.mjs";
 import { scanAll } from "./scan.mjs";
 import { preflight } from "./preflight.mjs";
-import { collectMutations, runMutations, scopeMutations, selectKind } from "./run.mjs";
+import { collectMutations, runMutations, scopeMutations, selectKind, selectShard } from "./run.mjs";
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -196,10 +196,19 @@ if (has("--e2e") && has("--no-e2e")) fail("--e2e and --no-e2e are opposites; pas
 const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all";
 const sel = scopeMutations(mutations, { all: ALL, only: ONLY, report: REPORT_ONLY, changed: ONLY || ALL || REPORT_ONLY ? null : changedFiles() });
 for (const e of sel.errors) fail(e);
-const scoped = selectKind(sel.scoped, KIND);
+/*
+ * --shard k/n (Q1270): run only leg k of n of the selected set (run.mjs
+ * selectShard; a guard file never splits). vacuity.yml's e2e legs pass it so
+ * each lock-holding leg stays under an hour.
+ */
+const shardIdx = argv.indexOf("--shard");
+const SHARD = shardIdx >= 0 ? /^(\d+)\/(\d+)$/.exec(String(argv[shardIdx + 1] ?? "")) : null;
+if (shardIdx >= 0 && !SHARD) fail(`--shard takes k/n (e.g. 2/4), got ${JSON.stringify(argv[shardIdx + 1])}`);
+const kinded = selectKind(sel.scoped, KIND);
+const scoped = SHARD ? selectShard(kinded, Number(SHARD[1]), Number(SHARD[2])) : kinded;
 
 if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
-  console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}…`);
+  console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}${SHARD ? ` (leg ${SHARD[1]} of ${SHARD[2]})` : ""}…`);
   const results = runMutations(scoped, {
     onResult: (r) => {
       const tag =

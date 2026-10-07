@@ -22,6 +22,7 @@
  * Run: PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit search-x-off-center-press
  */
 // @mutate src/index.css | here to this. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | here to this. */\n  transform: scale(0.97);
+// @mutate src/index.css | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)); | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: none;
 
 import { test, expect, webkit, type Browser } from "../prodTest";
 import { getSession, type Session } from "./harness";
@@ -82,10 +83,18 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   },
 ];
 
+// Q910: Reduce Motion is a second pass. Its at-rest `.btn-press` rule once
+// set `transform: none`, which (unlayered, after Tailwind's utilities, equal
+// specificity) erased every `-translate-y-1/2` with no press at all: the ✕ sat
+// half its height low (22px in a 44px field, Chromium and WebKit alike, so one
+// engine is enough for the cascade). The centring assertion below catches it.
+const MOTIONS = { chromium: ["no-preference", "reduce"], webkit: ["no-preference"] } as const;
+
 for (const engine of ["chromium", "webkit"] as const) {
   for (const vw of [375, 1440] as const) {
-    for (const s of SURFACES) {
-      test(`${s.name}: an off-centre press on the ✕ acts and the ✕ stays put @${vw} ${engine}`, async ({ browser: def }, info) => {
+    for (const motion of MOTIONS[engine]) for (const s of SURFACES) {
+      const tag = motion === "reduce" ? " reduced-motion" : "";
+      test(`${s.name}: an off-centre press on the ✕ acts and the ✕ stays put @${vw} ${engine}${tag}`, async ({ browser: def }, info) => {
         test.skip(!!s.minWidth && vw < s.minWidth, `${s.name} does not render at ${vw}`);
         test.skip(!!s.maxWidth && vw > s.maxWidth, `${s.name} does not render at ${vw}`);
         test.setTimeout(120_000);
@@ -94,6 +103,7 @@ for (const engine of ["chromium", "webkit"] as const) {
           baseURL: info.project.use.baseURL,
           viewport: { width: vw, height: vw >= 900 ? 900 : 812 },
           serviceWorkers: "block",
+          reducedMotion: motion,
         });
         try {
           await ctx.addInitScript(
@@ -123,7 +133,7 @@ for (const engine of ["chromium", "webkit"] as const) {
           // "check the x's on the search bars globally").
           const fb = (await field.boundingBox())!;
           const centreOff = rest!.y + rest!.height / 2 - (fb.y + fb.height / 2);
-          if (SHOTS) await page.screenshot({ path: `${SHOTS}/x-${s.name}-${vw}-${engine}-open.png` });
+          if (SHOTS) await page.screenshot({ path: `${SHOTS}/x-${s.name}-${vw}-${engine}${motion === "reduce" ? "-rm" : ""}-open.png` });
           // A person aiming at the X's top stroke: 30% down the glyph.
           await page.mouse.move(rest!.x + rest!.width / 2, rest!.y + rest!.height * 0.3);
           await page.mouse.down();
@@ -133,7 +143,7 @@ for (const engine of ["chromium", "webkit"] as const) {
           await page.waitForTimeout(600);
           const stillOpen = await field.count();
           const value = stillOpen ? await field.inputValue() : "";
-          const msg = `${s.name}@${vw} ${engine}: ✕ centre off field centre ${centreOff.toFixed(2)}px, rest y ${rest!.y.toFixed(2)}, pressed y ${pressed?.y.toFixed(2)}, field open after ${stillOpen}, value "${value}"`;
+          const msg = `${s.name}@${vw} ${engine}${tag}: ✕ centre off field centre ${centreOff.toFixed(2)}px, rest y ${rest!.y.toFixed(2)}, pressed y ${pressed?.y.toFixed(2)}, field open after ${stillOpen}, value "${value}"`;
           info.annotations.push({ type: "press", description: msg });
           console.log(msg);
           // :active scales 0.97 about the centre, so y moves by ~0.4px; a

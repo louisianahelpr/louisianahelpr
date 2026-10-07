@@ -31,6 +31,7 @@
  */
 // @mutate src/index.css | here to this. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | here to this. */\n  transform: scale(0.97);
 // @mutate src/index.css | `.btn-press:active`. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | `.btn-press:active`. */\n  transform: scale(0.97);
+// @mutate src/index.css | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)); | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: none;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -85,7 +86,7 @@ interface ActiveRule { file: string; selector: string; transform: string }
 /** Every innermost `selector { ... }` block whose selector has `:active` and
  * whose body declares `transform`. Walks braces so rules inside @media are
  * found with their own selector. */
-function activeTransformRules(): ActiveRule[] {
+function activeTransformRules(match: (selector: string) => boolean = (sel) => sel.includes(":active")): ActiveRule[] {
   const out: ActiveRule[] = [];
   for (const file of walk(SRC, [".css"])) {
     const css = blankCssComments(readFileSync(file, "utf8"));
@@ -99,7 +100,7 @@ function activeTransformRules(): ActiveRule[] {
         if (body.includes("{")) continue; // not innermost
         const prevEnd = Math.max(css.lastIndexOf("}", open - 1), css.lastIndexOf("{", open - 1), css.lastIndexOf(";", open - 1));
         const selector = css.slice(prevEnd + 1, open).trim();
-        if (!selector.includes(":active")) continue;
+        if (!match(selector)) continue;
         const m = /(?:^|[;\s])transform\s*:\s*([^;]+)/.exec(body);
         if (!m) continue;
         out.push({ file: path.relative(ROOT, file), selector, transform: m[1].trim() });
@@ -147,6 +148,23 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     expect(selectors).toContain(".glass-press:active");
     // EXACT: two primitives, each with a normal and a reduced-motion :active rule.
     expect(rules.length).toBe(4);
+  });
+
+  it("Q910: every press-primitive rule that sets a transform, at REST too, keeps the translate", () => {
+    // `.btn-press { transform: none }` under Reduce Motion is unlayered and
+    // after Tailwind's utilities at equal specificity, so it erased
+    // `-translate-y-1/2` with no press at all: every search clear-X sat 22px
+    // low for anyone with Reduce Motion on (measured Chromium + WebKit,
+    // 2026-10-07). The browser half is search-x-off-center-press.spec.ts's
+    // reduced-motion pass.
+    const press = activeTransformRules((sel) => /\.[\w-]*press\b/.test(sel));
+    // EXACT: btn-press :active, its reduced-motion rest and :active, and
+    // glass-press :active and its reduced-motion :active.
+    expect(press.map((r) => r.selector).sort()).toEqual([
+      ".btn-press", ".btn-press:active", ".btn-press:active", ".glass-press:active", ".glass-press:active",
+    ]);
+    const bad = press.filter((r) => !r.transform.includes("var(--tw-translate-x") || !r.transform.includes("var(--tw-translate-y"));
+    expect(bad, `press rules that replace a -translate-* utility:\n${bad.map((r) => `${r.file}  ${r.selector} { transform: ${r.transform} }`).join("\n")}`).toEqual([]);
   });
 
   it("every :active transform composes the Tailwind translate back in", () => {

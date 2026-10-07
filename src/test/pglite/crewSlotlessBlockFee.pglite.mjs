@@ -152,11 +152,15 @@ async function seed(offset, { m1Confirmed = true, m2Confirmed = true, status = "
   `);
 }
 
-// A legacy crew of two ($100, $50 each), both confirmed, slot_no and share_cents NULL, 10 hours out.
+// A legacy crew of two ($100.03: slots of 50.02 and 50.01, whose 25% fees round to 12.51 and 12.50), both
+// confirmed, slot_no and share_cents NULL, 10 hours out. The poster blocks the
+// SECOND-hired member, so a wrong hire-order index (rn instead of rn - 1, or
+// the wrong ORDER BY) prices the other slot and the cent shows (lh-money-escrow
+// review of Q1380, finding 4).
 await db.exec(`
   RESET ROLE;
   INSERT INTO public.jobs (id, customer_id, title, budget, status, is_group_job, helpers_needed, date_needed, start_time)
-    VALUES ('${CREW}', '${POSTER}', 'Move a piano', 100, 'accepted', true, 2,
+    VALUES ('${CREW}', '${POSTER}', 'Move a piano', 100.03, 'accepted', true, 2,
             (now() AT TIME ZONE 'America/Chicago' + interval '10 hours')::date,
             (now() AT TIME ZONE 'America/Chicago' + interval '10 hours')::time);
   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents, helper_confirmed_at, joined_at) VALUES
@@ -165,20 +169,35 @@ await db.exec(`
   INSERT INTO public.applications (job_id, helper_id, status) VALUES ('${CREW}', '${M1}', 'accepted'), ('${CREW}', '${M2}', 'accepted');
 `);
 const pct = Number((await one(`SELECT public.cancellation_fee_percent(true, public.job_hours_until_start((now() AT TIME ZONE 'America/Chicago' + interval '10 hours')::date, (now() AT TIME ZONE 'America/Chicago' + interval '10 hours')::time, now())) AS p`)).p);
-const share = Number((await one(`SELECT public.crew_slot_share_cents(10000::bigint, 2, 0) AS s`)).s);
+const share = Number((await one(`SELECT public.crew_slot_share_cents(10003::bigint, 2, 1) AS s`)).s);
+const other = Number((await one(`SELECT public.crew_slot_share_cents(10003::bigint, 2, 0) AS s`)).s);
+check("fixture: the two slots' fees differ, so the slot index is pinned", share !== other && share > 0 && other > 0 && Math.round((share * pct) / 100) !== Math.round((other * pct) / 100), `slot1=${share} slot0=${other}`);
 await as(POSTER);
-const r = await one(`SELECT public.block_user_and_settle('${M1}', NULL) AS r`).catch((e) => ({ r: { error: e.message } }));
+const r = await one(`SELECT public.block_user_and_settle('${M2}', NULL) AS r`).catch((e) => ({ r: { error: e.message } }));
 await db.exec("RESET ROLE");
 const alert = await one(`SELECT message FROM public.notifications WHERE type = 'admin_alert'`);
 const owed = /owed a \$(\d+\.\d\d) cancellation fee/.exec(alert?.message ?? "")?.[1];
 const expected = (Math.round((share * pct) / 100) / 100).toFixed(2);
-check("the slotless member's fee is their hire-order share's fee, not $0",
-  pct > 0 && share > 0 && owed === expected && owed !== "0.00",
+check("the second-hired slotless member's fee is slot 1's share's fee, not $0 and not slot 0's",
+  pct > 0 && share > 0 && owed === expected && owed !== "0.00" && owed !== (Math.round((other * pct) / 100) / 100).toFixed(2),
   `owed=${owed} expected=${expected} pct=${pct} share=${share} result=${JSON.stringify(r?.r)} alert=${alert?.message}`);
+
+// And the FIRST-hired member, on the same crew: slot 0 (12.51). Pins rn - 1
+// from the other side (rn would price them on slot 1, 12.50).
+await db.exec("RESET ROLE; DELETE FROM public.notifications;");
+await as(POSTER);
+const r1 = await one(`SELECT public.block_user_and_settle('${M1}', NULL) AS r`).catch((e) => ({ r: { error: e.message } }));
+await db.exec("RESET ROLE");
+const alert1 = await one(`SELECT message FROM public.notifications WHERE type = 'admin_alert'`);
+const owed1 = /owed a \$(\d+\.\d\d) cancellation fee/.exec(alert1?.message ?? "")?.[1];
+const expected1 = (Math.round((other * pct) / 100) / 100).toFixed(2);
+check("the first-hired slotless member's fee is slot 0's share's fee",
+  owed1 === expected1 && owed1 !== expected,
+  `owed=${owed1} expected=${expected1} result=${JSON.stringify(r1?.r)} alert=${alert1?.message}`);
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  console.log(failures === 1 ? "RED as expected (1/1)" : `NOT RED: ${failures}/1 failed`);
-  process.exit(failures === 1 ? 0 : 1);
+  console.log(failures === 2 ? "RED as expected (2/3: both fee checks)" : `NOT RED: ${failures}/3 failed`);
+  process.exit(failures === 2 ? 0 : 1);
 }
 process.exit(failures ? 1 : 0);

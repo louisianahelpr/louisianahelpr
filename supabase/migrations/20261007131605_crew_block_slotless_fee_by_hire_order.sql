@@ -4,8 +4,8 @@
 -- falls back to the share by hire order. Only legacy rows have no slot (on prod
 -- the seed crew def709bf's 2 rows). The crew loop now reads the hire-order slot
 -- for such a row. Restated from the LIVE definition (pg_get_functiondef
--- 2026-10-07; body equal to the newest, 20261006015121) with only that column
--- changed; grants as live (authenticated + service_role).
+-- 2026-10-07; body equal to the newest, 20261006015121) with only a fee_slot_no column added
+-- for the fee (slot_no itself stays raw); grants as live (authenticated + service_role).
 
 CREATE OR REPLACE FUNCTION public.block_user_and_settle(p_blocked uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -163,16 +163,20 @@ BEGIN
     SELECT j.id, j.title, j.budget, j.date_needed, j.start_time, j.customer_id,
            j.status::text AS status, j.helpers_needed,
            g.id AS slot_id, g.helper_id AS member, g.helper_confirmed_at AS member_confirmed_at,
-           g.share_cents,
+           g.share_cents, g.slot_no,
            -- Q1380: a roster row from before slots existed has no slot_no; it
            -- is priced on its would-be slot in hire order, as poster_cancel_job
            -- prices it (row_number over joined_at, id), not on slot NULL ($0).
+           -- A SEPARATE column: slot_no stays the raw value, so code that asks
+           -- "is this a legacy slotless row?" (slot_no IS NULL) keeps its answer
+           -- (lh-money-escrow review of Q1380, finding 1: Q1390's crew fee
+           -- ledger keys on it).
            COALESCE(g.slot_no, (
              SELECT (r.rn - 1)::integer FROM (
                SELECT g2.id, row_number() OVER (ORDER BY g2.joined_at NULLS LAST, g2.id) AS rn
                  FROM public.group_job_helpers g2
                 WHERE g2.job_id = g.job_id AND g2.helper_id IS NOT NULL) r
-              WHERE r.id = g.id)) AS slot_no
+              WHERE r.id = g.id)) AS fee_slot_no
       FROM public.jobs j
       JOIN public.group_job_helpers g ON g.job_id = j.id
      WHERE j.is_group_job IS TRUE
@@ -220,7 +224,7 @@ BEGIN
       v_percent := public.cancellation_fee_percent(v_committed, v_hours);
       v_basis := COALESCE(v_crew.share_cents,
                           public.crew_slot_share_cents(round(COALESCE(v_crew.budget, 0) * 100)::bigint,
-                                                       COALESCE(v_crew.helpers_needed, 1), v_crew.slot_no));
+                                                       COALESCE(v_crew.helpers_needed, 1), v_crew.fee_slot_no));
       v_member_fee := round(COALESCE(v_basis, 0) * v_percent / 100.0) / 100.0;
 
       -- The cancel-with-Helpr strike, on the same ladder and violation type

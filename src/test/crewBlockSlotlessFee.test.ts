@@ -6,10 +6,19 @@
  *
  * Static half: the newest block_user_and_settle reads a hire-order fallback
  * for slot_no (row_number over joined_at NULLS LAST, id). Behaviour (real
- * Postgres): src/test/pglite/crewSlotlessBlockFee.pglite.mjs (PASS applied 3x;
- * RED with --before, the live definition: owed $0.00).
+ * Postgres): src/test/pglite/crewSlotlessBlockFee.pglite.mjs (3 PASS applied 3x
+ * with --replay; RED 2/3 with --before, the live definition: no fee owed; a
+ * $100.03 crew whose slots' 25% fees round apart pins the hire-order index
+ * from both members).
+ *
+ * The hire-order slot is a SEPARATE column (fee_slot_no) used only for the
+ * fee; slot_no stays the raw value, so "is this a legacy slotless row?"
+ * (slot_no IS NULL, which Q1390's crew fee ledger asks) keeps its answer
+ * (lh-money-escrow review of Q1380, finding 1).
  *
  * @mutate supabase/migrations/20261007131605_crew_block_slotless_fee_by_hire_order.sql |           COALESCE(g.slot_no, ( |           COALESCE(NULL, (
+ * @mutate supabase/migrations/20261007131605_crew_block_slotless_fee_by_hire_order.sql | COALESCE(v_crew.helpers_needed, 1), v_crew.fee_slot_no)); | COALESCE(v_crew.helpers_needed, 1), v_crew.slot_no));
+ * @mutate supabase/migrations/20261007131605_crew_block_slotless_fee_by_hire_order.sql |            g.share_cents, g.slot_no, |            g.share_cents,
  */
 import { describe, it, expect } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -28,5 +37,12 @@ describe("Q1380: a slotless crew row's block fee is priced by hire order", () =>
   it("block_user_and_settle falls back to the hire-order slot, as poster_cancel_job does", () => {
     expect(cancel).toMatch(/row_number\(\) OVER \(ORDER BY g\.joined_at NULLS LAST, g\.id\)/);
     expect(block).toMatch(/COALESCE\(g\.slot_no, \(\s*SELECT \(r\.rn - 1\)::integer FROM \(\s*SELECT g2\.id, row_number\(\) OVER \(ORDER BY g2\.joined_at NULLS LAST, g2\.id\) AS rn/);
+  });
+
+  it("the fallback is its own column, used only for the fee; slot_no stays raw", () => {
+    expect(block).toMatch(/g\.share_cents, g\.slot_no,/);
+    expect(block).toMatch(/WHERE r\.id = g\.id\)\) AS fee_slot_no/);
+    expect(block).toMatch(/crew_slot_share_cents\([^;]*v_crew\.fee_slot_no\)\);/);
+    expect(block).not.toMatch(/AS slot_no\b/);
   });
 });

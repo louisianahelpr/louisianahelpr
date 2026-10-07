@@ -7,6 +7,7 @@ import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
+import { clearBootReads } from "@/lib/bootReads";
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -45,6 +46,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
   // isn't B's app. Cheap to clear, so clear it.
   clearRememberedRoute();
+  // Q1171: the learned first-screen reads name this user's rows.
+  clearBootReads();
   // ── THE FLOOR UNDER A FAILED SIGN-OUT ────────────────────────────────────
   // Owner, 2026-09-11: "i had to click log out twice to actually log out."
   //

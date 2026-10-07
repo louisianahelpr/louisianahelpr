@@ -20,6 +20,7 @@
 import "./index.css";
 import { hasToken, preloadEntryRoute } from "./boot/routePreload";
 import { startGuestJobsPrefetch } from "./boot/guestJobsPrefetch";
+import { startSignedInBootReads } from "./boot/signedInBootReads";
 
 // The app. A failed fetch here is a stale HTML page (its chunks deleted by a
 // later deploy). The index.html boot watchdog owns that case: every chunk of
@@ -33,6 +34,8 @@ void import("./main");
 preloadEntryRoute(window.location.pathname);
 // Q206: the guest /browse job list, beside the app download (see the module).
 startGuestJobsPrefetch(window.location.pathname);
+// Q1171: a returning signed-in visitor's first-screen reads, learned last time.
+startSignedInBootReads(window.location.pathname);
 
 // Then, once THIS page has loaded, warm the pages a visitor most likely opens
 // next (guest: browse / login / signup; signed in: the dock tabs + post-job),

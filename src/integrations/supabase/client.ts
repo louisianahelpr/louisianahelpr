@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import type { Database } from './types';
 import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
+import { bootReadsFetch } from '@/lib/bootReads';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -76,5 +77,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage()),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  // Q1171: a signed-in cold load takes the reads the entry already started
+  // (src/boot/signedInBootReads.ts) and records the first screen's reads for
+  // the next one. Every other request passes straight through.
+  global: { fetch: bootReadsFetch(SUPABASE_URL) },
 });

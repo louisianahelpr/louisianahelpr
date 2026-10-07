@@ -117,6 +117,26 @@ export function salesTaxCents(
 }
 
 /**
+ * The effective sales-tax rate to store in jobs.sales_tax_rate, as a FRACTION
+ * (0.1045 = 10.45%), which is what CHECK ck_jobs_sales_tax_rate_range
+ * (sales_tax_rate between 0 and 1, migration 20260902053840) admits. Both
+ * writers (stripe-webhook checkoutSessionCompleted, charge-recurring-visits)
+ * stored a PERCENT (10.45), so the first taxed job's escrow update, and a taxed
+ * recurring visit's insert, would have failed on the CHECK (found 2026-10-07 by
+ * the lh-money-escrow review; prod had no taxed job yet). `taxableBaseCents` is
+ * every taxed line (today the labor). Rounded to 6 places; 0 when there is no
+ * tax or no base.
+ */
+export function effectiveSalesTaxRate(taxCents: number, taxableBaseCents: number): number {
+  if (!(taxCents > 0) || !(taxableBaseCents > 0)) return 0;
+  // Clamped to the CHECK's ceiling: tax above its base is impossible at
+  // Louisiana's rates, but a rate over 1 would fail the escrow update AFTER
+  // the money was captured (lh-money-escrow review); the amount column keeps
+  // the real tax either way.
+  return Math.min(1, Math.round((taxCents / taxableBaseCents) * 1_000_000) / 1_000_000);
+}
+
+/**
  * True when Stripe charged $0 tax on a labor line our own rule says is taxable,
  * billed to a Louisiana address: the one $0 that is NOT the normal exempt
  * outcome (ME-043). A non-LA address can legitimately be $0 (no registration

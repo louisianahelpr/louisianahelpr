@@ -36,6 +36,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import {
+  effectiveSalesTaxRate,
   laborTaxCode,
   NONTAXABLE_TAX_CODE,
   TAXABLE_CATEGORIES,
@@ -117,6 +118,32 @@ describe("Stripe tax codes (ME-043)", () => {
     }
     expect(problems).toEqual([]);
     expect(files).toBeGreaterThan(4);
+  });
+
+  // Class guard: every edge write of jobs.sales_tax_rate goes through
+  // effectiveSalesTaxRate (a fraction) or is a literal 0, because the CHECK
+  // ck_jobs_sales_tax_rate_range admits only 0..1 (two writers stored a percent).
+  it("every edge-function write of sales_tax_rate is effectiveSalesTaxRate(...) or 0, and that helper stays inside the CHECK", () => {
+    const sites: string[] = [];
+    const bad: string[] = [];
+    for (const { file: f, src } of sources) {
+      for (const m of src.matchAll(/(?:\bsales_tax_rate\s*:|\.sales_tax_rate\s*=)\s*([^,;\n]+)/g)) {
+        const rhs = m[1].trim();
+        sites.push(`${f}: ${rhs}`);
+        if (!/^effectiveSalesTaxRate\(/.test(rhs) && rhs !== "0") bad.push(`${f}: ${rhs}`);
+      }
+    }
+    expect(sites.length).toBeGreaterThan(2);
+    expect(bad).toEqual([]);
+    const check = readFileSync(resolve(ROOT, "supabase/migrations/20260902053840_money_columns_reject_negative_amounts.sql"), "utf8");
+    expect(check).toMatch(/sales_tax_rate >= 0 AND sales_tax_rate <= 1/);
+    for (const [tax, base] of [[1120, 11200], [1, 1], [99999, 100000], [0, 100], [100, 0]]) {
+      const r = effectiveSalesTaxRate(tax, base);
+      expect(r, `${tax}/${base}`).toBeGreaterThanOrEqual(0);
+      expect(r, `${tax}/${base}`).toBeLessThanOrEqual(1);
+    }
+    expect(effectiveSalesTaxRate(1120, 11200)).toBe(0.1);
+    expect(effectiveSalesTaxRate(5000, 1)).toBe(1); // clamped, never past the CHECK
   });
 
   it("every job category maps to a tax code: taxable ones to the labor code, the rest to Nontaxable", () => {

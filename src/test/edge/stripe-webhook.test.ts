@@ -257,6 +257,38 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
+    // jobs.sales_tax_rate has CHECK ck_jobs_sales_tax_rate_range (0..1). The
+    // webhook wrote a PERCENT (11.2) in the SAME update that marks the job
+    // 'escrow', so the first taxed job would never have been funded.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, budgetCents); |           updateData.sales_tax_rate = Math.round((taxCents / budgetCents) * 100 * 100) / 100;
+    it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
+      const fn = await loadConfigured();
+      scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tax: { total_tax_amount: 1120 } } });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tax_rate",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_tax_rate",
+            mode: "payment",
+            customer_email: "poster@test.com",
+            customer_details: { address: { state: "LA" } },
+            total_details: { amount_tax: 1120 },
+            payment_intent: "pi_tax",
+            metadata: { job_id: "job-tax" },
+          },
+        },
+      });
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).payment_status === "escrow");
+      const p = w?.payload as Record<string, unknown>;
+      expect(p.sales_tax_amount).toBe(11.2);
+      expect(p.sales_tax_rate).toBe(0.112); // 1120 / 10000, a fraction
+      expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
+    });
+
     it("stores the payment intent + escrow status on the job", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

@@ -177,3 +177,16 @@ describe("group jobs — the budget is split across the roster", () => {
 // The `??` → `||` money bug in one character: a comped job's genuinely-stamped
 // $0 fee becomes "unstamped" and a 12% commission nobody charged is re-derived.
 // @mutate src/lib/helperEarnings.ts | return job.platform_fee_amount ?? derived; | return job.platform_fee_amount \|\| derived;
+
+// Q1272 (3): the dispute split and Quick Release never take the one-time setup
+// fee, so a disputed job's preview keeps it; any other unpaid job loses it.
+// @mutate src/lib/helperEarnings.ts |   const feeHere = job.status === "disputed" ? 0 : firstPayoutFeeDollars; |   const feeHere = firstPayoutFeeDollars;
+describe("Q1272 (3): a disputed job never previews the setup fee", () => {
+  const job = { budget: 100, helper_fee_percent: 10, payment_status: "escrow" };
+  it("takes the fee off an ordinary unpaid job", () => {
+    expect(helperTakeHomeDollars({ ...job, status: "in_progress" }, 10, 2)).toBe(88);
+  });
+  it("leaves it on a disputed one", () => {
+    expect(helperTakeHomeDollars({ ...job, status: "disputed" }, 10, 2)).toBe(90);
+  });
+});

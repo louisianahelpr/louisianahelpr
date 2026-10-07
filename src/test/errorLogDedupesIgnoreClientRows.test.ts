@@ -22,6 +22,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
@@ -32,18 +33,16 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 //   ops_alert_record_user_error_screen 3, ops_alert_condition 2: read CLIENT rows by design
 //     (user-error-screen rows are client rows; their caps are per account / per fingerprint).
 //   sweep_old_error_logs 2, cleanup_observability_tables 1: retention deletes, not a throttle.
-//   export_my_data 1: the caller's own rows.   cron_silent_rule 1: one row by id.
+//   export_my_data 1: the caller's own rows.
 //   send_ops_daily_digest 1: lists rows for the owner to read; it mutes nothing.
 //   prevent_self_escalation 1: its once-an-hour dedupe is on source 'rls-escalation-refused',
 //     a paging source stamp_error_log_origin rewrites to 'client-error' on any client row,
 //     so a client cannot forge it (checked in the stamp body, 20260923094457).
-//   detect_stuck_payments 1: the seed-digest dedupe (info rows, never a page) is not
-//     rewritten because its live prosrc differs from its newest migration (md5, prod
-//     2026-10-04); read pg_get_functiondef first (docs/OPEN.md Q1208).
+//   (detect_stuck_payments and cron_silent_rule left this list in 20261007043834,
+//   Q1263 / Q1264 (3): both now ignore client rows.)
+// @mutate supabase/migrations/20261007043834_error_log_readers_ignore_client_rows.sql |              AND coalesce(e.tags ->> 'origin', '') <> 'client'\n             AND e.tags ->> 'source' = 'detect_stuck_payments-seed' |              AND e.tags ->> 'source' = 'detect_stuck_payments-seed'
 const KNOWN_UNFILTERED: Record<string, number> = {
   cleanup_observability_tables: 1,
-  cron_silent_rule: 1,
-  detect_stuck_payments: 1,
   export_my_data: 1,
   ops_alert_condition: 2,
   ops_alert_record_user_error_screen: 3,
@@ -52,6 +51,14 @@ const KNOWN_UNFILTERED: Record<string, number> = {
   sweep_old_error_logs: 2,
 };
 
+// Q1264 (2): the LIVE check (scripts/check-live-privileges.mjs, after every
+// db-deploy and nightly) reads the deployed bodies against this same list, kept
+// in scripts/ci/error-log-unfiltered-readers.json; the two may not drift.
+// @mutate scripts/ci/error-log-unfiltered-readers.json |   "export_my_data": 1, |   "export_my_data": 2,
+it("the live check's allowlist is this list", () => {
+  const live = JSON.parse(readFileSync(join(process.cwd(), "scripts/ci/error-log-unfiltered-readers.json"), "utf8"));
+  expect(live).toEqual(KNOWN_UNFILTERED);
+});
 const READ = /\b(?:from|join)\s+(?:public\.)?error_logs\b/gi;
 // Predicates on a ROW being read; `NEW.tags ->> 'origin'` tests the row being inserted, not a read.
 const ORIGIN =

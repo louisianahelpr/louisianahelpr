@@ -72,7 +72,15 @@ describe("journeys pay Stripe in the engine the product shows it in", () => {
   it("payCheckoutSession pays in place only on chromium, and the second engine is a launched chromium", () => {
     const session = fnBody(fixtures, "payCheckoutSession");
     expect(session, "payCheckoutSession is gone from fixtures.ts").not.toBe("");
-    expect(session).toMatch(/if \(engineOf\(page\) === "chromium"\) \{\s*await payOnStripeCheckout\(page\);\s*return;/);
+    // Q1255: in place on chromium, with the return navigation answered locally
+    // (never a request to the deployed site), then opened on the local build.
+    // @mutate e2e/journeys/fixtures.ts |     const back = await payInPageAnsweringReturn(page, payOnStripeCheckout); |     await payOnStripeCheckout(page); const back = "/";
+    expect(session).toMatch(/if \(engineOf\(page\) === "chromium"\) \{[\s\S]*?const back = await payInPageAnsweringReturn\(page, payOnStripeCheckout\);[\s\S]*?await page\.goto\(back\);\s*return;/);
+    const inPage = fnBody(stripeInChromium, "payInPageAnsweringReturn");
+    expect(inPage, "payInPageAnsweringReturn is gone from e2e/journeys/stripeInChromium.ts").not.toBe("");
+    expect(inPage).toMatch(/req\.isNavigationRequest\(\) && !req\.frame\(\)\.parentFrame\(\) && !stripe/);
+    expect(inPage).toMatch(/await route\.fulfill\(/);
+    expect(inPage).toMatch(/await page\.unroute\(/);
     expect(session).toMatch(/await payCheckoutUrlInChromium\(page\.url\(\)\)/);
     expect(fnBody(fixtures, "payCheckoutUrlInChromium")).toMatch(/return payInChromium\(checkoutUrl, payOnStripeCheckout\)/);
     const inChromium = fnBody(stripeInChromium, "payInChromium");

@@ -15,7 +15,7 @@ import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
 import { openCardFields } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
-import { payInChromium } from "./stripeInChromium";
+import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 
 /**
@@ -561,7 +561,12 @@ export function engineOf(page: Page): string {
  */
 export async function payCheckoutSession(page: Page): Promise<void> {
   if (engineOf(page) === "chromium") {
-    await payOnStripeCheckout(page);
+    // Q1255: paid in place, but the return to APP_URL (the deployed site) is
+    // answered in stripeInChromium.ts and opened on this run's local build,
+    // as the webkit path already does: no journey request reaches Vercel.
+    const back = await payInPageAnsweringReturn(page, payOnStripeCheckout);
+    test.info().annotations.push({ type: "stripe-engine", description: `paid in place in chromium; returned to ${back}` });
+    await page.goto(back);
     return;
   }
   const returned = await payCheckoutUrlInChromium(page.url());

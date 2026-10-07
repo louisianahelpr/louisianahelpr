@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { Info, Sparkles } from "lucide-react";
@@ -76,6 +76,9 @@ interface ForecastRow {
 interface ForecastData {
   projectedTotal: number;
   earnedSoFar: number;
+  /** Q1272 (6): the parts of each total already paid out (released): the setup fee never comes off them. */
+  projectedSettled: number;
+  earnedSettled: number;
   inProgressCount: number;
   weekEnd: Date;
 }
@@ -123,6 +126,8 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       const safeRows = rows ?? [];
       let projectedTotal = 0;
       let earnedSoFar = 0;
+      let projectedSettled = 0;
+      let earnedSettled = 0;
       let inProgressCount = 0;
 
       for (const row of safeRows) {
@@ -131,7 +136,10 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         // group-roster split and the net urgent bonus, so the projection
         // agrees with every other earnings surface.
         const net = helperTakeHomeDollars(row, feeFallbackPercent);
+        const settled = isSettledForDisplay(row);
+        if (settled) projectedSettled += net;
         if (row.status === COMPLETED_STATUS) {
+          if (settled) earnedSettled += net;
           earnedSoFar += net;
           // Completed jobs also count toward the projected total — the
           // forecast is "what you'll have by Sunday", and money already
@@ -143,7 +151,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         }
       }
 
-      return { projectedTotal, earnedSoFar, inProgressCount, weekEnd: end };
+      return { projectedTotal, earnedSoFar, projectedSettled, earnedSettled, inProgressCount, weekEnd: end };
     },
     enabled: enabled && !!helperId,
     staleTime: 60_000,
@@ -177,8 +185,13 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   }
 
   const { inProgressCount } = data;
-  const projectedTotal = netAfterFirstPayoutFee(data.projectedTotal, firstPayoutFee);
-  const earnedSoFar = netAfterFirstPayoutFee(data.earnedSoFar, data.earnedSoFar > 0 ? firstPayoutFee : 0);
+  // Q1272 (6): the fee comes off only the money still to be paid out. A job
+  // already released (paid) never carries it, so a week whose earned part is
+  // all settled no longer reads $2 low.
+  const projectedUnsettled = data.projectedTotal - data.projectedSettled;
+  const earnedUnsettled = data.earnedSoFar - data.earnedSettled;
+  const projectedTotal = data.projectedSettled + netAfterFirstPayoutFee(projectedUnsettled, projectedUnsettled > 0 ? firstPayoutFee : 0);
+  const earnedSoFar = data.earnedSettled + netAfterFirstPayoutFee(earnedUnsettled, earnedUnsettled > 0 ? firstPayoutFee : 0);
 
   // Nothing lined up and nothing earned this week: no card at all (Q1177). It
   // used to render a "No jobs lined up yet" card with its own Browse Jobs

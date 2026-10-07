@@ -4,6 +4,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { isLiveSeriesParent } from "../_shared/seriesParent.ts";
 
 const corsHeaders = {
@@ -42,12 +43,7 @@ serve(async (req) => {
     // en-CA formats as YYYY-MM-DD, which is what the DATE comparison needs.
     // Same computation as todayMs() in src/lib/jobDate.ts, which exists to be
     // the one correct reader of this column.
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Chicago",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
+    const today = louisianaToday();
 
     // Declared before step 1 so the writes inside the reopen loop below can
     // record a defect. It used to be created just before step 3, which is why
@@ -78,12 +74,7 @@ serve(async (req) => {
     // `tomorrow` is a coarse DB-side prefilter only — the deadline is at the
     // EARLIEST noon the day before the job, so nothing dated past tomorrow can
     // possibly have lapsed. The exact per-job comparison happens below.
-    const tomorrow = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Chicago",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    const tomorrow = louisianaToday(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
     const { data: acceptedCandidates, error: fetchError } = await supabase
       .from("jobs")

@@ -576,7 +576,7 @@ const JobDetailDialog = ({
               budget={job.budget}
               effectiveFee={commissionPercent}
               urgentFee={job.urgent_fee ?? 0}
-              helpersNeeded={helpers}
+              helpersNeeded={helpers} jobStatus={job.status}
             />
           </div>
         </div>

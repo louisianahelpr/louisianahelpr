@@ -563,7 +563,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             budget={job.budget}
             effectiveFee={effectiveFee}
             urgentFee={job.urgent_fee ?? 0}
-            helpersNeeded={helpersCount}
+            helpersNeeded={helpersCount} jobStatus={job.status}
             showBudget={showBudget}
             variant="chip"
             className="shrink-0"

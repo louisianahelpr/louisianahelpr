@@ -16,6 +16,8 @@ export interface PayoutLedgerRow {
   failure_reason: string | null;
   stripe_transfer_id: string | null;
   jobs: { title?: string } | null;
+  /** transferReversed's amount_reversed_cents / fully_reversed (Q805 (3)). */
+  metadata?: unknown;
 }
 
 export interface EarningsTabProps {

@@ -304,13 +304,13 @@ async function loadConfigured(): Promise<EdgeHarness> {
  * dynamic import with `Date.now()`, so a frozen clock there would hand every
  * load the same module URL, skip re-evaluation, and leave `serve()` uncalled.
  */
-async function runOn(fn: EdgeHarness, ymd: string, opts: { dryRun?: boolean; at?: string } = {}) {
+async function runOn(fn: EdgeHarness, ymd: string, opts: { dryRun?: boolean; at?: string; parentJobId?: string } = {}) {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(opts.at ?? `${ymd}T06:00:00Z`));
   try {
     return await fn.fetch(
       fn.request({
-        url: `https://edge.test/charge-recurring-visits${opts.dryRun ? "?dryRun=1" : ""}`,
+        url: `https://edge.test/charge-recurring-visits${opts.dryRun ? "?dryRun=1" : opts.parentJobId ? `?parentJobId=${opts.parentJobId}` : ""}`,
         headers: { Authorization: `Bearer ${CRON_SECRET}` },
       }),
     );
@@ -1789,6 +1789,42 @@ describe("charge-recurring-visits edge function", () => {
     );
   });
 
+  // ── Q1266 (1): a Checkout paid just before Louisiana midnight ─────────────
+  // The webhook's narrowed run can start after midnight, when today IS the
+  // visit date; it used to skip today and leave the paid visit to the sweep,
+  // which refunds it. It now books a PAID row for today, and charges nothing.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | (d > today \|\| (onlyParentId !== null && d === today)) | d > today
+  const NARROWED = "00000000-0000-4000-8000-000000001266";
+  const paidToday = {
+    id: "vp-today", visit_date: VISIT_DATE, status: "paid", budget_cents: 30000, fee_cents: 1500, tax_cents: 0,
+    amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: "pi_late",
+  };
+  it("Q1266 (1): the narrowed run books a visit PAID on-session whose date is today", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+
+    await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    const visits = insertedVisits();
+    expect(visits).toHaveLength(1);
+    expect((visits[0].payload as Record<string, unknown>).stripe_payment_intent_id).toBe("pi_late");
+  });
+
+  it("Q1266 (1) control: the narrowed run never CHARGES for today (a pending row is left alone)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [{ ...paidToday, status: "pending", stripe_payment_intent_id: null }] } });
+
+    await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
   it("a failed visit-payment read skips the series instead of charging it", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -1968,6 +2004,26 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireHolds([{ id: "hold-other", visit_date: "2026-09-01", helper_id: "helper-2" }]);
+    wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(b.errors).toBe(0);
+  });
+
+  // Q1246 (3): a CANCELLED parent is over like an ended series, so its paid,
+  // unbooked visit is refunded less the fee even while the hold still stands.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const seriesEndedCause = Boolean(causeParentRow?.series_ended_on) \|\| causeParentRow?.status === "cancelled"; | const seriesEndedCause = Boolean(causeParentRow?.series_ended_on);
+  it("Q1246 (3): a paid visit of a CANCELLED parent (series_ended_on unset, hold still standing) is refunded less the fee", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: null, status: "cancelled" }] } });
+    wireHolds([{ id: "hold-same", visit_date: "2026-09-01", helper_id: HELPER_ID }]);
     wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
     otherPiRetrieve.mockResolvedValue(untaggedIntent);

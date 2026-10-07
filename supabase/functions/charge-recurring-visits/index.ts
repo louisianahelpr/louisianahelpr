@@ -781,7 +781,7 @@ serve(async (req) => {
       // still stands with the same Helpr) is refunded in full.
       // Unread, the cause is unknown: refund nothing this run, retry next.
       const [causeParent, causeHold] = await Promise.all([
-        supabase.from("jobs").select("id, series_ended_on").eq("id", row.parent_job_id).maybeSingle(),
+        supabase.from("jobs").select("id, series_ended_on, status").eq("id", row.parent_job_id).maybeSingle(),
         supabase
           .from("series_visit_holds")
           .select("id, helper_id")
@@ -795,7 +795,11 @@ serve(async (req) => {
         );
         continue;
       }
-      const seriesEndedCause = Boolean((causeParent.data as { series_ended_on: string | null } | null)?.series_ended_on);
+      // Q1246 (3): a CANCELLED parent is a series that is over, the same as an
+      // ended one (Q808: the card fee is withheld), whether or not the cancel
+      // stamped series_ended_on.
+      const causeParentRow = causeParent.data as { series_ended_on: string | null; status?: string | null } | null;
+      const seriesEndedCause = Boolean(causeParentRow?.series_ended_on) || causeParentRow?.status === "cancelled";
       const nowHolder = ((causeHold.data ?? []) as Array<{ helper_id: string | null }>)[0];
       const dateUnheldCause = !nowHolder || (row.helper_id != null && nowHolder.helper_id !== row.helper_id);
       let refundParams: Stripe.RefundCreateParams = { payment_intent: pi };
@@ -944,7 +948,12 @@ serve(async (req) => {
         results.skippedEnded++;
         continue;
       }
-      const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
+      // Q1266 (1): a webhook-narrowed run (onlyParentId) also takes TODAY, for a
+      // visit already PAID on-session: a Checkout paid just before Louisiana
+      // midnight kicks this run, which may start just after it; skipping today
+      // left the paid visit to the next sweep, which refunds it. Only a paid
+      // row is booked today (dueNow below): nothing is charged for today.
+      const due = dates.filter((d) => d > parentDate && (d > today || (onlyParentId !== null && d === today)) && d <= horizon);
       if (due.length === 0) continue;
 
       // ── A chargeback stops the series (money audit 2026-09-25, MEDIUM-7) ──
@@ -1045,6 +1054,8 @@ serve(async (req) => {
       }
       const visitPayments = new Map<string, VisitPaymentRow>();
       for (const r of (visitPaymentsRes.data ?? []) as VisitPaymentRow[]) visitPayments.set(r.visit_date, r);
+      // Q1266 (1): today only for a visit already paid on-session.
+      const dueNow = due.filter((d) => d !== today || visitPayments.get(d)?.status === "paid");
       const alreadyThere = new Set(
         ((existingRes.data ?? []) as Array<{ date_needed: string }>).map((r) => r.date_needed),
       );
@@ -1090,7 +1101,7 @@ serve(async (req) => {
       }
       if (blockCheckFailed) continue;
 
-      for (const visitDate of due) {
+      for (const visitDate of dueNow) {
         if (alreadyThere.has(visitDate)) { results.skippedExisting++; continue; }
         const hold = holders.get(visitDate);
         if (!hold) {

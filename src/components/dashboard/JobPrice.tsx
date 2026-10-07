@@ -13,6 +13,8 @@ export interface JobPriceProps {
   urgentFee?: number;
   /** Helpers splitting the budget (group jobs). Defaults to 1. */
   helpersNeeded?: number;
+  /** `jobs.status`. A disputed job is settled by the split or Quick Release, which never take the setup fee (Q1272 (3)). */
+  jobStatus?: string | null;
   /**
    * Render style:
    * - `chip` — the small price tile that lives in a feed/Browse card's
@@ -86,6 +88,7 @@ export function JobPrice({
   effectiveFee,
   urgentFee = 0,
   helpersNeeded = 1,
+  jobStatus = null,
   variant = "chip",
   showBudget = false,
   className,
@@ -93,7 +96,8 @@ export function JobPrice({
 }: JobPriceProps) {
   // Q753: a viewer who has not paid the one-time setup fee loses it from their
   // first payout, so the chip and the detail pill must not read higher.
-  const firstPayoutFee = useFirstPayoutFeeDollars();
+  const owedFee = useFirstPayoutFeeDollars();
+  const firstPayoutFee = jobStatus === "disputed" ? 0 : owedFee;
   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee);
 
   // Bidding was removed (zero production usage), so a job's price is always the
@@ -139,6 +143,14 @@ export function JobPrice({
     return (
       <div className={chipClass} style={chipSurface}>
         {amountNode}
+        {/* Q1272 (2): a screen reader hears WHY the figure is lower while the
+            one-time setup fee is still owed. Not shown on screen (owner,
+            2026-08-30: no fee math on the card). */}
+        {!showBudget && firstPayoutFee > 0 && (
+          <span className="sr-only">
+            {` take-home after the one-time $${formatPrice(firstPayoutFee)} setup fee taken from your first payout`}
+          </span>
+        )}
       </div>
     );
   }

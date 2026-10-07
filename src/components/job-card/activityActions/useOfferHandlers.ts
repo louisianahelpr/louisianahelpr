@@ -540,6 +540,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         await refresh();
         return;
       }
+      // Q1214 (3): the hourly offer sweep locks job then profile; when this
+      // accept is the deadlock VICTIM (40P01) nothing was written, and a retry
+      // succeeds. Said so, and logged under its own tag so the rate is visible.
+      if (String((acceptError as { code?: string }).code ?? "") === "40P01") {
+        report(acceptError, { severity: "warning", tags: { source: "useOfferHandlers.acceptJobOffer", deadlock_victim: "true" } });
+        toast.error("This job was being updated at the same moment. Nothing changed: tap Accept again.");
+        return;
+      }
       report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
       toast.error("Couldn't accept the job — please try again.");
     } else {

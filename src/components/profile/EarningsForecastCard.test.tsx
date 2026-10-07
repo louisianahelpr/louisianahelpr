@@ -13,7 +13,8 @@ import { EarningsForecastCard } from "./EarningsForecastCard";
  */
 const mockQueryResult = { data: [] as unknown[], error: null as { message: string } | null };
 
-vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
+const feeMock = vi.hoisted(() => ({ dollars: 0 }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => feeMock.dollars, useFirstPayoutFeeCents: () => feeMock.dollars * 100 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/integrations/supabase/client", () => {
   const builder: Record<string, unknown> = {};
   // Each chained call returns the same builder so we can `await` the
@@ -48,6 +49,47 @@ describe("EarningsForecastCard", () => {
   beforeEach(() => {
     mockQueryResult.data = [];
     mockQueryResult.error = null;
+    feeMock.dollars = 0;
+  });
+
+  // Q1272 (5)(6): exact values. The one-time $2 setup fee comes off only the
+  // money still to be paid out: a job already RELEASED never carries it, so
+  // "earned so far" over settled jobs is the full take-home.
+  // @mutate src/components/profile/EarningsForecastCard.tsx |         if (settled) projectedSettled += net; |
+  it("Q1272 (6): the setup fee comes off the unpaid part only (settled earnings stay whole)", async () => {
+    feeMock.dollars = 2;
+    const row = { budget: 100, helpers_needed: null, is_group_job: false, helper_fee_percent: 10, urgent_fee: null };
+    mockQueryResult.data = [
+      { ...row, status: "completed", payment_status: "released" }, // $90, paid out: no fee
+      { ...row, status: "in_progress", payment_status: "escrow" }, // $90, still to pay: fee comes off here
+    ];
+    const { wrapper: Wrapper } = makeWrapper();
+    render(
+      <Wrapper>
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
+      </Wrapper>,
+    );
+    // Projected: 90 (settled) + (90 - 2) = 178. Earned so far: 90, untouched.
+    await waitFor(() => expect(screen.getByText("$178")).toBeInTheDocument());
+    expect(screen.getByText(/Earned so far · \$90/)).toBeInTheDocument();
+  });
+
+  it("Q1272 (5): an unpaid completed job's earned part loses the fee once", async () => {
+    feeMock.dollars = 2;
+    const row = { budget: 100, helpers_needed: null, is_group_job: false, helper_fee_percent: 10, urgent_fee: null };
+    mockQueryResult.data = [
+      { ...row, status: "completed", payment_status: "payout_pending" }, // $90 earned, unpaid
+      { ...row, status: "accepted", payment_status: "escrow" }, // $90 ahead
+    ];
+    const { wrapper: Wrapper } = makeWrapper();
+    render(
+      <Wrapper>
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
+      </Wrapper>,
+    );
+    // Projected: (90 + 90) - 2 = 178. Earned so far: 90 - 2 = 88.
+    await waitFor(() => expect(screen.getByText("$178")).toBeInTheDocument());
+    expect(screen.getByText(/Earned so far · \$88/)).toBeInTheDocument();
   });
 
   it("renders nothing when enabled is false", () => {

@@ -110,6 +110,20 @@ describe("Accept Job on an unfunded job (Q320)", () => {
     expect(toastError).toHaveBeenCalledWith("Couldn't accept the job — please try again.");
   });
 
+  // Q1214 (3): a deadlock victim (the hourly sweep held the job) is told
+  // nothing changed and to tap again, and logged under its own tag.
+  // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |       if (String((acceptError as { code?: string }).code ?? "") === "40P01") { |       if (false) {
+  it("Q1214 (3): a deadlocked accept says nothing changed and to tap again", async () => {
+    rpcResult.current = { data: null, error: { code: "40P01", message: "deadlock detected" } };
+    const refresh = vi.fn(async () => undefined);
+    const { result } = setup(refresh);
+    const app = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
+    await act(async () => { await result.current.handleHelperResponse(app, true); });
+    expect(toastError).toHaveBeenCalledWith("This job was being updated at the same moment. Nothing changed: tap Accept again.");
+    const { report } = await import("@/lib/errorLogger");
+    expect(report).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ tags: expect.objectContaining({ deadlock_victim: "true" }) }));
+  });
+
   it("direct offer accept: same refusal, same answer", async () => {
     rpcResult.current = { data: null, error: UNFUNDED };
     const refresh = vi.fn(async () => undefined);

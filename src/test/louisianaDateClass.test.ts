@@ -24,6 +24,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts | if (String(row.visit_date) <= louisianaToday()) | if (String(row.visit_date) <= new Date().toISOString().slice(0, 10))
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const today = louisianaToday(); | const today = new Date().toISOString().slice(0, 10);
+ * @mutate supabase/functions/_shared/alertPolicy.ts | return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString() | return new Date(Math.floor(now.getTime() / 86400000) * 86400000).toISOString()
  * @mutate supabase/functions/_shared/louisianaDate.ts | export function louisianaToday(now: Date = new Date()): string { | export function louisianaToday(now: Date = new Date()): string { return now.toISOString().slice(0, 10);
  */
 import { describe, it, expect } from "vitest";
@@ -49,8 +50,23 @@ function walk(dir: string, out: string[] = []): string[] {
 /** The UTC day of an instant: `.toISOString()` then `.slice/.substring/.substr(0, 10)` or `.split("T")[0]`. */
 const UTC_DAY_STRING = /\.toISOString\(\)\s*(?:\.\s*(?:slice|substring|substr)\(\s*0\s*,\s*10\s*\)|\.\s*split\(\s*["']T["']\s*\)\s*\[\s*0\s*\])/g;
 
+/**
+ * Q1266 (2): the same UTC day, made without a string: an instant truncated to
+ * UTC midnight with `Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate())`.
+ * (A bare-date step such as `Date.UTC(y, m - 1, d + 1)` reads no instant and is
+ * not this class.)
+ */
+const UTC_DAY_TRUNCATION = /Date\.UTC\(\s*([\w.$]+)\.getUTCFullYear\(\)\s*,\s*\1\.getUTCMonth\(\)\s*,\s*\1\.getUTCDate\(\)\s*\)/g;
 /** Exact count of UTC date-string producers allowed per file, each with the reason it is not a Louisiana-day comparison. */
 const EXCEPTIONS: Record<string, { count: number; reason: string }> = {
+  "supabase/functions/_shared/alertPolicy.ts": {
+    count: 1,
+    reason: "utcDayStartIso opens a once-per-day alert window (dedupe of ops pages); it is never compared with a job or visit date.",
+  },
+  "supabase/functions/str-ical-sync/dates.ts": {
+    count: 1,
+    reason: "utcDay opens the iCal look-ahead window at the UTC day: a known defect filed as Q1265 (it should open at the Louisiana day); listed so this guard counts it exactly until Q1265 removes it.",
+  },
   "supabase/functions/_shared/recurringSchedule.ts": {
     count: 1,
     reason: "toYmd formats a Date that parseYmd built at NOON UTC from a bare YYYY-MM-DD: pure calendar arithmetic on a date string, no instant is read.",
@@ -81,7 +97,7 @@ function inventory(): Map<string, number> {
   const found = new Map<string, number>();
   for (const file of walk(FUNCTIONS)) {
     const code = blankComments(readFileSync(file, "utf8"));
-    const n = (code.match(UTC_DAY_STRING) ?? []).length;
+    const n = (code.match(UTC_DAY_STRING) ?? []).length + (code.match(UTC_DAY_TRUNCATION) ?? []).length;
     if (n > 0) found.set(relative(ROOT, file), n);
   }
   return found;
@@ -116,6 +132,17 @@ describe("Q1203: Louisiana dates in edge functions are never UTC date strings", 
 
   it("every exception carries a reason", () => {
     for (const [f, e] of Object.entries(EXCEPTIONS)) expect(e.reason.length, f).toBeGreaterThan(40);
+  });
+
+  // Q1266 (3): auto-expire-jobs and stalled-completion-reminder each kept their
+  // own (correct) Chicago "today" formatter; they now call louisianaToday(), and
+  // a new copy anywhere else fails here.
+  // @mutate supabase/functions/auto-expire-jobs/index.ts |     const today = louisianaToday(); |     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  it("the Louisiana 'today' formatter exists once: _shared/louisianaDate.ts", () => {
+    const copies = walk(FUNCTIONS)
+      .filter((f) => /new Intl\.DateTimeFormat\(\s*["']en-CA["']/.test(blankComments(readFileSync(f, "utf8"))))
+      .map((f) => relative(ROOT, f));
+    expect(copies).toEqual(["supabase/functions/_shared/louisianaDate.ts"]);
   });
 
   it("the two payment paths use the one helper and keep no UTC 'today' of their own", () => {

@@ -157,7 +157,9 @@ test("the Earned half stays within its length budget", async ({ helperPage: page
   // The fixture really did produce a funded wallet and real take-home —
   // otherwise every assertion below would pass against an empty state.
   await expect(page.getByText(/\$245\.00/).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/\$1,632\b/).first()).toBeVisible({ timeout: 10_000 });
+  // $1,645 since Q1273 (2026-10-07): the eight jobs with a paid transfer count
+  // the $120 that was sent, not the take-home preview (was $1,632).
+  await expect(page.getByText(/\$1,645\b/).first()).toBeVisible({ timeout: 10_000 });
 
   const px = await page.evaluate(MEASURE_SCROLLER);
   const screens = px / 852;

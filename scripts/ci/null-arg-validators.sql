@@ -94,6 +94,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('admin_resolve_ban_evasion_match', 'action', 'Q1324: an admin clears or keeps a ban-evasion match (writes; true = done)'),
   ('clear_thread_mute',             'action',   'RPC'),
+  ('link_str_turnover_job',         'action',   'Q768: links the caller''s own STR turnover to their own open job (writes; true = linked)'),
   ('kick_payout_schedule_sync',     'action',   'Q1221: queues the payout-schedule sync (pg_net; true = queued)'),
   ('complete_job_accept',           'action',   'Q1180: completes a pending accept (writes; true = completed)'),
   ('delete_email',                  'action',   'pgmq wrapper'),

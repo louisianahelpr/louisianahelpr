@@ -9,7 +9,7 @@ import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
 import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
-import type { PostedActivity } from "@/hooks/useActivityData";
+import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 
 /**
  * ONE loading silhouette for My Jobs / My Posts, shared by the route fallback
@@ -33,6 +33,9 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
   const isWebDesktop = useIsWebDesktop();
   // Data-aware (Q722): how many posts the cache already knows about. 0 = cold.
   const cachedPosts = useCachedListCount<PostedActivity>(["activity", "posted"], (d) => d.postedJobs?.length ?? 0);
+  // Owner, 2026-10-07 (Q201 b): My Jobs gets the same cold-visit outline.
+  const cachedApps = useCachedListCount<AppliedActivity>(["activity", "applied"], (d) => d.appliedApps?.length ?? 0);
+  const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0;
   /* The phone tab row opens FOLDED on the default filter and OPEN on any
      other `?filter=` (owner, 2026-09-25: "open with the chevrons
      collapsed"). The placeholder reserves the row exactly when the loaded
@@ -139,10 +142,12 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           same `flex-1 min-h-full flex` holder JobListPage and
           ActivityEmptyState give the real one (owner decision 2026-10-05,
           Q722; see EmptyStateSkeleton). A warm visit keeps the cards. */}
-      {tab === "posted" && cachedPosts === 0 ? (
+      {/* My Jobs too since 2026-10-07 (owner, Q201 b): a cold My Jobs drew four
+          application cards and collapsed into "No applications yet". */}
+      {coldEmpty ? (
         <div className="flex-1 min-h-0 pb-0 flex flex-col">
           <div className="flex-1 min-h-full flex">
-            <EmptyStateSkeleton testId="posts-empty-skeleton" />
+            <EmptyStateSkeleton testId={tab === "posted" ? "posts-empty-skeleton" : "jobs-empty-skeleton"} />
           </div>
         </div>
       ) : (

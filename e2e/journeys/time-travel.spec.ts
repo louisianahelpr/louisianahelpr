@@ -10,12 +10,12 @@ import {
   payCheckoutUrlInChromium,
   rest,
   sessionsAvailable,
-  skipUncovered,
   stripeModeFromCheckoutUrl,
   type Session,
 } from "./fixtures";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
+import { resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 
 /**
  * TIME TRAVEL — what a real user sees days later, on the deployed app and the
@@ -76,8 +76,9 @@ async function openAt(
   api: APIRequestContext,
   timezoneId: string,
   at: Date,
+  role: "poster" | "helper" = "poster",
 ): Promise<{ ctx: BrowserContext; page: Page; session: Session }> {
-  const minted = await getSession(api, "poster");
+  const minted = await getSession(api, role);
   // supabase-js decides whether to refresh from the STORED `expires_at`, read
   // against the browser clock. With that clock days ahead it refreshes on load
   // and again on its ticker, and two overlapping refreshes of one rotating
@@ -113,8 +114,6 @@ async function step(
 // in Louisiana and they have not.
 // @mutate src/components/profile/AvailabilityTab.tsx | timeZone: ZONE, | timeZone: undefined,
 
-/** The Stripe mode the countdown test's Checkout Session carried; "unknown" until it runs. */
-let seenStripeMode: "test" | "live" | "unknown" = "unknown";
 
 test.describe("time travel · deployed app, real backend, moved browser clock", () => {
   test.skip(!sessionsAvailable().ok, sessionsAvailable().why);
@@ -454,7 +453,6 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       // Live Stripe: the owner's 2026-09-27 decision, the one justified skip
       // (e2e/prod-audit/fundedOpenJob.ts). The live page is never opened.
       const mode = stripeModeFromCheckoutUrl(body.url!);
-      seenStripeMode = mode;
       expect(mode, `create-payment escrow answered a URL with no Checkout Session id: ${body.url}`).not.toBe("unknown");
       if (mode === "live") skipLivePay(`time-travel funded countdown: create-payment minted a live Checkout Session for ${job.id}`);
       await payCheckoutUrlInChromium(body.url!);
@@ -495,25 +493,149 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
    * travel: …" steps), at the moments that chain holds exactly the funded,
    * offered and marked-done job they need.
    *
-   * The two below still need a state no journey makes: an accepted job the
-   * Helpr has not confirmed (the accept must land more than a day before the
-   * start, and a hired, funded job days out cannot be unwound without a
-   * cancellation strike on a shared account), and a paid membership (a
-   * test-mode subscription the harness would then have to cancel through
-   * Stripe's billing portal). docs/OPEN.md carries both.
+   * The two below need a state no journey can buy while Stripe is LIVE: an
+   * accepted job the Helpr has not confirmed, days out, and a paid membership
+   * about to end. Owner, 2026-10-03 (Q413, pop-up): BUILD both, on is_seed
+   * rows the harness writes with the service role and removes or restores the
+   * same way (no payment, no cancellation, no strike on a shared account).
+   * The service-role calls go through node fetch, never the traced Playwright
+   * request (Q1421: traces copy request headers into public artifacts).
    */
-  for (const [title, detail] of [
-    ["Confirm window (day before / day of)", "needs an accepted job the E2E helper has not confirmed"],
-    ["Subscription expiring", "neither E2E account holds a paid tier; buying one is a Stripe checkout"],
-  ] as const) {
-    test(`UNCOVERED: ${title}`, async () => {
-      // Both states need a payment first: an accepted job needs a funded one
-      // (the applications INSERT policy checks job_is_funded) and a paid tier
-      // is a Stripe checkout. In live mode that is the owner's 2026-09-27
-      // justified skip, read from the countdown test's Checkout Session. An
-      // unknown mode (that test never reached create-payment) stays a failure.
-      if (seenStripeMode === "live") skipLivePay(`time travel: ${title} — ${detail}`);
-      skipUncovered(`Time travel: ${title}`, detail);
+  const H = 3_600_000;
+  async function sr<T>(key: string, path: string, init: { method: string; body?: unknown; prefer?: string }): Promise<T> {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: init.method,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        Prefer: init.prefer ?? "return=representation",
+      },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
+    const text = await res.text();
+    expect(res.ok, `service role ${init.method} ${path.split("?")[0]}: ${res.status} ${text.slice(0, 200)}`).toBe(true);
+    return (text ? JSON.parse(text) : null) as T;
   }
+  function serviceKey(): string {
+    const key = resolveServiceKey();
+    // The journeys jobs export it (e2e-journeys.yml, service-role-key); a run
+    // without it cannot write the fixture, and saying so is the only honest result.
+    expect(key, "SUPABASE_SERVICE_ROLE_KEY is needed to write this leg's is_seed fixture").toBeTruthy();
+    return key!;
+  }
+
+  test("Confirm window: the Helpr's Jobs card before it opens, while it is open, and past due", async ({
+    browser,
+    request,
+    journey,
+  }) => {
+    test.setTimeout(8 * 60_000);
+    const key = serviceKey();
+    const poster = await getSession(request, "poster");
+    const helper = await getSession(request, "helper");
+    const runId = `c${Date.now().toString(36)}`;
+    const D = centralDate(3);
+    const dayBefore = centralDate(2);
+    const title = fitJobTitle(`${E2E_TITLE_MARKER} cw ${runId}`);
+    const [job] = await sr<Array<{ id: string }>>(key, "jobs?select=id", {
+      method: "POST",
+      body: {
+        customer_id: poster.user.id,
+        helper_id: helper.user.id,
+        title,
+        description: "Automated time-travel fixture (is_seed). Not a real job; deleted when the run ends.",
+        category: "cleaning",
+        budget: 25,
+        location: "4412 Highland Rd, Baton Rouge, LA 70808",
+        date_needed: D,
+        start_time: "09:00",
+        status: "accepted",
+        payment_status: "escrow",
+        pricing_mode: "set_price",
+        accepted_at: new Date().toISOString(),
+        is_seed: true,
+      },
+    });
+    journey.cleanup("delete the confirm-window fixture (service role: no refund, no strike)", async () => {
+      await sr(key, `applications?job_id=eq.${job.id}`, { method: "DELETE", prefer: "return=minimal" });
+      await sr(key, `jobs?id=eq.${job.id}`, { method: "DELETE", prefer: "return=minimal" });
+      const left = await sr<Array<{ id: string }>>(key, `jobs?id=eq.${job.id}&select=id`, { method: "GET" });
+      expect(left, "cleanup: the confirm-window fixture is still there").toEqual([]);
+    });
+    await sr(key, "applications?select=id", {
+      method: "POST",
+      body: { job_id: job.id, helper_id: helper.user.id, status: "accepted" },
+    });
+
+    async function cardAt(at: Date, want: RegExp, name: string) {
+      const { ctx, page } = await openAt(browser, request, CT, at, "helper");
+      try {
+        // `?job=` opens the job's own bucket, so the card is on screen.
+        await page.goto(`/jobs?job=${job.id}`);
+        const card = page.locator("div").filter({ hasText: title }).filter({ has: page.getByText(want) }).last();
+        await expect(card, `${name}: at ${at.toISOString()} from ${CT}`).toBeVisible({ timeout: 45_000 });
+        await step(journey, page, `confirm-window-${name}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+
+    // The window opens at midnight Central the day before and runs 12 hours
+    // (confirmDeadline.ts; written out here, not imported from it).
+    await cardAt(new Date(ct(dayBefore, "00:00").getTime() - 2 * H), /Confirmation opens in/, "before");
+    await cardAt(ct(dayBefore, "06:00"), /Confirm by .+ \(6h left\) or this job re-opens to other Helprs\./, "open");
+    await cardAt(ct(dayBefore, "13:00"), /Confirmation is past due/, "past-due");
+  });
+
+  test("Subscription expiring: a cancelled Pro membership says when it ends, then the plan reads free", async ({
+    browser,
+    request,
+    journey,
+  }) => {
+    test.setTimeout(6 * 60_000);
+    const key = serviceKey();
+    const poster = await getSession(request, "poster");
+    const COLS = "subscription_tier,subscription_expires_at,subscription_cancel_at_period_end,subscription_billing_cycle,subscription_source,stripe_subscription_id";
+    const before = await sr<Array<Record<string, unknown>>>(key, `profiles?user_id=eq.${poster.user.id}&select=${COLS}`, { method: "GET" });
+    expect(before, "poster-e2e's profile row").toHaveLength(1);
+    journey.cleanup("restore poster-e2e's membership columns", async () => {
+      await sr(key, `profiles?user_id=eq.${poster.user.id}`, { method: "PATCH", body: before[0], prefer: "return=minimal" });
+      const now = await sr<Array<Record<string, unknown>>>(key, `profiles?user_id=eq.${poster.user.id}&select=${COLS}`, { method: "GET" });
+      expect(now, "cleanup: the membership columns were not restored").toEqual(before);
+    });
+    const ends = ct(centralDate(3), "12:00");
+    await sr(key, `profiles?user_id=eq.${poster.user.id}`, {
+      method: "PATCH",
+      prefer: "return=minimal",
+      body: {
+        subscription_tier: "pro",
+        subscription_expires_at: ends.toISOString(),
+        subscription_cancel_at_period_end: true,
+        subscription_billing_cycle: "monthly",
+      },
+    });
+    const endsLabel = ends.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: CT });
+
+    async function planAt(at: Date, check: (page: Page) => Promise<void>, name: string) {
+      const { ctx, page } = await openAt(browser, request, CT, at);
+      try {
+        await page.goto("/profile?tab=subscription");
+        await check(page);
+        await step(journey, page, `subscription-${name}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+    // A day before it ends: the cancelled membership says "Ends <date>", never "Renews".
+    await planAt(new Date(ends.getTime() - 24 * H), async (page) => {
+      await expect(page.getByText(new RegExp(`^Ends\\s*${endsLabel}$`)).first(), "the ending membership's label").toBeVisible({ timeout: 45_000 });
+      await expect(page.getByText(/^Renews\b/)).toHaveCount(0);
+    }, "day-before");
+    // After it ended: no Pro treatment, the plan offers Upgrade again.
+    await planAt(new Date(ends.getTime() + 2 * H), async (page) => {
+      await expect(page.getByRole("button", { name: /^Upgrade\b/ }).first(), "an ended membership offers Upgrade").toBeVisible({ timeout: 45_000 });
+      await expect(page.getByText(new RegExp(`^Ends\\s*${endsLabel}$`))).toHaveCount(0);
+    }, "ended");
+  });
 });

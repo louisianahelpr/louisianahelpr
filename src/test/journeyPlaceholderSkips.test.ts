@@ -22,7 +22,7 @@
  * moved legs are held in place by a floor on the "time travel:" steps.
  */
 
-// @mutate e2e/journeys/time-travel.spec.ts | ["Subscription expiring", "neither | ["Offer expiring", "placeholder"],\n    ["Subscription expiring", "neither
+// @mutate e2e/journeys/time-travel.spec.ts |   test("Subscription expiring: a cancelled Pro | test("UNCOVERED: x", async () => { skipUncovered("x", "y"); });\n  test("Subscription expiring: a cancelled Pro
 // @mutate e2e/journeys/02-marketplace.spec.ts | test.step("time travel: the offer counts down to its deadline, then is gone" | test.step("the offer counts down to its deadline, then is gone"
 // @mutate e2e/journeys/time-travel.spec.ts | test("a funded job's countdown chip: | test.skip("a funded job's countdown chip:
 
@@ -51,10 +51,9 @@ function walk(dir: string, out: string[] = []): string[] {
  * by e2e/journeys/notifications/producers.ts (notificationProducersCovered).
  */
 // @two-way src/test/journeyPlaceholderSkips.test.ts:a placeholder listed here no longer exists
-const PLACEHOLDER_KNOWN = [
-  "e2e/journeys/time-travel.spec.ts :: Confirm window (day before / day of)",
-  "e2e/journeys/time-travel.spec.ts :: Subscription expiring",
-];
+// Empty since 2026-10-07: Q413 built both legs (owner, 2026-10-03: build them
+// on is_seed fixtures written and removed with the service role).
+const PLACEHOLDER_KNOWN: string[] = [];
 
 export function placeholders(rel: string, src: string): string[] {
   const code = blankComments(src);

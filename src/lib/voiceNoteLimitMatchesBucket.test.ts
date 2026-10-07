@@ -15,6 +15,7 @@ describe("voice note size cap matches the message-attachments bucket", () => {
     let bucketBytes: number | null = null;
     // Latest migration that sets the bucket's size: either an INSERT whose
     // VALUES name 'message-attachments' then a byte count, or an UPDATE of it.
+    expect(readdirSync(dir).length, "floor (Q1073, 2026-10-07: 1010 measured)").toBeGreaterThan(900);
     for (const f of readdirSync(dir).sort()) {
       const sql = readFileSync(join(dir, f), "utf8");
       for (const hit of sql.matchAll(/'message-attachments'\s*,\s*'message-attachments'\s*,\s*(?:true|false)\s*,\s*(\d+)/g)) bucketBytes = Number(hit[1]);

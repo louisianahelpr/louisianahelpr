@@ -66,6 +66,9 @@ describe("isTrustedEvidenceUrl", () => {
  * null-uid rule), and grading a superseded copy is its own defect class.
  */
 describe("the server-side write gate still exists", () => {
+  it("reads the migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => {
+    expect(readdirSync(resolve(__dirname, "..", "..", "supabase", "migrations")).filter((f) => f.endsWith(".sql")).length).toBeGreaterThan(900);
+  });
   const newestDef = (() => {
     const dir = resolve(__dirname, "..", "..", "supabase", "migrations");
     const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();

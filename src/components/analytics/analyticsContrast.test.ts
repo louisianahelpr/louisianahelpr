@@ -84,6 +84,7 @@ const PANEL_FILES = readdirSync(resolve(ROOT, PANEL_DIR))
   .filter((f) => f.endsWith(".tsx"))
   .sort()
   .map((f) => `${PANEL_DIR}/${f}`);
+it("reads the real analytics panels (floor, Q1073, 2026-10-07: 8 measured)", () => expect(PANEL_FILES.length).toBeGreaterThan(5));
 
 /** Every `color: hsl(var(--olivewood) / N)` on an element that also carries
  *  `text-ds-11`, paired with its alpha. */

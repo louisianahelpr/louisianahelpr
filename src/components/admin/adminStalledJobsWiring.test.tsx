@@ -142,6 +142,7 @@ describe("/admin?view=stalled actually renders the stuck-job queue", () => {
 describe("admin rail registry — every id is a view that renders", () => {
   const adminSource = readFileSync(resolve(ROOT, "src/pages/admin/Admin.tsx"), "utf8");
   const ids = adminNavGroups.flatMap((g) => g.items.map((i) => i.id));
+  it("reads the real admin rail (floor, Q1073, 2026-10-07)", () => expect(ids.length).toBeGreaterThan(5));
 
   it("has a VIEW_LABELS entry for every rail row", () => {
     const block = adminSource.slice(

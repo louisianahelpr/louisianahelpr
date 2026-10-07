@@ -96,6 +96,7 @@ describe("class guard: every credit the ledger can hold is classified, and the p
     for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
       for (const m of readFileSync(resolve(MIGRATIONS, f), "utf8").matchAll(def)) out.set(m[1].toLowerCase(), m[3]);
     }
+    expect(out.size, "floor (Q1073, 2026-10-07: 477 public functions on prod)").toBeGreaterThan(200);
     return [...out.values()];
   }
 

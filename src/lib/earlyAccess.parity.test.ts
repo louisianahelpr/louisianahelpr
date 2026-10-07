@@ -144,6 +144,7 @@ describe("early-access delay — client/SQL parity", () => {
     // defines a surface last must still compare against the shared cutoff.
     const dir = resolve(__dirname, "../../supabase/migrations");
     const migrations = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    expect(migrations.length, "floor (Q1073, 2026-10-07: 1010 measured)").toBeGreaterThan(900);
     for (const [surface, object] of GATED_SURFACES) {
       const re = new RegExp(`CREATE OR REPLACE (?:FUNCTION|VIEW) ${object.replace(".", "\\.")}\\b`);
       const owner = [...migrations]

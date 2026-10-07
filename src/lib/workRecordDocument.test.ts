@@ -284,6 +284,7 @@ describe("the record does not contradict the app about the same person", () => {
       expect(text).toMatch(/formatPriceExact\(\s*(input|data)\.totalEarnings\s*\)/);
       expect(text).not.toMatch(/formatPriceFloor\(\s*(input|data)\.totalEarnings\s*\)/);
     }
+    expect(src("./workRecordDocument.ts").length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(1000);
   });
 
   it("keeps the two surfaces on the same formatter", () => {

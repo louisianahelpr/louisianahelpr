@@ -61,6 +61,7 @@ const migrationSql = readdirSync(migrationsDir)
     file: f,
     sql: stripSqlComments(readFileSync(resolve(migrationsDir, f), "utf8")) as string,
   }));
+it("reads the migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => expect(migrationSql.length).toBeGreaterThan(900));
 
 // An empty migrations directory would make every per-producer assertion below
 // pass by describing nothing.

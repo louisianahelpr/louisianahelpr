@@ -123,6 +123,7 @@ describe("admin endpoints authorize server-side", () => {
       .filter((d) => d.startsWith("admin-"))
       .sort();
     expect(onDisk).toEqual([...ADMIN_ENDPOINTS].sort());
+    expect(onDisk.length, "floor (Q1073, 2026-10-07: 5 admin-* functions measured)").toBeGreaterThan(2);
   });
 
   it("EXEMPT only excuses endpoints that exist and still lack a check", () => {

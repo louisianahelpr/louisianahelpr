@@ -64,6 +64,7 @@ describe("listing expiry is rendered only through formatTimeLeft", () => {
     .map((p) => ({ rel: relative(ROOT, p).split("\\").join("/"), code: readFileSync(p, "utf8") }))
     .filter((f) => /(^|[^a-z_])expires_at\b|formatTimeLeft/.test(f.code))
     .filter((f) => !(f.rel in NOT_A_LISTING));
+  it("judges a real set of expiry surfaces (floor, Q1073, 2026-10-07)", () => expect(files.length).toBeGreaterThan(5));
 
   it("every NOT_A_LISTING exemption still names a file this scan would otherwise judge", () => {
     // An exemption list nothing checks cannot fail, which is how a stale

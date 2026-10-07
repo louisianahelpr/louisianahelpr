@@ -35,6 +35,7 @@ describe("index.html blocked-storage boot repair", () => {
     const repairTagStart = html.lastIndexOf("<script", repairMarkerIndex);
 
     const scriptTags = [...html.matchAll(/<script\b[^>]*>/gi)];
+    expect(scriptTags.length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(1);
     let checked = 0;
     for (const match of scriptTags) {
       const tagStart = match.index ?? -1;

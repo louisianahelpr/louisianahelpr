@@ -82,7 +82,9 @@ function rebaseStops() {
 describe("land.sh rebase: the four conflict kinds resolve themselves", () => {
   it("OPEN.md, the archive, a generated file and a count constant: all resolved, the rebase finishes", async () => {
     expect(rebaseStops()).toBe(true);
-    expect(git("diff", "--name-only", "--diff-filter=U").split("\n").filter(Boolean).sort()).toEqual(
+    const conflicted = git("diff", "--name-only", "--diff-filter=U").split("\n").filter(Boolean);
+    expect(conflicted.length, "the sandbox rebase stops on all four kinds (floor)").toBeGreaterThan(3);
+    expect(conflicted.sort()).toEqual(
       ["docs/OPEN.md", "docs/archive/OPEN-done-2026-10.md", "public/sitemap.xml", "src/test/count.test.ts"],
     );
     const { left } = await resolveAll({ cwd: repo, log: quiet });

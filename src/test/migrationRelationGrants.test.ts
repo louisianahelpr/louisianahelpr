@@ -116,6 +116,7 @@ describe("check-migration-relation-grants — green", () => {
     // Before the cut-off these were legal (the default granted them). Proves the
     // matcher reads real migrations, not only the synthetic ones above.
     const flagged = new Set<string>();
+    expect(readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql")).length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(900);
     for (const f of readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"))) {
       for (const v of violationsFor(readFileSync(join(MIGRATIONS, f), "utf8"))) {
         const m = v.match(/public\.([a-z0-9_]+): no GRANT/);

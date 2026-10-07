@@ -127,6 +127,12 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   },
 
   // ── failure: the skip means nothing was tested ─────────────────────────────
+  {
+    file: "e2e/journeys/01-browse.spec.ts",
+    match: "test.skip(emptyBeforeLaunch,",
+    verdict: "justified",
+    why: "owner 2026-10-01 \"Leave it empty\": prod holds no jobs before launch, so search/filter/sort have nothing to act on; the guest test still checks the empty marketplace, and the launch checklist turns EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH off",
+  },
   { file: "e2e/journeys/", match: "test.skip(!avail.ok, avail.why)", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/slow-network/", match: "test.skip(!avail.ok, avail.why)", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/journeys/time-travel.spec.ts", match: "sessionsAvailable().why", verdict: "failure", why: MISSING_CREDS },

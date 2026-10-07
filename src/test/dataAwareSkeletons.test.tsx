@@ -1,4 +1,6 @@
-// @mutate src/components/ActivityPageSkeleton.tsx | tab === "posted" && cachedPosts === 0 ? ( | false ? (
+// @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? false : cachedApps === 0;
+// @mutate src/components/ActivityPageSkeleton.tsx | const coldEmpty = tab === "posted" ? cachedPosts === 0 : cachedApps === 0; | const coldEmpty = tab === "posted" ? cachedPosts === 0 : false;
+// @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "notifications") return <NotificationsReserve />; |   // removed
 // @mutate src/components/GuestBrowseSkeleton.tsx | const cold = cachedJobs === 0; | const cold = false;
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? ( | ) : false ? (
 // @mutate src/components/ui/skeletons/EmptyStateSkeleton.tsx | if (data != null) n = Math.max(n, count(data)); | n = 0;
@@ -15,7 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
-import { TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
+import { NOTIFICATION_ROWS, ProfileTabBodyReserve, TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
 import { ReviewsTab } from "@/components/profile/ReviewsTab";
 import { entryCardCount, ENTRY_BASE_CARD_COUNT } from "@/pages/post-job/EntryChoice";
 
@@ -55,10 +57,17 @@ describe("cold visits draw the zero state, warm visits the list", () => {
     expect(warm.queryByTestId("posts-empty-skeleton")).toBeNull();
   });
 
-  it("My Jobs keeps its cards (the decision covers My Posts only)", () => {
-    const r = withCache(() => {}, <ActivityPageSkeleton tab="applied" />);
-    expect(r.queryByTestId("posts-empty-skeleton")).toBeNull();
+  it("My Jobs: no cached applications -> the empty-state outline; cached ones -> cards (owner, 2026-10-07, Q201 b)", () => {
+    const cold = withCache(() => {}, <ActivityPageSkeleton tab="applied" />);
+    expect(cold.queryByTestId("jobs-empty-skeleton")).not.toBeNull();
+    cleanup();
+    const warm = withCache(
+      (qc) => qc.setQueryData(["activity", "applied", "u1"], { appliedApps: [{ id: "a1" }] }),
+      <ActivityPageSkeleton tab="applied" />,
+    );
+    expect(warm.queryByTestId("jobs-empty-skeleton")).toBeNull();
   });
+
 
   it("guest Browse: no cached feed -> the empty-state outline; a cached feed -> cards", () => {
     const cold = withCache(() => {}, <GuestBrowseSkeleton />);
@@ -100,5 +109,13 @@ describe("cold visits draw the zero state, warm visits the list", () => {
       </MemoryRouter>,
     );
     expect(some.queryByTestId("profile-tab-fallback")).toBeNull();
+  });
+});
+
+describe("Notifications draws its icon rows (owner, 2026-10-07, Q201 a)", () => {
+  it("one round icon bone per preference row: 17, the count measured on prod", () => {
+    expect(NOTIFICATION_ROWS).toBe(17);
+    const r = render(<ProfileTabBodyReserve tab="notifications" />);
+    expect(r.container.querySelectorAll(".rounded-full.h-9.w-9").length).toBe(17);
   });
 });

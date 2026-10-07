@@ -497,7 +497,7 @@ const NotificationPreferences = () => {
   // values first and the real ones later moved every row below it (measured
   // at 375: 82px, CLS 0.055). Until the preferences are in, the tab keeps the
   // placeholder its chunk load already showed; then the real table, once.
-  if (!loaded) return <ProfileTabBodyReserve />;
+  if (!loaded) return <ProfileTabBodyReserve tab="notifications" />;
 
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">

@@ -162,6 +162,7 @@ export interface ProfileTabFallbackProps {
  * moment earlier, so the sequence is one placeholder, not two.
  */
 export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> } = {}) => {
+  if (tab === "notifications") return <NotificationsReserve />;
   const shape = tab ? TAB_SHAPES[tab] : undefined;
   if (shape) {
     // Siblings, not a wrapper: each block lines up with the real row that
@@ -216,6 +217,36 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
     </div>
   );
 };
+
+/**
+ * NOTIFICATIONS DRAWS ITS ROWS (owner, 2026-10-07, Q201 a; overrides the
+ * 09-19 screenful ruling for this one screen). The real tab is ONE card: the
+ * App / Email column labels, then a row per preference, each led by a round
+ * icon (17 on prod at 375, both test accounts). The screenful reserve drew two
+ * text cards and no icons at all, so the loaded card arrived with 17 avatars'
+ * worth of shape the placeholder never promised. Rows are 74px, the measured
+ * mean (the card is 1251-1323px with 17 rows plus the label strip; Quiet Hours
+ * and the digest row run taller, the toggles-only rows shorter).
+ */
+export const NOTIFICATION_ROWS = 17;
+const NotificationsReserve = () => (
+  <div aria-hidden data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass overflow-hidden">
+    <div className="flex justify-end gap-10 px-card py-2">
+      <Skeleton className="h-3 w-10 rounded" />
+      <Skeleton className="h-3 w-12 rounded" />
+    </div>
+    {Array.from({ length: NOTIFICATION_ROWS }, (_, i) => (
+      <div key={i} className="flex h-[74px] items-center gap-3 border-t border-border/40 px-card">
+        <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+        <Skeleton className="h-4 w-1/3 rounded" />
+        <div className="ml-auto flex gap-6">
+          <Skeleton className="h-7 w-12 rounded-full" />
+          <Skeleton className="h-7 w-12 rounded-full" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const ScreenfulReserve = ({ media }: { media: number }) => {
   const { ref, reserve } = useScreenfulBelow();

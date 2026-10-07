@@ -3,21 +3,6 @@
   "generated": "2026-09-26T21:25:01.687Z",
   "allow": [
     {
-      "key": "customer /profile?tab=notifications #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 17 real"
-    },
-    {
-      "key": "helper /profile?tab=notifications #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 17 real"
-    },
-    {
-      "key": "customer /jobs #1",
-      "kind": "jump",
-      "was": "row 32px → 154px (+122px)"
-    },
-    {
       "key": "customer /profile?tab=security #0",
       "kind": "rows",
       "was": "6 placeholder row(s) → 5 real row(s)"
@@ -236,14 +221,14 @@
     {
       "key": "customer /profile?tab=notifications #0",
       "kind": "jump",
-      "was": "row 744px → 1323px (+579px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+      "was": "row 1288px → 1323px (+35px)",
+      "ruling": "Owner decision 2026-10-07 (Q201 a): Notifications draws its preference rows (17 round icons, 74px rows at the measured mean). The card's real height depends on the account's own settings (Quiet Hours on adds its From/To pickers): 1323px for poster-e2e, 1251px for helper-e2e, so a single outline sits ~36px from each; the icon count matches both."
     },
     {
       "key": "helper /profile?tab=notifications #0",
       "kind": "jump",
-      "was": "row 744px → 1251px (+507px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+      "was": "row 1288px → 1251px (-37px)",
+      "ruling": "Owner decision 2026-10-07 (Q201 a): Notifications draws its preference rows (17 round icons, 74px rows at the measured mean). The card's real height depends on the account's own settings (Quiet Hours on adds its From/To pickers): 1323px for poster-e2e, 1251px for helper-e2e, so a single outline sits ~36px from each; the icon count matches both."
     },
     {
       "key": "helper /profile?tab=referral #0",

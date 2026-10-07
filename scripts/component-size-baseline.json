@@ -7,7 +7,7 @@
     "src/components/admin/AdminCredentialQueue.tsx": 601,
     "src/components/admin/AdminDisputes.tsx": 809,
     "src/components/admin/AdminReports.tsx": 722,
-    "src/components/admin/AdminSettings.tsx": 767,
+    "src/components/admin/AdminSettings.tsx": 761,
     "src/components/BrowseMap.tsx": 1203,
     "src/components/dashboard/BrowseTasksFeed.tsx": 669,
     "src/components/dashboard/FilterSheet.tsx": 763,

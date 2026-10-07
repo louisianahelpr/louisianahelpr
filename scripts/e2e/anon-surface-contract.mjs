@@ -106,10 +106,60 @@ function guestSurfaces() {
   const all = [...block.matchAll(/\{\s*surface:\s*"([^"]+)",\s*object:\s*"public\.([a-z0-9_]+)"/g)]
     .map((m) => ({ surface: m[1], object: m[2] }));
   if (!all.length) throw new Error("read SEED_GATED_SURFACES but parsed no entries");
-  const called = new Set([...clientCalls(), ...knownAnonFeeds()]);
-  const entries = all.filter((e) => called.has(e.object));
+  const feeds = knownAnonFeeds();
+  const called = new Set([...clientCalls(), ...feeds]);
+  // A client-called FUNCTION is a guest surface only if anon may EXECUTE it.
+  // Since Q552 (2026-10-07) the registry also lists signed-in profile reads
+  // (search_profiles_by_name, get_public_profile_reviews, get_parish_activity):
+  // anon is correctly refused those, and probing them as guest feeds failed
+  // e2e-real-backend on a correct configuration. The anon set is read from the
+  // allowlist db-deploy's live privilege check enforces on prod
+  // (scripts/check-live-privileges.mjs), so it cannot drift from what prod grants.
+  const anon = anonExecutable();
+  const relations = schemaRelations();
+  const guest = (e) => called.has(e.object) && (relations.has(e.object) || anon.has(e.object));
+  const entries = all.filter(guest);
   if (!entries.length) throw new Error("registry read succeeded but nothing intersected the client's calls");
-  return { entries, skipped: all.filter((e) => !called.has(e.object)) };
+  // Every recorded anon job feed must still be probed: dropping one is the
+  // failure this script exists to catch.
+  for (const f of feeds) {
+    if (all.some((e) => e.object === f) && !entries.some((e) => e.object === f)) {
+      throw new Error(`anon job feed public.${f} fell out of the probed set (not a relation and not anon-executable in the allowlist)`);
+    }
+  }
+  return {
+    entries,
+    skipped: all.filter((e) => !guest(e)).map((e) => ({
+      ...e,
+      why: called.has(e.object) ? "signed-in only: anon has no EXECUTE (allowlist)" : "no client call (trigger, cron or predicate)",
+    })),
+  };
+}
+
+/** Functions `anon` may EXECUTE, from scripts/ci/definer-exec-allowlist.json (names only). */
+function anonExecutable() {
+  const j = JSON.parse(readFileSync(join(REPO, "scripts/ci/definer-exec-allowlist.json"), "utf8"));
+  const names = Object.keys(j.anon ?? {}).map((k) => k.replace(/\(.*$/, ""));
+  if (names.length < 3) throw new Error(`read only ${names.length} anon entries from definer-exec-allowlist.json`);
+  return new Set(names);
+}
+
+/**
+ * The RPC body for a function: its REQUIRED args from the generated types,
+ * arrays as [] and everything else as null. A bare "{}" against a function
+ * with a required arg is PGRST202 ("no function with these args"), which says
+ * nothing about whether anon can read it.
+ */
+function rpcBody(fn) {
+  const src = readFileSync(join(REPO, "src/integrations/supabase/types.ts"), "utf8");
+  const m = new RegExp(`\\n {6}${fn}: \\{\\n {8}Args: (never|\\{[^}]*\\})`).exec(src);
+  if (!m || m[1] === "never") return "{}";
+  const body = {};
+  for (const a of m[1].matchAll(/([a-z0-9_]+)(\??):\s*([^\n;}]+)/g)) {
+    if (a[2] === "?") continue;
+    body[a[1]] = /\[\]\s*$/.test(a[3].trim()) ? [] : null;
+  }
+  return JSON.stringify(body);
 }
 
 /** relation → columns, from the generated types (produced from the live schema). */
@@ -177,7 +227,7 @@ async function probeSurface(object) {
   const callRpc = () => fetch(`${BASE}/rest/v1/rpc/${object}`, {
     method: "POST",
     headers: { ...HEADERS, "Content-Type": "application/json" },
-    body: "{}",
+    body: rpcBody(object),
   });
   let r = await callRpc();
   for (let attempt = 1; r.status >= 500 && attempt <= 2; attempt++) {
@@ -273,8 +323,8 @@ console.log("\nSigned-out pages:");
 console.log(pageLines.join("\n"));
 if (skipped.length) {
   console.log(
-    `\nGated but not guest-facing (trigger/cron — anon is correctly refused, not probed):\n  ` +
-      skipped.map((e) => `public.${e.object} (${e.surface})`).join("\n  "),
+    `\nGated but not guest-facing (anon is correctly refused, not probed):\n  ` +
+      skipped.map((e) => `public.${e.object} (${e.surface}) — ${e.why}`).join("\n  "),
   );
 }
 

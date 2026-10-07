@@ -9,12 +9,12 @@
  * read vitest's `expected <measured> to be <constant>`, write <measured>, and
  * run it again to prove it green. A guard that still fails stops the land.
  *
- *   node scripts/lib/landRecount.mjs   # reads and clears .git/land-recount.json
+ *   node scripts/lib/landRecount.mjs   # reads .git/land-recount.json (land.sh clears it once merged)
  *
  * Guard: src/test/landRebaseResolve.test.ts.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** The measured value vitest printed for constant `value`, or null. */
@@ -64,7 +64,11 @@ export function recount({ cwd = process.cwd(), log = console.log, run = runTest 
       writeFileSync(path, text);
     }
   }
-  rmSync(abs, { force: true });
+  // The record is KEPT until the landing merges (land.sh removes it then):
+  // land.sh drops its own refresh commit and rebases again on every retry,
+  // so a value written here must be written again after each rebase, even
+  // one with no conflict (2026-10-07: the second run dropped the 28 -> 29
+  // recount with the refresh commit and stopped on the guard).
   for (const c of changed) log(`landRecount: ${c} (measured on the rebased tree)`);
   for (const f of failed) log(`landRecount: ${f} still fails after the recount; fix it by hand`);
   return { changed, failed };

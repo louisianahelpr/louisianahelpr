@@ -149,7 +149,7 @@ describe("landRecount: the guard's own measurement is written", () => {
     expect(setConstant("x\nconst MARKERLESS = 7;\n", "MARKERLESS", 9)).toBe("x\nconst MARKERLESS = 9;\n");
   });
 
-  it("recount() rewrites the recorded constant until its guard is green, then clears the record", () => {
+  it("recount() rewrites the recorded constant until its guard is green, and keeps the record for the next retry", () => {
     put("src/test/count.test.ts", count(7, "// c"));
     put(".git/land-recount.json", JSON.stringify([{ file: "src/test/count.test.ts", name: "MARKERLESS" }]));
     const runs: string[] = [];
@@ -162,7 +162,9 @@ describe("landRecount: the guard's own measurement is written", () => {
     expect(r).toEqual({ changed: ["src/test/count.test.ts: MARKERLESS 7 -> 8"], failed: [] });
     expect(read("src/test/count.test.ts")).toContain("const MARKERLESS = 8;");
     expect(runs).toEqual(["7", "8"]);
-    expect(existsSync(join(repo, ".git", "land-recount.json"))).toBe(false);
+    // kept: land.sh re-runs the recount after every rebase until the landing merges
+    expect(existsSync(join(repo, ".git", "land-recount.json"))).toBe(true);
+    expect(recount({ cwd: repo, log: quiet, run })).toEqual({ changed: [], failed: [] });
   });
 });
 
@@ -178,6 +180,9 @@ describe("land.sh wiring", () => {
   it("the rebase loop calls the resolver for any conflict and skips a commit resolved to nothing", () => {
     expect(land).toMatch(/if node "\$LAND_FROZEN_DIR\/landRebaseResolve\.mjs"; then\n\s+# [^\n]*\n\s+GIT_EDITOR=true git rebase --continue/);
     expect(land).toMatch(/if git diff --cached --quiet; then\n\s+git rebase --skip/);
+  });
+  it("the recount record is removed only once the landing has merged", () => {
+    expect(land).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s+echo "land: \$BR merged into main\."\n\s+# [^\n]*\n\s+rm -f "\$\(git rev-parse --git-path land-recount\.json\)"/);
   });
   it("the recount runs after the rebase, before the refresh", () => {
     const at = land.indexOf('\n  node "$LAND_FROZEN_DIR/landRecount.mjs"\n');

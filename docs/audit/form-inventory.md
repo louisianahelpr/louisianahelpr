@@ -152,7 +152,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
-| `src/components/messages/ConversationList.tsx` | input×1 | search |  | Search conversations · Search conversations… · Close search · Conversation list options · Pinned · Bulk hide action bar · Cancel selection |
+| `src/components/messages/ConversationList.tsx` | input×1 | search |  | Search conversations · Search conversations… · Close search · Conversation list options · Bulk hide action bar · Cancel selection |
 | `src/components/RichMessageInput.tsx` | input×5 | file, text |  | Remove attachment · Discard voice note · Stop recording · Send voice note · Add photo, file, or location · Type a message · Send message |
 | `src/lib/nativeCamera.ts` | input×1 | file |  |  |
 

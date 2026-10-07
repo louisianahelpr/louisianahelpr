@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 251** (214 to do, 37 fixed with protection pending; 892 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 250** (213 to do, 37 fixed with protection pending; 893 done). Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 17 left of 34** (10 to do, 7 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 14 stale, 0 unknown, 49 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-06T23:06Z)_
@@ -83,7 +83,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1143 items — 892 done, 37 partly done (fixed, protection pending), 214 open.**
+**Queue: 1143 items — 893 done, 37 partly done (fixed, protection pending), 213 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -92,7 +92,6 @@ Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md)
 Nothing here gets muted: every failure still fails loudly; the work is making
 sure someone hears it and closes it.
 
-- [x] **Q7 MEDIUM WebKit only: the bottom nav isn't frosted. OWNER (device), re-checked 2026-09-26: still unmeasured in WebKit.** Nothing code-side can settle it. The dock is signed-in only (guest /browse renders no MobileNav, checked at 375), the cloud session that took this item had no test-account credentials, and Playwright WebKit on Linux is not the iOS compositor, so no CI run can show WKWebView frost either. What the source does (MobileNav.tsx:705-745): the full-width curtain carries `backdropFilter`/`WebkitBackdropFilter: blur(32px) saturate(170%)` together with `maskImage`/`WebkitMaskImage` on the SAME element, and the pill carries `blur(40px) saturate(180%)` inside the nav, whose own style has `transform` + `willChange: transform` (the hide-on-scroll slide). Both are inline styles, so the CSS minifier cannot have dropped the -webkit- form. **Ask:** on the iOS 26.1 simulator or a device, signed in, open /home, scroll the feed under the dock and send one screenshot. **Recommendation:** if the pill is frosted and only the band above it is clear, the curtain's mask is the suspect (test by removing `WebkitMaskImage` alone). If the pill is clear too, test with `willChange` removed from the nav. Fix whichever one screenshot proves, and add a pixel-variance check under the dock to a WebKit spec. (Q1101 merged here 2026-10-03, verify pass: the same work: "LOW WebKit only: bottom nav is not frosted (feed text shows sharp under icons) — Not reached — needs device/s") **TRIAGE 2026-10-06 (e) post-launch:** a device-only look (owner); nothing code-side can settle it, and it is not on the launch list. **DONE 2026-10-07 (lane high-launchday), measured on the iPhone 17 Pro simulator (iOS 26.5, WKWebView, signed in as the poster test account) with a striped high-contrast probe placed under the dock on /home and /jobs:** BEFORE, the pill was frosted but the curtain band around and below it was crisp: WebKit drops `backdrop-filter` on an element that also has `mask-image`. A mask on a parent is no fix either, because it makes a backdrop root and the blur then samples nothing (tried live, same day). FIX (src/components/MobileNav.tsx): the blur is now 6 unmasked bands (CURTAIN_BLUR_STEPS, each shorter and stronger: 2px at full height down to 20px+saturate in the bottom 35%). The tint keeps its mask and has no filter. AFTER, the curtain is frosted on /home and /jobs (~/.lh-shots/q7/sim-final-*-crop.png). Chromium and Playwright WebKit at 375 and 1440, light and dark, before and after: the dock looks the same apart from the blur. The one visible change: a faint seam where the top blur band begins cuts the panel's side border lines. 1440 has no dock. Playwright macOS WebKit renders no backdrop blur at all, before or after, so it can't judge frost. All shots were reviewed and recorded. GUARD: src/test/backdropNeverMasked.test.ts (no inline style object or CSS rule in src/ carries a backdrop filter and a mask together; the curtain ramp is unmasked and monotonic). It fails on the pre-fix MobileNav (2 of 3 tests) and both of its @mutate lines are killed. Inline styles, so the CSS minifier is not involved; the built MobileNav chunk carries the six steps.
 
 ## QUEUE (cont.) — gaps measured 2026-09-23 (owner: "anything at all")
 

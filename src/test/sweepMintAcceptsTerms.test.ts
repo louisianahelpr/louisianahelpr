@@ -25,7 +25,8 @@
  * @mutate e2e/journeys/fixtures.ts | serviceKey: creds.serviceKey, | serviceKey: creds.serviceKey, acceptTerms: false,
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 // @ts-expect-error untyped .mjs helper
 import { latestConsentVersions } from "../../scripts/lib/acceptCurrentTerms.mjs";

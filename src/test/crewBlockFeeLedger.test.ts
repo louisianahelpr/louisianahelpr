@@ -76,7 +76,8 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
   });
 
   it("the member gets the row in their data export (the poster is told by notification)", () => {
-    expect(EFFECTIVE.get("export_my_data")?.file).toBe(THIS);
+    // This migration or a later restatement (Q1254, 20261007113957) that keeps the section.
+    expect((EFFECTIVE.get("export_my_data")?.file ?? "") >= THIS).toBe(true);
     expect(body("export_my_data")).toMatch(/jsonb_build_object\('crew_block_fees', \(SELECT coalesce\(jsonb_agg\(to_jsonb\(t\)\), '\[\]'::jsonb\) FROM public\.crew_block_fees t\s+WHERE t\.helper_id = v_uid\)\)/);
   });
 

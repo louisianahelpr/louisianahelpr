@@ -29,6 +29,8 @@ import { categories, type Job } from "../../components/job-card/activityConstant
 import { todayLocalISO } from "@/lib/dateUtils";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { isLaborTaxable } from "@/lib/salesTax";
+import { useJobAccessNote } from "@/hooks/useJobAccessNote";
+import { saveJobAccessNote } from "@/lib/jobAccessNotes";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -62,7 +64,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [startTime, setStartTime] = useState("");
   const [isFlexible, setIsFlexible] = useState(false);
   const [, setBudget] = useState("");
-  const [specialReq, setSpecialReq] = useState("");
+  // Q1461: the two notes the post form collects, stored apart. Materials is
+  // on the job row (public); Access & Parking is in job_access_notes (the
+  // poster and the booked Helpr only), read here through RLS as the poster.
+  const [materialsNote, setMaterialsNote] = useState("");
+  const [accessNote, setAccessNote] = useState("");
+  const [accessTouched, setAccessTouched] = useState(false);
+  const savedAccess = useJobAccessNote(job?.id, !!job) ?? "";
   const [requirePhotoProof, setRequirePhotoProof] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -79,13 +87,18 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       setStartTime(job.start_time || "");
       setIsFlexible(job.is_flexible_schedule ?? false);
       setBudget(job.budget?.toString() || "");
-      setSpecialReq(job.special_requirements || "");
+      setMaterialsNote(job.materials_note || "");
+      setAccessTouched(false);
       // `?? true` mirrors the column's own NOT NULL DEFAULT, so a row read by a
       // client older than the migration prepopulates as "required" rather than
       // silently saving the requirement away.
       setRequirePhotoProof((job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true);
     }
   }, [job]);
+
+  useEffect(() => {
+    if (!accessTouched) setAccessNote(savedAccess);
+  }, [savedAccess, accessTouched]);
 
   const save = async () => {
     if (!job) return;
@@ -107,7 +120,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       // Editable after posting (2026-10-02). It was never written here, so a
       // poster who forgot the box at post time had to delete and repost.
       is_flexible_schedule: isFlexible,
-      special_requirements: specialReq.trim() || null,
+      // Only when it changed: a key the database does not have yet would fail
+      // the whole save in the minutes between the web deploy and db-deploy.
+      ...(materialsNote.trim() !== (job.materials_note ?? "") ? { materials_note: materialsNote.trim() || null } : {}),
       require_photo_proof: requirePhotoProof,
       // Moving the schedule MUST move the listing expiry with it. It didn't:
       // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
@@ -127,6 +142,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     // is simply not sent (a re-trimmed location would read as a change).
     const payload: TablesUpdate<"jobs"> = job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData;
     try {
+      // The access note FIRST: it is the write most likely to be refused (the
+      // contact scan), and refused first it leaves nothing half-saved. NOT
+      // locked by a booking (owner answer 3, 2026-10-06): the poster may
+      // change it until the job ends, and the database tells the booked
+      // Helpr(s) (job_access_notes_changed).
+      if (job.status !== "completed" && job.status !== "cancelled" && accessNote.trim() !== savedAccess.trim()) {
+        await saveJobAccessNote(job.id, accessNote);
+      }
       unwrapMutation(
         await supabase.from("jobs").update(payload).eq("id", job.id).select("id"),
         { action: "save these changes" },
@@ -157,7 +180,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     dateNeeded !== (job.date_needed || "") ||
     startTime !== (job.start_time || "") ||
     isFlexible !== (job.is_flexible_schedule ?? false) ||
-    specialReq !== (job.special_requirements || "")
+    materialsNote !== (job.materials_note || "") ||
+    accessNote.trim() !== savedAccess.trim()
   );
 
   const handleClose = (nextOpen: boolean) => {
@@ -178,11 +202,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
+  // Owner answer 3: the access notes stay editable after booking, until the job ends.
+  const jobEnded = job.status === "completed" || job.status === "cancelled";
+  const accessChanged = accessNote.trim() !== savedAccess.trim();
   // The only edit a booked job still takes (Q1204): relaxing photo proof.
   // Turning it ON is refused by the server once booked, so a job that already
   // has it off offers no switch, and Save needs that one change to be made.
   const savedPhotoProof = (job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true;
-  const bookedNothingToSave = hasHelper && requirePhotoProof === savedPhotoProof;
+  const bookedNothingToSave = hasHelper && requirePhotoProof === savedPhotoProof && !accessChanged;
   // ME-010: sales tax was charged at checkout from the category, so a paid job
   // cannot cross between taxed and untaxed categories (the server refuses it:
   // trg_funded_category_tax_class). Same funded test as the money lock.
@@ -208,7 +235,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
-              The place and details are locked once a Helpr is booked.
+              The place and details are locked once a Helpr is booked. You can still update the access and parking notes; your Helpr is told.
             </DialogCallout>
           )}
 
@@ -291,9 +318,15 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           {/* ── Anything else — optional extras ───────────────────────── */}
           <section className="space-y-4">
             <SectionHeading>Anything else</SectionHeading>
+            {/* Q1461: the post form's two notes, under the post form's labels.
+                Both lock with the other details once a Helpr is booked. */}
             <div className="space-y-1.5">
-              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Special requirements</Label>
-              <Textarea aria-label="Special requirements" value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Materials I'll provide</Label>
+              <Textarea aria-label="Materials I'll provide" value={materialsNote} onChange={(e) => setMaterialsNote(e.target.value)} rows={2} maxLength={500} disabled={hasHelper} autoCapitalize="sentences" placeholder="Optional. Everyone viewing the job sees this." />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Access &amp; Parking notes</Label>
+              <Textarea aria-label="Access and parking notes" value={accessNote} onChange={(e) => { setAccessTouched(true); setAccessNote(e.target.value); }} rows={2} maxLength={500} disabled={jobEnded} autoCapitalize="sentences" placeholder="Gate codes, where to park, which door… Only your booked Helpr sees these." />
             </div>
             {/* PHOTO PROOF — can still be turned OFF once a Helpr is assigned
                 (never back on: the server refuses it, Q1204), which is the

@@ -227,8 +227,7 @@ export function usePostJobForm() {
   } = useJobMediaUpload();
 
   // Optional "Materials I'll provide" note for material-heavy categories.
-  // Stored locally and appended into special_requirements at submit so
-  // helprs see it on the job card without a schema migration.
+  // Posted as jobs.materials_note (Q1461), shown to everyone viewing the job.
   const [includeMaterials, setIncludeMaterials] = useState(false);
   const [materialsNote, setMaterialsNote] = useState("");
 
@@ -283,6 +282,8 @@ export function usePostJobForm() {
     setBudget,
     setEstimatedHours,
     setSpecialRequirements,
+    setIncludeMaterials,
+    setMaterialsNote,
     setIsRecurring,
     setRecurrenceInterval,
     setParish,

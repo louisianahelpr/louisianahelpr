@@ -11,6 +11,9 @@ import { render, screen } from "@testing-library/react";
 import { JobDetailDialog } from "./JobDetailDialog";
 import type { Job } from "./types";
 
+// The access-notes read (Q1461) is not under test here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
+
 const job = (over: Partial<Job> = {}) =>
   ({
     id: "job-1", title: "Fence repair", description: "d", category: "handyman", status: "in_progress",

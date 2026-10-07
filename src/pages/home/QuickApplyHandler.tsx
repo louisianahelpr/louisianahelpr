@@ -4,6 +4,10 @@ import { toast } from "sonner";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
+import type { Database } from "@/integrations/supabase/types";
+
+type BrowseRow = Database["public"]["Views"]["open_jobs_browse"]["Row"];
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 // The one column list this handler fetches on a feed miss. It is the feed's
@@ -12,7 +16,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 // avatar) are all OPTIONAL on `EnrichedJob`, so a bare view row is a valid
 // job for JobDetailDialog to open on.
 const SHEET_COLUMNS =
-  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, pricing_mode, applicant_count, credential_tier, parish, payment_status, location, latitude, longitude";
+  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, pricing_mode, applicant_count, credential_tier, parish, payment_status, location, latitude, longitude";
 
 // Deep-link resolver for job notifications.
 //
@@ -144,11 +148,15 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
     // helper is allowed to see but which merely wasn't on the loaded page (or
     // was filtered out) now resolves.
     (async () => {
-      const { data, error } = await supabase
+      // Q1461: readJobsAheadOfDb, because SHEET_COLUMNS names materials_note.
+      // A runtime column list types the row as GenericStringError; it is a browse row.
+      const result = await readJobsAheadOfDb(SHEET_COLUMNS, (columns) => supabase
         .from("open_jobs_browse")
-        .select(SHEET_COLUMNS)
+        .select(columns)
         .eq("id", quickApplyId)
-        .maybeSingle();
+        .maybeSingle());
+      const error = result.error;
+      const data = result.data as unknown as BrowseRow | null;
       if (cancelled) return;
       if (error) {
         // Never swallow the Supabase error into the same toast as "no row" —

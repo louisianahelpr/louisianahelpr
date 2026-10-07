@@ -10,6 +10,7 @@
  * @mutate src/pages/posts/EditJobDialog.tsx | The place and details are locked once a Helpr is booked. | These fields can change.
  * @mutate src/pages/posts/EditJobDialog.tsx | <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} | <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={false}
  * @mutate src/pages/posts/EditJobDialog.tsx | disabled={hasHelper && !savedPhotoProof} | disabled={false}
+ * @mutate src/pages/posts/EditJobDialog.tsx | maxLength={500} disabled={jobEnded} | maxLength={500} disabled={hasHelper}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -18,6 +19,8 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import type { Job } from "../../components/job-card/activityConstants";
 
 const update = vi.fn();
+// Q1461: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children, disabled }: { children: ReactNode; disabled?: boolean }) => <div data-testid="category-select" aria-disabled={disabled ? "true" : "false"}>{children}</div>,
@@ -41,7 +44,7 @@ const { EditJobDialog } = await import("./EditJobDialog");
 
 const job = (over: Partial<Job>) =>
   ({ id: "j1", title: "Shelves", description: "Hang two", category: "cleaning", location: "Baton Rouge  ", date_needed: jobLocalDateISO(7),
-     start_time: "09:00", special_requirements: "Gate code 1234", helper_id: null, payment_status: "unpaid", stripe_session_id: null,
+     start_time: "09:00", materials_note: "Ladder in the garage", helper_id: null, payment_status: "unpaid", stripe_session_id: null,
      is_flexible_schedule: false, require_photo_proof: true, ...over }) as unknown as Job;
 
 const saveAndConfirm = async () => {
@@ -53,15 +56,18 @@ const saveAndConfirm = async () => {
 Element.prototype.scrollTo = () => {};
 beforeEach(() => update.mockClear());
 
-const LOCK_LINE = "The place and details are locked once a Helpr is booked.";
+// Q1461 (owner answer 3): the line also says the access notes stay editable.
+const LOCK_LINE = "The place and details are locked once a Helpr is booked. You can still update the access and parking notes; your Helpr is told.";
 
 describe("a booked job's place and details are not offered for editing (Q1204)", () => {
   it("booked: every locked input is disabled and the one line says why", () => {
     render(<EditJobDialog job={job({ helper_id: "h1" })} onClose={() => {}} onSaved={() => {}} />);
     expect(screen.getByText(LOCK_LINE)).toBeTruthy();
-    for (const name of ["Job title", "Description", "Location", "Special requirements"]) {
+    for (const name of ["Job title", "Description", "Location", "Materials I'll provide"]) {
       expect((screen.getByLabelText(name) as HTMLInputElement).disabled, name).toBe(true);
     }
+    // Owner answer 3 (Q1461, 2026-10-06): the access notes stay editable after booking.
+    expect((screen.getByLabelText("Access and parking notes") as HTMLTextAreaElement).disabled).toBe(false);
     expect(screen.getByTestId("category-select").getAttribute("aria-disabled")).toBe("true");
     expect((screen.getByRole("switch", { name: "Flexible schedule" }) as HTMLButtonElement).disabled).toBe(true);
   });

@@ -57,6 +57,10 @@ const NOT_HIRES: Record<string, string> = {
   // it done. It adds no one; every member on it was hired (and block-checked)
   // by accept_group_application.
   rpc_group_member_mark_done: "closes an under-filled crew's staffing; hires nobody",
+  // 20261006225402 (Q1460): books a crew whose hiring has closed with the
+  // members it already has (open -> accepted). It adds no one; every member on
+  // it was hired (and block-checked) by accept_group_application.
+  start_underfilled_crews: "books an under-filled crew with its already-hired members; hires nobody",
 };
 
 describe("Q345: every hire RPC refuses across a block", () => {

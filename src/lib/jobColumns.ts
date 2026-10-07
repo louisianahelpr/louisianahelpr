@@ -151,6 +151,47 @@ export const JOB_READABLE_COLUMN_LIST = [
 export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "series_ban_cancelled_at"] as const;
 
 /**
+ * Readable jobs columns a NEWER migration adds (Q1461: the poster's
+ * "Materials I'll provide" note, 20261006204113). Same deploy-order hazard as
+ * JOB_SERIES_STATE_COLUMNS: they are NOT in JOB_READABLE_COLUMN_LIST, and a
+ * read that wants one names it explicitly and goes through
+ * `readJobsAheadOfDb`, which retries once without them on 42703 / PGRST204.
+ * Read that way, the note is simply absent until db-deploy lands.
+ * src/test/offeredHelperPrivacy.test.ts counts these as covered.
+ */
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
+
+/** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
+function withoutJobColumnsAheadOfDb(select: string): string {
+  const ahead = JOB_COLUMNS_AHEAD_OF_DB as readonly string[];
+  return select
+    .split(",")
+    .map((c) => c.trim())
+    .filter((c) => c !== "" && !ahead.includes(c))
+    .join(", ");
+}
+
+/**
+ * Run a jobs / open_jobs_browse read whose column list names a
+ * JOB_COLUMNS_AHEAD_OF_DB column. `run` builds the query from the list it is
+ * handed (the readApplicationRows pattern). A database without the column
+ * answers 42703 (PostgREST: PGRST204); the read is then made once more
+ * without it. Any other error, and any second error, comes back unchanged.
+ */
+export async function readJobsAheadOfDb<R extends { error: { code?: string | null } | null }>(
+  select: string,
+  run: (columns: string) => PromiseLike<R>,
+): Promise<R> {
+  const first = await run(select);
+  const code = String(first.error?.code ?? "");
+  if (code === "42703" || code === "PGRST204") {
+    const behind = withoutJobColumnsAheadOfDb(select);
+    if (behind !== select) return run(behind);
+  }
+  return first;
+}
+
+/**
  * Comma-joined, ready for `.select(JOB_READABLE_COLUMNS)`.
  *
  * TYPING THE RESULT: cast the rows (`(data ?? []) as Job[]`), do NOT call

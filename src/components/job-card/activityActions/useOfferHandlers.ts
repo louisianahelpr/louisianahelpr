@@ -246,8 +246,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // an offer and is never refused for the Helpr's Stripe state: the gate
       // (payout setup and Stripe ID) is at the Helpr's accept (20261003193541,
       // owner 2026-10-02/03). A
-      // crew hire still meets its roster gate at hire time
-      // (group_job_helpers_award_gate). The poster can do nothing about
+      // crew hire is an offer too since 20261007011530 (the member's Confirm
+      // waits on payout setup). The poster can do nothing about
       // someone else's Stripe account, so name the situation plainly rather
       // than offering them a fix that isn't theirs to make.
       const blocked = awardBlockFromError(error);

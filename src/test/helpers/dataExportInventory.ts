@@ -151,6 +151,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   series_visit_holds: { by: ["helper_id"] },
   // Q739: no person column; the poster's rows, through the job (posterReadableViaJob).
   job_pets: { by: [] },
+  // Q1461: the poster's Access & Parking notes; no person column, through the job like job_pets.
+  job_access_notes: { by: [] },
 };
 
 /**
@@ -312,6 +314,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },
   "job_refund_claims.claimed_by": { reason: "Q1323: names the code path holding a refund claim ('cancel_escrow' or 'admin_refund_general'), not a person" },
   "job_refund_claims.actor_user_id": { reason: "Q1323: server lock marker naming who started an in-flight refund claim; deleted when the claim is put back, holds none of the person's own data" },
+  "crew_confirm_pending.helper_id": { reason: "20261007011530: transient state of one crew Confirm waiting on payout setup (deleted when it completes or the spot is removed); holds no content, only the job, slot and person ids the export already carries through group_job_helpers" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },

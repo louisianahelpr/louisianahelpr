@@ -80,17 +80,14 @@ const RAW_GRANT: { name: string; re: RegExp }[] = [
 const READS_PASSWORD_SECRET = /process\.env(?:\.PLAYWRIGHT_\w*_PASSWORD\b|\[\s*[`'"]PLAYWRIGHT_[^\]]*_PASSWORD[`'"]\s*\])/;
 
 /**
- * EXACT and two-way: each still reads the secret (else the entry is stale and
- * fails), and nothing else may. All three type a real password into the app's
- * login form against prod; the CAPTCHA refuses that from a CI build (no
- * VITE_TURNSTILE_ENABLED, and 127.0.0.1 is not a widget hostname). Filed as
- * Q1420, which the cutover waits on.
+ * EXACT and two-way, and EMPTY since Q1420 (2026-10-07): no spec reads a shared
+ * password secret. The three that used to type one into the app's login form
+ * (auth.spec.ts, payment-lifecycle.spec.ts, the slow-network sign-in steps)
+ * still drive the form, and their grant is answered with a minted session by
+ * e2e/helpers/mintedPasswordGrant.ts, because the CAPTCHA (Q1314) refuses a CI
+ * build's password grant. A new reader fails here.
  */
-const TYPED_PASSWORD_LOGINS: Record<string, string> = {
-  "e2e/auth.spec.ts": "Q1420: the login form spec (PLAYWRIGHT_TEST_USER_PASSWORD)",
-  "e2e/payment-lifecycle.spec.ts": "Q1420: signs in through the login form (PLAYWRIGHT_TEST_USER_PASSWORD)",
-  "e2e/slow-network/slow-network.spec.ts": "Q1420: the 3G / dropped-response sign-in steps type PLAYWRIGHT_POSTER_PASSWORD",
-};
+const TYPED_PASSWORD_LOGINS: Record<string, string> = {};
 
 function rawGrantOffenders(): string[] {
   const out: string[] = [];

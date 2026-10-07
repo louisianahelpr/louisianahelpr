@@ -9,6 +9,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
@@ -289,9 +290,13 @@ export function useDashboardData() {
       let rawJobsRes: any[];
       try {
         // Build query — early-access filter applied conditionally.
-        const baseQuery = supabase
-          .from("open_jobs_browse")
-          .select(
+        // Q1461: `materials_note` is the poster's "Materials I'll provide"
+        // note (public). It is newer than the deploy that may serve this
+        // build, so the read goes through readJobsAheadOfDb, which drops it
+        // and asks again on 42703 instead of taking the feed down (the
+        // `is_auto_created` incident below). The Access & Parking notes are
+        // never on this view: they live in job_access_notes.
+        const browseColumns =
             // `latitude, longitude` are the view's MASKED coordinates, rounded
             // to 2dp (~1.1km) exactly as get_open_jobs_for_map has always
             // returned them — migration 20260903031231.
@@ -331,18 +336,18 @@ export function useDashboardData() {
             // `parish`) are the counter-example worth keeping in view: both
             // were added to the VIEW first, by 20260904031002, before any
             // select asked for them.
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish",
-          )
-          .neq("payment_status", "abandoned");
+                      "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish";
 
-        // Redundant pre-filter, NOT the gate — see the long note above the
-        // cutoff. The view already refuses these rows server-side.
-        const filteredQuery = baseQuery.lte("created_at", earlyAccessCutoff);
-
-        rawJobsRes = unwrap(await withTimeout(filteredQuery
+        rawJobsRes = unwrap(await withTimeout(readJobsAheadOfDb(browseColumns, (columns) => supabase
+          .from("open_jobs_browse")
+          .select(columns)
+          .neq("payment_status", "abandoned")
+          // Redundant pre-filter, NOT the gate — see the long note above the
+          // cutoff. The view already refuses these rows server-side.
+          .lte("created_at", earlyAccessCutoff)
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as any[];
+          .range(offset, offset + PAGE_SIZE)), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as any[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire

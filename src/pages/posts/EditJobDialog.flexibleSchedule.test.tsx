@@ -20,6 +20,8 @@ import type { Job } from "../../components/job-card/activityConstants";
 
 const update = vi.fn();
 const toastError = vi.fn();
+// Q1461: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,

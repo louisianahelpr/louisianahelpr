@@ -56,20 +56,27 @@ function reportKeychain(err: unknown, step: string): void {
     .catch(() => { /* Silent by design: the logger itself failed to load; nothing else can record it. */ });
 }
 
-// Hydrate cache + localStorage from the Keychain, once, at module load.
-// HARD CAP. Every Supabase session read waits for this (getItem returns a
-// Promise until it settles, see NO TOP-LEVEL AWAIT below), so if it never
-// settled no session read would ever finish.
+// Hydrate cache + localStorage from the Keychain. Top-level Promise so
+// client.ts can await it before constructing the supabase client.
+// HARD CAP. client.ts does `await hydratePromise` at TOP LEVEL on native,
+// which gates its module evaluation — and client.ts is reached eagerly from
+// App.tsx (useCurrentUser / nativePush / useLoginTracking). So this promise
+// sits in front of `createRoot().render(<App/>)`: if it never settles, React
+// never mounts and the app is stuck on index.html's #boot-loader forever,
+// with no error anywhere.
 //
 // The try/catch below is NOT sufficient on its own. It catches a REJECTION;
 // it does nothing for a Capacitor bridge call that never settles at all.
-// These calls are issued during module evaluation, the earliest point in the
-// WebView lifecycle, potentially before the native bridge is ready, so
-// "never settles" is a real state that depends on device and timing.
+// These calls are issued during module evaluation — the earliest point in the
+// WebView lifecycle, potentially before the native bridge is ready — so
+// "never settles" is a real state, and it presents as an intermittent
+// hang-on-launch that depends on device and timing.
 //
-// Nothing here is worth blocking on: this only RESTORES a mirrored auth
-// token. If the cap fires, getItem falls back to localStorage and the user is
-// at worst signed out, which is recoverable. Never remove this cap.
+// Nothing here is worth blocking launch for: this only RESTORES a mirrored
+// auth token. If the cap fires, the adapter falls back to localStorage in
+// getItem() and the user is at worst signed out — recoverable, unlike a
+// permanently frozen splash. Never remove this cap without moving the
+// top-level await out of client.ts first.
 const HYDRATE_TIMEOUT_MS = 2000;
 
 export const hydratePromise: Promise<void> = (async () => {
@@ -153,9 +160,8 @@ export const hydratePromise: Promise<void> = (async () => {
   }
 })();
 
-// Storage adapter for Supabase Auth. getItem is synchronous once the
-// Keychain restore has settled, and a Promise of the restored value before
-// it (see NO TOP-LEVEL AWAIT below).
+// Storage adapter for Supabase Auth. getItem stays synchronous (the hot
+// path, already populated by hydratePromise before the client is built).
 // setItem/removeItem are async and AWAIT the native mirror write — see
 // below for why that isn't optional.
 //
@@ -182,27 +188,10 @@ export const hydratePromise: Promise<void> = (async () => {
 // after a Stripe gift-card return round-trip, 2026-08-30). Awaiting the
 // native write here means `_saveSession` doesn't consider the rotation
 // complete until the durable copy is actually on disk, closing that window.
-// NO TOP-LEVEL AWAIT (2026-10-06). client.ts used to `await hydratePromise`
-// at module top level on native. A top-level await turns every module that
-// imports the client (most of the app) into an async module, and on iOS that
-// reordered how Rollup's shared chunks evaluate: a chunk ran before the chunk
-// it imports had finished ("undefined is not an object (evaluating
-// 'l.displayName')" on /browse in a build of main, and a Debug build stuck on
-// #boot-loader; TestFlight 7115 run on a Mac froze on the H). The wait now
-// lives HERE, in the one read Supabase awaits: until the Keychain hydrate
-// settles (capped at HYDRATE_TIMEOUT_MS), getItem returns a Promise, which
-// supabase-js's storage contract allows (`await this.storage.getItem`).
-let hydrated = false;
-void hydratePromise.finally(() => { hydrated = true; });
-function readSync(key: string): string | null {
-  if (cache.has(key)) return cache.get(key) ?? null;
-  try { return localStorage.getItem(key); } catch { /* Silent by design: WebKit storage blocked; no stored session is the honest answer and the caller signs in again. */ return null; }
-}
-
 export const keychainStorageAdapter = {
-  getItem(key: string): string | null | Promise<string | null> {
-    if (!hydrated && Capacitor.isNativePlatform()) return hydratePromise.then(() => readSync(key), () => readSync(key));
-    return readSync(key);
+  getItem(key: string): string | null {
+    if (cache.has(key)) return cache.get(key) ?? null;
+    try { return localStorage.getItem(key); } catch { /* Silent by design: WebKit storage blocked; no stored session is the honest answer and the caller signs in again. */ return null; }
   },
   async setItem(key: string, value: string): Promise<void> {
     cache.set(key, value);

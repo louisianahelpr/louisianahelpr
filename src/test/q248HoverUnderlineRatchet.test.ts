@@ -35,7 +35,7 @@ function tsxFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
-const HOVER_UNDERLINE_SITE_COUNT = 35;
+const HOVER_UNDERLINE_SITE_COUNT = 34;
 const LINK_STANDARD_FILE_COUNT = 5;
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
@@ -45,7 +45,7 @@ describe("Q248(b): hover:underline vs the shared link-standard", () => {
     expect(files.length).toBeGreaterThan(200);
   });
 
-  it("exactly 35 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
+  it("exactly 34 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
     let hits = 0;
     for (const f of files) {
       const src = readFileSync(resolve(ROOT, f), "utf8");

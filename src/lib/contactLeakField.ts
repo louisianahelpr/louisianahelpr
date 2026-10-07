@@ -32,5 +32,6 @@ export function contactLeakFieldError(text: string, field: ContactLeakField): st
 export function contactLeakRejectionMessage(err: unknown): string | null {
   const e = err as { code?: unknown; message?: unknown } | null | undefined;
   if (!e || e.code !== "23514" || typeof e.message !== "string") return null;
-  return /(detected|mentioned) in (the job|your bio)/i.test(e.message) ? e.message : null;
+  // Q1461: the materials note and the access and parking notes are scanned too.
+  return /(detected|mentioned) in (the job|your bio|the materials note|the access and parking notes)/i.test(e.message) ? e.message : null;
 }

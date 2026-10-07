@@ -15,6 +15,7 @@ import {
 import { fillBudget, fillJobDetails, fillLogistics, slotAhead, ZONE } from "../journeys/postJobForm";
 import { ensureFundedOpenJob } from "../prod-audit/fundedOpenJob";
 import { COLD_LOAD_BUDGET_MS, HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
+import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvailable } from "../helpers/mintedPasswordGrant";
 
 /**
  * Q68 — SLOW AND PATCHY NETWORKS (rural Louisiana).
@@ -215,13 +216,17 @@ async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp
 
 // ─── sign-in ──────────────────────────────────────────────────────────────────
 
+/**
+ * The poster's address. The form is driven for real; its password grant is
+ * answered with a session minted for this account (Q1420: Supabase Auth
+ * CAPTCHA refuses a CI build's grant), so no password is read or typed.
+ */
 function posterCreds() {
   const email = process.env.PLAYWRIGHT_POSTER_EMAIL;
-  const password = process.env.PLAYWRIGHT_POSTER_PASSWORD;
-  if (!email || !password) {
-    skipUncovered("Slow-network sign-in not run", "PLAYWRIGHT_POSTER_EMAIL/_PASSWORD are not set: the password form cannot be driven with a minted session.");
+  if (!mintedSignInAvailable(email)) {
+    skipUncovered("Slow-network sign-in not run", "PLAYWRIGHT_POSTER_EMAIL or the service-role key is not set: the sign-in grant cannot be answered with a minted session.");
   }
-  return { email: email!, password: password! };
+  return { email: email!, password: FORM_PASSWORD };
 }
 
 test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
@@ -229,6 +234,8 @@ test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
   const ctx = await newUserContext(browser, null);
   const page = journey.track("guest", await ctx.newPage());
   await throttle3g(ctx, page);
+  // ~2.5 s: a 3G round trip for the grant (a routed answer skips the throttle).
+  await answerPasswordGrantWithMintedSession(page, creds.email, { delayMs: 2_500 });
   await waitShowsProgress(page, "cold load /login", () => page.goto("/login", { waitUntil: "commit" }), visible(page.locator("#email")), { coldLoad: true });
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
@@ -242,6 +249,7 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
   const creds = posterCreds();
   let ctx = await newUserContext(browser, null);
   let page = journey.track("guest", await ctx.newPage());
+  await answerPasswordGrantWithMintedSession(page, creds.email);
   await page.goto("/login");
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
@@ -260,10 +268,12 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
     await ctx.close();
     ctx = await newUserContext(browser, null);
     page = journey.track("guest", await ctx.newPage());
+    // The server signs in (a session is minted) and that answer is lost on the
+    // wire; the next press is answered.
+    await answerPasswordGrantWithMintedSession(page, creds.email, { dropFirst: true });
     await page.goto("/login");
     await page.locator("#email").fill(creds.email);
     await page.locator("#password").fill(creds.password);
-    await loseNextResponse(page, `${SUPABASE_URL}/auth/v1/token**`);
     await page.locator('button[type="submit"]').click();
     await expect(page.getByText(OFFLINE_COPY).first(), "a lost sign-in response left no message").toBeVisible({ timeout: 30_000 });
     await expect(page.locator('button[type="submit"]')).toBeEnabled({ timeout: 30_000 });

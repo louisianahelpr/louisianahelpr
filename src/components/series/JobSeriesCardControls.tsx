@@ -114,7 +114,7 @@ export function HelperSeriesRow({ job, userId }: { job: SeriesCardJob; userId: s
         {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!userId &&
           job.recurring_helper_id === userId && job.helper_id === userId &&
           !job.series_ended_on && job.status !== "cancelled" && (
-          <span className="ml-auto">
+          <span className="ml-auto shrink-0">
             <EndSeriesControl jobId={job.id} jobTitle={job.title} userId={userId} mode="leave" />
           </span>
         )}

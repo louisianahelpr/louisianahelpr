@@ -78,6 +78,22 @@ describe("postSlackOpsAlert severity policy", () => {
     expect(slackPosts()).toHaveLength(1);
   });
 
+  // Q1466: the shared sender drops a link that is not a site path or an
+  // https url, or that carries Slack markup ("|", "<", ">"), as slack-ops-alert does.
+  // @mutate supabase/functions/_shared/slack-alerts.ts |     const safeLink = safeSlackLink(input.link) |     const safeLink = input.link
+  it("renders our own link and drops a planted one (Q1466)", async () => {
+    const linkTexts = async (link: string) => {
+      calls = [];
+      await post({ severity: "critical", link });
+      expect(slackPosts()).toHaveLength(1);
+      return String(slackPosts()[0].init!.body).match(/<[^"]*\|Open in admin →>/g) ?? [];
+    };
+    expect(await linkTexts("/admin?view=health")).toEqual(["</admin?view=health|Open in admin →>"]);
+    expect(await linkTexts("https://www.louisianahelpr.com/admin")).toHaveLength(1);
+    expect(await linkTexts("https://evil.example|Open>")).toEqual([]);
+    expect(await linkTexts("javascript:alert(1)")).toEqual([]);
+  });
+
   it("a money kind posts even when the call site says warning (kind floor)", async () => {
     await post({ kind: "money_at_risk", severity: "warning" });
     await post({ kind: "payout_failed", severity: "warning" });

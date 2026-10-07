@@ -36,6 +36,7 @@ const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
   const [decidedJobs, setDecidedJobs] = useState<DisputedJob[]>([]);
   const [disputeRecords, setDisputeRecords] = useState<Record<string, DisputeRecord>>({});
+  const [earlierRecords, setEarlierRecords] = useState<Record<string, DisputeRecord[]>>({});
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
@@ -192,11 +193,12 @@ const AdminDisputes = () => {
       : null;
 
     const recordsMap: Record<string, DisputeRecord> = {};
+    const earlierMap: Record<string, DisputeRecord[]> = {};
     if (allJobIds.length > 0) {
       const BASE_COLUMNS =
         "id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split";
       const EXECUTION_COLUMNS =
-        "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error";
+        "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error, helper_response";
       const readRecords = (columns: string) =>
         supabase.from("disputes").select(columns).in("job_id", allJobIds);
 
@@ -221,8 +223,19 @@ const AdminDisputes = () => {
           recordsMap[r.job_id] = r;
         }
       }
+      // Q1327: the job's EARLIER disputes (a re-file), newest first, so the
+      // admin sees what was said and decided before, the Helpr's archived
+      // answer included.
+      for (const r of (records as DisputeRecord[] | null) ?? []) {
+        if (recordsMap[r.job_id]?.id === r.id) continue;
+        (earlierMap[r.job_id] ??= []).push(r);
+      }
+      for (const list of Object.values(earlierMap)) {
+        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
     }
     setDisputeRecords(recordsMap);
+    setEarlierRecords(earlierMap);
 
     const tMap: Record<string, string | null> = {};
     if (profilesPromise) {
@@ -754,6 +767,7 @@ const AdminDisputes = () => {
               job={job}
               filter={filter}
               disputeRecords={disputeRecords}
+              earlierRecords={earlierRecords[job.id]}
               profiles={profiles}
               tiers={tiers}
               activePanelJobId={activePanelJobId}

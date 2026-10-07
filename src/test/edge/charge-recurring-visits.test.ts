@@ -79,7 +79,7 @@
 //   ME-014: tax charged on a visit never reaches Stripe Tax's filing reports.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
 //   ME-014: the fee floor ignores the tax on the same charge.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const refloored = posterServiceFeeCents(budgetCents, feePercent, taxCents); | const refloored = posterServiceFeeCents(budgetCents, feePercent, 0);
 // Ended series: dropping the ended check funds a gap (or any date) after the series ended.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.series_ended_on) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
@@ -951,6 +951,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(res.status).toBe(200);
   });
 
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | do not refund it before then. | refund it by hand if needed.
   it("pages when Stripe never answers — the intent may be holding money with no visit", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -961,8 +962,8 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(2);
     expect(insertedVisits()).toHaveLength(0);
-    // NOT a routine decline: tomorrow's run would charge again on a fresh key,
-    // and there would be no 23505 to catch it.
+    // NOT a routine decline: money may be held with no visit row; the next
+    // run adopts it (Q1104), and ops is paged so nobody refunds it by hand.
     expect(res.status).toBe(500);
     expect(reasons(b)).toContain("charge outcome unknown");
     const critical = slackAlerts.find(
@@ -971,12 +972,39 @@ describe("charge-recurring-visits edge function", () => {
     expect(critical).toBeDefined();
     expect(critical?.fields?.visitDate).toBe(VISIT_DATE);
     expect(critical?.fields?.amountCents).toBe("11200");
+    // Q1339: since Q1104 a later run of the window ADOPTS a succeeded earlier
+    // charge of this claim, so the page says to wait (a refund before then costs
+    // the Stripe fee and a fresh charge) until the last run, then reconcile.
+    // It used to say "will charge again on a fresh key".
+    // The deadline and the conditions are named: wait only while this claim
+    // holds the date and a run remains, then reconcile (lh-money-escrow review).
+    const pageText = (critical as { message?: string }).message ?? "";
+    expect(pageText).toMatch(/While this same claim \(hold hold-1\) still holds the date/);
+    expect(pageText).toMatch(/books the visit on it instead of charging again: do not refund it before then/);
+    expect(pageText).toMatch(/After 2026-09-03's run, check Stripe .* refund it/);
+    expect(pageText).not.toMatch(/charge again on a fresh key/);
     // The helper is still told not to head out — that fact is true either way.
     const notified = scenario.writes
       .filter((w) => w.table === "notifications" && w.op === "insert")
       .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
       .map((p) => (p as { user_id: string }).user_id);
     expect(notified).toContain(HELPER_ID);
+  });
+
+  // Q1339 (lh-money-escrow review): on the window's LAST run (D-1) nothing will
+  // adopt the charge, so the page must say to reconcile now, not to wait.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |                 visitDate <= addDays(today, 1) |                 false
+  it("on the last run of the window the UNKNOWN page says reconcile now (Q1339)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.create.mockRejectedValue(new Error("request timed out"));
+    await runOn(fn, "2026-09-03");
+    const critical = slackAlerts.find(
+      (a) => (a as { title?: string }).title === "Recurring visit charge outcome UNKNOWN",
+    ) as { message?: string } | undefined;
+    expect(critical?.message).toMatch(/LAST run of this date's funding window/);
+    expect(critical?.message).toMatch(/reconcile NOW/);
+    expect(critical?.message).not.toMatch(/do not refund it before then/);
   });
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -1536,7 +1564,6 @@ describe("charge-recurring-visits edge function", () => {
     expect(insertedVisits()).toHaveLength(0);
   });
 
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,
   it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -1557,10 +1584,53 @@ describe("charge-recurring-visits edge function", () => {
     const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
     expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
     expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
-    // The visit row's rate is a FRACTION (20 / 200 = 0.1): the CHECK
+    // The visit row's rate is a FRACTION over every taxed line (Q1485; since
+    // Q1472 the labor AND the service fee): the CHECK
     // ck_jobs_sales_tax_rate_range admits 0..1, and the percent (10) it wrote
     // would have failed this insert after the charge.
-    expect((insertedVisits()[0].payload as Record<string, unknown>).sales_tax_rate).toBe(0.1);
+    const fee = posterServiceFeeCents(200, pct, 20);
+    expect((insertedVisits()[0].payload as Record<string, unknown>).sales_tax_rate).toBe(Math.round((20 / (200 + fee)) * 1_000_000) / 1_000_000);
+  });
+
+  // Q1472 (ME-019, owner confirmed 2026-10-07): on a taxable series the
+  // service fee is taxed with the labor, as its own calculation line.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |                   ...(feeGuess > 0 |                   ...(false
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents + (isLaborTaxable(parent.category as string) ? feeCents : 0)), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,
+  it("Q1472: a taxable visit's tax calculation prices the service fee with the labor code", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ category: "assembly", budget: 100 })] } });
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_1", tax_amount_exclusive: 1120 });
+    stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_1" });
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(b.funded).toBe(1);
+    const { posterServiceFeeCents, posterFeePercentForTier } = await import("../../../supabase/functions/_shared/posterFees.ts");
+    const fee = posterServiceFeeCents(10000, posterFeePercentForTier(null, null), 0);
+    const lines = stripeMock.tax.calculations.create.mock.calls[0][0].line_items as Array<{ reference: string; amount: number; tax_code: string }>;
+    expect(lines.map((l) => [l.reference, l.amount, l.tax_code])).toEqual([
+      ["labor", 10000, "txcd_20030000"],
+      ["service_fee", fee, "txcd_20030000"],
+    ]);
+    const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
+    expect(charge.amount).toBe(10000 + fee + 1120);
+    // The visit row's rate is a FRACTION over labor + fee: the CHECK
+    // ck_jobs_sales_tax_rate_range admits 0..1, and a percent failed the insert.
+    const visit = insertedVisits()[0].payload as Record<string, unknown>;
+    expect(visit.sales_tax_rate).toBe(Math.round((1120 / (10000 + fee)) * 1_000_000) / 1_000_000);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (settledFeeCents === null) { |             if (false) {
+  it("Q1472: a fee whose tax never settles charges nothing (fails closed)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ category: "assembly", budget: 2 })] } });
+    stripeMock.tax.calculations.create
+      .mockResolvedValueOnce({ id: "c1", tax_amount_exclusive: 20 })
+      .mockResolvedValueOnce({ id: "c2", tax_amount_exclusive: 400 })
+      .mockResolvedValueOnce({ id: "c3", tax_amount_exclusive: 20 });
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(b.funded).toBe(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
   });
 
   // ═══════════════════════════════════════════════════════════════════════

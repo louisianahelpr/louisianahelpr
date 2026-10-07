@@ -28,6 +28,11 @@ export function useStripeSalesTax(
   budget: number,
   category: string | null | undefined,
   zip: string | null | undefined,
+  /**
+   * Q1472: the service fee in DOLLARS. On a taxable job it is taxed with the
+   * labor (create-payment's serviceFeeTaxCode), so calculate-tax prices it too.
+   */
+  serviceFee = 0,
 ): { salesTax: number | null; loading: boolean; jurisdiction: string | null } {
   const [salesTax, setSalesTax] = useState<number | null>(null);
   const [jurisdiction, setJurisdiction] = useState<string | null>(null);
@@ -55,7 +60,7 @@ export function useStripeSalesTax(
     void (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("calculate-tax", {
-          body: { budget, category, zip, state: "LA" },
+          body: { budget, category, zip, state: "LA", serviceFee },
         });
         if (cancelled) return;
         if (error || typeof data?.taxCents !== "number") {
@@ -84,7 +89,7 @@ export function useStripeSalesTax(
     return () => {
       cancelled = true;
     };
-  }, [budget, category, zip]);
+  }, [budget, category, zip, serviceFee]);
 
   return { salesTax, loading, jurisdiction };
 }

@@ -537,6 +537,31 @@ describe("create-payment edge function", () => {
         expect(call?.args).toMatchObject({ p_credit_id: "gift-1", p_job_id: "job-1", p_retired_session: "cs_old" });
       });
 
+      // Q1418 (c): the second of two gift taps is refused because the first
+      // already opened THIS gift's difference checkout; it hears that, not
+      // "a card payment is already open".
+      // @mutate supabase/functions/create-payment/index.ts |             if (credit?.status === "reserved" && credit.job_id === jobId) { |             if (false) {
+      it("Q1418 (c): a racing second gift tap hears the gift is applied and its checkout is open", async () => {
+        seedGiftShortfall();
+        scenario.rpcErrors = { redeem_gift_card: { message: "A card payment for this job is already open. Finish it or wait a moment, then use the gift.", code: "P0001" } };
+        scenario.reads.gift_cards = { rows: [{ id: "gift-1", status: "reserved", job_id: "job-1" }] };
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        const err = String((await json(res)).error);
+        expect(err).toMatch(/Your gift is already applied to this job/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      it("Q1418 (c) control: an unrelated open card checkout keeps the original refusal", async () => {
+        seedGiftShortfall();
+        scenario.rpcErrors = { redeem_gift_card: { message: "A card payment for this job is already open. Finish it or wait a moment, then use the gift.", code: "P0001" } };
+        scenario.reads.gift_cards = { rows: [{ id: "gift-1", status: "sent", job_id: null }] };
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+        expect(String((await json(res)).error)).toMatch(/^A card payment for this job is already open/);
+      });
+
       it("with no earlier card checkout it retires nothing", async () => {
         seedGiftShortfall();
         const fn = await load();
@@ -687,6 +712,7 @@ describe("create-payment edge function", () => {
 
     // ME-043: every line carries a tax code and tax behaviour; the labor code
     // follows the category rule in _shared/salesTax.ts, both ways.
+    // @mutate supabase/functions/create-payment/index.ts |               tax_code: serviceFeeTaxCode(job.category), |               tax_code: NONTAXABLE_TAX_CODE,
     it("gives every escrow line a tax_code and tax_behavior, labor coded by category", async () => {
       const codeFor = async (category: string) => {
         resetSupabaseMock();
@@ -710,11 +736,16 @@ describe("create-payment edge function", () => {
           expect(li.price_data.tax_behavior).toBe("exclusive");
           expect(li.price_data.product_data.tax_code).toMatch(/^txcd_\d{8}$/);
         }
-        // Fees and the urgent tip stay non-taxable whatever the category.
+        // Q1472 (ME-019, owner confirmed 2026-10-07): the Service fee takes the
+        // labor line's code (taxed on a taxable job, not on an exempt one); the
+        // urgent tip and the other fees stay non-taxable whatever the category.
+        const labor = args.line_items[0].price_data.product_data.tax_code;
         for (const li of args.line_items.slice(1)) {
-          expect(li.price_data.product_data.tax_code).toBe("txcd_00000000");
+          const name = li.price_data.product_data.name;
+          expect(li.price_data.product_data.tax_code, name).toBe(name === "Service fee" ? labor : "txcd_00000000");
         }
-        return args.line_items[0].price_data.product_data.tax_code;
+        expect(args.line_items.some((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Service fee")).toBe(true);
+        return labor;
       };
       expect(await codeFor("handyman")).toBe("txcd_20030000");
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
@@ -3041,6 +3072,29 @@ describe("create-payment edge function", () => {
           expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
         });
 
+        // Q1303: a Quick Release that raced a chargeback but SENT nothing (no
+        // Helpr on the job) must not say money went out, must not try to claw
+        // back a transfer that never existed, and hands its claim back like
+        // every other no-money exit. (Merged with Q1260's clawback, 2026-10-07.)
+        // @mutate supabase/functions/create-payment/index.ts |   if (!sent) { |   if (false) {
+        it("Quick Release raced a chargeback with nothing sent: 409 says so, no clawback, the claim is handed back (Q1303)", async () => {
+          seedReleasable();
+          chargebackLanded({ helper_id: null });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          const body = await json(res);
+          expect(body.chargebackRaced).toBe(true);
+          expect(String(body.error)).toMatch(/No transfer was sent/);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+          expect(raceAlerts()).toHaveLength(1);
+          expect(String((raceAlerts()[0] as { title?: string }).title)).toMatch(/nothing was sent/);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(true);
+        });
+
         // Q1260: the transfer that lost the race to a chargeback is clawed back
         // HERE. The webhooks' clawback runs on charge.dispute.created and
         // funds_withdrawn, and both can be processed before this transfer exists.
@@ -3130,6 +3184,49 @@ describe("create-payment edge function", () => {
           expect(raceAlerts()).toHaveLength(1);
           expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
           expect(scenario.writes.some((w) => w.table === "admin_audit_log")).toBe(false);
+        });
+
+        // Q1302 (lh-money-escrow review of Q1192/Q1193): the two race paths
+        // that had no test. (a) Quick Refund's flip lost to a concurrent copy
+        // that already closed the dispute: 200 alreadyResolved, and THIS
+        // copy's settlement claim is handed back (Q1208).
+        // @mutate supabase/functions/create-payment/index.ts |           await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);\n          return settled; |           return settled;
+        it("Q1302: Quick Refund losing the flip to a copy that already closed it answers alreadyResolved and hands its claim back", async () => {
+          seedRefundable();
+          const base = (scenario.reads.jobs.rows ?? [])[0] ?? {};
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { rows: [{ status: "cancelled", payment_status: "refunded" }] } },
+            ],
+            rows: [base],
+          };
+          scenario.writeSelectRows.jobs = [];
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+          expect(res.status).toBe(200);
+          expect((await json(res)).alreadyResolved).toBe(true);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(true);
+          expect(raceAlerts()).toHaveLength(0);
+        });
+
+        // (b) the zero-row re-read itself fails: never read as a chargeback race
+        // (no 409, no race page, the claim kept over moved money); the
+        // manual-reconciliation 500 stands.
+        // @mutate supabase/functions/create-payment/index.ts |   if (error \|\| !current \|\| current.payment_status !== "chargeback") return null; |   if (error) return new Response(JSON.stringify({ chargebackRaced: true }), { status: 409 });\n  if (!current \|\| current.payment_status !== "chargeback") return null;
+        it("Q1302: a failed re-read after the zero-row flip is the manual-reconciliation 500, not a chargeback race", async () => {
+          seedReleasable();
+          const base = (scenario.reads.jobs.rows ?? [])[0] ?? {};
+          scenario.reads.jobs = {
+            selectOverrides: [{ includes: "status, payment_status", result: { error: { message: "connection reset" } } }],
+            rows: [base],
+          };
+          scenario.writeSelectRows.jobs = [];
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+          expect(res.status).toBe(500);
+          expect((await json(res)).chargebackRaced).toBeUndefined();
+          expect(raceAlerts()).toHaveLength(0);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
         });
 
         it("Quick Refund gives the claim back when Stripe DEFINITELY refused the refund (round 5)", async () => {

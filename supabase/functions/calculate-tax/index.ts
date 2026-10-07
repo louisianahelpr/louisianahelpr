@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { isLaborTaxable, serviceFeeTaxCode, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 
 /**
  * The sales tax the poster will ACTUALLY be charged — from Stripe, not from us.
@@ -84,9 +84,16 @@ serve(async (req: Request) => {
     const key = Deno.env.get("STRIPE_SECRET_KEY");
     if (!key) return errorResponse("Stripe is not configured", 503, corsHeaders);
 
-    const { budget, category, zip, state } = await req.json();
+    const { budget, category, zip, state, serviceFee } = await req.json();
 
     const budgetCents = Math.round(Number(budget || 0) * 100);
+    // Q1472: the service fee the checkout shows (dollars). It is taxed with the
+    // labor on a taxable job (serviceFeeTaxCode), so the preview includes it.
+    // A preview only: create-payment recomputes the fee itself at charge time.
+    // Anything not a finite non-negative number is treated as no fee, and it
+    // is capped at the budget (the fee is a percentage of it).
+    const feeRaw = Math.round(Number(serviceFee ?? 0) * 100);
+    const feeCents = Number.isFinite(feeRaw) && feeRaw > 0 ? Math.min(feeRaw, budgetCents) : 0;
     if (!Number.isFinite(budgetCents) || budgetCents <= 0) {
       return errorResponse("A positive budget is required", 400, corsHeaders);
     }
@@ -96,9 +103,9 @@ serve(async (req: Request) => {
       return jsonResponse({ taxCents: null, reason: "no_address" }, 200, corsHeaders);
     }
 
-    // Only the LABOR line can carry tax — the service fee, urgent tip and
-    // setup fee all ship as txcd_00000000 in create-payment. Sending them here
-    // would quote tax on lines that are never taxed.
+    // Only the LABOR line and, with it, the service fee (Q1472) can carry tax;
+    // the urgent tip and setup fee ship as txcd_00000000 in create-payment.
+    // Sending them here would quote tax on lines that are never taxed.
     if (!isLaborTaxable(category)) {
       return jsonResponse({ taxCents: 0, exempt: true }, 200, corsHeaders);
     }
@@ -116,6 +123,15 @@ serve(async (req: Request) => {
           // the charge are computed from identical inputs.
           tax_code: TAXABLE_LABOR_TAX_CODE,
         },
+        ...(feeCents > 0
+          ? [{
+            amount: feeCents,
+            reference: "service_fee",
+            tax_behavior: TAX_BEHAVIOR,
+            // The code create-payment puts on the Service fee line.
+            tax_code: serviceFeeTaxCode(category),
+          }]
+          : []),
       ],
       customer_details: {
         address: { postal_code: zip, state: state || "LA", country: "US" },

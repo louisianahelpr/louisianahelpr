@@ -21,7 +21,7 @@
  * src/pages/home/useBoostReturn.test.tsx.
  *
  * @mutate src/pages/post-job/PaymentSuccess.tsx | if (!isJobPoster(data.customer_id, viewerId)) { | if (!data.customer_id) {
- * @mutate src/pages/home/useBoostReturn.ts | } else if (!isJobPoster(data?.customer_id, userId)) { | } else if (!data) {
+ * @mutate src/pages/home/useBoostReturn.ts | const ownsIt = (row: unknown) => isJobPoster((row as BoostRow \| null)?.customer_id, userId); | const ownsIt = (row: unknown) => !!row;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

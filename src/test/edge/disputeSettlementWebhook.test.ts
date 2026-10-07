@@ -271,6 +271,7 @@ describe("Q343: charge.refunded is a compare-and-set on the refundable states", 
   });
 });
 
+// @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |  Retry settlement on the dispute.` |  Retry settlement on the dispute. First check in Stripe that this charge can still be refunded.`
 describe("Q449: a WON chargeback lets a decided split run", () => {
   const HELD_AT = "2026-09-20T00:00:00.000Z";
   function won(id: string) {
@@ -323,7 +324,9 @@ describe("Q449: a WON chargeback lets a decided split run", () => {
     expect(String(note?.title)).toMatch(/still on hold/);
     expect(String(note?.message)).toMatch(/back to escrow/);
     expect(String(note?.message)).toMatch(/Retry settlement/);
-    expect(String(note?.message)).toMatch(/can still be refunded/);
+    // Q1425: no needless "check in Stripe that it can still be refunded" step
+    // (a won-dispute charge can be refunded, measured for Q449).
+    expect(String(note?.message)).not.toMatch(/can still be refunded/);
     expect(alerts().some((a) => a.severity === "critical")).toBe(false);
   });
 

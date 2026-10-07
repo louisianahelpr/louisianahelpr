@@ -19,7 +19,7 @@
 // With neither configured this still returns quietly, but now says so in the
 // log rather than vanishing, so a missing alarm is discoverable.
 
-import { effectiveSeverity, escapeSlackText, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
+import { effectiveSeverity, escapeSlackText, postsImmediately, safeSlackLink, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
 import { recordOpsAlertLedger } from './opsAlertLedger.ts'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
@@ -384,10 +384,12 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       })
     }
 
-    if (input.link) {
+    // Q1466: only a site path or an https url with no Slack markup in it.
+    const safeLink = safeSlackLink(input.link)
+    if (safeLink) {
       blocks.push({
         type: 'context',
-        elements: [{ type: 'mrkdwn', text: `<${input.link}|Open in admin →>` }],
+        elements: [{ type: 'mrkdwn', text: `<${safeLink}|Open in admin →>` }],
       })
     }
 

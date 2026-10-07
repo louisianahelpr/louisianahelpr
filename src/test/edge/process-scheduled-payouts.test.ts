@@ -1017,7 +1017,7 @@ describe("process-scheduled-payouts edge function", () => {
 
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | const clawbackRedrive = await redriveHeldClawbackRepays({ | const clawbackRedrive = { disputes: 0, repaidCents: 0, waiting: 0, defects: [] as string[] }; void ({
     // @mutate supabase/functions/_shared/chargebackClawback.ts |     .not("held_repay_owed_at", "is", null)\n    .in("status", ["reversed", "repay_failed", "repaying"]) |     .in("status", ["reversed", "repay_failed", "repaying"])
-    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0) { |       if (false) {
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0 && res.balanceShort.length === 0) { |       if (false) {
     it("Q1223: a won chargeback's held re-pay runs once the hold is gone, under the webhook's own key, and the job returns to released", async () => {
       seedNoJobs();
       scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
@@ -1125,6 +1125,114 @@ describe("process-scheduled-payouts edge function", () => {
       expect(stripeMock.transfers.create).toHaveBeenCalledWith(expect.objectContaining({ destination: "acct_helper" }), expect.anything());
       expect(stripeMock.transfers.create).not.toHaveBeenCalledWith(expect.objectContaining({ destination: "acct_h2" }), expect.anything());
       expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    });
+
+    // Q1295: a sweep that loses its claim to a webhook redelivery counts that
+    // row as still open, so the job stays in 'chargeback' (the other copy's
+    // transfer may yet be refused).
+    // @mutate supabase/functions/_shared/chargebackClawback.ts | chargeDisputeClosed checks othersOpen too).\n      out.othersOpen++;\n      continue; | chargeDisputeClosed checks othersOpen too).\n      continue;
+    it("Q1295: a sweep that loses the claim to another delivery keeps the job in chargeback", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
+      jobTitle();
+      scenario.writeOverrides = [{ table: "chargeback_clawbacks", op: "update", when: (p) => p.status === "repaying", rows: [] }];
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    });
+
+    // Q1296: a sibling whose reversal never recorded ('reversing') and that the
+    // sweep does not own is read from Stripe but never written; found taken,
+    // it keeps the job in chargeback.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (opts.owned && !opts.owned.has(row.id)) { |       if (false) {
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |             held_repay_owed_at: new Date().toISOString(),\n            updated_at: new Date().toISOString(),\n          })\n          .eq("id", row.id)\n          .in("status", ["reversing", "reverse_failed"]) |             updated_at: new Date().toISOString(),\n          })\n          .eq("id", row.id)\n          .in("status", ["reversing", "reverse_failed"])
+    it("Q1296: a 'reversing' sibling the sweep does not own is recorded AND marked owed in one CAS (never a bare 'reversed'); the job stays in chargeback", async () => {
+      seedNoJobs();
+      const a = owedRow();
+      const b = owedRow({
+        id: "cb-2", helper_id: "helper-2", original_transfer_id: "tr_2", stripe_account_id: "acct_h2", reversed_cents: 0,
+        transfer_amount_cents: 4000, status: "reversing", stripe_reversal_id: null, failure_reason: null, held_repay_owed_at: null,
+      });
+      scenario.reads.chargeback_clawbacks = { rows: [a, b], selectOverrides: [{ includes: "held_repay_owed_at", result: { rows: [a] } }] };
+      jobTitle();
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.listReversals.mockResolvedValue({
+        data: [{ id: "trr_2", amount: 4000, metadata: { source: "chargeback-clawback", dispute_id: "dp_1" } }],
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      // A is re-paid now; B is NOT paid this run, but recorded AND marked owed
+      // in one compare-and-set (never 'reversed' without the debt), so the
+      // next run re-pays it (lh-money-escrow review: a resend of the won event
+      // is dedupe-skipped, so nothing else would).
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const bWrites = scenario.writes.filter((w) => w.table === "chargeback_clawbacks" && w.filters.some((f) => f.column === "id" && f.value === "cb-2"));
+      expect(bWrites).toHaveLength(1);
+      expect(bWrites[0].payload).toMatchObject({ status: "reversed", stripe_reversal_id: "trr_2", reversed_cents: 4000, held_repay_owed_at: expect.any(String) });
+      expect(bWrites[0].filters).toContainEqual({ op: "in", column: "status", value: ["reversing", "reverse_failed"] });
+      expect(bWrites[0].filters).toContainEqual({ op: "is", column: "held_repay_owed_at", value: null });
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+      const page = alerts().find((x) => /unrecorded clawback was recorded and queued/.test(x.title));
+      expect(page?.severity).toBe("warning");
+      expect(page?.message).toMatch(/Do NOT pay it by hand/);
+    });
+
+    // Q1291: the sweep's re-pay refused for balance_insufficient stays owed
+    // (retried next run), never a final repay_failed with the debt cleared.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0 && res.balanceShort.length === 0) { |       if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0) {
+    it("Q1291: a sweep re-pay refused for balance_insufficient stays owed, warns to top up, job stays in chargeback", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
+      jobTitle();
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Insufficient funds in Stripe account"), { type: "StripeInvalidRequestError", code: "balance_insufficient" }));
+      await runCron();
+      expect(scenario.writes.some((w) => w.table === "chargeback_clawbacks" && (w.payload as Record<string, unknown>).held_repay_owed_at === null)).toBe(false);
+      expect(alerts().some((a) => /paying the Helpr back FAILED/.test(a.title))).toBe(false);
+      expect(alerts().some((a) => a.severity === "warning" && /Top up the platform balance/.test(a.message))).toBe(true);
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    });
+
+    // review of Q1291: Stripe may replay a saved balance_insufficient error for
+    // the same key ~24h, so a balance-short row is retried under the hour.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts | ${(row.failure_reason ?? "").startsWith("balance_insufficient") ? `-b${new Date().toISOString().slice(0, 13)}` : ""} | ${""}
+    it("Q1291: a balance-short row is retried under an hourly key; any other row keeps the plain key", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow({ status: "repay_failed", failure_reason: "balance_insufficient: Insufficient funds" })] };
+      jobTitle();
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(expect.anything(), { idempotencyKey: expect.stringMatching(/^clawback-repay-dp_1-tr_1-b\d{4}-\d{2}-\d{2}T\d{2}$/) });
+    });
+
+    // review of the Q1296 self-heal: its CAS missing because a concurrent
+    // won-dispute delivery already recorded (here: re-paid) the row is not a
+    // failure: no critical "set it to reversed" page (that would re-pay it).
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |           if (!nowErr && st && st !== "reversing" && st !== "reverse_failed") { |           if (false) {
+    it("Q1296: a self-heal that misses because another writer already recorded the row pages nobody", async () => {
+      seedNoJobs();
+      const a = owedRow();
+      const b = owedRow({
+        id: "cb-2", helper_id: "helper-2", original_transfer_id: "tr_2", stripe_account_id: "acct_h2", reversed_cents: 0,
+        transfer_amount_cents: 4000, status: "reversing", stripe_reversal_id: null, failure_reason: null, held_repay_owed_at: null,
+      });
+      scenario.reads.chargeback_clawbacks = {
+        rows: [a, b],
+        selectOverrides: [
+          { includes: "held_repay_owed_at", result: { rows: [a] } },
+          { includes: "status, repay_transfer_id", result: { rows: [{ status: "repaid", repay_transfer_id: "tr_rp" }] } },
+        ],
+      };
+      scenario.writeOverrides = [{ table: "chargeback_clawbacks", op: "update", when: (p) => p.stripe_reversal_id === "trr_2", rows: [] }];
+      jobTitle();
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.listReversals.mockResolvedValue({
+        data: [{ id: "trr_2", amount: 4000, metadata: { source: "chargeback-clawback", dispute_id: "dp_1" } }],
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(alerts().some((x) => /recording it FAILED/.test(x.title))).toBe(false);
     });
 
     // Second review (MUST-1): the sweep's claim is pinned to what it read.

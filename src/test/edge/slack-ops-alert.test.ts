@@ -402,6 +402,28 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
     await fn.fetch(call(fn, { ...watcherBody(), fields: { "<!here>": "<!channel> & co" } }));
     expect(slackPosts[0].blocks[2].fields[0].text).toBe("*&lt;!here&gt;:*\n&lt;!channel&gt; &amp; co");
   });
+
+  // Q1466: `link` goes into Slack's `<url|label>` markup. A "|" or ">" ends the
+  // url early (the rest becomes a planted label/link) and a javascript: or
+  // http: scheme is not ours, so such a link is left out; ours still renders.
+  // @mutate supabase/functions/slack-ops-alert/index.ts |   const safeLink = safeSlackLink(body.link) |   const safeLink = body.link
+  // @mutate supabase/functions/_shared/alertPolicy.ts |   if (/[\|<>\\\s]/.test(link)) return null |   void 0
+  it("drops a link carrying Slack markup or a foreign scheme, keeps our own (Q1466)", async () => {
+    const fn = await load();
+    const linkTexts = async (link: string) => {
+      slackPosts = [];
+      await fn.fetch(call(fn, { ...watcherBody(), link }));
+      expect(slackPosts).toHaveLength(1);
+      return JSON.stringify(slackPosts[0].blocks).match(/<[^"]*\|Open in admin →>/g) ?? [];
+    };
+    expect(await linkTexts("/admin?view=disputes&job=1")).toEqual(["</admin?view=disputes&job=1|Open in admin →>"]);
+    expect(await linkTexts("https://dashboard.stripe.com/disputes/dp_1")).toEqual(["<https://dashboard.stripe.com/disputes/dp_1|Open in admin →>"]);
+    expect(await linkTexts("https://evil.example|Click me>")).toEqual([]);
+    expect(await linkTexts("javascript:alert(1)")).toEqual([]);
+    expect(await linkTexts("http://evil.example")).toEqual([]);
+    expect(await linkTexts("//evil.example/x")).toEqual([]);
+    expect(await linkTexts("/\\evil.example/x")).toEqual([]);
+  });
 });
 
 // @mutate supabase/functions/slack-ops-alert/index.ts | text: { type: 'mrkdwn', text: escapeSlackText(body.message) }, | text: { type: 'mrkdwn', text: body.message },

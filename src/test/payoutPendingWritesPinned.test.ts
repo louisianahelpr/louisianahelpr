@@ -9,6 +9,14 @@
 // assigned payout_pending write. A write's chain runs to its `.select(`; the
 // pin (.eq/.in on "payment_status") must sit inside it.
 //
+// REACH (Q1343): this sees only LITERAL edge-function writes, i.e. an object
+// literal `payment_status: "payout_pending"` or a `.payment_status =
+// "payout_pending";` assignment under supabase/functions. It does NOT see
+// SQL functions or triggers that set payout_pending (migrations), nor computed
+// values (a variable, a ternary, a spread from another object) that evaluate
+// to "payout_pending" at run time. A write of either kind passes this guard
+// unpinned; those rely on their own PGlite proofs and edge tests.
+//
 // @mutate supabase/functions/create-payment/index.ts |         if (updateFields.payment_status === "payout_pending") conditional = conditional.eq("payment_status", "escrow"); |         void 0;
 // @mutate supabase/functions/auto-release-payment/index.ts |         .eq("payment_status", "escrow")\n        .select("id"); |         .select("id");
 import { describe, it, expect } from "vitest";

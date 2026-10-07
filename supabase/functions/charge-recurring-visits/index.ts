@@ -75,7 +75,7 @@ import {
 } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
-import { effectiveSalesTaxRate, isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, isLaborTaxable, serviceFeeTaxCode, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -111,6 +111,8 @@ const corsHeaders = {
  * flight.
  */
 const FUND_LEAD_DAYS = 3;
+/** Q1472: passes allowed for the service fee and its tax to settle (see the tax calculation). */
+const MAX_FEE_TAX_PASSES = 3;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -1257,27 +1259,56 @@ serve(async (req) => {
         // automatic_tax, so nothing else ever reports this tax).
         let taxCalculationId: string | null = paidRow ? paidRow.tax_calculation_id : null;
         // A paid row carries the tax the payer was charged; no new calculation.
+        // Q1472 (owner confirmed 2026-10-07): on a taxable series the service
+        // fee is taxed with the labor (serviceFeeTaxCode), so it goes into the
+        // calculation as its own line. The fee's Stripe-cost floor depends on
+        // the tax and the tax now depends on the fee, so the two are settled
+        // by iteration: start from the fee with no tax, price both lines,
+        // re-floor the fee on that tax, and repeat until the fee stops moving
+        // (it moves only when the floor binds, i.e. a tiny budget). A fee
+        // still moving after MAX_FEE_TAX_PASSES fails closed like any other
+        // calculation failure: never charge on a tax that does not match.
+        let settledFeeCents: number | null = null;
         if (!paidRow && isLaborTaxable(parent.category as string)) {
           try {
-            const calc = await stripe.tax.calculations.create({
-              currency: "usd",
-              line_items: [{
-                amount: budgetCents,
-                reference: "labor",
-                tax_behavior: "exclusive",
-                tax_code: TAXABLE_LABOR_TAX_CODE,
-              }],
-              customer_details: {
-                address: {
-                  postal_code: (parent.zip_code as string) ?? "",
-                  state: "LA",
-                  country: "US",
+            let feeGuess = posterServiceFeeCents(budgetCents, feePercent, 0);
+            for (let pass = 0; pass < MAX_FEE_TAX_PASSES && settledFeeCents === null; pass++) {
+              const calc = await stripe.tax.calculations.create({
+                currency: "usd",
+                line_items: [
+                  {
+                    amount: budgetCents,
+                    reference: "labor",
+                    tax_behavior: "exclusive",
+                    tax_code: TAXABLE_LABOR_TAX_CODE,
+                  },
+                  ...(feeGuess > 0
+                    ? [{
+                      amount: feeGuess,
+                      reference: "service_fee",
+                      tax_behavior: "exclusive" as const,
+                      tax_code: serviceFeeTaxCode(parent.category as string),
+                    }]
+                    : []),
+                ],
+                customer_details: {
+                  address: {
+                    postal_code: (parent.zip_code as string) ?? "",
+                    state: "LA",
+                    country: "US",
+                  },
+                  address_source: "billing",
                 },
-                address_source: "billing",
-              },
-            });
-            taxCents = calc.tax_amount_exclusive ?? 0;
-            taxCalculationId = calc.id ?? null;
+              });
+              taxCents = calc.tax_amount_exclusive ?? 0;
+              taxCalculationId = calc.id ?? null;
+              const refloored = posterServiceFeeCents(budgetCents, feePercent, taxCents);
+              if (refloored === feeGuess) settledFeeCents = feeGuess;
+              else feeGuess = refloored;
+            }
+            if (settledFeeCents === null) {
+              throw new Error(`service fee and its tax did not settle in ${MAX_FEE_TAX_PASSES} passes`);
+            }
           } catch (e) {
             // Still fail closed, but now only for the narrow taxable case —
             // charging untaxed would leave us owing Louisiana money we never
@@ -1293,7 +1324,7 @@ serve(async (req) => {
 
         // ME-014: the fee's Stripe-cost floor must cover the WHOLE charge,
         // tax included (posterFees.ts), so it is computed after the tax.
-        const computedFeeCents = posterServiceFeeCents(budgetCents, feePercent, taxCents);
+        const computedFeeCents = settledFeeCents ?? posterServiceFeeCents(budgetCents, feePercent, taxCents);
         const feeCents = paidRow ? paidRow.fee_cents : computedFeeCents;
         const totalCents = budgetCents + feeCents + taxCents;
 
@@ -1612,23 +1643,35 @@ serve(async (req) => {
           results.declined++;
 
           if (outcome.kind === "unknown") {
-            // Not a decline. Stripe never told us whether it took the money, and
-            // this is the ONE failure whose cost compounds: with no job row, the
-            // next daily run finds `alreadyThere` empty and re-charges — and by
-            // then the idempotency key has expired, so that is a second REAL
-            // charge with no 23505 to catch it (the first intent never got a
-            // row). Two charges, one visit, nothing that ever notices.
+            // Not a decline. Stripe never told us whether it took the money.
+            // Since Q1104 a LATER run of this date's window asks Stripe for
+            // THIS claim's earlier charge (priorVisitIntent matches the hold
+            // id) and adopts a succeeded one of the same amount (Q1337),
+            // booking the visit on it. That holds only while this same claim
+            // still holds the date and a run remains (the last is D-1). It
+            // does NOT hold when the date is re-claimed (new hold id: the next
+            // run charges again on a new key), the series ends or the hold is
+            // dropped (nothing runs again), the visit is parked for on-session
+            // payment, or this was the D-1 run. A hand refund before the next
+            // run costs the Stripe fee and a fresh charge (a refunded intent is
+            // skipped, never adopted); after the visit is booked on the earlier
+            // charge it would leave that visit unpaid. So the page (Q1339)
+            // says when to wait and when to reconcile, and the deadline.
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
               title: "Recurring visit charge outcome UNKNOWN",
               message:
-                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${chargeKey} BEFORE tomorrow's run, which will charge again on a fresh key.`,
+                visitDate <= addDays(today, 1)
+                  ? `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on idempotency key ${chargeKey}, so a PaymentIntent may be holding this poster's money with no visit behind it. This was the LAST run of this date's funding window, so nothing will adopt that charge: reconcile NOW. Check Stripe for key ${chargeKey}: if a charge on it succeeded, refund it (the visit is not booked).`
+                  : `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on idempotency key ${chargeKey}, so a PaymentIntent may be holding this poster's money with no visit behind it yet. While this same claim (hold ${hold.id}) still holds the date, the remaining runs (through ${addDays(visitDate, -1)}) look that charge up and, if it succeeded for this visit's amount, books the visit on it instead of charging again: do not refund it before then. After ${addDays(visitDate, -1)}'s run, check Stripe for key ${chargeKey}: if a charge on it succeeded and it is NOT the PaymentIntent on the booked visit (or the visit was never booked: the date re-claimed, the series ended, or the visit parked for on-session payment), refund it.`,
               fields: {
                 parentJobId: String(parent.id),
                 visitDate,
                 customer: customerId,
                 amountCents: String(totalCents),
+                holdId: String(hold.id),
+                idempotencyKey: chargeKey,
                 error: outcome.message,
               },
             });
@@ -1748,10 +1791,10 @@ serve(async (req) => {
             helper_fee_percent: helperFeePercent,
             // Derived from the amount Stripe actually calculated rather than a
             // rate we looked up ourselves — that second source of truth is the
-            // one that was retired. A FRACTION (effectiveSalesTaxRate): the
-            // CHECK ck_jobs_sales_tax_rate_range admits 0..1, and the percent
-            // this wrote would have failed the visit insert after the charge.
-            sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents),
+            // one that was retired. A FRACTION over every taxed line (labor +
+            // the service fee, Q1472): the CHECK admits 0..1, and a percent
+            // here failed the insert (effectiveSalesTaxRate).
+            sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents + (isLaborTaxable(parent.category as string) ? feeCents : 0)),
             sales_tax_amount: taxCents / 100,
             // A recurring visit is never a one-time template itself.
             is_recurring: false,

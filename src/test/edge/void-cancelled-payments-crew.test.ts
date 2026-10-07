@@ -239,7 +239,9 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
     const h = await load();
     await h.fetch(cronReq());
-    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: "cancel-fee-job-crew-member-b" }]);
+    // Q1381: a retry of a FAILED share is a fresh Stripe request (the hour in
+    // the key), so a saved failure is never replayed to it.
+    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: expect.stringMatching(/^cancel-fee-job-crew-member-b-r\d{4}-\d{2}-\d{2}T\d{2}$/) }]);
     expect(ledgerFlips()[0]).toEqual(expect.objectContaining({ status: "paid", stripe_transfer_id: "tr_member-b" }));
     // The sweep asks for FAILED shares as well as pending ones.
     const sweep = (scenario.readQueries ?? []).find(

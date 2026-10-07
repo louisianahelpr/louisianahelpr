@@ -186,9 +186,67 @@ export const POSTER_SIDE_EXEMPT: Record<string, string> = {
  * ALTER POLICY (RENAME TO, USING) replayed in file order, comments blanked.
  * Keyed "table:name" (a quoted name keeps its case, a bare one is folded).
  */
-export function replayedPolicies(): Map<string, { table: string; text: string }> {
+export type ReplayedPolicy = {
+  table: string;
+  text: string;
+  /** Set when an ALTER POLICY ... TO changed the roles after CREATE (Q1329); else read from the CREATE text. */
+  roles?: string[];
+};
+
+/** The part of a policy's CREATE text before its USING / WITH CHECK: where AS, FOR and TO live. */
+function policyHead(text: string): string {
+  const at = text.search(/\b(?:using|with\s+check)\b/i);
+  return at === -1 ? text : text.slice(0, at);
+}
+
+function parseRoleList(list: string): string[] {
+  return list
+    .split(",")
+    .map((r) => r.trim().replace(/^"|"$/g, "").toLowerCase())
+    .filter(Boolean)
+    .sort();
+}
+
+/** Q1329: the roles a replayed policy applies to, as pg_policies.roles lists them (sorted). */
+export function policyRoles(p: ReplayedPolicy): string[] {
+  if (p.roles) return [...p.roles].sort();
+  const m = /\bto\s+((?:"?\w+"?\s*,\s*)*"?\w+"?)\s*$/i.exec(policyHead(p.text));
+  return m ? parseRoleList(m[1]) : ["public"];
+}
+
+/** Q1329: PERMISSIVE or RESTRICTIVE, as pg_policies.permissive prints it. */
+export function policyPermissive(p: ReplayedPolicy): "PERMISSIVE" | "RESTRICTIVE" {
+  return /\bas\s+restrictive\b/i.test(policyHead(p.text)) ? "RESTRICTIVE" : "PERMISSIVE";
+}
+
+/**
+ * Q1329: two migrations re-scoped policies with a DO block over pg_policies,
+ * `EXECUTE format('ALTER POLICY %I ON %I.%I TO <role>', ...)`, so no policy is
+ * named in the text. Each is modelled here from its own WHERE: public-role
+ * policies whose USING/WITH CHECK mention <needle>, minus the (table, name)
+ * pairs it excludes. A new such block that this does not recognise leaves the
+ * roles unchanged, and the replay==live check then fails, which is the point.
+ */
+function dynamicRoleRescopes(sql: string): { at: number; role: string; needle: RegExp; except: Set<string> }[] {
+  const out: { at: number; role: string; needle: RegExp; except: Set<string> }[] = [];
+  for (const m of sql.matchAll(/ALTER POLICY %I ON %I\.%I TO (\w+)/gi)) {
+    const block = sql.slice(Math.max(0, sql.lastIndexOf("DO $$", m.index!)), m.index!);
+    const needle = /qual LIKE '%auth\.uid\(\)%'/i.test(block)
+      ? /auth\.uid\(\)/i
+      : /qual LIKE '%service_role%'/i.test(block)
+        ? /service_role/i
+        : null;
+    if (!needle) continue;
+    const except = new Set<string>();
+    for (const e of block.matchAll(/tablename\s*=\s*'(\w+)'\s+AND\s+policyname\s*=\s*'([^']+)'/gi)) except.add(`${e[1].toLowerCase()}:${e[2]}`);
+    out.push({ at: m.index!, role: m[1].toLowerCase(), needle, except });
+  }
+  return out;
+}
+
+export function replayedPolicies(): Map<string, ReplayedPolicy> {
   const dir = join(REPO, "supabase/migrations");
-  const live = new Map<string, { table: string; text: string }>();
+  const live = new Map<string, ReplayedPolicy>();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
     const events: { at: number; apply: () => void }[] = [];
@@ -219,8 +277,27 @@ export function replayedPolicies(): Map<string, { table: string; text: string }>
           if (rename) {
             live.delete(from);
             live.set(key(m[4], rename[1], rename[2]), cur);
-          } else if (/\busing\b/i.test(rest)) {
-            live.set(from, { table: cur.table, text: cur.text.replace(/\busing\b[\s\S]*$/i, "") + " " + rest.slice(rest.search(/\busing\b/i)) });
+          } else {
+            // ALTER POLICY ... TO <roles> [USING ...] (Q1329): the roles change.
+            const to = /^\s*to\s+((?:"?\w+"?\s*,\s*)*"?\w+"?)/i.exec(rest);
+            const roles = to ? parseRoleList(to[1]) : cur.roles;
+            if (/\busing\b/i.test(rest)) {
+              live.set(from, { table: cur.table, text: cur.text.replace(/\busing\b[\s\S]*$/i, "") + " " + rest.slice(rest.search(/\busing\b/i)), roles });
+            } else if (to) {
+              live.set(from, { ...cur, roles });
+            }
+          }
+        },
+      });
+    }
+    for (const r of dynamicRoleRescopes(sql)) {
+      events.push({
+        at: r.at,
+        apply: () => {
+          for (const [k, cur] of live) {
+            if (r.except.has(k) || policyRoles(cur).join(",") !== "public") continue;
+            const body = cur.text.slice(policyHead(cur.text).length);
+            if (r.needle.test(body)) live.set(k, { ...cur, roles: [r.role] });
           }
         },
       });

@@ -47,6 +47,8 @@ export interface StripeMock {
     create: ReturnType<typeof vi.fn>;
     /** Q202: an abandoned 3D Secure challenge's PaymentIntent is canceled on re-mint. */
     cancel: ReturnType<typeof vi.fn>;
+    /** Q1345: void-cancelled-payments captures only the fee on an uncaptured hold. */
+    capture: ReturnType<typeof vi.fn>;
     /** Q415 (e): charge-recurring-visits tags an intent whose refund withholds the fee. */
     update: ReturnType<typeof vi.fn>;
     /** Q1104: charge-recurring-visits asks for a prior visit charge before minting one. Defaults to none. */
@@ -159,6 +161,7 @@ export const stripeMock: StripeMock = {
     retrieve: vi.fn(),
     create: vi.fn(),
     cancel: vi.fn(),
+    capture: vi.fn(),
     update: vi.fn(),
     list: vi.fn(),
   },

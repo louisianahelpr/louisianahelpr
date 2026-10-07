@@ -71,6 +71,25 @@ function reportKeychain(err: unknown, step: string): void {
 // token. If the cap fires, getItem falls back to localStorage and the user is
 // at worst signed out, which is recoverable. Never remove this cap.
 const HYDRATE_TIMEOUT_MS = 2000;
+/**
+ * Q1412: setItem and removeItem run under auth-js's auth lock (every token
+ * refresh, and signOut's _removeSession). A native bridge call that never
+ * settles would stall refreshes and stop sign-out returning (no cache wipe,
+ * no navigation). Each Keychain call there waits at most this long; past it,
+ * the call is REPORTED and the auth flow carries on (the in-memory cache and
+ * WebKit storage are already written by then).
+ */
+export const KEYCHAIN_WRITE_TIMEOUT_MS = 1500;
+const KEYCHAIN_TIMED_OUT = Symbol("keychain-timed-out");
+
+/** `p`, or KEYCHAIN_TIMED_OUT once KEYCHAIN_WRITE_TIMEOUT_MS passes first (p's rejection still throws). */
+function capKeychainWrite<T>(p: Promise<T>): Promise<T | typeof KEYCHAIN_TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cap = new Promise<typeof KEYCHAIN_TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(KEYCHAIN_TIMED_OUT), KEYCHAIN_WRITE_TIMEOUT_MS);
+  });
+  return Promise.race([p, cap]).finally(() => clearTimeout(timer));
+}
 
 export const hydratePromise: Promise<void> = (async () => {
   if (!Capacitor.isNativePlatform()) return;
@@ -209,7 +228,9 @@ export const keychainStorageAdapter = {
     try { localStorage.setItem(key, value); } catch { /* Silent by design: WebKit storage blocked or evicted; the in-memory cache and the Keychain still hold the value. */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
       try {
-        await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
+        // awaited: THE RACE above, but capped (Q1412) so a hung bridge cannot stall the refresh
+        const done = await capKeychainWrite(SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS));
+        if (done === KEYCHAIN_TIMED_OUT) reportKeychain(new Error(`Keychain set exceeded its ${KEYCHAIN_WRITE_TIMEOUT_MS}ms cap`), 'setItem cap');
       } catch (err) {
         // This launch works from memory and WebKit storage, but the Keychain may
         // now hold a rotated-out token the next cold launch cannot use.
@@ -227,7 +248,11 @@ export const keychainStorageAdapter = {
       let failure: { err: unknown } | null = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          await SecureStorage.remove(key);
+          if ((await capKeychainWrite(SecureStorage.remove(key))) === KEYCHAIN_TIMED_OUT) {
+            // A hung bridge: a second call would hang too. Reported below.
+            failure = { err: new Error(`Keychain remove exceeded its ${KEYCHAIN_WRITE_TIMEOUT_MS}ms cap`) };
+            break;
+          }
           failure = null;
           break;
         } catch (err) {
@@ -237,7 +262,11 @@ export const keychainStorageAdapter = {
       }
       if (failure) reportKeychain(failure.err, 'sign-out remove');
       // An older build's plaintext copy, if a capped first launch left one.
-      try { await Preferences.remove({ key }); } catch (err) { /* Reported (reportKeychain): only a leftover plaintext copy is at stake. */ reportKeychain(err, 'sign-out legacy remove'); }
+      try {
+        if ((await capKeychainWrite(Preferences.remove({ key }))) === KEYCHAIN_TIMED_OUT) {
+          reportKeychain(new Error(`Preferences remove exceeded its ${KEYCHAIN_WRITE_TIMEOUT_MS}ms cap`), 'sign-out legacy remove cap');
+        }
+      } catch (err) { /* Reported (reportKeychain): only a leftover plaintext copy is at stake. */ reportKeychain(err, 'sign-out legacy remove'); }
     }
   },
 };

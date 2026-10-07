@@ -64,13 +64,20 @@ export async function handleTransferReversed(
     throw new Error(`payout_transfers read failed for reversed transfer ${transfer.id}: ${currentErr.message}`);
   }
   const priorMetadata = ((currentRow as { metadata?: unknown } | null)?.metadata ?? {}) as Record<string, unknown>;
+  // Q1340: Stripe's amount_reversed is cumulative, but deliveries can arrive
+  // out of order: a late, OLDER event carries a smaller total. Never let it
+  // lower what a newer delivery already recorded; keep the larger figure (and
+  // a full reversal, once recorded, stays full).
+  const priorReversedCents = Math.max(0, Math.round(Number(priorMetadata.amount_reversed_cents) || 0));
+  const storedReversedCents = Math.max(priorReversedCents, amountReversedCents);
+  const storedFullyReversed = fullyReversed || storedReversedCents >= Number(transfer.amount ?? 0);
 
   const { data: reversedLedger, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
     .update({
       status: "reversed",
       reversed_at: new Date().toISOString(),
-      metadata: { ...priorMetadata, amount_reversed_cents: amountReversedCents, fully_reversed: fullyReversed },
+      metadata: { ...priorMetadata, amount_reversed_cents: storedReversedCents, fully_reversed: storedFullyReversed },
     })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id")

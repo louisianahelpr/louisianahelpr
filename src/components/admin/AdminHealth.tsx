@@ -18,11 +18,13 @@ import { useFillRate } from "./adminHealth/useFillRate";
 import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
 import { useCronHealth } from "./adminHealth/useCronHealth";
 import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
+import { useCspReports, CSP_WINDOW_HOURS } from "./adminHealth/useCspReports";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * One check row. Extracted so the Configuration and Scheduled-jobs cards render
@@ -77,6 +79,7 @@ const AdminHealth = () => {
   const { data: configChecks } = useConfigChecks();
   const { data: cronChecks } = useCronHealth();
   const { data: openAlerts } = useOpenAlerts();
+  const { data: cspReports } = useCspReports();
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
@@ -152,6 +155,12 @@ const AdminHealth = () => {
   // reading and say so.
   const healthNeverLoaded = isError && !dataUpdatedAt;
   const healthStale = isError && !!dataUpdatedAt;
+  // Q1287: the first read still in flight (or retrying). `data` is the
+  // fallback shell's zeros, so nothing that reads it is drawn yet: no "0 sent",
+  // no push-token banner, skeleton tiles under the real card titles instead.
+  const healthLoading = !isError && !dataUpdatedAt;
+  // The push token tiles read the same data: a dash, never a zero, until it lands.
+  const tokenCount = (n: number) => (healthLoading || healthNeverLoaded ? "—" : n);
 
   const { emailStats, pushStats, fraudCount, adminPushTokenCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
 
@@ -168,7 +177,7 @@ const AdminHealth = () => {
           push_tokens. With zero admin tokens registered, it all goes
           to in-app only and gets missed in real time. Surfacing as a
           loud red banner so it can't be ignored during launch. */}
-      {!healthNeverLoaded && adminPushTokenCount === 0 && (
+      {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && (
         <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4">
           <div className="flex items-start gap-3">
             <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -231,6 +240,25 @@ const AdminHealth = () => {
         )}
       </AdminCard>
 
+      {/* Q1352: CSP violation reports (csp-report -> error_logs, tags.source
+          'csp') were stored and never read. Counted here by directive and
+          blocked host, so a policy that breaks a page shows up. */}
+      <AdminCard
+        title={`Content Security Policy (${CSP_WINDOW_HOURS}h)`}
+        surface="none"
+        subtitle="What the browser blocked on louisianahelpr.com, by directive and host."
+      >
+        {!cspReports || cspReports.length === 0 ? (
+          <p className="text-ds-11 text-muted-foreground">Reading CSP reports…</p>
+        ) : (
+          <ul className="space-y-2">
+            {cspReports.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
+          </ul>
+        )}
+      </AdminCard>
+
       {/* Scheduled jobs. About forty pg_cron jobs run this product with no user
           in the loop — escrow auto-release, cancellation-fee settlement,
           subscription expiry, the email queue, every push and digest. Until
@@ -263,7 +291,17 @@ const AdminHealth = () => {
           Couldn't refresh platform health. The numbers below are from {new Date(dataUpdatedAt).toLocaleTimeString()}.
         </p>
       )}
-      {healthNeverLoaded ? (
+      {healthLoading ? (
+        <AdminCard title="Platform Status" contentClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="sr-only" role="status">Loading platform health…</div>
+          {["Backend Functions", "Emails (24h)", "Fraud Flags"].map((label) => (
+            <div key={label} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-2" aria-hidden="true">
+              <span className="text-ds-13 font-medium text-muted-foreground">{label}</span>
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ))}
+        </AdminCard>
+      ) : healthNeverLoaded ? (
         <ErrorState
           variant="inline"
           title="Couldn't load platform health"
@@ -354,7 +392,7 @@ const AdminHealth = () => {
 
       {/* Job activity (7 days) and the marketplace pulse read the same
           health data: hidden, not zeroed, when it never loaded (Q1194). */}
-      {!healthNeverLoaded && (<>
+      {!healthNeverLoaded && !healthLoading && (<>
       <AdminCard
         title="Job Activity"
         subtitle="Last 7 days."
@@ -539,15 +577,15 @@ const AdminHealth = () => {
         <div className="grid grid-cols-3 gap-2 text-ds-13">
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Total tokens</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{tokenCount(pushStats.total)}</div>
           </div>
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">iOS</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{tokenCount(pushStats.ios)}</div>
           </div>
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Android</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{tokenCount(pushStats.android)}</div>
           </div>
         </div>
         {pushStats.latestAt && (
@@ -558,7 +596,7 @@ const AdminHealth = () => {
             </span>
           </p>
         )}
-        {pushStats.total === 0 && (
+        {!healthLoading && !healthNeverLoaded && pushStats.total === 0 && (
           <p className="text-ds-11 text-muted-foreground">
             No devices registered yet. Have a user open the iOS/Android app, sign in,
             and tap Allow on the push permission prompt — token will register on next launch.

@@ -30,9 +30,11 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
 }
 
 /**
- * Whether ANY line on the checkout is taxable. Deliberately narrower than it
- * looks: the service fee, urgent tip and one-time setup fee are all
- * `txcd_00000000`, so the labor line is the only line tax can land on.
+ * Whether ANY line on the checkout is taxable. The urgent tip and one-time
+ * setup fee are `txcd_00000000`, and the service fee is taxed exactly when the
+ * labor is (Q1472, `serviceFeeTaxCode` in the edge module), so this is the
+ * labor rule. The checkout's tax figure itself comes from Stripe
+ * (useStripeSalesTax), which prices the labor and the fee together.
  */
 export function hasTaxableLine(category: string | null | undefined): boolean {
   return isLaborTaxable(category);

@@ -157,12 +157,36 @@ function noisy(u: string): boolean {
   return NOISE_URL.test(u) || NOISE_KEYWORD.test(u);
 }
 
+/**
+ * Q1353: the pages whose reports we keep. Only the web app sends reports: the
+ * Report-To/report-uri header comes from vercel.json on www and the apex. The
+ * native app's CSP is a <meta> tag (index.html), and a meta CSP cannot carry a
+ * reporting directive, so the Capacitor origin never reports and is not listed.
+ * Anyone can POST to this endpoint; a report about another site's page is not
+ * ours and must not land in error_logs. Vercel's own deployment hosts
+ * (*.vercel.app) also send the header and are dropped on purpose: nobody
+ * browses them (0 such rows on prod, 2026-10-07). This list is hygiene, not an
+ * authorization boundary (documentURL is the sender's word); the per-IP rate
+ * limit is the real cap.
+ */
+export const OUR_DOCUMENT_HOSTS: ReadonlySet<string> = new Set(["louisianahelpr.com", "www.louisianahelpr.com"]);
+
+function isOurDocument(documentURL: string): boolean {
+  if (!/^https?:\/\//i.test(documentURL)) return false;
+  try {
+    return OUR_DOCUMENT_HOSTS.has(new URL(documentURL).hostname.toLowerCase());
+  } catch {
+    // Not a parseable URL: not one of our pages.
+    return false;
+  }
+}
+
 /** True when the violation is extension or browser noise, not our page. */
 export function isNoise(v: Violation): boolean {
   if (noisy(v.blockedURL) || noisy(v.sourceFile)) return true;
-  // A report about a document that is not a web page (an extension's own
-  // page, about:blank) is not about this site.
-  return !/^https?:\/\//i.test(v.documentURL);
+  // A report about a document that is not one of our web pages (an
+  // extension's own page, about:blank, another site) is not about this site.
+  return !isOurDocument(v.documentURL);
 }
 
 export interface ErrorLogRow {

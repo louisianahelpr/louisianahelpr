@@ -14,7 +14,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
+import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, serviceFeeTaxCode } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -59,6 +59,13 @@ async function underBanReview(
   if (counterpartyId && lookup.users.has(counterpartyId)) return "counterparty";
   return null;
 }
+
+/** Q1418 (c): the start of redeem_gift_card's open-checkout refusal (20261006053059 onward). */
+const GIFT_REFUSED_OPEN_CHECKOUT_PREFIX = "A card payment for this job is already open.";
+/** Q1418 (c): what a second tap hears when that open checkout is this gift's own. */
+const GIFT_DIFFERENCE_ALREADY_OPEN =
+  "Your gift is already applied to this job, and the card payment for the rest has already opened. Finish it there, or wait a minute.";
+
 const PAYER_UNDER_REVIEW = "This payment can't go through right now. Please contact support.";
 
 /**
@@ -415,7 +422,7 @@ serve(async (req) => {
        * The write is ALSO guarded on the re-mintable payment_status set read
        * above (race-class audit 2026-09-14). The session-id guard cannot see
        * the one funding path that leaves stripe_session_id alone:
-       * redeem_gift_card locks the job, checks 'unpaid' and flips it to
+       * redeem_gift_card locks the job, checks unpaid/abandoned/failed (Q1418 (a)) and flips it to
        * 'escrow' without touching the session column. A gift tap racing a card
        * tap on the same job let this stamp write that funded job back to
        * 'unpaid' with a live Checkout URL on it — pay that and the job is
@@ -477,6 +484,19 @@ serve(async (req) => {
         });
         if (redeemErr) {
           console.error(`[create-payment] redeem_gift_card failed for credit ${giftCardId}, job ${jobId}:`, redeemErr);
+          // Q1418 (c): a second tap racing the first refuses with "A card
+          // payment for this job is already open" when the open checkout is
+          // THIS gift's own difference checkout (the first tap reserved the
+          // gift for this job and opened it). Say that, instead of telling the
+          // poster to finish a payment they do not know they started.
+          if (redeemErr.message?.startsWith(GIFT_REFUSED_OPEN_CHECKOUT_PREFIX)) {
+            const { data: credit, error: creditErr } = await supabaseAdmin
+              .from("gift_cards").select("status, job_id").eq("id", giftCardId).maybeSingle();
+            if (creditErr) console.error(`[create-payment] gift re-read after an open-checkout refusal failed for credit ${giftCardId}:`, creditErr.message);
+            if (credit?.status === "reserved" && credit.job_id === jobId) {
+              throw new PublicError(GIFT_DIFFERENCE_ALREADY_OPEN);
+            }
+          }
           throw new PublicError(
             // A RAISE from our own redeem RPC (P0001) is a sentence we wrote; any
             // other code is raw PostgREST/Postgres detail and must not reach the caller.
@@ -745,10 +765,9 @@ serve(async (req) => {
         },
       ];
 
-      // Poster service fee — treated as a non-taxable platform commission
-      // until LA Dept. of Revenue clarifies B2C SaaS treatment post-Act 470.
-      // (Switch tax_code to "txcd_10103001" if a CPA confirms it should be
-      // taxed as a digital service.)
+      // Poster service fee — Q1472 (Q374 (3), owner confirmed 2026-10-07): on
+      // a TAXABLE job it is part of the taxable sale and takes the labor line's
+      // tax code; on an exempt job it stays Nontaxable (serviceFeeTaxCode).
       if (customerFeeCents > 0) {
         lineItems.push({
           price_data: {
@@ -757,7 +776,7 @@ serve(async (req) => {
             product_data: {
               name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
-              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
+              tax_code: serviceFeeTaxCode(job.category),
             },
             unit_amount: customerFeeCents,
           },
@@ -851,7 +870,7 @@ serve(async (req) => {
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
         cancel_url: buildRedirectUrl(`/post-job`, isNative),
         expires_at: checkoutExpiresAt,
-        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
+        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents), service_fee_cents: String(customerFeeCents) },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
@@ -2501,7 +2520,7 @@ serve(async (req) => {
       if (!releaseUpdateErr && releaseUpdated && releaseUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "completed", "released");
         if (settled) return settled;
-        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer", {
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer", Boolean(job.helper_id && helperPayout > 0), releaseClaim.claim, {
           stripe,
           paymentIntentId: captureResult.paymentIntentId ?? null,
           title: job.title ?? null,
@@ -2873,7 +2892,7 @@ serve(async (req) => {
           await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);
           return settled;
         }
-        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund");
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund", disputeRefundId !== null, refundClaimHeld);
         if (raced) return raced;
       }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
@@ -4232,17 +4251,46 @@ async function claimPutBackMissed(
  * over moved money), ops is paged and the caller answers 409. Returns null
  * when no chargeback is there (or the read failed: the caller's existing
  * fail-loud path then runs).
+ *
+ * `sent` (Q1303): whether money has moved for this settlement (this call's
+ * Stripe transfer/refund, or an earlier call's that it reused). None moves when
+ * the job has no Helpr or nothing is owed to them (release), or when the
+ * Stripe fee consumed the whole capture (refund); the page and the 409 then say
+ * nothing was sent instead of claiming money went out, and `claim` is handed
+ * back like every other no-money exit (it was never stamped: release stamps
+ * inside transferToHelper, refund only when an amount is refunded).
  */
 async function chargebackLandedDuringSettlement(
   supabaseAdmin: any,
   jobId: string,
   moved: "transfer" | "refund",
+  sent: boolean,
+  claim: SettlementClaim | null,
   release?: { stripe: any; paymentIntentId: string | null; title: string | null },
 ): Promise<Response | null> {
   const { data: current, error } = await supabaseAdmin
     .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
   if (error || !current || current.payment_status !== "chargeback") return null;
   console.error(`[create-payment] job ${jobId}: a chargeback block landed during the ${moved} call; the flip did NOT overwrite it`);
+  const action = moved === "transfer" ? "Release" : "Refund";
+  if (!sent) {
+    await releaseDisputeSettlementClaim(supabaseAdmin, jobId, claim);
+    const why = moved === "transfer"
+      ? "the job has no Helpr or nothing was owed to them"
+      : "the Stripe fee consumed the whole capture, so nothing was refunded";
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: `Quick ${action} raced a chargeback — block kept, nothing was sent`,
+      message: `A Stripe chargeback marked job ${jobId} payment_status='chargeback' during Quick ${action}. NO ${moved} was made (${why}), so no money moved here, and the job was NOT flipped (the chargeback's block stands). Settle the chargeback in Stripe. This Quick ${action}'s settlement claim was handed back (it moved nothing).`,
+      fields: { job_id: jobId, job_status: String(current.status ?? "—") },
+      oncePerDayKey: `quick-settle-raced-chargeback:${jobId}`,
+    });
+    return new Response(JSON.stringify({
+      error: `A card chargeback landed on this job during the Quick ${action}. No ${moved} was sent (${why}), and the chargeback's block was left in place. Ops has been paged to reconcile.`,
+      chargebackRaced: true,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+  }
   // Q1260: the Quick Release transfer went out over a live chargeback. The
   // webhooks' clawback runs on charge.dispute.created / funds_withdrawn, and
   // both may have been processed BEFORE this transfer existed, so nothing
@@ -4254,7 +4302,7 @@ async function chargebackLandedDuringSettlement(
   await postSlackOpsAlert({
     kind: "money_at_risk",
     severity: "critical",
-    title: `Quick ${moved === "transfer" ? "Release" : "Refund"} raced a chargeback — block kept, money already moved`,
+    title: `Quick ${action} raced a chargeback — block kept, money already moved`,
     message: moved === "transfer"
       ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). Clawback: ${clawbackOutcome?.text ?? "not attempted"}. FIRST check chargeback_clawbacks for this job's dispute before reversing anything by hand: charge.dispute.created also runs the clawback against the job's transfer group, and reversing it again takes the money twice. The job stays 'disputed' and this Quick Release's stamped settlement claim stays in dispute_settlement_claims (nothing clears it on its own); once reconciled, delete that row (delete from public.dispute_settlement_claims where job_id = '${jobId}') so the dispute can be closed.`
       : `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Refund's refund was in flight. The refund went out, so the job was NOT flipped to refunded (the chargeback's block stands). The card holder now has the refund AND the chargeback: respond to the dispute in Stripe with the refund as evidence.`,

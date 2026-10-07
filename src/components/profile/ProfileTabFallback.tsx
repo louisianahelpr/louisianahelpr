@@ -119,7 +119,10 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
     { h: 74, media: 1 },
     { h: 74, media: 1 },
     ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 224, media: 1 }] : []),
-    { h: 360, media: 4 },
+    // Active sessions: the card's icon plus one device row's (196px with one
+    // device on prod, both test accounts, 2026-10-07; Q1427: 4 bones read
+    // 7 media against the real 5).
+    { h: 196, media: 2 },
   ],
   reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],

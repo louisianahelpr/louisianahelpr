@@ -17,7 +17,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * Every ledger-backed row now reads all three money columns from the ledger:
  * net = paid, fee = recorded fee, gross = paid + fee.
  *
- * Behaviour: src/test/pglite/earningsExportOneNet.pglite.mjs (6 checks RED on
+ * Behaviour (measured 2026-10-07): src/test/pglite/earningsExportOneNet.pglite.mjs (6 checks RED on
  * the 20261005171601 body with --before; all green after, applied 3x).
  */
 

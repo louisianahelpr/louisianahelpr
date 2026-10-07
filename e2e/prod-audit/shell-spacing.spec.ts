@@ -294,6 +294,22 @@ const NO_SECTION_STACK = new Set([
  */
 const DATA_ROW_STACKS: Record<string, string> = {
   messages: '[data-testid="row-name"]',
+  // Q437 (2026-10-07): the job feeds, My Posts and My Reviews are stacks of the
+  // account's own rows too. Since the launch switch hid seed jobs from browse
+  // (Q552) prod's feed holds ONE public job, poster-e2e's default My Posts view
+  // is empty and it has no reviews, so these measured "no section stack" and
+  // kept prod-audit red on data (Home History likewise: no finished job).
+  // Two rows or more, they are held as before.
+  // (job-detail-1 / job-detail-missing name a mock-only job id and land on the
+  // /home feed on prod.)
+  "browse-guest": "[data-feed-card]",
+  dashboard: "[data-feed-card]",
+  "complete-profile": "[data-feed-card]",
+  "job-detail-1": "[data-feed-card]",
+  "job-detail-missing": "[data-feed-card]",
+  posts: "[data-activity-card]",
+  "profile-reviews": "[data-review-row]",
+  "home-history": "[data-home-history-row]",
 };
 
 // Shown able to fail on the original (every Profile tab back on its 16px, a
@@ -304,6 +320,8 @@ const DATA_ROW_STACKS: Record<string, string> = {
 // The job-card lists (Home feed, guest /browse) are held to the same 12px by
 // --list-gap (Q213a); a list pitch back off the token fails here too:
 // @mutate src/index.css | --list-gap: 0.75rem; | --list-gap: 0.5rem;
+// Q437: Money's empty streak row took space-y-3's margin (switcher -> Earned 24px):
+// @mutate src/components/profile/EarningsTab.tsx | {helperId && streakShows(streakState.streak) && ( | {helperId && (
 test("every page's sections sit --section-gap apart at every phone width", async ({ browser }, info) => {
   test.setTimeout(40 * 60_000);
   expect(SECTION_GAP, "--section-gap is the 12px phone rhythm").toBe(12);

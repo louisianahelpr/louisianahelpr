@@ -432,7 +432,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                   const label = categoryLabels[cat] ?? "Other";
 
                   return (
-                    <div key={job.id} className="relative">
+                    <div key={job.id} data-home-history-row="" className="relative">
                       {/* Timeline dot */}
                       {jobs.length > 1 && (
                         <div

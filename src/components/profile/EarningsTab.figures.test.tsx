@@ -53,7 +53,8 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 
 vi.mock("@/hooks/useHelperMilestones", () => ({ useHelperMilestones: () => {} }));
 vi.mock("@/components/profile/HelperStreakBadge", () => ({
   HelperStreakBadge: () => null,
-  useHelperStreak: () => ({ settled: true }),
+  useHelperStreak: () => ({ settled: true, streak: 0 }),
+  streakShows: () => false,
 }));
 vi.mock("@/components/EarningsExport", () => ({ EarningsExport: () => null }));
 vi.mock("@/components/InstantPayoutDialog", () => ({ default: () => null }));

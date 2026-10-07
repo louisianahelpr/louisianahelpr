@@ -63,6 +63,7 @@ export function JobCardShell({
     : "";
   return (
     <div
+      data-activity-card=""
       className={`${JOB_CARD_SHELL_FRAME} hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
       onClick={expandable ? onToggle : undefined}
     >

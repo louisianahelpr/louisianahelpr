@@ -258,8 +258,11 @@ BEGIN
      WHERE phone7_sha256 = v_h7
        AND (expires_at IS NULL OR expires_at > now())
        AND email_sha256 IS DISTINCT FROM v_own_h
-       -- The same full number is an EXACT match: enforce_retained_ban bans it.
-       AND phone_sha256 IS DISTINCT FROM v_full
+       -- At signup the same full number is an EXACT match that
+       -- handle_new_user / complete-signup already ban (enforce_retained_ban).
+       -- A phone CHANGED later is enforced by nobody (lh-authz-rls review of
+       -- Q1416), so on UPDATE the exact number is flagged too.
+       AND (TG_OP = 'UPDATE' OR phone_sha256 IS DISTINCT FROM v_full)
      ORDER BY retained_at DESC
      LIMIT 1;
 
@@ -336,18 +339,30 @@ BEGIN
 
   SELECT ban_status, identity_sha256, email INTO v_status, v_ident, v_email
     FROM public.profiles WHERE user_id = p_user_id;
-  IF COALESCE(v_status, 'active') IN ('banned', 'temp_banned', 'permanently_banned') THEN
-    RETURN jsonb_build_object('flagged', false, 'reason', 'already_banned');
-  END IF;
   v_own_h := CASE WHEN v_email IS NULL OR btrim(v_email) = '' THEN NULL
                   ELSE encode(sha256(lower(btrim(v_email))::bytea), 'hex') END;
+  IF COALESCE(v_status, 'active') IN ('banned', 'temp_banned', 'permanently_banned') THEN
+    -- An ID check finished after the ban was retained: keep its key on that
+    -- retained ban too (lh-authz-rls review of Q1416).
+    IF v_own_h IS NOT NULL THEN
+      UPDATE public.retained_bans
+         SET identity_nodoc_sha256 = p_nodoc_sha256
+       WHERE email_sha256 = v_own_h AND identity_nodoc_sha256 IS NULL;
+    END IF;
+    RETURN jsonb_build_object('flagged', false, 'reason', 'already_banned');
+  END IF;
 
   SELECT * INTO v_row
     FROM public.retained_bans
-   WHERE identity_nodoc_sha256 = p_nodoc_sha256
+   -- A ban retained before this migration has no document-free key, but one
+   -- whose ID carried no document number hashed to exactly this value.
+   WHERE (identity_nodoc_sha256 = p_nodoc_sha256 OR identity_sha256 = p_nodoc_sha256)
      AND (expires_at IS NULL OR expires_at > now())
      AND email_sha256 IS DISTINCT FROM v_own_h
-     -- The same full identity is an EXACT match: enforce_retained_ban bans it.
+     -- An EXACT identity match never reaches here: stripe-idv-webhook runs
+     -- enforce_retained_ban on the full identity first and returns on a ban.
+     -- This clause only keeps a profile whose stored identity already equals
+     -- the retained one (a re-verification) from flagging itself.
      AND identity_sha256 IS DISTINCT FROM v_ident
    ORDER BY retained_at DESC
    LIMIT 1;

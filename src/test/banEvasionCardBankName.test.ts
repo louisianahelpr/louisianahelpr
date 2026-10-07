@@ -172,6 +172,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // confirm, never dropped. Behaviour: banEvasionCardBankName.pglite.mjs
   // (NEW_MIGRATION=skip-strikes: 4 FAIL).
   // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     v_status := v_review.deferred_ban_status;\n | NULL;\n
+  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |      AND EXISTS (SELECT 1 FROM public.user_violations v\n                  WHERE v.user_id = p_user_id AND v.created_at >= v_review.created_at) THEN |      THEN
   // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     UPDATE public.ban_settlement_queue r\n       SET deferred_ban_status = NEW.ban_status, |     UPDATE public.ban_settlement_queue r\n       SET deferred_at = now(),
   it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {
     const refuse = body("refuse_unban_during_ban_review");
@@ -179,9 +180,12 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     const keep = refuse.search(/-- 1\.|new\.ban_status\s*:=\s*old\.ban_status/i);
     expect(record, "the ladder's deferred standing is recorded on the open review").toBeGreaterThan(-1);
     expect(record, "recorded before any branch keeps the old standing").toBeLessThan(keep);
-    expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,300}update\s+public\.ban_settlement_queue/i);
+    expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,600}update\s+public\.ban_settlement_queue/i);
     expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_review\.deferred_ban_status\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
     expect(body("lift_ban_settlement_review")).toMatch(/set\s+ban_status\s*=\s*v_status/i);
+    // A strike an admin reversed during the review takes its standing with it.
+    expect(body("lift_ban_settlement_review")).toMatch(/exists\s*\(select\s+1\s+from\s+public\.user_violations\s+v\s+where\s+v\.user_id\s*=\s*p_user_id\s+and\s+v\.created_at\s*>=\s*v_review\.created_at\)/i);
+    expect(readFileSync(join(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8")).toMatch(/update\.ban_status = applied\.ban_status/);
     expect(body("admin_confirm_ban_settlement")).toMatch(/deferred_ban_status/i);
     expect(body("admin_ban_settlement_reviews")).toMatch(/'strikes_during_review'/);
   });

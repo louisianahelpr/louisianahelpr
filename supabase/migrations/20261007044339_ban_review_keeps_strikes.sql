@@ -9,8 +9,10 @@
 --   * the open review row keeps the HARSHEST standing the ladder tried to set
 --     during the review (deferred_ban_status / deferred_suspended_until);
 --   * lift_ban_settlement_review applies the harsher of the admin's choice and
---     that deferred standing (a spent suspension is ignored), so the notice
---     the ladder sent comes true when the review ends;
+--     that deferred standing (a spent suspension is ignored, and so is one
+--     whose strikes an admin has since reversed), so the notice the ladder
+--     sent comes true when the review ends; it returns the standing it set,
+--     which admin-user-actions now writes instead of its own choice;
 --   * admin_confirm_ban_settlement applies it when harsher than the retained
 --     judgment, and a later suspension end extends a confirmed temporary ban;
 --   * admin_ban_settlement_reviews lists the deferred standing and every strike
@@ -67,7 +69,9 @@ BEGIN
   --    apply the harsher of it and the admin's choice. Only the ladder's own
   --    writes (app.trusted_ladder_write); a retained-ban match is the review.
   IF COALESCE(current_setting('app.trusted_ladder_write', true), '') = 'on'
-     AND NEW.ban_status IS DISTINCT FROM OLD.ban_status
+     -- A later end on the same suspension counts too (lh-authz-rls review).
+     AND (NEW.ban_status IS DISTINCT FROM OLD.ban_status
+          OR NEW.auto_suspended_until IS DISTINCT FROM OLD.auto_suspended_until)
      AND COALESCE(NEW.ban_status, 'active') IN ('final_warning', 'temp_banned', 'banned', 'permanently_banned') THEN
     UPDATE public.ban_settlement_queue r
        SET deferred_ban_status = NEW.ban_status,
@@ -139,7 +143,7 @@ BEGIN
     RAISE EXCEPTION 'lift_needs_an_unbanned_status' USING ERRCODE = '22023';
   END IF;
 
-  SELECT r.id, r.review_state, r.deferred_ban_status, r.deferred_suspended_until INTO v_review
+  SELECT r.id, r.review_state, r.created_at, r.deferred_ban_status, r.deferred_suspended_until INTO v_review
     FROM public.ban_settlement_queue r
    WHERE r.user_id = p_user_id AND r.review_state IN ('open', 'confirmed')
    ORDER BY r.created_at DESC
@@ -166,10 +170,15 @@ BEGIN
   -- end has passed is spent and ignored).
   v_status := p_ban_status;
   v_until := NULL;
+  -- Only while a strike recorded during the review still stands: an admin
+  -- who reversed them (admin_reverse_violation deletes the row) reversed
+  -- what they earned (lh-authz-rls review of Q1413).
   IF v_review.deferred_ban_status IS NOT NULL
      AND NOT (v_review.deferred_ban_status = 'temp_banned'
               AND COALESCE(v_review.deferred_suspended_until, '-infinity'::timestamptz) <= now())
-     AND public.ban_standing_rank(v_review.deferred_ban_status) > public.ban_standing_rank(p_ban_status) THEN
+     AND public.ban_standing_rank(v_review.deferred_ban_status) > public.ban_standing_rank(p_ban_status)
+     AND EXISTS (SELECT 1 FROM public.user_violations v
+                  WHERE v.user_id = p_user_id AND v.created_at >= v_review.created_at) THEN
     v_status := v_review.deferred_ban_status;
     v_until := CASE WHEN v_status = 'temp_banned' THEN v_review.deferred_suspended_until ELSE NULL END;
   END IF;
@@ -185,7 +194,8 @@ BEGIN
           jsonb_build_object('review_state_was', v_review.review_state, 'ban_status', v_status,
                              'admin_choice', p_ban_status, 'deferred_ban_status', v_review.deferred_ban_status,
                              'deferred_suspended_until', v_review.deferred_suspended_until));
-  RETURN jsonb_build_object('lifted', true, 'review_state_was', v_review.review_state, 'ban_status', v_status);
+  RETURN jsonb_build_object('lifted', true, 'review_state_was', v_review.review_state,
+                            'ban_status', v_status, 'suspended_until', v_until);
 END;
 $function$;
 
@@ -228,10 +238,14 @@ BEGIN
   -- Q1413: a standing the ladder deferred during the review applies when it
   -- is harsher than the retained judgment (a later suspension end too).
   IF v_review.deferred_ban_status IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.user_violations v
+                  WHERE v.user_id = p_user_id AND v.created_at >= v_review.created_at)
      AND public.ban_standing_rank(v_review.deferred_ban_status) > public.ban_standing_rank(v_final) THEN
     v_final := v_review.deferred_ban_status;
     v_review.original_expires_at := v_review.deferred_suspended_until;
   ELSIF v_final = 'temp_banned' AND v_review.deferred_ban_status = 'temp_banned'
+        AND EXISTS (SELECT 1 FROM public.user_violations v
+                     WHERE v.user_id = p_user_id AND v.created_at >= v_review.created_at)
         AND v_review.deferred_suspended_until > COALESCE(v_review.original_expires_at, '-infinity'::timestamptz) THEN
     v_review.original_expires_at := v_review.deferred_suspended_until;
   END IF;

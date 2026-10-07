@@ -35,6 +35,8 @@
  *   node scripts/perf/cwv-lab.mjs --base https://www.louisianahelpr.com   # prod
  *   --routes /,/home,/jobs   --profiles mobile,desktop   --browsers chromium,webkit
  *   --runs 3   --warm (a second load in the same context: HTTP cache warm)
+ *   --return (a second load in the same context with the HTTP cache cleared:
+ *            a returning visitor after a deploy; Chromium only)
  *   --expired  --persona customer|helper|admin   --label before   --out ~/.lh-shots/perf
  *   --dist <dir>   --viewport 1366x768   --scheme dark   --shots   --filmstrip
  *   --walk Posts,Jobs,@Earnings   (tap dock/rail destinations, or "@Text"
@@ -420,9 +422,21 @@ async function main() {
             });
             await ctx.addInitScript(CWV_INIT);
             if (signedIn) await ctx.addInitScript(...sessionInit({ key: session.key, value: session.value, expired: flag("expired") }));
-            const loads = flag("warm") ? ["cold", "warm"] : ["cold"];
+            // --return: a second load in the same context with the HTTP cache
+            // CLEARED but site storage kept, as a returning visitor's first load
+            // after a deploy (every chunk hash changed; localStorage, IndexedDB
+            // and the learned first-screen reads of Q1171 survive).
+            const loads = flag("warm") ? ["cold", "warm"] : flag("return") ? ["cold", "return"] : ["cold"];
             for (const kind of loads) {
               const page = await ctx.newPage();
+              if (kind === "return") {
+                const c = await ctx.newCDPSession(page);
+                await c.send("Network.clearBrowserCache");
+                // --drop-idb: also the persisted React Query cache (IndexedDB,
+                // 24 h maxAge), as a visitor back after more than a day.
+                if (flag("drop-idb")) await c.send("Storage.clearDataForOrigin", { origin: base, storageTypes: "indexeddb" });
+                await c.detach();
+              }
               const throttled = await applyThrottle(ctx, page, profile, browserName, calibratedCpuRate(profile.cpu, bench));
               // --filmstrip: every painted frame (CDP screencast), saved at
               // 250 ms steps, so a number always comes with what it looked like.

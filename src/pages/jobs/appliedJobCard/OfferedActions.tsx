@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { useAcceptPendingJobs } from "@/hooks/useAcceptPendingJobs";
 import { useAcceptGate } from "@/hooks/useAwardBlockReason";
 import { acceptGateLine, awardBlockCopy } from "@/lib/awardGate";
@@ -47,13 +46,8 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // Q1180: they tapped Accept and it waits on their Stripe setup; tapping
   // again reopens the checklist (accept_job_offer answers with what is left).
   const acceptPending = useAcceptPendingJobs().has(job.id);
-  // decline_job_offer (20261003193541) files no strike while setup is
-  // unfinished OR while this job's accept is pending; the confirm mirrors both
-  // halves so it never promises what the server will not do (re-review #9).
-  // The profile is live over realtime, and the decline's own result decides
-  // the toast afterwards.
+  // The profile is live over realtime; the gate decides the primary below.
   const gate = useAcceptGate();
-  const noStrike = gate.reason !== null || acceptPending;
   // THE PRIMARY SAYS WHAT THE TAP WILL DO (owner, 2026-10-05): when the accept
   // would be refused for an unfinished Stripe setup, the one primary IS that
   // setup ("Set Up Payouts" / "Finish Stripe Setup") with one line saying why,
@@ -297,20 +291,11 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Decline This Job?"
-        description={
-          noStrike
-            ? "You applied for this one and the person who posted it picked you. Your Stripe setup isn't finished yet, so declining now isn't a strike."
-            : "You applied for this one and the person who posted it picked you, so backing out now counts against your account."
-        }
-        callout={{
-          // The real ladder, from the shared statement — this callout used to
-          // quote the retired 5-strike math ("Three declines gets you a
-          // warning. Five is a permanent ban."). No strike while Stripe setup
-          // is unfinished (decline_job_offer, 20261003193541).
-          text: noStrike
-            ? "The job goes back to everyone. This can’t be undone."
-            : `Declining after accepting counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. This can’t be undone.`,
-        }}
+        // Q1281 (owner, 2026-10-05): declining an offer is never a strike;
+        // nothing is committed until the Helpr accepts (decline_job_offer,
+        // 20261007125609). Strikes are only for backing out after accepting.
+        description="You applied for this one and the person who posted it picked you. Declining isn't a strike: nothing is committed until you accept."
+        callout={{ text: "The job goes back to everyone. This can’t be undone." }}
         primaryLabel="Decline the Job"
         primaryTone="sienna"
         primaryHaptic="warning"

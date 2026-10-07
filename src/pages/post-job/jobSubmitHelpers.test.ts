@@ -51,7 +51,8 @@ describe("buildJobInsertPayload — sales tax", () => {
 
   it("writes the parish rate on the labor line for a taxable category", () => {
     const p = buildJobInsertPayload({ ...base, category: "assembly" }) as Record<string, unknown>;
-    expect(p.sales_tax_rate).toBe(10.45);
+    // Q1486: the column holds a FRACTION (0..1 CHECK), not the percent.
+    expect(p.sales_tax_rate).toBe(0.1045);
     expect(p.sales_tax_amount).toBeCloseTo(10.45, 2);
   });
 

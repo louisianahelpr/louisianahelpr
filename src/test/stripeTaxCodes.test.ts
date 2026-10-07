@@ -32,6 +32,8 @@
  * @mutate supabase/functions/_shared/salesTax.ts |     && (billingState ?? "").trim().toUpperCase() === "LA"; |     && billingState === "Louisiana";
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, | if (false && taxedZeroOnTaxableLouisianaLabor(sessionTaxCents,
  */
+// @mutate src/pages/post-job/jobSubmitHelpers.ts | sales_tax_rate: salesTaxRateFraction(lockedSalesTaxRate), | sales_tax_rate: lockedSalesTaxRate,
+// @mutate src/pages/post-job/jobSubmitHelpers.ts | Math.min(1, Math.max(0, percent / 100)) | percent / 100
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
@@ -144,6 +146,33 @@ describe("Stripe tax codes (ME-043)", () => {
     }
     expect(effectiveSalesTaxRate(1120, 11200)).toBe(0.1);
     expect(effectiveSalesTaxRate(5000, 1)).toBe(1); // clamped, never past the CHECK
+  });
+
+  // Q1486 (lh-money-escrow@5970a765f#4): the CLIENT insert builder wrote the
+  // parish PERCENT (10.45) into the same 0..1 column. Harmless only while the
+  // form passes 0; the class now covers every client write too.
+  it("every client write of sales_tax_rate is salesTaxRateFraction(...) or 0, and that helper stays inside the CHECK", async () => {
+    const client = walkSource([resolve(ROOT, "src")], [".ts", ".tsx"])
+      .filter((f) => !/\.test\.tsx?$/.test(f) && !f.includes("integrations/supabase"))
+      .map((f) => ({ file: relative(ROOT, f), src: blankComments(readFileSync(f, "utf8")) }));
+    const sites: string[] = [];
+    const bad: string[] = [];
+    for (const { file: f, src } of client) {
+      for (const m of src.matchAll(/(?:\bsales_tax_rate\s*:|\.sales_tax_rate\s*=)\s*([^,;\n]+)/g)) {
+        const rhs = m[1].trim();
+        sites.push(`${f}: ${rhs}`);
+        if (!/^salesTaxRateFraction\(/.test(rhs) && rhs !== "0") bad.push(`${f}: ${rhs}`);
+      }
+    }
+    expect(sites.length, "the scan found no client write: the regex or the walk is broken").toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+    const { salesTaxRateFraction } = await import("@/pages/post-job/jobSubmitHelpers");
+    for (const pct of [0, 10.45, 100, 250, -3]) {
+      const r = salesTaxRateFraction(pct);
+      expect(r, `${pct}%`).toBeGreaterThanOrEqual(0);
+      expect(r, `${pct}%`).toBeLessThanOrEqual(1);
+    }
+    expect(salesTaxRateFraction(10.45)).toBe(0.1045);
   });
 
   it("every job category maps to a tax code: taxable ones to the labor code, the rest to Nontaxable", () => {

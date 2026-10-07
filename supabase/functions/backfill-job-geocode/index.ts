@@ -6,7 +6,14 @@
 // and outages, means some open jobs land with null coords and never pin
 // on /browse?view=map. There is no DB trigger that fills this in.
 //
-// This cron re-geocodes any OPEN job still missing coords, using the same
+// Q1499 (2026-10-07): a changed address clears the job's coordinates
+// (trigger zzzzzz_jobs_location_clears_coords, 20261007113957), whether the
+// poster edited an open job or a booked job's crew agreed to a new address
+// (Q1254). So a BOOKED job (accepted / in_progress) can be missing coords
+// too, and its Helpr's arrival check needs them: those are re-geocoded here
+// as well.
+//
+// This cron re-geocodes any live job still missing coords, using the same
 // Nominatim endpoint and address composition as the client path. Runs
 // infrequently and serially — Nominatim's fair-use policy caps bulk use at
 // 1 req/sec, so this sleeps between calls rather than firing in parallel.
@@ -24,6 +31,8 @@ const corsHeaders = {
 // Keep well under one run's function-timeout budget — any leftovers pick
 // up on the next scheduled run rather than risking a mid-batch kill.
 const MAX_JOBS_PER_RUN = 30;
+// Open (the browse map) and booked (the Helpr's 500 ft arrival check, Q1499).
+const GEOCODE_STATUSES = ["open", "accepted", "in_progress"];
 // Pulled in full, shuffled, then trimmed to MAX_JOBS_PER_RUN — see the
 // shuffle comment below for why. Bounded well above MAX_JOBS_PER_RUN so
 // the shuffle has enough of the queue to draw from without turning this
@@ -94,7 +103,7 @@ serve(async (req) => {
     const { data: candidates, error: fetchError } = await supabase
       .from("jobs")
       .select("id, location")
-      .eq("status", "open")
+      .in("status", GEOCODE_STATUSES)
       .is("latitude", null)
       .is("longitude", null)
       .not("location", "is", null)
@@ -129,14 +138,18 @@ serve(async (req) => {
       const job = batch[i];
       const coords = await geocodeAddress(job.location);
       if (coords) {
-        // Conditional on still being open + still null, mirroring the other
+        // Conditional on still being live + still null, mirroring the other
         // cron write-guards — a job that got its own coords (or was closed)
         // between the read above and here should not be clobbered.
         const { data: updated, error: updateError } = await supabase
           .from("jobs")
           .update({ latitude: coords.latitude, longitude: coords.longitude })
           .eq("id", job.id)
-          .eq("status", "open")
+          .in("status", GEOCODE_STATUSES)
+          // The address this lookup geocoded, still: a change mid-run leaves
+          // the coordinates NULL, and this point would be the old place's
+          // (lh-authz-rls re-review of Q1499, G4).
+          .eq("location", job.location)
           .is("latitude", null)
           .is("longitude", null)
           .select("id");

@@ -20,7 +20,7 @@
  * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |           'New date or time not possible', |           NULL,
  * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | FOR SHARE OF o; | ;
  * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | AND (o.helper_id = v_job.helper_id | AND (false
- * @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
+ * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

@@ -134,6 +134,8 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
+  "sql:request_job_detail_change": { uncovered: GAP("request_job_detail_change on a hired journey job (each booked Helpr answers with respond_job_detail_change)") },
+  "sql:respond_job_detail_change": { uncovered: GAP("respond_job_detail_change after the poster asks to change a hired journey job's details") },
   "sql:respond_to_direct_offer": { driven: { spec: NOTIF, evidence: "rpc/respond_to_direct_offer" } },
   "sql:review_credential": { uncovered: ADMIN_ONLY("the credential review queue; the shared helper has no pending credential to review") },
   "sql:rpc_decide_crew_dispute": { uncovered: DISPUTE },

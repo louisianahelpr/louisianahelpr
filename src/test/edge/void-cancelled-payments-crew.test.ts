@@ -353,3 +353,134 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     }
   });
 });
+
+/**
+ * Q1390: a crew cancelled after a poster blocked a committed member close to
+ * the start still owes that member the block fee (crew_block_fees). It is tried
+ * before the poster's refund and always withheld from it; one that cannot go now
+ * never holds the refund up (lh-money-escrow review) and Part F pays it once
+ * the job has settled.
+ */
+describe("void-cancelled-payments — a cancelled crew's block fee is paid before the refund (Q1390)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  const seedWithBlockFee = () => {
+    seedCancelledCrew();
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null }],
+    };
+  };
+  const blockTransfers = () =>
+    stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents; |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           await payBlockFees(pi);\n |           void payBlockFees;\n
+  it("pays the block fee once and withholds it from the poster's refund", async () => {
+    seedWithBlockFee();
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = blockTransfers();
+    expect(fee).toHaveLength(1);
+    expect((fee[0][1] as { idempotencyKey: string }).idempotencyKey).toBe("crew-block-fee-bf-1");
+    expect((fee[0][0] as { metadata: Record<string, unknown> }).metadata).toEqual(expect.objectContaining({ block_fee_id: "bf-1", helper_id: "member-d" }));
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_crew", amount: 33000 - 15000 - 2500 - 3000 },
+      { idempotencyKey: "cancel-refund-job-crew" },
+    );
+  });
+
+  it("a block fee that cannot be paid now never holds up the poster: still withheld, the rest refunded, the row failed for Part F", async () => {
+    seedWithBlockFee();
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string; type?: string } }) => {
+      if (params.metadata.type === "crew_block_fee") throw new Error("Stripe is down");
+      return { id: `tr_${params.metadata.helper_id}` };
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_crew", amount: 33000 - 15000 - 2500 - 3000 },
+      { idempotencyKey: "cancel-refund-job-crew" },
+    );
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(true);
+  });
+
+  // HIGH (lh-money-escrow review): a block fee already out is this loop's own
+  // transfer, never "the escrow was already paid to a Helpr".
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |  && t.metadata?.type !== "crew_block_fee"); | );
+  it("a block-fee transfer already in the job's transfer group does not stop the refund", async () => {
+    seedWithBlockFee();
+    (scenario.reads.crew_block_fees as { rows: Array<Record<string, unknown>> }).rows[0].status = "paid";
+    (scenario.reads.crew_block_fees as { rows: Array<Record<string, unknown>> }).rows[0].stripe_transfer_id = "tr_bf";
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_bf", amount: 2200, amount_reversed: 0, reversed: false, metadata: { job_id: "job-crew", helper_id: "member-d", type: "crew_block_fee", block_fee_id: "bf-1" } }] });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_crew", amount: 33000 - 15000 - 2500 - 3000 },
+      { idempotencyKey: "cancel-refund-job-crew" },
+    );
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /NOT refunded/.test(a.title ?? ""))).toBe(false);
+  });
+
+  // Part F: a fee still owed on a settled job is paid by the sweep, once.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
+  it("Part F pays a block fee still owed on a settled job, keyed on its row", async () => {
+    scenario.reads.jobs = {
+      rows: [],
+      selectOverrides: [{
+        includes: "helper_fee_percent, payment_status, stripe_payment_intent_id",
+        result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", stripe_payment_intent_id: "pi_done" }] },
+      }],
+    };
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-9", job_id: "job-done", helper_id: "member-d", slot_no: 1, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_done", status: "succeeded", latest_charge: "ch_done" });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = blockTransfers();
+    expect(fee).toHaveLength(1);
+    expect((fee[0][1] as { idempotencyKey: string }).idempotencyKey).toBe("crew-block-fee-bf-9");
+    expect((fee[0][0] as Record<string, unknown>).source_transaction).toBe("ch_done");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // Round 2 nit 1: a fully refunded charge (an admin full refund) cannot fund
+  // a source_transaction; the platform balance pays rather than failing hourly.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 else if (ch && Number(ch.amount_refunded ?? 0) < Number(ch.amount ?? 0)) chargeId = ch.id; |                 else if (ch) chargeId = ch.id;
+  it("Part F never links a fully refunded charge to the fee transfer", async () => {
+    scenario.reads.jobs = {
+      rows: [],
+      selectOverrides: [{
+        includes: "helper_fee_percent, payment_status, stripe_payment_intent_id",
+        result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", stripe_payment_intent_id: "pi_done" }] },
+      }],
+    };
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-9", job_id: "job-done", helper_id: "member-d", slot_no: 1, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_done", status: "succeeded", latest_charge: { id: "ch_done", amount: 33000, amount_refunded: 33000 } });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = blockTransfers();
+    expect(fee).toHaveLength(1);
+    expect((fee[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
+  });
+
+  it("an unreadable block-fee ledger moves no money for the job", async () => {
+    seedWithBlockFee();
+    scenario.reads.crew_block_fees = { error: { message: "boom" } } as never;
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+});

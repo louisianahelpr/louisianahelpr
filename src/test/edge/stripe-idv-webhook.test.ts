@@ -210,3 +210,54 @@ describe("stripe-idv-webhook edge function", () => {
 // "signature enforcement" block above it SURVIVED — 4/4 green with a forged
 // payload processed as if Stripe had signed it.
 // @mutate supabase/functions/stripe-idv-webhook/index.ts | event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret); | try { event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret); } catch { event = JSON.parse(body) as Stripe.Event; }
+
+
+// Q1416 (a): the ID NEAR-match. A verified session also hands the
+// document-free identity hash to flag_possible_ban_evasion_by_identity
+// (admin doubt-check only). A failure there never fails the verification.
+// @mutate supabase/functions/stripe-idv-webhook/index.ts |               const { error: flagErr } = await supabase.rpc("flag_possible_ban_evasion_by_identity", { |               const { error: flagErr } = await supabase.rpc("flag_possible_ban_evasion_by_identity_off", {
+describe("stripe-idv-webhook: ID near-match doubt-check (Q1416)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  async function verify() {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_idv_near",
+      type: "identity.verification_session.verified",
+      data: { object: { id: "vs_near", metadata: { user_id: "user-1" } } },
+    });
+    stripeMock.identity.verificationSessions.retrieve.mockResolvedValue({
+      id: "vs_near",
+      verified_outputs: { first_name: "Ann", last_name: "Lee", dob: { year: 1990, month: 1, day: 2 } },
+      last_verification_report: { document: { number: "D123" }, selfie: {} },
+    });
+    scenario.rpc.identity_fingerprint = "a".repeat(64);
+    scenario.rpc.enforce_retained_ban = { banned: false };
+    scenario.writeSelectRows.profiles = [{ user_id: "user-1" }];
+    return fn.fetch(webhookRequest(fn));
+  }
+
+  it("asks for the document-free hash and files it for the doubt-check", async () => {
+    scenario.rpc.flag_possible_ban_evasion_by_identity = { flagged: false };
+    const res = await verify();
+    expect(res.status).toBe(200);
+    const fps = (scenario.rpcCalls ?? []).filter((c) => c.name === "identity_fingerprint");
+    expect(fps.map((c) => (c.args as { p_doc_number: string | null }).p_doc_number)).toEqual(["D123", null]);
+    const flag = (scenario.rpcCalls ?? []).find((c) => c.name === "flag_possible_ban_evasion_by_identity");
+    expect(flag?.args).toEqual({ p_user_id: "user-1", p_nodoc_sha256: "a".repeat(64) });
+  });
+
+  it("a failed doubt-check pages a warning and still completes the verification", async () => {
+    scenario.rpcErrors = { flag_possible_ban_evasion_by_identity: { message: "boom", code: "XX000" } };
+    const res = await verify();
+    expect(res.status).toBe(200);
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /ID doubt-check did not run/.test(String(a.title)))).toBe(true);
+    const upd = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
+    expect((upd?.payload as { idv_status?: string })?.idv_status).toBeDefined();
+  });
+});

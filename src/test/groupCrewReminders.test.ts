@@ -164,8 +164,10 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // from the Q729 bodies (the offer cap), and 20261006015121 (Q1378, the rest
     // of a crew carry on) restates both with block_user_and_settle; the crew
     // rules below must survive every restatement.
+    // 20261007073145 (Q1390, the crew block fee ledger) restates both once
+    // more; the crew rules below must survive it too.
     for (const fn of ["block_user_and_settle", "accept_group_application"]) {
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261006015121_crew_rest_carry_on.sql");
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261007073145_crew_block_fee_ledger.sql");
     }
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
     // its crew pass also covers a started crew.
@@ -173,7 +175,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);
-    // The poster's strike and the by-hand fee alert; the member's strike mirrors helper_cancel_booking.
+    // The poster's strike and the by-hand fee alert (since Q1390 only for a
+    // slotless legacy row; src/test/crewBlockFeeLedger.test.ts pins the
+    // ledger); the member's strike mirrors helper_cancel_booking.
     expect(block).toMatch(/v_committed := public\.crew_fee_pays_unconfirmed\(\) OR v_crew\.member_confirmed_at IS NOT NULL;/);
     expect(block).toMatch(/p_violation_type\s+=> 'cancel_with_helper'/);
     expect(block).toMatch(/IF v_member_fee > 0 THEN[\s\S]{0,600}'Crew block: fee owed by hand'/);

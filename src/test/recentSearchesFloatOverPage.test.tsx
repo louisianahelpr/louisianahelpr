@@ -3,11 +3,11 @@
  * front of that search. Like it shouldn't make that box it's in any bigger."
  *
  * The Recent list is portaled to <body> and fixed under the field, so the
- * card the field sits in never grows. Inside the modal filter panel
- * (`embedded`) it stays in the panel, because a portal outside a Radix modal
- * is inert.
+ * card the field sits in never grows. (The in-panel `embedded` form, the one
+ * case that kept the list inline, was never passed by any caller and was
+ * removed by Q913.)
  *
- * @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | const floatList = !embedded; | const floatList = false;
+ * @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | createPortal(recentList, document.body)} | recentList}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
@@ -39,10 +39,4 @@ describe("Recent searches open over the page, not inside the search card", () =>
     expect(list.className).toMatch(/\bfixed\b/);
   });
 
-  it("inside the filter panel (embedded) the list stays in the panel", () => {
-    const { container } = render(<BrowseSearchBar filters={filters} embedded />);
-    fireEvent.focus(screen.getByRole("combobox"));
-    const list = screen.getByRole("listbox", { name: "Recent searches" });
-    expect(container.contains(list)).toBe(true);
-  });
 });

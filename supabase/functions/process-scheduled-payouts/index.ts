@@ -23,6 +23,7 @@ import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewSh
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
+import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFees.ts";
 
 
 serve(async (req) => {
@@ -527,6 +528,8 @@ serve(async (req) => {
       /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
       cardLegTestMode: boolean;
       paidCents: number;
+      /** Q1390: block fees paid to members out of their closed spots' shares. */
+      blockFeeCents: number;
     }): Promise<{ ok: boolean; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
       const { job } = a;
       const slots = crewSlotByJob.get(job.id);
@@ -547,8 +550,11 @@ serve(async (req) => {
       const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0);
       const paidUrgent = paying.reduce((sum, m) => sum + allocateCents(urgentCents, needed, m.slotNo as number), 0);
       const unpaidBudgetCents = Math.max(0, budgetCents - paidBudget);
-      const unfilledCents = unpaidBudgetCents + Math.max(0, urgentCents - paidUrgent);
-      if (unfilledCents <= 0) return { ok: true, refundCents: 0 };
+      // Q1390: a block fee comes out of its closed spot's share (it is the
+      // member's, paid now or by void-cancelled-payments' block-fee sweep),
+      // so that much of the budget is not owed back to the poster.
+      const blockFeeCents = Math.min(a.blockFeeCents, unpaidBudgetCents);
+      const unfilledCents = unpaidBudgetCents - blockFeeCents + Math.max(0, urgentCents - paidUrgent);
       // ── The rest of the charge goes back PRO-RATA (owner, MQ31(C), 2026-09-27) ──
       // The poster's service fee and sales tax come back in proportion to the
       // unpaid share of the BUDGET (the fee is a % of the budget and only the
@@ -566,9 +572,13 @@ serve(async (req) => {
       // and what is refunded plus what is kept is the charge, to the cent.
       const feeCents = Math.max(0, Math.round(Number(job.customer_fee_amount ?? 0) * 100));
       const taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100));
-      const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * unpaidBudgetCents) / budgetCents) : 0;
+      // Q1390 (lh-money-escrow review): the service fee on a block fee is kept,
+      // as the platform keeps it on any fee; the TAX on the whole closed share
+      // goes back, as a cancellation refunds a cancelled job's tax.
+      const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0;
       const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
       const owedCents = unfilledCents + feeReturnCents + taxReturnCents;
+      if (owedCents <= 0) return { ok: true, refundCents: 0 };
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";
 
@@ -728,9 +738,10 @@ serve(async (req) => {
       // so `capturedCents` already holds it (this used to re-read the charge
       // here; a test-mode card leg is handled above).
       const capturedCents = a.capturedCents;
+      // Q1390: a block fee paid from the charge has left it too.
       const chargeLeftCents = a.isPifFunded
-        ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents))
-        : Math.max(0, a.capturedCents - a.paidCents);
+        ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents - blockFeeCents))
+        : Math.max(0, a.capturedCents - a.paidCents - blockFeeCents);
       const refundCents = Math.min(cardOwedCents, chargeLeftCents);
       if (refundCents <= 0) return shortRefund(null, 0);
       try {
@@ -824,7 +835,34 @@ serve(async (req) => {
       // rest is refunded ONCE: the payment_refunds ledger is read first (fail
       // closed), the Stripe key is per job (per dispute for a decision), and
       // the job is not released until it is done.
-      const refund = await refundUnfilledCrewShares({ ...a, paidCents });
+      // ── Q1390: a spot a block closed owes its member a fee from this escrow ──
+      // Tried BEFORE the rest is refunded, and always withheld from that
+      // refund. A fee that cannot go now (a payout hold, no payout account)
+      // never holds up the poster's refund or the crew's release
+      // (lh-money-escrow review): void-cancelled-payments' block-fee sweep
+      // keeps trying it, and money-reconciliation reports one left owed.
+      const blockFees = await readCrewBlockFees(supabaseAdmin, job.id);
+      if (!blockFees.ok) {
+        console.error(`[process-scheduled-payouts] crew block fee read failed for job ${job.id}: ${blockFees.error}`);
+        jobDefect(job.id, `crew block fee read ${job.id}: ${blockFees.error}`);
+        return { ready: false, paidCents };
+      }
+      if (blockFees.rows.some((r) => r.status === "owed" || r.status === "failed")) {
+        let chargeId: string | null = null;
+        if (!a.isPifFunded && a.paymentIntentId) {
+          try {
+            const piForCharge = await stripe.paymentIntents.retrieve(a.paymentIntentId, { expand: ["latest_charge"] });
+            chargeId = piForCharge.latest_charge
+              ? (typeof piForCharge.latest_charge === "string" ? piForCharge.latest_charge : piForCharge.latest_charge.id)
+              : null;
+          } catch (e) {
+            console.warn(`[process-scheduled-payouts] could not link the charge for job ${job.id}'s block fees:`, e);
+          }
+        }
+        const paidFees = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "process-scheduled-payouts" }, job, blockFees.rows, chargeId);
+        for (const p of paidFees.problems) jobDefect(job.id, p);
+      }
+      const refund = await refundUnfilledCrewShares({ ...a, paidCents, blockFeeCents: crewBlockFeeCents(blockFees.rows) });
       return { ready: refund.ok, paidCents, refundId: refund.refundId, refundCents: refund.refundCents, manual: refund.manual };
     };
 

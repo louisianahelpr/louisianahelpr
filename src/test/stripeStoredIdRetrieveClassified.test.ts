@@ -128,6 +128,7 @@ const CLASSIFIED = [
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)#2",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
+  "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(fj.stripe_payment_intent_id)",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(job.stripe_payment_intent_id)",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(job.stripe_payment_intent_id)#2",
   "void-cancelled-payments/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
@@ -198,6 +199,9 @@ const EXEMPT: Record<string, string> = {
   "execute-dispute-split/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
   "instant-payout/index.ts::stripe.accounts.retrieve()": PLATFORM,
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
+  // Q1390: the crew block-fee charge link, read after the main loop has
+  // already retrieved and classified this job's PaymentIntent.
+  "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(a.paymentIntentId)": REREAD,
   "stripe-idv-start/index.ts::stripe.identity.verificationSessions.retrieve(profile.idv_session_id)": ABSENT,
   "stripe-idv-webhook/index.ts::stripe.identity.verificationSessions.retrieve(session.id)": EVENT,
   "_shared/chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,

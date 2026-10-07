@@ -6,6 +6,7 @@
  *
  *   node src/test/pglite/seedPurge.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/seedPurge.pglite.mjs   # RED: the live (unfixed) state
+ *   NEW_MIGRATION=skip-gift node src/test/pglite/seedPurge.pglite.mjs   # RED for Q455 only
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR). Both migrations are applied 3x (replay-safe).
@@ -24,6 +25,9 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const mig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
 const BIRTH = mig("20260926040523_seed_flag_derived_at_birth.sql");
 const PURGE = mig("20260926041023_purge_old_seed_data.sql");
+// Q455: the purge also clears the gift-card journey's residue.
+// NEW_MIGRATION=skip-gift applies everything but this one (its red proof).
+const GIFT = mig("20261007044702_seed_purge_clears_gift_residue.sql");
 const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: running against the LIVE (unfixed) state (expect FAILs)");
 
@@ -53,10 +57,15 @@ create table public.jobs(id uuid primary key default gen_random_uuid(), customer
 create table public.messages(id serial primary key, job_id uuid references public.jobs(id) on delete cascade);
 create table public.notifications(id serial primary key, user_id uuid, job_id uuid references public.jobs(id) on delete set null, created_at timestamptz not null default now());
 create table public.payment_refunds(id serial primary key, job_id uuid references public.jobs(id) on delete set null);
+create table public.gift_cards(id uuid primary key default gen_random_uuid(), donor_id uuid, recipient_id uuid,
+  job_id uuid references public.jobs(id), parent_credit_id uuid references public.gift_cards(id) on delete set null,
+  restored_from_job_id uuid references public.jobs(id) on delete set null,
+  status text not null default 'pending', payment_status text not null default 'pending', amount numeric default 20,
+  created_at timestamptz not null default now());
 create table public.platform_settings(id int primary key, feature_flags jsonb not null default '{}', updated_at timestamptz default now());
 insert into public.platform_settings values (1, '{"seed_jobs_hidden_publicly": false}', now());
 create table public.cron_catchup_policy(jobname text primary key, catch_up boolean, max_late interval, reason text, updated_at timestamptz);
-create table public.cron_work_expectations(jobname text primary key, expected_max_gap interval, note text);
+create table public.cron_work_expectations(jobname text primary key, expected_max_gap interval, note text, work_visibility text, work_exempt_reason text);
 `);
 
 const server = () => db.exec(`select set_config('request.jwt.claim.sub', '', false), set_config('request.jwt.claim.role', 'service_role', false)`);
@@ -143,7 +152,22 @@ check("OLD STATE RED: nothing purges old seed jobs (no purge function; 11 old/ne
 
 if (!SKIP) {
   for (let i = 0; i < 3; i++) await db.exec(PURGE);
+  if (process.env.NEW_MIGRATION !== "skip-gift") for (let i = 0; i < 3; i++) await db.exec(GIFT);
 }
+// Q455 fixture: one row that is certainly residue (g1) and six that are not.
+await db.exec(`
+insert into public.gift_cards(id, donor_id, recipient_id, status, payment_status, created_at) values
+  ('30000000-0000-4000-8000-000000000001', '${SEED_P}', null,         'expired',   'pending', ${OLD}),
+  ('30000000-0000-4000-8000-000000000002', '${SEED_P}', null,         'expired',   'pending', ${NEWISH}),
+  ('30000000-0000-4000-8000-000000000003', '${SEED_P}', null,         'expired',   'paid',    ${OLD}),
+  ('30000000-0000-4000-8000-000000000004', '${REAL_P}', null,         'expired',   'pending', ${OLD}),
+  ('30000000-0000-4000-8000-000000000005', '${SEED_P}', null,         'available', 'pending', ${OLD}),
+  ('30000000-0000-4000-8000-000000000006', '${SEED_P}', '${REAL_P}',  'expired',   'pending', ${OLD}),
+  ('30000000-0000-4000-8000-000000000007', '${SEED_P}', null,         'expired',   'pending', ${OLD});
+insert into public.gift_cards(id, donor_id, status, payment_status, created_at, parent_credit_id) values
+  ('30000000-0000-4000-8000-000000000008', '${SEED_P}', 'expired', 'pending', ${NEWISH}, '30000000-0000-4000-8000-000000000007');
+`);
+const gifts = async () => (await db.query(`select right(id::text, 1) d from public.gift_cards order by id`)).rows.map((r) => r.d).join("");
 if (SKIP) {
   check("purge function exists", false, "migration not applied");
   console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
@@ -180,6 +204,12 @@ check("live run deletes only a, i, k", afterLive.jobs === "bcdefghlm", afterLive
 check("the purged job's messages go with it (cascade); a real job's stay", afterLive.messages === 1, String(afterLive.messages));
 check("seed notifications past the window go; new seed and real ones stay", afterLive.notifications === 2, String(afterLive.notifications));
 check("live result says live", live.dry_run === false, JSON.stringify(live));
+// Q455: only the certain residue goes: unpaid, expired, old, seed donor, no or
+// seed recipient, on no job, parent of no gift.
+check("Q455 the dry run counted exactly one gift row of residue", dry.gift_cards_would_delete === 1, JSON.stringify(dry.gift_cards_would_delete));
+check("Q455 the live run deleted it (g1) and nothing else (paid, new, real donor, open checkout, real recipient, a parent kept)",
+  (one1.gift_cards_deleted ?? 0) + (live.gift_cards_deleted ?? 0) === 1 && (await gifts()) === "2345678",
+  `${one1.gift_cards_deleted} + ${live.gift_cards_deleted} / ${await gifts()}`);
 
 // A window under 7 days is floored: the 3-day-old seed job survives.
 const tiny = (await one(`select public.purge_old_seed_data(false, interval '1 day') r`)).r;

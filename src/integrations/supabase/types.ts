@@ -273,6 +273,9 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          deferred_at: string | null
+          deferred_ban_status: string | null
+          deferred_suspended_until: string | null
           id: string
           matched_on: string
           original_ban_status: string | null
@@ -285,6 +288,9 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          deferred_at?: string | null
+          deferred_ban_status?: string | null
+          deferred_suspended_until?: string | null
           id?: string
           matched_on: string
           original_ban_status?: string | null
@@ -297,6 +303,9 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          deferred_at?: string | null
+          deferred_ban_status?: string | null
+          deferred_suspended_until?: string | null
           id?: string
           matched_on?: string
           original_ban_status?: string | null
@@ -448,6 +457,73 @@ export type Database = {
           },
           {
             foreignKeyName: "chargeback_clawbacks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crew_block_fees: {
+        Row: {
+          created_at: string
+          failure_reason: string | null
+          fee_cents: number
+          fee_percent: number
+          helper_id: string | null
+          id: string
+          job_id: string
+          paid_at: string | null
+          share_basis_cents: number
+          slot_no: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          failure_reason?: string | null
+          fee_cents: number
+          fee_percent: number
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          share_basis_cents: number
+          slot_no: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          failure_reason?: string | null
+          fee_cents?: number
+          fee_percent?: number
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          share_basis_cents?: number
+          slot_no?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_block_fees_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
@@ -1726,6 +1802,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      identity_soft_fingerprints: {
+        Row: {
+          nodoc_sha256: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          nodoc_sha256: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          nodoc_sha256?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       instant_payouts: {
         Row: {
@@ -4751,9 +4845,11 @@ export type Database = {
           email_sha256: string
           expires_at: string | null
           id: string
+          identity_nodoc_sha256: string | null
           identity_sha256: string | null
           name_sha256: string | null
           phone_sha256: string | null
+          phone7_sha256: string | null
           reapplied_at: string | null
           reason: string
           retained_at: string
@@ -4767,9 +4863,11 @@ export type Database = {
           email_sha256: string
           expires_at?: string | null
           id?: string
+          identity_nodoc_sha256?: string | null
           identity_sha256?: string | null
           name_sha256?: string | null
           phone_sha256?: string | null
+          phone7_sha256?: string | null
           reapplied_at?: string | null
           reason: string
           retained_at?: string
@@ -4783,9 +4881,11 @@ export type Database = {
           email_sha256?: string
           expires_at?: string | null
           id?: string
+          identity_nodoc_sha256?: string | null
           identity_sha256?: string | null
           name_sha256?: string | null
           phone_sha256?: string | null
+          phone7_sha256?: string | null
           reapplied_at?: string | null
           reason?: string
           retained_at?: string

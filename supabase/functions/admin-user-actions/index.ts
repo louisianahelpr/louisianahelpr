@@ -210,13 +210,22 @@ serve(async (req) => {
       // the only way an admin unban reaches such an account. Not deployed yet
       // (PGRST202): carry on as before.
       if (banStatus === 'active' || banStatus === 'final_warning') {
-        const { error: liftErr } = await admin.rpc('lift_ban_settlement_review', {
+        const { data: lifted, error: liftErr } = await admin.rpc('lift_ban_settlement_review', {
           p_user_id: targetUserId,
           p_admin_id: userData.user.id,
           p_ban_status: banStatus,
         })
         if (liftErr && liftErr.code !== 'PGRST202') {
           throw new Error(`lift_ban_settlement_review failed: ${liftErr.message}`)
+        }
+        // Q1413: the lift applies the harsher of this choice and a standing
+        // the strike ladder earned during the review (a suspension, a final
+        // warning). Write what it applied, never this request's own choice
+        // over it (lh-authz-rls review: the plain update below undid it).
+        const applied = (lifted ?? null) as { lifted?: boolean; ban_status?: string; suspended_until?: string | null } | null
+        if (applied?.lifted && typeof applied.ban_status === 'string') {
+          update.ban_status = applied.ban_status
+          update.auto_suspended_until = applied.suspended_until ?? null
         }
       }
 
@@ -236,7 +245,9 @@ serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      return json(200, { success: true })
+      // Q1413: what was actually applied (a lift can keep a standing the
+      // strike ladder earned during the review).
+      return json(200, { success: true, appliedBanStatus: update.ban_status, appliedSuspendedUntil: update.auto_suspended_until ?? null })
     }
 
     if (!profile?.email) {

@@ -54,11 +54,13 @@ describe("availability time suffix contrast (Q1013)", () => {
     expect(suffix, "TimeSuffix opacity class not found").not.toBeNull();
   });
 
-  for (const theme of ["light", "dark"] as const) {
+  // Two fixed themes, not an inventory read from the world (vacuity scan (a)).
+  for (const theme of ["light", "dark"]) {
     it(`the idle segment's 11px time clears 4.5:1 on the ${theme} popover`, () => {
+      const t = theme as "light" | "dark";
       const a = Number(idle![1]) * (Number(suffix![1]) / 100);
-      const bg = rgb(token("popover", theme));
-      const ink = rgb(token("olivewood", theme)).map((c, i) => c * a + bg[i] * (1 - a));
+      const bg = rgb(token("popover", t));
+      const ink = rgb(token("olivewood", t)).map((c, i) => c * a + bg[i] * (1 - a));
       expect(ratio(ink, bg)).toBeGreaterThanOrEqual(4.5);
     });
   }

@@ -31,17 +31,23 @@ import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 const SHOTS = process.env.LH_SEARCH_SHOTS;
 
 let poster: Session;
+let admin: Session;
 test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
+  // Q913: the admin console's six search fields.
+  admin = await getSession(request, "admin");
 });
 
 const CLOSE = 'button[aria-label="Close search"]';
+const CLEAR = 'button[aria-label="Clear search"]';
 
 /** `file` is the component that renders the field and its ✕. The inventory
  * guard (src/test/searchFieldsAllChecked.test.ts) scans src for every search
  * field with a ✕ and fails unless each file has a surface here at 375 AND at
  * 1440 — inventory minus checked is empty. */
-const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; close: string; minWidth?: number; maxWidth?: number }[] = [
+// `as: "admin"` signs in the admin test account; `key` opens a surface that has
+// no trigger element (the Cmd-K palette) by pressing it instead of a click.
+const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; close: string; minWidth?: number; maxWidth?: number; as?: "admin"; key?: string }[] = [
   {
     name: "browse-phone", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
     url: "/home",
@@ -81,6 +87,51 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search all policies"]',
     close: CLOSE,
   },
+  // Q913 (owner, 2026-10-07): the admin fields are permanent, so the trigger
+  // is the field itself (or the tab / dialog that shows it) and the ✕ clears.
+  {
+    name: "admin-users", file: "src/components/admin/AdminUsers.tsx", as: "admin",
+    url: "/admin?view=people",
+    trigger: 'input[aria-label="Search users by name, email, phone, or job UUID"]',
+    field: 'input[aria-label="Search users by name, email, phone, or job UUID"]',
+    close: CLEAR,
+  },
+  {
+    name: "admin-notification-logs", file: "src/components/admin/AdminNotificationLogs.tsx", as: "admin",
+    url: "/admin?view=notiflogs",
+    trigger: 'input[aria-label="Search notifications"]',
+    field: 'input[aria-label="Search notifications"]',
+    close: CLEAR,
+  },
+  {
+    name: "admin-referrals", file: "src/components/admin/AdminReferrals.tsx", as: "admin",
+    url: "/admin?view=referrals",
+    trigger: '[aria-label="Referral sections"] button >> nth=1',
+    field: 'input[aria-label="Search referrals by name or code"]',
+    close: CLEAR,
+  },
+  {
+    name: "admin-subscriptions", file: "src/components/admin/AdminSubscriptions.tsx", as: "admin",
+    url: "/admin?view=subscriptions",
+    trigger: 'input[aria-label="Search subscriptions by name, email, or tier"]',
+    field: 'input[aria-label="Search subscriptions by name, email, or tier"]',
+    close: CLEAR,
+  },
+  {
+    name: "admin-settings-add-admin", file: "src/components/admin/AdminSettings.tsx", as: "admin",
+    url: "/admin?view=settings",
+    trigger: 'button:has-text("Add Admin")',
+    field: 'input[aria-label="Search users by name or email"]',
+    close: CLEAR,
+  },
+  {
+    name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", as: "admin",
+    url: "/admin",
+    trigger: "",
+    key: "Control+k",
+    field: '[role="dialog"] input[aria-label="Search admin sections"]',
+    close: `[role="dialog"] ${CLEAR}`,
+  },
 ];
 
 // Q910: Reduce Motion is a second pass. Its at-rest `.btn-press` rule once
@@ -115,14 +166,21 @@ for (const engine of ["chromium", "webkit"] as const) {
                 /* signed out: the trigger wait below fails visibly */
               }
             },
-            { key: AUTH_STORAGE_KEY, val: JSON.stringify(poster) },
+            { key: AUTH_STORAGE_KEY, val: JSON.stringify(s.as === "admin" ? admin : poster) },
           );
           const page = await ctx.newPage();
           await page.goto(s.url, { waitUntil: "domcontentloaded" });
-          const trigger = page.locator(s.trigger).first();
-          await trigger.waitFor({ state: "visible", timeout: 45_000 });
-          await page.waitForTimeout(1000);
-          await trigger.click();
+          if (s.key) {
+            // No trigger element: wait for the page, then press the shortcut.
+            await page.waitForLoadState("networkidle", { timeout: 45_000 }).catch(() => {});
+            await page.waitForTimeout(1000);
+            await page.keyboard.press(s.key);
+          } else {
+            const trigger = page.locator(s.trigger).first();
+            await trigger.waitFor({ state: "visible", timeout: 45_000 });
+            await page.waitForTimeout(1000);
+            await trigger.click();
+          }
           const field = page.locator(s.field).first();
           await field.fill("zzz");
           await page.waitForTimeout(450);

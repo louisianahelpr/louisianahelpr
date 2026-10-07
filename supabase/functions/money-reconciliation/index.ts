@@ -500,6 +500,22 @@ serve(async (req) => {
         "critical",
         "A cancellation-fee Stripe transfer's amount differs from its cancellation_fee_transfers.helper_amount — the Helpr was paid a different sum than the ledger (and the poster's fee split) says.",
       ),
+      // ── The crew block-fee ledger (Q1390) ─────────────────────────────
+      // A poster who blocks a committed crew member close to the start owes
+      // that member a fee from the job's escrow (crew_block_fees, written by
+      // block_user_and_settle). process-scheduled-payouts and
+      // void-cancelled-payments pay it BEFORE they settle the job, so an
+      // unpaid row on a settled job means the member was skipped.
+      crewBlockFeeUnpaid: new Check(
+        "crew_block_fee_unpaid_on_settled_job",
+        "warning",
+        `A crew_block_fees row is still owed or failed more than ${SETTLE_WINDOW_HOURS}h after its job's payment settled (released, refunded or cancelled). The fee was withheld from the poster's refund and void-cancelled-payments retries it every hour, so the member is still waiting: read failure_reason (a payout hold, no payout account) and pay it or clear the cause.`,
+      ),
+      crewBlockFeeStripeNoRow: new Check(
+        "crew_block_fee_stripe_transfer_without_row",
+        "critical",
+        `A Stripe transfer with metadata.type='crew_block_fee' in the last ${STRIPE_LOOKBACK_DAYS}d names no crew_block_fees row that records it — money left the platform that the books do not show.`,
+      ),
       // `time_credit_balance_drift` was retired with the table it graded.
       // `public.time_credits` was dropped by migration 20260901035602 (its RLS
       // let any signed-in user mint their own credits, and nothing in the app
@@ -755,6 +771,51 @@ serve(async (req) => {
           check: checks.feeLedgerUnpaid,
           hit: { job_id: r.job_id, fee_transfer_id: r.id, status: r.status, stripe_transfer_id: r.stripe_transfer_id, helper_amount: money(r.helper_amount) },
         });
+      }
+    }
+
+    // ── Crew block fees (Q1390) ──────────────────────────────────────────────
+    // Read whole (one row per spot a block closed; small). Before the
+    // migration deploys there is no table and so no fee.
+    const blockFeeCentsByJob = new Map<string, number>();
+    {
+      const { data: bfRows, error: bfErr } = await admin
+        .from("crew_block_fees")
+        .select("id, job_id, helper_id, fee_cents, status, created_at");
+      const bfMissing = !!bfErr && (bfErr.code === "42P01" || bfErr.code === "PGRST205");
+      if (bfErr && !bfMissing) {
+        notes.push(`crew block-fee checks skipped: crew_block_fees read failed (${bfErr.message})`);
+      } else {
+        const rows = (bfRows ?? []) as Array<{ id: string; job_id: string; helper_id: string | null; fee_cents: number; status: string; created_at: string | null }>;
+        for (const r of rows) {
+          if (r.status === "paid") blockFeeCentsByJob.set(r.job_id, (blockFeeCentsByJob.get(r.job_id) ?? 0) + Number(r.fee_cents ?? 0));
+        }
+        const unpaid = rows.filter((r) => r.status === "owed" || r.status === "failed");
+        if (unpaid.length > 0) {
+          const ids = [...new Set(unpaid.map((r) => r.job_id))];
+          const { data: bfJobs, error: bfJobErr } = await admin.from("jobs").select("id, payment_status, updated_at").in("id", ids);
+          if (bfJobErr) {
+            notes.push(`crew block-fee settled-job check skipped: jobs read failed (${bfJobErr.message})`);
+          } else {
+            // Settled more than the window ago. jobs.updated_at is the last
+            // write, normally the settlement flip; a later write (a review, a
+            // tip) only delays the report, never invents one (lh-money-escrow
+            // review, nit 4). The hourly sweep has had its chances by then.
+            const settled = new Set(
+              ((bfJobs ?? []) as Array<{ id: string; payment_status: string | null; updated_at: string | null }>)
+                .filter((j) => j.payment_status === "released" || j.payment_status === "refunded" || j.payment_status === "cancelled")
+                .filter((j) => {
+                  const at = ts(j.updated_at);
+                  return at === null || Date.now() - at >= SETTLE_WINDOW_MS;
+                })
+                .map((j) => j.id),
+            );
+            for (const r of unpaid) {
+              if (!settled.has(r.job_id)) continue;
+              checks.crewBlockFeeUnpaid.add({ job_id: r.job_id, block_fee_id: r.id, helper_id: r.helper_id, status: r.status, fee_cents: r.fee_cents });
+            }
+          }
+        }
       }
     }
 
@@ -1658,7 +1719,8 @@ serve(async (req) => {
             Math.round(money(job.customer_fee_amount) * 100),
             actualOrEstimatedFeeCents(pi, capturedCents),
           );
-          const maxRetainedCents = feeCents + nonRefundableCents;
+          // Q1390: a cancelled crew also keeps the block fees it paid out.
+          const maxRetainedCents = feeCents + nonRefundableCents + (blockFeeCentsByJob.get(job.id as string) ?? 0);
           const retainedCents = capturedCents - refundedCents;
           // One cent of slack for the two roundings above.
           if (retainedCents > maxRetainedCents + 1) {
@@ -1751,6 +1813,29 @@ serve(async (req) => {
           (t) => ((t.metadata ?? {}) as Record<string, string>).type === "cancellation_fee",
         );
         stripeFeeTransfersListed = feeTransfers.length;
+
+        // Q1390: a crew block-fee transfer must name a crew_block_fees row
+        // that records it (or has not stamped it yet).
+        const blockFeeTransfers = listed.filter(
+          (t) => ((t.metadata ?? {}) as Record<string, string>).type === "crew_block_fee",
+        );
+        if (blockFeeTransfers.length > 0) {
+          const bfIds = [...new Set(blockFeeTransfers.map((t) => ((t.metadata ?? {}) as Record<string, string>).block_fee_id).filter((v): v is string => !!v))];
+          const { data: bfRows, error: bfReadErr } = bfIds.length
+            ? await admin.from("crew_block_fees").select("id, stripe_transfer_id").in("id", bfIds)
+            : { data: [], error: null };
+          if (bfReadErr) {
+            notes.push(`crew block-fee Stripe comparison incomplete: crew_block_fees read failed (${bfReadErr.message})`);
+          } else {
+            const byId = new Map(((bfRows ?? []) as Array<{ id: string; stripe_transfer_id: string | null }>).map((r) => [r.id, r]));
+            for (const t of blockFeeTransfers) {
+              const md = (t.metadata ?? {}) as Record<string, string>;
+              const row = md.block_fee_id ? byId.get(md.block_fee_id) : undefined;
+              if (row && (row.stripe_transfer_id === null || row.stripe_transfer_id === t.id)) continue;
+              checks.crewBlockFeeStripeNoRow.add({ stripe_transfer_id: t.id, job_id: md.job_id ?? null, block_fee_id: md.block_fee_id ?? null, amount_cents: t.amount });
+            }
+          }
+        }
 
         // Stripe -> ledger.
         const rowByTransfer = new Map(

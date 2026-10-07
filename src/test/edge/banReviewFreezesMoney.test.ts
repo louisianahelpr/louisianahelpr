@@ -24,7 +24,7 @@
  * @mutate supabase/functions/create-payment/index.ts |       if (tipReview === "payer") throw new PublicError(PAYER_UNDER_REVIEW); |       void tipReview;
  * @mutate supabase/functions/create-payment/index.ts |       if (tipHold.kind === "held" \|\| tipReview === "counterparty") { |       if (tipHold.kind === "held") {
  * @mutate supabase/functions/create-payment/index.ts |   if (lookup.users.has(payerId)) return "payer"; |   if (false) return "payer";
- * @mutate supabase/functions/admin-user-actions/index.ts |         const { error: liftErr } = await admin.rpc('lift_ban_settlement_review', { |         const { error: liftErr } = await admin.rpc('lift_ban_settlement_review_v0', {
+ * @mutate supabase/functions/admin-user-actions/index.ts |         const { data: lifted, error: liftErr } = await admin.rpc('lift_ban_settlement_review', { |         const { data: lifted, error: liftErr } = await admin.rpc('lift_ban_settlement_review_v0', {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -172,6 +172,19 @@ describe("admin-user-actions: an admin unban lifts the review, attributably", ()
     const res = await setBan("active");
     expect(res.status).toBeGreaterThanOrEqual(500);
     expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+  });
+
+  // Q1413 (lh-authz-rls review): the lift may apply a standing the strike
+  // ladder earned during the review; the edge function writes THAT, never its
+  // own 'active' over it.
+  // @mutate supabase/functions/admin-user-actions/index.ts |         if (applied?.lifted && typeof applied.ban_status === 'string') { |         if (false) {
+  it("writes the standing the lift applied (a suspension earned during the review), not the admin's plain unban", async () => {
+    scenario.rpc.lift_ban_settlement_review = { lifted: true, ban_status: "temp_banned", suspended_until: "2026-10-14T00:00:00.000Z" };
+    scenario.writeSelectRows.profiles = [{ user_id: POSTER }];
+    const res = await setBan("active");
+    expect(res.status).toBe(200);
+    const upd = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
+    expect(upd?.payload).toMatchObject({ ban_status: "temp_banned", auto_suspended_until: "2026-10-14T00:00:00.000Z" });
   });
 
   it("a ban is not a lift", async () => {

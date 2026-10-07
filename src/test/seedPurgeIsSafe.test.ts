@@ -118,6 +118,22 @@ describe("the seed purge only removes old, money-free, disposable test data (Q65
     expect(body).toMatch(/DELETE\s+FROM\s+public\.jobs\s+WHERE\s+id\s*=\s*v_job\.id\s+AND\s+is_seed/i);
   });
 
+  // Q455: the gift-card journey's residue goes too, and ONLY certain residue.
+  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                      WHERE g.payment_status = 'pending'\n                       AND g.status = 'expired' |                      WHERE g.status = 'expired'
+  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = g.donor_id AND p.is_seed)\n                       AND (g.recipient_id IS NULL |                       AND (g.recipient_id IS NULL
+  it("deletes only certain gift-card residue: never paid, expired, old, seed donor and recipient, no job, no child (Q455)", () => {
+    const del = /DELETE\s+FROM\s+public\.gift_cards\s+WHERE\s+id\s+IN\s*\(([\s\S]*?)\);/i.exec(body)?.[1] ?? "";
+    expect(del.length, "the gift step deletes through one bounded select").toBeGreaterThan(100);
+    expect(del).toMatch(/g\.payment_status\s*=\s*'pending'/i);
+    expect(del).toMatch(/g\.status\s*=\s*'expired'/i);
+    expect(del).toMatch(/g\.created_at\s*<\s*v_cut/i);
+    expect(del).toMatch(/g\.job_id\s+IS\s+NULL/i);
+    expect(del).toMatch(/p\.user_id\s*=\s*g\.donor_id\s+AND\s+p\.is_seed/i);
+    expect(del).toMatch(/g\.recipient_id\s+IS\s+NULL\s+OR\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.profiles\s+p\s+WHERE\s+p\.user_id\s*=\s*g\.recipient_id\s+AND\s+p\.is_seed\)/i);
+    expect(del).toMatch(/NOT\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.gift_cards\s+c\s+WHERE\s+c\.parent_credit_id\s*=\s*g\.id\)/i);
+    expect(del).toMatch(/LIMIT\s+v_batch/i);
+  });
+
   it("never deletes profiles, auth users or storage objects", () => {
     expect(body).not.toMatch(/DELETE\s+FROM\s+(?:public\.)?profiles\b/i);
     expect(body).not.toMatch(/DELETE\s+FROM\s+auth\./i);

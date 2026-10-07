@@ -25,10 +25,10 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  */
 
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF v_crew.status = 'accepted' AND v_remaining = 0 THEN |     IF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
+// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
@@ -43,13 +43,15 @@ const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 const THIS = "20261006015121_crew_rest_carry_on.sql";
+/** Q1390 (the crew block-fee ledger) restates block_user_and_settle and accept_group_application from THIS. */
+const BLOCK_FEE = "20261007073145_crew_block_fee_ledger.sql";
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
 /** lh-money-escrow review of bc9ea3a47: the roll-up closes only what its DELETE removed, then re-counts. */
 const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: THIS,
-  block_user_and_settle: THIS,
+  block_user_and_settle: BLOCK_FEE,
   expire_unanswered_offers: UNCONFIRMED,
 };
 
@@ -78,8 +80,9 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
     const b = body(fn);
     const at = b.indexOf(del);
     expect(at, `${fn}: its roster DELETE moved; re-read the function`).toBeGreaterThan(-1);
-    // Everything after the member is taken off, up to the end of that branch.
-    const after = b.slice(at, at + 2500);
+    // Everything after the member is taken off, up to the end of that branch
+    // (3500: block_user_and_settle's Q1390 all-spots-closed alert sits in it).
+    const after = b.slice(at, at + 3500);
     const flips = [...after.matchAll(/UPDATE public\.jobs\s+SET status = 'open'/g)];
     expect(flips.length, `${fn}: no reopen after the DELETE (an empty crew must still reopen)`).toBe(1);
     const guard = after.slice(Math.max(0, flips[0].index! - 120), flips[0].index!);
@@ -137,7 +140,7 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
   });
 
   it("accept_group_application refills a booked crew's free spot and keeps it booked", () => {
-    expect(EFFECTIVE.get("accept_group_application")?.file).toBe(THIS);
+    expect(EFFECTIVE.get("accept_group_application")?.file).toBe(BLOCK_FEE);
     const b = body("accept_group_application");
     expect(b).toMatch(/IF v_job_status IS NULL OR v_job_status NOT IN \('open', 'accepted'\) THEN\s+RAISE EXCEPTION 'job_not_open';/);
     // A full booked crew still takes nobody, and never inside 15 minutes of the start.

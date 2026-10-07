@@ -26,7 +26,7 @@ export async function setProfileBanStatus(opts: {
   banStatus: AdminBanStatus;
   suspendedUntil?: string | null;
   rejectedMessage: string;
-}): Promise<void> {
+}): Promise<{ appliedBanStatus: string | null; appliedSuspendedUntil: string | null }> {
   const body: Record<string, unknown> = {
     action: "set_ban_status",
     userId: opts.userId,
@@ -44,4 +44,11 @@ export async function setProfileBanStatus(opts: {
   if (!data || (data as { success?: unknown }).success !== true) {
     throw new WriteRejectedError(opts.rejectedMessage, 0, 1);
   }
+  // Q1413: a lift can keep a standing earned during a ban review; callers
+  // name what was applied rather than assume their own choice.
+  const d = data as { appliedBanStatus?: unknown; appliedSuspendedUntil?: unknown };
+  return {
+    appliedBanStatus: typeof d.appliedBanStatus === "string" ? d.appliedBanStatus : null,
+    appliedSuspendedUntil: typeof d.appliedSuspendedUntil === "string" ? d.appliedSuspendedUntil : null,
+  };
 }

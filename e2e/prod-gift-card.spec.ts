@@ -60,8 +60,10 @@ import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scr
 // against two cancelled jobs, plus the two replacement gifts restore_gift_card_for_job
 // mints (X in total), spendable only by the poster test account. Refunding the
 // donation would revoke them, but that pages #ops-alerts ("Gift card charge
-// reversed") on every run, which is worse than bounded test credit. A scoped
-// purge is queued in docs/OPEN.md.
+// reversed") on every run, which is worse than bounded test credit. Under the
+// LIVE key the spec stops at the pre-registered checkout, so a run now leaves
+// one unpaid row that expires with the session; the daily seed purge
+// (purge_old_seed_data, Q455) deletes those after its 14-day window.
 
 const SUPABASE_URL = (process.env.PLAYWRIGHT_SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.PLAYWRIGHT_SUPABASE_ANON_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";

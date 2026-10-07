@@ -26,8 +26,9 @@ import type { PosterStepCtx } from "./posterStepContract";
  * whether to render anything at all now decides which RUNG of one ladder this
  * card is on — see `posterConfirmationRung`. Enabled on exactly the same
  * condition as before (the Helpr confirmed the booking and arrived, the poster
- * has not vouched yet, the work is not already marked done); disabled with an
- * honest reason before that; a done-toned box after it. The label still differs
+ * has not vouched yet, the work is not already marked done); NO box before
+ * that (owner decision Q1400, 2026-10-07: from accept until the Helpr marks
+ * themselves arrived); a done-toned box after it. The label still differs
  * from InProgressStep's "Confirm They Arrived" — reported, not silently
  * changed, and it is the ladder that carries the difference now.
  */

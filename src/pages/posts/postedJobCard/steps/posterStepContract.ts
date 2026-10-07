@@ -104,11 +104,14 @@ export function derivePosterStep(status: Job["status"]): PosterStepId | null {
  *   - the Helpr's location check refused (VN-33) — no box, forever. That third
  *     state no longer exists: since 20260919155016 `mark_helper_arrival` records
  *     the check-in on every call, so `helper_arrived_at` always lands and the
- *     box always arrives. See the deadlock note on `arrivalBlockedReason` below.
+ *     box always arrives.
  *
- * So this is ONE ladder with exactly ONE rung showing at a time, and a rung is
- * never missing while the ladder is live: disabled-with-a-reason before it can
- * be taken, enabled when it can, and a done-toned box once it has been. The
+ * So this is ONE ladder with exactly ONE rung showing at a time: enabled when
+ * it can be taken, and a done-toned box once it has been. BEFORE it can be
+ * taken there is no box at all (owner decisions 2026-10-05 for an unanswered
+ * offer, and Q1400 2026-10-07 from accept until the Helpr marks themselves
+ * arrived): the 2026-09-19 "disabled with a reason" rung is gone, because a
+ * disabled primary-looking box is a dead control. The
  * one-row contract (JobStepCard, VN-21) is why it is one control and not two
  * persistent chips — two would overflow the row at 375.
  *
@@ -163,45 +166,6 @@ export function recentArrivalNearMiss(job: Job): boolean {
 }
 
 /**
- * WHY THE ARRIVAL BOX IS DISABLED — and it must be the truth.
- *
- * THE DEADLOCK THIS USED TO SURFACE (VN-33, `mark_helper_arrival` between
- * 20260915044137 and 20260919155016): a far or fix-less arrival was REFUSED and
- * wrote nothing, so `helper_arrived_at` stayed null. The Helpr's own next step
- * was then blocked with copy naming the poster's "Confirm They Arrived" tap as
- * the way out — while that control was gated on `helper_arrived_at` and so
- * never rendered. Each side sat waiting for the other, and the poster's side
- * said nothing at all.
- *
- * THE DEADLOCK IS GONE (owner's 2026-09-19 reversal): the RPC records every
- * check-in, with or without a fix, so the only reason this box is still
- * disabled is that the Helpr has not said they are there yet. The last branch's
- * copy changed with it — it used to say "waiting on your Helpr's location
- * check", which after the reversal is simply not what anyone is waiting for.
- */
-function arrivalBlockedReason(job: Job): { reason: string; gate: boolean } {
-  if (!job.helper_on_the_way_at) {
-    return {
-      reason: "You'll be able to confirm this once your Helpr is at the job.",
-      gate: false,
-    };
-  }
-  return {
-    // On the way, not there yet. A WAIT, not a gate: nothing is stuck and
-    // nobody has to do anything about it — the Helpr taps "I've Arrived" when
-    // they get there and this box unlocks in the same moment.
-    //
-    // It used to read "Waiting on your Helpr's location check — their phone
-    // hasn't put them at the job yet", in amber, which was true only while a
-    // fix-less arrival was refused outright. After 2026-09-19 nothing waits on
-    // a location check, and telling a poster their Helpr's phone has failed
-    // something is a worry the app invented.
-    reason: "Your Helpr is on the way — you'll be able to confirm this the moment they mark themselves arrived.",
-    gate: false,
-  };
-}
-
-/**
  * The ONE box the poster's card should draw right now, or `null` where the
  * ladder has nothing to say.
  *
@@ -237,12 +201,26 @@ export function posterConfirmationRung(
   // new enablement, which this refactor does not do.
   const arrivalClaimed = !!job.helper_arrived_at || (step === "in_progress" && recentArrivalNearMiss(job));
 
+  // ACCEPTED BUT NOT ARRIVED (owner decision Q1400, 2026-10-07): the box stays
+  // HIDDEN from the moment the Helpr accepts until they mark themselves
+  // arrived. Until then there is nothing the poster can confirm, and a
+  // disabled primary-looking "Confirm Arrival" with a waiting line under it is
+  // exactly the dead control the owner ruled out on 2026-10-05 ("no disabled
+  // primary-looking button"). The card's status line already says where the
+  // Helpr is ("On the way", "Confirmed"), and No-Show stays on the row.
+  // This supersedes the 2026-09-19 rule that drew a disabled box with a reason
+  // while the job was booked. It hides a DISABLED box only: the moment an
+  // arrival is claimed the box appears, enabled, exactly as before.
+  // Guard: posterConfirmationLadder.test.ts ("Q1400 ...").
+  if (!job.poster_confirmed_arrival_at && !arrivalClaimed) return null;
+
   let rung: PosterConfirmRung;
   if (!job.poster_confirmed_arrival_at) {
     // The step's own pre-existing gates, verbatim: scheduled also required the
-    // booking's own `helper_confirmed_at`.
+    // booking's own `helper_confirmed_at`. With the Q1400 return above, the
+    // only way this is false is a Helpr who already marked the job done, and
+    // that rung stands down below.
     const enabled = arrivalClaimed && (step === "in_progress" || !!job.helper_confirmed_at) && !job.helper_completed_at;
-    const blocked = enabled ? null : arrivalBlockedReason(job);
     rung = {
       action: "arrival",
       // The two labels differ by step and always have. Reported, not silently
@@ -250,8 +228,8 @@ export function posterConfirmationRung(
       label: step === "scheduled" ? "Confirm Arrival" : "Confirm They Arrived",
       enabled,
       done: false,
-      reason: blocked?.reason ?? null,
-      gate: blocked?.gate ?? false,
+      reason: null,
+      gate: false,
     };
   } else if (step === "in_progress" && !job.poster_confirmed_working_at) {
     rung = {

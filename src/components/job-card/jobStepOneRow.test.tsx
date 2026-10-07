@@ -458,16 +458,14 @@ const CASES: Array<{
     primary: [],
   },
   {
-    // THE LADDER'S FIRST RUNG (owner, 2026-09-19). This state used to render
-    // NO primary at all — the confirm box only appeared at the one instant it
-    // was tappable — which is why the owner reported "no button to confirm
-    // they arrived". It is now a disabled box with an honest reason.
-    name: "Posts · Scheduled, nothing to confirm yet (disabled Confirm Arrival + Message · Cancel)",
+    // NOTHING TO CONFIRM YET: NO BOX (owner decision Q1400, 2026-10-07). From
+    // 2026-09-19 this state drew a disabled "Confirm Arrival" with "once your
+    // Helpr is at the job" under it; the owner ruled that dead primary-looking
+    // box out from accept until the Helpr marks themselves arrived.
+    name: "Posts · Scheduled, nothing to confirm yet (no arrival box; Message · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_on_the_way_at: null, helper_arrived_at: null }))} />),
-    minControls: 3,
-    primary: ["Confirm Arrival"],
-    primaryDisabled: true,
-    note: /once your Helpr is at the job/,
+    minControls: 2,
+    primary: [],
   },
   {
     // Was a full-width button of its own in PostedJobCard, above the tracker.
@@ -489,39 +487,25 @@ const CASES: Array<{
     primary: ["Confirm They're Working"],
   },
   {
-    name: "Posts · In Progress, start passed and nobody arrived (disabled Confirm They Arrived + No-Show · Message)",
+    // Q1400 (owner, 2026-10-07): no disabled arrival box before arrival.
+    name: "Posts · In Progress, start passed and nobody arrived (no arrival box; No-Show · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null }))} />),
-    minControls: 3,
-    primary: ["Confirm They Arrived"],
-    primaryDisabled: true,
-    note: /once your Helpr is at the job/,
+    minControls: 2,
+    primary: [],
   },
   {
-    /* THE BOX IS DRAWN BEFORE THE HELPR ARRIVES (owner item 6c), and it says
-       the truth about why it is not tappable yet.
-
-       WAS: "Helpr on the way but no location fix … the honest reason", pinned
-       on `/location check/i`. Between 20260915044137 and 20260919155016 a far
-       or fix-less arrival was REFUSED and wrote nothing, so `helper_arrived_at`
-       stayed null while the Helpr's blocked CTA told them to go ask for this
-       very tap — a deadlock, and the box existed to name it.
-
-       The owner ended that on 2026-09-19: `mark_helper_arrival` records every
-       check-in, so this row can only mean the ordinary thing — they are on
-       their way and have not tapped "I've Arrived" yet. "Waiting on your
-       Helpr's location check" is now a failure the app would be inventing, so
-       the copy and this pin moved with the rule. */
-    name: "Posts · In Progress, Helpr on the way, not arrived yet (disabled + the honest reason)",
+    /* WAS item 6c, "the box is drawn before the Helpr arrives, and says the
+       truth": a disabled box with "on the way" under it. Owner decision Q1400
+       (2026-10-07) hides it until the Helpr marks themselves arrived. */
+    name: "Posts · In Progress, Helpr on the way, not arrived yet (no arrival box — Q1400)",
     render: () =>
       wrap(
         <InProgressStep
           {...posterCtx(makeJob({ helper_arrived_at: null, helper_on_the_way_at: ago(1), poster_confirmed_working_at: null }))}
         />,
       ),
-    minControls: 2,
-    primary: ["Confirm They Arrived"],
-    primaryDisabled: true,
-    note: /on the way/i,
+    minControls: 1,
+    primary: [],
   },
   {
     // ALREADY ACTIONED, STILL ON SCREEN (owner: "if it was clicked already it

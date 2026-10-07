@@ -429,6 +429,7 @@ jobs:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: day-of confirm across two roles
+        timeout-minutes: 16
         env:
           REQUEST_BUDGET_LABEL: chromium-two-role  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_TWO_ROLE: "1"
@@ -547,6 +548,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: post → fund → apply → hire → complete → release → review
+        timeout-minutes: 21
         env:
           REQUEST_BUDGET_LABEL: chromium-prod-lifecycle  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
@@ -694,6 +696,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: buy → deliver → claim → spend → cancel → restore
+        timeout-minutes: 16
         env:
           REQUEST_BUDGET_LABEL: chromium-gift-card  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173

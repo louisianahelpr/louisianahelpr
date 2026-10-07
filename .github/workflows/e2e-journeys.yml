@@ -226,6 +226,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
+        timeout-minutes: 52
         run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)
@@ -358,6 +359,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
+        timeout-minutes: 52
         run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)

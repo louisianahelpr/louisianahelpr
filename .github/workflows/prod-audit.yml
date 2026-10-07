@@ -238,6 +238,7 @@ jobs:
       # report as run by no CI job. The optional -g goes through an env var and
       # a shell branch instead.
       - name: Run the prod audit suites
+        timeout-minutes: 150
         if: ${{ inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}
@@ -259,6 +260,7 @@ jobs:
       # A `grep` dispatch that names only one of the two projects finds no
       # test in the other, hence --pass-with-no-tests on both grep branches.
       - name: Run the first-screen Web Vitals lab budget
+        timeout-minutes: 20
         if: ${{ !cancelled() && inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}

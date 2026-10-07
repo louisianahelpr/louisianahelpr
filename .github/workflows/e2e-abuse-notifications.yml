@@ -210,6 +210,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the abuse & notification suites
+        timeout-minutes: 52
         run: >
           npx playwright test --project=${{ matrix.project }} --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
           e2e/journeys/abuse e2e/journeys/notifications

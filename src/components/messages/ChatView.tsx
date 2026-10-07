@@ -429,10 +429,6 @@ export function ChatView({
           {!bannerDismissed && (
             <div className="w-full mt-3 shrink-0 rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
-              {/* --sienna-ink, not text-accent (Q948): 11px sienna on its own
-                  10% tint measured 3.95:1 in dark on prod (2026-10-07);
-                  --sienna-ink is the label ink minted for exactly that, and is
-                  byte-identical to the accent in light. */}
               <p className="text-ds-11 leading-snug text-[hsl(var(--sienna-ink))]">
                 Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
               </p>

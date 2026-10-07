@@ -562,13 +562,7 @@ const NotificationPanel = () => {
             `screenPanelContentProps`'s desktop branch in `anchoredPanel.tsx`:
             `PopoverContent` carries no forced width there, so it shrinks to
             fit this `max-w-lg` wrapper instead of the 1048px content-column
-            band it used to stretch to.
-
-            Q931 (measured on prod at 1440, 2026-10-07): shrink-to-fit made the
-            panel's WIDTH follow its content, so a live row arriving or the last
-            unread one leaving moved the panel's left edge (330px empty, 445px
-            with a row, 233px "Nothing unread"). On the desktop website the
-            column is a fixed 28rem (the with-a-row width), so the edge holds. */}
+            band it used to stretch to (Q931: fixed 28rem there, edge holds). */}
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto [.web-desktop_&]:w-[28rem]">
         <AnchoredPanelHeader
           titleId={titleId}

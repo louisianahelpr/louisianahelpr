@@ -14,7 +14,7 @@
  * Guard: src/test/landRebaseResolve.test.ts.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** The measured value vitest printed for constant `value`, or null. */
@@ -70,7 +70,7 @@ export function recount({ cwd = process.cwd(), log = console.log, run = runTest 
   return { changed, failed };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) {
   const { failed } = recount();
   process.exit(failed.length ? 1 : 0);
 }

@@ -45,6 +45,23 @@
 # that already existed (e.g. docs/audit/morning/*.md) are never staged.
 set -euo pipefail
 
+# RUN FROM A FROZEN COPY. The rebase below rewrites the working tree commit by
+# commit, this script and its resolver tools included, and bash reads a script
+# as it runs: a landing that changes land.sh (or lands the resolver itself)
+# would execute a half-old file, and the resolver did not exist in the tree
+# mid-rebase (2026-10-07: "Cannot find module .../landRebaseResolve.mjs").
+# So: copy land.sh and the tools it runs during the rebase to a temp dir once,
+# and run from there. Guard: src/test/landRebaseResolve.test.ts.
+if [ -z "${LAND_FROZEN_DIR:-}" ]; then
+  LAND_FROZEN_DIR=$(mktemp -d "${TMPDIR:-/tmp}/land-frozen.XXXXXX")
+  cp "$0" "$LAND_FROZEN_DIR/land.sh"
+  for t in landRebaseResolve.mjs openItemMerge.mjs landRecount.mjs; do
+    cp "$(dirname "$0")/lib/$t" "$LAND_FROZEN_DIR/$t"
+  done
+  export LAND_FROZEN_DIR
+  exec bash "$LAND_FROZEN_DIR/land.sh" "$@"
+fi
+
 DRY=0
 WAIT=1
 for arg in "$@"; do
@@ -131,7 +148,7 @@ while :; do
         fi
         continue
       fi
-      if node scripts/lib/landRebaseResolve.mjs; then
+      if node "$LAND_FROZEN_DIR/landRebaseResolve.mjs"; then
         # stops again if the next replayed commit conflicts; the loop looks again
         GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
         continue
@@ -143,7 +160,7 @@ while :; do
 
   # An exact-count constant the rebase settled with main's value gets the
   # value measured on the rebased tree (its own guard prints it).
-  node scripts/lib/landRecount.mjs
+  node "$LAND_FROZEN_DIR/landRecount.mjs"
 
   # Queue numbers are taken from each lane's own base, so two lanes file the
   # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the

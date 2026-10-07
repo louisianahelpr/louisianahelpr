@@ -1,5 +1,6 @@
-// @mutate scripts/land.sh |       if node scripts/lib/landRebaseResolve.mjs; then |       if false; then
-// @mutate scripts/land.sh |   node scripts/lib/landRecount.mjs |   true
+// @mutate scripts/land.sh |       if node "$LAND_FROZEN_DIR/landRebaseResolve.mjs"; then |       if false; then
+// @mutate scripts/land.sh |   node "$LAND_FROZEN_DIR/landRecount.mjs" |   true
+// @mutate scripts/land.sh |   exec bash "$LAND_FROZEN_DIR/land.sh" "$@" |   true
 // @mutate scripts/lib/landRebaseResolve.mjs |     } else if (generated.has(file)) { |     } else if (false) {
 // @mutate scripts/lib/landRebaseResolve.mjs |     if (!mo \|\| !mt \|\| mo[1] !== mt[1]) return null; |     if (!mo \|\| !mt) return null;
 // @mutate scripts/lib/landRecount.mjs |         text = setConstant(text, name, measured); |         void measured;
@@ -15,7 +16,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 // @ts-expect-error — plain .mjs module
@@ -99,6 +100,22 @@ describe("land.sh rebase: the four conflict kinds resolve themselves", () => {
     expect(JSON.parse(read(".git/land-recount.json"))).toEqual([{ file: "src/test/count.test.ts", name: "MARKERLESS" }]);
   });
 
+  it("a FROZEN copy of the tools (how land.sh runs them) resolves the same rebase from the CLI", () => {
+    expect(rebaseStops()).toBe(true);
+    const frozen = mkdtempSync(join(tmpdir(), "land-frozen-"));
+    try {
+      for (const t of ["landRebaseResolve.mjs", "openItemMerge.mjs", "landRecount.mjs"]) {
+        writeFileSync(join(frozen, t), readFileSync(join(ROOT, "scripts", "lib", t), "utf8"));
+      }
+      // the tree being rebased carries scripts/ (the GENERATED registry); here, the real one
+      symlinkSync(join(ROOT, "scripts"), join(repo, "scripts"));
+      execFileSync(process.execPath, [join(frozen, "landRebaseResolve.mjs")], { cwd: repo, stdio: "pipe" });
+      expect(git("diff", "--name-only", "--diff-filter=U").trim()).toBe("");
+    } finally {
+      rmSync(frozen, { recursive: true, force: true });
+    }
+  });
+
   it("any other conflicted file is left for a person", async () => {
     put("notes.txt", "lane\n");
     git("commit", "-q", "-am", "lane notes");
@@ -151,12 +168,19 @@ describe("landRecount: the guard's own measurement is written", () => {
 
 describe("land.sh wiring", () => {
   const land = readFileSync(join(ROOT, "scripts", "land.sh"), "utf8");
+  it("runs from a frozen copy of itself and its rebase tools (the rebase rewrites the tree under it)", () => {
+    const exec = land.indexOf('exec bash "$LAND_FROZEN_DIR/land.sh" "$@"');
+    expect(exec).toBeGreaterThan(-1);
+    expect(exec).toBeLessThan(land.indexOf("git fetch -q origin main"));
+    for (const t of ["landRebaseResolve.mjs", "openItemMerge.mjs", "landRecount.mjs"]) expect(land).toContain(t);
+    expect(land).toMatch(/for t in landRebaseResolve\.mjs openItemMerge\.mjs landRecount\.mjs; do/);
+  });
   it("the rebase loop calls the resolver for any conflict and skips a commit resolved to nothing", () => {
-    expect(land).toMatch(/if node scripts\/lib\/landRebaseResolve\.mjs; then\n\s+# [^\n]*\n\s+GIT_EDITOR=true git rebase --continue/);
+    expect(land).toMatch(/if node "\$LAND_FROZEN_DIR\/landRebaseResolve\.mjs"; then\n\s+# [^\n]*\n\s+GIT_EDITOR=true git rebase --continue/);
     expect(land).toMatch(/if git diff --cached --quiet; then\n\s+git rebase --skip/);
   });
   it("the recount runs after the rebase, before the refresh", () => {
-    const at = land.indexOf("\n  node scripts/lib/landRecount.mjs\n");
+    const at = land.indexOf('\n  node "$LAND_FROZEN_DIR/landRecount.mjs"\n');
     expect(at).toBeGreaterThan(land.indexOf("landRebaseResolve.mjs"));
     expect(at).toBeLessThan(land.indexOf("node scripts/check-generated-current.mjs --fix"));
   });

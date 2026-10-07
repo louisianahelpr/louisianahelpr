@@ -32,7 +32,7 @@
  * Guards: src/test/openItemMerge.test.ts, src/test/landRebaseResolve.test.ts.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,7 +202,7 @@ export function appendArchiveNotes(archiveText, notes) {
   return { text: lines.join("\n"), unplaced };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) {
   const file = process.argv[2] ?? "docs/OPEN.md";
   const show = (stage) => {
     try {

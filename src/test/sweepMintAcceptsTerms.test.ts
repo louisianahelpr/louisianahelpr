@@ -22,7 +22,7 @@
  * @mutate scripts/lib/adminSession.mjs |   acceptTerms = true, |   acceptTerms = false,
  * @mutate scripts/test-signin-link.mjs |     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id); |     // removed
  * @mutate scripts/lib/acceptCurrentTerms.mjs |   const terms = src.match(/export const LATEST_TERMS_VERSION = "([^"]+)"/)?.[1]; |   const terms = "Jun 2026";
- * @mutate e2e/journeys/fixtures.ts |         transport: playwrightTransport(api), |         transport: playwrightTransport(api), acceptTerms: false,
+ * @mutate e2e/journeys/fixtures.ts | serviceKey: creds.serviceKey, | serviceKey: creds.serviceKey, acceptTerms: false,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

@@ -14,7 +14,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
-import { useFeedPhase } from "@/hooks/useFeedPhase";
+import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
@@ -45,7 +45,7 @@ const JobDetail = () => {
   // Q571: a signed-in visitor waits on their profile before the redirect below.
   // Offline that query is paused, `authLoading` never clears, and the page held
   // its skeleton for as long as the connection was down.
-  const authPhase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
+  const authPhase = useProfileWaitPhase(profileQuery);
   // The job-intent bounce lands HERE — consume a guest's pending save too.
   usePendingSaveConsumer(user?.id);
   // Capture ?ref= attribution (share / email / notif) on mount.

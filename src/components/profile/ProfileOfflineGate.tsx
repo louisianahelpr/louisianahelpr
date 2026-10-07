@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeedPhase } from "@/hooks/useFeedPhase";
+import { useProfileWaitPhase } from "@/hooks/useFeedPhase";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
 
 /**
@@ -18,15 +19,27 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
  */
 export function ProfileOfflineGate({ tab, onBack, children }: { tab: Tab; onBack: () => void; children: ReactNode }) {
   const { profileQuery, refresh } = useCurrentUser();
-  const phase = useFeedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" });
+  const phase = useProfileWaitPhase(profileQuery);
   if (phase !== "offline-empty") return <>{children}</>;
+  const card = (
+    <OfflineEmptyState
+      body="Your profile will load here as soon as you're back online."
+      onRetry={() => { void refresh(); }}
+    />
+  );
+  if (tab === "landing") {
+    return (
+      <>
+        <div className="h-4" aria-hidden="true" />
+        {card}
+      </>
+    );
+  }
+  // The same shell every tab body uses (profileTabShell.test.ts).
   return (
-    <>
-      {tab !== "landing" ? <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> : <div className="h-4" aria-hidden="true" />}
-      <OfflineEmptyState
-        body="Your profile will load here as soon as you're back online."
-        onRetry={() => { void refresh(); }}
-      />
-    </>
+    <ProfileTabBody>
+      <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
+      {card}
+    </ProfileTabBody>
   );
 }

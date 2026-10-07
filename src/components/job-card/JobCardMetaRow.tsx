@@ -55,6 +55,18 @@ const LOCATION_MAP_MOVE_TOLERANCE = 8;
  * `aria-label` on the wrapper would be ignored, since a bare <span> has no
  * role for one to name.
  */
+/**
+ * Q1409/Q1464: how many of a crew's spots to call "open", or null to show the
+ * crew's size. Only a count below the size is news (a booked crew a member
+ * left, re-listed for that spot); a staffing crew has every spot open and an
+ * unknown count is unknown. The browse chip and the detail dialog's Helprs
+ * tile both read this, so a job never says two things a tap apart.
+ */
+export function openCrewSpots(size: number | null | undefined, spotsOpen: number | null | undefined): number | null {
+  const count = size && size > 0 ? size : 2;
+  return spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null;
+}
+
 export function JobHelprsChip({
   helpersNeeded,
   spotsOpen,
@@ -76,7 +88,7 @@ export function JobHelprsChip({
   /* 2 is the floor a group job can have — `is_group_job` with a null
      `helpers_needed` is an older row, and "1 Helpr" is not a group. */
   const count = helpersNeeded && helpersNeeded > 0 ? helpersNeeded : 2;
-  const open = spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null;
+  const open = openCrewSpots(count, spotsOpen);
   return (
     <span
       className={`inline-flex items-center shrink-0 whitespace-nowrap ${className}`}

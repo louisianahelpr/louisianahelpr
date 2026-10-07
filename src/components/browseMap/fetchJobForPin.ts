@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { formatName } from "@/lib/utils";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
+import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 
 /**
  * The same column list `useDashboardData` selects for the feed, minus nothing:
@@ -54,6 +55,14 @@ export async function fetchJobForPin(jobId: string): Promise<EnrichedJob | null>
   if (!data) return null;
 
   const job = data as unknown as EnrichedJob;
+
+  // Q1464: a crew's open-spot count rides its own read, never BROWSE_COLUMNS
+  // (fetchCrewSpotsOpen's header: a missing column would fail the lookup).
+  // Best effort: it reports and returns empty, and the tile shows the size.
+  if (job.is_group_job) {
+    const spots = await fetchCrewSpotsOpen([job.id]);
+    if (spots.has(job.id)) job.crew_spots_open = spots.get(job.id);
+  }
 
   // Poster identity is a second round trip for the same reason the feed makes
   // it: `open_jobs_browse` exposes `customer_id` only, and `get_safe_profiles`

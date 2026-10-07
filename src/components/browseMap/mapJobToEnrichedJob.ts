@@ -27,7 +27,12 @@ import type { Database } from "@/integrations/supabase/types";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { MapJob } from "./config";
 
-export function mapJobToEnrichedJob(job: MapJob): EnrichedJob {
+/**
+ * `crewSpotsOpen` (Q1464): the map RPC carries no open-spot count, so the
+ * popup reads it on its own (BrowseMap) and passes it here; without it the
+ * card shows the crew's size.
+ */
+export function mapJobToEnrichedJob(job: MapJob, crewSpotsOpen?: number | null): EnrichedJob {
   return {
     id: job.id,
     title: job.title,
@@ -46,6 +51,7 @@ export function mapJobToEnrichedJob(job: MapJob): EnrichedJob {
     urgent_fee: job.urgent_fee ?? null,
     is_group_job: job.is_group_job ?? null,
     helpers_needed: job.helpers_needed ?? null,
+    crew_spots_open: crewSpotsOpen ?? null,
     // Masked "City, State" when the RPC has it; parish otherwise (pre-deploy
     // RPC shape, or the rare row with no masked location). JobCard reads
     // `getCity(job.location)` with no parish fallback of its own, so this

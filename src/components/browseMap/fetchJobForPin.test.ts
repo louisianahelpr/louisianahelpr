@@ -26,6 +26,9 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+const crewSpots = vi.fn(async (_ids: readonly string[]) => new Map<string, number>());
+vi.mock("@/lib/crewSpots", () => ({ fetchCrewSpotsOpen: (ids: readonly string[]) => crewSpots(ids) }));
+
 import { fetchJobForPin } from "./fetchJobForPin";
 
 const makeRow = () => ({
@@ -45,6 +48,7 @@ beforeEach(() => {
   maybeSingleResult.value = { data: null, error: null };
   rpcResult.value = { data: null, error: null };
   selectSpy.mockClear();
+  crewSpots.mockClear();
 });
 
 describe("fetchJobForPin", () => {
@@ -88,6 +92,22 @@ describe("fetchJobForPin", () => {
     const job = await fetchJobForPin("job-1");
     expect(job?.id).toBe("job-1");
     expect(job?.posterName).toBeUndefined();
+  });
+
+  // Q1464: a re-listed crew opened from its map pin says its open spots, as
+  // the browse card does, so the dialog's Helprs tile needs the count.
+  it("reads a crew's open-spot count for the dialog; a solo job never asks", async () => {
+    crewSpots.mockResolvedValueOnce(new Map([["job-1", 1]]));
+    maybeSingleResult.value = { data: { ...makeRow(), customer_id: null, is_group_job: true, helpers_needed: 3 }, error: null };
+    const crew = await fetchJobForPin("job-1");
+    expect(crewSpots).toHaveBeenCalledWith(["job-1"]);
+    expect(crew?.crew_spots_open).toBe(1);
+
+    crewSpots.mockClear();
+    maybeSingleResult.value = { data: { ...makeRow(), customer_id: null }, error: null };
+    const solo = await fetchJobForPin("job-1");
+    expect(crewSpots).not.toHaveBeenCalled();
+    expect(solo?.crew_spots_open).toBeUndefined();
   });
 
   it("does not query for an empty id", async () => {

@@ -101,8 +101,12 @@ export function judge(agg, budget, { ceilingOnly = false } = {}) {
       notes.push(`${agg.label}: ${field} not calibrated; measured ${measured} this run (write it to e2e/request-budgets.json)`);
       continue;
     }
+    // A label whose load depends on prod's DATA, not on the code, may name a
+    // lower floor (`staleFraction`, with a `staleWhy` saying which data moves
+    // it); src/test/requestBudget.test.ts refuses one without a reason.
+    const floor = typeof budget.staleFraction === "number" ? budget.staleFraction : STALE_FRACTION;
     if (measured > b) failures.push(`${agg.label}: ${field} ${measured} is over its budget ${b}`);
-    else if (measured < b * STALE_FRACTION) failures.push(`${agg.label}: ${field} ${measured} is under half its budget ${b}: stale budget, lower it to ${measured}`);
+    else if (measured < b * floor) failures.push(`${agg.label}: ${field} ${measured} is under ${floor === STALE_FRACTION ? "half its budget" : `${floor} of its budget`} ${b}: stale budget, lower it to ${measured}`);
   }
   return { failures, notes };
 }

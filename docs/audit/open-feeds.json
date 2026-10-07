@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T18:18Z",
+  "measured_at": "2026-10-07T19:41Z",
   "issues": {
     "readable": true,
     "open": [
@@ -63,6 +63,11 @@
         "number": 2589,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red"
+      },
+      {
+        "number": 2596,
+        "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red"
       }
     ]
   },
@@ -100,6 +105,14 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2420
+      },
+      {
+        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron http failure(s) in the last hour",
+        "issue": null
       },
       {
         "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
@@ -196,6 +209,14 @@
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
         "issue": null
+      },
+      {
+        "fingerprint": "f08d7f0fc323e27f5b0f419dfb6ff159",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: arrival-confirm-reminder returned 503",
+        "issue": null
       }
     ]
   },
@@ -216,10 +237,12 @@
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
-    "issue #2580": "Q1505",
+    "issue #2580": "Q1509",
     "issue #2587": "Q1506",
     "issue #2589": "Q1507",
+    "issue #2596": "Q1510",
     "ledger 0e88968519a2": "Q1508",
+    "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 3a3460b71be7": "Q1428",
@@ -236,7 +259,8 @@
     "ledger acf4ea2ff283": "Q1436",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
-    "ledger f22e3275d50d": "Q1505",
+    "ledger f08d7f0fc323": "Q1512",
+    "ledger f22e3275d50d": "Q1509",
     "ledger fad6897fcfae": "Q1438",
     "ledger fdf163a422f2": "Q1482"
   }

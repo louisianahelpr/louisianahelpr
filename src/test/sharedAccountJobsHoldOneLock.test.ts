@@ -38,7 +38,7 @@
 // @mutate .github/workflows/e2e-real-backend.yml | # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0\n        with:\n          node-version: "22"\n          cache: "npm"\n      - name: Drop the Google Chrome apt source | # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).\n    #\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0\n        with:\n          node-version: "22"\n          cache: "npm"\n      - name: Drop the Google Chrome apt source
 // @mutate .github/workflows/a11y-webkit-prod.yml |     timeout-minutes: 60\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL |     timeout-minutes: 60\n    env:\n      PLAYWRIGHT_BASE_URL
 // @mutate .github/workflows/a11y-webkit-prod.yml |     timeout-minutes: 60\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL |     timeout-minutes: 60\n    strategy:\n      matrix:\n        engine: [chromium, webkit]\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL
-// @mutate .github/workflows/vacuity.yml |     timeout-minutes: 180\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false |     timeout-minutes: 180
+// @mutate .github/workflows/vacuity.yml |     timeout-minutes: 57 # e2e leg 3 (Q1270)\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false |     timeout-minutes: 57 # e2e leg 3 (Q1270)
 // @mutate .github/workflows/slow-network.yml |       group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false |       group: prod-lifecycle-shared-accounts\n      cancel-in-progress: true
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -102,7 +102,7 @@ describe("Q326: every job that drives the shared test accounts holds one lock", 
     for (const n of [1, 2, 3, 4, 5, 6]) expect(jobs.map((j) => j.key)).toContain(`press-every-control.yml:press-${n}`);
     expect(jobs.map((j) => j.key)).toContain("e2e-journeys.yml:journeys");
     // Q550/Q551: the two jobs that used to be NOT_LOCKED are in the inventory, and locked.
-    for (const k of ["a11y-webkit-prod.yml:sweep", "vacuity.yml:vacuity-e2e"]) expect(jobs.map((j) => j.key)).toContain(k);
+    for (const k of ["a11y-webkit-prod.yml:sweep", "vacuity.yml:vacuity-e2e", "vacuity.yml:vacuity-e2e-2", "vacuity.yml:vacuity-e2e-3", "vacuity.yml:vacuity-e2e-4"]) expect(jobs.map((j) => j.key)).toContain(k);
   });
 
   it("a presence-only preflight is not counted as signing in", () => {

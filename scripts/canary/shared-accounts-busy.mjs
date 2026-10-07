@@ -41,7 +41,9 @@ export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
 /**
  * A vacuity.yml PUSH run signs in as the shared accounts while its
  * `vacuity-e2e` job (display name below) runs the Playwright registrations
- * under the account lock (Q551). Its other jobs never do. Q1271.
+ * under the account lock (Q551). Its other jobs never do. Q1271. Since Q1270
+ * that job runs in four legs named "<VACUITY_E2E_JOB> (leg k of 4)", so any
+ * job whose name starts with it counts.
  */
 export const VACUITY_WORKFLOW = "vacuity.yml";
 export const VACUITY_E2E_JOB = "Playwright guards shown able to fail";
@@ -53,7 +55,7 @@ export const VACUITY_E2E_JOB = "Playwright guards shown able to fail";
 export function holdsAccounts(run, now = Date.now(), jobs = []) {
   if (run.event === "push") {
     if (!String(run.path ?? "").endsWith(`/${VACUITY_WORKFLOW}`)) return false;
-    return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress");
+    return jobs.some((j) => String(j.name ?? "").startsWith(VACUITY_E2E_JOB) && j.status === "in_progress");
   }
   if (!DRIVES_ACCOUNTS.has(run.event)) return false;
   // A main batch (scripts/ci/main-batch.mjs) is e2e-real-backend's old push

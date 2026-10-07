@@ -216,7 +216,10 @@ describe("core-loop canary: a ghost run never stands it down", () => {
     expect(holdsAccounts({ ...vac, path: ".github/workflows/e2e-real-backend.yml" }, now, e2e("in_progress"))).toBe(false);
     // The job name is the one vacuity.yml gives vacuity-e2e, and vacuity.yml is a shared-account workflow.
     const wf = readFileSync(join(process.cwd(), ".github", "workflows", VACUITY_WORKFLOW), "utf8");
-    expect(wf).toMatch(new RegExp(`\\n  vacuity-e2e:[\\s\\S]*?\\n    name: ${VACUITY_E2E_JOB}\\n`));
+    expect(wf).toMatch(new RegExp(`\\n  vacuity-e2e:[\\s\\S]*?\\n    name: ${VACUITY_E2E_JOB} \\(leg 1 of 4\\)\\n`));
+    // Q1270: every leg carries the prefix, so a later leg also holds the accounts.
+    for (const k of [2, 3, 4]) expect(wf).toMatch(new RegExp(`\\n  vacuity-e2e-${k}:[\\s\\S]*?\\n    name: ${VACUITY_E2E_JOB} \\(leg ${k} of 4\\)\\n`));
+    expect(holdsAccounts(vac, now, [{ name: `${VACUITY_E2E_JOB} (leg 3 of 4)`, status: "in_progress" }])).toBe(true);
     expect(sharedAccountWorkflows()).toContain(VACUITY_WORKFLOW);
   });
   it("a run in progress past the 10 h a real run can last does not (36796252514, 14 h)", () => {

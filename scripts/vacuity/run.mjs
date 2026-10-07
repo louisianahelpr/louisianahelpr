@@ -503,6 +503,43 @@ export function selectKind(mutations, kind) {
 }
 
 /**
+ * THE E2E LEGS (Q1270). The weekly full set's Playwright registrations take
+ * about 157 minutes (96 at ~98 s), and the job that runs them holds the shared
+ * test accounts, where no holder may take longer than an hour
+ * (sharedAccountLockJobsAreShort.test.ts). So vacuity.yml runs them in
+ * E2E_LEGS sequential legs, each its own lock job under 60 minutes, and each
+ * leg takes `--shard k/E2E_LEGS` of the set.
+ *
+ * A guard FILE never splits across legs (its registrations share one spec's
+ * setup, and a leg is easier to read by file). Files go to the lightest leg,
+ * largest first, ties to the lower leg, over the files in name order, so the
+ * same set always lands the same way and scope.mjs and the gate agree.
+ */
+export const E2E_LEGS = 4;
+
+export function shardOf(mutations, n) {
+  const byGuard = new Map();
+  for (const m of mutations) byGuard.set(m.guard, (byGuard.get(m.guard) ?? 0) + 1);
+  const files = [...byGuard.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  const load = Array.from({ length: n }, () => 0);
+  const legOf = new Map();
+  for (const [guard, count] of files) {
+    let best = 0;
+    for (let i = 1; i < n; i++) if (load[i] < load[best]) best = i;
+    load[best] += count;
+    legOf.set(guard, best + 1);
+  }
+  return legOf;
+}
+
+/** The registrations leg `k` (1-based) of `n` runs. */
+export function selectShard(mutations, k, n) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(k) || k < 1 || k > n) throw new Error(`bad shard ${k}/${n}`);
+  const legOf = shardOf(mutations, n);
+  return mutations.filter((m) => legOf.get(m.guard) === k);
+}
+
+/**
  * The registrations a run mutates, before the e2e/unit split: `--only` names
  * exact guard files, `all` is the weekly full set, and otherwise what changed
  * (`changed` is lib.changedFiles(); null means no git/base, so the full set).

@@ -4,6 +4,9 @@ import type { Mutation } from "./lib.mjs";
 export function isPlaywrightGuard(rel: string): boolean;
 export function kindOf(m: { guard: string }): "e2e" | "unit";
 export function selectKind<T extends { guard: string }>(mutations: T[], kind: "e2e" | "unit" | "all"): T[];
+export const E2E_LEGS: number;
+export function shardOf<T extends { guard: string }>(mutations: T[], n: number): Map<string, number>;
+export function selectShard<T extends { guard: string }>(mutations: T[], k: number, n: number): T[];
 export function scopeMutations<T extends { guard: string; target: string }>(
   mutations: T[],
   opts?: { all?: boolean; only?: string[] | null; report?: boolean; changed?: Set<string> | null },

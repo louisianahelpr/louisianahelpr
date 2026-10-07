@@ -33,7 +33,8 @@ function walk(dir: string): string[] {
 }
 
 // A POST to the admin users endpoint (not a GET/PUT on one user), or createUser.
-const SITE = /\/auth\/v1\/admin\/users[`"'][\s\S]{0,40}?method:\s*["']POST["']|request\.post\(\s*`[^`]*\/auth\/v1\/admin\/users`|auth\.admin\.createUser\s*\(/g;
+// Q1421 (2026-10-06) moved the e2e service-role calls to node fetch (e2e/serviceRoleFetch.ts srFetch, srReq).
+const SITE = /\/auth\/v1\/admin\/users[`"'][\s\S]{0,40}?method:\s*["']POST["']|request\.post\(\s*`[^`]*\/auth\/v1\/admin\/users`|(?:srFetch\(\s*\w+\s*,|srReq\()\s*"POST"\s*,\s*`[^`]*\/auth\/v1\/admin\/users`|auth\.admin\.createUser\s*\(/g;
 
 function sites(): { file: string; line: number; window: string }[] {
   const out: { file: string; line: number; window: string }[] = [];

@@ -1,11 +1,8 @@
 {
-  "generated": "2026-10-07T09:08:20.008Z",
+  "generated": "2026-10-07T13:02:20.371Z",
   "guards": 1562,
-  "registered": 1560,
-  "unregistered": [
-    "src/test/chargebackRepayLedgerRow.test.ts",
-    "src/test/crewHireBeforePayout.test.ts"
-  ],
+  "registered": 1562,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",

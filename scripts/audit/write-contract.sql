@@ -100,5 +100,12 @@ fns as (
     ) order by p.oid::regprocedure::text) as overloads
     from pg_proc p where p.pronamespace = 'public'::regnamespace
     group by p.proname) f
+),
+-- Q1072: which migrations prod had applied when this was read, so a missing
+-- object that a later migration creates reads as pending, not missing.
+applied as (
+  select jsonb_build_object('latest', max(version), 'count', count(*)) as j
+  from supabase_migrations.schema_migrations
 )
-select jsonb_build_object('tables', (select j from tables), 'functions', (select j from fns)) as snapshot;
+select jsonb_build_object('tables', (select j from tables), 'functions', (select j from fns),
+  'appliedMigrations', (select j from applied)) as snapshot;

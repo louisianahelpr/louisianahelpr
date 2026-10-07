@@ -1,8 +1,9 @@
-// @mutate scripts/uptime-check.mjs | const status = !down ? "up" : onlyEmpty && EMPTY_IS_WARNING_BEFORE_LAUNCH ? "empty" : "down"; | const status = !down ? "up" : "empty";
-// @mutate scripts/uptime-check.mjs | const status = !down ? "up" : onlyEmpty && EMPTY_IS_WARNING_BEFORE_LAUNCH ? "empty" : "down"; | const status = !down ? "up" : "down";
-// @mutate scripts/uptime-check.mjs |         return { name, ok: false, empty: true, ms, detail: | return { name, ok: true, ms, detail:
+// @mutate scripts/lib/uptimeProbe.mjs | const status = !down ? "up" : onlyEmpty && emptyIsWarning ? "empty" : "down"; | const status = !down ? "up" : "empty";
+// @mutate scripts/lib/uptimeProbe.mjs | const status = !down ? "up" : onlyEmpty && emptyIsWarning ? "empty" : "down"; | const status = !down ? "up" : "down";
+// @mutate scripts/lib/uptimeProbe.mjs | export const EMPTY_IS_WARNING_BEFORE_LAUNCH = true; | export const EMPTY_IS_WARNING_BEFORE_LAUNCH = false;
+// @mutate scripts/lib/uptimeProbe.mjs |         return { name, ok: false, empty: true, ms, detail: | return { name, ok: true, ms, detail:
 // @mutate .github/workflows/uptime.yml |         if: steps.probe.outputs.status == 'empty' |         if: steps.probe.outputs.status == 'never'
-// @mutate scripts/uptime-check.mjs | detail: why ? `HTTP ${res.status}: ${why}` : `HTTP ${res.status}` | detail: `HTTP ${res.status}`
+// @mutate scripts/lib/uptimeProbe.mjs | detail: why ? `HTTP ${res.status}: ${why}` : `HTTP ${res.status}` | detail: `HTTP ${res.status}`
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";

@@ -1,5 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/uptime-heartbeat",
+      "schedule": "*/10 * * * *"
+    }
+  ],
+  "functions": {
+    "api/uptime-heartbeat.ts": {
+      "maxDuration": 90
+    }
+  },
   "redirects": [
     {
       "source": "/:path((?!\\.well-known/apple-app-site-association$).*)",

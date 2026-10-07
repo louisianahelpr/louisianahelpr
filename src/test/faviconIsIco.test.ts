@@ -6,6 +6,10 @@
  * and crawlers that request /favicon.ico by convention expect the ICO
  * container (header 00 00 01 00). Now an ICO holding the same artwork at 16,
  * 32 and 48 px.
+ *
+ * The bug's own shape, a PNG at that path, must fail it: the mutation points
+ * the guard at public/favicon-32.png.
+ * @mutate src/test/faviconIsIco.test.ts | "public/favicon.ico"));\n | "public/favicon-32.png"));\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

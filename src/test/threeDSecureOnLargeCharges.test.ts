@@ -29,7 +29,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
- * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !earlierChargeToAdopt) { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -149,7 +149,8 @@ describe("3D Secure on large card charges (Q202)", () => {
       const rule = OFF_SESSION[fn];
       expect(rule, `${fn} charges off-session with no 3DS rule: gate it at THREE_D_SECURE_MIN_CENTS or list it in OFF_SESSION`).toBeDefined();
       if (rule?.kind === "gated") {
-        const gate = src.search(/totalCents\s*>=\s*THREE_D_SECURE_MIN_CENTS\)\s*\{[\s\S]{0,400}?parkForOnSessionPayment\(/);
+        // Q1338: the gate may carry more conditions (an earlier charge to adopt).
+        const gate = src.search(/totalCents\s*>=\s*THREE_D_SECURE_MIN_CENTS(?:\s*&&[^{]*)?\)\s*\{[\s\S]{0,400}?parkForOnSessionPayment\(/);
         expect(gate, `${fn}: no $300 gate routing to the on-session payment`).toBeGreaterThanOrEqual(0);
         expect(gate, `${fn}: the $300 gate must come before the off-session charge`).toBeLessThan(at);
       }

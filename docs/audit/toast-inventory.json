@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 595,
-    "files": 150,
-    "rendering": 570,
-    "suppressedByPolicy": 25,
+    "calls": 599,
+    "files": 151,
+    "rendering": 571,
+    "suppressedByPolicy": 28,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 38,
-      "toast.error": 470,
+      "toast.error": 471,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 30,
+      "toast.success": 33,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 320,
-      "template": 77,
-      "dynamic": 239,
+      "literal": 321,
+      "template": 78,
+      "dynamic": 241,
       "jsx": 0
     }
   },
@@ -1296,7 +1296,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 103,
+      "line": 138,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1306,7 +1306,27 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 111,
+      "line": 148,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Review lifted. A suspension earned during the review applies${applied.appliedSuspendedUntil ? ` until ${new Date(applied.appliedSuspendedUntil).toLocaleString()}` : \"\"}; the account's jobs carry on and its payouts are released."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 152,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Ban lifted with the final warning earned during the review. The account's jobs carry on and its payouts are released."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 154,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1316,7 +1336,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 115,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1336,7 +1356,7 @@
     },
     {
       "file": "src/components/admin/AdminBanEvasionReview.tsx",
-      "line": 134,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2152,7 +2172,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 93,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2162,7 +2182,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 124,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2172,7 +2192,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 128,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2182,7 +2202,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2192,7 +2212,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2202,7 +2222,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 161,
+      "line": 162,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2222,7 +2242,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 188,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2232,7 +2252,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2242,7 +2262,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 207,
+      "line": 208,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2252,7 +2272,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 222,
+      "line": 223,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2262,7 +2282,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 232,
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2272,7 +2292,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 247,
+      "line": 248,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2282,7 +2302,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 263,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2292,7 +2312,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 306,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2302,7 +2322,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 342,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2312,7 +2332,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 354,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2322,7 +2342,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 388,
+      "line": 389,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4165,6 +4185,26 @@
       "title": {
         "form": "literal",
         "text": "Review posted. It goes live once they review you too — or in 14 days, whichever comes first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/schedule/DetailChangeControl.tsx",
+      "line": 82,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "await fn()"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/schedule/DetailChangeControl.tsx",
+      "line": 86,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't update the change request. Check your connection and try again.\")"
       },
       "renders": true
     },
@@ -6062,7 +6102,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6072,7 +6112,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 162,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

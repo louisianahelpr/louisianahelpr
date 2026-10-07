@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T22:47Z",
+  "measured_at": "2026-10-07T23:18Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,6 +57,11 @@
       {
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2604,
+        "title": "nightly-red: main-batch",
         "label": "nightly-red"
       }
     ]
@@ -207,6 +212,14 @@
         "status": "open",
         "title": "cron http failure: arrival-confirm-reminder returned 503",
         "issue": null
+      },
+      {
+        "fingerprint": "e275ee325abe1633e514acaa78fef874",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main-batch",
+        "issue": null
       }
     ]
   },
@@ -232,6 +245,7 @@
     "issue #2589": "Q1507",
     "issue #2596": "Q1510",
     "issue #2601": "Q1427",
+    "issue #2604": "Q1522",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",
@@ -249,6 +263,7 @@
     "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger db0fb15c4ec3": "Q1507",
+    "ledger e275ee325abe": "Q1522",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger ef92a9f31bed": "Q1476",
     "ledger f08d7f0fc323": "Q1512",

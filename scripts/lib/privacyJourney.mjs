@@ -90,7 +90,7 @@ export const EXPORT_SECTIONS = [
   "saved_search_alert_queue", "match_digest_queue", "parish_match_alert_queue", "ops_alert_admin_subjects",
   "favorite_helpers", "helper_availability",
   "helper_credentials", "helper_verifications", "verification_checks", "verification_exceptions",
-  "helper_w9_records", "instant_payouts", "payout_transfers", "crew_cancellation_fee_shares", "cancellation_fee_transfers",
+  "helper_w9_records", "instant_payouts", "payout_transfers", "crew_cancellation_fee_shares", "crew_block_fees", "cancellation_fee_transfers",
   "payment_refunds",
   "chargeback_clawbacks", "tips", "tip_hold_redrives", "gift_cards", "referral_codes", "referral_credits", "referrals",
   "reports", "user_blocks", "user_bans", "user_strikes", "user_violations", "user_roles",

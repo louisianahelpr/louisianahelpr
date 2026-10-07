@@ -4,6 +4,8 @@
  *
  *   node src/test/pglite/banEvasionCardBankName.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED: the live state
+ *   NEW_MIGRATION=skip-near node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED for Q1416 only
+ *   NEW_MIGRATION=skip-strikes node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED for Q1413 only
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR).
@@ -76,6 +78,13 @@ ${src.slice(at, end)}`;
 // the standing; an unban after a confirm finishes the review's cleanup.
 // NEW_MIGRATION=skip-standing runs everything but this one (its red proof).
 const STANDING = mig("20261006035830_ban_review_decides_standing");
+// Q1416 (owner 2026-10-07): phone (same last 7 digits) and ID (same name +
+// date of birth, any document) NEAR-matches only flag for an admin.
+// NEW_MIGRATION=skip-near runs everything but this one (its red proof).
+const NEAR = mig("20261007043626_ban_evasion_phone_and_identity_near_match");
+// Q1413: a strike earned during an open review is kept and applied when it ends.
+// NEW_MIGRATION=skip-strikes runs everything but this one (its red proof).
+const STRIKES = mig("20261007044339_ban_review_keeps_strikes");
 // open_jobs_browse as its newest definition creates it (the DO / EXECUTE block).
 const VIEW_SRC = (() => {
   const src = mig("20260927012806_recurring_split_days");
@@ -143,6 +152,11 @@ CREATE TABLE public.error_logs (
   message text NOT NULL, stack text, url text, user_agent text,
   tags jsonb NOT NULL DEFAULT '{}'::jsonb, context jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
+);
+-- user_violations: live columns (information_schema 2026-10-07); Q1413's review list reads it.
+CREATE TABLE public.user_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, violation_type text NOT NULL,
+  description text, job_id uuid, reported_by uuid, action_taken text, created_at timestamptz NOT NULL DEFAULT now()
 );
 GRANT SELECT ON public.profiles TO anon, authenticated;
 
@@ -266,6 +280,18 @@ if (MODE !== "skip") {
     for (let i = 0; i < 3; i++) {
       try { await db.exec(STANDING); }
       catch (e) { check(`standing migration applies (run ${i + 1})`, false, e.message); }
+    }
+  }
+  if (MODE !== "skip-near" && MODE !== "skip-standing") {
+    for (let i = 0; i < 3; i++) {
+      try { await db.exec(NEAR); }
+      catch (e) { check(`near-match migration applies (run ${i + 1})`, false, e.message); }
+    }
+  }
+  if (MODE !== "skip-strikes" && MODE !== "skip-standing") {
+    for (let i = 0; i < 3; i++) {
+      try { await db.exec(STRIKES); }
+      catch (e) { check(`keeps-strikes migration applies (run ${i + 1})`, false, e.message); }
     }
   }
 }
@@ -925,6 +951,177 @@ const surfaces = async () => {
   await db.query(`DELETE FROM public.payout_holds WHERE helper_id = $1`, [LADR]);
   const cc = await tryQ(`INSERT INTO public.payout_transfers (job_id, helper_id, status) VALUES ($1, $2, 'pending')`, [CREWJ, LADR]);
   check("a crew member under an open review cannot claim a transfer, even with no hold row", /payout_held/.test(cc.error ?? ""), cc.error ?? "claimed");
+}
+
+// ── Q1413: a strike earned during an open review is kept, not dropped ──────
+{
+  const tryExec = async (sql) => { try { await db.exec(sql); return { error: null }; } catch (e) { await db.exec("ROLLBACK").catch(() => {}); return { error: e.message }; } };
+  const ladder = (id, set) => tryExec(`BEGIN; SELECT set_config('app.trusted_ladder_write', 'on', true);
+    UPDATE public.profiles SET ${set} WHERE user_id = '${id}'; COMMIT;`);
+  const STK = "71717171-0000-4000-8000-000000000071";
+  await newAccount(STK, "strike@s.test", "Stella Strike");
+  await enforce(STK, "card", CARD_A);
+  const fw = await ladder(STK, `ban_status = 'final_warning'`);
+  const sus = await ladder(STK, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '7 days'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description, action_taken) VALUES ($1, 'no_show', 'No-show on a job that started while banned', 'temp_ban')`, [STK]).catch(() => {});
+  check("Q1413 ladder writes during the review still raise nothing and keep 'banned'", fw.error === null && sus.error === null && (await status(STK)) === "banned", fw.error ?? sus.error ?? "");
+  const rv = await tryQ(`SELECT deferred_ban_status, deferred_suspended_until > now() + interval '6 days' AS later FROM public.ban_settlement_queue WHERE user_id = $1 AND review_state = 'open'`, [STK]);
+  check("Q1413 the open review keeps the harshest deferred standing (the 7-day suspension)", rv.rows?.[0]?.deferred_ban_status === "temp_banned" && rv.rows?.[0]?.later === true, rv.error ?? JSON.stringify(rv.rows));
+  const list = await asAdmin(`SELECT public.admin_ban_settlement_reviews() AS r`);
+  const entry = (list.rows?.[0]?.r ?? []).find((x) => x.user_id === STK);
+  check("Q1413 the admin review list shows the deferred standing and the strikes recorded during the review",
+    entry?.deferred_ban_status === "temp_banned" && Array.isArray(entry?.strikes_during_review) && entry.strikes_during_review.length >= 1,
+    list.error ?? JSON.stringify(entry ? { d: entry.deferred_ban_status, s: entry.strikes_during_review } : null));
+  const lift = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [STK, ADMIN]);
+  const after = (await q(`SELECT ban_status, auto_suspended_until > now() + interval '6 days' AS later FROM public.profiles WHERE user_id = $1`, [STK]))[0];
+  check("Q1413 lifting the review applies the suspension earned during it (harsher than 'active')",
+    !lift.error && after?.ban_status === "temp_banned" && after?.later === true, lift.error ?? JSON.stringify(after));
+
+  const SPENT2 = "72727272-0000-4000-8000-000000000072";
+  await newAccount(SPENT2, "spent2@s.test", "Sid Spent");
+  await enforce(SPENT2, "card", CARD_A);
+  await ladder(SPENT2, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '1 day'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description) VALUES ($1, 'no_show', 'kept')`, [SPENT2]);
+  await db.query(`UPDATE public.ban_settlement_queue SET deferred_suspended_until = now() - interval '1 hour' WHERE user_id = $1 AND review_state = 'open'`, [SPENT2]).catch(() => {});
+  const lift2 = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [SPENT2, ADMIN]);
+  check("Q1413 a deferred suspension already over is spent: the lift leaves the account active", !lift2.error && (await status(SPENT2)) === "active", lift2.error ?? (await status(SPENT2)));
+
+  // A strike an admin reverses (admin_reverse_violation deletes the row)
+  // takes its deferred standing with it.
+  const REV = "75757575-0000-4000-8000-000000000075";
+  await newAccount(REV, "rev@s.test", "Rae Reversed");
+  await enforce(REV, "card", CARD_A);
+  await ladder(REV, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '7 days'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description) VALUES ($1, 'no_show', 'unfair')`, [REV]);
+  await db.query(`DELETE FROM public.user_violations WHERE user_id = $1`, [REV]);
+  const liftR = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [REV, ADMIN]);
+  check("Q1413 a reversed strike's deferred standing is not applied: the lift leaves the account active",
+    !liftR.error && (await status(REV)) === "active" && liftR.rows?.[0]?.r?.ban_status === "active", liftR.error ?? JSON.stringify(liftR.rows));
+
+  // A ladder EXTENDING a suspension the review already holds is deferred too.
+  const EXT = "76767676-0000-4000-8000-000000000076";
+  await newAccount(EXT, "ext@s.test", "Eli Extend");
+  await enforce(EXT, "card", CARD_A);
+  await db.query(`UPDATE public.ban_settlement_queue SET deferred_ban_status = NULL WHERE user_id = $1`, [EXT]);
+  await ladder(EXT, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '10 days'`);
+  const extRow = await tryQ(`SELECT deferred_ban_status FROM public.ban_settlement_queue WHERE user_id = $1 AND review_state = 'open'`, [EXT]);
+  check("Q1413 a deferred standing is recorded whatever the review holds", extRow.rows?.[0]?.deferred_ban_status === "temp_banned", extRow.error ?? JSON.stringify(extRow.rows));
+
+  // The lift returns what it applied, for admin-user-actions to write.
+  const RET = "77777777-0000-4000-8000-000000000077";
+  await newAccount(RET, "ret@s.test", "Rex Return");
+  await enforce(RET, "card", CARD_A);
+  await ladder(RET, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '7 days'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description) VALUES ($1, 'no_show', 'kept')`, [RET]);
+  const liftRet = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [RET, ADMIN]);
+  const ret = liftRet.rows?.[0]?.r;
+  check("Q1413 the lift returns the standing it applied, with its end date", ret?.ban_status === "temp_banned" && typeof ret?.suspended_until === "string", liftRet.error ?? JSON.stringify(ret));
+
+  const WARN = "73737373-0000-4000-8000-000000000073";
+  await newAccount(WARN, "warn@s.test", "Wes Warn");
+  await enforce(WARN, "card", CARD_A);
+  await ladder(WARN, `ban_status = 'final_warning'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description) VALUES ($1, 'job_denial', 'kept')`, [WARN]);
+  const lift3 = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [WARN, ADMIN]);
+  check("Q1413 a final warning earned during the review stands after the lift", !lift3.error && (await status(WARN)) === "final_warning", lift3.error ?? (await status(WARN)));
+}
+
+// ── Q1416: near-matches only flag (owner 2026-10-05 / 2026-10-07) ─────────
+{
+  const nearRows = (id, kind) => q(`SELECT original_reason FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = $2`, [id, kind]);
+  // (b) phone: the same LAST 7 digits after normalising.
+  const PH_BANNED = "61616161-0000-4000-8000-000000000061";
+  const PH_NEAR = "62626262-0000-4000-8000-000000000062";
+  const PH_EXACT = "63636363-0000-4000-8000-000000000063";
+  const PH_OTHER = "64646464-0000-4000-8000-000000000064";
+  await newAccount(PH_BANNED, "phone.banned@p.test", "Pat Phone One");
+  await db.query(`UPDATE public.profiles SET phone = '+1 (337) 555-1234' WHERE user_id = $1`, [PH_BANNED]);
+  await adminBan(PH_BANNED, "permanently_banned", "Threats");
+  const kept = await tryQ(`SELECT phone7_sha256 FROM public.retained_bans WHERE email_sha256 = encode(sha256('phone.banned@p.test'::bytea), 'hex')`);
+  check("Q1416 a ban keeps the last-7 phone key (a salted hash)", /^[0-9a-f]{64}$/.test(kept.rows?.[0]?.phone7_sha256 ?? ""), kept.error ?? JSON.stringify(kept.rows));
+
+  await newAccount(PH_NEAR, "phone.near@p.test", "Quinn Near Two");
+  await db.query(`UPDATE public.profiles SET phone = '225-555-1234' WHERE user_id = $1`, [PH_NEAR]);
+  const near = await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_NEAR]);
+  check("Q1416 another area code, same last 7 digits: one admin doubt-check row", near.rows?.length === 1, near.error ?? `${near.rows?.length} rows`);
+  check("Q1416 …and the account is NOT banned and gets no user_bans row",
+    (await status(PH_NEAR)) === "active" && (await activeBans(PH_NEAR)).length === 0);
+
+  await newAccount(PH_EXACT, "phone.exact@p.test", "Robin Exact Three");
+  await db.query(`UPDATE public.profiles SET phone = '3375551234' WHERE user_id = $1`, [PH_EXACT]);
+  check("Q1416 a phone CHANGED to the exact banned number is flagged as the same number (no signup check runs on a change)",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone' AND NOT auto_banned`, [PH_EXACT])).rows?.length === 1);
+  // A ban retained BEFORE the last-7 key (a deleted account's: no phone7) is
+  // still found by its exact number on a change.
+  const PH_OLD = "78787878-0000-4000-8000-000000000078";
+  await db.query(`INSERT INTO public.retained_bans (email_sha256, phone_sha256, ban_status, reason) VALUES (encode(sha256('gone.phone@p.test'::bytea), 'hex'), public.ban_fingerprint('phone', public.normalize_phone_for_ban('985-555-0000')), 'permanently_banned', 'Fraud')`);
+  await newAccount(PH_OLD, "phone.old@p.test", "Vic Oldnumber");
+  await db.query(`UPDATE public.profiles SET phone = '(985) 555-0000' WHERE user_id = $1`, [PH_OLD]);
+  check("Q1416 a phone changed to the exact number of a ban retained without a last-7 key is flagged",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone' AND NOT auto_banned`, [PH_OLD])).rows?.length === 1);
+  const PH_SIGNUP = "68686868-0000-4000-8000-000000000068";
+  await db.query(`INSERT INTO auth.users (id, email) VALUES ($1, 'phone.signup@p.test')`, [PH_SIGNUP]);
+  await db.query(`INSERT INTO public.profiles (user_id, email, full_name, phone) VALUES ($1, 'phone.signup@p.test', 'Uma Signup', '337-555-1234')`, [PH_SIGNUP]);
+  check("Q1416 the exact number at SIGNUP is left to the signup ban (no doubt-check row)",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_SIGNUP])).rows?.length === 0);
+
+  await newAccount(PH_OTHER, "phone.other@p.test", "Sam Other Four");
+  await db.query(`UPDATE public.profiles SET phone = '337-555-9999' WHERE user_id = $1`, [PH_OTHER]);
+  check("Q1416 a different last 7 digits is no match",
+    (await tryQ(`SELECT 1 FROM public.ban_evasion_matches WHERE user_id = $1 AND matched_on = 'phone_near'`, [PH_OTHER])).rows?.length === 0);
+
+  // (a) ID: the same name + date of birth with a different document.
+  const ID_BANNED = "65656565-0000-4000-8000-000000000065";
+  const ID_NEAR = "66666666-0000-4000-8000-000000000066";
+  const ID_EXACT = "67676767-0000-4000-8000-000000000067";
+  const fp = async (doc) => (await one(`SELECT public.identity_fingerprint('Ann', 'Lee', '1990-01-02', $1) AS h`, [doc]))?.h;
+  const flagId = (id, h) => tryQ(`SELECT public.flag_possible_ban_evasion_by_identity($1::uuid, $2) AS r`, [id, h]);
+  const nodoc = await fp(null);
+  await newAccount(ID_BANNED, "id.banned@p.test", "Ann Lee Banned");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_BANNED, await fp("D123")]);
+  const first = await flagId(ID_BANNED, nodoc);
+  check("Q1416 the verification stores the document-free key without flagging a clean account", first.rows?.[0]?.r?.flagged === false, first.error ?? JSON.stringify(first.rows));
+  await adminBan(ID_BANNED, "permanently_banned", "Fraud");
+  const keptId = await tryQ(`SELECT identity_nodoc_sha256 FROM public.retained_bans WHERE email_sha256 = encode(sha256('id.banned@p.test'::bytea), 'hex')`);
+  check("Q1416 a ban keeps the document-free identity key", keptId.rows?.[0]?.identity_nodoc_sha256 === nodoc, keptId.error ?? JSON.stringify(keptId.rows));
+
+  await newAccount(ID_NEAR, "id.near@p.test", "Ann Lee Near");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_NEAR, await fp("X999")]);
+  const nearId = await flagId(ID_NEAR, nodoc);
+  check("Q1416 same name + DOB, another document: flagged for an admin", nearId.rows?.[0]?.r?.flagged === true && (await nearRows(ID_NEAR, "identity_near")).length === 1, nearId.error ?? JSON.stringify(nearId.rows));
+  check("Q1416 …and the account is NOT banned and gets no user_bans row",
+    (await status(ID_NEAR)) === "active" && (await activeBans(ID_NEAR)).length === 0);
+
+  await newAccount(ID_EXACT, "id.exact@p.test", "Ann Lee Exact");
+  await db.query(`UPDATE public.profiles SET identity_sha256 = $2 WHERE user_id = $1`, [ID_EXACT, await fp("D123")]);
+  const exactId = await flagId(ID_EXACT, nodoc);
+  check("Q1416 the SAME document is not a near-match (the exact key bans it elsewhere)", exactId.rows?.[0]?.r?.flagged === false && (await nearRows(ID_EXACT, "identity_near")).length === 0, exactId.error ?? JSON.stringify(exactId.rows));
+  // A ban retained BEFORE the soft key existed, from an ID with no document
+  // number: its full identity hash IS the document-free hash.
+  const OLDBAN = "69696969-0000-4000-8000-000000000069";
+  const OLD_NEAR = "70707070-0000-4000-8000-000000000070";
+  const oldNodoc = (await one(`SELECT public.identity_fingerprint('Bo', 'Ray', '1985-05-05', NULL) AS h`))?.h;
+  await db.query(`INSERT INTO public.retained_bans (email_sha256, identity_sha256, ban_status, reason) VALUES (encode(sha256('old.ban@p.test'::bytea), 'hex'), $1, 'permanently_banned', 'Fraud')`, [oldNodoc]).catch((e) => check("old retained ban seeds", false, e.message));
+  await newAccount(OLD_NEAR, "old.near@p.test", "Bo Ray Near");
+  const oldFlag = await flagId(OLD_NEAR, oldNodoc);
+  check("Q1416 a ban retained before the soft key (ID with no document) still matches by name + DOB", oldFlag.rows?.[0]?.r?.flagged === true, oldFlag.error ?? JSON.stringify(oldFlag.rows));
+  void OLDBAN;
+  // An ID check finished after the ban was retained lands on that retained ban.
+  const LATE = "74747474-0000-4000-8000-000000000074";
+  await newAccount(LATE, "late.id@p.test", "Cy Late");
+  await adminBan(LATE, "permanently_banned", "Fraud");
+  const lateNodoc = (await one(`SELECT public.identity_fingerprint('Cy', 'Late', '1970-07-07', NULL) AS h`))?.h;
+  await flagId(LATE, lateNodoc);
+  const lateRow = await tryQ(`SELECT identity_nodoc_sha256 FROM public.retained_bans WHERE email_sha256 = encode(sha256('late.id@p.test'::bytea), 'hex')`);
+  check("Q1416 an ID check after the ban is copied onto the retained ban", lateRow.rows?.[0]?.identity_nodoc_sha256 === lateNodoc, lateRow.error ?? JSON.stringify(lateRow.rows));
+  const soft = await tryQ(`SELECT count(*)::int n FROM public.identity_soft_fingerprints`);
+  check("Q1416 identity_soft_fingerprints holds salted hashes only", (soft.rows?.[0]?.n ?? 0) >= 3, soft.error ?? "");
+  for (const role of ["anon", "authenticated"]) {
+    const fnp = await tryQ(`SELECT has_function_privilege('${role}', 'public.flag_possible_ban_evasion_by_identity(uuid,text)', 'EXECUTE') ok`);
+    check(`Q1416 ${role} cannot run flag_possible_ban_evasion_by_identity`, fnp.rows?.[0]?.ok === false, fnp.error ?? "");
+    const tbl = await tryQ(`SELECT has_table_privilege('${role}', 'public.identity_soft_fingerprints', 'SELECT') ok`);
+    check(`Q1416 ${role} cannot read identity_soft_fingerprints`, tbl.rows?.[0]?.ok === false, tbl.error ?? "");
+  }
 }
 
 // ── grants ─────────────────────────────────────────────────────────────────

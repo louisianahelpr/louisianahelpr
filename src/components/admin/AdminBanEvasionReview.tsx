@@ -25,12 +25,22 @@ import { toneBadgeClasses } from "@/components/admin/tones";
  *    (admin_confirm_ban_settlement); Lift unbans through the one ban write path
  *    (admin-user-actions set_ban_status), which closes the review, releases the
  *    payout hold and clears the match server-side.
- * 2. NAME MATCHES. A new or renamed account whose name matches a banned
- *    account's. A doubt check, never a ban. Kept in admin-only
+ * 2. POSSIBLE MATCHES. A new or changed account whose name, phone (same last
+ *    7 digits, Q1416) or ID (same name + date of birth with another document,
+ *    Q1416) matches a banned account's. A doubt check, never a ban. Kept in admin-only
  *    ban_evasion_matches, never in fraud_flags: those are exported to the
  *    person, and a flag appearing after they typed a name would tell them the
  *    name belongs to a banned account.
  */
+
+/** The soft (doubt-check) match kinds and how each is named to an admin. */
+const DOUBT_CHECK_LABEL = {
+  name: "Same name",
+  phone: "Same phone number",
+  phone_near: "Same last 7 phone digits",
+  identity_near: "Same name and date of birth on ID",
+} as const;
+const DOUBT_CHECK_KINDS = Object.keys(DOUBT_CHECK_LABEL) as Array<keyof typeof DOUBT_CHECK_LABEL>;
 
 interface MatchRow {
   id: string;
@@ -56,7 +66,29 @@ interface Review {
   created_at: string;
   matches: MatchRow[];
   jobs: ReviewJob[];
+  /** Q1413: the harshest standing a strike earned DURING the review would have set. */
+  deferred_ban_status?: string | null;
+  deferred_suspended_until?: string | null;
+  /** Q1413: every strike recorded since the review opened. */
+  strikes_during_review?: Array<{ id: string; violation_type: string; description: string | null; job_id: string | null; created_at: string }>;
 }
+
+/** Q1413: how a deferred standing reads to the admin deciding. */
+const deferredLabel = (r: Review): string | null => {
+  switch (r.deferred_ban_status) {
+    case "final_warning":
+      return "a final warning";
+    case "temp_banned":
+      return r.deferred_suspended_until
+        ? `a suspension until ${new Date(r.deferred_suspended_until).toLocaleString()}`
+        : "a suspension";
+    case "banned":
+    case "permanently_banned":
+      return "a ban";
+    default:
+      return null;
+  }
+};
 interface NameMatch extends MatchRow {
   user_id: string;
   created_at: string;
@@ -88,7 +120,10 @@ export function AdminBanEvasionReview() {
         await supabase
           .from("ban_evasion_matches")
           .select("id, user_id, matched_on, original_ban_status, original_reason, original_recorded_at, created_at")
-          .eq("matched_on", "name")
+          // Q1416: every doubt-check kind (never the auto-ban kinds).
+          .in("matched_on", [...DOUBT_CHECK_KINDS])
+          // An auto-ban ('phone' at signup, card, bank) is a review above, not a doubt-check.
+          .eq("auto_banned", false)
           .eq("resolved", false)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -102,13 +137,22 @@ export function AdminBanEvasionReview() {
         unwrap(await supabase.rpc("admin_confirm_ban_settlement", { p_user_id: review.user_id }));
         toast.success("Ban confirmed. The account's jobs were settled.");
       } else {
-        await setProfileBanStatus({
+        const applied = await setProfileBanStatus({
           userId: review.user_id,
           banStatus: "active",
           suspendedUntil: null,
           rejectedMessage: "This account wasn't unbanned — it may have changed. Refresh and try again.",
         });
-        toast.success("Ban lifted. The account's jobs carry on and its payouts are released.");
+        // Q1413: the lift keeps a standing earned during the review; say so.
+        if (applied.appliedBanStatus === "temp_banned") {
+          toast.success(
+            `Review lifted. A suspension earned during the review applies${applied.appliedSuspendedUntil ? ` until ${new Date(applied.appliedSuspendedUntil).toLocaleString()}` : ""}; the account's jobs carry on and its payouts are released.`,
+          );
+        } else if (applied.appliedBanStatus === "final_warning") {
+          toast.success("Ban lifted with the final warning earned during the review. The account's jobs carry on and its payouts are released.");
+        } else {
+          toast.success("Ban lifted. The account's jobs carry on and its payouts are released.");
+        }
       }
       await qc.invalidateQueries({ queryKey: REVIEWS_KEY });
     } catch (err) {
@@ -181,6 +225,25 @@ export function AdminBanEvasionReview() {
                     Banned account it matched — {originalBan(m)}
                   </p>
                 ))}
+                {(r.strikes_during_review?.length ?? 0) > 0 && (
+                  <div className="space-y-1" data-testid="ban-review-strikes">
+                    <p className="text-ds-11 font-medium">Strikes recorded during this review ({r.strikes_during_review!.length})</p>
+                    <ul className="text-ds-11 text-muted-foreground list-disc pl-4">
+                      {r.strikes_during_review!.map((v) => (
+                        <li key={v.id}>
+                          {v.violation_type.replace(/_/g, " ")}
+                          {v.description ? `: ${v.description}` : ""}
+                          {v.job_id ? ` (job ${v.job_id})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {deferredLabel(r) && (
+                  <p className="text-ds-11 text-muted-foreground" data-testid="ban-review-deferred">
+                    Those strikes earned {deferredLabel(r)}. Lifting the ban applies it (the stricter of it and an unban); reverse a strike first if it was unfair, such as a no-show on a job that started while this account was banned.
+                  </p>
+                )}
                 <p className="text-ds-11 font-medium">Jobs waiting ({r.jobs.length})</p>
                 {r.jobs.length > 0 && (
                   <ul className="text-ds-11 text-muted-foreground list-disc pl-4">
@@ -218,8 +281,8 @@ export function AdminBanEvasionReview() {
       </AdminCard>
 
       <AdminCard
-        title="Name matches"
-        subtitle="New or renamed accounts whose name matches a banned person's. Not banned: check whether it is the same person."
+        title="Possible matches"
+        subtitle="New or changed accounts whose name, phone (last 7 digits) or ID (name and date of birth) matches a banned person's. Not banned: check whether it is the same person."
       >
         {listsLoading ? (
           <p className="text-ds-11 text-muted-foreground">Loading matches…</p>
@@ -227,18 +290,21 @@ export function AdminBanEvasionReview() {
           <ErrorState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
-            title="We couldn't load the name matches."
+            title="We couldn't load the possible matches."
             body="Tap Try again. Do not read this as all-clear — nothing was checked."
             onRetry={() => names.refetch()}
           />
         ) : nameRows.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground">No name matches to check.</p>
+          <p className="text-ds-11 text-muted-foreground">No possible matches to check.</p>
         ) : (
           <ul className="space-y-2">
             {nameRows.map((m) => (
               <li key={m.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border p-3" data-testid="ban-evasion-name-match">
                 <div className="space-y-1">
                   <p className="text-ds-12 font-medium">Account {m.user_id}</p>
+                  <p className="text-ds-11 font-medium">
+                    {DOUBT_CHECK_LABEL[m.matched_on as keyof typeof DOUBT_CHECK_LABEL] ?? m.matched_on}
+                  </p>
                   <p className="text-ds-11 text-muted-foreground whitespace-pre-line">Banned account it matched — {originalBan(m)}</p>
                 </div>
                 <Button size="sm" variant="outline" disabled={busy === m.id} onClick={() => resolveName(m)}>

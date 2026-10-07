@@ -777,7 +777,7 @@ const serve = (h) => __hReg(h);
  * harness mocks (slack-alerts). Q1223 moved the chargeback clawback here from
  * stripe-webhook/handlers so process-scheduled-payouts can call it.
  */
-const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts"];
+const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts"];
 
 function isLocalModuleSpecifier(spec: string): boolean {
   return (

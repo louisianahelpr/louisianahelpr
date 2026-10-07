@@ -20,16 +20,16 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/adminJobs/RemoveJobDialog.tsx` | textarea×1 |  |  | Reason for cancelling job |
 | `src/components/admin/adminJobs/StatusOverrideDialog.tsx` | textarea×1 |  |  | Reason for status override |
 | `src/components/admin/AdminMarketing.tsx` | input×2, textarea×1, select×2 | text, email | 150 | subject · html · Segment · Parish · Pick a parish · test |
-| `src/components/admin/AdminNotificationLogs.tsx` | input×1, select×3 | text |  | Search notifications · Search by email, subject, or user id · Category filter · Category · Status filter · Status · Channel filter · Channel |
+| `src/components/admin/AdminNotificationLogs.tsx` | input×1, select×3 | text |  | Search notifications · Search by email, subject, or user id · Clear search · Category filter · Category · Status filter · Status · Channel filter |
 | `src/components/admin/AdminNotifications.tsx` | checkbox/switch/radio×4 |  |  | all-push · all-email |
 | `src/components/admin/AdminPayoutBatches.tsx` | textarea×2 |  |  | Payout queue · Hold reason · Denial reason |
 | `src/components/admin/adminPayoutBatches/BatchRow.tsx` | checkbox/switch/radio×1 |  |  |  |
-| `src/components/admin/AdminReferrals.tsx` | input×1 | search |  | Search referrals by name or code · Search by name or code… · Copy referral code |
+| `src/components/admin/AdminReferrals.tsx` | input×1 | search |  | Search referrals by name or code · Search by name or code… · Clear search · Copy referral code |
 | `src/components/admin/AdminReports.tsx` | textarea×1 |  |  | Message to user |
-| `src/components/admin/AdminSettings.tsx` | input×4 | url, number, search |  | socialWebhook · No limit · minBuild · Remove admin · Search users by name or email · Search by name or email… · Search users |
-| `src/components/admin/AdminSubscriptions.tsx` | input×1 | search |  | Search by name, email, or tier… · Filter by subscription status |
+| `src/components/admin/AdminSettings.tsx` | input×4 | url, number, search |  | socialWebhook · No limit · minBuild · Remove admin · Search users by name or email · Search by name or email… · Clear search · Search users |
+| `src/components/admin/AdminSubscriptions.tsx` | input×1 | search |  | Search by name, email, or tier… · Clear search · Filter by subscription status |
 | `src/components/admin/AdminUserNotes.tsx` | textarea×2, select×2 |  |  | New admin note · Note category · Edit note · Delete note |
-| `src/components/admin/AdminUsers.tsx` | input×1, select×1 | search |  | Search name, email, phone or job ID… · Sort by |
+| `src/components/admin/AdminUsers.tsx` | input×1, select×1 | search |  | Search name, email, phone or job ID… · Clear search · Sort by |
 | `src/components/admin/BanDialog.tsx` | textarea×1, select×1 |  |  | Action type · Reason · Reason note · Ban duration |
 | `src/components/admin/dashboard/DateRangeBar.tsx` | input×1 | number |  | custom-days |
 | `src/components/admin/DeleteUserDialog.tsx` | input×1 | text |  |  |
@@ -86,7 +86,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · save-default-pitch |
-| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… |
+| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 
 ## /home, /browse
 

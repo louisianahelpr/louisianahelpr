@@ -23,6 +23,7 @@ const rpcMock = vi.fn();
 const invokeMock = vi.fn();
 const updateMock = vi.fn();
 let namesResult: { data: unknown; error: unknown } = { data: [], error: null };
+const inCalls: Array<{ col: string; vals: string[] }> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -33,6 +34,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       const chain = {
         select: () => chain,
         eq: () => chain,
+        in: (col: string, vals: string[]) => {
+          inCalls.push({ col, vals });
+          return chain;
+        },
         order: () => chain,
         limit: async () => namesResult,
         update: (payload: unknown) => ({
@@ -125,6 +130,48 @@ describe("AdminBanEvasionReview (Q1324)", () => {
     expect(await screen.findByText(/Harassment/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Mark checked" }));
     await waitFor(() => expect(rpcMock).toHaveBeenCalledWith("admin_resolve_ban_evasion_match", { p_match_id: "n1" }));
+  });
+
+  // Q1416: the phone and ID near-matches are doubt-checks too, listed beside
+  // the name, each named for what matched.
+  // @mutate src/components/admin/AdminBanEvasionReview.tsx |   phone_near: "Same last 7 phone digits", |
+  it("lists phone and ID near-matches with what matched (Q1416)", async () => {
+    namesResult = {
+      data: [
+        { id: "p1", user_id: USER, matched_on: "phone_near", original_ban_status: "banned", original_reason: "Threats", original_recorded_at: null, created_at: "2026-10-07T20:00:00Z" },
+        { id: "i1", user_id: USER, matched_on: "identity_near", original_ban_status: "banned", original_reason: "Fraud", original_recorded_at: null, created_at: "2026-10-07T20:00:00Z" },
+      ],
+      error: null,
+    };
+    renderIt();
+    expect(await screen.findByText("Same last 7 phone digits")).toBeInTheDocument();
+    expect(screen.getByText("Same name and date of birth on ID")).toBeInTheDocument();
+    const kinds = inCalls.find((c) => c.col === "matched_on")?.vals ?? [];
+    expect([...kinds].sort()).toEqual(["identity_near", "name", "phone", "phone_near"]);
+  });
+
+  // Q1413: strikes earned during an open review are kept; the admin deciding
+  // sees them and what the lift will apply.
+  // @mutate src/components/admin/AdminBanEvasionReview.tsx |                 {(r.strikes_during_review?.length ?? 0) > 0 && ( |                 {false && (
+  // @mutate src/components/admin/AdminBanEvasionReview.tsx |                 {deferredLabel(r) && ( |                 {false && (
+  it("shows the strikes recorded during the review and what a lift applies (Q1413)", async () => {
+    rpcMock.mockImplementation(async (name: string) =>
+      name === "admin_ban_settlement_reviews"
+        ? {
+            data: [{
+              ...REVIEW,
+              deferred_ban_status: "temp_banned",
+              deferred_suspended_until: "2026-10-14T00:00:00Z",
+              strikes_during_review: [{ id: "v1", violation_type: "no_show", description: "Reported no-show", job_id: "job-9", created_at: "2026-10-07T00:00:00Z" }],
+            }],
+            error: null,
+          }
+        : { data: null, error: null },
+    );
+    renderIt();
+    expect(await screen.findByText(/Strikes recorded during this review \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/no show: Reported no-show \(job job-9\)/)).toBeInTheDocument();
+    expect(screen.getByTestId("ban-review-deferred").textContent).toMatch(/a suspension until/);
   });
 
   it("an unreadable review queue never reads as all-clear", async () => {

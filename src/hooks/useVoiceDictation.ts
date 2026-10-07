@@ -80,12 +80,20 @@ interface UseVoiceDictationResult {
 
 // Narrow shape for the recognition instance — the DOM types ship as `any`
 // for these symbols, so we describe just the surface this hook uses.
+/** The slice of a SpeechRecognition result event this hook reads (Q806: no `any`). */
+interface RecognitionEventLike {
+  resultIndex?: number;
+  results?: ArrayLike<{ isFinal?: boolean; 0?: { transcript?: string } } | undefined>;
+}
+interface RecognitionErrorLike {
+  error?: string;
+}
 interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: ((ev: any) => void) | null;
-  onerror: ((ev: any) => void) | null;
+  onresult: ((ev: RecognitionEventLike) => void) | null;
+  onerror: ((ev: RecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -158,7 +166,7 @@ export function useVoiceDictation({
     rec.continuous = false;
     rec.interimResults = true;
     rec.lang = lang;
-    rec.onresult = (ev: any) => {
+    rec.onresult = (ev: RecognitionEventLike) => {
       let interim = "";
       let finalChunk = "";
       const results = ev?.results ?? [];
@@ -176,7 +184,7 @@ export function useVoiceDictation({
         onFinalRef.current(finalChunk.trim());
       }
     };
-    rec.onerror = (ev: any) => {
+    rec.onerror = (ev: RecognitionErrorLike) => {
       sawErrorRef.current = true;
       const message = dictationErrorMessage(ev?.error);
       if (message) onErrorRef.current?.(message);

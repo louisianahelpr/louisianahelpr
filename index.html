@@ -645,7 +645,7 @@
         display: none;
       }
       html:not([data-skip-landing]) #landing-prerender ~ #root #boot-loader {
-        display: none;
+        display: none !important; /* over its inline display:flex */
       }
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {

@@ -3,6 +3,7 @@
 // @mutate vercel.json |       "destination": "/app.html" |       "destination": "/index.html"
 // @mutate src/pages/info/Index.tsx |     removeLandingPrerender();\n  }, []); |   }, []);
 // @mutate index.html |           var skip = location.pathname !== "/"; |           var skip = false;
+// @mutate index.html |         display: none !important; /* over its inline display:flex */ |         display: none; /* over its inline display:flex */
 /*
  * Q652 (owner, 2026-10-07): `/` paints the landing page as static HTML before
  * any JavaScript runs (scripts/prerender-landing.mjs, src/lib/landingPrerender.ts).
@@ -83,6 +84,10 @@ describe("the landing's build-time first paint (Q652)", () => {
     expect(html).toMatch(/var skip = location\.pathname !== "\/";/);
     expect(html).toMatch(/k\.indexOf\("sb-"\) === 0 && k\.slice\(-11\) === "-auth-token"\) skip = true;/);
     expect(html).toMatch(/html\[data-skip-landing\] #landing-prerender \{\s*display: none;/);
+    // The boot loader's own inline style says display:flex; only !important
+    // keeps it off the static paint (the first CI capture showed it on top of
+    // the H1, run 37582220884).
+    expect(html).toMatch(/html:not\(\[data-skip-landing\]\) #landing-prerender ~ #root #boot-loader \{\s*display: none !important;/);
     expect(read("src/main.tsx")).toMatch(/if \(document\.documentElement\.hasAttribute\("data-skip-landing"\)\) removeLandingPrerender\(\);/);
   });
 

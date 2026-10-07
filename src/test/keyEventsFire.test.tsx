@@ -152,7 +152,7 @@ vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn(),
   hapticSelection: vi.fn(), hapticHeavy: vi.fn(), hapticWarning: vi.fn(),
 }));
-vi.mock("@/lib/successMoment", () => ({ fireSuccessMoment: vi.fn() }));
+vi.mock("@/lib/successMoment", () => ({ fireSuccessMoment: vi.fn(), subscribeSuccessMoment: () => () => {}, SUCCESS_MOMENT_LIFETIME_MS: 1300 }));
 vi.mock("@/lib/celebrate", () => ({ maybeCelebrate: () => Promise.resolve() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));

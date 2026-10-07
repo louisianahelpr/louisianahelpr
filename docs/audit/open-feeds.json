@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-07T10:46Z",
+  "measured_at": "2026-10-07T10:51Z",
   "issues": {
     "readable": true,
     "open": [
@@ -52,11 +52,6 @@
       {
         "number": 2501,
         "title": "nightly-red: vacuity",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2543,
-        "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red"
       },
       {

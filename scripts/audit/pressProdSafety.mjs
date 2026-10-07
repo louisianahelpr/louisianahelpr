@@ -670,6 +670,63 @@ export async function cleanup({ sessions, since, profilesBefore, weeklyAvailabil
  * throws; a job it cannot remove is residue, and its PRESS_MARKER title keeps
  * it in reach of the marker-based sweepers.
  */
+/**
+ * THE INBOX FIXTURE (Q1427, lead decision 2026-10-07: "the measurement seeds
+ * its own is_seed conversation on its fixture job and cleans up").
+ *
+ * /messages' placeholder is a list of conversation rows, and the measurement
+ * compares it with whatever inbox the two shared test accounts happen to
+ * have. When their last live thread went (archived 10-02, the rest deleted
+ * with the 10-06 trace clean-up) the inbox measured as its empty state and
+ * every run went red on data, not on code. So the run brings its own thread:
+ * one message from the helper to the poster on the accepted is_seed job the
+ * two accounts share (e2e/job-status-fixtures/accepted.spec.ts keeps it). An
+ * ACCEPTED job, because the inbox opens on Active, which holds only threads on
+ * running work (ConversationList.tsx LIVE_JOB_STATUSES); a thread on the run's
+ * own open fixture job would sit under All and leave Active empty. Sent AS the
+ * helper, through the same RLS and triggers a real message passes, and deleted
+ * as its sender when the run ends.
+ */
+export const INBOX_FIXTURE_MARKER = "[loading-states inbox fixture]";
+
+export async function seedInboxMessage(poster, helper, runId) {
+  const jobs = await prodSelect(
+    poster,
+    `jobs?select=id&customer_id=eq.${poster.userId}&helper_id=eq.${helper.userId}&status=eq.accepted&is_seed=eq.true&order=created_at.desc&limit=1`,
+  );
+  if (!jobs.length) {
+    return { id: null, note: "no accepted is_seed job between the two test accounts (e2e/job-status-fixtures/accepted.spec.ts keeps one); /messages measures whatever inbox they have" };
+  }
+  const res = await fetch(`${supabaseUrl()}/rest/v1/messages?select=id`, {
+    method: "POST",
+    headers: headers(helper, { Prefer: "return=representation" }),
+    body: JSON.stringify({
+      job_id: jobs[0].id,
+      sender_id: helper.userId,
+      receiver_id: poster.userId,
+      content: `${INBOX_FIXTURE_MARKER} run ${runId}. Not a real message; removed when the run ends.`,
+    }),
+  });
+  if (!res.ok) return { id: null, note: `insert refused: HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
+  const [m] = await res.json();
+  return { id: m?.id ?? null, note: `on job ${jobs[0].id}` };
+}
+
+export async function removeInboxMessage(helper, id) {
+  try {
+    const res = await fetch(`${supabaseUrl()}/rest/v1/messages?id=eq.${id}&sender_id=eq.${helper.userId}&select=id`, {
+      method: "DELETE",
+      headers: headers(helper, { Prefer: "return=representation" }),
+    });
+    if (!res.ok) return { ok: false, note: `HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
+    const rows = await res.json();
+    // A null error is not a delete: zero rows back means nothing was removed.
+    return rows.length === 1 ? { ok: true, note: "deleted" } : { ok: false, note: "0 rows deleted" };
+  } catch (e) {
+    return { ok: false, note: String(e.message).slice(0, 200) };
+  }
+}
+
 export async function removeFixtureJob(poster, jobId) {
   try {
     const [j] = await prodSelect(poster, `jobs?select=id,title,status,payment_status,stripe_session_id&id=eq.${jobId}&customer_id=eq.${poster.userId}`);

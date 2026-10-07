@@ -73,6 +73,7 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
     for (const tier of Object.keys(TIER_PERKS) as (keyof typeof TIER_PERKS)[]) {
       expect(posterFeePercentForTier(tier)).toBe(TIER_PERKS[tier].platformFeePercent);
     }
+    expect(Object.keys(TIER_PERKS).length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(3);
   });
 });
 

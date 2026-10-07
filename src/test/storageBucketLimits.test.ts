@@ -171,6 +171,9 @@ function offendingPublicBuckets(state: Map<string, BucketState>): string[] {
 }
 
 describe("storage bucket size/MIME caps (authz-rls H-003 class check)", () => {
+  it("replays the real migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => {
+    expect(readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).length).toBeGreaterThan(900);
+  });
   const state = computeState();
 
   it("parser actually sees the buckets (guards against a check that cannot fail)", () => {

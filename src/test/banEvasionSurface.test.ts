@@ -75,6 +75,7 @@ function stripSqlComments(sql: string): string {
  */
 function liveDefinition(fn: string): string {
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
+  expect(files.length, "floor (Q1073, 2026-10-07: 1010 measured)").toBeGreaterThan(900);
   // Match the CREATE itself — a COMMENT ON / REVOKE names the function too and
   // sorts later, so "the last file that mentions it" is the wrong file.
   const creator = new RegExp(`CREATE OR REPLACE FUNCTION\\s+public\\.${fn}\\s*\\(`, "gi");

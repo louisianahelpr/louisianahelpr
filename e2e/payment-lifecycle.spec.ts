@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
+import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvailable } from "./helpers/mintedPasswordGrant";
 
 // E2E coverage for the job lifecycle through PAYMENT — the escrow /
 // checkout / payout leg that `post-and-apply.spec.ts` explicitly stops
@@ -36,8 +37,9 @@ import { LOCAL_BASE_URL } from "./localBase";
 const BASE_URL = LOCAL_BASE_URL;
 
 const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
-const TEST_PASSWORD = process.env.PLAYWRIGHT_TEST_USER_PASSWORD;
-const haveCreds = !!TEST_EMAIL && !!TEST_PASSWORD;
+// The login form is driven for real; its grant is answered with a minted session
+// (Q1420: Supabase Auth CAPTCHA refuses a CI build's password grant).
+const haveCreds = mintedSignInAvailable(TEST_EMAIL);
 
 /**
  * Intercept the `create-payment` edge function so a test never reaches
@@ -106,14 +108,15 @@ test.describe("payment lifecycle — public surfaces", () => {
 test.describe("payment lifecycle — authenticated post → escrow checkout", () => {
   test.skip(
     !haveCreds,
-    "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD not set — skipping authenticated payment flow",
+    "PLAYWRIGHT_TEST_USER_EMAIL or the service-role key not set — skipping authenticated payment flow",
   );
 
   /** Sign the test customer in; lands on /home or /complete-profile. */
   async function signIn(page: Page) {
+    await answerPasswordGrantWithMintedSession(page, TEST_EMAIL!);
     await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.locator("#email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(FORM_PASSWORD);
     await Promise.all([
       page.waitForURL(/\/(home|complete-profile)/, { timeout: 15_000 }),
       page.locator('button[type="submit"]').click(),
@@ -188,4 +191,4 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
 
 // CREDENTIAL-BLOCKED, not unfinished.
 //
-// @mutate-exempt Needs PLAYWRIGHT_TEST_USER_EMAIL/_PASSWORD, GitHub-secrets only and absent from .env (verified 2026-09-21), so a local registration returns SURVIVED for an environment reason. SHOWN ABLE TO FAIL in CI: it shares e2e-real-backend.yml's `auth + payment lifecycle` step with auth.spec.ts, whose job was FAILURE on the 2026-09-13 and 2026-09-14 scheduled runs. GAP, stated plainly: its public half needs no credentials and is not separately registered, so the half that CAN be proven locally has not been. What would close it is either splitting the unauthenticated assertions into their own registerable block, or adding the two secrets to vacuity.yml — this spec does not fund a job, so it leaves no residue.
+// @mutate-exempt Needs PLAYWRIGHT_TEST_USER_EMAIL + the service-role key (was _PASSWORD until Q1420), GitHub-secrets only and absent from .env (verified 2026-09-21), so a local registration returns SURVIVED for an environment reason. SHOWN ABLE TO FAIL in CI: it shares e2e-real-backend.yml's `auth + payment lifecycle` step with auth.spec.ts, whose job was FAILURE on the 2026-09-13 and 2026-09-14 scheduled runs. GAP, stated plainly: its public half needs no credentials and is not separately registered, so the half that CAN be proven locally has not been. What would close it is either splitting the unauthenticated assertions into their own registerable block, or adding the two secrets to vacuity.yml — this spec does not fund a job, so it leaves no residue.

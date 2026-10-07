@@ -118,7 +118,7 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     close: CLEAR,
   },
   {
-    name: "admin-settings-add-admin", file: "src/components/admin/AdminSettings.tsx", as: "admin",
+    name: "admin-settings-add-admin", file: "src/components/admin/settings/AdminUserSearchField.tsx", as: "admin",
     url: "/admin?view=settings",
     trigger: 'button:has-text("Add Admin")',
     field: 'input[aria-label="Search users by name or email"]',

@@ -11,6 +11,7 @@
  */
 // @mutate src/index.css |     --nav-pill-bg:      hsl(0 0% 100%); |     --nav-pill-bg:      hsla(0, 0%, 100%, 0.40);
 // @mutate src/components/MobileNav.tsx | backgroundColor: "var(--nav-pill-bg)", | backgroundColor: "hsla(0, 0%, 100%, 0.40)",
+// @mutate src/components/mobileNav/DockCurtain.tsx | background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))", | background: "linear-gradient(to top, hsla(40, 28%, 99%, 0.6), var(--nav-curtain-fade))",
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +19,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
 const CSS = readFileSync(join(ROOT, "src/index.css"), "utf8");
-const NAV = readFileSync(join(ROOT, "src/components/MobileNav.tsx"), "utf8");
+// The curtain moved to mobileNav/DockCurtain.tsx (Q7, 2026-10-07); the pill stays in MobileNav.
+const NAV = readFileSync(join(ROOT, "src/components/MobileNav.tsx"), "utf8") + readFileSync(join(ROOT, "src/components/mobileNav/DockCurtain.tsx"), "utf8");
 
 /** The body of the first @media (prefers-reduced-transparency: reduce) block, comments stripped. */
 function reducedTransparencyBlock(): string {

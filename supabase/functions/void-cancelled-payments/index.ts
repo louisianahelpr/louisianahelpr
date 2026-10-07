@@ -1727,6 +1727,9 @@ serve(async (req) => {
         .from("crew_block_fees")
         .select("id, job_id, helper_id, slot_no, share_basis_cents, fee_percent, fee_cents, status, stripe_transfer_id")
         .in("status", ["owed", "failed"])
+        // Oldest first, so rows that keep failing cannot crowd newer ones out
+        // forever (lh-money-escrow review, nit 3).
+        .order("created_at", { ascending: true })
         .limit(100);
       const feeTableMissing = !!owedFeeErr && (owedFeeErr.code === "42P01" || owedFeeErr.code === "PGRST205");
       if (owedFeeErr && !feeTableMissing) {
@@ -1745,11 +1748,25 @@ serve(async (req) => {
           defects.record(`crew block fee sweep job read: ${feeJobErr.message}`);
         } else {
           for (const fj of (feeJobs ?? []) as Array<{ id: string; title: string; helper_fee_percent: number | null; stripe_payment_intent_id: string | null }>) {
+            // The same gate every Part A job passes (Q231): an undecided or
+            // unexecuted dispute decides where this job's money goes first.
+            const feeSettlement = await checkUnsettledDispute(supabaseAdmin, fj.id);
+            if (feeSettlement.blocked) {
+              if (feeSettlement.readError) defects.record(`crew block fee sweep dispute check ${fj.id}: ${feeSettlement.readError}`);
+              continue;
+            }
             let chargeId: string | null = null;
             if (fj.stripe_payment_intent_id) {
               try {
-                const fpi = await stripe.paymentIntents.retrieve(fj.stripe_payment_intent_id);
-                chargeId = fpi.latest_charge ? (typeof fpi.latest_charge === "string" ? fpi.latest_charge : fpi.latest_charge.id) : null;
+                const fpi = await stripe.paymentIntents.retrieve(fj.stripe_payment_intent_id, { expand: ["latest_charge"] });
+                const ch = fpi.latest_charge;
+                // Link the charge only while it still holds money: a fully
+                // refunded charge (an admin full refund) cannot fund a
+                // source_transaction, which would fail this row every hour
+                // (lh-money-escrow review, nit 1). The platform balance pays
+                // it instead (withholding it there is a filed follow-up).
+                if (typeof ch === "string") chargeId = ch;
+                else if (ch && Number(ch.amount_refunded ?? 0) < Number(ch.amount ?? 0)) chargeId = ch.id;
               } catch (e) {
                 if (isTestObjectUnderLiveKey(e)) {
                   logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: fj.id, object: "payment_intent", id: fj.stripe_payment_intent_id });

@@ -797,8 +797,10 @@ serve(async (req) => {
           if (bfJobErr) {
             notes.push(`crew block-fee settled-job check skipped: jobs read failed (${bfJobErr.message})`);
           } else {
-            // Settled more than the window ago (the job's last write is the
-            // settlement flip); the hourly sweep has had its chances by then.
+            // Settled more than the window ago. jobs.updated_at is the last
+            // write, normally the settlement flip; a later write (a review, a
+            // tip) only delays the report, never invents one (lh-money-escrow
+            // review, nit 4). The hourly sweep has had its chances by then.
             const settled = new Set(
               ((bfJobs ?? []) as Array<{ id: string; payment_status: string | null; updated_at: string | null }>)
                 .filter((j) => j.payment_status === "released" || j.payment_status === "refunded" || j.payment_status === "cancelled")

@@ -451,6 +451,30 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 
+  // Round 2 nit 1: a fully refunded charge (an admin full refund) cannot fund
+  // a source_transaction; the platform balance pays rather than failing hourly.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 else if (ch && Number(ch.amount_refunded ?? 0) < Number(ch.amount ?? 0)) chargeId = ch.id; |                 else if (ch) chargeId = ch.id;
+  it("Part F never links a fully refunded charge to the fee transfer", async () => {
+    scenario.reads.jobs = {
+      rows: [],
+      selectOverrides: [{
+        includes: "helper_fee_percent, payment_status, stripe_payment_intent_id",
+        result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", stripe_payment_intent_id: "pi_done" }] },
+      }],
+    };
+    scenario.reads.crew_block_fees = {
+      rows: [{ id: "bf-9", job_id: "job-done", helper_id: "member-d", slot_no: 1, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_done", status: "succeeded", latest_charge: { id: "ch_done", amount: 33000, amount_refunded: 33000 } });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = blockTransfers();
+    expect(fee).toHaveLength(1);
+    expect((fee[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
+  });
+
   it("an unreadable block-fee ledger moves no money for the job", async () => {
     seedWithBlockFee();
     scenario.reads.crew_block_fees = { error: { message: "boom" } } as never;

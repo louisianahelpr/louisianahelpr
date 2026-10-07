@@ -1,11 +1,12 @@
 {
-  "generated": "2026-10-07T19:29:22.405Z",
-  "guards": 1583,
-  "registered": 1583,
-  "unregistered": [],
+  "generated": "2026-10-07T19:41:38.827Z",
+  "guards": 1588,
+  "registered": 1587,
+  "unregistered": [
+    "src/hooks/useBugReportScreen.test.ts"
+  ],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/timeSuffixContrast.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {

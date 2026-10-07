@@ -4,12 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 190** (152 to do, 38 fixed with protection pending; 993 done). Feeds mirrored in: 18 from the alert ledger, 10 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 193** (155 to do, 38 fixed with protection pending; 993 done). Feeds mirrored in: 20 from the alert ledger, 13 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 193** (153 to do, 40 fixed with protection pending; 997 done). Feeds mirrored in: 22 from the alert ledger, 14 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 4 left of 34** (4 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 12 red, 14 stale, 0 unknown, 47 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T18:29Z)_
-- **Remote branches:** 26 carry patches not on main, 1 fully merged, of 32 (Q79). _(2026-10-07T18:29Z)_
+- **Workflows on main:** 11 red, 15 stale, 0 unknown, 47 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-07T19:41Z)_
+- **Remote branches:** 20 carry patches not on main, 1 fully merged, of 25 (Q79). _(2026-10-07T19:41Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -84,7 +83,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1183 items — 993 done, 38 partly done (fixed, protection pending), 152 open.**
+**Queue: 1190 items — 997 done, 40 partly done (fixed, protection pending), 153 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -684,6 +683,9 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q1506 MEDIUM nightly-red: main: Supabase DB Deploy is red.** Mirrored 2026-10-07 from nightly-red issue #2587 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2587. done-when: issue #2587 closed
 - [ ] **Q1507 MEDIUM nightly-red: staleness-watch is red.** Mirrored 2026-10-07 from nightly-red issue #2589 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2589. done-when: issue #2589 closed
 - [ ] **Q1508 MEDIUM guest marketplace is empty: no funded jobs (pre-launch).** Mirrored 2026-10-07 from alert-ledger row 0e88968519a2 (workflow: uptime; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0e88968519a2. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '0e88968519a2dacc4d7e6d4201fc2534'` => closed
+- [ ] **Q1510 MEDIUM nightly-red: db-drift-detect is red.** Mirrored 2026-10-07 from nightly-red issue #2596 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2596. done-when: issue #2596 closed
+- [ ] **Q1511 MEDIUM # cron http failure(s) in the last hour.** Mirrored 2026-10-07 from alert-ledger row 0fa6c60d7a29 (sql_slack: slack-ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0fa6c60d7a29. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '0fa6c60d7a29c7cb3d1e008672334f57'` => closed
+- [ ] **Q1512 MEDIUM cron http failure: arrival-confirm-reminder returned 503.** Mirrored 2026-10-07 from alert-ledger row f08d7f0fc323 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger f08d7f0fc323. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'f08d7f0fc323e27f5b0f419dfb6ff159'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

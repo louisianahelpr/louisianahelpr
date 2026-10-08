@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-08T20:48:42.219Z",
-  "guards": 1610,
-  "registered": 1610,
-  "unregistered": [],
+  "generated": "2026-10-08T21:59:22.592Z",
+  "guards": 1623,
+  "registered": 1622,
+  "unregistered": [
+    "src/test/jobLifecycleWalk.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
@@ -388,6 +390,7 @@
         "src/test/jobCardPersonTileAboveRow.test.tsx",
         "src/test/offerCardHierarchy.test.tsx",
         "src/pages/posts/PostedJobCard.contestedTracker.test.tsx",
+        "src/pages/posts/PostedJobCard.expandedOrder.test.tsx",
         "src/pages/posts/PostedJobCard.helprTile.test.tsx",
         "src/pages/posts/PostedJobCard.owesConfirmationBadge.test.tsx"
       ],

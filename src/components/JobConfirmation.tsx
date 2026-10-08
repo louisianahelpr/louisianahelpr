@@ -21,7 +21,7 @@ import { report } from "@/lib/errorLogger";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
-import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
+import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 
 /**
  * THE HELPER'S DAY-OF ANSWER, in one place.

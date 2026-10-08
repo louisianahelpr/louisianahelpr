@@ -1,7 +1,7 @@
-import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /**
  * The icon-over-label action row shared by the activity job cards.
@@ -466,33 +466,13 @@ export function JobStepPrimaryButton({
 export function JobStepOverflowChip({
   count,
   children,
-  anchorRef,
-  width,
 }: {
   count: number;
   children: ReactNode;
-  /**
-   * THE ROW, not this button. Radix positions a popover against its trigger
-   * unless an explicit anchor is given, and this trigger sits in the MIDDLE of
-   * the row — so a panel as wide as the card, aligned to the trigger's end,
-   * hung off the card's left edge and was then shoved back by Radix's
-   * collision detection to wherever the VIEWPORT allowed. Measured on prod at
-   * 320 on 2026-09-19: `x=12, right=284` in a 320px viewport — a panel sitting
-   * on the page, outside the card, pointing at nothing. Its contents and its
-   * 2-up grid were correct; only the placement was wrong.
-   *
-   * Anchored to the row and sized to the row, the panel is the row's own box:
-   * inside the card by construction, at every width, with nothing left for
-   * collision detection to correct.
-   */
-  anchorRef?: RefObject<HTMLElement | null>;
-  /** The row's measured width, 0 before the first measurement. */
-  width?: number;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      {/* Renders nothing; it only tells Radix what to measure against. */}
       {/* Anchored to the More button itself now (2026-10-08): the panel is a
           short list as wide as its contents, dropping under the button that
           opened it, not a row-wide box around one chip. */}

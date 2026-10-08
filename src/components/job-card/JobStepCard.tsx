@@ -429,8 +429,6 @@ export function JobStepCard({
                  ROW's width it lands exactly over the controls it came from,
                  inside the card, at every width, and collision detection has
                  nothing left to correct. */
-              anchorRef={rowRef}
-              width={layout.rowPx}
             >
               {moreChips}
             </JobStepOverflowChip>

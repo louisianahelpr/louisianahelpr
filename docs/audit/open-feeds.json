@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T18:12Z",
+  "measured_at": "2026-10-08T18:22Z",
   "issues": {
     "readable": true,
     "open": [

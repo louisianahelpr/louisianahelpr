@@ -283,6 +283,7 @@ export const RPC_ERROR_COPY = {
     schedule_change_not_booked: "This job isn't booked any more, so its date or time can't be changed this way. Refresh and check.",
     schedule_change_too_late: "The job has already started, so its date or time can't be changed now.",
     schedule_change_in_past: "Pick a date and time that are still ahead.",
+    schedule_change_too_soon: "Pick a start at least an hour from now, so they have time to answer.",
     schedule_change_same: "That's the date and time the job already has.",
     schedule_change_invalid: "Pick a date for the new time.",
     schedule_change_clash: "The Helpr already has another booked job at that time. Pick a different time.",

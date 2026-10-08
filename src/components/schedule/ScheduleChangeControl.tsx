@@ -29,6 +29,17 @@ export function usePendingScheduleChange(jobId: string, enabled = true) {
   });
 }
 
+/**
+ * Why a request could not be applied (owner, 2026-10-08: an accept 19 s after
+ * the new time started said only "expired"). The other person is told too.
+ */
+export function expiredMessage(status: string): string {
+  if (status === "expired:new_time_passed") return "That new time had already started, so it couldn't be applied. The job keeps its original date and time, and they've been told.";
+  if (status === "expired:job_started") return "The job's original start arrived before this was answered, so nothing changed. They've been told.";
+  if (status === "expired:job_changed") return "The job changed after they asked, so nothing changed. They've been told.";
+  return "That request has expired, so nothing changed.";
+}
+
 /** Re-read the request and both activity lists after a change to it. */
 function useSettleScheduleChange(jobId: string, userId: string) {
   const queryClient = useQueryClient();
@@ -44,10 +55,14 @@ function useSettleScheduleChange(jobId: string, userId: string) {
 function useScheduleChangeAct(jobId: string, userId: string) {
   const [busy, setBusy] = useState(false);
   const settle = useSettleScheduleChange(jobId, userId);
-  const act = async (fn: () => Promise<string>) => {
+  // A string is a success; { warn } is an answer that changed nothing (expired,
+  // clash), shown as a warning so it never reads as done.
+  const act = async (fn: () => Promise<string | { warn: string }>) => {
     setBusy(true);
     try {
-      toast.success(await fn());
+      const out = await fn();
+      if (typeof out === "string") toast.success(out);
+      else toast.warning(out.warn, { duration: 10_000 });
       await settle();
     } catch (err) {
       hapticError();
@@ -181,8 +196,8 @@ export function ScheduleChangeControl({
                 act(async () => {
                   const s = await respondScheduleChange(pending.id, true);
                   if (s === "accepted") return "Accepted. The job has the new date and time.";
-                  if (s === "clash") return "The Helpr is already booked at that time, so this change couldn't be accepted. The original date and time stay.";
-                  return "That request has expired, so nothing changed.";
+                  if (s === "clash") return { warn: "The Helpr is already booked at that time, so this change couldn't be accepted. The original date and time stay." };
+                  return { warn: expiredMessage(s) };
                 })
               }
               // SECONDARY, never the gradient primary (owner, 2026-10-05): this block
@@ -200,7 +215,7 @@ export function ScheduleChangeControl({
               onClick={() =>
                 act(async () => {
                   const s = await respondScheduleChange(pending.id, false);
-                  return s === "declined" ? "Declined. The original date and time stay." : "That request has expired, so nothing changed.";
+                  return s === "declined" ? "Declined. The original date and time stay." : { warn: expiredMessage(s) };
                 })
               }
               className="min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold border border-border disabled:opacity-40"

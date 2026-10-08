@@ -518,8 +518,9 @@ describe("review-turnaround promises come from reviewSla", () => {
     // asserts DERIVATION rather than scanning for matching literals, because a
     // literal scan cannot tell "both say 2" from "both stopped saying it".
     const a = repoFile("src/components/InstantPayoutDialog.tsx");
-    const b = repoFile("src/components/profile/earningsTab/PayoutHistory.tsx");
-    for (const [name, src] of [["InstantPayoutDialog", a], ["PayoutHistory", b]] as const) {
+    // PayoutHistory, the second sentence, was removed with the "Sent to your
+    // bank" list (owner, 2026-10-08); the dialog keeps the derivation.
+    for (const [name, src] of [["InstantPayoutDialog", a]] as const) {
       expect(
         src,
         `${name} states the standard payout window without importing it. Both screens ` +
@@ -530,7 +531,7 @@ describe("review-turnaround promises come from reviewSla", () => {
     }
     // And no hand-typed "N business days" may creep back into either file.
     const literal = /\d\s*(?:[–-]\s*\d\s*)?business days/;
-    expect(literal.test(a) || literal.test(b), "a hand-typed business-day count is back").toBe(false);
+    expect(literal.test(a), "a hand-typed business-day count is back").toBe(false);
   });
 
   it("REVIEW_SLA is still the only place its number is written", () => {

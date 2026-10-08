@@ -27,15 +27,8 @@
 // @mutate src/components/profile/EarningsTab.tsx | ) : stripeBones ? <EarningsWalletBones /> : null} | ) : null}
 // @mutate src/components/profile/EarningsTab.tsx | useState<MoneyView>(() => moneyViewFromSearch(searchParams)) | useState<MoneyView>("earned")
 // @mutate src/components/profile/EarningsTab.tsx |       {view === "spent" && <SpentSection />} |       {false && <SpentSection />}
+// @mutate src/components/profile/EarningsTab.tsx |           {feeDue > 0 && ( |           {false && (
 // @mutate src/pages/profile/types.ts |   earnings: "Money", |   earnings: "Earnings & Payouts",
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx | const tipTotal = sumHelperTipDollars(jobTips); | const tipTotal = 0;
-// @mutate src/components/profile/EarningsTab.tsx |               payoutLedger={payoutLedger}\n |
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx |         {orphanTransfers.map((t) => ( |         {[].map((t: PayoutLedgerRow) => (
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx |         {bankPayouts}\n |
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx | const paid = finished.filter(isEarnedJob); | const paid = finished;
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx | j.status === "in_progress" \|\| isAwaitingTransfer(j) | j.status === "in_progress"
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx | const payout = isEarnedJob(job) ? helperTakeHomeDollars(job, feeFallbackPct) : null; | const payout = isEarnedJob(job) ? helperTakeHomeDollars(job, feeFallbackPct, 2) : null;
-// @mutate src/components/profile/earningsTab/EarningHistory.tsx | const noJobs = moneyJobs.length === 0 && payoutLedger.length === 0; | const noJobs = moneyJobs.length === 0 && payoutLedger.length === 0 && !bankPayouts;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -163,56 +156,26 @@ describe("the one-page Earnings tab states the same money for the same data (Q11
     const text = await pageText();
     // Lifetime take-home: $90 + $176, the $2 setup fee off ONCE (Q753).
     expect(text).toMatch(/\$264\.00\s*total earned · 2 jobs/);
-    // The whole tip (ME-006), on the Tips figure and on its job's row.
+    // The whole tip (ME-006).
     expect(text).toMatch(/\$5\.00\s*in tips · 1 tip/);
-    expect(text).toContain("+$5");
     // Approved, transfer scheduled: $176 less the fee it will carry.
     expect(text).toContain("$174.00");
   });
 
-  it("each row is its own job's take-home; the fee is one line, never a row", async () => {
+  it("the one-time setup fee is stated once, as its own line", async () => {
     await renderTab();
-    // Read each job's OWN row (the card's first block: title, chips, amount),
-    // not the page: the transfer line inside job A's card also prints "$90",
-    // so a page-wide match could not tell a missing row figure from it.
-    const rowText = (title: string) => {
-      const card = screen.getAllByRole("heading", { name: title })[0].closest(".rounded-ds-md");
-      return (card?.firstElementChild?.textContent ?? "").replace(/\s+/g, " ");
-    };
-    expect(rowText("Fence repair")).toMatch(/\$90(?![.\d])\s*\+\$5/);
-    expect(rowText("Fence repair")).not.toContain("AAAA1111");
-    expect(rowText("Gutter cleaning")).toMatch(/\$176(?![.\d])\s*on its way/);
-    const text = await pageText();
-    // Neither row carries the $2: no $88, and $174 only as the summary's
-    // "$174.00" line, never as a row's whole-dollar take-home.
-    expect(text).not.toMatch(/\$88(?![.\d])|\$174(?![.\d])/);
-    expect(count(text, "Your next payout is $2 less: the one-time payout setup fee.")).toBeGreaterThanOrEqual(1);
-    expect(text).toContain("$50 budget");
-    expect(text).toMatch(/Refunded[^$]*no payout/i);
+    expect(count(await pageText(), "Your next payout is $2 less: the one-time payout setup fee.")).toBe(1);
   });
 
-  it("wallet balances and the bank payout", async () => {
+  it("wallet balances", async () => {
     await renderTab();
     const text = await pageText();
     expect(text).toContain("$245.00");
     expect(text).toContain("$80.00");
-    expect(text).toContain("$120.00");
-  });
-
-  it("every ledger transfer is on the page, with its exact amount and fee", async () => {
-    await renderTab();
-    const text = await pageText();
-    expect(text).toContain("AAAA1111");
-    expect(text).toContain("ORPHAN22");
-    expect(text).toContain("FAILED33");
-    // formatPriceExact: the ledger's exact cents, whole dollars without ".00".
-    expect(text).toMatch(/AAAA1111\s*\$90fee \$10/);
-    expect(text).toMatch(/ORPHAN22\s*\$40/);
-    expect(text).toMatch(/FAILED33\s*Account closed\s*\$30/);
   });
 });
 
-describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
+describe("Money: wallet, then Earned | Spent, no payouts list (owner, 2026-10-08)", () => {
   beforeEach(() => {
     profileRow = { subscription_tier: "free", subscription_expires_at: null, stripe_account_id: "acct_1" };
     earningsData = {
@@ -235,8 +198,6 @@ describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
     expect(screen.queryByText("spent section")).toBeNull();
     await act(async () => { fireEvent.click(screen.getByRole("tab", { name: "Spent" })); });
     expect(screen.getByText("spent section")).toBeTruthy();
-    // Only the selected half is mounted.
-    expect(screen.queryByText("Sent to your bank")).toBeNull();
   });
 
   it("?view=spent opens on Spent", async () => {
@@ -245,12 +206,31 @@ describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
     expect(screen.getByRole("tab", { name: "Spent" }).getAttribute("aria-selected")).toBe("true");
   });
 
-  it("does not wait for Stripe: the Earned half paints, the wallet and bank payouts hold their own bones", async () => {
+  it("the wallet sits above the Earned | Spent switcher, on both halves", async () => {
+    await renderTab();
+    const before = (a: Node, b: Node) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const tabs = screen.getByRole("tablist");
+    expect(before(screen.getByText("$245.00"), tabs)).toBe(true);
+    await act(async () => { fireEvent.click(screen.getByRole("tab", { name: "Spent" })); });
+    expect(before(screen.getByText("$245.00"), screen.getByRole("tablist"))).toBe(true);
+  });
+
+  it("lists no payouts: no Payouts heading, no per-job rows, no Sent to your bank", async () => {
+    await renderTab();
+    expect(screen.queryByRole("heading", { name: "Payouts" })).toBeNull();
+    expect(screen.queryByText("Sent to your bank")).toBeNull();
+    expect(screen.queryByText("No earnings yet.")).toBeNull();
+    const text = await pageText();
+    for (const gone of ["Fence repair", "AAAA1111", "Not paid out yet", "Paid jobs", "$120.00"]) {
+      expect(text, gone).not.toContain(gone);
+    }
+  });
+
+  it("does not wait for Stripe: the Earned half paints, the wallet holds its own bones", async () => {
     earningsData = { ...earningsData, stripeData: undefined, stripeLoading: true };
     await renderTab();
-    expect(screen.getByText("Fence repair")).toBeTruthy();
+    expect(screen.getByText(/\$264\.00/)).toBeTruthy();
     expect(screen.getByTestId("earnings-wallet-loading")).toBeTruthy();
-    expect(screen.getByTestId("earnings-bank-payouts-loading")).toBeTruthy();
     expect(screen.queryByTestId("earnings-page-skeleton")).toBeNull();
   });
 
@@ -260,18 +240,10 @@ describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
     await renderTab();
     expect(screen.getByTestId("earnings-payout-setup-skeleton")).toBeTruthy();
     expect(screen.queryByTestId("earnings-wallet-loading")).toBeNull();
-    expect(screen.getByText("Fence repair")).toBeTruthy();
+    expect(screen.getByText(/\$264\.00/)).toBeTruthy();
   });
 
-  it("states each transfer exactly once", async () => {
-    await renderTab();
-    const text = (document.body.textContent ?? "").replace(/\s+/g, " ");
-    expect(count(text, "AAAA1111")).toBe(1);
-    expect(count(text, "ORPHAN22")).toBe(1);
-    expect(count(text, "Your next payout is $2 less")).toBe(1);
-  });
-
-  it("orders the list: not paid out yet, sent to your bank, paid jobs, no payout, then other transfers", async () => {
+  it("orders the page: wallet, switcher, the Earned summary, the fee line, then insights and the bank account", async () => {
     await renderTab();
     const text = (document.body.textContent ?? "").replace(/\s+/g, " ");
     const at = (s: string) => {
@@ -281,43 +253,14 @@ describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
     };
     const order = [
       at("$245.00"), // wallet first
+      at("EarnedSpent"), // the switcher
       at("$264.00"), // the Earned summary
-      at("Not paid out yet"),
-      at("Gutter cleaning"), // approved, transfer still scheduled
-      at("Moving help"), // in progress
-      at("Sent to your bank"),
-      at("Paid jobs"),
-      at("Fence repair"),
-      at("AAAA1111"), // inside the job it paid
-      // A refunded job is not a paid one (lh-money-escrow review): its own group.
-      at("No payout"),
-      at("Refunded job"),
-      // Ledger rows whose job is not listed, whatever their status, under a
-      // neutral heading; each carries its own status chip.
-      at("Other transfers"),
-      at("An older job"),
-      at("A cancelled job"),
+      at("Your next payout is $2 less"),
       at("More Insights"),
       at("bank account section"),
       at("Tax reporting:"),
     ];
     for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThan(order[i - 1]);
-    // The group labels are headings, not row copy ("· no payout" on a row).
-    for (const name of ["Not paid out yet", "Sent to your bank", "Paid jobs", "No payout", "Other transfers"]) {
-      expect(screen.getByRole("heading", { name }), `${name} is not a heading`).toBeTruthy();
-    }
-    // Moving help (in progress) and Gutter cleaning (scheduled) are unpaid;
-    // neither sits under Paid jobs.
-    expect(at("Moving help")).toBeLessThan(at("Paid jobs"));
-  });
-
-  it("a connected Helpr with no jobs still gets the 'No earnings yet' state, above their bank payouts", async () => {
-    earningsData = { ...earningsData, payoutLedger: [] };
-    await renderTab({ earningsJobs: [] });
-    const text = (document.body.textContent ?? "").replace(/\s+/g, " ");
-    expect(text.indexOf("No earnings yet.")).toBeGreaterThanOrEqual(0);
-    expect(text.indexOf("Sent to your bank")).toBeGreaterThan(text.indexOf("No earnings yet."));
-    expect(text).not.toContain("Paid jobs");
   });
 
   it("holds the whole page on its skeleton until the transfer ledger is in", async () => {
@@ -325,6 +268,6 @@ describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
     await renderTab({ settle: false });
     await act(async () => { await Promise.resolve(); });
     expect(screen.getByTestId("earnings-page-skeleton")).toBeTruthy();
-    expect(screen.queryByText("Fence repair")).toBeNull();
+    expect(screen.queryByText(/total earned/)).toBeNull();
   });
 });

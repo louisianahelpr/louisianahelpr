@@ -17,7 +17,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
-import { EarningsBankPayoutBones, EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HelperStreakBadge, streakShows, useHelperStreak } from "@/components/profile/HelperStreakBadge";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -42,8 +42,6 @@ import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRan
 import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
-import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
-import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory";
 import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
 import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -119,11 +117,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     profile?.subscription_expires_at,
     "instantPayout",
   );
-  // Pagination for the earnings-history list. Power helpers with 100+
-  // completed jobs were rendering them all; this caps the initial render
-  // at PAGE and grows by PAGE on each Load-more tap.
-  const PAGE = 25;
-  const [historyVisible, setHistoryVisible] = useState(PAGE);
 
   const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
 
@@ -143,13 +136,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const stripeAnswered = !stripeLoading && !stripeError;
   const showConnect = stripeAnswered && !stripeData?.connected;
 
-  const { payoutYears, exportYear, setExportYear, handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
+  const { handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
   // EARNED, not merely "completed" (the test until 2026-09-06): a job refunded
   // to the poster or charged back stays `completed` forever. `isEarnedJob` adds
   // the payment_status half: money committed (`payout_pending`) or moved
   // (`released`). See the state table in earningsTabHelpers.ts.
   const completedJobs = earningsJobs.filter(isEarnedJob);
+  const feeDue = firstPayoutFeeDueFrom(completedJobs, firstPayoutFee);
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   // Take-home per job: helperEarnings.ts (a group helper sees only their share,
   // #114). The one-time fee comes off a total only while a payout is still to come (Q753).
@@ -340,6 +334,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
+      {/* Wallet card (Available + Pending side-by-side), ABOVE the Earned |
+          Spent switcher on both halves (owner, 2026-10-08: "move wallet above
+          the earned and spent toggle"). NOT RENDERED
+          UNTIL STRIPE IS CONNECTED: a helpr who has not connected does not
+          have a wallet, so the honest page for them has no wallet card —
+          they get the connect card at the top (owner: "needs a full
+          upgrade and polish alot of the same info"). */}
+      {stripeData?.connected ? (
+        <WalletCard
+          stripeData={stripeData}
+          refreshing={refreshing}
+          availableTotal={availableTotal}
+          pendingTotal={pendingTotal}
+          canUseInstantPayout={canUseInstantPayout}
+          onRefresh={handleRefresh}
+          onCashOut={() => setPayoutDialogOpen(true)}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
+      ) : stripeBones ? <EarningsWalletBones /> : null}
+
       {/* EARNED | SPENT (Q1177, owner 2026-10-04). Needs no data, so it is
           never held back. */}
       <MoneyViewSwitcher value={view} onChange={setView} />
@@ -367,23 +381,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             />
           )}
 
-          {/* Wallet card (Available + Pending side-by-side). NOT RENDERED
-              UNTIL STRIPE IS CONNECTED: a helpr who has not connected does not
-              have a wallet, so the honest page for them has no wallet card —
-              they get the connect card at the top (owner: "needs a full
-              upgrade and polish alot of the same info"). */}
-          {stripeData?.connected ? (
-            <WalletCard
-              stripeData={stripeData}
-              refreshing={refreshing}
-              availableTotal={availableTotal}
-              pendingTotal={pendingTotal}
-              canUseInstantPayout={canUseInstantPayout}
-              onRefresh={handleRefresh}
-              onCashOut={() => setPayoutDialogOpen(true)}
-              onUpgrade={() => setUpgradeOpen(true)}
-            />
-          ) : stripeBones ? <EarningsWalletBones /> : null}
 
           {/* Only when the badge draws (Q437): an EMPTY wrapper here still
               took space-y-3's margin, so the Earned card sat 24px under the
@@ -430,33 +427,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             />
           )}
 
-          {/* ONE payouts list (see EarningHistory): unpaid work first, the
-              bank payouts, then paid jobs with each ledger transfer inside
-              the job it paid. It was three lists — "Earning history",
-              "Payout history" and "Recent transfers" — on two views. */}
-          <SectionRule />
-          <EarningHistory
-            earningsJobs={earningsJobs}
-            tips={tips}
-            loading={loading}
-            historyVisible={historyVisible}
-            page={PAGE}
-            onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
-            onBrowseJobs={() => navigate("/home")}
-            feeFallbackPct={helperFeeFallbackPct}
-            firstPayoutFeeDollars={firstPayoutFeeDueFrom(completedJobs, firstPayoutFee)}
-            payoutLedger={payoutLedger}
-            bankPayouts={
-              stripeData?.connected ? (
-                <PayoutHistory
-                  stripeData={stripeData}
-                  exportYear={exportYear}
-                  onExportYearChange={setExportYear}
-                  payoutYears={payoutYears}
-                />
-              ) : stripeBones ? <EarningsBankPayoutBones /> : undefined
-            }
-          />
+          {/* The one-time payout setup fee (Q753), one line under the totals.
+              It stood over the payouts list, which is gone (owner,
+              2026-10-08: "remove payout", "delete sent to your bank"). */}
+          {feeDue > 0 && (
+            <p className="text-ds-12 px-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Your next payout is ${feeDue % 1 === 0 ? feeDue : feeDue.toFixed(2)} less: the one-time payout setup fee.
+            </p>
+          )}
+
 
           <SectionRule />
           {/* BOTH ROWS BELOW ARE olivewood/0.7 — subtitles and chevrons alike.

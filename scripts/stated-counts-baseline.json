@@ -119,7 +119,6 @@
     "e2e/happy-path/browse-feed-completeness.spec.ts :: // 6 jobs",
     "e2e/happy-path/browse-feed-completeness.spec.ts :: city (no skill match) + 3 out-of-town jobs",
     "e2e/happy-path/contrastResolve.ts :: 5x812: * * / → 0 violations",
-    "e2e/happy-path/earnings-length.spec.ts :: o \"Total spent … across 12 jobs",
     "e2e/happy-path/empty-state-sweep.spec.ts :: The comma list matters: 608 tests",
     "e2e/happy-path/empty-state-sweep.spec.ts :: he // sweep would score 25 admin rows",
     "e2e/happy-path/empty-state-sweep.spec.ts :: rts 0 violations across 80 route",

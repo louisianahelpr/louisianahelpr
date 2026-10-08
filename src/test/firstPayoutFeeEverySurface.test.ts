@@ -69,7 +69,6 @@ const EXEMPT: Record<string, { count: number; why: string }> = {
   "src/components/admin/userDetail/JobsTab.tsx": { count: 1, why: "admin view of another user's job earnings" },
   "src/components/admin/useAdminUserSummaries.ts": { count: 1, why: "admin summary of other users' earnings" },
   "src/components/profile/EarningsTab.tsx": { count: 1, why: "MonthlyGoal: per-job progress toward a goal; the one-time fee is stated once and comes off the totals, never pinned to one job (lh-money-escrow review of Q753)" },
-  "src/components/profile/earningsTab/EarningHistory.tsx": { count: 1, why: "each row is that job's own take-home; the fee is one line above the list (EarningHistory.firstPayoutFee.test.tsx), never pinned to a row (review of Q753)" },
   "src/components/profile/EarningsBreakdownCharts.tsx": { count: 2, why: "historical category/month distribution of completed work, not a payout preview (Q753 residual lives in OPEN.md)" },
   "src/components/profile/EarningsForecastCard.tsx": { count: 1, why: "sums inside the queryFn; the fee is applied ONCE at render with netAfterFirstPayoutFee (asserted below)" },
   "src/lib/helperAnalytics.ts": { count: 3, why: "analytics aggregates over completed jobs" },

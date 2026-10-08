@@ -47,7 +47,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted |
+| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-countdown-slot |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 
 ## /complete-profile

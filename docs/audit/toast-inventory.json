@@ -36,7 +36,7 @@
     },
     {
       "file": "src/components/AwardGateDialog.tsx",
-      "line": 67,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -6,9 +6,6 @@ import { render, renderHook, screen, cleanup } from "@testing-library/react";
 // No network (Q55a, src/test/prodNetworkGuard.ts): the real hooks below fetch
 // price stats, Helpr activity and a MapKit token from Supabase on mount. None
 // of that bears on the submit gate this spec proves.
-vi.mock("@/hooks/useCategoryPriceStats", () => ({
-  useCategoryPriceStats: () => ({ stats: null, loading: false }),
-}));
 vi.mock("@/hooks/useHelprActivity", () => ({
   useHelprActivity: () => ({ activity: null, loading: false }),
 }));

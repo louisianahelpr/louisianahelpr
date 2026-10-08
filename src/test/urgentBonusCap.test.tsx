@@ -69,10 +69,6 @@ function renderBudget(urgentFee: string) {
       stepNumber={3}
       budget="100"
       setBudget={noop}
-      suggested={null}
-      budgetPresets={[]}
-      priceStats={null}
-      priceStatsLoading={false}
       isUrgent
       setIsUrgent={noop}
       urgentFee={urgentFee}

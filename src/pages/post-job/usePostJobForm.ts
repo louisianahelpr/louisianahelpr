@@ -431,11 +431,7 @@ export function usePostJobForm() {
     logisticsComplete,
     scheduleInPast,
     budgetComplete,
-    priceStats,
-    priceStatsLoading,
     helprActivity,
-    suggested,
-    budgetPresets,
   } = useJobDerived({
     budget,
     isUrgent,
@@ -631,11 +627,7 @@ export function usePostJobForm() {
      *  refusing to advance. */
     scheduleInPast,
     budgetComplete,
-    priceStats,
-    priceStatsLoading,
     helprActivity,
-    suggested,
-    budgetPresets,
     // handlers
     handleReview,
     handleSubmit,

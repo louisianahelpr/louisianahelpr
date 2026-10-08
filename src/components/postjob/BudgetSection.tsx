@@ -2,11 +2,9 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles, Gift, Check } from "lucide-react";
-import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
+import { DollarSign, Zap, Gift } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
-import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
-import { formatPrice, formatPriceExact } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
 import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
@@ -34,23 +32,11 @@ import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS,
  * the `open_jobs_browse` view still projects it.
  */
 
-interface BudgetSuggestion {
-  min: number;
-  max: number;
-  label: string;
-}
-
 interface BudgetSectionProps {
   /** 1-based chapter number for the section header. */
   stepNumber: number;
   budget: string;
   setBudget: (v: string) => void;
-  suggested: BudgetSuggestion | null;
-  budgetPresets: number[];
-  /** Smart Pricing Guidance — live range from real completed jobs. */
-  priceStats: CategoryPriceStats | null;
-  /** True while the price-stats RPC is in flight (renders a skeleton). */
-  priceStatsLoading: boolean;
   isUrgent: boolean;
   setIsUrgent: (v: boolean) => void;
   urgentFee: string;
@@ -58,8 +44,6 @@ interface BudgetSectionProps {
   customUrgentFee: boolean;
   setCustomUrgentFee: (v: boolean) => void;
   budgetComplete: boolean;
-  /** Current job category — used for smart-price midpoint lookup. */
-  category?: string;
   /**
    * Value of the gift card funding this post, in dollars, or 0.
    *
@@ -73,77 +57,11 @@ interface BudgetSectionProps {
   giftAmount?: number;
 }
 
-/**
- * The static category suggestion, with a one-tap way to take it.
- *
- * This is where the retired "Smart Price" mode went. That mode's entire
- * contribution was the midpoint of this very range, pre-filled — so it is
- * offered here as a chip instead of as a third card the poster has to choose
- * between. Reading the suggestion and accepting it are now one gesture rather
- * than two screens.
- *
- * When the midpoint is already the current budget the chip shows selected
- * (aria-pressed, check mark) rather than disappearing.
- */
-function SuggestionBox({
-  budget,
-  suggested,
-  smartPrice,
-  onUse,
-}: {
-  suggested: BudgetSuggestion;
-  budget: string;
-  smartPrice: number | null;
-  onUse: (v: string) => void;
-}) {
-  // Taken = the field already holds the suggestion. The box stays and the chip
-  // shows selected (owner, 2026-10-01: tapping Use must visibly fill the field
-  // and the button must then read as chosen; hiding the box on tap made the
-  // tap look like it did nothing). Compared numerically so "60" and "60.00"
-  // both count as taken.
-  const taken =
-    smartPrice != null &&
-    budget.trim() !== "" &&
-    Number(budget) === Number(smartPrice.toFixed(2));
-
-  return (
-    <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-      <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
-      <p className="text-ds-11 text-muted-foreground">
-        Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-      </p>
-      {smartPrice != null && (
-        <button
-          type="button"
-          aria-pressed={taken}
-          onClick={() => onUse(smartPrice.toFixed(2))}
-          className={
-            "ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-ds-11 font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
-            (taken
-              ? "btn-grad-primary text-primary-foreground border border-transparent"
-              : "border border-primary/30 bg-primary/10 text-primary hover:bg-primary/15")
-          }
-        >
-          {taken ? (
-            <Check className="w-3 h-3 shrink-0" aria-hidden />
-          ) : (
-            <Sparkles className="w-3 h-3 shrink-0" aria-hidden />
-          )}
-          {taken ? `Using $${smartPrice}` : `Use $${smartPrice}`}
-        </button>
-      )}
-    </div>
-  );
-}
 
 export function BudgetSection({
   stepNumber,
   budget,
   setBudget,
-  suggested,
-  budgetPresets,
-  priceStats,
-  priceStatsLoading,
   isUrgent,
   setIsUrgent,
   urgentFee,
@@ -151,30 +69,16 @@ export function BudgetSection({
   customUrgentFee,
   setCustomUrgentFee,
   budgetComplete,
-  category = "other",
   giftAmount = 0,
 }: BudgetSectionProps) {
   const budgetNum = parseFloat(budget) || 0;
 
-  // Smart price midpoint for the selected category
-  const smartPrice = getSmartPrice(category);
-
-  // Static category pricing for lowball warning and comps text
-  const catPricing = categoryPricing[category] ?? null;
-
-  // Lowball threshold: below 70% of the category minimum
-  const lowballFloor = catPricing ? Math.round(catPricing.min * 0.7) : null;
   // Below the posting minimum. Owner, 2026-10-01: typed $5.00 and the button
   // stayed "Set a Budget to Continue" with nothing saying why — budgetComplete
   // needs MIN_JOB_BUDGET_DOLLARS and no line on the form named it. Said here,
   // in place of the lowball hint (a budget that cannot be posted at all is the
   // stronger message, and two amber boxes would say the same thing twice).
   const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS;
-  const showLowballWarning =
-    !underBudgetMin &&
-    budgetNum > 0 &&
-    lowballFloor != null &&
-    budgetNum < lowballFloor;
 
   // Urgent bonus has a hard floor. Surface it inline (same pattern as the
   // lowball warning) the moment a user types a sub-floor amount, so the rule
@@ -264,21 +168,11 @@ export function BudgetSection({
             </div>
           )}
 
-          {/* Lowball warning */}
-          {showLowballWarning && (
-            <div
-              className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
-              style={{
-                background: "hsl(var(--amber-tint) / 0.10)",
-                borderColor: "hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
-              <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                Jobs under ${lowballFloor} rarely get applicants
-              </p>
-            </div>
-          )}
 
+          {/* No lowball warning, suggested range or preset prices (owner,
+              2026-10-08: "remove the suggested prices from post a job ... also
+              remove jobs under rarely get applications"). The poster sets the
+              price; the minimum and the cap below are the only rules. */}
           {/* Price cap (Q202, $1,000 since 2026-09-23). Said the moment the
               typed budget passes it, not only as a submit-time toast. The
               number is the shared constant the server and the DB CHECK use. */}
@@ -297,89 +191,6 @@ export function BudgetSection({
             </div>
           )}
 
-          {/* Smart Pricing Guidance — while the RPC is in flight show a
-              quiet skeleton so the hint doesn't pop in jarringly; the form
-              is never blocked on it. Once resolved, a live range (from real
-              completed jobs) is worded as market data; the static fallback
-              keeps the original "Suggested" phrasing. */}
-          {priceStatsLoading && !priceStats && (
-            <div
-              className="h-9 rounded-ds-md bg-primary/5 border border-primary/10 motion-safe:animate-pulse"
-              aria-hidden="true"
-            />
-          )}
-          {!priceStatsLoading && priceStats && priceStats.source === "live" && (
-            <div className="flex items-start gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-              <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" strokeWidth={2} />
-              <p className="text-ds-11 text-muted-foreground">
-                {priceStats.parishMatch ? "Jobs like this near you pay " : "Jobs like this pay "}
-                {/* A range whose ends are equal is not a range. Prod rendered
-                    "$25–$25" because every sample was the same fixture price;
-                    the fixtures are gone now, but a genuinely uniform category
-                    would read just as oddly. Show the one figure it is. */}
-                <span className="font-semibold text-primary tabular-nums">
-                  {priceStats.min === priceStats.max
-                    ? `$${priceStats.min}`
-                    : `$${priceStats.min}–$${priceStats.max}`}
-                </span>
-                {/* …and don't restate that same number as "(most around $25)". */}
-                {priceStats.median !== null && priceStats.min !== priceStats.max && (
-                  <>
-                    {" "}
-                    (most around{" "}
-                    <span className="font-semibold text-primary tabular-nums">
-                      ${priceStats.median}
-                    </span>
-                    )
-                  </>
-                )}
-                <span className="block text-ds-9 text-muted-foreground mt-0.5">
-                  Based on {priceStats.sampleCount} completed{" "}
-                  {priceStats.sampleCount === 1 ? "job" : "jobs"}
-                  {priceStats.parishMatch ? " in your parish" : " across Louisiana"}
-                </span>
-              </p>
-            </div>
-          )}
-          {!priceStatsLoading && priceStats && priceStats.source === "static" && suggested && (
-            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
-          )}
-          {/* If the stats hook hasn't run yet at all (no category) but a
-              static suggestion exists, still show it — keeps parity with
-              the previous behavior. */}
-          {!priceStats && !priceStatsLoading && suggested && (
-            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
-          )}
-          {/* Quick-tap budget presets — outline pills so they stay
-              secondary to the budget input above. Only the selected
-              preset fills solid. */}
-          {/* The presets SHARE the row's width (owner: "fill space better"). They
-              were `shrink-0` in a masked horizontal scroller — a pattern for a
-              list too long to fit — but there are only five, and on anything
-              wider than a phone they sat huddled at the left with the fade
-              mask hinting at content that did not exist. `grid-cols-5` on a
-              full row makes them read as one segmented choice, which is what
-              five preset prices are. */}
-          <div className="grid grid-cols-5 gap-2 pt-1 pb-1">
-            {budgetPresets.map((amt) => {
-              const isActive = parseFloat(budget) === amt;
-              return (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setBudget(amt.toFixed(2))}
-                  aria-pressed={isActive}
-                  className={`w-full whitespace-nowrap min-h-11 px-2 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm scale-[1.02]"
-                      : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
-                  }`}
-                >
-                  ${formatPrice(amt)}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 

@@ -544,6 +544,11 @@ const PaymentSuccess = () => {
               {confirmState !== "checking" && supportAction}
             </>
           )}
+          {/* "You might need" (affiliate list): after the job is posted and paid,
+              below View Applicants / Share / Post Another, and ABOVE Back to
+              Dashboard (owner, 2026-10-08). Collapsed by default; null for a
+              category with no materials. Gated on `isHeld`: it presumes a funded job. */}
+          {isHeld && category && <MaterialsPanel category={category} className="text-left" />}
           <Button
             variant="ghost"
             onClick={() => {
@@ -562,23 +567,6 @@ const PaymentSuccess = () => {
           </Button>
         </div>
 
-        {/* "You might need: …" — moved here from the checkout screen, where it
-            sat between the running total and the pay button.
-
-            It carries an affiliate disclosure, so its placement is an ethics
-            question, not just a layout one: before payment it was the app
-            selling the poster something else mid-decision. Here the job is
-            already posted and paid, so the same list reads as prep.
-
-            Deliberately BELOW the CTAs. The reason it was wrong on checkout
-            was that it outranked the real action; putting it above "View
-            applicants" would repeat that mistake on a new screen. It renders
-            collapsed (one row) and returns null for categories with no
-            materials, so it costs almost nothing when it isn't wanted.
-
-            Gated on `isHeld` for the same reason as the lifecycle block —
-            "here's what to buy for the job" presumes a funded job. */}
-        {isHeld && category && <MaterialsPanel category={category} className="mt-6 text-left" />}
       </div>
     </AuthShell>
   );

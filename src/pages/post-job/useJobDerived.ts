@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { posterServiceFeeCents } from "@/lib/posterFees";
 import { urgentBonusCardFeeCents } from "@/lib/stripeFees";
 import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
-import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
-import { computeBudgetPresets } from "./postJobFormHelpers";
 import { isScheduleTooSoon } from "@/lib/jobExpiry";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { detailsBlocker } from "./detailsBlocker";
@@ -234,27 +231,11 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // since submit (and the server, and the DB CHECK) will refuse it.
   const budgetComplete = !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS);
 
-  // Smart Pricing Guidance — live budget range from real completed jobs
-  // in this category (+ parish), with a graceful fallback to the static
-  // categoryPricing table when the RPC is missing or data is thin.
-  const { stats: priceStats, loading: priceStatsLoading } = useCategoryPriceStats(category, parish);
-
   // Two-sided liquidity signal — a conservative count of helprs who've
   // worked in the poster's parish, shown at checkout so they know the
   // other side of the marketplace is active before they pay. Null when
   // the parish is unknown or the count is too thin to be honest.
   const { activity: helprActivity } = useHelprActivity(parish);
-
-  // Budget presets derived from category suggested range. Prefer the
-  // live stats range when available so the quick-tap pills track the
-  // real market; otherwise fall back to the static guide.
-  const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
-  const presetRange = priceStats ?? suggested;
-  // Snap each preset to the nearest $25 ($25 floor) so the quick-tap pills
-  // read as clean round numbers instead of raw market values like $38.
-  // A bump pass keeps the three values distinct and ascending when two
-  // snap to the same multiple (e.g. 38 & 60 → 50 & 50 → 50 & 75).
-  const budgetPresets = computeBudgetPresets(presetRange, priceStats?.median);
 
   return {
     budgetNum,
@@ -274,10 +255,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
      *  are different instructions. */
     scheduleInPast,
     budgetComplete,
-    priceStats,
-    priceStatsLoading,
     helprActivity,
-    suggested,
-    budgetPresets,
   };
 }

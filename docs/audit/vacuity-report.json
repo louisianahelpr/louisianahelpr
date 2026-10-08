@@ -1,12 +1,13 @@
 {
-  "generated": "2026-10-08T21:59:22.592Z",
-  "guards": 1623,
-  "registered": 1622,
+  "generated": "2026-10-08T22:46:04.146Z",
+  "guards": 1624,
+  "registered": 1623,
   "unregistered": [
     "src/test/jobLifecycleWalk.test.ts"
   ],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/newDefinersAreAllowlisted.test.ts"
   ],
   "classD_selfReferential": [
     {

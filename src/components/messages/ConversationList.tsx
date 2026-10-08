@@ -1326,7 +1326,17 @@ export function ConversationList({
             // meant archiving your one thread made Recently Deleted
             // permanently show "No messages yet" instead of the thread you
             // just hid — the exact thing that view exists to surface.
-            <div className="flex-1 min-h-0 flex" data-thread-area>
+            // Inside the pull area, like My Posts' empty state (owner, 2026-10-08,
+            // Q1560: "why doesn't messages refresh in the app like the other pages").
+            <PullToRefreshWrapper
+              data-thread-area
+              ref={containerRef}
+              pullDistance={pullDistance}
+              refreshing={refreshing}
+              isPulling={isPulling}
+              canTrigger={canTrigger}
+              className="flex-1 min-h-0 flex flex-col"
+            >
               <EmptyState
                 // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,
                 // Q1558: "nearly identical"); the icon is the Messages tab's own.
@@ -1339,7 +1349,7 @@ export function ConversationList({
                   </BarkPillButton>
                 }
               />
-            </div>
+            </PullToRefreshWrapper>
           ) : (
           <PullToRefreshWrapper
             data-thread-area

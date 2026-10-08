@@ -65,6 +65,7 @@ import {
   STALLED_APPROVE_DISABLED_REASON,
 } from "../../../../../supabase/functions/_shared/stalledCompletion";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { openMore } from "@/test/helpers/openMore";
 
 pinJobClock();
 
@@ -175,11 +176,11 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
 
   it("the tap that reveals the rest is a SEPARATE control, not the disabled box", async () => {
     draw(stalledJob());
+    await openMore();
     const why = screen.getByRole("button", { name: /^Why\?/ }) as HTMLButtonElement;
     expect(why.disabled).toBe(false);
-    // …and it lives on the card's ONE action row, like every other control
-    // (VN-21). jobStepOneRow.test.tsx fails the whole card if it does not.
-    expect(why.closest("[data-job-step-row]"), "the Why? chip is outside the action row").not.toBeNull();
+    // …under the row's More, like every control but the primary (owner, 2026-10-08).
+    expect(why.closest("[data-job-step-overflow-panel]"), "the Why? chip is not under More").not.toBeNull();
 
     await act(async () => { why.click(); });
     const dialog = await screen.findByRole("dialog");

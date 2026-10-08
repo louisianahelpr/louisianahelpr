@@ -130,8 +130,6 @@ describe("the shell: safety actions sit only inside More, and SOS still opens it
       const { container } = render(<Harness side={side} />);
       expect(screen.queryByRole("button", { name: label })).toBeNull();
       expect(screen.queryByRole("button", { name: /^SOS/ })).toBeNull();
-      expect(screen.getByRole("button", { name: "Message" })).toBeTruthy();
-
       const more = container.querySelector("[data-job-step-overflow]") as HTMLElement | null;
       expect(more).not.toBeNull();
       expect(more!.getAttribute("aria-label")).toMatch(/^More\b/);
@@ -143,7 +141,10 @@ describe("the shell: safety actions sit only inside More, and SOS still opens it
       expect(within(panel).getByRole("button", { name: label })).toBeTruthy();
       // Order: the pinned safety action leads, SOS follows it.
       const names = within(panel).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent);
+      // Most important first, SOS LAST (owner, 2026-10-08); Message lives here too.
+      expect(names.some((n) => /^Message/.test(n ?? ""))).toBe(true);
       expect(names.indexOf(label)).toBeLessThan(names.findIndex((n) => /^SOS/.test(n ?? "")));
+      expect(names.findIndex((n) => /^SOS/.test(n ?? ""))).toBe(names.length - 1);
 
       // Tap 2: SOS. The panel closes (and unmounts) and the sheet still opens.
       fireEvent.click(within(panel).getByRole("button", { name: /^SOS/ }));

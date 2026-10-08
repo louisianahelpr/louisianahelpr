@@ -141,7 +141,7 @@ test(j7, async ({ browser, request, journey }) => {
     await sharp(px, { raw: { width: 600, height: 600, channels: 3 } }).png().toFile(file);
     await openFromProfile(hp, /^Edit profile$|^Edit$/, "Edit Profile");
     await hp.locator("input[type=file][accept*='image']").first().setInputFiles(file);
-    const crop = hp.getByRole("dialog").filter({ hasText: "Position your photo" });
+    const crop = hp.getByRole("dialog").filter({ hasText: "Position Your Photo" });
     await expect(crop, "choosing a photo did not open the crop dialog").toBeVisible({ timeout: 20_000 });
     await crop.getByRole("slider", { name: "Zoom" }).fill("1.5").catch(() => {});
     await journey.milestone(hp, "crop-dialog");

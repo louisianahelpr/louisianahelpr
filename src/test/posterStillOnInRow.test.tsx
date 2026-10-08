@@ -12,10 +12,12 @@
  *     toast, and toastPolicy.ts suppresses those app-wide.
  *   - "change you're booked to you're scheduled".
  *
+ * @mutate src/pages/posts/PostedJobCard.tsx | import { GroupJobHelpers } | import { JobConfirmation } from "@/components/JobConfirmation";\nimport { GroupJobHelpers }
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         {job.status === "accepted" && job.helper_confirmed_at && ( |         {false && (
  * @mutate src/components/JobConfirmation.tsx |     const waitingPrimary = variant === "inline" && (isHelper \|\| isOwner) ? ( |     const waitingPrimary = variant === "inline" && isHelper ? (
  * @mutate src/components/JobConfirmation.tsx |           label="Confirm They've Arrived"\n          disabled | label="Confirmed"\n          disabled
  * @mutate src/components/job-card/NudgeConfirmLink.tsx |               setResult(NUDGE_RESULT[String(data)] ?? NUDGE_RESULT.sent); |               toast.success(NUDGE_RESULT.sent);
+ * @mutate src/components/JobConfirmation.tsx |   if (variant === "inline" && isOwner && (helperOnTheWayAt \|\| helperArrivedAt)) return null; |   if (variant === "inline" && isOwner && helperArrivedAt) return null;
  * @mutate src/components/job-card/jobStatusLine.ts |   confirmed: { detail: "You're scheduled" }, |   confirmed: { detail: "You're booked" },
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
@@ -52,6 +54,7 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 
 import { ScheduledStep } from "@/pages/posts/postedJobCard/steps/ScheduledStep";
+import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
 import { NudgeConfirmLink } from "@/components/job-card/NudgeConfirmLink";
 import { helperStatusLine } from "@/components/job-card/jobStatusLine";
 
@@ -131,6 +134,29 @@ describe("Posts, booked job: I'm Still On is the row's primary beside More", () 
     const btn = screen.getByRole("button", { name: /I'm Still On/ });
     expect(row().contains(btn)).toBe(true);
     expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe("on the way: ONE greyed arrival button, nothing above the profile", () => {
+  // Owner, 2026-10-08: "Should only be the greyed out button at the bottom remove the other one".
+  it("exactly one 'Confirm They…Arrived' control, in the row, greyed", () => {
+    // On My Way moves the job to in_progress, so the card is InProgressStep;
+    // the "Still on for this one?" panel PostedJobCard drew above it is gone.
+    wrap(<InProgressStep {...ctx(makeJob({ status: "in_progress", poster_confirmed_at: ago(0.2), helper_on_the_way_at: ago(0.05) }))} />);
+    const boxes = screen.getAllByRole("button", { name: /Confirm They('ve)? Arrived/ });
+    expect(boxes).toHaveLength(1);
+    expect(row().contains(boxes[0])).toBe(true);
+    expect((boxes[0] as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
+    expect(screen.getAllByText(/turns on once/)).toHaveLength(1);
+  });
+});
+
+describe("the poster card draws no confirmation panel of its own", () => {
+  it("PostedJobCard never mounts JobConfirmation (the steps own it, in the row)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8");
+    expect(src).not.toMatch(/<JobConfirmation\b|from "@\/components\/JobConfirmation"/);
   });
 });
 

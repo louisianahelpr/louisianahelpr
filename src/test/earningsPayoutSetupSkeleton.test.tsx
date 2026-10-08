@@ -58,8 +58,10 @@ describe("Earnings skeleton is data-aware (Q429)", () => {
     renderSkeleton();
     expect(screen.queryByTestId("earnings-wallet-skeleton")).not.toBeNull();
     cleanup();
+    // The in-tab wait leaves the wallet to EarningsTab, which draws it (or
+    // its bones) ABOVE the real switcher (owner, 2026-10-08).
     renderSkeleton({ withHeader: false });
-    expect(screen.queryByTestId("earnings-wallet-skeleton")).not.toBeNull();
+    expect(screen.queryByTestId("earnings-wallet-skeleton")).toBeNull();
   });
 
   it("draws it while the profile is still loading (the typical case before launch)", () => {

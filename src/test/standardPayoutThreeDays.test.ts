@@ -136,8 +136,6 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
       expect(src, s).toMatch(/STANDARD_PAYOUT_PHRASE/);
       expect(src, s).not.toMatch(/hours after (approval|dual confirmation)/);
     }
-    const history = blankComments(readFileSync(join(ROOT, "src/components/profile/earningsTab/EarningHistory.tsx"), "utf8"));
-    expect(history).toMatch(/\$\{STANDARD_PAYOUT_DAYS_AFTER_DONE\} days after done/);
   });
 });
 

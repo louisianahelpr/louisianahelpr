@@ -16,9 +16,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
  * 1440 and 0.480 at 375.
  *
  * This is the Earned half's silhouette (Q1177) — title row, the connect card,
- * the Earned | Spent switcher, the wallet, the Earned summary card, the
- * payouts list — so every loading frame has the layout the loaded page will
- * have. `withHeader` is false where the real ProfileTabHeader and switcher are
+ * the wallet, the Earned | Spent switcher, the Earned summary card — so every
+ * loading frame has the layout the loaded page will have. `withHeader` is false where the real ProfileTabHeader and switcher are
  * already on screen.
  */
 export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
@@ -44,9 +43,11 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
       {payoutSetup && <EarningsPayoutSetupSkeleton />}
       {/* The Earned | Spent switcher's slot (its measured 50px). The in-tab
           wait draws the REAL switcher, which needs no data. */}
+      {/* The wallet sits ABOVE the switcher (owner, 2026-10-08). The in-tab
+          wait leaves its slot to EarningsTab, which draws it there. */}
+      {withHeader && wallet && <EarningsWalletBones testId="earnings-wallet-skeleton" />}
       {withHeader && <Skeleton className="h-[50px] w-full rounded-full" />}
       <section className="space-y-3">
-        {wallet && <EarningsWalletBones testId="earnings-wallet-skeleton" />}
         <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="flex items-center gap-2.5">
             <Skeleton className="h-9 w-9 rounded-full" />
@@ -65,18 +66,6 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
           </div>
           <Skeleton className="h-10 w-full rounded-md" />
           <Skeleton className="h-10 w-full rounded-md" />
-        </div>
-        <div className="rounded-2xl liquid-glass p-card space-y-3">
-          <Skeleton className="h-5 w-36 rounded" />
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <div className="space-y-1.5 flex-1">
-                <Skeleton className="h-4 w-2/3 rounded" />
-                <Skeleton className="h-3 w-1/3 rounded" />
-              </div>
-              <Skeleton className="h-5 w-16 rounded" />
-            </div>
-          ))}
         </div>
       </section>
     </ProfileTabBody>
@@ -137,16 +126,6 @@ export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { te
         </div>
       </div>
       <Skeleton className="h-9 w-full rounded-md" />
-    </div>
-  );
-}
-
-/** The "Sent to your bank" group's slot while Stripe answers. */
-export function EarningsBankPayoutBones() {
-  return (
-    <div data-testid="earnings-bank-payouts-loading" className="space-y-2 pt-2">
-      <Skeleton className="h-5 w-36 rounded" />
-      <Skeleton className="h-14 w-full rounded-ds-md" />
     </div>
   );
 }

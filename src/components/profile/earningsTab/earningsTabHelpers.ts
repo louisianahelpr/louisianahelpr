@@ -1,25 +1,8 @@
-import { formatTimestamp } from "@/lib/format";
 import type { PayoutLedgerRow, StripePayout } from "./types";
 import { sumHelperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
 
-// Payout-status pills are a separate concern from job-status chips: this
-// table is the Stripe payout pipeline (`paid` / `in_transit` / `pending`
-// / `failed` / `canceled`), not the `job_status` enum. Job-status chips
-// in the earnings list below route through the canonical
-// `jobStatusColorClasses` from `@/lib/statusColors` so they paint the
-// same as every other status chip in the app.
-export const payoutStatusColors: Record<string, string> = {
-  paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
-  in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
-  pending: "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood))]",
-  failed: "bg-destructive/10 text-destructive",
-  canceled: "bg-destructive/10 text-destructive",
-};
-
 export const formatCents = (cents: number, currency = "usd") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
-
-export const formatDate = (unixSec: number) => formatTimestamp(new Date(unixSec * 1000));
 
 // Builds the tax-prep CSV for a given year from the Stripe payout list.
 // Returns the filtered rows (so the caller can toast the count / handle

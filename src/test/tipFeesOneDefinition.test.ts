@@ -24,7 +24,6 @@
  *      fee from a tip (the Earnings tab did, after the policy changed).
  *
  * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
- * @mutate src/components/profile/earningsTab/EarningHistory.tsx | const tipTotal = sumHelperTipDollars(jobTips); | const tipTotal = jobTips.reduce((s, t) => s + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100), 0);
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdownCopy";
@@ -173,7 +172,6 @@ describe("the Helpr is shown the whole tip, never tip minus a card fee", () => {
     expect(tipReaders.length).toBeGreaterThan(1);
     expect(tipReaders).toEqual(expect.arrayContaining([
       "src/components/profile/EarningsTab.tsx",
-      "src/components/profile/earningsTab/EarningHistory.tsx",
     ]));
   });
 
@@ -185,7 +183,7 @@ describe("the Helpr is shown the whole tip, never tip minus a card fee", () => {
   }
 
   it("both Earnings surfaces sum tips through sumHelperTipDollars", () => {
-    for (const f of ["src/components/profile/EarningsTab.tsx", "src/components/profile/earningsTab/EarningHistory.tsx"]) {
+    for (const f of ["src/components/profile/EarningsTab.tsx"]) {
       expect(blankComments(readFileSync(join(ROOT, f), "utf8"))).toMatch(/sumHelperTipDollars\(/);
     }
   });

@@ -185,13 +185,9 @@ export function ActivityEmptyState({
              control that went somewhere else. Naming a place is not the same
              as offering it.
 
-             This is what lets Activity.tsx drop its auto-tab-switch: that
-             effect existed to stop people landing on an empty bucket, by
-             silently moving the tab under them, which is the thing
-             activityConstants' defaultStatusFilterFor explicitly rules out
-             ("deliberately NO automatic fallback… a default that silently
-             moves is harder to reason about than one that holds still"). The
-             pointer does the same job by asking instead of assuming. */
+             The page now OPENS on the first bucket with items (owner,
+             2026-10-08; JobListPage), so this pointer covers a bucket that
+             empties later, or a link that named an empty one. */
           /* A SEARCH MISS IS NOT A BUCKET MISS. With a query active the body
              says "no jobs match your search", but the jump button below read
              the PRE-search bucket counts and offered "Show Waiting (2)" —

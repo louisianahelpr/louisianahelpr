@@ -188,16 +188,23 @@ export type AppliedApp = Application & {
  * alike — a bucket so broad that every card needed its own status band to say
  * which kind it was.
  *
- * It can come up empty, and that is fine here in a way it was not before:
- * "nothing needs you" is good news, not a dead end. There is still deliberately
- * NO automatic fallback to another tab (owner decision) — a default that
- * silently moves is harder to reason about than one that holds still.
- * ActivityEmptyState covers the empty case by naming where the items went
- * ("Nothing needs you — but you have 4 Scheduled"), which is a pointer.
+ * When it is empty the page OPENS on the first bucket that has anything
+ * (owner, 2026-10-08, superseding the earlier "no automatic fallback": "if
+ * needs you is empty open the waiting, if there is nothing in waiting then it
+ * goes to scheduled and so on"). See firstBucketWithItems and JobListPage.
  *
  * See ActivityBucket in activityFilters.ts for what each of the four means and
  * why they are exhaustive.
  */
 export function defaultStatusFilterFor(_tab: "posted" | "applied"): string {
   return "needs_you";
+}
+
+/**
+ * The bucket a page OPENS on: `preferred` when it holds anything, else the
+ * first bucket in tab order that does; `preferred` again when all are empty.
+ */
+export function firstBucketWithItems(order: readonly string[], counts: Record<string, number>, preferred: string): string {
+  if ((counts[preferred] ?? 0) > 0) return preferred;
+  return order.find((k) => (counts[k] ?? 0) > 0) ?? preferred;
 }

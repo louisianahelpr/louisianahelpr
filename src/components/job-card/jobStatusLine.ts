@@ -1,5 +1,6 @@
 import {
   BUCKET_LABEL,
+  agreedJobStage,
   appliedActivityBucket,
   jobIsOverdue,
   listingHasExpired,
@@ -248,6 +249,7 @@ export type PosterWait =
   | "offer_out"
   | "unconfirmed"
   | "confirmed"
+  | "confirm_still_on"
   | "on_the_way"
   | "confirm_arrival"
   | "confirm_working"
@@ -292,6 +294,9 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      (JobConfirmation), and the two words on one card read as one state. */
   unconfirmed: { detail: "Offer sent — they haven't accepted yet" },
   confirmed: { detail: "Booked: they accepted" },
+  /* The day-before window is open and the poster has not said the job is
+     still on (Q1574): the card sits in Needs You, so its sentence says why. */
+  confirm_still_on: { detail: "Confirm the job is still on" },
   /* FINDING #2: `postedActivityBucket` files any job whose DAY IS TODAY under
      Needs You (`jobIsLive`), which is right for a sort and wrong for a
      sentence — a Helpr driving over is not something the poster can act on.
@@ -514,6 +519,7 @@ export function derivePosterWait(
       if (job.status === "accepted" && !job.helper_confirmed_at) return "unconfirmed";
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       if (job.status === "in_progress") return "working";
+      if (agreedJobStage(job, "poster", now) === "confirm_owed") return "confirm_still_on";
       return "confirmed";
     }
     default:
@@ -614,6 +620,7 @@ export type HelperWait =
   | "offer_expired"
   | "confirm_booking"
   | "confirmed"
+  | "confirm_day"
   | "today"
   | "on_the_way"
   | "working"
@@ -653,6 +660,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      day-before step. */
   confirm_booking: { detail: "Accept or decline it" },
   confirmed: { detail: "You're booked" },
+  /* The day-before window is open and this Helpr has not confirmed (Q1574). */
+  confirm_day: { detail: "Confirm you'll be at the job" },
   today: { detail: "The job is today" },
   /* FINDING #5 on the Helpr's side. `appliedActivityBucket` lifts only TODAY's
      work into Needs You, so a job started a day early reads "Scheduled ·
@@ -748,7 +757,9 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       if (!job.helper_confirmed_at) return "confirm_booking";
       if (jobIsOverdue(job)) return helperOverdue(job);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
-      if (appliedActivityBucket(app) === "needs_you") return "today";
+      const stage = agreedJobStage(job, "helper");
+      if (stage === "confirm_owed") return "confirm_day";
+      if (stage === "started") return "today";
       return "confirmed";
     }
     default:

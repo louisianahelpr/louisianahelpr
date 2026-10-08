@@ -142,8 +142,9 @@ describe("Activity — whose move is it", () => {
     expect(appliedActivityBucket(app({ status: "pending", jobStatus: "open" }))).toBe("waiting");
   });
 
-  it("puts work underway in Scheduled", () => {
-    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "in_progress" }))).toBe("scheduled");
+  // Owner, 2026-10-08 (Q1574): once the job starts it is back in Needs You.
+  it("puts work underway in Needs you", () => {
+    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "in_progress" }))).toBe("needs_you");
   });
 
   it("puts a dispute in Needs you — the card carries Respond to Dispute", () => {
@@ -248,7 +249,8 @@ describe("Activity — whose move is it", () => {
     // strictly "agreed, and still ahead of you". This assertion read
     // "scheduled" until that reorder.
     expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(0) })).toBe("needs_you");
-    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("scheduled");
+    // Started is started (Q1574): an in-progress job is Needs You whatever its day.
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("needs_you");
 
     // Terminal states are unaffected — there is nothing left to chase.
     expect(postedActivityBucket({ status: "completed", date_needed: fmt(-9) })).toBe("done");

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
+import { confirmOpensMs, isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
+import { jobStartDateTime } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { isDirectOffer, offerClock } from "@/components/job-card/offerClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
@@ -169,6 +170,33 @@ function jobIsLive(j: { status?: string | null; date_needed?: string | null }): 
 }
 
 /**
+ * WHERE AN AGREED JOB SITS, FOR ONE SIDE (owner, 2026-10-08, Q1574): accepted ->
+ * Scheduled; the 24-hour confirm window opens and THIS side has not confirmed ->
+ * Needs You; this side confirmed -> Scheduled; the job starts (its start time, or
+ * the Helpr heads out) -> Needs You. Accepting never counts as confirming.
+ */
+export function agreedJobStage(
+  j: {
+    status?: string | null;
+    date_needed?: string | null;
+    start_time?: string | null;
+    helper_on_the_way_at?: string | null;
+    poster_confirmed_at?: string | null;
+    helper_dayof_confirmed_at?: string | null;
+  },
+  side: "poster" | "helper",
+  now: Date = new Date(),
+): "started" | "confirm_owed" | "scheduled" {
+  if (j.status === "in_progress" || j.helper_on_the_way_at) return "started";
+  if (!j.date_needed) return "scheduled";
+  const start = jobStartDateTime(j.date_needed, j.start_time ?? null);
+  if (start ? now.getTime() >= start.getTime() : jobIsLive(j)) return "started";
+  const confirmed = side === "poster" ? j.poster_confirmed_at : j.helper_dayof_confirmed_at;
+  if (!confirmed && now.getTime() >= confirmOpensMs(j.date_needed)) return "confirm_owed";
+  return "scheduled";
+}
+
+/**
  * The poster asked for changes and the helper has not resubmitted.
  *
  * The exact inverse of the tail of {@link submissionAwaitingPoster}, kept
@@ -250,14 +278,18 @@ export function postedActivityBucket(
   // the move is still the helpr's, and the day arriving does not change whose.
   if (
     jobIsLive(j) &&
-    // An UNCONFIRMED booking stays Waiting even today — the move is still the
-    // helpr's, and the day arriving does not change whose it is.
-    (j.status !== "accepted" || j.helper_confirmed_at) &&
+    // An agreed job (accepted / in progress) is judged by agreedJobStage below
+    // (Q1574); this rule is for an OPEN job whose day has come.
+    j.status !== "accepted" &&
+    j.status !== "in_progress" &&
     !workIsBackWithHelper(j)
   ) {
     return "needs_you";
   }
-  if (j.status === "in_progress") return "scheduled";
+  if (j.status === "in_progress") return workIsBackWithHelper(j) ? "scheduled" : "needs_you";
+  if (j.status === "accepted" && j.helper_confirmed_at) {
+    return agreedJobStage(j, "poster", now) === "scheduled" ? "scheduled" : "needs_you";
+  }
   if (j.status === "accepted") {
     // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
     // on the helpr to say yes.
@@ -335,15 +367,14 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
     // filed in the calmer of the two on either side of the marketplace. The
     // submitted-and-awaiting-approval case above returns first and stays
     // Waiting, so this only catches work that is genuinely still the helpr's.
-    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
-    return "scheduled";
+    // Underway: the job has started (Q1574).
+    return "needs_you";
   }
   if (app.status === "accepted") {
     // A booking whose day has passed and which never even started.
     if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
     // The day is here and they accepted it — today is theirs to turn up for.
-    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
-    return "scheduled";
+    return agreedJobStage({ ...app.job, status: jobStatus }, "helper") === "scheduled" ? "scheduled" : "needs_you";
   }
   // Applied, awaiting their decision.
   return "waiting";

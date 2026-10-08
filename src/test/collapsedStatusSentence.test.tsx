@@ -221,7 +221,8 @@ const POSTER_FIXTURES: Record<
   no_applicants: { job: job({ expires_at: ahead(48) }) },
   offer_out: { job: job({ direct_offer_status: "pending", offered_to_helper_id: HELPER }) },
   unconfirmed: { job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: null }) },
-  confirmed: { job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4) }) },
+  confirmed: { job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4), poster_confirmed_at: ago(1) }) },
+  confirm_still_on: { job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4) }) },
   on_the_way: {
     job: job({
       status: "in_progress", helper_id: HELPER, date_needed: TODAY,
@@ -360,7 +361,8 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   offer: makeApp({ status: "pending" }, { status: "open", direct_offer_status: "pending", offered_to_helper_id: HELPER }),
   offer_expired: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: null, response_deadline: ago(1) }),
   confirm_booking: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: null }),
-  confirmed: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4) }),
+  confirmed: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4), helper_dayof_confirmed_at: ago(1) }),
+  confirm_day: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4) }),
   today: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4), date_needed: TODAY }),
   on_the_way: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,

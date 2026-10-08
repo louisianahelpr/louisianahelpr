@@ -69,7 +69,8 @@ describe("bucket order + the live-day rule are one change", () => {
   });
 
   it("Scheduled still means agreed and AHEAD of you", () => {
-    expect(postedActivityBucket({ status: "in_progress", date_needed: day(2) })).toBe("scheduled");
+    // A started job is never ahead of you (Q1574).
+    expect(postedActivityBucket({ status: "in_progress", date_needed: day(2) })).toBe("needs_you");
     expect(
       postedActivityBucket({
         status: "accepted",
@@ -103,7 +104,7 @@ describe("bucket order + the live-day rule are one change", () => {
   });
 
   it("the helper side still means AHEAD of you by Scheduled", () => {
-    expect(applied({ status: "in_progress", date_needed: day(2) })).toBe("scheduled");
+    expect(applied({ status: "in_progress", date_needed: day(2) })).toBe("needs_you");
     // helper_confirmed_at matters: an `accepted` application on a job the
     // helpr has not confirmed is THEIR move (needsHelperResponse), today or
     // not — which is the same rule the poster side states as "an unconfirmed

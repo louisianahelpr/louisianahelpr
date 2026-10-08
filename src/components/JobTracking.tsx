@@ -2643,7 +2643,7 @@ export function JobTracking({
         if (inStepRow) {
           return (
             <>
-              <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>
+              {needsBeforePhoto || needsProof ? null : <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>}
               {/* ONE control in this slot again. It briefly held two — the
                   glossy CTA and the outline "Try My Location Again" — and the
                   ordering comment here existed only to keep the green one
@@ -2653,7 +2653,10 @@ export function JobTracking({
                   order. `primaryNeeds` in jobStepRow.tsx still takes an ARRAY
                   because the day-of confirmation can put a second control here
                   through its own slot — that case is unaffected. */}
-              <JobStepRowSlot slot="primary">{ctaEl}</JobStepRowSlot>
+              {/* PHOTO FIRST (owner, 2026-10-08): while the before photo is owed
+                  the photo capture IS the primary (HelperPhotoAsk), so Start
+                  Working is not drawn until it is taken. */}
+              {needsBeforePhoto || needsProof ? null : <JobStepRowSlot slot="primary">{ctaEl}</JobStepRowSlot>}
               {doneDialog}
             </>
           );

@@ -8,18 +8,18 @@
  * trigger chain, OLD STATE RED, chain 3x). This file pins the shape of the
  * NEWEST definitions so a later migration cannot drop a clause silently.
  *
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
- * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
- * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
- * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |        AND (o.helper_id = v_job.helper_id\n |        AND (false\n
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | IF FOUND THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined' | IF false THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined'
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql | o.helper_completed_at IS NULL\n       AND (o.helper_id = v_job.helper_id\n | o.helper_completed_at IS NULL\n       AND (false\n
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql | IF FOUND THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined' | IF false THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined'
  * Q1262(2): the clash declines the request and tells the asker.
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |         UPDATE public.job_schedule_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id;\n        INSERT INTO public.notifications | UPDATE public.job_schedule_change_requests SET status = 'pending' WHERE false;\n        INSERT INTO public.notifications
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |           'New date or time not possible', |           NULL,
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | FOR SHARE OF o; | ;
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | AND (o.helper_id = v_job.helper_id | AND (false
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |         UPDATE public.job_schedule_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id;\n        INSERT INTO public.notifications | UPDATE public.job_schedule_change_requests SET status = 'pending' WHERE false;\n        INSERT INTO public.notifications
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |           'New date or time not possible', |           NULL,
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql | FOR SHARE OF o; | ;
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql | o.helper_completed_at IS NULL\n         AND (o.helper_id = v_job.helper_id | o.helper_completed_at IS NULL\n         AND (false
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readFileSync } from "node:fs";

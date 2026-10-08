@@ -43,7 +43,13 @@ export function OnSiteStep({
       side="helper"
       step="on_site"
       header={tracker}
-      notice={<PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />}
+      notice={
+        <>
+          <PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />
+          {/* The owed photo is the primary (owner, 2026-10-08: photo first). */}
+          <HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" mode="primary" />
+        </>
+      }
       primary={<PayoutPrimary {...payout} />}
       /* THE PHOTO CAPTURE IS A CHIP IN THE ROW, not a panel above it
          (owner, 2026-09-19: "before and after buttons should also be on the

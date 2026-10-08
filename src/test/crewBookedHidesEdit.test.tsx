@@ -38,6 +38,7 @@ import { postedDetailInputs } from "@/hooks/useActivityData";
 import { OpenStep } from "@/pages/posts/postedJobCard/steps/OpenStep";
 import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
 import type { Job } from "@/components/job-card/activityConstants";
+import { openMore } from "@/test/helpers/openMore";
 
 const ROOT = resolve(__dirname, "../..");
 
@@ -76,9 +77,15 @@ describe("a booked crew is not offered Edit (Q707)", () => {
       </QueryClientProvider>,
     );
 
-  it("OpenStep offers Edit on a crew nobody has joined, and not on a booked one", () => {
-    expect(within(draw(false).container).queryByRole("button", { name: "Edit job" })).not.toBeNull();
-    expect(within(draw(true).container).queryByRole("button", { name: "Edit job" })).toBeNull();
+  it("OpenStep offers Edit on a crew nobody has joined, and not on a booked one", async () => {
+    // Edit is under More (owner, 2026-10-08): open it, then look.
+    const open = draw(false);
+    const inOpen = await openMore(open.container);
+    expect(inOpen.some((b) => b.getAttribute("aria-label")?.startsWith("Edit"))).toBe(true);
+    open.unmount();
+    const booked = draw(true);
+    const inBooked = await openMore(booked.container);
+    expect(inBooked.some((b) => b.getAttribute("aria-label")?.startsWith("Edit"))).toBe(false);
   });
 
   it("PostedJobCard hands its crew roster to the actions, which decide from it", () => {

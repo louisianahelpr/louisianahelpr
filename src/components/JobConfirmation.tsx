@@ -40,7 +40,7 @@ import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/job-card/
  */
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
-export const HELPER_CONFIRM_LABEL = "Confirm You'll Be at the Job";
+const HELPER_CONFIRM_LABEL = "Confirm You'll Be at the Job";
 
 export function helperDayOfConfirmation({
   helperConfirmedAt,

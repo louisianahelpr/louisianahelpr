@@ -60,6 +60,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   // ── SQL functions ───────────────────────────────────────────────────────
   "sql:admin_reverse_violation": { uncovered: ADMIN_ONLY("reverses a violation from the admin user view") },
   "sql:apply_consequence_ladder": { uncovered: STRIKE },
+  "sql:notify_schedule_change_expired": { uncovered: "fires only when a date/time request is answered after its new time or the original start has passed; a journey cannot wait out a real start. Proven in src/test/pglite/scheduleChangeLeadAndExpiry.pglite.mjs (both reasons, the asker told once each)." },
   "sql:apply_job_denial_consequence": { uncovered: STRIKE },
   "sql:apply_low_rating_flag": { uncovered: STRIKE },
   "sql:apply_message_scan_consequence": { uncovered: STRIKE },

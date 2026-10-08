@@ -7846,6 +7846,10 @@ export type Database = {
         Args: { p_link: string }
         Returns: string
       }
+      notify_schedule_change_expired: {
+        Args: { p_reason: string; p_request_id: string }
+        Returns: undefined
+      }
       notify_ops_dispute_filed: {
         Args: {
           _job_id: string

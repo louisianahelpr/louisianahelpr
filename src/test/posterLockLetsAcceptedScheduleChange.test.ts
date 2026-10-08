@@ -23,7 +23,7 @@
  * 231810 + 233954 (every Q423 case still holds).
  *
  * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |           AND current_setting('app.schedule_change_rpc', true) = '1' THEN\n          CONTINUE;\n        END IF; |           AND current_setting('app.schedule_change_rpc', true) = '1' THEN\n          NULL;\n        END IF;
- * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |     PERFORM set_config('app.schedule_change_rpc', '0', true);\n    v_status := 'accepted'; |     v_status := 'accepted';
+ * @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |     PERFORM set_config('app.schedule_change_rpc', '0', true);\n    v_status := 'accepted'; |     v_status := 'accepted';
  * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |   IF public.is_server_context()\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN | IF public.is_server_context() OR current_setting('app.schedule_change_rpc', true) = '1'\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN
  */
 import { describe, expect, it } from "vitest";

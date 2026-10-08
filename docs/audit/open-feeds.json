@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T01:50Z",
+  "measured_at": "2026-10-08T03:15Z",
   "issues": {
     "readable": true,
     "open": [
@@ -47,11 +47,6 @@
       {
         "number": 2589,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2596,
-        "title": "nightly-red: db-drift-detect",
         "label": "nightly-red"
       },
       {
@@ -169,14 +164,6 @@
         "issue": 2366
       },
       {
-        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
-        "source_kind": "workflow",
-        "source": "uptime",
-        "status": "open",
-        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
-        "issue": null
-      },
-      {
         "fingerprint": "a5d62d53b6a4bea80076ec889713b41d",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -206,14 +193,6 @@
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: arrival-confirm-reminder returned 503",
-        "issue": null
-      },
-      {
-        "fingerprint": "e275ee325abe1633e514acaa78fef874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main-batch",
         "issue": null
       }
     ]

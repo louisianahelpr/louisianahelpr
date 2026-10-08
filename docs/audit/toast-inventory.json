@@ -1,25 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 601,
-    "files": 150,
+    "calls": 603,
+    "files": 152,
     "rendering": 574,
-    "suppressedByPolicy": 27,
+    "suppressedByPolicy": 29,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 39,
-      "toast.error": 472,
+      "toast.error": 474,
+      "toast.info": 1,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 32,
-      "toast.warning": 24
+      "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 323,
+      "literal": 320,
       "template": 78,
-      "dynamic": 241,
+      "dynamic": 245,
       "jsx": 0
     }
   },
@@ -472,7 +473,7 @@
     },
     {
       "file": "src/components/JobConfirmation.tsx",
-      "line": 325,
+      "line": 321,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -482,7 +483,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 649,
+      "line": 627,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -492,7 +493,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 990,
+      "line": 968,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -502,7 +503,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1000,
+      "line": 978,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -512,7 +513,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1015,
+      "line": 993,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -522,7 +523,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1024,
+      "line": 1002,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -532,7 +533,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1076,
+      "line": 1054,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -542,7 +543,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1081,
+      "line": 1059,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -562,7 +563,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1101,
+      "line": 1079,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -572,7 +573,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1187,
+      "line": 1165,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -582,7 +583,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1200,
+      "line": 1178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -592,7 +593,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1227,
+      "line": 1205,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -602,7 +603,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1280,
+      "line": 1258,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -612,7 +613,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1324,
+      "line": 1302,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -622,7 +623,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1383,
+      "line": 1361,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -632,7 +633,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1442,
+      "line": 1420,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -642,7 +643,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1446,
+      "line": 1424,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -2988,7 +2989,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 422,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3021,14 +3022,54 @@
       "renders": true
     },
     {
+      "file": "src/components/job-card/BackoutBanner.tsx",
+      "line": 45,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't clear that — try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 395,
+      "line": 401,
       "kind": "toast.success",
       "title": {
         "form": "literal",
         "text": "GPS confirmed you were at the job."
       },
       "renders": false
+    },
+    {
+      "file": "src/components/job-card/NudgeConfirmLink.tsx",
+      "line": 37,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/NudgeConfirmLink.tsx",
+      "line": 38,
+      "kind": "toast.info",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/NudgeConfirmLink.tsx",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"nudge_confirm\", err) ?? userFacingError(err, \"Couldn't send the nudge — try again.\")"
+      },
+      "renders": true
     },
     {
       "file": "src/components/job-card/activityActions/useApplicantsState.ts",
@@ -3426,7 +3467,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 1623,
+      "line": 1633,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4872,7 +4913,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 335,
+      "line": 337,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4882,7 +4923,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 759,
+      "line": 757,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4902,7 +4943,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 120,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4912,7 +4953,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 259,
+      "line": 262,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -4922,7 +4963,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 288,
+      "line": 291,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4932,7 +4973,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 293,
+      "line": 296,
       "kind": "errorToast",
       "title": {
         "form": "dynamic",
@@ -4942,7 +4983,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 299,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4952,7 +4993,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 306,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4962,7 +5003,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 315,
+      "line": 318,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -4976,31 +5017,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 386,
-      "kind": "toast.warning",
-      "title": {
-        "form": "literal",
-        "text": "Application sent — but your note wasn't included"
-      },
-      "description": {
-        "form": "literal",
-        "text": "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/useApplyFlow.ts",
-      "line": 393,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Application sent. Track it in My Jobs."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/useApplyFlow.ts",
-      "line": 462,
+      "line": 460,
       "kind": "toast.loading",
       "title": {
         "form": "literal",
@@ -6142,7 +6159,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 201,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6152,7 +6169,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 207,
+      "line": 210,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -6162,7 +6179,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 251,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6182,7 +6199,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 262,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6192,7 +6209,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 274,
+      "line": 277,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

@@ -4,11 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 237** (168 to do, 69 fixed with protection pending; 1005 done). Feeds mirrored in: 26 from the alert ledger, 16 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 237** (153 to do, 84 fixed with protection pending; 1005 done). Feeds mirrored in: 26 from the alert ledger, 16 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 10 red, 13 stale, 0 unknown, 50 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-08T20:48Z)_
-- **Remote branches:** 3 carry patches not on main, 1 fully merged, of 5 (Q79). _(2026-10-08T20:48Z)_
+- **Workflows on main:** 10 red, 13 stale, 0 unknown, 50 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-08T21:59Z)_
+- **Remote branches:** 3 carry patches not on main, 1 fully merged, of 5 (Q79). _(2026-10-08T21:59Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -134,7 +134,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1242 items — 1005 done, 69 partly done (fixed, protection pending), 168 open.**
+**Queue: 1242 items — 1005 done, 84 partly done (fixed, protection pending), 153 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

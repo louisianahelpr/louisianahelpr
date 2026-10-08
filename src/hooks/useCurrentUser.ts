@@ -278,6 +278,11 @@ export const useCurrentUser = (): CurrentUser => {
     // up quickly; focus/reconnect refetch covers the returning-user case.
     staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
+    // NEVER restored from the device (2026-10-08): this row carries ban_status,
+    // and a pre-ban copy under 30s old rehydrated as FRESH let a just-banned
+    // account into /post-job (e2e journeys-webkit, ban-enforcement). Every load
+    // reads it from the server; queryPersister refuses the key as well.
+    meta: { persist: false },
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     // NO LOCAL `retry` OVERRIDE — inherit the client policy in

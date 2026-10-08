@@ -21,6 +21,7 @@ import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persi
 import type { Query } from "@tanstack/react-query";
 import { defaultShouldDehydrateQuery } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
+import { queryKeys } from "./queryKeys";
 
 /**
  * Async storage adapter conforming to TanStack's `AsyncStorage` shape.
@@ -179,6 +180,11 @@ export const persistOptions = {
     shouldDehydrateQuery: (query: Query) => {
       const meta = query.meta as { persist?: boolean } | undefined;
       if (meta?.persist === false) return false;
+      // The signed-in user's own row (ban_status, approval, tier) is a GATE,
+      // never a cache: a rehydrated pre-ban copy let a banned account into
+      // /post-job (2026-10-08). Refused by key too, so a query that forgets
+      // the meta cannot persist it.
+      if (query.queryKey[0] === queryKeys.currentUser.all[0]) return false;
       // Defer the rest of the policy (success-only, etc.) to the upstream
       // default — it already filters out pending/errored queries.
       return defaultShouldDehydrateQuery(query);

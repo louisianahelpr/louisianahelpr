@@ -290,7 +290,7 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   /* ACCEPT, NOT CONFIRM (owner, 2026-10-07, Q1399): this is an offer the
      Helpr has not accepted yet; "confirm" is the later day-before step
      (JobConfirmation), and the two words on one card read as one state. */
-  unconfirmed: { detail: "They haven't accepted yet" },
+  unconfirmed: { detail: "Offer sent — they haven't accepted yet" },
   confirmed: { detail: "Booked: they accepted" },
   /* FINDING #2: `postedActivityBucket` files any job whose DAY IS TODAY under
      Needs You (`jobIsLive`), which is right for a sort and wrong for a
@@ -575,7 +575,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
     // running (ScheduledStep shows it expanded), so the collapsed line shows it too.
     case "unconfirmed":
     case "overdue_unconfirmed":
-      return columnDeadline("response_deadline", job.response_deadline, "left for them to accept", "Accept window passed");
+      return columnDeadline("response_deadline", job.response_deadline, "left to accept", "Accept window passed");
     case "revision_out":
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
     case "revision_fixed":

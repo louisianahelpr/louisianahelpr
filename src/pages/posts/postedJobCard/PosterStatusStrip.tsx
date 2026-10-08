@@ -42,7 +42,7 @@ export function PosterStatusStrip({
   const line = withClosedApplicants(posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease), closedApplicants);
   // EVERY TIME AT THE BOTTOM (owner, 2026-10-07, Q1399): the start (and, once
   // the Helpr has accepted, "until confirmation opens") go under the status
-  // line in the strip, with its own clock ("left for them to accept"),
+  // line in the strip, with its own clock ("left to accept", inline on the sentence),
   // soonest first, one format, instead of a pill above the strip.
   // Guard: src/test/offerCountdownRows.test.tsx.
   const clocks = showStartClock ? collapsedClocks(job, true) : [];

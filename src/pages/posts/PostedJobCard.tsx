@@ -18,7 +18,7 @@ import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { JobCardTitleBar } from "../../components/job-card/JobCardTitleBar";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
-import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
+import { PostedJobDetails } from "./postedJobCard/PostedJobDetails";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
@@ -103,7 +103,6 @@ function PostedJobCardInner({
   const hasDescription = job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
   // Q1461: the poster's two notes, labelled (they were one "Special Requirements" string).
   const notes = useCardNotes(job, isExpanded, true);
-  const hasRequirements = notes !== null;
 
   // The tracking card carries the assigned helper's identity (see below), so
   // the standalone "Offered to …" pill row only renders on the states where no
@@ -686,31 +685,7 @@ function PostedJobCardInner({
                   <PaymentProblemNotice job={job} />
                 </div>
               )}
-              {/* The job's own details, below the tracker and beside its photos
-                  (owner, 2026-10-07: "material provided, access and parking, job
-                  description should be below the tracker near the photo"). */}
-              {(hasDescription || hasRequirements || (job.photos || []).length > 0) && (
-                <div className="px-4 py-3 space-y-3 border-t border-border/30" data-testid="posted-card-details">
-                  {(hasDescription || hasRequirements) && (
-                    <div className="space-y-1.5">
-                      {/* `break-words` on both: a description is free text, and one
-                          unbroken token (a URL, a gate-code string, a pasted address
-                          with no spaces) ran straight out of the card and was cut at
-                          its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
-                      {hasDescription && (
-                        <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
-                      )}
-                      {notes}
-                    </div>
-                  )}
-                  {(job.photos || []).length > 0 && (
-                    <div>
-                      <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
-                      <JobCardPhotoStrip urls={job.photos || []} size="md" />
-                    </div>
-                  )}
-                </div>
-              )}
+              <PostedJobDetails description={hasDescription ? job.description : null} notes={notes} photos={job.photos || []} />
 
               {/* Features for active jobs.
                   The wrapper stops propagation: JobConfirmation and

@@ -381,27 +381,13 @@ export function ApplicantsPanel({
                             2026-10-07: "should be 3 icons in the top right like
                             other screens"). Report and Block stay on every card (Q366). */}
                         <div className="flex justify-end gap-0.5 -mt-1 -mr-1 mb-0.5">
-                          <IconActionButton
-                            bare
-                            compact
+                          <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
                             ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
-                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }}
-                            icon={<NotebookPen className="w-4 h-4" />}
-                          />
-                          <IconActionButton
-                            bare
-                            compact
-                            ariaLabel={`Report ${helperName}'s application`}
-                            onClick={() => { hapticLight(); setReportApp(app); }}
-                            icon={<Flag className="w-4 h-4" />}
-                          />
-                          <IconActionButton
-                            bare
-                            compact
-                            ariaLabel={`Block ${helperName}`}
-                            onClick={() => { hapticLight(); setBlockApp(app); }}
-                            icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
-                          />
+                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
+                          <IconActionButton bare compact icon={<Flag className="w-4 h-4" />}
+                            ariaLabel={`Report ${helperName}'s application`} onClick={() => { hapticLight(); setReportApp(app); }} />
+                          <IconActionButton bare compact icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
+                            ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); setBlockApp(app); }} />
                         </div>
 
                         {/* Row 1: avatar + name + rating + hire button */}

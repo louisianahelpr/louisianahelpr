@@ -169,6 +169,9 @@ export function HelperTrackerPanel({
           helper tap — both of which are strictly after this state. */}
       <JobTracking
         embedded
+        // The SAME rail as the poster's card and this card's own offer state
+        // (owner, 2026-10-08, Q1559: "the post and jobs trackers should be nearly identical").
+        includePostingSteps
         jobId={app.job_id}
         helperId={userId}
         isHelper={!gateActive && !readOnly}

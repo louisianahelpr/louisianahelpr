@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { WorkRecordReserve } from "@/components/profile/WorkRecordReserve";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -166,6 +167,7 @@ export interface ProfileTabFallbackProps {
  */
 export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> } = {}) => {
   if (tab === "notifications") return <NotificationsReserve />;
+  if (tab === "work_record") return <WorkRecordReserve />;
   const shape = tab ? TAB_SHAPES[tab] : undefined;
   if (shape) {
     // Siblings, not a wrapper: each block lines up with the real row that

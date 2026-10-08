@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1033,
-  "latest": "20261007145950"
+  "count": 1038,
+  "latest": "20261008205730"
  },
  "functions": {
   "accept_application": [
@@ -35,6 +35,17 @@
     "anon": false,
     "args": [
      "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "ack_backout_notice": [
+   {
+    "anon": false,
+    "args": [
+     "p_id"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -461,6 +472,19 @@
     "authenticated": false,
     "nargdefaults": 1,
     "nargs": 1
+   }
+  ],
+  "backout_notice_text": [
+   {
+    "anon": false,
+    "args": [
+     "p_kind",
+     "p_actor",
+     "p_title"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "ban_fingerprint": [
@@ -1614,6 +1638,15 @@
    }
   ],
   "enforce_poster_jobs_money_lock": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_poster_working_confirm_order": [
    {
     "anon": false,
     "args": [],
@@ -2820,6 +2853,17 @@
     "nargs": 1
    }
   ],
+  "job_posted_by_seed": [
+   {
+    "anon": false,
+    "args": [
+     "p_customer_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "jobs_location_clears_coords": [
    {
     "anon": false,
@@ -3339,6 +3383,18 @@
     "nargs": 0
    }
   ],
+  "notify_schedule_change_expired": [
+   {
+    "anon": false,
+    "args": [
+     "p_request_id",
+     "p_reason"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "notify_slack_on_error_log": [
    {
     "anon": false,
@@ -3355,6 +3411,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "nudge_confirm": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "offer_deadline_follows_start": [
@@ -3809,6 +3876,15 @@
     "nargs": 0
    }
   ],
+  "record_backout_notice": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "record_error_log_throttle_drop": [
    {
     "anon": false,
@@ -3940,6 +4016,15 @@
    }
   ],
   "refuse_payout_pending_during_ban_review": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "refuse_short_notice_job": [
    {
     "anon": false,
     "args": [],
@@ -4571,6 +4656,21 @@
     "nargs": 3
    }
   ],
+  "send_backout_email": [
+   {
+    "anon": false,
+    "args": [
+     "p_user",
+     "p_job",
+     "p_title",
+     "p_message",
+     "p_link"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 5
+   }
+  ],
   "send_ops_daily_digest": [
    {
     "anon": false,
@@ -4882,6 +4982,24 @@
    }
   ],
   "suppress_exact_duplicate_notification": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_backout_notice_reminders": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_confirm_reminders_and_repost": [
    {
     "anon": false,
     "args": [],
@@ -5657,7 +5775,7 @@
   },
   "applications": {
    "checks": [
-    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text]))))",
+    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text, 'not_confirmed'::text]))))",
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
    ],
@@ -5922,6 +6040,90 @@
     "before:insert|update",
     "before:insert|update|delete",
     "before:update"
+   ]
+  },
+  "backout_notices": {
+   "checks": [
+    "CHECK ((backout_kind = ANY (ARRAY['offer_declined'::text, 'offer_expired'::text, 'helper_cancelled'::text, 'poster_cancelled'::text, 'helper_unconfirmed'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "acknowledged_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "actor_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "backout_kind": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "last_push_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Recipients read their own back-out notices",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
    ]
   },
   "ban_evasion_matches": {

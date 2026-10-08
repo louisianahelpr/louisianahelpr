@@ -59,6 +59,11 @@ export const rightItems = [
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
+/** The nav's own icon for a page: an empty page wears it (owner, 2026-10-08, Q1558). */
+export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
+  return [...leftItems, ...rightItems].find((i) => i.path === path)!.icon;
+}
+
 export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).

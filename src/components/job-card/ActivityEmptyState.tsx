@@ -1,4 +1,4 @@
-import { Search, Send, Wrench } from "lucide-react";
+import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -160,10 +160,9 @@ export function ActivityEmptyState({
   const ctaTo = isCrossTabSuggestion
     ? (isPosted ? "/home" : "/post-job")
     : (isPosted ? "/post-job" : "/home");
-  // Icon mirrors the CTA target so the eye lands on the matching glyph.
-  const Icon = isCrossTabSuggestion
-    ? (isPosted ? Send : Wrench)
-    : (isPosted ? Search : Send);
+  // The page's own nav icon (owner, 2026-10-08, Q1558: "make sure the icon
+  // matches that page"), the same circle on every empty page.
+  const Icon = navIconFor(isPosted ? "/posts" : "/jobs");
   return (
     <div className="flex-1 min-h-full flex">
       <EmptyState

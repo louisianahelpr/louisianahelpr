@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
@@ -17,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { EmptyState } from "@/components/ui/EmptyState";
-import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
@@ -1328,9 +1328,9 @@ export function ConversationList({
             // just hid — the exact thing that view exists to surface.
             <div className="flex-1 min-h-0 flex" data-thread-area>
               <EmptyState
-                icon={MessageSquare}
-                illustration={<EmptyStateIllustration variant="inbox" />}
-                eyebrow="Quiet for now"
+                // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,
+                // Q1558: "nearly identical"); the icon is the Messages tab's own.
+                icon={navIconFor("/messages")}
                 title="No messages yet"
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 action={

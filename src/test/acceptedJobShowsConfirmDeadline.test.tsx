@@ -14,7 +14,7 @@
  * This file pins both on the Jobs card a helper actually sees.
  *
  * @mutate src/components/JobConfirmation.tsx | const deadlineNotice = !isOwner && isHelper && !myConfirmed && ( | const deadlineNotice = false && (
- * @mutate src/components/JobConfirmation.tsx | {!isOwner && ( | {false && (
+ * @mutate src/components/job-card/confirmationOpensClock.ts |     note: isOwner |     note: true
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render } from "@testing-library/react";

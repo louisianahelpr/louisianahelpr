@@ -62,12 +62,6 @@
       "checked": "2026-10-03 (lead, content-checked against origin/main)"
     },
     {
-      "id": "remote:origin/lane/q1313-notify-me",
-      "sha": "782aa09e77ee1ddca66ff468b0eb2f7e31591f83",
-      "reason": "parked: Notify Me mid-build at the owner's 85% usage stop; finish next session (Q1313)",
-      "checked": "2026-10-05 (lead, WIP not landable; OPEN.md Q1313 holds the status and the draft launch message)"
-    },
-    {
       "id": "pr:2319",
       "sha": "bf39323b5caf21e45371d6bae8c38082c3a921d3",
       "reason": "Superseded batch bundle (#2309's content): hardening + Browse Jobs landed in #2311, the WHOLE code-tooling lane (incl. PhotoReorderGrid and the main.tsx boot import) in #2318; this copy is older than main."
@@ -147,6 +141,12 @@
       "id": "remote:origin/chore/generated-files-main-bot",
       "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
       "reason": "Same unfinished WIP as pr:2385; tracked as Q1423."
+    },
+    {
+      "id": "remote:origin/chore/generated-files-main-bot",
+      "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
+      "reason": "Unfinished 'one bot on main owns generated files' rework (wip, 2026-10-05); not superseded. Q1423 (post-launch) decides whether to finish or drop it.",
+      "checked": "2026-10-08 (lead, content-checked against origin/main: 2/40 distinctive added lines on main)"
     }
   ]
 }

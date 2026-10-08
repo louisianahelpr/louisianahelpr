@@ -1318,16 +1318,13 @@ export function ConversationList({
               />
             </div>
           ) : !loading && conversations.length === 0 && !isSpecialFilterView ? (
-            // `conversations` (the default inbox, archived threads already
-            // dropped) being empty does NOT mean Pinned/Recently Deleted are
-            // empty too — they read a DIFFERENT source (orderedConversations
-            // / allConversations, see filteredConversations above). Gating
-            // this global "No messages yet" state on the default inbox alone
-            // meant archiving your one thread made Recently Deleted
-            // permanently show "No messages yet" instead of the thread you
-            // just hid — the exact thing that view exists to surface.
-            // Inside the pull area, like My Posts' empty state (owner, 2026-10-08,
-            // Q1560: "why doesn't messages refresh in the app like the other pages").
+            // `conversations` (the default inbox, archived threads already dropped) being empty does NOT mean
+            // Pinned/Recently Deleted are empty too — they read a DIFFERENT source (orderedConversations /
+            // allConversations, see filteredConversations above). Gating this global "No messages yet" state on the
+            // default inbox alone meant archiving your one thread made Recently Deleted permanently show "No messages
+            // yet" instead of the thread you just hid — the exact thing that view exists to surface. Inside the pull
+            // area, like My Posts' empty state (owner, 2026-10-08, Q1560: "why doesn't messages refresh in the app
+            // like the other pages").
             <PullToRefreshWrapper
               data-thread-area
               ref={containerRef}
@@ -1622,13 +1619,10 @@ export function ConversationList({
                                 e.stopPropagation();
                                 if (!userId) return;
                                 unarchiveConversation(userId, c.jobId, c.otherUserId);
-                                // Archive has an explicit confirm dialog
-                                // ("Hide 1 conversation?"); Restore was the
-                                // only one-tap action here with no feedback
-                                // beyond the row silently vanishing from
-                                // THIS list — a toast closes that gap without
-                                // adding a confirm step Restore doesn't need
-                                // (it's the non-destructive direction).
+                                // Archive has an explicit confirm dialog ("Hide 1 conversation?"); Restore was the
+                                // only one-tap action here with no feedback beyond the row silently vanishing from
+                                // THIS list — a toast closes that gap without adding a confirm step Restore doesn't
+                                // need (it's the non-destructive direction).
                                 hapticLight();
                                 toast(`Restored conversation with ${c.otherUserName ?? "this person"}`);
                               }}
@@ -1655,14 +1649,11 @@ export function ConversationList({
                           />
                         </div>
                       );
-                      // Swipe gestures (archive / pin) are inert in select
-                      // mode, and meaningless in the Recently Deleted view
-                      // (Restore replaces them there) — render the bare row
-                      // so a drag can't fire an archive mid-selection or
-                      // re-archive an already-archived thread.
-                      // Q335: a deleted-account thread swipes to archive
-                      // only; pin stays off (thread_pins.other_user_id is
-                      // NOT NULL, owner 2026-09-26: no pin or mute).
+                      // Swipe gestures (archive / pin) are inert in select mode, and meaningless in the Recently
+                      // Deleted view (Restore replaces them there) — render the bare row so a drag can't fire an
+                      // archive mid-selection or re-archive an already-archived thread. Q335: a deleted-account
+                      // thread swipes to archive only; pin stays off (thread_pins.other_user_id is NOT NULL, owner
+                      // 2026-09-26: no pin or mute).
                       return selectMode || isRecentlyDeletedView ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
@@ -1799,14 +1790,11 @@ export function ConversationList({
   }
 
   return (
-    // No "N threads" chip above the list: the list directly below IS the
-    // count, and the empty state already says there's nothing — the same
-    // redundant count line removed from Activity, /jobs, and the browse
-    // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
-    // information you can't get by glancing at the list.
-    // The page's h1 lives in the toolbar row (visible on phone/native,
-    // sr-only when embedded, and an sr-only stand-in during search/select
-    // modes), which is what the title card renders.
+    // No "N threads" chip above the list: the list directly below IS the count, and the empty state already says
+    // there's nothing — the same redundant count line removed from Activity, /jobs, and the browse toolbar. The
+    // desktop split's bar keeps its UNREAD pill, which is real information you can't get by glancing at the list. The
+    // page's h1 lives in the toolbar row (visible on phone/native, sr-only when embedded, and an sr-only stand-in
+    // during search/select modes), which is what the title card renders.
     /* ONE BOX on the desktop website, exactly as Activity does it
        (Activity.tsx:484-496; owner, 2026-09-16: Messages was "the only page
        with a separate top panel"). Home, My Posts and My Jobs all fold their

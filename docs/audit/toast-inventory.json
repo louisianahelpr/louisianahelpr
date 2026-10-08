@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 602,
+    "calls": 605,
     "files": 151,
-    "rendering": 574,
+    "rendering": 577,
     "suppressedByPolicy": 28,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 39,
+      "toast": 42,
       "toast.error": 473,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,8 +18,8 @@
     },
     "copyPiecesByForm": {
       "literal": 324,
-      "template": 78,
-      "dynamic": 241,
+      "template": 80,
+      "dynamic": 242,
       "jsx": 0
     }
   },
@@ -482,7 +482,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 649,
+      "line": 651,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -492,7 +492,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 990,
+      "line": 992,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -502,7 +502,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1000,
+      "line": 1002,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -512,7 +512,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1015,
+      "line": 1017,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -522,7 +522,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1024,
+      "line": 1026,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -532,7 +532,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1076,
+      "line": 1078,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -542,7 +542,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1081,
+      "line": 1083,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -562,7 +562,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1101,
+      "line": 1103,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -572,7 +572,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1187,
+      "line": 1189,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -582,7 +582,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1200,
+      "line": 1202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -592,7 +592,17 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1227,
+      "line": 1231,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Marked done. ${REVIEW_HOLD_MESSAGE}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1237,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -602,7 +612,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1280,
+      "line": 1290,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -612,7 +622,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1324,
+      "line": 1334,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -622,7 +632,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1383,
+      "line": 1393,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -632,7 +642,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1442,
+      "line": 1452,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -642,7 +652,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1446,
+      "line": 1456,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3052,7 +3062,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 84,
+      "line": 85,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3062,7 +3072,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 90,
+      "line": 91,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3072,7 +3082,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 137,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3082,7 +3092,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 159,
+      "line": 160,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3092,7 +3102,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 244,
+      "line": 245,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3106,7 +3116,17 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 260,
+      "line": 262,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "REVIEW_HOLD_MESSAGE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3116,7 +3136,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 273,
+      "line": 281,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3126,7 +3146,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 275,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3136,7 +3156,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 299,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3146,7 +3166,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 308,
+      "line": 316,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3156,7 +3176,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 335,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3166,7 +3186,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 344,
+      "line": 352,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3176,7 +3196,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 363,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3186,7 +3206,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 387,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3196,7 +3216,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 421,
+      "line": 429,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -3226,7 +3246,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 429,
+      "line": 437,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6152,7 +6172,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 201,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6162,7 +6182,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 207,
+      "line": 209,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -6172,7 +6192,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 251,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6192,7 +6212,17 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 262,
+      "line": 265,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Dispute closed. ${REVIEW_HOLD_MESSAGE}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6202,7 +6232,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 274,
+      "line": 283,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

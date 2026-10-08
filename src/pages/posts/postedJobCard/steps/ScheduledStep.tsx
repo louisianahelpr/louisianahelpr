@@ -81,7 +81,7 @@ export function ScheduledStep({
             key="reschedule"
             icon={CalendarClock}
             label={askedByMe ? "Ask for a different date or time" : "Ask for a new date or time"}
-            tone="message"
+            tone="neutral"
             onClick={() => setAskOpen(true)}
           />
         ),

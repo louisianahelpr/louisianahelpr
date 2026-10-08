@@ -39,8 +39,8 @@
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
  * @mutate src/pages/posts/PostedJobCard.tsx |                   {!offerUnanswered && <JobConfirmation |                   {<JobConfirmation
  * @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId | <JobConfirmation embedded jobId
- * @mutate src/pages/posts/PostedJobCard.tsx |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
- * @mutate src/pages/posts/PostedJobCard.tsx |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true);
+ * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
+ * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true);
  * @mutate src/components/job-card/jobStatusLine.ts | "left for them to accept" | "left for them to confirm"
  * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "They haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx | const clocks = showStartClock ? collapsedClocks(job, true) : []; | const clocks: never[] = [];

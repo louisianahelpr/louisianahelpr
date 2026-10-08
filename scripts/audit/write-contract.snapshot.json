@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1010,
-  "latest": "20261006200446"
+  "count": 1033,
+  "latest": "20261007145950"
  },
  "functions": {
   "accept_application": [
@@ -500,6 +500,17 @@
     "nargs": 6
    }
   ],
+  "ban_standing_rank": [
+   {
+    "anon": false,
+    "args": [
+     "p_status"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "block_shadowbanned_applications": [
    {
     "anon": false,
@@ -531,6 +542,28 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "can_read_job_access_notes": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "can_read_job_detail_change": [
+   {
+    "anon": false,
+    "args": [
+     "_request_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "can_review_job": [
@@ -837,6 +870,15 @@
    }
   ],
   "complete_pending_accepts_on_setup": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "complete_pending_crew_confirms_on_setup": [
    {
     "anon": false,
     "args": [],
@@ -1445,6 +1487,15 @@
     "nargs": 0
    }
   ],
+  "enforce_job_access_notes_write": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_job_completion_server_owned": [
    {
     "anon": false,
@@ -1670,6 +1721,15 @@
     "nargs": 0
    }
   ],
+  "enforce_test_fixture_job_never_hired": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enqueue_email": [
    {
     "anon": false,
@@ -1770,7 +1830,28 @@
     "nargs": 0
    }
   ],
+  "flag_possible_ban_evasion_by_identity": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_nodoc_sha256"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "flag_possible_ban_evasion_by_name": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "flag_possible_ban_evasion_by_phone": [
    {
     "anon": false,
     "args": [],
@@ -2601,6 +2682,15 @@
     "nargs": 1
    }
   ],
+  "job_access_notes_changed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "job_announceable_to": [
    {
     "anon": false,
@@ -2611,6 +2701,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "job_booked_helpr_ids": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "job_expires_at_for_schedule": [
@@ -2719,6 +2820,24 @@
     "nargs": 1
    }
   ],
+  "jobs_location_clears_coords": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "jobs_offer_target_gone_retires_offer": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "jobs_private_select_columns": [
    {
     "anon": false,
@@ -2737,7 +2856,25 @@
     "nargs": 0
    }
   ],
+  "jobs_route_notes": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "jobs_seed_from_poster": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "jobs_visit_inherits_access_notes": [
    {
     "anon": false,
     "args": [],
@@ -2768,6 +2905,18 @@
     "authenticated": false,
     "nargdefaults": 1,
     "nargs": 3
+   }
+  ],
+  "link_str_turnover_job": [
+   {
+    "anon": false,
+    "args": [
+     "p_event_id",
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "lock_applications_owner_columns": [
@@ -3005,6 +3154,17 @@
     "anon": false,
     "args": [
      "p_name"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "normalize_phone7_for_ban": [
+   {
+    "anon": false,
+    "args": [
+     "p_phone"
     ],
     "authenticated": false,
     "nargdefaults": 0,
@@ -4360,6 +4520,35 @@
     "nargs": 1
    }
   ],
+  "seed_hidden_for": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "seed_hidden_from_caller": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "seed_hidden_in_discovery": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "seed_jobs_hidden_publicly": [
    {
     "anon": true,
@@ -4367,6 +4556,19 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "seed_review_hidden": [
+   {
+    "anon": false,
+    "args": [
+     "p_reviewer_id",
+     "p_reviewee_id",
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "send_ops_daily_digest": [
@@ -4573,6 +4775,17 @@
     "nargs": 0
    }
   ],
+  "split_special_requirements": [
+   {
+    "anon": false,
+    "args": [
+     "p_text"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "stamp_dispute_settlement_claim": [
    {
     "anon": false,
@@ -4640,6 +4853,15 @@
    }
   ],
   "stamp_w9_signer_ip": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "start_underfilled_crews": [
    {
     "anon": false,
     "args": [],
@@ -5704,7 +5926,7 @@
   },
   "ban_evasion_matches": {
    "checks": [
-    "CHECK ((matched_on = ANY (ARRAY['card'::text, 'bank'::text, 'name'::text, 'email'::text, 'phone'::text, 'identity'::text])))"
+    "CHECK ((matched_on = ANY (ARRAY['card'::text, 'bank'::text, 'name'::text, 'email'::text, 'phone'::text, 'identity'::text, 'phone_near'::text, 'identity_near'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -5855,6 +6077,27 @@
      "hasDefault": false,
      "notNull": false,
      "type": "uuid"
+    },
+    "deferred_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "deferred_ban_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "deferred_suspended_until": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "id": {
      "enum": null,
@@ -6184,6 +6427,110 @@
     "before:insert|update|delete"
    ]
   },
+  "crew_block_fees": {
+   "checks": [
+    "CHECK (((fee_cents > 0) AND (fee_cents <= share_basis_cents)))",
+    "CHECK ((fee_percent = ANY (ARRAY[25, 50])))",
+    "CHECK (((status <> 'paid'::text) OR (stripe_transfer_id IS NOT NULL)))",
+    "CHECK ((share_basis_cents >= 0))",
+    "CHECK ((slot_no >= 0))",
+    "CHECK ((status = ANY (ARRAY['owed'::text, 'paid'::text, 'failed'::text, 'void'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "failure_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "fee_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "fee_percent": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "paid_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "share_basis_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "slot_no": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "crew_cancellation_fee_shares": {
    "checks": [
     "CHECK ((fee_percent = ANY (ARRAY[0, 25, 50])))",
@@ -6288,6 +6635,47 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "crew_confirm_pending": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "requested_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "slot_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"
@@ -8918,6 +9306,42 @@
     "before:insert|update|delete"
    ]
   },
+  "identity_soft_fingerprints": {
+   "checks": [
+    "CHECK ((nodoc_sha256 ~ '^[0-9a-f]{64}$'::text))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "nodoc_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "instant_payouts": {
    "checks": [
     "CHECK (((gross_amount >= (0)::numeric) AND (fee_amount >= (0)::numeric) AND (net_amount >= (0)::numeric)))",
@@ -9376,6 +9800,225 @@
    "grants": {},
    "kind": "table",
    "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "job_detail_change_answers": {
+   "checks": [
+    "CHECK ((answer = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "answer": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "answered_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "request_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "The poster and the Helprs asked read the answers",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "job_detail_change_requests": {
+   "checks": [
+    "CHECK (((cardinality(changed_fields) > 0) AND (changed_fields <@ ARRAY['title'::text, 'description'::text, 'location'::text, 'materials_note'::text])))",
+    "CHECK (((char_length(new_title) <= 32) AND (char_length(new_description) <= 1000) AND (char_length(new_location) <= 500) AND (char_length(new_materials_note) <= 500)))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text, 'expired'::text, 'replaced'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "changed_fields": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text[]"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "decided_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "new_description": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "new_latitude": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "numeric"
+    },
+    "new_location": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "new_longitude": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "numeric"
+    },
+    "new_materials_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "new_title": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "old_description": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "old_location": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "old_materials_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "old_title": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "requested_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "The poster and the Helprs asked read a detail change",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"
@@ -10005,18 +10648,18 @@
     "CHECK (((budget >= (10)::numeric) AND (budget <= (1000)::numeric)))",
     "CHECK ((credential_tier = ANY (ARRAY[0, 2, 3])))",
     "CHECK ((char_length(description) <= 1000))",
+    "CHECK (((materials_note IS NULL) OR (char_length(materials_note) <= 500)))",
     "CHECK ((payment_status = ANY (ARRAY['unpaid'::text, 'escrow'::text, 'payout_pending'::text, 'released'::text, 'refunded'::text, 'cancelled'::text, 'abandoned'::text, 'failed'::text, 'chargeback'::text, 'cancelling'::text])))",
     "CHECK (are_safe_media_urls(photos))",
     "CHECK ((pricing_mode = 'set_price'::text))",
     "CHECK (((recurrence_days IS NULL) OR ((array_length(recurrence_days, 1) >= 1) AND (array_length(recurrence_days, 1) <= 7) AND (recurrence_days <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint]))))",
     "CHECK (((recurrence_weeks IS NULL) OR ((recurrence_weeks >= 1) AND (recurrence_weeks <= 52))))",
     "CHECK ((NOT (COALESCE(is_group_job, false) AND (recurrence_days IS NOT NULL))))",
+    "CHECK ((special_requirements IS NULL))",
     "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
     "CHECK ((char_length(title) <= 32))",
     "CHECK (((urgent_fee IS NULL) OR ((urgent_fee >= (0)::numeric) AND (urgent_fee <= (250)::numeric))))",
-    "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))",
-    "CHECK (((materials_note IS NULL) OR (char_length(materials_note) <= 500)))",
-    "CHECK ((special_requirements IS NULL))"
+    "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))"
    ],
    "columnGrants": {
     "authenticated": {
@@ -13476,6 +14119,13 @@
      "notNull": false,
      "type": "numeric"
     },
+    "materials_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "offered_to_helper_id": {
      "enum": null,
      "generated": false,
@@ -14765,6 +15415,7 @@
   },
   "platform_settings": {
    "checks": [
+    "CHECK (((onboarding_fee_cents IS NULL) OR ((onboarding_fee_cents >= 0) AND ((onboarding_fee_cents % 100) = 0))))",
     "CHECK (((platform_fee_percent >= (0)::numeric) AND (platform_fee_percent <= (100)::numeric)))"
    ],
    "columnGrants": {},
@@ -16801,6 +17452,13 @@
      "notNull": true,
      "type": "uuid"
     },
+    "identity_nodoc_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "identity_sha256": {
      "enum": null,
      "generated": false,
@@ -16809,6 +17467,13 @@
      "type": "text"
     },
     "name_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "phone7_sha256": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -17920,6 +18585,74 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "test_accounts": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "enrolled_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "test_fixture_jobs": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "purpose": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"

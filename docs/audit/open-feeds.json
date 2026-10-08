@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T22:15Z",
+  "measured_at": "2026-10-08T22:45Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,6 +53,11 @@
         "number": 2615,
         "title": "nightly-red: open-done-when",
         "label": "nightly-red"
+      },
+      {
+        "number": 2623,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red"
       }
     ]
   },
@@ -89,6 +94,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -221,6 +234,7 @@
     "issue #2601": "Q1427",
     "issue #2604": "Q1522",
     "issue #2615": "Q1524",
+    "issue #2623": "Q1576",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",

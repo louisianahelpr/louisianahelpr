@@ -660,6 +660,8 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* Confirmed: show tracking + message */}
+          {/* A date/time change (Q407 8): above the step, never below its row (Q1567). */}
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} hideAsk />
           {isConfirmed && isExpanded && (
             <ConfirmedSection
               app={app}
@@ -852,8 +854,6 @@ function AppliedJobCardInner({
               {job.is_recurring && <HelperSeriesRow job={job} userId={userId} />}
             </div>
           )}
-          {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} hideAsk />
           {!isMinimalCard && !isExpanded && (
             <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} />
           )}

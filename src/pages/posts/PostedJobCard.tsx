@@ -105,21 +105,16 @@ function PostedJobCardInner({
   // Q1461: the poster's two notes, labelled (they were one "Special Requirements" string).
   const notes = useCardNotes(job, isExpanded, true);
 
-  // The tracking card carries the assigned helper's identity (see below), so
-  // the standalone "Offered to …" pill row only renders on the states where no
-  // tracker is mounted — completed / revision_requested / disputed. This is a
-  // move, not a delete: every state that showed the helper still shows them.
-  // An OPEN job now shows the tracker too, sitting on its real pre-assignment
-  // step (Posted / Applicants) — the owner asked for a tracker on posted jobs,
-  // and the same component renders it with the two leading steps prepended.
-  // A job awaiting a revision or sitting in a dispute is still LIVE — the
-  // poster has a decision in front of them — so it keeps the tracker (owner:
-  // "where is the live tracker?"). It used to drop to the bare "Offered to …"
-  // pill the moment work was submitted, which hid the whole history at exactly
-  // the point the poster is judging it. `completed` keeps it too (owner:
-  // "should show tracker"): the finished job's step history.
-  // The predicate lives in trackerMounts.ts so the batched tracking prefetch
-  // (useActivityData) covers exactly these cards (#1582).
+  // The tracking card carries the assigned helper's identity (see below), so the standalone "Offered to …" pill row
+  // only renders on the states where no tracker is mounted — completed / revision_requested / disputed. This is a
+  // move, not a delete: every state that showed the helper still shows them. An OPEN job now shows the tracker too,
+  // sitting on its real pre-assignment step (Posted / Applicants) — the owner asked for a tracker on posted jobs, and
+  // the same component renders it with the two leading steps prepended. A job awaiting a revision or sitting in a
+  // dispute is still LIVE — the poster has a decision in front of them — so it keeps the tracker (owner: "where is
+  // the live tracker?"). It used to drop to the bare "Offered to …" pill the moment work was submitted, which hid the
+  // whole history at exactly the point the poster is judging it. `completed` keeps it too (owner: "should show
+  // tracker"): the finished job's step history. The predicate lives in trackerMounts.ts so the batched tracking
+  // prefetch (useActivityData) covers exactly these cards (#1582).
   const showsTracker = postedCardShowsTracker(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
@@ -483,32 +478,6 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Accepted status */}
-              {job.status === "accepted" && (
-                <div className="space-y-2">
-                  {/* The "Waiting for … to accept" pill is GONE too (owner,
-                      2026-09-11: "no no pills").
-
-                      This one had survived an earlier pass with a written
-                      justification — that the tracker says which step is
-                      CURRENT but not that it is overdue. The owner has now
-                      ruled on the whole class rather than case by case: no
-                      status pills on the card, the tracker is where job state
-                      is read. Do not reintroduce one with a fresh argument for
-                      why this particular pill is different; that argument has
-                      already been made and overruled. */}
-                  <CountdownRows variant="box" clocks={posterClocks} note={posterConfirmOpens?.note} />
-                  {/* No "X says they've arrived" banner (owner: "remove") —
-                      the tracker's Arrived step is lit, which is the same
-                      statement with the whole timeline around it.
-
-                      The Confirm Arrival ACTION moved to the card's ONE action
-                      row (owner, 2026-09-14, VN-21: every button on a Posts
-                      card on one row): it is ScheduledStep's primary now, same
-                      gate, same handler. It used to be a full-width button up
-                      here, a row of its own above the tracker. */}
-                </div>
-              )}
 
 
               {/* The "Arrival confirmed" chip was REMOVED here (owner,
@@ -542,6 +511,18 @@ function PostedJobCardInner({
                   rather than as this box's caption. PADDING, not margin —
                   `space-y-2` sets `margin-top` on every sibling here and its
                   `> * + *` selector outranks a plain `mt-*` on the child. */}
+              {/* EXPANDED ORDER (owner, 2026-10-08, Q1567): description, tracker,
+                  timer, the person, the row; nothing below the row. */}
+              {/* Q360: the money problem jobs.status cannot show (bank took the
+                  payment back / card declined), first thing in the open card. */}
+              <div className="-mx-4">{/* these two draw their own px-4 */}
+                {cardPaymentProblem(job) && (
+                  <div className="px-4 pt-3 pb-3 border-t border-border/30">
+                    <PaymentProblemNotice job={job} />
+                  </div>
+                )}
+                <PostedJobDetails description={hasDescription ? job.description : null} notes={notes} photos={job.photos || []} />
+              </div>
               <div className="pt-3" data-job-card-tracker-gap="">{trackerBlock}</div>
 
               {/* WHY THERE IS NO MAP — the honest state for an un-geocoded job.
@@ -675,14 +656,6 @@ function PostedJobCardInner({
                 on arrival. No action was removed — they all live one tap in. */}
             {isExpanded && (
             <div>
-              {/* Q360: the money problem jobs.status cannot show (bank took the
-                  payment back / card declined), first thing in the open card. */}
-              {cardPaymentProblem(job) && (
-                <div className="px-4 pt-3 pb-3 border-t border-border/30">
-                  <PaymentProblemNotice job={job} />
-                </div>
-              )}
-              <PostedJobDetails description={hasDescription ? job.description : null} notes={notes} photos={job.photos || []} />
 
               {/* Features for active jobs.
                   The wrapper stops propagation: JobConfirmation and
@@ -716,6 +689,33 @@ function PostedJobCardInner({
                   meta row's duplicate "N views" chip went with it, by the same
                   ruling: one place, on demand. */}
 
+              {/* Accepted status */}
+              {job.status === "accepted" && (
+                <div className="px-4 pb-2 space-y-2">
+                  {/* The "Waiting for … to accept" pill is GONE too (owner,
+                      2026-09-11: "no no pills").
+
+                      This one had survived an earlier pass with a written
+                      justification — that the tracker says which step is
+                      CURRENT but not that it is overdue. The owner has now
+                      ruled on the whole class rather than case by case: no
+                      status pills on the card, the tracker is where job state
+                      is read. Do not reintroduce one with a fresh argument for
+                      why this particular pill is different; that argument has
+                      already been made and overruled. */}
+                  <CountdownRows variant="box" clocks={posterClocks} note={posterConfirmOpens?.note} />
+                  {/* No "X says they've arrived" banner (owner: "remove") —
+                      the tracker's Arrived step is lit, which is the same
+                      statement with the whole timeline around it.
+
+                      The Confirm Arrival ACTION moved to the card's ONE action
+                      row (owner, 2026-09-14, VN-21: every button on a Posts
+                      card on one row): it is ScheduledStep's primary now, same
+                      gate, same handler. It used to be a full-width button up
+                      here, a row of its own above the tracker. */}
+                </div>
+              )}
+              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
               {/* Actions */}
               <PostedJobActions
                 job={job}
@@ -741,7 +741,6 @@ function PostedJobCardInner({
                 helperWorking={initialTracking?.status === "working" || initialTracking?.status === "done"}
                 onActionComplete={onActionComplete}
               />
-              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
             </div>
             )}
             {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM

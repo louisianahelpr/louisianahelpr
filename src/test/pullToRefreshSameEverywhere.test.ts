@@ -7,6 +7,10 @@
  * canTrigger, so the gesture reads the same on every page.
  *
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         canTrigger={canTrigger} |
+ *
+ * And Messages' EMPTY inbox sat outside its pull area, so pulling an empty
+ * inbox in the app did nothing (owner: "why doesn't messages refresh in the app
+ * like the other pages").
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -29,5 +33,11 @@ describe("every pull-to-refresh draws the same states", () => {
       return !/canTrigger=/.test(tag);
     });
     expect(missing).toEqual([]);
+  });
+  it("Messages' empty inbox is inside the pull area", () => {
+    const s = readFileSync(join(process.cwd(), "src/components/messages/ConversationList.tsx"), "utf8");
+    const at = s.indexOf('title="No messages yet"');
+    const before = s.slice(0, at);
+    expect(before.lastIndexOf("<PullToRefreshWrapper")).toBeGreaterThan(before.lastIndexOf("</PullToRefreshWrapper>"));
   });
 });

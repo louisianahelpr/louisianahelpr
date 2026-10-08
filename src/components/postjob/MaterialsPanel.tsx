@@ -22,7 +22,7 @@ import {
   Wrench,
   ExternalLink,
 } from "lucide-react";
-import { categoryMaterials } from "@/lib/materialsGuide";
+import { AMAZON_ASSOCIATE_DISCLOSURE, amazonAffiliateUrl, categoryMaterials } from "@/lib/materialsGuide";
 import type { LucideIcon } from "lucide-react";
 
 /** Map of lucide icon name strings to their components. */
@@ -148,9 +148,9 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
                     {item.estimatedCost}
                   </span>
                   <a
-                    href={item.searchUrl}
+                    href={amazonAffiliateUrl(item.searchUrl)}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer sponsored"
                     className="inline-flex items-center gap-1 text-ds-11 font-semibold mt-0.5 tap-44"
                     style={{ color: "hsl(var(--primary))" }}
                     onClick={(e) => e.stopPropagation()}
@@ -162,12 +162,13 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
             })}
           </div>
 
-          {/* Required affiliate disclosure */}
+          {/* Required affiliate disclosure, in the Associates Program's own
+              wording (its Operating Agreement asks for this statement). */}
           <p
             className="text-ds-10 font-sans leading-snug"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            Helpr may earn a small commission on purchases via these links.
+            {AMAZON_ASSOCIATE_DISCLOSURE}
           </p>
         </div>
       )}

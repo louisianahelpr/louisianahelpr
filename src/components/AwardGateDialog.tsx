@@ -14,6 +14,7 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
 import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
@@ -60,12 +61,21 @@ export function AwardGateDialog({
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't open Stripe"));
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("Stripe didn't return a setup link — try again in a moment.");
-      onOpenChange(false);
+      // GO FIRST, CLOSE AFTER (owner, 2026-10-08: "I have to click Finish
+      // Stripe Setup twice, the first time it just closed"). Closing first
+      // ran the page's close handlers while the browser was starting the
+      // move to Stripe, and a same-page URL update then can cancel that move:
+      // the dialog closed and nothing else happened. On the web the page
+      // leaves, so the dialog stays up with its spinner until it does; in the
+      // app Stripe opens over it, and it closes once that sheet is up.
       await openExternalUrl(data.url);
+      if (isNativePlatform) {
+        onOpenChange(false);
+        setLoading(false);
+      }
     } catch (e: unknown) {
       hapticError();
       toast.error(userFacingError(e, "Couldn't open Stripe — try again in a moment."));
-    } finally {
       setLoading(false);
     }
   };

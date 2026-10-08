@@ -6556,7 +6556,7 @@ export type Database = {
       accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
       ack_backout_notice: {
         Args: { p_id: string }
-        Returns: boolean
+        Returns: undefined
       }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
       admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
@@ -8234,6 +8234,7 @@ export type Database = {
       }
       send_backout_email: {
         Args: {
+          p_job: string
           p_link: string
           p_message: string
           p_title: string

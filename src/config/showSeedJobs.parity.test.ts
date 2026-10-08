@@ -248,6 +248,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Owner 2026-10-08: reminds or reposts the CALLER-less sweep's own booked
+    // jobs; the reposted job reaches browse through the gated surfaces.
+    ["public.sweep_confirm_reminders_and_repost", "cron over booked jobs; writes, never lists them to anyone"],
     // Q768: links the caller's own STR turnover to the caller's own job; it
     // reads `status = 'open'` of that one job as a precondition.
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],

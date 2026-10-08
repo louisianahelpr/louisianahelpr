@@ -173,7 +173,9 @@ describe("Helpr Confirmed card — one primary at every instant, the same in eve
       // Floors, so a fixture that stops reaching either state cannot pass by
       // rendering nothing everywhere.
       expect(sawStillOn, "the sweep never reached the day-of confirmation").toBeGreaterThan(0);
-      if (start === "23:59") expect(sawOnMyWay, "the sweep never reached On My Way").toBeGreaterThan(0);
+      if (start === "23:59") // The fixture never taps the day-before confirm, and accepting no longer counts
+      // (Q1570): On My Way must therefore NEVER be offered, in any zone, at any instant.
+      expect(sawOnMyWay, "On My Way offered without the Helpr's day-before tap").toBe(0)
     }, 120_000);
   }
 });

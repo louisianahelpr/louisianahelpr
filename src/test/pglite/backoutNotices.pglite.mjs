@@ -97,10 +97,11 @@ check("a crew job writes nothing (its own notices, Q1409)", (await notices(db, j
 
 // Got It.
 const mine = (await db.query(`select id from public.backout_notices where user_id = '${P}' limit 1`)).rows[0].id;
-r = await as(db, "authenticated", X, `select public.ack_backout_notice('${mine}') as ok`);
-check("someone else's Got It changes nothing", r.ok && r.rows[0].ok === false, r.err);
-r = await as(db, "authenticated", P, `select public.ack_backout_notice('${mine}') as ok`);
-check("the recipient's Got It clears it", r.ok && r.rows[0].ok === true, r.err);
+const acked = async () => (await db.query(`select acknowledged_at from public.backout_notices where id = '${mine}'`)).rows[0].acknowledged_at;
+r = await as(db, "authenticated", X, `select public.ack_backout_notice('${mine}')`);
+check("someone else's Got It changes nothing", r.ok && (await acked()) === null, r.err);
+r = await as(db, "authenticated", P, `select public.ack_backout_notice('${mine}')`);
+check("the recipient's Got It clears it", r.ok && (await acked()) !== null, r.err);
 r = await as(db, "authenticated", A, `select count(*)::int c from public.backout_notices`);
 check("a recipient reads only their own notices", r.ok && r.rows[0].c === 1, JSON.stringify(r.rows));
 

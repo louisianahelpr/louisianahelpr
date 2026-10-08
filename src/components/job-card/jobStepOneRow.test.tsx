@@ -586,6 +586,8 @@ const CASES: Array<{
             helper_completed_at: ago(5),
             revision_requested_at: ago(3),
           }))}
+          // The Helpr's tracker says they started (Q1571: the vouch waits for it).
+          helperWorking
         />,
       ),
     minControls: 3,

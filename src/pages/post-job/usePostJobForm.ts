@@ -72,7 +72,9 @@ export function usePostJobForm() {
   }, [skipEntry]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<string>("other");
+  // No category until the poster picks one (owner, 2026-10-07: "dont auto
+  // select other"). Submit already refuses an empty one ("Pick a category.").
+  const [category, setCategory] = useState<string>("");
   /* Pet profiles attached to this job — written to `job_pets` after the insert.
      Cleared when the category leaves pet_care so a poster who starts a dog-walk
      post and switches it to yard work does not silently ship a pet list with a

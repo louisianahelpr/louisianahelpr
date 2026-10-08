@@ -31,6 +31,9 @@ export interface PosterStepCtx {
   /** The Helpr's tracker says Working (or Done): the poster's "They're
    *  Working" waits for it (Q1571; the server refuses it before). */
   helperWorking?: boolean;
+  /** An open job's Applicants button, drawn as the ONE row's primary beside
+   *  More (owner, 2026-10-08: "More (left) + one primary"). */
+  applicantsPrimary?: { count: number; onOpen: () => void } | null;
   /** The poster's own auto-release setting; changes what the wait is called. */
   instantReleaseOn: boolean;
   navigate: (to: string) => void;

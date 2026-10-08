@@ -312,23 +312,20 @@ export function JobCardMetaRow({
    * visual shortening can send anyone to the wrong door.
    */
 
-  // LOCATION OUTRANKS THE EXPIRY COUNTDOWN (owner, 2026-09-11 / 2026-09-13).
-  // With a countdown on the row the city does not shrink at all — the
-  // countdown (shrink-[100], min-w-0, truncate) gives instead. Weighting alone
-  // was not enough: measured on prod at 375 the city still lost ~4px and
-  // ellipsized "New Iber…", and any loss on a short city name is an ellipsis.
-  // The 50% cap keeps a very long place name from pushing the date out. With
-  // no countdown the city is still the row's only shrinker, exactly as before.
+  // LOCATION OUTRANKS THE EXPIRY COUNTDOWN (owner, 2026-09-11 / 2026-09-13). With a countdown on the row the city
+  // does not shrink at all — the countdown (shrink-[100], min-w-0, truncate) gives instead. Weighting alone was not
+  // enough: measured on prod at 375 the city still lost ~4px and ellipsized "New Iber…", and any loss on a short city
+  // name is an ellipsis. The 50% cap keeps a very long place name from pushing the date out. With no countdown the
+  // city is still the row's only shrinker, exactly as before.
   //
-  // A FULL ADDRESS OPTS OUT OF THE CONTEST ENTIRELY (`basis-full`): it is on
-  // its own line, so there is nothing to out-rank and no shrink weight worth
-  // setting. The rule above is untouched for every card that shows a city,
-  // which is every card on which it was ever measured.
+  // A FULL ADDRESS OPTS OUT OF THE CONTEST ENTIRELY (`basis-full`): it is on its own line, so there is nothing to
+  // out-rank and no shrink weight worth setting. The rule above is untouched for every card that shows a city, which
+  // is every card on which it was ever measured.
   //
-  // ON A WIDE SCREEN THE ADDRESS SHARES THE LINE (owner, 2026-10-07, Q1399), and the date
-  // and time sit RIGHT BESIDE it, the row's own gap apart, not pushed to the far edge (owner,
-  // 2026-10-08, Q1549: "date and time should be side by side with location, not all the way
-  // to the right"). Phones keep the stacked layout. Guard: posterOfferRow.test.tsx (8).
+  // ON A WIDE SCREEN THE ADDRESS SHARES THE LINE (owner, 2026-10-07, Q1399), and the date and time sit RIGHT BESIDE
+  // it, the row's own gap apart, not pushed to the far edge (owner, 2026-10-08, Q1549: "date and time should be side
+  // by side with location, not all the way to the right"). Phones keep the stacked layout. Guard:
+  // posterOfferRow.test.tsx (8).
   const cityFlex = fullAddress
     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0"
     : expiresAt
@@ -528,12 +525,11 @@ export function JobCardMetaRow({
           time, else the flexible wording when the poster actually ticked the
           flag, else NULL — and null drops the whole chip, icon included,
           rather than leaving a clock face with nothing beside it. */}
+      {/* SUPERSEDED (owner, 2026-10-08): "location, date and time never hidden;
+          1 day left only if there is space". The time is never dropped now;
+          below 400px it is the COUNTDOWN that goes (see the countdown below). */}
       {timeLabel && (
-        <span
-          className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap${
-            expiresAt ? " [@media(max-width:399px)]:hidden" : ""
-          }`}
-        >
+        <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <Clock className="w-3 h-3 shrink-0" />
           {timeLabel}
         </span>
@@ -584,7 +580,10 @@ export function JobCardMetaRow({
                  expired/urgent treatment. Guarded by
                  JobCardMetaRow.locationPriority.test.tsx. */
               <span
-                className={`flex items-center gap-1 min-w-0 shrink-[100] overflow-hidden whitespace-nowrap ${expiringSoon ? "text-destructive font-medium" : ""}`}
+                className={`flex items-center gap-1 min-w-0 shrink-[100] overflow-hidden whitespace-nowrap${
+                  // A city row at a phone width has no room left: the countdown drops, never the time.
+                  fullAddress ? "" : " [@media(max-width:399px)]:hidden"
+                } ${expiringSoon ? "text-destructive font-medium" : ""}`}
               >
                 <Timer className="w-3 h-3 shrink-0" /> <span className="truncate">{text}</span>
               </span>

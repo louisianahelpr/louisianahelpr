@@ -22,7 +22,7 @@ const IN_ORDER: RegExp[] = [
   // `earnedRangeLabel("lifetime")`: the summary opens on lifetime and prints
   // the label under the figure whatever the figure is.
   /total earned/i,
-  /^Payouts$/,
+  // No Payouts list and no "Sent to your bank" (owner, 2026-10-08): asserted absent below.
   /More Insights/i,
   /Tax reporting:/i,
 ];
@@ -53,6 +53,8 @@ async function assertEarnedInOrder(page: import("@playwright/test").Page) {
   for (let i = 1; i < tops.length; i++) {
     expect(tops[i], `${IN_ORDER[i]} renders above ${IN_ORDER[i - 1]}`).toBeGreaterThan(tops[i - 1]);
   }
+  await expect(page.getByRole("heading", { name: /^Payouts$/ })).toHaveCount(0);
+  await expect(page.getByText(/Sent to your bank/i)).toHaveCount(0);
 }
 
 test("the Money tab: Earned | Spent, every Earned section in order", async ({ helperPage: page }) => {

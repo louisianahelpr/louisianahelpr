@@ -110,22 +110,28 @@ export function ScheduleChangeAskDialog({
         secondaryLabel="Cancel"
       >
         <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
-          <label className="space-y-1 text-ds-12 text-foreground">
+          <label className="min-w-0 space-y-1 text-ds-12 text-foreground">
             <span className="block font-semibold">Date</span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
+              // min-w-0 + no native appearance: iOS gives date/time fields an
+              // intrinsic width wider than half a phone dialog, so the pair
+              // overlapped and ran off the edge (owner, iPhone, 2026-10-08).
+              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 bg-background text-left"
             />
           </label>
-          <label className="space-y-1 text-ds-12 text-foreground">
+          <label className="min-w-0 space-y-1 text-ds-12 text-foreground">
             <span className="block font-semibold">Start time</span>
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full min-h-[44px] rounded-ds-md border border-border px-3 bg-background"
+              // min-w-0 + no native appearance: iOS gives date/time fields an
+              // intrinsic width wider than half a phone dialog, so the pair
+              // overlapped and ran off the edge (owner, iPhone, 2026-10-08).
+              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 bg-background text-left"
             />
           </label>
         </div>

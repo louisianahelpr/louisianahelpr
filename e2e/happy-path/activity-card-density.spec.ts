@@ -246,6 +246,14 @@ async function activateCardToggle(toggle: Locator) {
   await toggle.press("Enter");
 }
 
+/** The row is More + one primary (owner, 2026-10-08): everything else is in More's panel. */
+async function openMore(page: Page) {
+  await page.locator("[data-job-step-overflow]").first().click();
+  const panel = page.locator("[data-job-step-overflow-panel]");
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
 async function expandCard(page: Page) {
   const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
   await expect(toggle).toBeAttached();
@@ -459,17 +467,15 @@ test.describe("My Posts — card density + header", () => {
     // per-card stripe was removed once the filter tabs took over saying what
     // state a job is in. See ActivityBucket in activityFilters.ts.
     await expect(page.getByRole("group", { name: "Job progress" })).toHaveCount(1);
+    // Everything but the primary lives in More now (owner, 2026-10-08).
+    const panel = await openMore(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
-    // The rest of the row is still there — this is a gate, not an empty state,
-    // and a two-item row must still look deliberate. Share is NOT among them:
-    // a job that already has a helpr has nothing left to advertise.
-    await expect(page.getByRole("button", { name: "Message Helpr" })).toHaveCount(1);
+    // The rest is still there — this is a gate, not an empty state. Share is
+    // NOT among them: a job that already has a helpr has nothing to advertise.
+    await expect(panel.getByRole("button", { name: "Message Helpr" })).toHaveCount(1);
     await expect(page.getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
-    // This page is a fixed 100dvh shell — the DOCUMENT does not scroll, so
-    // `fullPage` captures the viewport and nothing else. Bring the row into it.
-    await page.getByRole("button", { name: "Message Helpr" }).scrollIntoViewIfNeeded();
-    await page.waitForTimeout(300);
     await page.screenshot({ path: `${SHOTS}/actions-2up-no-noshow-375.png` });
+    await page.keyboard.press("Escape");
   });
 
   test("No-Show APPEARS once the start time has passed", async ({ page, context, baseURL }) => {
@@ -486,6 +492,7 @@ test.describe("My Posts — card density + header", () => {
 
     await dismissNudge(page);
     await expandCard(page);
+    await openMore(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-with-noshow-375.png`, fullPage: true });
 
@@ -709,9 +716,12 @@ test.describe("My Posts — card density + header", () => {
     // control, on a job whose helpr has finished and on one whose has not, is
     // the same colour.
     const readMessageColour = async () => {
-      const btn = page.getByRole("button", { name: "Message Helpr" });
+      const panel = await openMore(page);
+      const btn = panel.getByRole("button", { name: "Message Helpr" });
       await expect(btn).toHaveCount(1);
-      return btn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      const colour = await btn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      await page.keyboard.press("Escape");
+      return colour;
     };
     const colourA = await withCardExpanded(page, 0, readMessageColour);
     const colourB = await withCardExpanded(page, 1, readMessageColour);
@@ -731,19 +741,20 @@ test.describe("My Posts — card density + header", () => {
     // The CHIPS of the card's one row. Since VN-21 (owner, 2026-09-14) the row
     // opens with its primary slot (empty and hidden on this state), so it is
     // skipped rather than read as an unnamed first chip.
+    // The ROW is More + the one primary (owner, 2026-10-08); Message and SOS
+    // are inside More, Message first and SOS last (MORE_ORDER).
     const order = await page.evaluate(() => {
-      const msg = document.querySelector('button[aria-label="Message Helpr"]');
-      const row = msg?.parentElement;
-      return Array.from(row?.children ?? [])
-        .filter((c) => !c.hasAttribute("data-job-step-primary"))
-        .map((c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "");
+      const more = document.querySelector("[data-job-step-overflow]");
+      const row = more?.closest("[data-job-step-row]");
+      return Array.from(row?.querySelectorAll("button") ?? []).map((c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "");
     });
     expect(order.some((l) => /^More\b/.test(l)), `no More on the row: ${order.join(" | ")}`).toBe(true);
-    expect(order.some((l) => /message/i.test(l)), `no Message on the row: ${order.join(" | ")}`).toBe(true);
+    expect(order.some((l) => /message/i.test(l)), `Message is on the row: ${order.join(" | ")}`).toBe(false);
     expect(order.some((l) => /SOS/i.test(l)), `SOS is on the row: ${order.join(" | ")}`).toBe(false);
-    await page.locator("[data-job-step-overflow]").first().click();
-    const panel = page.locator("[data-job-step-overflow-panel]");
-    await expect(panel.getByRole("button", { name: /^SOS/ })).toBeVisible();
+    const panel = await openMore(page);
+    const inMore = await panel.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim() ?? ""));
+    expect(/message/i.test(inMore[0] ?? ""), `Message is not first in More: ${inMore.join(" | ")}`).toBe(true);
+    expect(/^SOS/.test(inMore[inMore.length - 1] ?? ""), `SOS is not last in More: ${inMore.join(" | ")}`).toBe(true);
     await page.keyboard.press("Escape");
     // No JOB-share control anywhere in the row. Matched on its exact accessible
     // name rather than a loose /share/ — the SOS chip's own label is about
@@ -766,7 +777,8 @@ test.describe("My Posts — card density + header", () => {
     await dismissNudge(page);
     await expandCard(page);
 
-    await page.getByRole("button", { name: "Message Helpr" }).first().click();
+    const panel = await openMore(page);
+    await panel.getByRole("button", { name: "Message Helpr" }).first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.
@@ -805,9 +817,10 @@ test.describe("My Posts — card density + header", () => {
     // Edit — the one of the four that opens something we can assert on.
     // The row is below the fold on a 375pt card, and this page is a fixed
     // 100dvh shell, so bring it into view rather than expecting it to be there.
-    const edit = page.locator("button").filter({ hasText: /^Edit$/ }).first();
+    // Edit lives in More (owner, 2026-10-08); the More tap must not toggle either.
+    const panel = await openMore(page);
+    const edit = panel.locator("button").filter({ hasText: /^Edit$/ }).first();
     await expect(edit).toBeAttached();
-    await edit.scrollIntoViewIfNeeded();
     await edit.click();
 
     // The action happened...
@@ -834,6 +847,12 @@ test.describe("My Posts — card density + header", () => {
     // guard the way a user would, then assert the card is still expanded.
     const discard = page.getByRole("button", { name: /^Discard Changes$/ });
     if (await discard.count()) await discard.first().click();
+    // The More panel (a Radix popover, role=dialog) can take the first Escape;
+    // close whatever is still up, the way a user would, before judging the card.
+    for (let i = 0; i < 3 && (await modal.count()); i++) {
+      await page.keyboard.press("Escape");
+      if (await discard.count()) await discard.first().click();
+    }
     await expect(modal).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Collapse Job Details" }).first(),

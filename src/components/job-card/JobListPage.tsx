@@ -230,7 +230,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   );
 
   const {
-    loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts,
+    loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts, closedApplicantSummaries,
     helperNames, helperAvatars, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
     // Only THIS tab's data blocks the first card. The other tab's core query
@@ -631,6 +631,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
               pendingApplicantCounts={pendingApplicantCounts}
+              closedApplicantSummaries={closedApplicantSummaries}
               expandedJobIds={actions.expandedJobIds}
               toggleExpandedJobId={actions.toggleExpandedJobId}
               helperNames={helperNames}

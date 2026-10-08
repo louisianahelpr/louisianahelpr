@@ -18,6 +18,7 @@ import { readApplicationRows, readableApplicationRows } from "@/lib/applicationC
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { closedApplicantsSummary } from "@/pages/posts/postedJobs/applicantBadge";
 
 /* ============================================================================
    WHY THIS FILE IS FOUR QUERIES AND NOT ONE
@@ -86,6 +87,9 @@ export interface PostedActivity {
   applicantCounts: Record<string, number>;
   /** Applications still awaiting the poster's decision — drives "Needs you". */
   pendingApplicantCounts: Record<string, number>;
+  /** Per job: "1 applicant · offer expired" when its applications are all
+   *  closed (closedApplicantsSummary). Absent = nothing to name. */
+  closedApplicantSummaries: Record<string, string>;
 }
 
 /** Decoration for My Posts — resolves after the list is on screen. */
@@ -133,6 +137,7 @@ const EMPTY_POSTED: PostedActivity = {
   postedJobs: [],
   applicantCounts: {},
   pendingApplicantCounts: {},
+  closedApplicantSummaries: {},
 };
 
 const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
@@ -190,7 +195,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // `status` rides along so the two counts below can be told apart. Without
     // it every application ever filed counted as an applicant, including the
     // ones already declined.
-    supabase.from("applications").select("job_id, status, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
+    supabase.from("applications").select("job_id, status, closed_reason, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
     // Every job this user posted that carries an offer (poster-scoped server
     // side). Enrichment: a failure is reported inside and reads as "no offer".
     fetchJobOfferTargets(),
@@ -228,6 +233,17 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
       pendingApplicantCounts[a.job_id] = (pendingApplicantCounts[a.job_id] || 0) + 1;
     }
   });
+  // The collapsed card names what happened to applications nobody is waiting
+  // on (owner, 2026-10-07), with the applicant list's own badge words.
+  const closedByJob: Record<string, { status: string; closed_reason?: string | null }[]> = {};
+  (appCountRes.data ?? []).forEach((a) => {
+    if (a.status !== "pending") (closedByJob[a.job_id] ??= []).push(a);
+  });
+  const closedApplicantSummaries: Record<string, string> = {};
+  for (const [jobId, apps] of Object.entries(closedByJob)) {
+    const line = closedApplicantsSummary(apps);
+    if (line) closedApplicantSummaries[jobId] = line;
+  }
 
   // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
   const rows = readableJobRows(jobsRes.data);
@@ -249,6 +265,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     postedJobs,
     applicantCounts,
     pendingApplicantCounts,
+    closedApplicantSummaries,
   };
 }
 
@@ -1051,6 +1068,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     appliedApps: appliedAppsWithNames,
     applicantCounts: posted.applicantCounts,
     pendingApplicantCounts: posted.pendingApplicantCounts,
+    closedApplicantSummaries: posted.closedApplicantSummaries,
     helperNames: postedD.helperNames,
     helperAvatars: postedD.helperAvatars,
     completedJobMeta: postedD.completedJobMeta,

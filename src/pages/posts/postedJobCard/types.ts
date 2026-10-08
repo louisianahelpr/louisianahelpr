@@ -28,6 +28,8 @@ export interface PostedJobCardProps {
    * applicants yet" rather than inventing a queue.
    */
   pendingApplicantCounts?: Record<string, number>;
+  /** Per job: "1 applicant · offer expired" when nobody is waiting on the poster (closedApplicantsSummary). */
+  closedApplicantSummaries?: Record<string, string>;
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;

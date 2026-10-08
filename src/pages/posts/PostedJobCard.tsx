@@ -42,6 +42,7 @@ function PostedJobCardInner({
   highlight = false,
   applicantCounts,
   pendingApplicantCounts,
+  closedApplicantSummaries,
   expandedJobIds,
   toggleExpandedJobId,
   helperNames,
@@ -812,6 +813,7 @@ function PostedJobCardInner({
               <PosterStatusStrip
                 job={withDisputeSettling(job, unsettledDisputeJobIds)}
                 pendingApplicantCount={pendingApplicantCounts?.[job.id] ?? 0}
+                closedApplicants={closedApplicantSummaries?.[job.id] ?? null}
                 completedMeta={completedJobMeta[job.id]}
                 showStartClock={job.status === "accepted"}
               />

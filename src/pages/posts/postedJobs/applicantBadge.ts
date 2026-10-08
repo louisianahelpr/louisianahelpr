@@ -35,3 +35,29 @@ export function posterApplicantBadge(app: { status: string; closed_reason?: stri
   if (label === undefined) return { label: "Closed", kind: "closed" };
   return label === null ? null : { label, kind: "closed" };
 }
+
+/**
+ * What the collapsed posted card says when nobody is waiting on the poster but
+ * people DID apply (owner, 2026-10-07: "still show the number of applications
+ * ... it either needs to be offered, expired or declined"). Each closed
+ * application is named by the same badge the applicant list shows, so the two
+ * never disagree: "1 applicant · offer expired", "2 applicants · 1 declined,
+ * 1 offer expired". null when there is nothing to name (no applications, or
+ * only ones closed by a job cancel, which shows no badge).
+ */
+export function closedApplicantsSummary(apps: ReadonlyArray<{ status: string; closed_reason?: string | null }>): string | null {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const a of apps) {
+    const badge = posterApplicantBadge(a);
+    if (!badge) continue;
+    total++;
+    const key = badge.label.toLowerCase();
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  if (total === 0) return null;
+  const head = `${total} applicant${total === 1 ? "" : "s"}`;
+  const parts = [...counts.entries()];
+  if (parts.length === 1) return `${head} · ${parts[0][0]}`;
+  return `${head} · ${parts.map(([k, n]) => `${n} ${k}`).join(", ")}`;
+}

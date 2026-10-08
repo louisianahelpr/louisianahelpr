@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T03:15Z",
+  "measured_at": "2026-10-08T03:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -42,11 +42,6 @@
       {
         "number": 2501,
         "title": "nightly-red: vacuity",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2589,
-        "title": "nightly-red: staleness-watch",
         "label": "nightly-red"
       },
       {

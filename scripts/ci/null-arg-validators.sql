@@ -67,6 +67,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),
   ('is_off_job',                    'deny',     'TRUE: the person is off the job, so messaging on it closes both ways (can_message_in_job / can_send_message_to_in_job use NOT; Q419/Q420)'),
+  ('job_posted_by_seed',            'deny',     'TRUE exempts a test poster''s job from the step-order and repost rules; NULL customer -> false (judged)'),
   ('job_has_crew',                  'deny',     'TRUE locks a job''s date and start time to clients (20260927012805)'),
   ('admin_notification_crosses_seed_boundary','deny', 'TRUE: the admin client skips the notification (Q157)'),
   ('notification_crosses_seed_boundary','deny', 'TRUE suppresses the notification'),

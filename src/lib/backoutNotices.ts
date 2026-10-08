@@ -54,9 +54,8 @@ export function useBackoutNotices(userId: string | null | undefined): Map<string
   }, [data]);
 }
 
-/** Got It. True when this tap cleared it; false when it was already cleared. */
-export async function ackBackoutNotice(id: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("ack_backout_notice", { p_id: id });
+/** Got It: clears the caller's own notice (a second tap is a no-op). */
+export async function ackBackoutNotice(id: string): Promise<void> {
+  const { error } = await supabase.rpc("ack_backout_notice", { p_id: id });
   if (error) throw error;
-  return data === true;
 }

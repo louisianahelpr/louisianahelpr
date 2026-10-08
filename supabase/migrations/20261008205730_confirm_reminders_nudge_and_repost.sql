@@ -106,7 +106,7 @@ BEGIN
 
   v_link := CASE WHEN v_recipient = OLD.customer_id THEN '/posts?job=' ELSE '/jobs?job=' END || OLD.id::text;
   SELECT * INTO v_text FROM public.backout_notice_text(v_kind, v_actor_name, OLD.title);
-  PERFORM public.send_backout_email(v_recipient, v_text.title, v_text.message, v_link);
+  PERFORM public.send_backout_email(v_recipient, OLD.id, v_text.title, v_text.message, v_link);
   RETURN NULL;
 END;
 $fn$;
@@ -246,7 +246,7 @@ BEGIN
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
     PERFORM cron.schedule('confirm-reminders-and-repost', '3-59/5 * * * *',
-                          $c$SELECT public.cron_record_work('confirm-reminders-and-repost', public.sweep_confirm_reminders_and_repost());$c$);
+                          $c$SELECT public.cron_record_work('confirm-reminders-and-repost', to_jsonb(public.sweep_confirm_reminders_and_repost()));$c$);
   END IF;
 END
 $do$;

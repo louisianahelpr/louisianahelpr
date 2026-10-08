@@ -31,10 +31,18 @@ CREATE INDEX IF NOT EXISTS backout_notices_open_by_user ON public.backout_notice
 ALTER TABLE public.backout_notices ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Recipients read their own back-out notices" ON public.backout_notices;
 CREATE POLICY "Recipients read their own back-out notices" ON public.backout_notices
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
+  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
 REVOKE ALL ON public.backout_notices FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.backout_notices TO authenticated;
 GRANT ALL ON public.backout_notices TO service_role;
+-- Q807: an unconfirmed email cannot write (no client writes this table at all).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 
 -- The words, one place, for the email and the repeat pushes.
 CREATE OR REPLACE FUNCTION public.backout_notice_text(p_kind text, p_actor text, p_title text)
@@ -59,7 +67,7 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.backout_notice_text(text, text, text) FROM PUBLIC, anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.send_backout_email(p_user uuid, p_title text, p_message text, p_link text)
+CREATE OR REPLACE FUNCTION public.send_backout_email(p_user uuid, p_job uuid, p_title text, p_message text, p_link text)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -68,6 +76,11 @@ AS $fn$
 BEGIN
   -- Best effort: a failed email never fails the back-out that caused it.
   BEGIN
+    -- Q137: a test (seed) job never emails a real person; the same boundary
+    -- the notifications row is held to.
+    IF public.notification_crosses_seed_boundary(p_user, p_job, p_link) THEN
+      RETURN;
+    END IF;
     IF COALESCE((SELECT email_job_updates FROM public.notification_preferences WHERE user_id = p_user), true) THEN
       PERFORM net.http_post(
         url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1) || '/functions/v1/send-notification-email',
@@ -83,7 +96,7 @@ BEGIN
   END;
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.send_backout_email(uuid, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.send_backout_email(uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.record_backout_notice()
 RETURNS trigger
@@ -138,7 +151,7 @@ BEGIN
 
   v_link := CASE WHEN v_recipient = OLD.customer_id THEN '/posts?job=' ELSE '/jobs?job=' END || OLD.id::text;
   SELECT * INTO v_text FROM public.backout_notice_text(v_kind, v_actor_name, OLD.title);
-  PERFORM public.send_backout_email(v_recipient, v_text.title, v_text.message, v_link);
+  PERFORM public.send_backout_email(v_recipient, OLD.id, v_text.title, v_text.message, v_link);
   RETURN NULL;
 END;
 $fn$;
@@ -151,7 +164,7 @@ CREATE TRIGGER trg_jobs_record_backout_notice
 
 -- GOT IT.
 CREATE OR REPLACE FUNCTION public.ack_backout_notice(p_id uuid)
-RETURNS boolean
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
@@ -160,7 +173,6 @@ BEGIN
   UPDATE public.backout_notices
      SET acknowledged_at = now()
    WHERE id = p_id AND user_id = auth.uid() AND acknowledged_at IS NULL;
-  RETURN FOUND;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.ack_backout_notice(uuid) FROM PUBLIC, anon;

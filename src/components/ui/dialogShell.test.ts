@@ -1064,6 +1064,9 @@ describe("Popup grammar — footer", () => {
       // real path, not a dismissal; and removing a sign-in method's secondary
       // names the state kept, like "Keep the Job".
       "I already have an account",
+      // Q1550: the Application Sent pop-up's other answer goes on browsing;
+      // nothing is being cancelled (the application is already sent).
+      "Keep Browsing",
       "Keep it",
       // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
       // grammar as "Keep the Job": the secondary names the state that is

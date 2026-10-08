@@ -16,16 +16,16 @@
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 const SINCE = "20261008000000";
 const dir = "supabase/migrations";
-const strip = (s: string) => s.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
 const norm = (n: string) => n.replace(/"/g, "").replace(/^public\./i, "").toLowerCase();
 
 function clientCallableNewDefiners(): string[] {
   const fns = new Map<string, { definer: boolean; trigger: boolean; auth: boolean }>();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql") && x >= SINCE).sort()) {
-    const s = strip(readFileSync(`${dir}/${f}`, "utf8"));
+    const s = blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"));
     const re =
       /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([\w."]+)\s*\(([\s\S]*?)\)\s*RETURNS\s+([\s\S]*?)AS\s+(\$\w*\$)[\s\S]*?\4|REVOKE\s+[\s\S]*?ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+FROM\s+([^;]+);|GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+([\w."]+)\s*\([^)]*\)\s+TO\s+([^;]+);|DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?([\w."]+)/gi;
     let m: RegExpExecArray | null;

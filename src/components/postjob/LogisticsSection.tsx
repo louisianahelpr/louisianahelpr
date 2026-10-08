@@ -431,7 +431,9 @@ export function LogisticsSection({
           Start Time
           {!isFlexibleSchedule && <span className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
         </Label>
-        <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" />
+        {/* Fills its column like Date Needed beside it (owner, 2026-10-07:
+            "make time fill that empty space on the right"). */}
+        <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" className="max-w-none w-full" />
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">

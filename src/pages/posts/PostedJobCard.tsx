@@ -403,18 +403,8 @@ function PostedJobCardInner({
                 The toggle itself has moved up into the meta row's `trailing`
                 slot (see above) so it no longer costs a row; only the revealed
                 copy lives here, and it renders nothing at all when collapsed. */}
-            {isExpanded && (hasDescription || hasRequirements) && (
-              <div className="space-y-1.5">
-                {/* `break-words` on both: a description is free text, and one
-                    unbroken token (a URL, a gate-code string, a pasted address
-                    with no spaces) ran straight out of the card and was cut at
-                    its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
-                {hasDescription && (
-                  <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
-                )}
-                {notes}
-              </div>
-            )}
+            {/* The description, Materials and Access & Parking moved below the
+                tracker, beside Photos (owner, 2026-10-07). */}
 
               {/* THE HELPR, AS A PROFILE (owner, 2026-09-14, VN-22: "the
                   profile for who's working the job should be shown when the job
@@ -696,12 +686,29 @@ function PostedJobCardInner({
                   <PaymentProblemNotice job={job} />
                 </div>
               )}
-              {(job.photos || []).length > 0 && (
-                <div className="px-4 py-3 space-y-3 border-t border-border/30">
-                  <div>
-                    <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
-                    <JobCardPhotoStrip urls={job.photos || []} size="md" />
-                  </div>
+              {/* The job's own details, below the tracker and beside its photos
+                  (owner, 2026-10-07: "material provided, access and parking, job
+                  description should be below the tracker near the photo"). */}
+              {(hasDescription || hasRequirements || (job.photos || []).length > 0) && (
+                <div className="px-4 py-3 space-y-3 border-t border-border/30" data-testid="posted-card-details">
+                  {(hasDescription || hasRequirements) && (
+                    <div className="space-y-1.5">
+                      {/* `break-words` on both: a description is free text, and one
+                          unbroken token (a URL, a gate-code string, a pasted address
+                          with no spaces) ran straight out of the card and was cut at
+                          its edge — measured at 375, 2026-09-07. Wrap it, never clip. */}
+                      {hasDescription && (
+                        <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{job.description}</p>
+                      )}
+                      {notes}
+                    </div>
+                  )}
+                  {(job.photos || []).length > 0 && (
+                    <div>
+                      <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+                      <JobCardPhotoStrip urls={job.photos || []} size="md" />
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -120,9 +120,12 @@ describe("Posts card shows the Helpr as a profile tile, expanded only (VN-22)", 
     // NOT inside the tracker any more (owner, 2026-09-19). The tracker is a
     // real element in this render, so this assertion can actually fail.
     expect(screen.getByTestId("tracker").contains(link!)).toBe(false);
-    // Still after the description.
+    // The description sits BELOW the tracker, beside Photos (owner,
+    // 2026-10-07: "material provided, access and parking, job description
+    // should be below the tracker near the photo").
     const description = screen.getByText(/Front driveway/);
-    expect(description.compareDocumentPosition(link!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("tracker").compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("posted-card-details").contains(description)).toBe(true);
   });
 
   it("tapping the tile does not also toggle the card", () => {

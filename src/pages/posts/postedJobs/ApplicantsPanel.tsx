@@ -4,7 +4,8 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Ban, Eye, Flag, MapPin, Pencil, Plus, ShieldAlert, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star, X } from "lucide-react";
+import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import AppPage from "@/components/AppPage";
@@ -375,6 +376,34 @@ export function ApplicantsPanel({
                             : "inset 0 1px 1px 0 rgba(255,255,255,0.55)",
                         }}
                       >
+                        {/* Row 0: Private note · Report · Block as the top-right icon
+                            cluster, like the job detail sheet's corner (owner,
+                            2026-10-07: "should be 3 icons in the top right like
+                            other screens"). Report and Block stay on every card (Q366). */}
+                        <div className="flex justify-end gap-0.5 -mt-1 -mr-1 mb-0.5">
+                          <IconActionButton
+                            bare
+                            compact
+                            ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
+                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }}
+                            icon={<NotebookPen className="w-4 h-4" />}
+                          />
+                          <IconActionButton
+                            bare
+                            compact
+                            ariaLabel={`Report ${helperName}'s application`}
+                            onClick={() => { hapticLight(); setReportApp(app); }}
+                            icon={<Flag className="w-4 h-4" />}
+                          />
+                          <IconActionButton
+                            bare
+                            compact
+                            ariaLabel={`Block ${helperName}`}
+                            onClick={() => { hapticLight(); setBlockApp(app); }}
+                            icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
+                          />
+                        </div>
+
                         {/* Row 1: avatar + name + rating + hire button */}
                         <div className="flex items-center gap-3">
                           {/* Migrated onto the shared `<UserAvatar>`
@@ -672,8 +701,10 @@ export function ApplicantsPanel({
                           </div>
                         )}
 
-                        {/* Row 4: private poster note — localStorage only, never sent to server —
-                            and, on the right, Report / Block (Q366). */}
+                        {/* Row 4: private poster note — localStorage only, never sent to server.
+                            Shown once one exists or is being written; the corner
+                            icon starts it. */}
+                        {(noteEditing === app.id || applicantNotes[app.id]) && (
                         <div className="pt-1.5 flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                           {noteEditing === app.id ? (
@@ -709,40 +740,10 @@ export function ApplicantsPanel({
                               <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
                               {applicantNotes[app.id]}
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => { setNoteEditing(app.id); setNoteDraft(""); }}
-                              className="text-ds-11 flex items-center gap-1"
-                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                            >
-                              <Plus className="w-3 h-3" /> Add Private Note
-                            </button>
-                          )}
+                          ) : null}
                           </div>
-                          {noteEditing !== app.id && (
-                            <div className="flex items-center gap-3 shrink-0">
-                              <button
-                                type="button"
-                                aria-label={`Report ${helperName}'s application`}
-                                onClick={() => { hapticLight(); setReportApp(app); }}
-                                className="text-ds-11 flex items-center gap-1"
-                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                              >
-                                <Flag className="w-3 h-3" /> Report
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`Block ${helperName}`}
-                                onClick={() => { hapticLight(); setBlockApp(app); }}
-                                className="text-ds-11 flex items-center gap-1"
-                                style={{ color: "hsl(var(--danger-ink))" }}
-                              >
-                                <Ban className="w-3 h-3" /> Block
-                              </button>
-                            </div>
-                          )}
                         </div>
+                        )}
                       </div>
                     </div>
                   );

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 
 /**
  * Work Record's loading state: the SHEET it is about to show (owner,
@@ -28,7 +29,7 @@ function Ghost({ className, children }: { className?: string; children: ReactNod
   );
 }
 
-const IDENTITY_LABELS = ["Issued to", "ID verified by Stripe", "Member since"];
+const IDENTITY_LABELS = ["Issued to", `${ID_VERIFIED_LABEL} by Stripe`, "Member since"];
 const STAT_LABELS = ["Jobs Completed", "Total Earnings", "Active Period", "Avg Rating"];
 
 export function WorkRecordReserve() {

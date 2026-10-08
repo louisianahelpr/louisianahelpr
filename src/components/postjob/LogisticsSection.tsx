@@ -402,7 +402,7 @@ export function LogisticsSection({
           are one height: Start Time's card stretches to the calendar's with
           the wheel centred in it. */}
       <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
-      <div className="space-y-3 min-w-0">
+      <div className="flex flex-col gap-3 min-w-0">
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
@@ -439,7 +439,9 @@ export function LogisticsSection({
         {/* Fills its column like Date Needed beside it (owner, 2026-10-07:
             "make time fill that empty space on the right"). */}
         <div className="flex-1 flex flex-col justify-center rounded-2xl border border-input glass-field p-3">
-          <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" className="max-w-none w-full" />
+          {/* Wheels at every width: the desktop's native time field sat as one
+              thin bar in a card the calendar's height (2026-10-08). */}
+          <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" variant="wheels" className="max-w-none w-full" />
         </div>
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}

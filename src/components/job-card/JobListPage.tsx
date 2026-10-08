@@ -47,7 +47,7 @@ import { toast } from "sonner";
 import { hapticSuccess } from "@/lib/haptics";
 import { upgradeUnverifiedArrival } from "@/lib/arrivalRefresh";
 import SectionBoundary from "@/components/SectionBoundary";
-import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
+import { defaultStatusFilterFor, firstBucketWithItems } from "@/components/job-card/activityConstants";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -414,26 +414,21 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
-  /* NO AUTO-TAB-SWITCH. The tab you are on is the tab you chose.
-
-     There used to be an effect here that, on the first load of a tab whose
-     default bucket came up empty, silently moved the selection to the first
-     bucket that had items. It contradicted this app's stated rule outright:
-     `defaultStatusFilterFor` in activityConstants.ts says there is
-     "deliberately NO automatic fallback to another tab (owner decision) — a
-     default that silently moves is harder to reason about than one that holds
-     still", and names ActivityEmptyState's pointer as the intended answer.
-     Two comments, one codebase, opposite instructions.
-
-     The rule wins, because the reason the effect existed is now handled
-     properly. That pointer had always NAMED where the items were ("Nothing
-     under needs you — but you have 3 in Scheduled") while the only button on
-     the panel pointed at Post a Job — so the fallback was papering over an
-     empty state that told you where to go and then wouldn't take you. It
-     offers the jump as a button now (see ActivityEmptyState), so landing on an
-     empty "Needs you" costs one deliberate tap instead of a silent move.
-
-     "Nothing needs you" is also good news, and worth seeing. */
+  /* OPEN ON THE FIRST BUCKET THAT HAS ANYTHING (owner, 2026-10-08: "if
+     needs you is empty open the waiting, if there is nothing in waiting then
+     it goes to scheduled and so on"; same for My Posts and My Jobs). Once per
+     tab, when its data first lands, and only on a plain open: a link that
+     names a filter or a job keeps what it named, and a bucket the reader
+     picks afterwards is never moved. Supersedes the earlier no-auto-switch
+     rule; ActivityEmptyState's pointer still covers a bucket emptied later. */
+  const openedOnFirstBucketFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading || openedOnFirstBucketFor.current === tab) return;
+    openedOnFirstBucketFor.current = tab;
+    if (deepLinkHadFilter || deepLinkJobId || statusFilter !== defaultFilter) return;
+    const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
+    if (next !== statusFilter) setStatusFilter(next);
+  }, [loading, tab, activeCounts, activeStatusFilters, deepLinkHadFilter, deepLinkJobId, statusFilter, defaultFilter]);
 
   /* "Truly empty" — the underlying list has zero items, not merely filtered
      down to none — USED TO STRIP THE HEADER'S CONTROLS. It no longer strips

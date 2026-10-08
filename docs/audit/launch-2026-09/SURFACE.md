@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 154 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
 | Toast messages | **call site** | 601 (across 150 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 20 |
+| Multi-step flows — confirmed | flow | 21 |
 | Multi-step flows — probable | flow | 16 |
 | Back/next navigation only | flow | 39 |
 | Forms (submittable) | form | 41 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 116 |
 | Email templates | **exported template** | 19 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **466** |
+| **Navigable surfaces** (places a person can stand) | mixed | **467** |
 | **Copy surfaces** (strings a person may read) | mixed | **638** |
-| **Total auditable surface** | mixed | **1104** |
+| **Total auditable surface** | mixed | **1105** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 154 | 130 | agree within method (script counts every menu instance) |
 | Forms | 41 | ~38 | agree |
-| Confirmed multi-step flows | 20 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 21 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -322,6 +322,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/AdminRoute.tsx` | compare |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
+| `src/components/job-card/jobStatusLine.ts` | compare |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/ReportDialog.tsx` | compare, nav-handler |
 | `src/lib/awardGate.ts` | step-array |

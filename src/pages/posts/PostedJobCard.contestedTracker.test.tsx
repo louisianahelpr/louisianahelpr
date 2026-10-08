@@ -63,7 +63,6 @@ vi.mock("@/components/JobTracking", async (importOriginal) => ({
 // The change-request control and the series dates panel read through React
 // Query; this card test renders without a QueryClient and is not about them.
 vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null }));
-vi.mock("@/components/schedule/DetailChangeControl", () => ({ DetailChangeControl: () => null }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));

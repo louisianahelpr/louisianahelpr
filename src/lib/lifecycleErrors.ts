@@ -296,7 +296,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted, so you can't answer requests right now.",
     not_authenticated: "Please sign in again to answer this request.",
   },
-  // DetailChangeControl — the poster asks to change a booked job's place or details (Q1254).
+  // The details-change request (Q1254; its card control was removed 2026-10-08, the RPC stays).
   request_job_detail_change: {
     not_authorized: "Only the person who posted this job can ask to change its details.",
     detail_change_not_one_time: "A recurring series keeps its details; change them from the series instead.",

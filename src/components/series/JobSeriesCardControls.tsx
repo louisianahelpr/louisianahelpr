@@ -2,7 +2,6 @@ import { RefreshCw } from "lucide-react";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
-import { DetailChangeControl } from "@/components/schedule/DetailChangeControl";
 import { formatRecurrenceInterval, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -25,6 +24,7 @@ export type SeriesCardJob = {
   recurring_helper_id?: string | null;
   helper_id?: string | null;
   helper_completed_at?: string | null;
+  helper_confirmed_at?: string | null;
   is_group_job?: boolean | null;
   recurrence_interval?: string | null;
   recurrence_end_date?: string | null;
@@ -86,6 +86,9 @@ export function scheduleChangeAllowed(
   viewer: "poster" | "helper",
 ): job is SeriesCardJob & { date_needed: string } {
   if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return false;
+  // Only once the Helpr has ACCEPTED (owner, 2026-10-08: "that should only show
+  // once they accept"): an unanswered offer is not a booked job.
+  if (!job.helper_confirmed_at) return false;
   if (viewer === "helper" && job.helper_id !== userId) return false;
   if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return false;
   return true;
@@ -111,15 +114,10 @@ export function ScheduleChangeForJob({
   hideAsk?: boolean;
 }) {
   if (!expanded || !userId) return null;
-  const notSeries = !job.parent_job_id && !job.recurrence_days?.length && !!job.date_needed;
-  const schedule = scheduleChangeAllowed(job, userId, viewer);
-  const details =
-    (job.status === "accepted" || job.status === "open") && !job.helper_completed_at && notSeries &&
-    (job.is_group_job ? true : !!job.helper_id && (viewer === "poster" || job.helper_id === userId));
-  if (!schedule && !details) return null;
+  // The details-change request ("Ask to change the details") is gone (owner,
+  // 2026-10-08: "delete ask to change the details"); only the date/time ask remains.
+  if (!scheduleChangeAllowed(job, userId, viewer)) return null;
   return (
-    <>
-      {schedule && (
         <ScheduleChangeControl
           jobId={job.id}
           jobTitle={job.title}
@@ -128,23 +126,6 @@ export function ScheduleChangeForJob({
           startTime={job.start_time ?? null}
           hideAsk={hideAsk}
         />
-      )}
-      {details && (
-        <DetailChangeControl
-          jobId={job.id}
-          jobTitle={job.title}
-          userId={userId}
-          viewer={viewer}
-          isCrew={!!job.is_group_job}
-          current={{
-            title: job.title ?? "",
-            description: job.description ?? "",
-            location: job.location ?? "",
-            materials_note: job.materials_note ?? "",
-          }}
-        />
-      )}
-    </>
   );
 }
 

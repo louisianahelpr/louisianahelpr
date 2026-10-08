@@ -559,9 +559,9 @@ export function BrowseTasksFeed({
                   Post Your First Job
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="ghost" size="wrap"
                   onClick={notifyWhenWorkLands}
-                  className="rounded-ds-md font-sans font-medium"
+                  className="rounded-ds-md font-sans font-medium max-w-full"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />

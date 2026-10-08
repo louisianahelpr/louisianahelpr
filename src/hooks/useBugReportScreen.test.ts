@@ -1,3 +1,4 @@
+// @mutate src/hooks/useBugReportScreen.ts |     return () => clearTimeout(t); |     return () => {};
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 

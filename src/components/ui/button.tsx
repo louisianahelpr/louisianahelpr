@@ -140,6 +140,9 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-14 px-6 py-2 text-ds-16",
+        // `default` that grows instead of clipping: a long label at 320 in
+        // Senior mode wraps to a second line (senior-mode-no-silent-cut).
+        wrap: "h-auto min-h-14 px-6 py-2 text-ds-16 whitespace-normal text-center",
         sm: "h-11 px-4 text-ds-14",
         lg: "h-[60px] px-8 text-ds-17",
         xl: "h-16 px-10 text-ds-18",

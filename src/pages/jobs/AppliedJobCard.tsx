@@ -854,7 +854,7 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} />
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} hideAsk />
           {!isMinimalCard && !isExpanded && (
             <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} />
           )}

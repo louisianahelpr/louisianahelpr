@@ -136,7 +136,7 @@ const S = {} as Shared;
  * correctly offers no Still On at any slot this chain can use — see the
  * day-of step for what is asserted instead.
  */
-const SLOT = slotAhead(100);
+const SLOT = slotAhead(125); // a new job needs 2 h notice (20261008190546); On My Way unlocks 5 min after posting
 
 /**
  * Is this run's job happening TODAY in the job's own zone?

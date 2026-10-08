@@ -21,6 +21,7 @@ import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
+import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
 
 /** The smallest of the N frozen crew shares of `budget`, in dollars. */
 function crewSmallestShare(budget: number, n: number): number {
@@ -446,9 +447,7 @@ export function LogisticsSection({
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">
-          {scheduleInPast
-            ? "That start time has already passed. Pick a later time, or move the job to a future date."
-            : undefined}
+          {scheduleInPast ? SCHEDULE_TOO_SOON_COPY : undefined}
         </FieldError>
       </div>
       </div>

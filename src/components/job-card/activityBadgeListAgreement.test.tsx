@@ -45,7 +45,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 }));
 // The change-request control and the series dates panel read through React
 // Query; this list-vs-badge test renders cards without a QueryClient.
-vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null }));
+vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null, ScheduleChangeAskDialog: () => null, usePendingScheduleChange: () => ({ data: null }) }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

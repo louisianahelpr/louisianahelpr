@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isScheduleInThePast, computeJobExpiresAt } from "./jobExpiry";
+import { isScheduleInThePast, isScheduleTooSoon, computeJobExpiresAt } from "./jobExpiry";
 
 /**
  * THE FAILURE THESE PREVENT
@@ -107,3 +107,31 @@ describe("computeJobExpiresAt", () => {
 // the schedule asks — the exact browser-zone defect, and the reason both sides
 // of these tests inject a zone rather than letting the runtime's cancel out.
 // @mutate src/lib/jobExpiry.ts | jobStartDateTime(dateNeeded, startTime, timeZone) | jobStartDateTime(dateNeeded, startTime, "America/Chicago")
+
+/**
+ * Owner, 2026-10-08 (pop-up: "At least 2 hours"): a 1:37 PM post for a 2:00 PM
+ * start showed "34 minutes left" at 2:03. A new job needs 2 hours' notice and
+ * its listing closes at the start.
+ *
+ * @mutate src/lib/jobExpiry.ts | export const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000; | export const MIN_POST_NOTICE_MS = 0;
+ * @mutate src/lib/jobExpiry.ts |   return scheduled.getTime() > now.getTime()\n    ? scheduled.toISOString() |   return scheduled.getTime() > now.getTime() + MIN_LISTING_WINDOW_MS\n    ? scheduled.toISOString()
+ */
+describe("a new job needs 2 hours' notice, and its listing closes at its start", () => {
+  // 2026-10-08 18:37Z = 1:37 PM CDT, the owner's post.
+  const POSTED = new Date("2026-10-08T18:37:00Z");
+  it("the owner's case: a 2:00 PM start posted at 1:37 PM is too soon", () => {
+    expect(isScheduleTooSoon("2026-10-08", "14:00", POSTED, "America/Chicago")).toBe(true);
+  });
+  it("3:36 PM is too soon, 3:37 PM is fine", () => {
+    expect(isScheduleTooSoon("2026-10-08", "15:36", POSTED, "America/Chicago")).toBe(true);
+    expect(isScheduleTooSoon("2026-10-08", "15:37", POSTED, "America/Chicago")).toBe(false);
+  });
+  it("'any time that day' counts as 11:59 PM", () => {
+    expect(isScheduleTooSoon("2026-10-08", "", POSTED, "America/Chicago")).toBe(false);
+    expect(isScheduleTooSoon("2026-10-08", "", new Date("2026-10-09T04:30:00Z"), "America/Chicago")).toBe(true);
+  });
+  it("the listing expires AT a start that is ahead, never an hour later", () => {
+    const soon = computeJobExpiresAt("2026-10-08", "14:00", POSTED, "America/Chicago");
+    expect(soon).toBe(new Date("2026-10-08T19:00:00Z").toISOString());
+  });
+});

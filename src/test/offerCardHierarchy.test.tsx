@@ -82,7 +82,7 @@ vi.mock("@/components/JobConfirmation", () => ({
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
 vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
-vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => <div data-testid="schedule-change" /> }));
+vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => <div data-testid="schedule-change" />, ScheduleChangeAskDialog: () => null, usePendingScheduleChange: () => ({ data: null }) }));
 vi.mock("@/components/job-card/JobCountdown", () => ({
   JobCountdown: ({ label }: { label: string }) => <div data-testid="start-clock">{label}</div>,
 }));

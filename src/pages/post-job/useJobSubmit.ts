@@ -15,7 +15,8 @@ import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import { isScheduleInThePast } from "@/lib/jobExpiry";
+import { isScheduleTooSoon } from "@/lib/jobExpiry";
+import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
 import type { Step } from "./postJobFormTypes";
 import { materialsNoteForPost, scrollToField } from "./postJobFormHelpers";
 import { saveJobAccessNote } from "@/lib/jobAccessNotes";
@@ -270,8 +271,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // Refuse it here rather than silently shifting their time, so they fix it
     // BEFORE checkout. (jobExpiry's floor and trg_job_expiry_floor still catch
     // any path that gets past this.)
-    if (isScheduleInThePast(dateNeeded, startTime)) {
-      toast.error("That start time has already passed. Pick a later time or a future date.");
+    if (isScheduleTooSoon(dateNeeded, startTime)) {
+      toast.error(SCHEDULE_TOO_SOON_COPY);
       // The START TIME, not the date. When the poster picked today, the date
       // is correct and the time is the thing that is wrong — scrolling to the
       // date field pointed at the one field they had no reason to change.

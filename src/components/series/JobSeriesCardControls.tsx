@@ -1,3 +1,4 @@
+import { hasJobStarted } from "@/lib/dateUtils";
 import { RefreshCw } from "lucide-react";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
@@ -89,6 +90,8 @@ export function scheduleChangeAllowed(
   // Only once the Helpr has ACCEPTED (owner, 2026-10-08: "that should only show
   // once they accept"): an unanswered offer is not a booked job.
   if (!job.helper_confirmed_at) return false;
+  // Not once the start has come: the RPC refuses it (schedule_change_too_late).
+  if (hasJobStarted(job.date_needed, job.start_time ?? null)) return false;
   if (viewer === "helper" && job.helper_id !== userId) return false;
   if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return false;
   return true;

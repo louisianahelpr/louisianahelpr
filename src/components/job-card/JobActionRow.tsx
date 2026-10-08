@@ -493,7 +493,9 @@ export function JobStepOverflowChip({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       {/* Renders nothing; it only tells Radix what to measure against. */}
-      {anchorRef ? <PopoverAnchor virtualRef={anchorRef} /> : null}
+      {/* Anchored to the More button itself now (2026-10-08): the panel is a
+          short list as wide as its contents, dropping under the button that
+          opened it, not a row-wide box around one chip. */}
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -517,18 +519,15 @@ export function JobStepOverflowChip({
         // panel holds the job's overflow ACTIONS, so the announcement is what
         // tells a screen-reader user which job they are acting on.
         aria-label="More actions for this job"
-        align="center"
-        // The class is the FALLBACK, for the frame before the row is measured
-        // and for any DOM that never lays out; the inline width is the row's
-        // own and wins when it exists.
-        className="w-[min(17rem,calc(100vw-1.5rem))] p-2"
-        style={width ? { width } : undefined}
+        align="start"
+        // FITS ITS CONTENTS (owner, 2026-10-08: "white box needs to fit the
+        // SOS box"): as wide as its widest action, capped to the screen.
+        className="w-max min-w-[9rem] max-w-[min(17rem,calc(100vw-1.5rem))] p-1.5"
         data-job-step-overflow-panel=""
         onClick={() => setOpen(false)}
       >
-        {/* Two up, so each chip keeps a readable label — the same label it
-            keeps in the row it came out of. */}
-        <div className="grid grid-cols-2 gap-1.5">{children}</div>
+        {/* One column, in importance order (MORE_ORDER), SOS last. */}
+        <div className="grid grid-cols-1 gap-1.5">{children}</div>
       </PopoverContent>
     </Popover>
   );

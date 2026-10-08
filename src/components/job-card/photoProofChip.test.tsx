@@ -91,6 +91,7 @@ import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { openMore } from "@/test/helpers/openMore";
 
 pinJobClock();
 
@@ -273,9 +274,10 @@ const photosButton = () =>
 
 describe("item 10 — the before & after pictures are a button on the action row", () => {
   for (const site of SITES) {
-    it(`${site.name}: offers a Photos button and no panel above the row`, () => {
+    it(`${site.name}: offers a Photos button and no panel above the row`, async () => {
       const { container } = site.render();
-
+      // Under More on a step card since 2026-10-08 (owner): open it first.
+      if (site.inStepRow) await openMore(container);
       const btn = photosButton();
       expect(btn).toBeInTheDocument();
 
@@ -289,19 +291,24 @@ describe("item 10 — the before & after pictures are a button on the action row
         const row = container.querySelector("[data-job-step-row]");
         expect(row, "the step card has no action row").not.toBeNull();
         expect(
-          row!.contains(btn),
-          "the Photos button is on the card but NOT in its single action row — which is the whole ask",
+          !!btn.closest("[data-job-step-overflow-panel]"),
+          "the Photos button is on the card but NOT under its row's More — which is the whole ask",
         ).toBe(true);
       }
     });
 
     it(`${site.name}: the button opens the gallery`, async () => {
-      site.render();
-      expect(screen.queryByRole("dialog"), "the gallery is open before anyone tapped").toBeNull();
+      const { container } = site.render();
+      expect(screen.queryByText("Photo Proof"), "the gallery is open before anyone tapped").toBeNull();
+      if (site.inStepRow) await openMore(container);
 
       fireEvent.click(photosButton());
 
-      const dialog = screen.getByRole("dialog");
+      const dialog = await waitFor(() => {
+        const d = screen.getAllByRole("dialog").find((el) => within(el).queryByText("Photo Proof"));
+        expect(d, "the gallery did not open").toBeTruthy();
+        return d!;
+      });
       expect(within(dialog).getByText("Photo Proof")).toBeInTheDocument();
       // Every photo the job carries, before and after. The gallery signs each
       // one first (useProofPhotoUrls, since 65676a7ad), so the src arrives a
@@ -314,14 +321,15 @@ describe("item 10 — the before & after pictures are a button on the action row
     });
   }
 
-  it("no site offers it when the job has no photos — an empty gallery is a dead-end tap", () => {
+  it("no site offers it when the job has no photos — an empty gallery is a dead-end tap", async () => {
     const bare = { proof_before_urls: [], proof_after_urls: [] };
     for (const ui of [
       <InProgressStep key="a" {...posterCtx(makeJob({ ...bare, helper_completed_at: ago(1) }))} />,
       <CompletedStep key="b" {...posterCtx(makeJob({ ...COMPLETED, ...bare }))} />,
       <DisputedStep key="c" {...posterCtx(makeJob({ ...bare, status: "disputed", dispute_status: "open", disputed_by: POSTER, dispute_reason: "x" }))} />,
     ]) {
-      const { unmount } = wrap(ui);
+      const { unmount, container } = wrap(ui);
+      await openMore(container);
       expect(screen.queryByRole("button", { name: /^Photos\b/ })).toBeNull();
       unmount();
     }

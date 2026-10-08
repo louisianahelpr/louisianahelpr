@@ -561,7 +561,7 @@ test.describe("post a job", () => {
     await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
     await page.keyboard.press("Escape");
     await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-    const slot = slotAhead(100);
+    const slot = slotAhead(125); // 2 h notice for a new job (owner, 2026-10-08)
     await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
     await pickStartTime(page, slot);
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");

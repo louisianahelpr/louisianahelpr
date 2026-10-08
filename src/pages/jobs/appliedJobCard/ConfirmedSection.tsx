@@ -3,7 +3,9 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
-import { MessageSquare, CalendarX2 } from "lucide-react";
+import { MessageSquare, CalendarX2, CalendarClock } from "lucide-react";
+import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
+import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -28,6 +30,13 @@ interface ConfirmedSectionProps {
 /** Confirmed: show tracking + message */
 export function ConfirmedSection({ app, job, userId, initialTracking, navigate }: ConfirmedSectionProps) {
   const [cancelOpen, setCancelOpen] = useState(false);
+  // "Ask for a new date or time" sits under More on the Helpr's card (owner,
+  // 2026-10-08), the same form the poster's row opens; only once accepted.
+  const [askOpen, setAskOpen] = useState(false);
+  const canAsk = scheduleChangeAllowed(job, userId, "helper");
+  const { data: pendingChange } = usePendingScheduleChange(job.id, canAsk);
+  const askedOfMe = !!pendingChange && pendingChange.responder_id === userId;
+  const askedByMe = !!pendingChange && pendingChange.requested_by === userId;
   const [cancelling, setCancelling] = useState(false);
 
   // helper_cancel_booking refuses once the scheduled start has passed
@@ -154,6 +163,15 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           DirectionsButton self-hides on a job with no address; the shell
           counts what actually rendered. */
       actions={[
+        canAsk && !askedOfMe && (
+          <JobActionChip
+            key="reschedule"
+            icon={CalendarClock}
+            label={askedByMe ? "Ask for a different date or time" : "Ask for a new date or time"}
+            tone="neutral"
+            onClick={() => setAskOpen(true)}
+          />
+        ),
         <DirectionsButton key="directions" location={job.location} />,
         <JobActionChip
           key="message"
@@ -177,6 +195,18 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
             ]),
       ]}
       dialogs={
+      <>
+      {canAsk && (
+        <ScheduleChangeAskDialog
+          open={askOpen}
+          onOpenChange={setAskOpen}
+          jobId={job.id}
+          jobTitle={job.title}
+          userId={userId}
+          dateNeeded={job.date_needed}
+          startTime={job.start_time ?? null}
+        />
+      )}
       <BrandConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
@@ -202,6 +232,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         onPrimary={() => void handleCancelBooking()}
         secondaryLabel="Cancel"
       />
+      </>
       }
     />
   );

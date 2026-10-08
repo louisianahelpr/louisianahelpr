@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
@@ -360,7 +360,7 @@ const CASES: Array<{
         />,
       ),
     minControls: 4,
-    primary: ["I'm Still On"],
+    primary: ["Confirm You'll Be at the Job"],
   },
   {
     name: "Jobs · On the Way (I've Arrived + Directions · Message · Report a Problem)",
@@ -638,13 +638,29 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
 
       const controls = actionControls(card!);
       const labels = controls.map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+      // Every chip lives under More now (owner, 2026-10-08): the row is More +
+      // the primary, so the card's moves are the row's visible controls plus
+      // the actions folded into More (its trigger states how many).
+      const moreTrigger = card!.querySelector<HTMLElement>("[data-job-step-overflow]");
+      // What More holds, read by opening it.
+      let moreLabels: string[] = [];
+      if (moreTrigger) {
+        await act(async () => { fireEvent.click(moreTrigger); });
+        const panel = document.querySelector("[data-job-step-overflow-panel]");
+        moreLabels = [...(panel?.querySelectorAll<HTMLElement>("button, a[href]") ?? [])].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+        await act(async () => { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }); });
+      }
+      // Counted the way the cases were written (Report a Problem / Dispute / SOS
+      // already shared one More slot): the case counts stay the same truth.
+      const alwaysMore = moreLabels.filter((l) => /^(Report a Problem|Dispute|SOS|Share location|Safety)/i.test(l)).length;
+      const offered = controls.length - (moreTrigger ? 1 : 0) + (moreLabels.length - alwaysMore) + (alwaysMore > 0 ? 1 : 0);
       expect(
-        controls.length,
+        offered,
         `expected at least ${c.minControls} controls, got [${labels.join(" | ")}] — the fixture no longer reaches this state`,
       ).toBeGreaterThanOrEqual(c.minControls);
       if (c.maxControls !== undefined) {
         expect(
-          controls.length,
+          offered,
           `expected at most ${c.maxControls} controls, got [${labels.join(" | ")}] — a control this state must not offer is back`,
         ).toBeLessThanOrEqual(c.maxControls);
       }
@@ -659,6 +675,17 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
         "these controls render on their own row, outside the step's single action row",
       ).toEqual([]);
 
+      // ONE ROW = More (left) + the primary (right), nothing else (owner,
+      // 2026-10-08: "move everything besides the primary button into the more
+      // tab ... more button will be to the left of the primary button").
+      const kids = [...row.children].filter((k) => !(k as HTMLElement).hasAttribute("data-job-step-primary"));
+      expect(
+        kids.map((k) => (k.getAttribute("aria-label") || k.textContent || "").trim()),
+        "only the More control may sit beside the primary",
+      ).toEqual(moreTrigger ? [(moreTrigger.getAttribute("aria-label") || "").trim()] : []);
+      if (moreTrigger) {
+        expect(moreTrigger.nextElementSibling?.hasAttribute("data-job-step-primary"), "More sits directly left of the primary").toBe(true);
+      }
       // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:
       // "primary buttons should be RIGHT"), and it is the control this state
       // is about. It is the LAST child; the chips lead.
@@ -760,14 +787,14 @@ describe("V2/V3 — the green primary trails, the destructive one never does", (
     const { container } = wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />);
     await act(async () => { await Promise.resolve(); });
 
-    const row = container.querySelector("[data-job-step-row]")!;
-    const chips = [...row.children].filter((c) => !c.hasAttribute("data-job-step-primary"));
-    const labels = chips.map((c) => (c.getAttribute("aria-label") || c.textContent || "").trim());
-    expect(labels[0], `Cancel should lead the row — got [${labels.join(" | ")}]`).toMatch(/^Cancel/);
-    expect(
-      labels[labels.length - 1],
-      `a destructive control is the right-most in the row — [${labels.join(" | ")}]`,
-    ).not.toMatch(/^Cancel/);
+    // Since 2026-10-08 Cancel lives under More (with every other chip), in the
+    // ways-out group near the bottom, never first.
+    const trigger = container.querySelector<HTMLElement>("[data-job-step-overflow]")!;
+    await act(async () => { fireEvent.click(trigger); });
+    const labels = [...document.querySelectorAll<HTMLElement>("[data-job-step-overflow-panel] button")].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+    const cancel = labels.findIndex((l) => /^Cancel/.test(l));
+    expect(cancel, `Cancel is not under More — [${labels.join(" | ")}]`).toBeGreaterThan(0);
+    expect(labels.slice(cancel + 1).every((l) => /^(SOS|Share location)/i.test(l)), `only SOS may follow Cancel — [${labels.join(" | ")}]`).toBe(true);
   });
 });
 
@@ -838,7 +865,7 @@ describe("VN-21 — the TIGHT rung instead of a second row (and never icon-only)
     expect(shouldTightenJobStepRow({ width: 200, chips: 0, hasPrimary: true })).toBe(false);
   });
 
-  it("the shell measures its row, marks it TIGHT, and every chip left in it KEEPS ITS LABEL", async () => {
+  it("the shell measures its row, and every control left in it KEEPS ITS LABEL", async () => {
     // jsdom lays nothing out: give the row the 375-ish width and every measured
     // label word (the shell's off-screen probe span) a 60px width — about
     // "Directions" at 11px, which needs 72px with the chip's padding.
@@ -852,7 +879,8 @@ describe("VN-21 — the TIGHT rung instead of a second row (and never icon-only)
       await act(async () => { await Promise.resolve(); });
       const row = container.querySelector<HTMLElement>("[data-job-step-row]")!;
       expect(row.getAttribute("data-has-primary")).toBe("true");
-      expect(row.getAttribute("data-tight"), "4 labelled controls in 311px must tighten the row").toBe("true");
+      // More + the primary only (owner, 2026-10-08): nothing left to tighten.
+      expect([...row.children].filter((ch) => !ch.hasAttribute("data-job-step-primary")).length).toBe(1);
       // …and the row is marked tight WITHOUT a `data-compact` anywhere: that
       // attribute is what `index.css` hung the sr-only label rule off, and the
       // rule and the attribute went together.

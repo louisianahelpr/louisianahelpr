@@ -17,7 +17,7 @@
  *    regen and fails here until a countdown shows it.
  */
 // @mutate src/components/job-card/jobStatusLine.ts | return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed"); | return null;
-// @mutate src/components/job-card/JobStatusStrip.tsx | ) : line.deadline && ( | ) : false && line.deadline && (
+// @mutate src/components/job-card/JobStatusStrip.tsx | ) : line.deadline && !deadlineInline && ( | ) : false && line.deadline && !deadlineInline && (
 // @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx | posterDeadline("offer_out", job) | null
 // @mutate src/components/job-card/offerClock.ts |   const hardDeadline = job?.response_deadline ?? job?.direct_offer_expires_at ?? null; |   const hardDeadline = job?.response_deadline ?? null;
 // @mutate src/components/job-card/jobStatusLine.ts | overdue_no_show: { detail: | overdue_no_show: { detail: "Day passed — mark it done or cancel", x:

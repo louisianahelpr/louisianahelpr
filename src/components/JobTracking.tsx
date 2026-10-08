@@ -2640,23 +2640,16 @@ export function JobTracking({
         // (the step's own `primary` then stands down), its reason sits on the
         // line directly above that row, and the dialog stays here. State, gates
         // and handlers are untouched — only the DOM position moves.
+        // PHOTO FIRST (owner, 2026-10-08): an owed photo IS the primary (HelperPhotoAsk).
+        const photoIsPrimary = needsBeforePhoto || needsProof;
         if (inStepRow) {
           return (
             <>
-              {needsBeforePhoto || needsProof ? null : <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>}
-              {/* ONE control in this slot again. It briefly held two — the
-                  glossy CTA and the outline "Try My Location Again" — and the
-                  ordering comment here existed only to keep the green one
-                  right-most (owner, 2026-09-16). The retry chip is gone
-                  (owner, 2026-09-19; the refresh gesture does it now, see
-                  src/lib/arrivalRefresh.ts), so there is nothing left to
-                  order. `primaryNeeds` in jobStepRow.tsx still takes an ARRAY
-                  because the day-of confirmation can put a second control here
-                  through its own slot — that case is unaffected. */}
-              {/* PHOTO FIRST (owner, 2026-10-08): while the before photo is owed
-                  the photo capture IS the primary (HelperPhotoAsk), so Start
-                  Working is not drawn until it is taken. */}
-              {needsBeforePhoto || needsProof ? null : <JobStepRowSlot slot="primary">{ctaEl}</JobStepRowSlot>}
+              {photoIsPrimary ? null : <JobStepRowSlot slot="note">{reasonEl}</JobStepRowSlot>}
+              {/* ONE control in this slot (the retry chip went 2026-09-19; the
+                  refresh gesture does it, src/lib/arrivalRefresh.ts). `primaryNeeds`
+                  still takes an ARRAY: the day-of confirmation can add one here. */}
+              {photoIsPrimary ? null : <JobStepRowSlot slot="primary">{ctaEl}</JobStepRowSlot>}
               {doneDialog}
             </>
           );

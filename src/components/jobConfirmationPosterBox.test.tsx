@@ -76,17 +76,20 @@ describe("the poster's confirmation survives the Helpr setting off", () => {
     expect(screen.getByRole("button", { name: /I'm Still On/i })).toBeTruthy();
   });
 
-  it("keeps the box, disabled, once the poster has confirmed", () => {
+  it("once the poster has confirmed, the button is their NEXT step, greyed out until it's time (owner, 2026-10-08)", () => {
     render(poster({ posterConfirmedAt: "2026-09-19T13:00:00Z" }));
-    const done = screen.getByRole("button", { name: /^Confirmed$/i }) as HTMLButtonElement;
-    expect(done.disabled, "the already-confirmed box must be inert, not tappable").toBe(true);
+    const done = screen.getByRole("button", { name: /Confirm They've Arrived/i }) as HTMLButtonElement;
+    expect(done.disabled, "the next step waits for its time; it is not tappable yet").toBe(true);
+    // No "You: Confirmed / Helpr: Confirmed" chips and no "Confirmed <time>" receipt.
+    expect(screen.queryByText(/You: (Confirmed|Pending)/)).toBeNull();
+    expect(screen.queryByText(/Helpr: (Confirmed|Pending)/)).toBeNull();
     // …and it must not still be inviting the tap it has already had.
     expect(screen.queryByRole("button", { name: /I'm Still On/i })).toBeNull();
   });
 
   it("does not wear the glossy primary once it is a statement rather than an action", () => {
     render(poster({ posterConfirmedAt: "2026-09-19T13:00:00Z" }));
-    const done = screen.getByRole("button", { name: /^Confirmed$/i });
+    const done = screen.getByRole("button", { name: /Confirm They've Arrived/i });
     expect(
       done.classList.contains("btn-grad-primary"),
       "a done box in the live CTA's surface reads as a broken button, not a finished one",
@@ -140,3 +143,4 @@ describe("the HELPER's branch is unchanged", () => {
 // …and the TONE half of the same rule: the done box must not wear the live
 // CTA's gloss, or "you already did this" reads as a broken button.
 // @mutate src/components/JobConfirmation.tsx | variant="outline" | variant="primary"
+// @mutate src/components/JobConfirmation.tsx |         Confirm They've Arrived | Confirmed

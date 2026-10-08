@@ -95,6 +95,7 @@ export function HelperTrackerPanel({
     helperConfirmedAt: job.helper_confirmed_at,
     helperDayofConfirmedAt: job.helper_dayof_confirmed_at,
     dateNeeded: job.date_needed,
+    startTime: job.start_time,
   });
 
   /* Midnight of the job's day in the JOB's zone (America/Chicago), through the
@@ -144,6 +145,7 @@ export function HelperTrackerPanel({
       helperConfirmedAt={job.helper_confirmed_at}
       helperDayofConfirmedAt={job.helper_dayof_confirmed_at}
       dateNeeded={job.date_needed}
+      startTime={job.start_time}
       jobStatus={job.status}
       helperOnTheWayAt={job.helper_on_the_way_at}
       onCantMakeIt={onCantMakeIt}

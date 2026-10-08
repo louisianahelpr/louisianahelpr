@@ -10,8 +10,9 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Clock, ShieldCheck, CalendarClock } from "lucide-react";
+import { CheckCircle2, CalendarClock, MapPin } from "lucide-react";
 import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { jobStartDateTime } from "@/lib/dateUtils";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -42,15 +43,22 @@ export function helperDayOfConfirmation({
   helperConfirmedAt,
   helperDayofConfirmedAt,
   dateNeeded,
+  startTime = null,
 }: {
   helperConfirmedAt: string | null;
   helperDayofConfirmedAt?: string | null;
   dateNeeded: string;
+  /** The job's start. The window is the 24 hours before the START, the same
+   *  instant the tracker's Confirmed step measures from (JobTracking
+   *  deriveCurrentStatusIdx). This used midnight of the job's day, so an
+   *  accept 24h37m before a 2 PM start read "Helpr: Confirmed" here while the
+   *  tracker left Confirmed unchecked (owner, 2026-10-08, job 5b68bccb). */
+  startTime?: string | null;
 }): string | null {
   if (helperDayofConfirmedAt) return helperDayofConfirmedAt;
   if (!helperConfirmedAt) return null;
-  const jobDate = jobDayStart(dateNeeded);
-  return jobDate.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000
+  const start = jobStartDateTime(dateNeeded, startTime) ?? jobDayStart(dateNeeded);
+  return start.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000
     ? helperConfirmedAt
     : null;
 }
@@ -63,6 +71,7 @@ export function JobConfirmation({
   helperConfirmedAt,
   helperDayofConfirmedAt = null,
   dateNeeded,
+  startTime = null,
   jobStatus,
   helperOnTheWayAt,
   onConfirm,
@@ -81,6 +90,8 @@ export function JobConfirmation({
    *  early — and therefore can't answer "are you still on?". */
   helperDayofConfirmedAt?: string | null;
   dateNeeded: string;
+  /** The job's start time, for the day-before window (helperDayOfConfirmation). */
+  startTime?: string | null;
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
   onConfirm?: () => void;
@@ -314,10 +325,8 @@ export function JobConfirmation({
   // day-before answer — don't ask the same question twice. One shared rule
   // (see helperDayOfConfirmation above), so this card and the tracker panel
   // that gates "I'm On My Way" on it cannot disagree.
-  const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded });
+  const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded, startTime });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
-  const otherConfirmed = isOwner ? helperDayOf : posterConfirmedAt;
-  const otherLabel = isOwner ? "Helpr" : "Posted by";
 
   const urgencyText = hoursUntilJob <= 0
     ? "Job date has passed"
@@ -445,15 +454,21 @@ export function JobConfirmation({
          their control portals into their step card's single action row, where a
          permanent inert box would occupy the primary slot the tracker's own
          next-step CTA needs. */
+      /* Once the poster has confirmed, the button shows the NEXT thing theirs
+         to do, greyed out until it is time (owner, 2026-10-08: "after they
+         confirm the Helpr will say on their way, so the button should change
+         to confirm they have arrived, greyed out until the time"). The live
+         control is the tracker's arrival step, which takes over once the Helpr
+         says they're there. */
       <Button
         variant="outline"
         size="sm"
         disabled
-        style={jobActionChipStyle("done")}
-        className={`${confirmCtaClass} border-0`}
+        data-poster-next-step="arrival"
+        className={confirmCtaClass}
       >
-        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        Confirmed
+        <MapPin className="w-3.5 h-3.5 mr-1" />
+        Confirm They've Arrived
       </Button>
     ) : null
   );
@@ -543,46 +558,10 @@ export function JobConfirmation({
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
-        <div className="flex items-center gap-1.5">
-          <span
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
-            style={
-              myConfirmed
-                ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
-            }
-          >
-            {myConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-            You: {myConfirmed ? "Confirmed" : "Pending"}
-          </span>
-          <span
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
-            style={
-              otherConfirmed
-                ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
-            }
-          >
-            {otherConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-            {otherLabel}: {otherConfirmed ? "Confirmed" : "Pending"}
-          </span>
-        </div>
-
-        {/* THE CONFIRMED RECEIPT IS FULL BARK, no alpha. At 0.85 it measured
-            3.97:1 on the page ground against a 4.5:1 AA floor, and bark cannot
-            clear AA below 0.95 (ladder on parchment: 0.7 → 2.96, 0.85 → 3.97,
-            0.9 → 4.40, 0.95 → 4.89, 1.0 → 5.44). Rather than invent 0.95, the
-            line takes the colour of the confirmed chip directly above it, which
-            is already bare `hsl(var(--bark))` — the receipt and the chip say
-            the same thing, so they should be the same ink. 5.44:1 light /
-            5.82:1 dark, no layout change; it stays subordinate on size. */}
-        {myConfirmed && (
-          <p className="font-sans inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark))" }}>
-            <ShieldCheck className="w-3 h-3" />
-            Confirmed {new Date(myConfirmed).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-          </p>
-        )}
-
+        {/* No "You: Confirmed / Helpr: Confirmed" chips and no "Confirmed <time>"
+            receipt (owner, 2026-10-08: "remove you confirmed and confirmed at,
+            the button shows they confirmed"): the tracker's Confirmed step and
+            the button say it. */}
         {deadlineNotice}
         {confirmCta}
       </div>

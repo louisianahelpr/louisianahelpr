@@ -7,8 +7,8 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Open: 189** (144 to do, 45 fixed with protection pending; 1005 done). Feeds mirrored in: 24 from the alert ledger, 15 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 10 red, 13 stale, 0 unknown, 50 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-08T03:32Z)_
-- **Remote branches:** 12 carry patches not on main, 1 fully merged, of 15 (Q79). _(2026-10-08T03:32Z)_
+- **Workflows on main:** 10 red, 13 stale, 0 unknown, 50 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-08T03:48Z)_
+- **Remote branches:** 12 carry patches not on main, 1 fully merged, of 15 (Q79). _(2026-10-08T03:48Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -28,12 +28,12 @@ lives there. Progress is generated into the header above.
 <!-- launch-waits-on -->
 What each OPEN launch item waits on, ONE line per category (scripts/launch-status.mjs prints the table from main; guard src/test/launchWaitsOn.test.ts). Move a Q the moment what it waits on changes.
 - **owner-phone** (a check on the owner's iPhone, on a TestFlight build cut after the iOS boot fix c969b73ef): (none)
-- **owner-payment** (a real paid job or tip; the owner enters the card): Q933 Q749 Q1116 Q362
-- **owner-crew-payment** (a real funded group job; the flip itself is done, Q1079): Q1378 Q780 Q709 Q707 Q1114
+- **owner-payment** (a real paid job or tip; the owner enters the card): (none)
+- **owner-crew-payment** (a real funded group job; the flip itself is done, Q1079): (none)
 - **owner-dashboard** (App Store Connect, Supabase): (none)
-- **stripe-test-mode** (an owner-approved test-mode window; prod is live): Q805
-- **lead** (Claude can finish it now): Q1314 Q1461 Q1460
-- **launch-day** (done on launch day, in order): Q552 Q1289 Q1368 Q152
+- **stripe-test-mode** (an owner-approved test-mode window; prod is live): (none)
+- **lead** (Claude can finish it now): (none)
+- **launch-day** (done on launch day, in order): Q1289 Q152
 <!-- /launch-waits-on -->
 
 **Freeze until launch (owner, 2026-10-05):** a new finding goes to the end of

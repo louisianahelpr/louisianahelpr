@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -33,6 +33,21 @@ const PostJob = () => {
       });
     }
   }, [keyboardInset]);
+
+  // Each step opens at its TOP (owner, 2026-10-08: "order summary page needs
+  // to open at the top of the page, rn it opens at the bottom"). The steps
+  // share one route, so ScrollToTop never fires between them, and the shell's
+  // scroller kept the form's offset: Review & Pay sits at the form's foot, so
+  // Order Summary opened scrolled to its own bottom.
+  const lastStep = useRef(form.step);
+  useLayoutEffect(() => {
+    if (lastStep.current === form.step) return;
+    lastStep.current = form.step;
+    window.scrollTo(0, 0);
+    document.querySelectorAll<HTMLElement>(".app-shell-scroll").forEach((el) => {
+      el.scrollTop = 0;
+    });
+  }, [form.step]);
 
   // Per-step header copy. The entry landing is the new first step where the
   // poster picks how to begin (start fresh / draft / template).

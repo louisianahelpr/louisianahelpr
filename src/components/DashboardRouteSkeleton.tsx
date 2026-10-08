@@ -103,7 +103,7 @@ const DashboardRouteSkeleton = () => (
                 index.css:1582 hides the real bell on web-desktop, where the
                 top nav carries it. Without this the skeleton reserved a
                 56px bell the real bar never renders there. */}
-            <span className="dashboard-title-bell h-14 w-14 flex items-center justify-center">
+            <span className="dashboard-title-bell h-11 w-11 flex items-center justify-center">
               <Skeleton className="h-10 w-10 rounded-full" />
             </span>
           </div>

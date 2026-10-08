@@ -784,10 +784,9 @@ const ProfilePage = () => {
               `px-5 lg:px-6 xl:px-6`, never one screen at a time. */
           <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
-          {/* `key={tab}` on the boundary re-mounts this wrapper on every
-              tab switch, so `animate-ds-page-in` replays its entrance each
-              time a panel opens (S18 polish). */}
-          <div className="animate-ds-page-in">
+          {/* No entrance animation (owner, 2026-10-08: pages appear in
+              place, like Messages; see PageScaffold). */}
+          <div>
           <ProfileTabPanels
             tab={tab}
             onBackFromTab={backFromTab}

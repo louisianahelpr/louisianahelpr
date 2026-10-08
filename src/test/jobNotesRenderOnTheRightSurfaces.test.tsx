@@ -22,11 +22,10 @@
  *      cover that half). A guest view asks for no access note, and an applied
  *      card asks only once hired and while the job is live.
  *
- * @mutate src/components/job-card/JobNotes.tsx |   return <JobNotes materials={job.materials_note} access={access} />;\n}\n\n/**\n * The browse | return <JobNotes access={access} />;\n}\n\n/**\n * The browse
+ * @mutate src/components/job-card/JobNotes.tsx |   const access = useJobAccessNote(job.id, ask);\n  return <JobNotes materials={job.materials_note} access={access} /> |   const access = useJobAccessNote(job.id, ask);\n  return <JobNotes access={access} />
  * @mutate src/components/job-card/JobNotes.tsx |   const access = useJobAccessNote(job?.id, open && askAccess); |   const access = useJobAccessNote(job?.id, open);
  * @mutate src/components/job-card/JobNotes.tsx |     !guest && !!viewerUserId && | !!viewerUserId &&
  * @mutate src/components/job-card/JobNotes.tsx |       {a && <JobNote label={ACCESS_LABEL} | {false && <JobNote label={ACCESS_LABEL}
- * @mutate src/components/job-card/JobNotes.tsx |   if (!text) return null; |   if (text) return null;
  * @mutate src/pages/jobs/AppliedJobCard.tsx | app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); | true);
  * @mutate src/pages/posts/PostedJobCard.tsx | notes={notes} photos= | notes={null} photos=
  * @mutate src/components/dashboard/JobDetailDialog.tsx |         <JobDetailNotes job={job} guest={guest} viewerUserId={viewerUserId} />\n |
@@ -94,17 +93,11 @@ function browseJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
 const renderCard = (job: EnrichedJob) =>
   render(<JobCard job={job} effectiveFee={0.15} onApply={vi.fn()} onReport={vi.fn()} onSelect={vi.fn()} userLat={null} userLng={null} />);
 
-describe("the browse card says the poster provides materials", () => {
-  it("shows the signal, with the note in its title, when there is a note", () => {
+describe("the browse card never lists materials (owner, 2026-10-08)", () => {
+  it("shows no materials signal even when the poster provides them", () => {
     renderCard(browseJob({ materials_note: "Paint and rollers" }));
-    const chip = screen.getByTestId("job-card-materials");
-    expect(chip).toHaveAttribute("title", "Materials provided: Paint and rollers");
-    expect(chip).toHaveTextContent(/Materials/);
-  });
-
-  it("shows nothing when there is no note", () => {
-    renderCard(browseJob({ materials_note: null }));
     expect(screen.queryByTestId("job-card-materials")).toBeNull();
+    expect(screen.queryByText(/Materials/)).toBeNull();
   });
 });
 
@@ -114,7 +107,6 @@ const SURFACES: Record<string, { via: RegExp; renders?: RegExp; access: boolean;
   "src/pages/jobs/AppliedJobCard.tsx": { via: /useCardNotes\(job, expandedJobIds\.has\(app\.job_id\), app\.status === "accepted" && job\?\.status !== "cancelled" && job\?\.status !== "completed"\)/, renders: /\{showNotes && notes\}/, access: true, why: "the Helpr's own card: materials while applied, access once hired, until the job ends" },
   "src/pages/posts/PostedJobCard.tsx": { via: /useCardNotes\(job, isExpanded, true\)/, renders: /<PostedJobDetails [^>]*notes=\{notes\}/, access: true, why: "the poster's own card: both, labelled" },
   "src/components/admin/adminJobs/JobDetailDialog.tsx": { via: /<JobNotes materials=\{detailJob\.materials_note\} access=\{accessNote\} \/>/, access: true, why: "admin: both; RLS gives admins the access note (owner answer 2)" },
-  "src/components/dashboard/JobCard.tsx": { via: /<MaterialsChip note=\{job\.materials_note\} \/>/, access: false, why: "the browse card: the materials signal only" },
 };
 const SHARED = "src/components/job-card/JobNotes.tsx";
 
@@ -123,12 +115,12 @@ describe("the surface inventory (two-way)", () => {
   const code = (f: string) => blankComments(readSource(f) ?? "");
   const users = files
     .map((f) => relative(REPO, f))
-    .filter((f) => f !== SHARED && /<JobNotes\b|<JobDetailNotes\b|<MaterialsChip\b|\buseCardNotes\(/.test(code(join(REPO, f))))
+    .filter((f) => f !== SHARED && /<JobNotes\b|<JobDetailNotes\b|\buseCardNotes\(/.test(code(join(REPO, f))))
     .sort();
 
   it("every file showing the notes is listed, and every listed file shows them", () => {
     expect(files.length).toBeGreaterThan(500);
-    expect(users.length).toBeGreaterThanOrEqual(5);
+    expect(users.length).toBeGreaterThanOrEqual(4);
     expect(users).toEqual(Object.keys(SURFACES).sort());
   });
 

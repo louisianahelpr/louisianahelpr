@@ -46,7 +46,7 @@ export const categoryMaterials: Record<string, MaterialItem[]> = {
  * purchase made from it credits Helpr. The program requires the disclosure
  * AMAZON_ASSOCIATE_DISCLOSURE wherever these links show.
  */
-export const AMAZON_ASSOCIATE_TAG = "louisianahelp-20";
+const AMAZON_ASSOCIATE_TAG = "louisianahelp-20";
 export const AMAZON_ASSOCIATE_DISCLOSURE = "As an Amazon Associate, Helpr earns from qualifying purchases.";
 
 /** The same Amazon URL with Helpr's `tag` set (replacing any other tag). */

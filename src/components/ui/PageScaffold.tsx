@@ -136,10 +136,15 @@ export function PageScaffold({
    * with no animation class at all.
    */
   const hiddenAtMount = useHiddenAtMount();
-  const enterClass =
-    animate && !hiddenAtMount
-      ? " motion-safe:animate-ds-page-in motion-reduce:animate-ds-page-in-fade"
-      : "";
+  // NO PAGE ENTRY ANIMATION (owner, 2026-10-08: "when I click from posts to
+  // jobs to messages, messages is already loaded and doesn't have that jump
+  // effect. can we remove that from the other pages"; measured on prod: Posts,
+  // Jobs and Home played the 280ms fade + 8px rise, Messages did not). Pages
+  // appear in place, like a native tab bar. `animate` is kept as a no-op so
+  // no caller can bring it back by passing it.
+  void animate;
+  void hiddenAtMount;
+  const enterClass = "";
 
   const titleEl = !titleCard ? null : (
     <div className={titleCardClass + enterClass} style={TITLE_CARD_STYLE}>

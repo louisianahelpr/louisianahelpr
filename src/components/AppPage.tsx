@@ -95,7 +95,7 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
             keeps a card's focus ring and shadow off this scroll container's
             `overflow` clip. */}
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
-          <div className="animate-ds-page-in">
+          <div>
             {/* The shared tab shell — literally the same component every
                 Profile tab renders through, not a copy of its class string.
                 This used to be a hand-typed `space-y-4` div "asserted

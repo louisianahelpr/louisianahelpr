@@ -212,7 +212,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // four suddenly three times as tall as the rest, holding nothing. With
     // `items-start` the expanded one grows and the others stay the size of
     // their content.
-    <div className="flex flex-col gap-3 animate-ds-page-in">
+    <div className="flex flex-col gap-3">
       {showGiftBanner && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
 
       {/* AT THE DOOR, not at the end of the wizard. The cap used to be told to

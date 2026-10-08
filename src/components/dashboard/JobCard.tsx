@@ -5,7 +5,6 @@ import { differenceInHours } from "date-fns";
 
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { JobHelprsChip } from "@/components/job-card/JobCardMetaRow";
-import { MaterialsChip } from "@/components/job-card/JobNotes";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
@@ -592,7 +591,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
-            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+            {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. */}
+            <span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
                   sets a width. Two wrong answers were tried here first, and the
@@ -710,11 +710,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       the chip (and its separator) are not rendered at all.
                       Gating on `job.start_time` directly is what used to make
                       a flexible-but-timeless job silently lose its "when". */}
-                  {job.date_needed && timeLabel && (
-                    <span className={`shrink-0 opacity-30 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:inline" : "[@media(min-width:360px)]:inline"}`}>·</span>
-                  )}
+                  {job.date_needed && timeLabel && <span className="shrink-0 opacity-30">·</span>}
                   {timeLabel && (
-                    <span className={`shrink-0 hidden ${expiryText || distanceLabel ? "[@media(min-width:430px)]:flex" : "[@media(min-width:360px)]:flex"} items-center gap-1`}>
+                    <span className="shrink-0 flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">{timeLabel}</span>
                     </span>
@@ -733,7 +731,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
-            <MaterialsChip note={job.materials_note} />
+            {/* No Materials on the browse card (owner, 2026-10-08); the detail sheet says it. */}
             {job.is_group_job && (
               // THE SAME CHIP the activity cards render (JobHelprsChip, in
               // JobCardMetaRow) — one component now states "how many Helprs"
@@ -798,16 +796,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 mid-word. That is the reported defect: the row dropped the
                 place name and kept the countdown. Below 430px the hours are
                 now simply not drawn, and the city keeps the width. */}
+            {/* Countdown only with spare room (owner, 2026-10-08): a too-wide one wraps out of sight. */}
             {expiryText && (
-              <>
-                <span className="shrink-0 opacity-30 hidden [@media(min-width:430px)]:inline">·</span>
-                <span
-                  className={`shrink-0 items-center gap-1 hidden [@media(min-width:430px)]:flex ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
-                >
-                  <Timer className="w-2.5 h-2.5 shrink-0" />
-                  <span className="font-sans whitespace-nowrap">{expiryText}</span>
+              <span data-testid="job-card-countdown-slot" className="flex-1 basis-0 min-w-0 h-[1.5em] overflow-hidden flex flex-wrap items-center gap-x-2">
+                <span aria-hidden className="w-0 h-[1.5em]" />
+                <span className={`shrink-0 flex items-center gap-x-2 whitespace-nowrap ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                  <span className="opacity-30">·</span>
+                  <span className="flex items-center gap-1">
+                    <Timer className="w-2.5 h-2.5 shrink-0" />
+                    <span className="font-sans">{expiryText}</span>
+                  </span>
                 </span>
-              </>
+              </span>
             )}
           </div>
         </div>

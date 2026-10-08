@@ -59,7 +59,7 @@ interface DashboardTitleBarProps {
  * `!` is load-bearing — both are same-specificity utilities, so without it
  * stylesheet order (not class order) decides which `py` wins.
  */
-export const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
+export const TITLE_BAR_PADDING = "!py-1.5 lg:!py-2"; // = Posts/Jobs/Messages (2026-10-08)
 
 /**
  * The Browse feed's brand row — the emblem on the left, and at the right edge
@@ -192,7 +192,10 @@ export function DashboardTitleBar({
             wrapped in this class, so it is untouched on every width. */}
         {trailing ?? (
           <span className="dashboard-title-bell">
-            <NotificationPanel />
+            {/* 44px like Search and Filters beside it (owner, 2026-10-08:
+                Home's top box was taller than Posts/Jobs/Messages' because
+                this bell alone was the 56px `icon` size). */}
+            <NotificationPanel triggerClassName="h-11 w-11" />
           </span>
         )}
       </div>

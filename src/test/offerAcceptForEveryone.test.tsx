@@ -196,12 +196,12 @@ describe("the Helpr's offer card offers Accept to everyone (Q1399, owner 2026-10
     expect(await screen.findByText("Thanks for Accepting!")).toBeInTheDocument();
   });
 
-  it("after the accept, while it waits on Stripe: still Accept (it reopens the pop-up), and the card says it is not accepted yet", async () => {
+  it("after the accept, while it waits on Stripe: Finish Accepting (it reopens the pop-up), and the card says it is not accepted yet", async () => {
     pendingJobs.add("job-1");
     rpcAnswer.current = { data: { state: "pending_setup", missing: ["payout_setup", "stripe_id"] }, error: null };
     render(<OfferCard app={appOffer} />);
     expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(/Not accepted yet: waiting on your payout setup and Stripe ID check/);
-    fireEvent.click(screen.getByRole("button", { name: /Accept Job/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Finish Accepting/ }));
     await waitFor(() => expect(rpcCalls.map((c) => c.name)).toContain("accept_job_offer"));
     expect(await screen.findByText(/You're not booked yet/)).toBeInTheDocument();
   });

@@ -376,22 +376,12 @@ export function ApplicantsPanel({
                             : "inset 0 1px 1px 0 rgba(255,255,255,0.55)",
                         }}
                       >
-                        {/* Row 0: Private note · Report · Block as the top-right icon
-                            cluster, like the job detail sheet's corner (owner,
-                            2026-10-07: "should be 3 icons in the top right like
-                            other screens"). Report and Block stay on every card (Q366). */}
-                        <div className="flex justify-end gap-0.5 -mt-1 -mr-1 mb-0.5">
-                          <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
-                            ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
-                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
-                          <IconActionButton bare compact icon={<Flag className="w-4 h-4" />}
-                            ariaLabel={`Report ${helperName}'s application`} onClick={() => { hapticLight(); setReportApp(app); }} />
-                          <IconActionButton bare compact icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
-                            ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); setBlockApp(app); }} />
-                        </div>
 
-                        {/* Row 1: avatar + name + rating + hire button */}
-                        <div className="flex items-center gap-3">
+                        {/* Row 1, AT THE TOP (owner, 2026-10-08: "move picture and
+                            name up into the top left"): avatar + name on the left,
+                            and on the right the Private note · Report · Block
+                            icons (Q366: on every card) over Hire / decline. */}
+                        <div className="flex items-start gap-3">
                           {/* Migrated onto the shared `<UserAvatar>`
                               (2026-08-31). This is a hiring decision: the
                               poster is choosing between people, and the
@@ -528,15 +518,26 @@ export function ApplicantsPanel({
                                 no precise location on file, which means
                                 "unknown", NOT "far away" — so nothing is
                                 rendered rather than a misleading placeholder. */}
-                            {distanceBand && (
-                              <span
-                                className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                style={{ color: "hsl(var(--olivewood))" }}
-                              >
-                                <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
-                                {distanceBand.label}
-                              </span>
-                            )}
+                            {/* The verification chip (the payout fact and the Stripe
+                                ID; shown BEFORE Hire: a safety signal, and the
+                                Helpr's setup step) sits LEFT of the distance on
+                                one wrapping line (owner, 2026-10-08: "so the box
+                                isn't so big"); it had a row of its own. */}
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                              <ApplicantVerificationChip
+                                idVerified={app.profiles?.is_id_verified === true}
+                                payoutReady={app.profiles?.is_payout_ready === true}
+                              />
+                              {distanceBand && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold"
+                                  style={{ color: "hsl(var(--olivewood))" }}
+                                >
+                                  <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                  {distanceBand.label}
+                                </span>
+                              )}
+                            </span>
                             {neighborCount > 0 && (
                               <span
                                 className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
@@ -568,9 +569,19 @@ export function ApplicantsPanel({
                             })()}
                           </div>
 
+                          <div className="flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1">
+                          <div className="flex gap-0.5">
+                          <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
+                            ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
+                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
+                          <IconActionButton bare compact icon={<Flag className="w-4 h-4" />}
+                            ariaLabel={`Report ${helperName}'s application`} onClick={() => { hapticLight(); setReportApp(app); }} />
+                          <IconActionButton bare compact icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
+                            ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); setBlockApp(app); }} />
+                          </div>
                           {/* Status / hire + decline buttons */}
                           {app.status === "pending" && (
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0 mr-1">
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -610,38 +621,9 @@ export function ApplicantsPanel({
                             </div>
                           )}
                           <ApplicantStatusBadge app={app} />
+                          </div>
                         </div>
 
-                        {/* Row 1b: verification status — the payout fact, one
-                            of the two the accept gate requires before this
-                            Helpr's accept completes (the other is the Stripe ID;
-                            20261003193541). Shown BEFORE the poster taps Hire for
-                            two reasons: it is a safety signal on a decision about
-                            letting a stranger into your home, and it says the
-                            Helpr still has a setup step before they can say yes.
-
-                            It gets its OWN full-width line rather than sitting
-                            in the name row. In that row it shared a `flex-1
-                            min-w-0` column with the shrink-0 Hire/decline
-                            cluster, and since the chip is itself shrink-0 the
-                            two simply painted over each other — measured
-                            2026-09-02: the Hire button was the topmost element
-                            over the chip's right edge at 375px (20px overlap),
-                            360px (35px), 344px (51px) and 320px (62px), so the
-                            pill read "No payout accoun". There was no
-                            horizontal overflow to catch it — scrollWidth ==
-                            clientWidth throughout — and at 393px the overlap is
-                            only 2px, which is why it looked fine on a default
-                            phone viewport. A warning the CTA covers cannot be
-                            the thing that justifies leaving that CTA enabled.
-                            `pl-14` matches the message and attachment rows
-                            below, so it lines up under the name. */}
-                        <div className="pl-14">
-                          <ApplicantVerificationChip
-                            idVerified={app.profiles?.is_id_verified === true}
-                            payoutReady={app.profiles?.is_payout_ready === true}
-                          />
-                        </div>
 
                         {/* Row 2: applicant message — compact quote style.
                             `flagged_hidden` is set server-side by

@@ -580,7 +580,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await ctx.close();
       }
     }
-    await helperAt(CT, new Date(ct(dayBefore, "00:00").getTime() - 4 * 3_600_000), /Confirmation opens in 4h 0m/, false, "before-open");
+    await helperAt(CT, new Date(ct(dayBefore, "00:00").getTime() - 4 * 3_600_000), /4h 0m until confirmation opens/, false, "before-open"); // the clock panel since Q1399 (#2609)
     await helperAt(CT, ct(dayBefore, "09:00"), /Confirm by .* 12:00 PM \(3h left\)/, true, "open-morning");
     await helperAt(CT, ct(dayBefore, "13:00"), /Confirmation is past due/, true, "past-deadline");
     await helperAt(CT, ct(date, "07:00"), /Confirmation is past due/, true, "day-of");

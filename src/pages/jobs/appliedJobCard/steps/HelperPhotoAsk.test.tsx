@@ -45,8 +45,9 @@ const setup = (ui: ReactNode) => {
 
 describe("HelperPhotoAsk", () => {
   it("re-reads the activity cache when the After photo upload finishes", () => {
-    const spy = setup(<HelperPhotoAsk jobId="job-1" job={job()} step="working" />);
-    expect(screen.getByText("After Photo")).toBeTruthy();
+    // Photo first (owner, 2026-10-08): an owed After photo is the row's primary.
+    const spy = setup(<HelperPhotoAsk jobId="job-1" job={job()} step="working" mode="primary" />);
+    expect(screen.getByText(/After Photo/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "simulate upload finished" }));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["activity"] });
   });
@@ -77,8 +78,8 @@ describe("HelperPhotoAsk", () => {
   });
 
   it("still asks when the column is missing entirely (old database, `?? true`)", () => {
-    setup(<HelperPhotoAsk jobId="job-1" job={{ id: "job-1", proof_before_urls: [], proof_after_urls: [] } as never} step="working" />);
-    expect(screen.getByText("After Photo")).toBeTruthy();
+    setup(<HelperPhotoAsk jobId="job-1" job={{ id: "job-1", proof_before_urls: [], proof_after_urls: [] } as never} step="working" mode="primary" />);
+    expect(screen.getByText(/After Photo/)).toBeTruthy();
   });
 });
 

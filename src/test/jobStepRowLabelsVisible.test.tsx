@@ -479,6 +479,9 @@ describe("the centred explanation line under the row is wired, and reachable", (
       filled,
       `only ${filled} of ${CASES.length} states put a line under the row — the portals have come ` +
         `unwired. Filled: [${filledNames.join(" | ")}]`,
-    ).toBeGreaterThanOrEqual(4);
+      // 4 -> 2 (owner, 2026-10-08: "remove you confirmed and confirmed at"):
+      // the receipt lines went; what remains under a row is the reason a
+      // button is blocked, and these fixtures have two such states.
+    ).toBeGreaterThanOrEqual(2);
   }, 30_000);
 });

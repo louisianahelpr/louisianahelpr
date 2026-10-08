@@ -58,8 +58,8 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
 }
 
 /**
- * Returns the request's resulting status: accepted / declined / expired, or
- * "clash" when an accept found the Helpr already booked at the new time (Q1262:
+ * Returns the request's resulting status: accepted / declined / expired
+ * ("expired:<reason>" when the server says why), or "clash" when an accept found the Helpr already booked at the new time (Q1262:
  * the server declines the request and tells whoever asked).
  */
 export async function respondScheduleChange(requestId: string, accept: boolean): Promise<string> {
@@ -70,5 +70,8 @@ export async function respondScheduleChange(requestId: string, accept: boolean):
   if (error) throw changeError(error, rpcErrorMessage("respond_job_schedule_change", error));
   const reply = (data as { status?: string; reason?: string } | null) ?? {};
   if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash";
+  // Why an answer found the request expired (20261008183640); the person who
+  // asked is told the same by notification.
+  if (reply.status === "expired" && reply.reason) return `expired:${reply.reason}`;
   return String(reply.status ?? "");
 }

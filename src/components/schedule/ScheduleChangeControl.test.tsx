@@ -29,7 +29,7 @@ vi.mock("@/integrations/supabase/client", () => {
   c.maybeSingle = () => Promise.resolve({ data: row.value, error: null });
   return { supabase: { from: () => c, rpc } };
 });
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 import { toast } from "sonner";
 
 import { ScheduleChangeControl } from "./ScheduleChangeControl";
@@ -70,8 +70,10 @@ describe("ScheduleChangeControl", () => {
     rpc.mockResolvedValue({ data: { status: "declined", reason: "schedule_change_clash" }, error: null });
     renderIt(HELPR);
     fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/already booked at that time/)));
-    expect(toast.success).not.toHaveBeenCalledWith(expect.stringMatching(/expired/));
+    // A clash changed nothing, so it is a warning (owner, 2026-10-08), not a success.
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(expect.stringMatching(/already booked at that time/), expect.anything()));
+    expect(toast.success).not.toHaveBeenCalledWith(expect.stringMatching(/already booked at that time/));
+    expect(toast.warning).not.toHaveBeenCalledWith(expect.stringMatching(/expired/), expect.anything());
   });
 
   it("the asker cannot answer their own request; they see it waiting", async () => {

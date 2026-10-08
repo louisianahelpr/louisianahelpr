@@ -121,6 +121,34 @@ export const DashboardHome = ({
         </div>
       )}
 
+      {/* Priority alerts sit FIRST, under the greeting and above the KPI
+          tiles (owner, 2026-10-08: "alerts should be under welcome back ... i
+          should see that first"). No subtitle: "Queues with something waiting on you"
+          was a paraphrase of "Priority Alerts", and each row below already names
+          its own queue and count — three tellings of one fact. */}
+      {hasAlerts && (
+        <AdminCard
+          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
+        >
+          {/* Column count follows the ALERT count. A fixed 2-up grid meant one
+              open alert sat in the left half of a 1128px card with the right
+              half blank — a dead band on the one card an admin is meant to act
+              on first. `[grid-template-columns:repeat(auto-fit,minmax(...))]`
+              would over-stretch a lone row, so the count drives it directly. */}
+          <div className={cn("grid gap-2.5 sm:gap-3", alertCount > 1 && "sm:grid-cols-2")}>
+            {stats.disputedJobs > 0 && (
+              <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
+            )}
+            {stats.openReports > 0 && (
+              <PriorityAlert label="Open reports" count={stats.openReports} color="destructive" onClick={() => onNavigate("reports")} />
+            )}
+            {stats.supportTickets > 0 && (
+              <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
+            )}
+          </div>
+        </AdminCard>
+      )}
+
       {/* KPI Summary cards. Tiles in a row are the SAME HEIGHT (owner,
           2026-09-12: siblings match). `items-start` let each tile take its own
           content height, which left rows ragged: New Users 151px beside Active
@@ -176,31 +204,6 @@ export const DashboardHome = ({
         />
       </div>
 
-      {/* Priority alerts. No subtitle: "Queues with something waiting on you"
-          was a paraphrase of "Priority Alerts", and each row below already names
-          its own queue and count — three tellings of one fact. */}
-      {hasAlerts && (
-        <AdminCard
-          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
-        >
-          {/* Column count follows the ALERT count. A fixed 2-up grid meant one
-              open alert sat in the left half of a 1128px card with the right
-              half blank — a dead band on the one card an admin is meant to act
-              on first. `[grid-template-columns:repeat(auto-fit,minmax(...))]`
-              would over-stretch a lone row, so the count drives it directly. */}
-          <div className={cn("grid gap-2.5 sm:gap-3", alertCount > 1 && "sm:grid-cols-2")}>
-            {stats.disputedJobs > 0 && (
-              <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
-            )}
-            {stats.openReports > 0 && (
-              <PriorityAlert label="Open reports" count={stats.openReports} color="destructive" onClick={() => onNavigate("reports")} />
-            )}
-            {stats.supportTickets > 0 && (
-              <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
-            )}
-          </div>
-        </AdminCard>
-      )}
 
       {/* Financial Health — full width */}
       {/* Likewise no subtitle — the tiles inside carry "(all-time)" in their own

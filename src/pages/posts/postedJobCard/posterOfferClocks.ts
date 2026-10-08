@@ -13,7 +13,7 @@ import type { Job } from "@/components/job-card/activityConstants";
  * job's acceptance lives on its roster, so it is not judged here.
  *
  * Every clock on the poster's card, in one place, one format, soonest first:
- * before the Helpr accepts, "left for them to accept" and "until the job
+ * before the Helpr accepts, "left to accept" and "until the job
  * starts"; after, "until the job starts" and, while the day-before window is
  * shut, "until confirmation opens". Guard: src/test/offerCountdownRows.test.tsx.
  */

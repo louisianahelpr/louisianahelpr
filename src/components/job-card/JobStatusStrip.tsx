@@ -112,6 +112,9 @@ export function JobStatusStrip({
 }) {
   const skin = TONE[line.tone];
   const Icon = skin.icon;
+  // An unanswered offer reads as ONE line, its answer clock beside the
+  // sentence, with the start clock under it (owner, 2026-10-08).
+  const deadlineInline = line.id === "unconfirmed" && !!line.deadline;
   return (
     <p
       className="px-4 py-2 flex items-center gap-1.5 flex-wrap"
@@ -153,6 +156,12 @@ export function JobStatusStrip({
       <span className="font-sans text-ds-11" style={{ color: `hsl(var(${skin.ink}))` }}>
         {line.detail}
       </span>
+      {deadlineInline && line.deadline && (
+        <span className="inline-flex items-center gap-1.5" data-countdown-inline="deadline" style={{ color: `hsl(var(${skin.ink}))` }}>
+          <span aria-hidden>·</span>
+          <DeadlineCountdown compact deadline={line.deadline.at} expiredText={line.deadline.expiredText} consequenceText={line.deadline.consequenceText} />
+        </span>
+      )}
       {/* The job's own words (a cancellation reason, a revision note). Not
           measured against the width budget: it is truncated instead, so a long
           reason never pushes the strip past two lines. */}
@@ -172,14 +181,14 @@ export function JobStatusStrip({
           <CountdownRows
             variant="bare"
             clocks={[
-              ...(line.deadline
+              ...(line.deadline && !deadlineInline
                 ? [{ id: "deadline", at: line.deadline.at, text: line.deadline.consequenceText, expiredText: line.deadline.expiredText }]
                 : []),
               ...extraClocks,
             ]}
           />
         </span>
-      ) : line.deadline && (
+      ) : line.deadline && !deadlineInline && (
         <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
           <DeadlineCountdown
             compact

@@ -41,8 +41,9 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId | <JobConfirmation embedded jobId
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true);
- * @mutate src/components/job-card/jobStatusLine.ts | "left for them to accept" | "left for them to confirm"
- * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "They haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
+ * @mutate src/components/job-card/jobStatusLine.ts | "left to accept" | "left to confirm"
+ * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "Offer sent — they haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
+ * @mutate src/components/job-card/JobStatusStrip.tsx |   const deadlineInline = line.id === "unconfirmed" && !!line.deadline; |   const deadlineInline = false;
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx | const clocks = showStartClock ? collapsedClocks(job, true) : []; | const clocks: never[] = [];
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -222,12 +223,14 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
   const stripRows = () =>
     [...document.querySelectorAll("[data-job-status-strip] [data-countdown-row]")].map((r) => r.getAttribute("data-countdown-row"));
 
-  it("poster: collapsed offer card draws the answer clock then the start clock, both in the strip", () => {
+  it("poster: collapsed offer card reads 'Offer sent — they haven't accepted yet · Nm left to accept', the start clock on the next line", () => {
+    // Owner, 2026-10-08 (pop-up: two lines): the answer clock rides the sentence.
     renderPosted(offerJob, false);
-    expect(stripRows()).toEqual(["deadline", "start"]);
+    expect(stripRows()).toEqual(["start"]);
     const strip = document.querySelector("[data-job-status-strip]")!;
-    expect(strip.textContent).toMatch(/They haven't accepted yet/);
-    expect(strip.textContent).toMatch(/left for them to accept/);
+    expect(strip.textContent).toMatch(/Offer sent — they haven't accepted yet/);
+    // The answer clock (DeadlineCountdown, mocked here) sits INSIDE the first line.
+    expect(strip.querySelector('[data-countdown-inline="deadline"] [data-testid="answer-clock"]')).not.toBeNull();
     expect(strip.textContent).toMatch(/until the job starts/);
     expect(strip.textContent).not.toMatch(/confirm/i);
     expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();
@@ -236,7 +239,9 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
   it("the start first when it ends first (soonest first, whichever it is)", () => {
     const late = { ...offerJob, response_deadline: new Date(Date.now() + 5 * 86_400_000).toISOString() } as unknown as Job;
     renderPosted(late, false);
-    expect(stripRows()).toEqual(["start", "deadline"]);
+    // The answer clock rides the sentence now (owner, 2026-10-08); the rows hold the rest.
+    expect(stripRows()).toEqual(["start"]);
+    expect(document.querySelector('[data-countdown-inline="deadline"]')).not.toBeNull();
   });
 
   it("Helpr: collapsed confirmed card draws the start clock in its strip", () => {
@@ -350,7 +355,7 @@ describe("7. the poster's EXPANDED offer card agrees on one state (owner, 2026-1
     expect(rows()).toEqual(["answer", "start"]);
     expect(document.querySelectorAll('[data-countdown-rows="box"]')).toHaveLength(1);
     const panel = document.querySelector('[data-countdown-rows="box"]')!;
-    expect(panel.textContent).toMatch(/left for them to accept/);
+    expect(panel.textContent).toMatch(/left to accept/);
     expect(panel.textContent).not.toMatch(/confirm/i);
     expect(screen.queryByTestId("job-confirmation")).toBeNull();
   });

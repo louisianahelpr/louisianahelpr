@@ -19,6 +19,28 @@ server check are built from it, and one end-to-end test walks it step by step.
   step out of order; the buttons never offer one.
 - **Timers say what they count to** ("52m until the job starts", "3h left to accept").
 
+## Which tab a job is in (owner, 2026-10-08)
+
+Each side's tab follows THAT side's next move:
+
+1. Accepted → **Scheduled**.
+2. The 24-hour confirm window opens and this side has not confirmed → **Needs You**.
+3. This side has confirmed → back to **Scheduled**.
+4. The job starts (its start time, or the Helpr heads out, whichever is first) → **Needs You**.
+
+Before an accept and after the job: unchanged (offers, approvals and payment follow the table
+below; Done and Cancelled as today).
+
+## When someone backs out (owner, 2026-10-08: "the other person needs to be very aware so they don't show up or expect someone")
+
+A decline of an offer, or a cancel by either side after an accept:
+
+- the other person gets a push, an in-app notification and an email at once;
+- their card moves to **Needs You** with a red banner naming who and what ("Lexi cancelled —
+  they won't be coming" / "Sam cancelled this job — don't go"), and stays there until they
+  tap **Got It**;
+- inside 24 h of the start, the push repeats until Got It.
+
 ## The steps
 
 | # | Step | Poster sees / does | Helpr sees / does | Server enforces |

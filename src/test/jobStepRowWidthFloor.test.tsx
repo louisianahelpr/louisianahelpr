@@ -267,7 +267,12 @@ describe("every control in a job step row is at least as wide as its own label",
       ).toMatch(new RegExp(`^${c.side}:`));
 
       const inv = readRow(container);
-      const controls = inv.chipLabels.length + inv.primaryLabels.length;
+      // The row is More + the primary since 2026-10-08 (owner); the actions
+      // folded into More still count as this state's controls (More's own
+      // label states how many). The width maths below is about the ROW.
+      const more = container.querySelector("[data-job-step-overflow]");
+      const inMore = more ? Number(/(\d+) more action/.exec(more.getAttribute("aria-label") ?? "")?.[1] ?? 0) : 0;
+      const controls = inv.chipLabels.length - (more ? 1 : 0) + inMore + inv.primaryLabels.length;
       expect(
         controls,
         `expected at least ${c.minControls} controls, got [${[...inv.chipLabels, ...inv.primaryLabels].join(" | ")}]`,

@@ -241,36 +241,31 @@ const primary = (container: HTMLElement) => {
 };
 
 describe("the photo capture is a control IN the action row", () => {
-  it("on site, before photo owed: a Before Photo chip inside the row — not a panel above it", async () => {
+  it("on site, before photo owed: the PRIMARY is Take Before Photo (owner, 2026-10-08: photo first)", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
-    const btn = within(row(container)).getByRole("button", { name: /^Before Photo\b/ });
-    expect(btn).toBeTruthy();
-    // The panel's own heading and hint are gone from the card entirely.
+    const cta = primary(container);
+    expect(cta?.textContent?.trim()).toMatch(/Take Before Photo/);
+    expect(cta?.disabled).toBeFalsy();
+    // Start Working is not drawn until the photo is in.
+    expect(within(row(container)).queryByRole("button", { name: /Start Working/ })).toBeNull();
     expect(container.textContent).not.toMatch(/Add a before photo/);
-    expect(container.textContent).not.toMatch(/Show the job as you found it/);
   });
-
-  it("working, after photo owed: an After Photo chip inside the row", async () => {
+  it("working, after photo owed: the PRIMARY is Take After Photo", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
-    expect(within(row(container)).getByRole("button", { name: /^After Photo\b/ })).toBeTruthy();
-    expect(container.textContent).not.toMatch(/Add an after photo/);
+    expect(primary(container)?.textContent?.trim()).toMatch(/Take After Photo/);
+    expect(within(row(container)).queryByRole("button", { name: /Mark Job Complete/ })).toBeNull();
   });
-
   it("the capture control is NAMED for which photo, so it cannot read as the Photos gallery chip", async () => {
     const { container } = await renderStep(makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }), "arrived");
     const names = [...row(container).querySelectorAll("button, a[href]")].map(
       (b) => (b.getAttribute("aria-label") || b.textContent || "").trim(),
     );
-    // "Photos" opens the gallery of what exists; "Before Photo" adds what does
-    // not. A helper with no before photo tapping "Photos" would land in an
-    // empty gallery, which is why these were not merged.
-    expect(names.some((n) => /^Before Photo\b/.test(n))).toBe(true);
+    expect(names.some((n) => /Before Photo\b/.test(n))).toBe(true);
     expect(names.some((n) => /^Photos\b/.test(n))).toBe(false);
   });
-
   it("no control at all when the poster does not require photos", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], require_photo_proof: false, poster_confirmed_working_at: null }),
@@ -292,17 +287,14 @@ describe("the photo capture is a control IN the action row", () => {
 });
 
 describe("the completion gate, and the one that is the SERVER's to add", () => {
-  it("Mark Job Complete is DISABLED with the reason under it when a proof photo is missing", async () => {
+  it("a missing proof photo replaces Mark Job Complete with the photo itself (photo first, owner 2026-10-08)", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Mark Job Complete/);
-    expect(cta?.disabled, "the completion gate stopped firing — this one IS enforced server-side").toBe(true);
-    const note = container.querySelector("[data-job-step-note]");
-    expect(note?.textContent ?? "", "a dead control the card cannot explain").toContain(
-      requiredProof({ require_photo_proof: true }).reason,
-    );
+    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take After Photo/);
+    // The gate is still the server's (enforce_helper_completion_gates); the card
+    // simply never offers the refused tap.
+    expect(requiredProof({ require_photo_proof: true }).reason.length).toBeGreaterThan(0);
   });
-
   it("Mark Job Complete is ENABLED once both photos exist", async () => {
     const { container } = await renderStep(makeJob({}), "working");
     const cta = primary(container);
@@ -353,31 +345,16 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     );
   });
 
-  it("Start Working is DISABLED with the reason under it when the before photo is missing", async () => {
+  it("Start Working is not offered while the before photo is missing; Take Before Photo is", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Start Working/);
-    expect(
-      cta?.disabled,
-      START_WORKING_IS_SERVER_GATED
-        ? "the server refuses status='working' without the before photo, so the button must say so BEFORE the tap — " +
-          "failing on tap with a toast is the shape this card was audited for twice"
-        : "a CLIENT-ONLY block: enforce_job_tracking_arrival_gate() lets status='working' through without a before photo, " +
-          "so this strands any Helpr whose upload fails with no way past. Gate the database first (see the header).",
-    ).toBe(START_WORKING_IS_SERVER_GATED);
-
-    // A dead control the card cannot explain is the defect, not the gate — and
-    // the sentence must NAME the chip that clears it.
-    const note = container.querySelector("[data-job-step-note]");
-    expect(note?.textContent ?? "").toContain(BEFORE_PHOTO_GATE_REASON);
+    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take Before Photo/);
+    expect(START_WORKING_IS_SERVER_GATED, "the server must still refuse working without the photo").toBe(true);
     expect(BEFORE_PHOTO_GATE_REASON, "the reason no longer names the control").toContain("Before Photo");
-    // …and that control is one tap away, in the same row.
-    expect(within(row(container)).getByRole("button", { name: /^Before Photo\b/ })).toBeTruthy();
   });
-
   it("adding the before photo clears it — Start Working is ENABLED", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: ["before.jpg"], poster_confirmed_working_at: null }),

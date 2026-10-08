@@ -33,6 +33,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import { ScheduledStep } from "@/pages/posts/postedJobCard/steps/ScheduledStep";
 import { JobCardMetaRow } from "@/components/job-card/JobCardMetaRow";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { openMore } from "@/test/helpers/openMore";
 
 const job = {
   id: "job-1",
@@ -62,26 +63,31 @@ function renderRow(j: Job) {
 }
 
 describe("11. the date-change ask is a button left of Message", () => {
-  it("an unanswered offer has no ask yet: the row reads Message | Cancel (owner, 2026-10-08)", () => {
+  it("an unanswered offer has no ask yet: More holds Message | Cancel (owner, 2026-10-08)", async () => {
     renderRow(job);
-    const labels = [...document.querySelectorAll("[data-job-step] button")]
+    // Everything but the primary is under More (owner, 2026-10-08).
+    await openMore();
+    const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
       .map((b) => b.textContent?.trim() ?? "")
       .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
     expect(labels).toEqual(["Message", "Cancel"]);
   });
 
-  it("once accepted the row reads Ask for a new date or time | Message | Cancel, and the ask opens the request form", async () => {
+  it("once accepted More holds Message | Ask for a new date or time | Cancel, and the ask opens the request form", async () => {
     renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job);
-    const labels = [...document.querySelectorAll("[data-job-step] button")]
+    await openMore();
+    const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
       .map((b) => b.textContent?.trim() ?? "")
       .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
-    expect(labels).toEqual(["Ask for a new date or time", "Message", "Cancel"]);
+    // Most important first (owner, 2026-10-08): Message, then the ask, then Cancel.
+    expect(labels).toEqual(["Message", "Ask for a new date or time", "Cancel"]);
     fireEvent.click(screen.getByRole("button", { name: /Ask for a new date or time/ }));
     expect(await screen.findByText(/New date or time for "clean"/)).toBeInTheDocument();
   });
 
-  it("not on a crew or recurring job (the request covers one-time jobs only)", () => {
+  it("not on a crew or recurring job (the request covers one-time jobs only)", async () => {
     renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z", is_group_job: true } as unknown as Job);
+    await openMore();
     expect(screen.queryByRole("button", { name: /Ask for a new date or time/ })).toBeNull();
   });
 

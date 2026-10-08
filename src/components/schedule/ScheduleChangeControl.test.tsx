@@ -7,7 +7,7 @@
  * @mutate src/lib/scheduleChange.ts |   if (!row \|\| Date.parse(row.expires_at) <= now.getTime()) return null; |   if (!row) return null;
  * @mutate src/components/schedule/ScheduleChangeControl.tsx |   const askedOfMe = !!pending && pending.responder_id === userId; |   const askedOfMe = !!pending;
  * @mutate src/pages/posts/PostedJobCard.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk /> | <span data-x />
- * @mutate src/pages/jobs/AppliedJobCard.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} /> | <span data-x />
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} hideAsk /> | <span data-x />
  * @mutate src/components/series/JobSeriesCardControls.tsx |     <ScheduleChangeControl | <span data-x
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | primaryDisabled={busy \|\| !date \|\| unchanged} | primaryDisabled={busy \|\| !date}
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5); | const unchanged = date === dateNeeded;

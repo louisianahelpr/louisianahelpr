@@ -114,7 +114,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1, textarea×1 | file |  | Quick review tags · Review comment (optional) · Add review photo |
-| `src/components/schedule/DetailChangeControl.tsx` | input×1, textarea×1 | text |  |  |
 | `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 | `src/components/W9CollectionDialog.tsx` | input×1, checkbox/switch/radio×1 | text |  | w9-name · w9-consent |

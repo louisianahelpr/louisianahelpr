@@ -23,6 +23,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/job-card/JobActionRow";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 
 type PhotoProofProps = {
   jobId: string;
@@ -50,6 +51,9 @@ type PhotoProofProps = {
    * button. The DIALOG is unchanged — this is only where the tap comes from.
    */
   chip?: boolean;
+  /** Draw the trigger as the row's PRIMARY (owner, 2026-10-08: the required
+   *  photo is the primary until it is taken). Only with `chip`. */
+  asPrimary?: boolean;
   /**
    * A GROUP job: the photos are the caller's OWN crew-member proof
    * (group_job_helpers.proof_before_urls / proof_after_urls), written through
@@ -92,7 +96,7 @@ async function saveProofPaths(jobId: string, type: "before" | "after", urls: str
   );
 }
 
-const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip, crew = false }: PhotoProofProps) => {
+const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip, asPrimary = false, crew = false }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -221,7 +225,9 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
 
   return (
     <>
-      {chip ? (
+      {chip && asPrimary && !hasPhotos ? (
+        <JobStepPrimaryButton icon={Camera} label={`Take ${triggerText}`} onClick={() => setOpen(true)} />
+      ) : chip ? (
         /* THE ROW CONTROL. `edit` tone — the row's sunshine "this one wants
            something from you" tint — so it is visibly distinct from the
            neutral `Photos` chip that OPENS the gallery, and from the green
@@ -614,12 +620,14 @@ export const PhotoProofCaptureChip = ({
   onUploaded = () => {},
   label,
   crew = false,
+  asPrimary = false,
 }: {
   jobId: string;
   type: "before" | "after";
   existingUrls: string[];
   onUploaded?: () => void;
   label: string;
+  asPrimary?: boolean;
   /** A group job: the caller's own crew-member photos. See PhotoProof `crew`. */
   crew?: boolean;
 }) => (
@@ -630,6 +638,7 @@ export const PhotoProofCaptureChip = ({
     onUploaded={onUploaded}
     triggerLabel={label}
     chip
+    asPrimary={asPrimary}
     crew={crew}
   />
 );

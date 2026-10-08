@@ -24,7 +24,7 @@ export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos
  *  important"): talking, getting there, the job's own next asks, housekeeping,
  *  the ways out, and SOS at the bottom (owner, 2026-10-08: "SOS at bottom").
  *  Keys not listed sit before the problem/exit group, in the step's own order. */
-export const MORE_ORDER: readonly string[] = [
+const MORE_ORDER: readonly string[] = [
   "message", "directions", "photo", "reschedule", "edit", "share", "boost",
   "report", "dispute", "cancel", "exit", "sos",
 ];

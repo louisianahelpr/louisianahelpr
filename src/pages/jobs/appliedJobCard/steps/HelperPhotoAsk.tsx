@@ -4,6 +4,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Job } from "../../../../components/job-card/activityConstants";
+import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 
 /**
  * ONE photo ask, belonging to the step the card is on — AS A CONTROL ON THE
@@ -73,10 +74,15 @@ export function HelperPhotoAsk({
   jobId,
   job,
   step,
+  mode = "chip",
 }: {
   jobId: string;
   job: Job;
   step: "on_site" | "working" | "dispute" | "revision";
+  /** "primary": only the owed photo that IS the row's primary (rendered in the
+   *  step's `notice`, so it can portal into the primary slot; a chip would be
+   *  folded into More). "chip": every other ask, under More. */
+  mode?: "chip" | "primary";
 }) {
   // The poster's per-job answer (`jobs.require_photo_proof`). `?? true` because
   // a client running against a database that predates the column must keep
@@ -166,12 +172,34 @@ export function HelperPhotoAsk({
     if (beforeUrls.length === 0) return beforeAsk;
     return afterAsk;
   }
+  // PHOTO FIRST on a one-Helpr job (owner, 2026-10-08): on site the owed before
+  // photo, and at work the owed after photo, IS the row's primary until taken.
+  const primary = (ask: "before" | "after") => (
+    <JobStepRowSlot slot="primary">
+      <PhotoProofCaptureChip
+        jobId={jobId}
+        type={ask}
+        existingUrls={ask === "before" ? beforeUrls : afterUrls}
+        onUploaded={readBack}
+        label={ask === "before" ? "Before Photo" : "After Photo"}
+        crew={crew}
+        asPrimary
+      />
+    </JobStepRowSlot>
+  );
+  const primaryAsk: "before" | "after" | null =
+    crew ? null
+      : step === "working" && afterUrls.length === 0 ? "after"
+        : step === "on_site" && beforeUrls.length === 0 ? "before"
+          : null;
+  if (mode === "primary") return primaryAsk ? primary(primaryAsk) : null;
+  if (primaryAsk) return null;
   if (step === "working") {
     if (afterUrls.length === 0) return afterAsk;
     if (beforeUrls.length === 0) return beforeAsk;
     return null;
   }
-  // on_site and dispute both start from the Before.
+  // on_site (crew) and dispute both start from the Before.
   if (beforeUrls.length === 0) return beforeAsk;
   if (step === "dispute" && afterUrls.length === 0) return afterAsk;
   return null;

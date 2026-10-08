@@ -50,13 +50,14 @@ describe("Report a Problem / Dispute are only reachable through More", () => {
     it(`${side} card: ${label} is not on the row, and is inside More`, () => {
       const { container } = card(side, key, label);
       expect(screen.queryByRole("button", { name: label })).toBeNull();
-      expect(screen.getByRole("button", { name: "Message" })).toBeTruthy();
       const more = container.querySelector("[data-job-step-overflow]") as HTMLElement | null;
       expect(more).not.toBeNull();
-      expect(more!.getAttribute("aria-label")).toBe("More — 1 more action for this job");
+      // Message is under More too since 2026-10-08 (owner: everything but the primary).
+      expect(more!.getAttribute("aria-label")).toBe("More — 2 more actions for this job");
       fireEvent.click(more!);
       const panel = screen.getByRole("dialog", { name: "More actions for this job" });
       expect(within(panel).getByRole("button", { name: label })).toBeTruthy();
+      expect(within(panel).getByRole("button", { name: "Message" })).toBeTruthy();
     });
   }
 });

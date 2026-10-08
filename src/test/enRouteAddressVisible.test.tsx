@@ -91,6 +91,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: nul
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { openMore } from "@/test/helpers/openMore";
 
 pinJobClock();
 
@@ -217,8 +218,9 @@ describe("the helper can read the job's street address at the en-route moment", 
      owner carved out of that gate, not the chip — a Helpr reads where they are
      going from the collapsed card and opens the card to act on it. The URL
      claim this case exists for is unchanged. */
-  it("Directions points at that same address, and at no coordinates", () => {
+  it("Directions points at that same address, and at no coordinates", async () => {
     renderCard(baseJob, {}, true);
+    await openMore(); // Directions is under More (owner, 2026-10-08)
     const link = screen.getByRole("link", { name: /Directions/ });
     const href = link.getAttribute("href")!;
     expect(href).toBe(`https://maps.apple.com/?q=${encodeURIComponent(ADDRESS)}`);

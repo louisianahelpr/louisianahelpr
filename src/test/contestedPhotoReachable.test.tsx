@@ -92,6 +92,7 @@ import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { openMore } from "@/test/helpers/openMore";
 
 pinJobClock();
 
@@ -172,6 +173,7 @@ function posterCtx(job: Job): PosterStepCtx {
  * It also cannot collide with the neutral `Photos` chip beside it on the
  * disputed row: that one OPENS the gallery and says so in its own label.
  */
+// Under More since 2026-10-08 (owner): call openMore() before reading.
 const captureChips = () =>
   screen.queryAllByRole("button").filter((b) => /add the (before|after) photo/i.test(b.getAttribute("aria-label") ?? ""));
 
@@ -198,8 +200,9 @@ const renderRevision = (job: Job) =>
 // /jobs — the side that actually uploads
 // ===========================================================================
 describe("Jobs card: the Helpr can file photos in BOTH contested states", () => {
-  it("revision: a capture chip is in the action row", () => {
+  it("revision: a capture chip is under the row's More", async () => {
     renderRevision(makeJob());
+    await openMore();
     const chips = captureChips();
     expect(
       chips.length,
@@ -207,16 +210,15 @@ describe("Jobs card: the Helpr can file photos in BOTH contested states", () => 
         "round of work and the new after photo is what the poster judges the fix " +
         "by (owner, 2026-09-19).",
     ).toBeGreaterThan(0);
-    // IN THE ROW, not stacked above it — VN-21 still holds.
-    const row = document.querySelector("[data-job-step-row]")!;
-    expect(row.contains(chips[0])).toBe(true);
+    expect(chips[0].closest("[data-job-step-overflow-panel]")).not.toBeNull();
   });
 
-  it("revision: the chip SURVIVES an after photo already existing", () => {
+  it("revision: the chip SURVIVES an after photo already existing", async () => {
     // The whole point. The helper uploaded an after photo for the first
     // submission; the poster asked for a fix; gating on emptiness would leave
     // the one state that most needs a new photo unable to take one.
     renderRevision(makeJob({ proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"] }));
+    await openMore();
     const chips = captureChips();
     expect(chips.length, "the chip vanished once an after photo existed").toBeGreaterThan(0);
     // …and it is the AFTER, relabelled with its count because one already
@@ -232,7 +234,7 @@ describe("Jobs card: the Helpr can file photos in BOTH contested states", () => 
     expect(captureChips()).toHaveLength(0);
   });
 
-  it("disputed: a capture chip is in the action row (unchanged, pinned)", () => {
+  it("disputed: a capture chip is under the row's More", async () => {
     const job = makeJob({ status: "disputed", dispute_status: "open" });
     wrap(
       <DisputedSection
@@ -251,6 +253,7 @@ describe("Jobs card: the Helpr can file photos in BOTH contested states", () => 
         setSubmittingResponse={vi.fn()}
       />,
     );
+    await openMore();
     expect(captureChips().length).toBeGreaterThan(0);
   });
 });

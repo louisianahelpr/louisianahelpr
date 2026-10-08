@@ -159,7 +159,8 @@ describe("Helpr Confirmed card — one primary at every instant, the same in eve
           byZone[tz] = await primaryAt(at, start);
         }
         const central = byZone["America/Chicago"];
-        if (central.includes("I'm Still On")) sawStillOn++;
+        // The Helpr's day-before step reads "Confirm You'll Be at the Job" since 2026-10-08.
+        if (central.includes("Confirm You'll Be at the Job")) sawStillOn++;
         if (central.includes("I'm On My Way")) sawOnMyWay++;
         for (const tz of ZONES) {
           const got = byZone[tz];

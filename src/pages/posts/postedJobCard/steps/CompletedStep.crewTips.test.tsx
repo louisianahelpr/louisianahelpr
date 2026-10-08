@@ -6,6 +6,7 @@ import type { ReactElement } from "react";
 import type { Job } from "@/components/job-card/activityConstants";
 import { CompletedStep } from "./CompletedStep";
 import type { PosterStepCtx } from "./posterStepContract";
+import { openMore } from "@/test/helpers/openMore";
 
 // Q709(c), owner 2026-10-05: on a completed crew card, ONE Tip per member row,
 // each showing "Tipped" once that member has been tipped; the tip names the
@@ -61,9 +62,10 @@ describe("CompletedStep: one Tip per crew member", () => {
     expect(onTip).toHaveBeenCalledWith("job-crew", "Ben C.", B);
   });
 
-  it("a single-Helpr job keeps its one job-level Tip and no member list", () => {
+  it("a single-Helpr job keeps its one job-level Tip and no member list", async () => {
     const single = { ...crewJob, is_group_job: false, helper_id: A } as unknown as Job;
     wrap(<CompletedStep {...ctx(single, { "job-crew": { tipped: false, reviewed: false } })} />);
+    await openMore(); // Tip may sit under More beside the primary (owner, 2026-10-08)
     expect(screen.queryByRole("list", { name: "Tip your crew" })).toBeNull();
     expect(screen.getAllByRole("button", { name: /^Tip/ }).length).toBeGreaterThan(0);
   });

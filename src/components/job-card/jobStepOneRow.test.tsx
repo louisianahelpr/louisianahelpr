@@ -46,7 +46,9 @@ vi.mock("@/components/PhotoProof", () => ({
   // "before and after buttons should also be on the same lines as the other
   // buttons"). NOT stubbed to null: it is one of the row's controls and the
   // per-case floors below count it.
-  PhotoProofCaptureChip: ({ label }: { label: string }) => <button type="button">{label}</button>,
+  // asPrimary: the real one draws "Take <label>" as the row's glossy primary.
+  PhotoProofCaptureChip: ({ label, asPrimary }: { label: string; asPrimary?: boolean }) =>
+    asPrimary ? <button type="button" className="btn-grad-primary">{`Take ${label}`}</button> : <button type="button">{label}</button>,
 }));
 
 function makeSupabase() {
@@ -414,11 +416,11 @@ const CASES: Array<{
        ABOVE the row — the block in the owner's screenshot. Four controls:
        Message · After Photo · More (Report a Problem, Dispute and SOS) + the
        disabled primary. */
-    name: "Jobs · Working, after photo still owed (After Photo chip IN the row, disabled Mark Job Complete)",
+    name: "Jobs · Working, after photo still owed (photo first: Take After Photo is the primary)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
-    minControls: 4,
+    minControls: 3,
     maxControls: 4,
-    primary: ["Mark Job Complete"],
+    primary: ["Take After Photo"],
   },
   {
     name: "Jobs · Submitted (Message · Report a Problem, no primary)",

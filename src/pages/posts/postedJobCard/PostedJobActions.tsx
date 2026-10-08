@@ -44,6 +44,8 @@ interface PostedJobActionsProps {
   onActionComplete: () => void;
   /** The Helpr's tracker says Working (Q1571); see PosterStepCtx. */
   helperWorking?: boolean;
+  /** An open job's Applicants, as the row's primary; see PosterStepCtx. */
+  applicantsPrimary?: { count: number; onOpen: () => void } | null;
 }
 
 /**
@@ -127,6 +129,7 @@ export function PostedJobActions({
   onConfirmWorking,
   confirmingWorkingJobId,
   helperWorking = false,
+  applicantsPrimary = null,
   onActionComplete,
 }: PostedJobActionsProps) {
   // Own instant-release flag — when on, the 24h review countdown is replaced
@@ -337,6 +340,7 @@ export function PostedJobActions({
     confirmingArrivalJobId,
     confirmingWorkingJobId,
     helperWorking,
+    applicantsPrimary,
     instantReleaseOn,
     navigate,
     onBoost,

@@ -1,4 +1,5 @@
-import { Rocket, Pencil, XCircle } from "lucide-react";
+import { Rocket, Pencil, Users, XCircle } from "lucide-react";
+import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JOB_ACTION_CHIP_CLASS, jobActionChipStyle } from "../../../../components/job-card/JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -27,7 +28,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  * The boost banner is a NOTICE (it states a fact and offers nothing), which is
  * why it is no longer a `mb-2` div hand-spaced above the row.
  */
-export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked }: PosterStepCtx) {
+export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked, applicantsPrimary }: PosterStepCtx) {
   const boostExp = job.boost_expires_at ? new Date(job.boost_expires_at) : null;
   const isBoosted = !!boostExp && boostExp > new Date();
   // A pending direct offer runs on a clock; the collapsed line shows it, so
@@ -38,6 +39,15 @@ export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked }: PosterS
     <JobStepCard
       side="poster"
       step="open"
+      primary={
+        applicantsPrimary ? (
+          <JobStepPrimaryButton
+            icon={Users}
+            label={`Applicants${applicantsPrimary.count > 0 ? ` (${applicantsPrimary.count})` : ""}`}
+            onClick={() => applicantsPrimary.onOpen()}
+          />
+        ) : undefined
+      }
       notice={
         offerClock || (isBoosted && boostExp) ? (
           <>

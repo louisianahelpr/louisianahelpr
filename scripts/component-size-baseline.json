@@ -36,7 +36,7 @@
     "src/pages/home/DashboardGuest.tsx": 819,
     "src/pages/info/Legal.tsx": 736,
     "src/pages/jobs/AppliedJobCard.tsx": 867,
-    "src/pages/posts/PostedJobCard.tsx": 809,
+    "src/pages/posts/PostedJobCard.tsx": 807,
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 808,
     "src/pages/profile/GiftCard.tsx": 847,
     "src/pages/profile/HelprWrapped.tsx": 607,

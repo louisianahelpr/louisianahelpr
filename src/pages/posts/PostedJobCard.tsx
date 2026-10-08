@@ -1,4 +1,5 @@
 import { memo, useRef } from "react";
+import { takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { useNavigate } from "react-router-dom";
@@ -246,19 +247,15 @@ function PostedJobCardInner({
                 helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
                 // "View details" costs no row of its own any more.
                 //
-                // It used to sit below the meta row as a standalone 44px
-                // control plus a 10px stack gap — 54px of card height for a
-                // single word pair, on a card that already stacks a status
-                // stripe, a meta row, state chips, a tracker and an action row.
-                // Pinned to the right of the meta line it costs ~8px instead.
+                // It used to sit below the meta row as a standalone 44px control plus a 10px stack gap — 54px of card
+                // height for a single word pair, on a card that already stacks a status stripe, a meta row, state
+                // chips, a tracker and an action row. Pinned to the right of the meta line it costs ~8px instead.
                 //
-                // The 44px TOUCH TARGET is preserved and is deliberately larger
-                // than the visible box: `py-3.5` grows the hit area to 44px and
-                // `-my-2.5` pulls the layout box back down, so the row grows by
-                // 8px rather than 28px. The overhang lands on the card's own
-                // padding and the non-interactive status stripe, never on
-                // another control — the only other interactive thing in this
-                // row is the location link at the opposite end.
+                // The 44px TOUCH TARGET is preserved and is deliberately larger than the visible box: `py-3.5` grows
+                // the hit area to 44px and `-my-2.5` pulls the layout box back down, so the row grows by 8px rather
+                // than 28px. The overhang lands on the card's own padding and the non-interactive status stripe,
+                // never on another control — the only other interactive thing in this row is the location link at the
+                // opposite end.
               >
                 {/* The applicant COUNT deliberately does not appear here.
                     An open job with applicants used to state the same number
@@ -673,12 +670,12 @@ function PostedJobCardInner({
               )}
 
               {/* Applicants button (it draws itself only when the job takes applicants) */}
-              <PostedJobApplicants
+              {job.status !== "open" && <PostedJobApplicants
                 job={job}
                 crewRoster={initialGroupHelpers}
                 applicantCounts={applicantCounts}
                 onLoadApplications={onLoadApplications}
-              />
+              />}
 
               {/* The Activity panel (views / % applied) used to sit here.
                   Owner: "just remove it from there. Show it when applicants is
@@ -739,6 +736,7 @@ function PostedJobCardInner({
                 onConfirmWorking={onConfirmWorking}
                 confirmingWorkingJobId={confirmingWorkingJobId}
                 helperWorking={initialTracking?.status === "working" || initialTracking?.status === "done"}
+                applicantsPrimary={job.status === "open" && takesApplicants(job, initialGroupHelpers) ? { count: applicantCounts[job.id] || 0, onOpen: () => onLoadApplications(job) } : null}
                 onActionComplete={onActionComplete}
               />
             </div>

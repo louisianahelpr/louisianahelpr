@@ -10,7 +10,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx |               <div className="pt-3" data-job-card-tracker-gap="">{trackerBlock}</div> |
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { Job } from "../../components/job-card/activityConstants";
 

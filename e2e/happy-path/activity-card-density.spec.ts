@@ -849,9 +849,10 @@ test.describe("My Posts — card density + header", () => {
     if (await discard.count()) await discard.first().click();
     // The More panel (a Radix popover, role=dialog) can take the first Escape;
     // close whatever is still up, the way a user would, before judging the card.
-    for (let i = 0; i < 3 && (await modal.count()); i++) {
+    for (let i = 0; i < 4 && (await modal.count()); i++) {
       await page.keyboard.press("Escape");
-      if (await discard.count()) await discard.first().click();
+      // The discard guard animates in: wait for it briefly rather than sampling once.
+      await discard.first().click({ timeout: 1500 }).catch(() => {});
     }
     await expect(modal).toHaveCount(0);
     await expect(

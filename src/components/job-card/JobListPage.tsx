@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
-import { deepLinkReady, useActivityFetching } from "./deepLinkWait";
+import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -237,7 +237,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // Only THIS tab's data blocks the first card. The other tab's core query
     // is warmed on idle inside the hook, so switching still comes out of cache.
   } = useActivityData(user, tab);
-  const activityFetching = useActivityFetching(); // a ?job= link waits for it (Q1563, deepLinkWait.ts)
+  const activitySettled = useActivitySettled(); // a ?job= link waits for it (Q1563, deepLinkWait.ts)
 
   // Customer-first-bid push nudge — fires the high-intent re-ask the
   // first time this customer sees at least one applicant on a job they
@@ -287,7 +287,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     const named = tab === "posted"
       ? postedJobs.some((j) => j.id === (deepLinkJobId ?? highlightJobId))
       : appliedApps.some((a) => (deepLinkJobId ? a.job_id === deepLinkJobId : a.id === highlightAppId));
-    if (!deepLinkReady({ named, fetching: activityFetching })) return;
+    if (!deepLinkReady({ named, settled: activitySettled })) return;
     deepLinkResolvedFor.current = deepLinkKey;
 
     let bucket: string | null = null;
@@ -337,7 +337,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // reaches this effect at all, because none of the data deps change. It
     // cannot loop: the branch above deletes `job` from the URL, which sets
     // `deepLinkJobId` to null and the next run returns on the null key.
-  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId, activityFetching]);
+  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId, activitySettled]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({

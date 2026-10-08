@@ -146,9 +146,9 @@ const MORE_ORDER: readonly string[] = [
  *      Callers pass `actions` as an array and may include `false`/`null` for
  *      an absent chip; `primary` may be null. A portalled CTA replaces
  *      `primary`.
- *   6. the row's note — ONE centred line BELOW the row, portalled in by the
- *      control that owns the reason (owner, 2026-09-19 — it was above until
- *      today). Amber for a gate, muted for a wait.
+ *   6. the row's note — ONE centred line ABOVE the row, under the profile,
+ *      portalled in by the control that owns the reason (owner, 2026-10-08;
+ *      below the row 2026-09-19 to 10-08). Amber for a gate, muted for a wait.
  *   7. `footnote` — one quiet centred sentence saying what the row's enabled
  *      primary will DO. Stands down while the note host has something in it,
  *      so the card never stacks two explanations under one row.
@@ -379,6 +379,19 @@ export function JobStepCard({
             because `useClaimedPersonTile` returns null rather than an empty
             node when there is nobody to show (collapsed card, ownerless job). */}
         {personTile}
+        {/* THE ROW'S ONE EXPLANATION, ABOVE IT AND BELOW THE PROFILE, CENTRED
+            (owner, 2026-10-08: "this should be above the buttons and below the
+            profile for both post and jobs"; the lifecycle contract says nothing
+            sits below the row). It was below the row since 2026-09-19.
+
+            `text-center` lives HERE, on the host, not on each component that
+            portals into it: one alignment for the set. The callers keep their
+            own COLOUR (amber for a gate, muted for a wait or a consequence).
+
+            …and never two explanations: the footnote stands down while the
+            note host holds a line (see "ONE EXPLANATION LINE" at the top). */}
+        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />
+        {noteFilled ? null : footnote}
         <div
           ref={rowRef}
           data-job-step-row=""
@@ -437,25 +450,6 @@ export function JobStepCard({
           <div ref={setPrimaryHost} data-job-step-primary="" className="job-step-primary" />
         </div>
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
-        {/* THE ROW'S ONE EXPLANATION, BELOW IT AND CENTRED (owner, 2026-09-19:
-            "should be under the buttons", "center under buttons"). It was
-            directly ABOVE the row until today, and the doc block at the top of
-            this file said so — the contract and the code moved together on
-            purpose, because a slot comment that contradicts its own render is
-            how the 320px row shipped as a 12px sliver.
-
-            `text-center` lives HERE, on the host, not on each of the four
-            components that portal into it: one alignment for the set is the
-            whole of the owner's second note, and a per-caller class is four
-            chances to drift. The callers keep their own COLOUR (amber for a
-            gate, muted for a wait or a consequence) because that distinction
-            is load-bearing and was tuned today. */}
-        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />
-        {/* …and never two. See "ONE EXPLANATION LINE" at the top of the file:
-            a gate reason and a consequence line can both apply on the poster's
-            in-progress card, and the gate is the one the reader is standing in
-            front of. */}
-        {noteFilled ? null : footnote}
         {escape}
         {dialogs}
       </JobStepRowContext.Provider>

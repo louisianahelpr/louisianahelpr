@@ -1,12 +1,12 @@
 /**
- * THE ROW'S ONE EXPLANATION LINE SITS BELOW THE ROW, CENTRED — BOTH CARDS.
+ * THE ROW'S ONE EXPLANATION LINE SITS ABOVE THE ROW, UNDER THE PROFILE,
+ * CENTRED — BOTH CARDS.
  *
- * Owner, 2026-09-19, twice:
- *   "You'll be able to confirm this once your Helpr is at the job. should be
- *    under the buttons"
- *   "Approve to release payment — then you can review and tip. center under
- *    buttons"
- * and, on the whole batch: "these changes all apply to jobs also".
+ * Owner, 2026-10-08: "The person who posted it hasn't confirmed yet · [Nudge]
+ * this should be above the buttons and below the profile for both post and
+ * jobs" (and the approved lifecycle contract: nothing below the row). From
+ * 2026-09-19 to 2026-10-08 it sat BELOW the row (owner then: "should be under
+ * the buttons"); this file asserted that until the owner moved it back.
  *
  * ── WHAT MOVED, AND WHY IT IS ONE MOVE AND NOT FOUR ───────────────────────
  * Four components portal a line into the step row's `note` host, and all four
@@ -42,12 +42,10 @@
  * that accident changes, and it is exercised here by driving the shell
  * directly — the only way to reach a state the product cannot currently reach.
  *
- * The position mutation puts the host back ABOVE the row (where it lived until
- * today) by re-declaring it between `notice` and the person tile; the assertions
- * read the FIRST `[data-job-step-note]`, so a host above the row is exactly the
- * pre-2026-09-19 layout and must turn this file red.
+ * The position mutation drops the host from above the row; with no host
+ * above it, every position assertion here must turn red.
  *
- * @mutate src/components/job-card/JobStepCard.tsx | {notice}\n        {/* WHO, directly above | {notice}\n        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />\n        {/* WHO, directly above
+ * @mutate src/components/job-card/JobStepCard.tsx |         <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />\n        {noteFilled ? null : footnote}\n | \n
  * @mutate src/components/job-card/JobStepCard.tsx | className="space-y-1.5 text-center empty:hidden" | className="space-y-1.5 empty:hidden"
  * @mutate src/components/job-card/JobStepCard.tsx | {noteFilled ? null : footnote} | {footnote}
  */
@@ -178,14 +176,14 @@ const makeApp = (job: Job) =>
 // ===========================================================================
 // /posts — the poster's gate reason
 // ===========================================================================
-describe("Posts card: the gate reason renders BELOW the action row", () => {
+describe("Posts card: the gate reason renders ABOVE the action row", () => {
   /* Q1400 (owner, 2026-10-07): the poster's card no longer draws a disabled
      "Confirm They Arrived" with "You'll be able to confirm this once your
      Helpr is at the job." under it, so no real poster state produces that
      gate line any more. The HOST rule (below the row, centred) is driven at
      the poster shell instead, and the step itself is checked to draw neither
      the box nor the line. */
-  it("a note on the poster shell lands in the host, and the host follows the row", () => {
+  it("a note on the poster shell lands in the host, and the host precedes the row", () => {
     render(
       <JobStepCard
         side="poster"
@@ -197,7 +195,7 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
     const line = screen.getByText(/A gate reason\./);
     expect(noteHost().contains(line), "the reason must land in the row's note host").toBe(true);
     expect(
-      before(row(), noteHost()),
+      before(noteHost(), row()),
       "the note host must come AFTER [data-job-step-row] (owner, 2026-09-19: " +
         "'should be under the buttons'). It sat above the row until today.",
     ).toBe(true);
@@ -257,7 +255,7 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
 // ===========================================================================
 // /jobs — the helper's gate reason ("applies to jobs also")
 // ===========================================================================
-describe("Jobs card: the gate reason renders BELOW the action row", () => {
+describe("Jobs card: the gate reason renders ABOVE the action row", () => {
   it("the day-of confirmation deadline sits under the row, not above it", () => {
     wrap(
       <ConfirmedSection
@@ -277,7 +275,7 @@ describe("Jobs card: the gate reason renders BELOW the action row", () => {
     // The host is the assertion, not any one sentence: whatever this state's
     // note is, it has to be under the row on this card exactly as on the other.
     expect(noteHost().childElementCount, "no note rendered — the fixture stopped reaching a gated state").toBeGreaterThan(0);
-    expect(before(row(), noteHost()), "the Jobs card's note host must follow its row too").toBe(true);
+    expect(before(noteHost(), row()), "the Jobs card's note host must precede its row too").toBe(true);
     expect(noteHost().className).toContain("text-center");
   });
 });

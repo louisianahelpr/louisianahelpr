@@ -3,6 +3,7 @@ import { CalendarClock, MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "../../../../components/job-card/JobActionRow";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
+import { JobConfirmation } from "@/components/JobConfirmation";
 import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
 import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
 import type { PosterStepCtx } from "./posterStepContract";
@@ -73,6 +74,29 @@ export function ScheduledStep({
           onConfirmArrival={onConfirmArrival}
           onConfirmWorking={onConfirmWorking}
         />
+        {/* "I'M STILL ON" IS THE ROW'S PRIMARY, RIGHT OF MORE, UNDER THE PROFILE
+            (owner, 2026-10-08: "Buttons should be side by side always for post
+            and jobs"). It was a "Still on for this one?" panel above the profile
+            with More alone below. Same inline control as the Helpr's card;
+            nothing until the Helpr has accepted the offer. */}
+        {job.status === "accepted" && job.helper_confirmed_at && (
+          <JobConfirmation
+            variant="inline"
+            hideNotYetOpen
+            jobId={job.id}
+            isOwner={true}
+            isHelper={false}
+            posterConfirmedAt={job.poster_confirmed_at}
+            helperConfirmedAt={job.helper_confirmed_at}
+            helperDayofConfirmedAt={job.helper_dayof_confirmed_at}
+            dateNeeded={job.date_needed}
+            startTime={job.start_time}
+            jobStatus={job.status}
+            helperOnTheWayAt={job.helper_on_the_way_at}
+            helperArrivedAt={job.helper_arrived_at}
+            onCantMakeIt={() => onCancel(job)}
+          />
+        )}
         </>
       }
       actions={[

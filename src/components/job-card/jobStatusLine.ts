@@ -663,7 +663,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Accept, not confirm (owner, 2026-10-07, Q1399): confirm is the later
      day-before step. */
   confirm_booking: { detail: "Accept or decline it" },
-  confirmed: { detail: "You're booked" },
+  confirmed: { detail: "You're scheduled" },
   /* The day-before window is open and this Helpr has not confirmed (Q1574). */
   confirm_day: { detail: "Confirm you'll be at the job" },
   // The job's start has come (agreedJobStage "started"); the countdown said the rest (Q1552).

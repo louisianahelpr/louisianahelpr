@@ -95,23 +95,3 @@ export function JobDetailNotes({ job, guest, viewerUserId }: { job: EnrichedJob;
   const access = useJobAccessNote(job.id, ask);
   return <JobNotes materials={job.materials_note} access={access} />;
 }
-
-/**
- * The browse card's materials signal (owner, 2026-10-06: materials are shown on
- * the browse card too). The note itself is read in the job detail; the card
- * carries only the signal, because every feed card stays one height and its
- * meta row never wraps. The wrench is the post form's own "I'll Provide
- * Materials" glyph. It never shrinks; its word appears from 430px, and below
- * that the icon carries the sr-only label (the city keeps the width).
- */
-export function MaterialsChip({ note }: { note: string | null | undefined }) {
-  const text = note?.trim();
-  if (!text) return null;
-  return (
-    <span className="shrink-0 inline-flex items-center gap-1" data-testid="job-card-materials" title={`${MATERIALS_LABEL}: ${text}`}>
-      <Wrench aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-      <span className="font-sans whitespace-nowrap hidden [@media(min-width:430px)]:inline">Materials</span>
-      <span className="sr-only [@media(min-width:430px)]:hidden">{MATERIALS_LABEL}</span>
-    </span>
-  );
-}

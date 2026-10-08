@@ -2,10 +2,11 @@ import { forwardRef } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatUnreadBadge } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
-  ({ unreadCount, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="icon" className="relative" aria-label="Notifications" {...props}>
+  ({ unreadCount, className, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size="icon" className={cn("relative", className)} aria-label="Notifications" {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
         <span

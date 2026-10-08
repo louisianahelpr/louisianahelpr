@@ -97,7 +97,7 @@ const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
     );
   });
 
-const NotificationPanel = () => {
+const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } = {}) => { // sizes the bell (Home: 44px)
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
@@ -502,7 +502,7 @@ const NotificationPanel = () => {
        for touch. */
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} />
+        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} className={triggerClassName} />
       </PopoverTrigger>
       {/* On phone/native, positioned against a measured SCREEN BAND, not
           against the bell: a zero-height rect spanning the viewport at the

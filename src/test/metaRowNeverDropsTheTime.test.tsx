@@ -6,7 +6,7 @@
  * The class: the time chip carries no hide rule at any width; when a phone
  * row is short of room it is the countdown that drops.
  *
- * @mutate src/components/job-card/JobCardMetaRow.tsx |         <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"> |         <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap [@media(max-width:399px)]:hidden">
+ * @mutate src/components/job-card/JobCardMetaRow.tsx |       {timeLabel && (\n        <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap"> |       {timeLabel && (\n        <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap [@media(max-width:399px)]:hidden">
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

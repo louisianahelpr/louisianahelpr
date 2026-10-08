@@ -28,7 +28,7 @@
  * @mutate src/components/job-card/JobNotes.tsx |       {a && <JobNote label={ACCESS_LABEL} | {false && <JobNote label={ACCESS_LABEL}
  * @mutate src/components/job-card/JobNotes.tsx |   if (!text) return null; |   if (text) return null;
  * @mutate src/pages/jobs/AppliedJobCard.tsx | app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); | true);
- * @mutate src/pages/posts/PostedJobCard.tsx |                 {notes}\n |                 {null}\n
+ * @mutate src/pages/posts/PostedJobCard.tsx | notes={notes} photos= | notes={null} photos=
  * @mutate src/components/dashboard/JobDetailDialog.tsx |         <JobDetailNotes job={job} guest={guest} viewerUserId={viewerUserId} />\n |
  * @mutate src/components/admin/adminJobs/JobDetailDialog.tsx |             <JobNotes materials={detailJob.materials_note} access={accessNote} /> |             <JobNotes materials={detailJob.materials_note} />
  */
@@ -112,7 +112,7 @@ describe("the browse card says the poster provides materials", () => {
 const SURFACES: Record<string, { via: RegExp; renders?: RegExp; access: boolean; why: string }> = {
   "src/components/dashboard/JobDetailDialog.tsx": { via: /<JobDetailNotes job=\{job\} guest=\{guest\} viewerUserId=\{viewerUserId\} \/>/, access: true, why: "the job detail sheet (browse, map pin, shared link)" },
   "src/pages/jobs/AppliedJobCard.tsx": { via: /useCardNotes\(job, expandedJobIds\.has\(app\.job_id\), app\.status === "accepted" && job\?\.status !== "cancelled" && job\?\.status !== "completed"\)/, renders: /\{showNotes && notes\}/, access: true, why: "the Helpr's own card: materials while applied, access once hired, until the job ends" },
-  "src/pages/posts/PostedJobCard.tsx": { via: /useCardNotes\(job, isExpanded, true\)/, renders: /\(hasDescription \|\| hasRequirements\) && \([\s\S]*?\{notes\}/, access: true, why: "the poster's own card: both, labelled" },
+  "src/pages/posts/PostedJobCard.tsx": { via: /useCardNotes\(job, isExpanded, true\)/, renders: /<PostedJobDetails [^>]*notes=\{notes\}/, access: true, why: "the poster's own card: both, labelled" },
   "src/components/admin/adminJobs/JobDetailDialog.tsx": { via: /<JobNotes materials=\{detailJob\.materials_note\} access=\{accessNote\} \/>/, access: true, why: "admin: both; RLS gives admins the access note (owner answer 2)" },
   "src/components/dashboard/JobCard.tsx": { via: /<MaterialsChip note=\{job\.materials_note\} \/>/, access: false, why: "the browse card: the materials signal only" },
 };

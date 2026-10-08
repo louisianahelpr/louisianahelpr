@@ -118,7 +118,10 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
 
   // Tier 0 hides the badge entirely. The empty render is the whole
   // point — never a "Not verified" chip on a fresh signup.
-  if (tier === 0) return null;
+  // Tier 1's label is literally "Verified", beside the "Stripe ID verified"
+  // pill: one fact, two badges (owner, 2026-10-08: "there should only be the
+  // stripe id verified one"). Hidden here as on the public profile (RecognitionRow).
+  if (tier === 0 || tier === 1) return null;
 
   const meta = TIER_META[tier];
   const Icon = meta.icon;

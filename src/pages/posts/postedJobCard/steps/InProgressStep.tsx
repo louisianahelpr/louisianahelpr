@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
-import { JobActionChip } from "../../../../components/job-card/JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { SosShareButton, SosShareSheet, sosOffered } from "@/components/SosShareButton";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
@@ -142,6 +142,27 @@ export function InProgressStep(ctx: PosterStepCtx) {
     <JobStepCard
       side="poster"
       step="in_progress"
+      /* APPROVE IS THE ROW'S PRIMARY once the Helpr marks it done (owner,
+         2026-10-08: "approve should be a primary button to the right of more";
+         contract step 10, "Approve & Pay"). Disabled "Approved" once paid. */
+      primary={
+        showApprove ? (
+          <JobStepPrimaryButton
+            icon={CheckCircle2}
+            label={job.poster_completed_at ? "Approved" : "Approve & Pay"}
+            ariaLabel={
+              job.poster_completed_at
+                ? "Approved — you already released payment for this job"
+                : "Approve & Pay — accept the work and release payment to your Helpr"
+            }
+            tone={job.poster_completed_at ? "done" : "primary"}
+            disabled={completingJobId === job.id || !!job.poster_completed_at}
+            onClick={() => {
+              if (!job.poster_completed_at) setCompletionSheetOpen(true);
+            }}
+          />
+        ) : undefined
+      }
       notice={
         <>
           {/* ONE ROW, PRIMARY IN THE DARK GREEN (owner, 2026-09-14, VN-21:
@@ -259,34 +280,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
           // Straight into the thread with THIS helpr on THIS job.
           onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
         />,
-        showApprove ? (
-          <JobActionChip
-            key="approve"
-            icon={CheckCircle2}
-            label={job.poster_completed_at ? "Approved" : "Approve"}
-            ariaLabel={
-              job.poster_completed_at
-                ? "Approved — you already released payment for this job"
-                : "Approve — accept the work and release payment to your Helpr"
-            }
-            tone="approve"
-            disabled={completingJobId === job.id || !!job.poster_completed_at}
-            onClick={() => {
-              if (!job.poster_completed_at) setCompletionSheetOpen(true);
-            }}
-          />
-        ) : null,
       ]}
-      footnote={
-        /* Approving IS the escrow release, and Review and Tip only unlock once
-           the money has moved — the order is real, but nothing said so and the
-           card read as if the two actions had gone missing (owner, 2026-08-25). */
-        showApprove ? (
-          <p className="font-sans leading-snug text-ds-11 px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Approve to release payment — then you can review and tip.
-          </p>
-        ) : null
-      }
+      /* No footnote: nothing sits below the row (owner, 2026-10-08). "Approve &
+         Pay" says the release; Review and Tip appear on the Done card. */
       dialogs={
         <>
           <SosShareSheet jobId={job.id} open={sosOpen} onOpenChange={setSosOpen} />

@@ -14,7 +14,9 @@ import { JobCardPhotoStrip } from "../../../components/job-card/JobCardPhotoStri
 export function PostedJobDetails({ description, notes, photos }: { description: string | null; notes: ReactNode; photos: string[] }) {
   if (!description && !notes && photos.length === 0) return null;
   return (
-    <div className="px-4 py-3 space-y-3 border-t border-border/30" data-testid="posted-card-details">
+    // No top border: it sat a few px under the title bar's own line, two rules
+    // with a sliver between (owner, 2026-10-08: "remove that small gap above the description").
+    <div className="px-4 pt-1 pb-3 space-y-3" data-testid="posted-card-details">
       {(description || notes) && (
         <div className="space-y-1.5">
           {description && <p className="text-ds-11 text-muted-foreground leading-relaxed break-words">{description}</p>}

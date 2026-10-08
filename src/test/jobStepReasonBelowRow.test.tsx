@@ -247,8 +247,10 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
         )}
       />,
     );
-    const line = screen.getByText(/Approve to release payment — then you can review and tip\./);
-    expect(before(row(), line), "the consequence line must come AFTER the row too").toBe(true);
+    // Gone (owner, 2026-10-08): nothing sits below the row; "Approve & Pay" is
+    // the row's primary and says the release itself.
+    expect(screen.queryByText(/Approve to release payment/)).toBeNull();
+    expect(screen.getByRole("button", { name: /^Approve & Pay/ })).toBeTruthy();
   });
 });
 

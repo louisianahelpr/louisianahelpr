@@ -168,7 +168,8 @@ describe("the ladder enables nothing the old gates did not", () => {
         // The Helpr has tapped Start Working (Q1571: the vouch waits for it).
         const rung = posterConfirmationRung(j, stepOf(j), undefined, true);
         const nowEnabled = rung?.action === "working" && rung.enabled;
-        return nowEnabled !== legacyWorkingEnabled(j);
+        // Marked done: Approve & Pay is the primary; the vouch stands down (2026-10-08).
+        return nowEnabled !== (legacyWorkingEnabled(j) && !j.helper_completed_at);
       });
     expect(widened.map((j) => JSON.stringify(j))).toEqual([]);
   });
@@ -196,9 +197,9 @@ describe("item 6b — a revision job keeps its confirmations", () => {
     // The old gate: `job.status === "in_progress" && …` — false here, so the
     // control vanished on every revision job.
     expect(legacyWorkingEnabled(j)).toBe(false);
-    // With the Helpr's Working on their tracker (Q1571).
-    const rung = posterConfirmationRung(j, "in_progress", undefined, true);
-    expect(rung).toMatchObject({ action: "working", enabled: true, label: "Confirm They're Working" });
+    // SUPERSEDED 2026-10-08: the Helpr marked it done, so Approve & Pay is the
+    // row's primary and the optional working vouch stands down.
+    expect(posterConfirmationRung(j, "in_progress", undefined, true)).toBeNull();
   });
 
   it("does not resurrect the arrival vouch on work that is already finished", () => {

@@ -280,6 +280,9 @@ export function posterConfirmationRung(
   // primary slot beside it. An ENABLED rung is kept exactly as it was: this
   // removes nothing that was offered before.
   if (!rung.enabled && job.helper_completed_at) return null;
+  // Marked done: Approve & Pay is the row's primary (owner, 2026-10-08); the
+  // optional working vouch stands down rather than take the slot.
+  if (rung.action === "working" && job.helper_completed_at) return null;
 
   /* ── THE STALLED JOB (owner item 7, 2026-09-19) ───────────────────────────
    *

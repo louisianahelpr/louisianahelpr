@@ -27,10 +27,11 @@
  *
  * ── WHAT IS PINNED, AND WHAT IS DELIBERATELY NOT ─────────────────────────
  * Pinned: every screen has a ChevronDown disclosure button; every screen
- * starts FOLDED on the default filter (`useState(!isDefault…)`, owner
- * 2026-09-25); every screen emits `aria-expanded` and a conditional
- * `aria-controls`, re-opens the strip when a non-default filter arrives,
- * fires a haptic on press, and suppresses the chevron on the wide screen.
+ * starts FOLDED whatever the filter (`useState(false)`, owner 2026-10-08;
+ * folded only on the default filter 2026-09-25 to 10-08); every screen emits
+ * `aria-expanded` and a conditional `aria-controls`, darkens the chevron while
+ * a filter is on, fires a haptic on press, and suppresses the chevron on the
+ * wide screen.
  *
  * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
  * src/pages/jobs/JobsHeader.tsx; owner, 2026-09-25: "They should be there own
@@ -45,11 +46,10 @@
  * open-state at all, so every assertion in the parity block below fails.
  * Re-prove with the @mutate lines.
  *
- * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  * @mutate src/components/messages/ConversationList.tsx | aria-expanded={tabsOpen} | data-expanded={tabsOpen}
- * @mutate src/pages/posts/PostsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
- * @mutate src/pages/jobs/JobsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
- * @mutate src/pages/jobs/JobsHeader.tsx | if (!isDefaultFilter) setTabsOpen(true); | if (false) setTabsOpen(true);
+ * @mutate src/components/messages/ConversationList.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
+ * @mutate src/pages/posts/PostsHeader.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+ * @mutate src/pages/jobs/JobsHeader.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -91,9 +91,9 @@ const TRAITS: Array<{ trait: string; pattern: RegExp; why: string }> = [
     why: "the rotation IS the state indicator — neither screen wears a filled pill for it",
   },
   {
-    trait: "starts folded on the default filter, open on any other (owner, 2026-09-25)",
-    pattern: /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(!isDefault[A-Za-z]*\);/,
-    why: "the owner asked for My Posts, My Jobs and Messages to open with the chevron collapsed; an active non-default filter must still arrive visible",
+    trait: "always starts folded, whatever the filter (owner, 2026-10-08)",
+    pattern: /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(false\);/,
+    why: "'Post and job at the top should open collapsed for their top panels' — the page landed on Scheduled and the row opened itself; the chevron's darker ink still says a filter is on",
   },
   {
     trait: "emits aria-expanded",
@@ -104,11 +104,6 @@ const TRAITS: Array<{ trait: string; pattern: RegExp; why: string }> = [
     trait: "emits aria-controls ONLY while the panel exists",
     pattern: /aria-controls=\{tabsOpen \? [A-Z_a-z"'-]+ : undefined\}/,
     why: "the strip unmounts when collapsed; pointing at a missing id is axe aria-valid-attr-value critical",
-  },
-  {
-    trait: "a non-default filter re-opens a folded strip",
-    pattern: /if \(!isDefault[A-Za-z]*\) setTabsOpen/,
-    why: "the disclosure may hide a CONTROL; it may never hide an ACTIVE filter",
   },
   {
     trait: "fires a haptic on press",

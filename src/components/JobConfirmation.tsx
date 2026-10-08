@@ -167,9 +167,10 @@ export function JobConfirmation({
      poster may confirm is a policy call, not a rendering fix. */
   if (helperOnTheWayAt && !isOwner) return null;
   // THE POSTER'S ROW (owner, 2026-10-08: "move I'm still on to the right side of
-  // more and under profile"): once the Helpr has arrived, the row's primary is
-  // the arrival confirm (PosterConfirmationPrimary), never two primaries.
-  if (variant === "inline" && isOwner && helperArrivedAt) return null;
+  // more and under profile"): once the Helpr is on the way, the row's primary is
+  // the arrival confirm (PosterConfirmationPrimary, greyed until they arrive),
+  // never two ("Should only be the greyed out button at the bottom").
+  if (variant === "inline" && isOwner && (helperOnTheWayAt || helperArrivedAt)) return null;
 
   const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
   /* THE WINDOW CLOSES WHEN THE JOB DAY DOES — for the helper.

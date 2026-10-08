@@ -791,15 +791,9 @@ function AppliedJobCardInner({
             </div>
           )}
 
-          {/* Fully done (reviewed) - collapsible */}
-          {isFullyDone && (
-            <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
-              {/* No chevron glyph here (owner: remove it) — the whole card is
-                  still the expand/collapse tap target (see JobCardShell); only
-                  the visible glyph is gone. */}
-              <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed</span>
-            </div>
-          )}
+          {/* Fully done (reviewed): "Reviewed" rides the ONE bottom line
+              (HelperCollapsedStrip `reviewed`), no band of its own (owner,
+              2026-10-08: "There should only be one section at the bottom"). */}
           {isFullyDone && isExpanded && hasProof && (
             <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* The same Photos button as the completed-not-reviewed branch
@@ -855,7 +849,7 @@ function AppliedJobCardInner({
             </div>
           )}
           {!isMinimalCard && !isExpanded && (
-            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} />
+            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} />
           )}
         </JobCardShell>
         </div>

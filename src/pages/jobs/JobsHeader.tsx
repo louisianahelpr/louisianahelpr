@@ -119,20 +119,16 @@ export function JobsHeader({
   // arrives OPEN, so an active filter is never hidden. The chevron beside
   // search opens and folds the row (owner, 2026-09-19: "add a dropdown arrow
   // next to search so these aren't always showing").
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+  // ALWAYS FOLDED ON OPEN, whatever the filter (owner, 2026-10-08: "Post and
+  // job at the top should open collapsed for their top panels" — the page
+  // landed on Scheduled and the row opened itself). It opens only when tapped.
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
   // On the wide screen the tabs simply STAY UP — there is room for them beside
   // the title, so hiding them behind a chevron buys nothing and costs a press
   // (owner: "drop down not needed on the wide screen, the category can stay at
   // the top"). The disclosure is a phone affordance.
   const tabsOpen = inlineFilters || tabsOpenPhone;
   const setTabsOpen = setTabsOpenPhone;
-  // A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY.
-  // The disclosure may hide a control; it may never hide an ACTIVE filter. A
-  // deep link resolving, back/forward restoring `?filter=`, or a bucket change
-  // all land the same way: a filtered list with nothing on screen saying why.
-  useEffect(() => {
-    if (!isDefaultFilter) setTabsOpen(true);
-  }, [isDefaultFilter]);
 
   /* IF A LABEL IS PAST THE EDGE, SAY SO.
      The labels FIT the phone row (11px type + 12px gaps, and the short words

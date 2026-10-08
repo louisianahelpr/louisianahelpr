@@ -361,23 +361,14 @@ export function ConversationList({
      What IS shared is the real chrome: ScreenHeaderRow, UnderlineTabs and the
      icon-button class, all imported, and the parity test that pins the rest. */
   const isDefaultInboxFilter = inboxTab === defaultInboxTab(0);
-  // OWNER, 2026-09-25: "open with the chevrons collapsed" — folded on the
-  // default filter, like PostsHeader / JobsHeader; a non-default filter arrives open.
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
+  // ALWAYS FOLDED ON OPEN, like PostsHeader / JobsHeader (owner, 2026-10-08:
+  // "Post and job at the top should open collapsed for their top panels").
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
   /* On the desktop website the strip simply STAYS UP — it rides inline in the
      header row, where there is width to spare, so folding two short words
      behind a chevron buys nothing and costs a press. Same call PostsHeader and
      JobsHeader make under `inlineFilters`; the chevron is a phone affordance. */
   const tabsOpen = isWebDesktop || tabsOpenPhone;
-  /* A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY. The
-     disclosure may hide a control; it may never hide an ACTIVE filter —
-     looking at a slice of your threads with nothing on screen saying why is
-     the "silently filtered" state 2026-09-19 was right to be afraid of. The
-     initial state is open regardless, so this only fires on a strip the
-     reader collapsed themselves. */
-  useEffect(() => {
-    if (!isDefaultInboxFilter) setTabsOpenPhone(true);
-  }, [isDefaultInboxFilter]);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.

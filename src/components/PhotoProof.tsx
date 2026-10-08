@@ -261,7 +261,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHero
-            title={`${type === "before" ? "Before" : "After"} photos`}
+            title={`${type === "before" ? "Before" : "After"} Photos`}
           />
           <div className="space-y-3">
             {existingUrls.length > 0 && (

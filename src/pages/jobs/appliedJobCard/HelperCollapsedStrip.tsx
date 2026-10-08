@@ -46,6 +46,7 @@ export function HelperCollapsedStrip({
   unsettledDisputeJobIds,
   showStartClock = false,
   hideStatus = false,
+  reviewed = false,
 }: {
   app: AppliedApp;
   job: Job;
@@ -56,6 +57,10 @@ export function HelperCollapsedStrip({
   showStartClock?: boolean;
   /** No strip on an offer: OfferedActions is its statement and carries its one clock (owner, 2026-10-05). */
   hideStatus?: boolean;
+  /** This Helpr has reviewed the finished job: said on the ONE bottom line
+   *  ("Done · payout pending · Reviewed"), never as a second band above it
+   *  (owner, 2026-10-08: "There should only be one section at the bottom"). */
+  reviewed?: boolean;
 }) {
   // A crew member's strip has no clock rows of its own yet, so it keeps the
   // start pill above it. Everyone else: every time at the bottom, under the
@@ -64,6 +69,12 @@ export function HelperCollapsedStrip({
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
-    : <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
+    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
   return <>{clock}{strip}</>;
+}
+
+/** "Done · payout pending" + " · Reviewed" on a finished job this Helpr reviewed. */
+export function withReviewed(line: ReturnType<typeof helperStatusLine>, reviewed: boolean): ReturnType<typeof helperStatusLine> {
+  if (!reviewed || (line.id !== "done_paid" && line.id !== "done_payout_pending")) return line;
+  return { ...line, detail: `${line.detail} · Reviewed` };
 }

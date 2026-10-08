@@ -334,8 +334,9 @@ export function screenPanelContentProps(
   band: ScreenPanelBand,
   /** Phone band only: round the TOP corners too, with the same radius as the
    *  bottom ones. Notifications asks for it (owner, 2026-10-01: its bottom
-   *  corners were rounded and its top ones square). Filters does not pass it
-   *  and keeps its square top. Desktop is a rounded-lg card either way. */
+   *  corners were rounded and its top ones square). Filters asks for it too
+   *  (owner, 2026-10-08: "Round the top edge of filters to be like
+   *  notifications"). Desktop is a rounded-lg card either way. */
   options: { roundTopCorners?: boolean } = {},
 ): {
   side: "bottom";

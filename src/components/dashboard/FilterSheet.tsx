@@ -334,7 +334,7 @@ export function FilterSheet({
         </PopoverPortal>
         <PopoverContent
           ref={panelRef}
-          {...screenPanelContentProps(band)}
+          {...screenPanelContentProps(band, { roundTopCorners: true })}
           aria-labelledby={titleId}
           // NO AUTOFOCUS ON THE SEARCH FIELD.
           //

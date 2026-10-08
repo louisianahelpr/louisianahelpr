@@ -78,7 +78,7 @@ export function useAvatarCrop() {
   const dialog = (
     <Dialog open={!!src} onOpenChange={(open) => !open && !saving && finish(null)}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHero title="Position your photo" />
+        <DialogHero title="Position Your Photo" />
         <div className="relative w-full aspect-square overflow-hidden rounded-ds-md bg-[hsl(var(--ink-deep)/0.9)]">
           {src && (
             <Cropper

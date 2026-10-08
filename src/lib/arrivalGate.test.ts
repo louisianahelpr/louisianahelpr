@@ -48,19 +48,20 @@ const T = "2026-09-14T10:00:00Z";
  * The GPS measurement still happens, still gates `helper_arrival_verified_at`,
  * and is still shown to both parties as evidence.
  */
-describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", () => {
+describe("arrivalGate — the poster confirms an arrival GPS did not verify (2026-09-19, refined 2026-10-08)", () => {
   it("treats a bare helper claim as NOT established", () => {
     const job = { helper_arrived_at: T };
     expect(arrivalState(job)).toBe("claimed");
     expect(arrivalEstablished(job)).toBe(false);
   });
 
-  it("does NOT accept a server-verified arrival until the poster confirms", () => {
-    // Unchanged by the reversal, and the owner said it twice: "even if gps does
-    // confirm they are there the poster still needs ro cfnrm wither way".
+  it("ACCEPTS a server-verified arrival without the poster (owner pop-up 2026-10-08, \"GPS skips it\")", () => {
+    // Supersedes the 2026-09-19 "even if gps does confirm they are there the
+    // poster still needs to confirm either way".
     const job = { helper_arrived_at: T, helper_arrival_verified_at: T, poster_confirmed_arrival_at: null };
     expect(arrivalState(job)).toBe("verified");
-    expect(arrivalEstablished(job)).toBe(false);
+    expect(arrivalEstablished(job)).toBe(true);
+    expect(arrivalGateMessage(job, "tracker")).toBe("Your location confirmed you're at the job.");
   });
 
   it("DOES accept the poster's confirmation with no verified location (the 2026-09-19 reversal)", () => {
@@ -84,13 +85,10 @@ describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", ()
     expect(arrivalState(undefined)).toBe("none");
   });
 
-  it("never lets evidence alone unlock anything", () => {
-    // The whole point of keeping GPS: it proves something, it grants nothing.
+  it("never lets a claim or a near miss alone unlock anything (only a verified location or the poster)", () => {
     for (const job of [
       { helper_arrived_at: T },
-      { helper_arrived_at: T, helper_arrival_verified_at: T },
       { helper_arrived_at: T, helper_arrival_near_miss_at: T },
-      { helper_arrival_verified_at: T, helper_arrival_near_miss_at: T },
     ]) {
       expect(arrivalEstablished(job), JSON.stringify(job)).toBe(false);
       expect(helperMayStartWorking(job)).toBe(false);
@@ -106,12 +104,11 @@ describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", ()
   });
 
   it("names the poster's tap in every blocked message, and never offers a way round it", () => {
-    const gpsOnly = arrivalGateMessage({ helper_arrived_at: T, helper_arrival_verified_at: T });
     const nearMiss = arrivalGateMessage({ helper_arrived_at: T, helper_arrival_near_miss_at: T });
     const claimed = arrivalGateMessage({ helper_arrived_at: T });
     const none = arrivalGateMessage({});
 
-    for (const m of [gpsOnly, nearMiss, claimed, none]) {
+    for (const m of [nearMiss, claimed, none]) {
       expect(m).toContain("Confirm They Arrived");
       // The superseded copy. "both are needed" is now false: only one is.
       expect(m).not.toMatch(/both are needed/i);
@@ -141,7 +138,6 @@ describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", ()
   it("carries the BLOCKER only — no GPS ask, no control name, no evidence recital", () => {
     const blocked = [
       arrivalGateMessage({ helper_arrived_at: T }, "tracker"),
-      arrivalGateMessage({ helper_arrived_at: T, helper_arrival_verified_at: T }, "tracker"),
       arrivalGateMessage({ helper_arrived_at: T, helper_arrival_near_miss_at: T }, "tracker"),
       arrivalGateMessage({}, "tracker"),
       arrivalGateMessage({ helper_arrived_at: T }, "wrap-up"),
@@ -183,7 +179,7 @@ describe("arrivalGate — owner 2026-09-19: the poster confirms, EVERY time", ()
   });
 
   it("names the door: wrap-up on Done, the next step on Working", () => {
-    const job = { helper_arrived_at: T, helper_arrival_verified_at: T };
+    const job = { helper_arrived_at: T };
     expect(arrivalGateMessage(job, "wrap-up")).toContain("mark the job complete");
     expect(arrivalGateMessage(job, "tracker")).toContain("start working");
   });
@@ -248,12 +244,13 @@ describe("the arrival verdict from mark_helper_arrival", () => {
     expect(v.arrivalEstablished).toBe(false);
   });
 
-  it("reads a GPS-verified check-in, which still owes the poster's tap", () => {
-    const v = verdict({ verified: true, basis: "gps_verified", distance_ft: 120 })!;
+  it("reads a GPS-verified check-in as established, no poster tap owed (owner pop-up 2026-10-08)", () => {
+    const v = verdict({ verified: true, basis: "gps_verified", distance_ft: 120, poster_confirmation_required: false, arrival_established: true })!;
     expect(v.verified).toBe(true);
     expect(v.distanceFt).toBe(120);
-    expect(v.posterConfirmationRequired).toBe(true);
-    expect(v.arrivalEstablished).toBe(false);
+    expect(v.posterConfirmationRequired).toBe(false);
+    expect(v.arrivalEstablished).toBe(true);
+    expect(arrivalVerdictMessage(v)).toMatch(/You can start working/);
   });
 
   it("reads an already-confirmed arrival as established", () => {
@@ -287,7 +284,8 @@ describe("the arrival verdict from mark_helper_arrival", () => {
       expect(copy, basis).toBeTruthy();
       // Nothing may tell a Helpr the check-in failed — it never does now.
       expect(copy, basis).not.toMatch(/couldn't (mark|check) you|too far from the job — get closer|get within 500/i);
-      if (basis !== "already_confirmed") {
+      // Verified (or nothing to measure against): GPS skips the tap (2026-10-08).
+      if (!["already_confirmed", "gps_verified", "no_job_coordinates", "already_verified"].includes(basis)) {
         expect(copy, basis).toContain("Confirm They Arrived");
       }
     }
@@ -395,4 +393,4 @@ describe("server refusal copy (lifecycleErrors) — one stamp, named plainly", (
 // poster's stamp for the Helpr's own claim is the pre-VN-33 world where a
 // Helpr could unlock Working and Done by tapping Arrived — the exact cheat
 // the owner's 2026-09-19 decision names.
-// @mutate supabase/functions/_shared/arrivalRule.ts | return !!job?.poster_confirmed_arrival_at; | return !!job?.helper_arrived_at;
+// @mutate supabase/functions/_shared/arrivalRule.ts | return !!job?.poster_confirmed_arrival_at \|\| !!job?.helper_arrival_verified_at; | return !!job?.helper_arrived_at;

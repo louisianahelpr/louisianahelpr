@@ -127,6 +127,9 @@ interface BrowseTasksFeedProps {
   pullDistance: PullToRefresh["pullDistance"];
   refreshing: PullToRefresh["refreshing"];
   isPulling: PullToRefresh["isPulling"];
+  /** Past the trigger point: the same "release to refresh" state Posts, Jobs
+   *  and Messages draw (owner, 2026-10-08, Q1560). */
+  canTrigger?: PullToRefresh["canTrigger"];
   /** Infinite-scroll sentinel — observed by the page's IntersectionObserver. */
   loadMoreRef: Ref<HTMLDivElement>;
   hasNextPage: boolean;
@@ -184,6 +187,7 @@ export function BrowseTasksFeed({
   pullDistance,
   refreshing,
   isPulling,
+  canTrigger = false,
   loadMoreRef,
   hasNextPage,
   isFetchingNextPage,
@@ -443,6 +447,7 @@ export function BrowseTasksFeed({
         pullDistance={pullDistance}
         refreshing={refreshing}
         isPulling={isPulling}
+        canTrigger={canTrigger}
         className="flex-1 min-h-0 flex flex-col overscroll-contain scrollbar-hide pb-0"
         style={view === "map" ? { display: "none" } : undefined}
       >
@@ -574,20 +579,14 @@ export function BrowseTasksFeed({
       </div>
         );
       })() : (() => {
-        // While the feed's first page is still resolving and we don't yet
-        // know whether any of the ALREADY-rendered jobs are about to become
-        // recommended picks, don't paint the real list at all. It used to:
-        // render `visibleJobs` (recommended candidates included, in their
-        // ordinary position) immediately, then — once `recommendedJobs`
-        // resolved a beat later — yank 1-2 of those same jobs out of the
-        // middle of the list and re-insert them at the top via
-        // `combinedVisible`. Every other row was already sitting still, so
-        // the two that got promoted visibly jumped from wherever they'd
-        // been up to the top (owner, 2026-08-30: "the effect like all the
-        // jobs are there then these top 2 scroll in"). Holding the WHOLE
-        // list behind one skeleton until recommendations are known removes
-        // the reorder entirely — the list paints once, already in its
-        // final order.
+        // While the feed's first page is still resolving and we don't yet know whether any of the ALREADY-rendered
+        // jobs are about to become recommended picks, don't paint the real list at all. It used to: render
+        // `visibleJobs` (recommended candidates included, in their ordinary position) immediately, then — once
+        // `recommendedJobs` resolved a beat later — yank 1-2 of those same jobs out of the middle of the list and
+        // re-insert them at the top via `combinedVisible`. Every other row was already sitting still, so the two that
+        // got promoted visibly jumped from wherever they'd been up to the top (owner, 2026-08-30: "the effect like
+        // all the jobs are there then these top 2 scroll in"). Holding the WHOLE list behind one skeleton until
+        // recommendations are known removes the reorder entirely — the list paints once, already in its final order.
         const showFullSkeleton =
           recommendedLoading && !filters.hasFilters && !savedOnly && recommendedVisible.length === 0;
         return (

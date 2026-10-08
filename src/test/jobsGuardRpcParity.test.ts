@@ -274,14 +274,13 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(rpc).toMatch(/poster_confirmation_required/);
     });
 
-    it("gates helper completion on the poster's confirmation ALONE (owner, 2026-09-19)", () => {
+    it("gates helper completion on the poster's confirmation OR a GPS-verified arrival (owner, 2026-10-08)", () => {
       const gates = liveDefinition("enforce_helper_completion_gates");
       expect(
         gates,
-        "enforce_helper_completion_gates still reads a GPS stamp. The tracker's Working " +
-          "step no longer does, so a Helpr with Location off is waved into the work and " +
-          "then refused payment for a stamp nobody can produce.",
-      ).toMatch(/IF OLD\.poster_confirmed_arrival_at IS NULL THEN/);
+        "enforce_helper_completion_gates no longer reads 'poster OR verified' — the tracker's " +
+          "Working step does, so a Helpr would be waved into the work and then refused payment.",
+      ).toMatch(/IF OLD\.poster_confirmed_arrival_at IS NULL\s+AND OLD\.helper_arrival_verified_at IS NULL THEN/);
       expect(
         gates,
         "the superseded VN-33 predicate (GPS or near miss, AND poster) is back in the " +
@@ -290,16 +289,15 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       expect(gates, "the pre-2026-08-28 grandfather clause is back").not.toMatch(/timestamptz '2026-08-28/);
     });
 
-    it("gates the tracker's Working step on the same one stamp", () => {
+    it("gates the tracker's Working step on the same predicate", () => {
       const tracker = liveDefinition("enforce_job_tracking_arrival_gate");
       const working = tracker.match(/IF NEW\.status = 'working'[\s\S]*?END IF;/);
       expect(working, "the 'working' branch of enforce_job_tracking_arrival_gate is gone").toBeTruthy();
       expect(
         working![0],
-        "the Working step reads a GPS stamp again — the owner's rule is the poster's " +
-          "confirmation, GPS or no GPS.",
-      ).not.toMatch(/helper_arrival_verified_at|helper_arrival_near_miss_at/);
-      expect(working![0]).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL/);
+        "the Working step reads the near miss — only a VERIFIED location stands in for the poster.",
+      ).not.toMatch(/helper_arrival_near_miss_at/);
+      expect(working![0]).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL\s+AND v_job\.helper_arrival_verified_at IS NULL/);
       // A claim alone still has to exist before the tracker can say 'arrived'.
       expect(tracker).toMatch(/NEW\.status = 'arrived' AND v_job\.helper_arrived_at IS NULL/);
     });
@@ -311,12 +309,10 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       // whole class — so assert they are the SAME predicate, not just that each
       // is present.
       const rpc = liveDefinition("rpc_helper_mark_done");
-      expect(rpc).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL/);
       expect(
         rpc,
-        "rpc_helper_mark_done reads a GPS stamp the completion trigger does not, so it " +
-          "refuses completions the database would have allowed.",
-      ).not.toMatch(/v_job\.helper_arrival_verified_at IS NULL/);
+        "rpc_helper_mark_done's pre-check is not the completion trigger's 'poster OR verified'.",
+      ).toMatch(/v_job\.poster_confirmed_arrival_at IS NULL\s+AND v_job\.helper_arrival_verified_at IS NULL/);
     });
 
     it("the app's shared predicate agrees with the database", async () => {
@@ -326,7 +322,7 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
       const { arrivalEstablished } = await import("../../supabase/functions/_shared/arrivalRule");
       const T = "2026-09-19T10:00:00Z";
       expect(arrivalEstablished({ poster_confirmed_arrival_at: T })).toBe(true);
-      expect(arrivalEstablished({ helper_arrived_at: T, helper_arrival_verified_at: T })).toBe(false);
+      expect(arrivalEstablished({ helper_arrived_at: T, helper_arrival_verified_at: T })).toBe(true);
       expect(arrivalEstablished({ helper_arrived_at: T, helper_arrival_near_miss_at: T })).toBe(false);
     });
 
@@ -386,10 +382,14 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
     });
 
     it("the client reads the SAME column, and withholds the step by NAME", () => {
+      // Q1570: the Helpr's OWN day-before tap, on both sides.
       expect(
         tracker,
-        "JobTracking's on-the-way gate no longer reads helperConfirmedAt.",
-      ).toMatch(/const helperHasConfirmed = !!helperConfirmedAt;/);
+        "JobTracking's on-the-way gate no longer reads helperDayofConfirmedAt.",
+      ).toMatch(/const helperHasConfirmed = !!helperDayofConfirmedAt;/);
+      expect(rpc, "helper_mark_on_the_way no longer refuses without the day-before tap").toMatch(
+        /IF v_job\.helper_dayof_confirmed_at IS NULL THEN\s*\n\s*RAISE EXCEPTION 'helper_not_dayof_confirmed'/,
+      );
       // BY NAME, not by position. The gate used to live inside the
       // `job_confirmed` branch of the next-step CTA, so a rail that arrived at
       // `on_the_way` by any other route skipped it entirely — which is exactly

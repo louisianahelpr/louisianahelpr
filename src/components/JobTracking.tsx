@@ -209,14 +209,10 @@ export function deriveCurrentStatusIdx({
   jobStatus,
   helperConfirmedAt,
   helperDayofConfirmedAt,
-  jobDateNeeded,
-  jobStartTime,
   posterConfirmedAt,
   helperOnTheWayAt,
   helperArrivedAt,
-  helperArrivalVerifiedAt,
   posterConfirmedArrivalAt,
-  helperArrivalNearMissAt,
   helperCompletedAt,
   posterCompletedAt,
 }: JobProgressEvidence): number {
@@ -267,20 +263,8 @@ export function deriveCurrentStatusIdx({
   // (2026-08-24 lifecycle review). An accept that itself happened inside the
   // 24h window counts (same grace as JobConfirmation), as does any row where
   // no job date is known to measure against.
-  const helperAnsweredDayOf =
-    !!helperDayofConfirmedAt ||
-    (!!helperConfirmedAt &&
-      (() => {
-        // Measured against the job's real START in the JOB's zone. This used
-        // to subtract an absolute timestamp from `parseLocalDate(...)`, which
-        // is midnight in the VIEWER's zone — two operands in different frames,
-        // so the grace window slid by the reader's UTC offset and by however
-        // far the start time sits from midnight. "Same grace as
-        // JobConfirmation" is asserted by the comment above; it is only true
-        // if both measure from the same instant.
-        const start = jobStartDateTime(jobDateNeeded, jobStartTime);
-        return !start || start.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000;
-      })());
+  // Accepting never counts as this tap (owner, 2026-10-08, Q1570).
+  const helperAnsweredDayOf = !!helperDayofConfirmedAt;
   if (helperAnsweredDayOf && posterConfirmedAt) {
     atLeast(STATUS_IDX.job_confirmed);
   }
@@ -308,16 +292,10 @@ export function deriveCurrentStatusIdx({
     // which is exactly what is known. VN-33's "verified AND confirmed" is gone:
     // GPS alone still paints Arrived, the poster's tap alone now paints Working
     // (JobTracking.test.tsx holds both halves).
-    if (
-      trackingIdx < 0 &&
-      jobStatus === "in_progress" &&
-      arrivalEstablished({
-        helper_arrived_at: helperArrivedAt,
-        helper_arrival_verified_at: helperArrivalVerifiedAt,
-        poster_confirmed_arrival_at: posterConfirmedArrivalAt,
-        helper_arrival_near_miss_at: helperArrivalNearMissAt,
-      })
-    ) {
+    // ONLY THE POSTER'S TAP infers Working (2026-10-08): GPS now unlocks Start
+    // Working on its own, but a verified arrival is not proof anyone started,
+    // and the tracker marks a step done only when it truly happened.
+    if (trackingIdx < 0 && jobStatus === "in_progress" && !!posterConfirmedArrivalAt) {
       atLeast(STATUS_IDX.working);
     }
   }
@@ -1468,7 +1446,9 @@ export function JobTracking({
   // The tracker's `job_confirmed` STEP still lights on the mutual stamp — see
   // `deriveCurrentStatusIdx`. This gate is only about which button the helper
   // is allowed to reach.
-  const helperHasConfirmed = !!helperConfirmedAt;
+  // On My Way needs the Helpr's OWN day-before tap; the accept never counts
+  // (Q1570), the same rule helper_mark_on_the_way enforces.
+  const helperHasConfirmed = !!helperDayofConfirmedAt;
 
   const currentStatusIdx = deriveCurrentStatusIdx({
     trackingStatus: tracking?.status,
@@ -2158,7 +2138,7 @@ export function JobTracking({
               tracking.longitude != null
                 ? haversineMiles(tracking.latitude!, tracking.longitude, jobLatitude, jobLongitude)
                 : null;
-            const proof = trackingProofCaption(currentArrivalState, mi, hasPosition, arrivalOnMap);
+            const proof = trackingProofCaption(currentArrivalState, mi, hasPosition, arrivalOnMap, !!jobStamps.arrivalVerifiedAt);
             const Glyph = proof.tone === "warn" ? AlertTriangle : MapPin;
             return (
               <span
@@ -2205,7 +2185,7 @@ export function JobTracking({
           >
             <span className="inline-flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              {trackingProofCaption(currentArrivalState, null, false).text}
+              {trackingProofCaption(currentArrivalState, null, false, false, !!jobStamps.arrivalVerifiedAt).text}
             </span>
           </p>
         )}

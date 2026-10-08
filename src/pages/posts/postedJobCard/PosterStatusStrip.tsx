@@ -25,6 +25,7 @@ export function PosterStatusStrip({
   completedMeta,
   showStartClock = false,
   closedApplicants = null,
+  helperName = null,
 }: {
   job: Args[0];
   pendingApplicantCount: number;
@@ -34,12 +35,14 @@ export function PosterStatusStrip({
   /** What happened to applications nobody is waiting on (owner, 2026-10-07):
    *  replaces "No applicants yet" when people did apply. */
   closedApplicants?: string | null;
+  /** The hired Helpr's name, for "Lexi accepted" (Q1552). */
+  helperName?: string | null;
 }) {
   // The poster's instant-release setting: with it on there is no auto-complete
   // clock, so the collapsed line must not show one (InProgressStep agrees).
   const { profile } = useCurrentUser();
   const instantRelease = !!(profile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
-  const line = withClosedApplicants(posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease), closedApplicants);
+  const line = withClosedApplicants(posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease, job.helper_id ? helperName : null), closedApplicants);
   // EVERY TIME AT THE BOTTOM (owner, 2026-10-07, Q1399): the start (and, once
   // the Helpr has accepted, "until confirmation opens") go under the status
   // line in the strip, with its own clock ("left to accept", inline on the sentence),

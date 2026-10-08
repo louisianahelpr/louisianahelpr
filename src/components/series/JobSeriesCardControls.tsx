@@ -116,10 +116,14 @@ export function ScheduleChangeForJob({
    *  ScheduledStep, owner 2026-10-07); this block keeps the request's state. */
   hideAsk?: boolean;
 }) {
-  if (!expanded || !userId) return null;
+  if (!userId) return null;
+  if (!expanded && !(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me) return null;
   // The details-change request ("Ask to change the details") is gone (owner,
   // 2026-10-08: "delete ask to change the details"); only the date/time ask remains.
   if (!scheduleChangeAllowed(job, userId, viewer)) return null;
+  // COLLAPSED, only a request waiting on THIS person shows, with its Accept /
+  // Decline (owner, 2026-10-08, Q1551: "if they didn't click into the job to
+  // open it they have no way of knowing they asked for a different time").
   return (
         <ScheduleChangeControl
           jobId={job.id}
@@ -127,7 +131,8 @@ export function ScheduleChangeForJob({
           userId={userId}
           dateNeeded={job.date_needed as string}
           startTime={job.start_time ?? null}
-          hideAsk={hideAsk}
+          hideAsk={hideAsk || !expanded}
+          askedOfMeOnly={!expanded}
         />
   );
 }

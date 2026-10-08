@@ -39,6 +39,20 @@ export async function fetchPendingScheduleChange(jobId: string, now: Date = new 
   return row;
 }
 
+/** The jobs whose open date/time request is waiting on THIS person (Q1551):
+ *  one read for the whole list, so a collapsed card mounts the request only
+ *  when there is one. */
+export async function fetchScheduleChangesAskedOf(userId: string, now: Date = new Date()): Promise<string[]> {
+  const result = await supabase
+    .from("job_schedule_change_requests")
+    .select("job_id, expires_at")
+    .eq("responder_id", userId)
+    .eq("status", "pending");
+  if (isNotDeployedYet(result.error)) return [];
+  const rows = (unwrap(result) ?? []) as { job_id: string; expires_at: string }[];
+  return rows.filter((r) => Date.parse(r.expires_at) > now.getTime()).map((r) => r.job_id);
+}
+
 function changeError(error: { code?: string | null; message?: string | null }, copy: string | null): Error {
   if (isNotDeployedYet(error)) {
     return new Error("This is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.");

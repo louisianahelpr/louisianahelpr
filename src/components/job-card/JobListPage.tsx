@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { deepLinkReady, useActivityFetching } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -236,6 +237,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // Only THIS tab's data blocks the first card. The other tab's core query
     // is warmed on idle inside the hook, so switching still comes out of cache.
   } = useActivityData(user, tab);
+  const activityFetching = useActivityFetching(); // a ?job= link waits for it (Q1563, deepLinkWait.ts)
 
   // Customer-first-bid push nudge — fires the high-intent re-ask the
   // first time this customer sees at least one applicant on a job they
@@ -282,6 +284,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (!deepLinkKey) return;
     if (deepLinkResolvedFor.current === deepLinkKey) return;
     if (loading) return;
+    const named = tab === "posted"
+      ? postedJobs.some((j) => j.id === (deepLinkJobId ?? highlightJobId))
+      : appliedApps.some((a) => (deepLinkJobId ? a.job_id === deepLinkJobId : a.id === highlightAppId));
+    if (!deepLinkReady({ named, fetching: activityFetching })) return;
     deepLinkResolvedFor.current = deepLinkKey;
 
     let bucket: string | null = null;
@@ -331,7 +337,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // reaches this effect at all, because none of the data deps change. It
     // cannot loop: the branch above deletes `job` from the URL, which sets
     // `deepLinkJobId` to null and the next run returns on the null key.
-  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId]);
+  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId, activityFetching]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({
@@ -494,24 +500,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       inlineFilters={isWebDesktop}
       // THE TABS ARE THE NAVIGATION, so they stay up on an empty list too.
       //
-      // This used to be `isTrulyEmpty ? [] : activeStatusFilters`, on the
-      // reasoning quoted above: a filter with nothing to filter has nothing to
-      // act on. What that produced on /jobs for an account with no
-      // applications — screenshotted 2026-09-19, 1440 — was a header strip
-      // holding a single magnifier and nothing else: the title is sr-only on
-      // the desktop website and the tabs were gone, so the row was empty
-      // chrome above an empty panel and the screen read as broken rather than
-      // as empty. /posts on the same account showed all five tabs and the
-      // "No jobs in this view" card, because it HAS posts and was merely
-      // filtered to none; the difference was never a difference between the
-      // two pages, but it looked like one.
+      // This used to be `isTrulyEmpty ? [] : activeStatusFilters`, on the reasoning quoted above: a filter with
+      // nothing to filter has nothing to act on. What that produced on /jobs for an account with no applications —
+      // screenshotted 2026-09-19, 1440 — was a header strip holding a single magnifier and nothing else: the title is
+      // sr-only on the desktop website and the tabs were gone, so the row was empty chrome above an empty panel and
+      // the screen read as broken rather than as empty. /posts on the same account showed all five tabs and the "No
+      // jobs in this view" card, because it HAS posts and was merely filtered to none; the difference was never a
+      // difference between the two pages, but it looked like one.
       //
-      // A tab row is not an action on the list, it is where you are in the
-      // screen. Empty is a legitimate place to be, and seeing "Needs You"
-      // underlined over "No applications yet" says which emptiness this is —
-      // whereas a row with the tabs removed says the screen failed to load.
-      // It also keeps the header's HEIGHT identical whether the list has rows
-      // or not, which is the same stability argument that kept the title.
+      // A tab row is not an action on the list, it is where you are in the screen. Empty is a legitimate place to be,
+      // and seeing "Needs You" underlined over "No applications yet" says which emptiness this is — whereas a row
+      // with the tabs removed says the screen failed to load. It also keeps the header's HEIGHT identical whether the
+      // list has rows or not, which is the same stability argument that kept the title.
       activeStatusFilters={activeStatusFilters}
       activeCounts={activeCounts}
       statusFilter={statusFilter}

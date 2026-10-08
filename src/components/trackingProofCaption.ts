@@ -55,7 +55,15 @@ export function trackingProofCaption(
   hasPosition: boolean,
   /** Is the map rendering this arrival as a label on its job pin? See above. */
   arrivalShownOnMap = false,
+  /** The server verified the arrival's location (helper_arrival_verified_at).
+   *  Q1573 (owner, 2026-10-08, job 28f8cff5): a poster's confirm OUTRANKED it
+   *  in `state`, and Start Working clears the tracker's position, so a
+   *  GPS-verified arrival read "confirmed by the person who posted it · no
+   *  location shared". The location WAS shared, at the arrival. */
+  gpsVerified = state === "verified",
 ): TrackingProofCaption {
+  const verifiedClause =
+    state === "confirmed" ? "Arrival GPS-verified and confirmed by the person who posted it" : "Arrival GPS-verified";
   // NO "at the job" CLAUSE (owner, 2026-09-16: "remove the at the job text").
   // A ping inside the verification radius now says NOTHING about where — the
   // clause is dropped exactly as the no-distance branches already drop it, so
@@ -73,6 +81,7 @@ export function trackingProofCaption(
   // self-reported arrival that rendered identically to a GPS-confirmed one
   // would be the app quietly overstating what it knows.
   if (!hasPosition) {
+    if (gpsVerified && (state === "confirmed" || state === "verified")) return { text: verifiedClause, tone: "ok" };
     switch (state) {
       case "confirmed":
         return { text: "Arrival confirmed by the person who posted it · no location shared", tone: "ok" };
@@ -95,6 +104,7 @@ export function trackingProofCaption(
     // contradiction here — the person standing next to the helper said yes.
     // It is still shown, because hiding it would be the same sin in reverse.
     case "confirmed":
+      if (gpsVerified) return { text: `${verifiedClause}${suffix}`, tone: "ok" };
       return { text: `Arrival confirmed by the person who posted it${suffix}`, tone: "ok" };
     // Verified is a statement about the MOMENT OF ARRIVAL, not about where the
     // helper is now — stepping away from a site mid-job is normal and is the

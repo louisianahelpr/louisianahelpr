@@ -185,8 +185,8 @@ describe("Mark Arrived always records the check-in", () => {
 });
 
 describe("the blocked Start Working CTA is the Helpr's anti-cheat notice", () => {
-  it("is disabled on a GPS-VERIFIED arrival the poster has not confirmed", () => {
-    // The half of the reversal that did NOT flip: GPS alone unlocks nothing.
+  it("is ENABLED on a GPS-VERIFIED arrival the poster has not confirmed (owner pop-up 2026-10-08, \"GPS skips it\")", () => {
+    // Was "disabled": the 09-19 rule required the poster's tap even with GPS.
     renderHelperTracker({
       helperArrivedAt: AT,
       helperArrivalVerifiedAt: AT,
@@ -196,8 +196,7 @@ describe("the blocked Start Working CTA is the Helpr's anti-cheat notice", () =>
       },
     });
     const cta = screen.getByRole("button", { name: /Start Working/i }) as HTMLButtonElement;
-    expect(cta.disabled, "a verified arrival is not a way past the poster").toBe(true);
-    expect(document.body.textContent).toMatch(/Confirm They Arrived/);
+    expect(cta.disabled, "a verified arrival unlocks Start Working").toBe(false);
   });
 
   it("is ENABLED on the poster's tap alone — no GPS anywhere on the row", () => {

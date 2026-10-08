@@ -254,6 +254,9 @@ export function postedActivityBucket(
   pendingApplicantCount = 0,
   now: Date = new Date(),
 ): ActivityBucket {
+  // SOMEONE BACKED OUT and the poster has not tapped Got It (Q1575): Needs You,
+  // whatever else is true. Attached by useActivityData from backout_notices.
+  if ((j as { backout_notice?: unknown }).backout_notice) return "needs_you";
   // MONEY FIRST (Q360 review). A chargeback leaves jobs.status 'completed' (or
   // wherever it was) and a declined card leaves it 'open', so every rule below
   // would file the alarm card under Done or Waiting, where nobody looks. The
@@ -313,6 +316,8 @@ export function postedActivityBucket(
 /** Which bucket a job I APPLIED to belongs in. */
 export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   const jobStatus = app.job?.status;
+  // The poster backed out and the Helpr has not tapped Got It (Q1575).
+  if ((app.job as { backout_notice?: unknown } | null)?.backout_notice) return "needs_you";
   // NO JOB ROW = THE JOB IS GONE, NOT "still waiting on a decision".
   // `get_jobs_for_my_applications` returns a job to a helper only when
   // customer_id = me, helper_id = me, status = 'open', or they are on the

@@ -159,6 +159,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
           <PosterConfirmationPrimary
             job={job}
             step="in_progress"
+            helperWorking={ctx.helperWorking}
             confirmingArrivalJobId={confirmingArrivalJobId}
             confirmingWorkingJobId={confirmingWorkingJobId}
             onConfirmArrival={onConfirmArrival}

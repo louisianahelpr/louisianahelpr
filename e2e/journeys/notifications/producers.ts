@@ -60,6 +60,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   // ── SQL functions ───────────────────────────────────────────────────────
   "sql:admin_reverse_violation": { uncovered: ADMIN_ONLY("reverses a violation from the admin user view") },
   "sql:apply_consequence_ladder": { uncovered: STRIKE },
+  "sql:nudge_confirm": { uncovered: "a Nudge needs a booked job inside its day-before window with the other side unconfirmed; the journeys book same-pass seed jobs that never sit in that window. Proven in src/test/pglite/confirmRepost.pglite.mjs (sent, too soon, already confirmed, not a party, restricted)." },
+  "sql:sweep_backout_notice_reminders": { uncovered: "re-pushes only an unacknowledged back-out 30+ minutes old inside 24 h of a start; a journey cannot wait that out. Proven in src/test/pglite/backoutNotices.pglite.mjs." },
+  "sql:sweep_confirm_reminders_and_repost": { uncovered: "reminds every 3 h and reposts at T-2h only on jobs posted by real (non-seed) accounts; the journeys post as is_seed and are exempt by design. Proven in src/test/pglite/confirmRepost.pglite.mjs." },
   "sql:notify_schedule_change_expired": { uncovered: "fires only when a date/time request is answered after its new time or the original start has passed; a journey cannot wait out a real start. Proven in src/test/pglite/scheduleChangeLeadAndExpiry.pglite.mjs (both reasons, the asker told once each)." },
   "sql:apply_job_denial_consequence": { uncovered: STRIKE },
   "sql:apply_low_rating_flag": { uncovered: STRIKE },

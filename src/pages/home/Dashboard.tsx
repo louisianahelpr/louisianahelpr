@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
 import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ const Dashboard = () => {
     hasNextPage, isFetchingNextPage, fetchNextPage, itemCount: allJobs.length,
   });
 
-  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: refresh,
   });
 
@@ -319,6 +320,7 @@ const Dashboard = () => {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
     handleApplyRequest, handleApplyConfirm,
+    applicationSent, closeApplicationSent, viewApplication,
   } = useApplyFlow({ user, allJobs });
 
   // Immediate optimistic dismiss + toast/Undo (owner: the "Not Interested?"
@@ -443,21 +445,16 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      // A slim toolbar above the feed (owner: "move to section above the job
-      // card"). On desktop it carries only the search + filter controls — the
-      // emblem and bell live in the global app bar, and the IN PROGRESS pill
-      // was removed outright (owner). Phone/native keep the full card,
-      // emblem + pill included, since they have no app bar to hold them.
-      // MERGED (owner: "merge"). On the desktop website there is no separate
-      // floating title card above the panel any more — it was a second box
-      // stating nothing the app bar doesn't already carry, and it spanned the
-      // map as well as the feed. Its one remaining job, the search + filter
-      // controls, moved INTO the panel directly above the job cards (see the
-      // feed column below), so the screen is one box.
+      // A slim toolbar above the feed (owner: "move to section above the job card"). On desktop it carries only the
+      // search + filter controls — the emblem and bell live in the global app bar, and the IN PROGRESS pill was
+      // removed outright (owner). Phone/native keep the full card, emblem + pill included, since they have no app bar
+      // to hold them. MERGED (owner: "merge"). On the desktop website there is no separate floating title card above
+      // the panel any more — it was a second box stating nothing the app bar doesn't already carry, and it spanned
+      // the map as well as the feed. Its one remaining job, the search + filter controls, moved INTO the panel
+      // directly above the job cards (see the feed column below), so the screen is one box.
       //
-      // Phone and native keep the card exactly as it was: they have no app
-      // bar, so this is the only thing carrying the emblem and the live
-      // in-progress pill.
+      // Phone and native keep the card exactly as it was: they have no app bar, so this is the only thing carrying
+      // the emblem and the live in-progress pill.
       titleCard={
         isWebDesktop ? undefined : (
           <DashboardTitleBar
@@ -717,6 +714,7 @@ const Dashboard = () => {
                     pullDistance={pullDistance}
                     refreshing={refreshing}
                     isPulling={isPulling}
+                    canTrigger={canTrigger}
                     loadMoreRef={loadMoreRef}
                     hasNextPage={hasNextPage}
                     isFetchingNextPage={isFetchingNextPage}
@@ -925,6 +923,7 @@ const Dashboard = () => {
           (`?apply=<jobId>`), where no detail sheet is open to host the step.
           When the detail sheet IS open it renders the apply step itself, and
           mounting this too would stack a second surface over it. */}
+      <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} />
       {confirmApplyJobId && confirmApplyJobId !== detailJob?.id && (
         <Suspense fallback={null}>
           <ApplyConfirmDialog

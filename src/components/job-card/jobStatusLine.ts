@@ -252,7 +252,6 @@ export type PosterWait =
   | "confirm_still_on"
   | "on_the_way"
   | "confirm_arrival"
-  | "confirm_working"
   | "working"
   | "approve"
   | "revision_out"
@@ -311,7 +310,6 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      These two are also the owner's own example: "confirmed but now you need to
      confirm". */
   confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
-  confirm_working: { detail: "Confirm they're working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   /* FINDING #2 again, same rule, later step. */
   working: { detail: "Work is underway", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   approve: { detail: "Approve & release pay" },
@@ -507,7 +505,10 @@ export function derivePosterWait(
          sentence is shown, never whose move the card claims it is. */
       const rung = posterConfirmationRung(job, derivePosterStep(job.status)!, now);
       if (rung?.stalled) return "stalled";
-      if (rung?.enabled) return rung.action === "working" ? "confirm_working" : "confirm_arrival";
+      // The WORKING vouch is not a collapsed state any more (Q1571): it waits
+      // for the Helpr's Start Working, which is on their tracker, not on this
+      // row, and it is optional (owner answer 3). The card says "Lexi is working".
+      if (rung?.enabled && rung.action === "arrival") return "confirm_arrival";
       if (jobIsOverdue(job)) {
         if (job.status === "in_progress") {
           return job.helper_arrived_at ? "overdue_unfinished" : "overdue_no_show";
@@ -548,16 +549,19 @@ export function posterStatusLine(
    * on there is no auto-complete clock to show (InProgressStep hides it too).
    */
   instantRelease = false,
+  /** The hired Helpr's display name: the sentence names them (Q1552). */
+  helperName?: string | null,
 ): JobStatusLine {
   const id = derivePosterWait(job, pendingApplicantCount, now, completion);
   const copy = POSTER_WAIT[id];
   const bucket = postedActivityBucket(job, pendingApplicantCount, now);
+  const named = helperName ? POSTER_NAMED[id]?.(helperName, job) : undefined;
   return {
     id,
     eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: copy.detail,
+    detail: named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
-    owesConfirmation: id === "confirm_arrival" || id === "confirm_working",
+    owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job) : null,
     deadline: posterDeadline(id, job, instantRelease),
   };
@@ -662,7 +666,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   confirmed: { detail: "You're booked" },
   /* The day-before window is open and this Helpr has not confirmed (Q1574). */
   confirm_day: { detail: "Confirm you'll be at the job" },
-  today: { detail: "The job is today" },
+  // The job's start has come (agreedJobStage "started"); the countdown said the rest (Q1552).
+  today: { detail: "It's time — tap I'm On My Way" },
   /* FINDING #5 on the Helpr's side. `appliedActivityBucket` lifts only TODAY's
      work into Needs You, so a job started a day early reads "Scheduled ·
      You're on the way" / "Scheduled · Finish and mark it done" — a commitment
@@ -786,10 +791,11 @@ export function helperStatusLine(
   const id = deriveHelperWait(app);
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
+  const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
   return {
     id,
     eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: copy.detail,
+    detail: named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking",
     suffix:
@@ -835,6 +841,40 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
       return null;
   }
 }
+
+/* ── NAMES IN THE SENTENCE (owner, 2026-10-08, Q1552: "it should also say the
+   person's name ... so Lexi Accepted or Lexi Confirmed or Lexi is on the way,
+   Lexi is working"). The unnamed tables above stay the fallback when the name
+   is not known; these replace only the states that are about the other
+   person. ── */
+const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
+const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => string>> = {
+  offer_out: (n) => `Your offer is with ${firstName(n)}`,
+  unconfirmed: (n) => `Offer sent — ${firstName(n)} hasn't accepted yet`,
+  confirmed: (n, job) => `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"}`,
+  confirm_still_on: (n, job) =>
+    `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,
+  on_the_way: (n) => `${firstName(n)} is on the way`,
+  confirm_arrival: (n) => `${firstName(n)} arrived — confirm it`,
+  working: (n) => `${firstName(n)} is working`,
+  revision_out: (n) => `${firstName(n)} is making the fix`,
+  revision_fixed: (n) => `${firstName(n)} sent the fix — check it`,
+  stalled: (n) => `Waiting on ${firstName(n)} to mark it done`,
+  approve: (n) => `${firstName(n)} marked it done — approve & release pay`,
+  overdue_unconfirmed: (n) => `${firstName(n)} never accepted — cancel?`,
+  overdue_not_started: (n) => `${firstName(n)} never started — cancel?`,
+  overdue_not_arrived: (n) => `${firstName(n)} never arrived — cancel?`,
+  overdue_no_show: (n) => `${firstName(n)} never arrived — No-Show?`,
+  overdue_unfinished: (n) => `Waiting on ${firstName(n)} to finish`,
+};
+const HELPER_NAMED: Partial<Record<HelperWait, (name: string) => string>> = {
+  applied: (n) => `${n} hasn't replied yet`,
+  offer: (n) => `${n} offered you this job`,
+  confirm_booking: (n) => `${n} offered you this job`,
+  submitted: (n) => `With ${n} for approval`,
+  revision: (n) => `${n} asked for a fix`,
+  revision_sent: (n) => `Your fix is with ${n}`,
+};
 
 /** Every id both tables define — the inventory the guard measures against. */
 export const POSTER_WAIT_IDS = Object.keys(POSTER_WAIT) as PosterWait[];

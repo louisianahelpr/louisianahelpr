@@ -26,11 +26,15 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.confirmed);
   });
 
-  it("shows Confirmed only once both parties have confirmed", () => {
+  it("shows Confirmed only once both parties have tapped confirm (accepting never counts, Q1570)", () => {
+    expect(
+      deriveCurrentStatusIdx({ jobStatus: "accepted", helperConfirmedAt: AT, posterConfirmedAt: AT }),
+    ).toBe(STATUS_IDX.confirmed);
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "accepted",
         helperConfirmedAt: AT,
+        helperDayofConfirmedAt: AT,
         posterConfirmedAt: AT,
       }),
     ).toBe(STATUS_IDX.job_confirmed);
@@ -59,9 +63,9 @@ describe("deriveCurrentStatusIdx", () => {
     expect(deriveCurrentStatusIdx({ jobStatus: "in_progress", helperConfirmedAt: AT })).toBe(
       STATUS_IDX.confirmed,
     );
-    // …and Confirmed still lights the moment the MUTUAL pair is there.
+    // …and Confirmed still lights the moment the MUTUAL pair of TAPS is there.
     expect(
-      deriveCurrentStatusIdx({ jobStatus: "in_progress", helperConfirmedAt: AT, posterConfirmedAt: AT }),
+      deriveCurrentStatusIdx({ jobStatus: "in_progress", helperConfirmedAt: AT, helperDayofConfirmedAt: AT, posterConfirmedAt: AT }),
     ).toBe(STATUS_IDX.job_confirmed);
   });
 
@@ -95,7 +99,7 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.working);
   });
 
-  it("stops at Arrived on GPS ALONE — the poster's tap is the gate (supersedes VN-33)", () => {
+  it("stops at Arrived on GPS ALONE — GPS unlocks Start Working (2026-10-08) but proves nobody started", () => {
     /* ── THE HISTORY, KEPT ON PURPOSE ─────────────────────────────────────
      * This case was "stops at Arrived on HALF an arrival — GPS alone, or the
      * poster alone (VN-33)": owner, 2026-09-14, had made it "verified AND

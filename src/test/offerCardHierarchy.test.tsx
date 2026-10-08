@@ -29,7 +29,6 @@
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |   if (step === "scheduled" && !job.helper_confirmed_at) return null; |   if (false) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | showStartClock={job.status === "accepted"} | showStartClock={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | showStartClock={isConfirmed} | showStartClock={false}
- * @mutate src/components/series/JobSeriesCardControls.tsx |   if (!expanded \|\| !userId) return null; |   if (!userId) return null;
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
@@ -40,7 +39,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx |                   {!offerUnanswered && <JobConfirmation |                   {<JobConfirmation
  * @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId | <JobConfirmation embedded jobId
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
- * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true);
+ * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null);
  * @mutate src/components/job-card/jobStatusLine.ts | "left to accept" | "left to confirm"
  * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "Offer sent — they haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
  * @mutate src/components/job-card/JobStatusStrip.tsx |   const deadlineInline = line.id === "unconfirmed" && !!line.deadline; |   const deadlineInline = false;
@@ -228,7 +227,8 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
     renderPosted(offerJob, false);
     expect(stripRows()).toEqual(["start"]);
     const strip = document.querySelector("[data-job-status-strip]")!;
-    expect(strip.textContent).toMatch(/Offer sent — they haven't accepted yet/);
+    // Names the Helpr when known (Q1552): "Offer sent — Hallie hasn't accepted yet".
+    expect(strip.textContent).toMatch(/Offer sent — .+ (hasn't|haven't) accepted yet/);
     // The answer clock (DeadlineCountdown, mocked here) sits INSIDE the first line.
     expect(strip.querySelector('[data-countdown-inline="deadline"] [data-testid="answer-clock"]')).not.toBeNull();
     expect(strip.textContent).toMatch(/until the job starts/);

@@ -1,4 +1,5 @@
 import { assertNever } from "@/lib/assertNever";
+import { isPastDue } from "@/lib/jobDate";
 import {
   completionStalled,
   STALLED_APPROVE_DISABLED_LABEL,
@@ -27,6 +28,9 @@ export interface PosterStepCtx {
   completingJobId: string | null;
   confirmingArrivalJobId: string | null;
   confirmingWorkingJobId: string | null;
+  /** The Helpr's tracker says Working (or Done): the poster's "They're
+   *  Working" waits for it (Q1571; the server refuses it before). */
+  helperWorking?: boolean;
   /** The poster's own auto-release setting; changes what the wait is called. */
   instantReleaseOn: boolean;
   navigate: (to: string) => void;
@@ -178,6 +182,8 @@ export function posterConfirmationRung(
   job: Job,
   step: PosterStepId,
   now: Date = new Date(),
+  /** The Helpr tapped Start Working (their tracker row); see PosterStepCtx. */
+  helperWorking = false,
 ): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
   // A CREW (Q1382): arrivals are confirmed PER MEMBER, on the roster's own
@@ -212,7 +218,22 @@ export function posterConfirmationRung(
   // while the job was booked. It hides a DISABLED box only: the moment an
   // arrival is claimed the box appears, enabled, exactly as before.
   // Guard: posterConfirmationLadder.test.ts ("Q1400 ...").
-  if (!job.poster_confirmed_arrival_at && !arrivalClaimed) return null;
+  // ON THE WAY (owner, 2026-10-08, Q1568: "it should be a greyed out confirm
+  // they arrived button"): once the Helpr heads out the poster's next step is
+  // drawn, greyed, saying when it turns on. Before that, Q1400 still holds.
+  if (!job.poster_confirmed_arrival_at && !arrivalClaimed) {
+    // Not once the day is gone: a Helpr who never turned up leaves No-Show as
+    // the poster's move (item 7), not a box waiting on an arrival.
+    if (step !== "in_progress" || !job.helper_on_the_way_at || job.helper_completed_at || isPastDue(job.date_needed)) return null;
+    return {
+      action: "arrival",
+      label: "Confirm They Arrived",
+      enabled: false,
+      done: false,
+      reason: "This button turns on once your Helpr says they've arrived.",
+      gate: false,
+    };
+  }
 
   let rung: PosterConfirmRung;
   if (!job.poster_confirmed_arrival_at) {
@@ -232,12 +253,14 @@ export function posterConfirmationRung(
       gate: false,
     };
   } else if (step === "in_progress" && !job.poster_confirmed_working_at) {
+    // ONLY AFTER THE HELPR'S OWN STEP (owner, 2026-10-08, Q1571): greyed, and
+    // saying when it turns on, until they tap Start Working.
     rung = {
       action: "working",
       label: "Confirm They're Working",
-      enabled: true,
+      enabled: helperWorking,
       done: false,
-      reason: null,
+      reason: helperWorking ? null : "This button turns on once your Helpr taps Start Working.",
       gate: false,
     };
   } else {

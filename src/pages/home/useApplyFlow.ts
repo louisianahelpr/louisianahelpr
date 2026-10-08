@@ -1,6 +1,7 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { useState, useCallback, useEffect, useRef } from "react";
+import type { ApplicationSent } from "@/components/dashboard/ApplicationSentDialog";
 import { useMutation, useQueryClient, type Query } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -42,6 +43,8 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  /** The "Application Sent" pop-up (Q1550); null when closed. */
+  const [applicationSent, setApplicationSent] = useState<ApplicationSent | null>(null);
   // Synchronous in-flight guard for handleApplyConfirm (see there).
   const applyInFlight = useRef(false);
   // Q269. Jobs whose last apply failed on the WIRE (isNetworkFailure: a
@@ -382,18 +385,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         }
       }
 
-      if (noteWithheld) {
-        toast.warning("Application sent — but your note wasn't included", {
-          description:
-            "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it.",
-          duration: 10000,
-          action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
-        });
-      } else {
-        toast.success("Application sent. Track it in My Jobs.", {
-          action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
-        });
-      }
+      // A POP-UP, NOT A TOAST (owner, 2026-10-08, Q1550). Its View goes to
+      // `/jobs?job=` for the reason above.
+      setApplicationSent({
+        jobId: vars.jobId,
+        title: allJobs.find((j) => j.id === vars.jobId)?.title ?? confirmApplyJob?.title ?? null,
+        noteWithheld,
+      });
       // First-application funnel event — strictly best-effort analytics, so
       // it must never break (or block) the apply flow. Isolated in its own
       // try/catch and we explicitly inspect the Supabase `error` instead of
@@ -467,6 +465,9 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
 
   return {
+    applicationSent,
+    closeApplicationSent: () => setApplicationSent(null),
+    viewApplication: (jobId: string) => navigate(`/jobs?job=${jobId}`),
     confirmApplyJobId,
     setConfirmApplyJobId,
     confirmApplyJob,

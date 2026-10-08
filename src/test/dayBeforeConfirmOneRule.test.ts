@@ -6,7 +6,7 @@
  * Confirmed"); the tracker measured from the START (did not). One rule now:
  * from the start, so both say the Helpr still owes the day-before tap.
  *
- * @mutate src/components/JobConfirmation.tsx |   const start = jobStartDateTime(dateNeeded, startTime) ?? jobDayStart(dateNeeded); |   const start = jobDayStart(dateNeeded);
+ * @mutate src/components/JobConfirmation.tsx |   return helperDayofConfirmedAt ?? null; |   return helperDayofConfirmedAt ?? "2026-10-08T19:30:00Z";
  */
 import { describe, expect, it } from "vitest";
 import { helperDayOfConfirmation } from "@/components/JobConfirmation";
@@ -18,10 +18,10 @@ describe("the day-before grace is measured from the job's start", () => {
     ).toBeNull();
   });
 
-  it("an accept inside 24h of the start counts", () => {
+  it("an accept inside 24h of the start does NOT count either (owner 2026-10-08, Q1570: both must tap confirm)", () => {
     expect(
       helperDayOfConfirmation({ helperConfirmedAt: "2026-10-08T19:30:00Z", dateNeeded: "2026-10-09", startTime: "14:00:00" }),
-    ).toBe("2026-10-08T19:30:00Z");
+    ).toBeNull();
   });
 
   it("the real day-before stamp always counts", () => {

@@ -161,12 +161,15 @@ export function ScheduleChangeControl({
   dateNeeded,
   startTime,
   hideAsk = false,
+  askedOfMeOnly = false,
 }: {
   jobId: string;
   jobTitle: string | null;
   userId: string;
   dateNeeded: string;
   startTime: string | null;
+  /** A collapsed card: draw only a request waiting on this person (Q1551). */
+  askedOfMeOnly?: boolean;
   /** The card draws the ask as a button in its own action row (the poster's
    *  ScheduledStep), so this block shows only the request's state. */
   hideAsk?: boolean;
@@ -178,6 +181,7 @@ export function ScheduleChangeControl({
   const askedOfMe = !!pending && pending.responder_id === userId;
   const askedByMe = !!pending && pending.requested_by === userId;
   if (hideAsk && !pending) return null;
+  if (askedOfMeOnly && !askedOfMe) return null;
 
   return (
     <div className="px-4 py-2 border-t border-border/20 space-y-2" data-schedule-change onClick={(e) => e.stopPropagation()}>

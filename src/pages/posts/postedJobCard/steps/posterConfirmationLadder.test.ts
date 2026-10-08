@@ -165,7 +165,8 @@ describe("the ladder enables nothing the old gates did not", () => {
     const widened = matrix()
       .filter((j) => j.status === "in_progress")
       .filter((j) => {
-        const rung = posterConfirmationRung(j, stepOf(j));
+        // The Helpr has tapped Start Working (Q1571: the vouch waits for it).
+        const rung = posterConfirmationRung(j, stepOf(j), undefined, true);
         const nowEnabled = rung?.action === "working" && rung.enabled;
         return nowEnabled !== legacyWorkingEnabled(j);
       });
@@ -195,9 +196,9 @@ describe("item 6b — a revision job keeps its confirmations", () => {
     // The old gate: `job.status === "in_progress" && …` — false here, so the
     // control vanished on every revision job.
     expect(legacyWorkingEnabled(j)).toBe(false);
-    const rung = posterConfirmationRung(j, "in_progress");
+    // With the Helpr's Working on their tracker (Q1571).
+    const rung = posterConfirmationRung(j, "in_progress", undefined, true);
     expect(rung).toMatchObject({ action: "working", enabled: true, label: "Confirm They're Working" });
-    expect(posterOwesConfirmation(j)).toBe(true);
   });
 
   it("does not resurrect the arrival vouch on work that is already finished", () => {
@@ -235,16 +236,17 @@ describe("Q1400 — no arrival box from accept until the Helpr marks themselves 
     expect(posterConfirmationRung(onTheWay, "scheduled")).toBeNull();
   });
 
-  it("an in-progress job whose Helpr has not arrived draws no box", () => {
-    expect(posterConfirmationRung(startedNotArrived, "in_progress")).toBeNull();
+  it("SUPERSEDED 2026-10-08 (Q1568): on the way, the box is drawn greyed, saying when it turns on", () => {
+    // Owner: "where do i confirm they arrived? it should be a greyed out confirm they arrived button".
+    const r = posterConfirmationRung(startedNotArrived, "in_progress");
+    expect(r).toMatchObject({ action: "arrival", enabled: false, label: "Confirm They Arrived" });
+    expect(r?.reason).toMatch(/turns on once your Helpr says they've arrived/);
   });
 
-  it("over the whole matrix: no arrival box is ever drawn DISABLED", () => {
-    // The class, not three examples: every shape whose arrival is not yet
-    // confirmed either draws the ENABLED box or nothing.
+  it("over the whole matrix: a DISABLED arrival box only ever means 'on the way, not arrived yet'", () => {
     const dead = matrix().filter((j) => {
       const rung = posterConfirmationRung(j, stepOf(j));
-      return rung?.action === "arrival" && !rung.enabled;
+      return rung?.action === "arrival" && !rung.enabled && !(stepOf(j) === "in_progress" && j.helper_on_the_way_at && !j.helper_arrived_at);
     });
     expect(dead.map((j) => JSON.stringify(j))).toEqual([]);
   });
@@ -407,4 +409,4 @@ describe("item 7 — the job nobody marked done", () => {
 // @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | const enabled = arrivalClaimed && (step === "in_progress" | const enabled = (step === "in_progress"
 // Shown able to fail: Q1400's hide. Dropping it draws the disabled arrival box
 // again from accept until arrival, which the Q1400 describe catches.
-// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | if (!job.poster_confirmed_arrival_at && !arrivalClaimed) return null; | if (false) return null;
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | if (!job.poster_confirmed_arrival_at && !arrivalClaimed) { | if (false) {

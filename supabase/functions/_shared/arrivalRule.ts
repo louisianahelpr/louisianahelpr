@@ -10,6 +10,11 @@
 // encourgage to turn on gps. but even if gps does confirm they are there the
 // poster still needs ro cfnrm wither way"
 //
+// SUPERSEDED IN PART (owner, 2026-10-08 pop-up, "GPS skips it"): a GPS-verified
+// arrival (helper_arrival_verified_at) now establishes it too; only an arrival
+// the location did NOT verify still needs the poster's tap. The 09-19 text
+// below is the history of why the poster's tap exists at all.
+//
 // So arrival is established by ONE stamp:
 //
 //   poster_confirmed_arrival_at — the poster's "Confirm They Arrived" tap. The
@@ -61,7 +66,9 @@ export type ArrivalEvidence = {
  * (20260919155016). `src/test/jobsGuardRpcParity.test.ts` pins that agreement.
  */
 export function arrivalEstablished(job: ArrivalEvidence | null | undefined): boolean {
-  return !!job?.poster_confirmed_arrival_at;
+  // OWNER, 2026-10-08 (pop-up, "GPS skips it"): a location the server measured
+  // at the job is enough on its own; without it the poster's tap still is.
+  return !!job?.poster_confirmed_arrival_at || !!job?.helper_arrival_verified_at;
 }
 
 /** Which door the message is for: the payout request, or the tracker's next step. */
@@ -108,6 +115,8 @@ export function arrivalGateMessage(
       ? "Arrival confirmed by your location and by the person who posted this job."
       : "The person who posted this job confirmed you arrived.";
   }
+  // GPS SKIPS THE POSTER'S TAP (owner, 2026-10-08): nothing is blocking.
+  if (gps) return "Your location confirmed you're at the job.";
   // THE ONE BLOCKER, whatever the location evidence says — that is the owner's
   // 2026-09-19 rule, and it is why the branches collapsed into one sentence.
   //

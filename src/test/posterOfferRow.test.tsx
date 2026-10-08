@@ -12,7 +12,7 @@
  *
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         canAsk && !askedOfMe && ( |         false && (
  * @mutate src/pages/posts/PostedJobCard.tsx | viewer="poster" expanded={isExpanded} hideAsk /> | viewer="poster" expanded={isExpanded} />
- * @mutate src/components/job-card/JobCardMetaRow.tsx |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto" |     ? "basis-full shrink-0 max-w-full"
+ * @mutate src/components/job-card/JobCardMetaRow.tsx |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0" |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto"
  * @mutate src/components/job-card/JobCardMetaRow.tsx | fullAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap" | fullAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
  */
 import { describe, it, expect, vi } from "vitest";
@@ -97,15 +97,17 @@ describe("11. the date-change ask is a button left of Message", () => {
   });
 });
 
-describe("8. wide screens put the date and time on the address's row, at its right", () => {
-  it("the address only takes its own line below md; from md up the row is one line with date/time pushed right", () => {
+describe("8. wide screens put the date and time on the address's row, right beside it (Q1549)", () => {
+  it("the address only takes its own line below md; from md up the row is one line, date/time next to the address", () => {
     render(
       <JobCardMetaRow dateNeeded="2026-10-09" startTime="14:00" location="1103 Center St, New Iberia, LA 70560" expiresAt={null} showFullAddress />,
     );
     const address = screen.getByText("1103 Center St, New Iberia, LA 70560");
     let item: HTMLElement = address;
     while (item.parentElement && !item.parentElement.classList.contains("job-meta-row")) item = item.parentElement;
-    for (const c of ["basis-full", "md:basis-auto", "md:mr-auto", "md:min-w-0"]) expect(item.classList.contains(c), c).toBe(true);
+    for (const c of ["basis-full", "md:basis-auto", "md:min-w-0"]) expect(item.classList.contains(c), c).toBe(true);
+    // Not pushed to the far edge (owner, 2026-10-08: "fix that gap").
+    expect(item.classList.contains("md:mr-auto")).toBe(false);
     const row = item.parentElement!;
     expect(row.classList.contains("flex-wrap")).toBe(true);
     expect(row.classList.contains("md:flex-nowrap")).toBe(true);

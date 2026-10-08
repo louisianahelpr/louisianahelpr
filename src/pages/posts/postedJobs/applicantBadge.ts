@@ -11,7 +11,7 @@
  * src/test/applicantBadgeCoversClosedReasons.test.ts compares the two, both ways.
  */
 
-export type ClosedReason = "job_cancelled" | "party_blocked" | "offer_expired";
+export type ClosedReason = "job_cancelled" | "party_blocked" | "offer_expired" | "not_confirmed";
 
 /** The badge for each closed_reason; null = no badge (nobody was declined). */
 export const CLOSED_REASON_BADGE: Record<ClosedReason, string | null> = {
@@ -21,6 +21,8 @@ export const CLOSED_REASON_BADGE: Record<ClosedReason, string | null> = {
   party_blocked: "Declined",
   // The Helpr did not answer the offer in time (the poster's own notice says so).
   offer_expired: "Offer expired",
+  // Reposted 2 hours before the start: they never confirmed (owner, 2026-10-08).
+  not_confirmed: "Didn't confirm",
 };
 
 export type ApplicantBadge = { label: string; kind: "selected" | "closed" };

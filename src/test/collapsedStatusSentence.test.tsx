@@ -236,12 +236,6 @@ const POSTER_FIXTURES: Record<
       helper_confirmed_at: ago(20), helper_on_the_way_at: ago(2), helper_arrived_at: ago(1),
     }),
   },
-  confirm_working: {
-    job: job({
-      status: "in_progress", helper_id: HELPER, date_needed: TODAY,
-      helper_confirmed_at: ago(20), helper_arrived_at: ago(1), poster_confirmed_arrival_at: ago(1),
-    }),
-  },
   working: {
     job: job({
       status: "in_progress", helper_id: HELPER, date_needed: TODAY,
@@ -569,7 +563,7 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
   });
 
   it("Posts: the states that ARE the poster's move say so", () => {
-    for (const id of ["confirm_arrival", "confirm_working", "approve", "revision_fixed", "applicants"] as PosterWait[]) {
+    for (const id of ["confirm_arrival", "approve", "revision_fixed", "applicants"] as PosterWait[]) {
       const f = POSTER_FIXTURES[id];
       const line = posterStatusLine(f.job, f.pending ?? 0, undefined, f.completion);
       expect(line.eyebrow, `${id} does not tell the poster it is their move`).toBe("Needs You");

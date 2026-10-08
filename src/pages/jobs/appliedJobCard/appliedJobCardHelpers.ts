@@ -167,5 +167,6 @@ export function describeCancellation(
 export function closedCardLabel(app: { closed_reason?: string | null; status?: string | null }): string {
   if (app.closed_reason === "job_cancelled") return "Job cancelled";
   if (app.closed_reason === "offer_expired") return "Offer expired";
+  if (app.closed_reason === "not_confirmed") return "Reposted: you didn't confirm";
   return app.status === "rejected" ? "Not selected" : "Job no longer available";
 }

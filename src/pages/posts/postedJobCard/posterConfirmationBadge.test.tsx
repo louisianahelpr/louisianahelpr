@@ -30,8 +30,8 @@ import type { Job } from "../../../components/job-card/activityConstants";
  * `steps/posterConfirmationLadder.test.ts` (`posterOwesConfirmation`), and the
  * whole sentence inventory in `src/test/collapsedStatusSentence.test.tsx`.
  *
- * @mutate src/components/job-card/jobStatusLine.ts | owesConfirmation: id === "confirm_arrival" \|\| id === "confirm_working", | owesConfirmation: true,
- * @mutate src/components/job-card/jobStatusLine.ts | if (rung?.enabled) return rung.action === "working" ? "confirm_working" : "confirm_arrival"; | if (rung) return rung.action === "working" ? "confirm_working" : "confirm_arrival";
+ * @mutate src/components/job-card/jobStatusLine.ts |     owesConfirmation: id === "confirm_arrival", |     owesConfirmation: true,
+ * @mutate src/components/job-card/jobStatusLine.ts |       if (rung?.enabled && rung.action === "arrival") return "confirm_arrival"; |       if (rung && rung.action === "arrival") return "confirm_arrival";
  */
 
 const T = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
@@ -62,12 +62,13 @@ describe("the collapsed posted card's confirmation signal", () => {
     expect(container.textContent, "it does not say whose move it is").toContain("Needs You");
   });
 
-  it("flags the SECOND rung too, once the first is taken", () => {
+  it("does NOT flag the working vouch from the collapsed card (Q1571)", () => {
+    // It waits for the Helpr's Start Working, which lives on their tracker, not
+    // on the job row the collapsed card reads; and it is optional (answer 3).
     const { container } = renderFor(
       job({ helper_arrived_at: T(2), poster_confirmed_arrival_at: T(1) }),
     );
-    expect(container.querySelector("[data-poster-owes-confirmation]")).not.toBeNull();
-    expect(container.textContent).toContain("Confirm they're working");
+    expect(container.querySelector("[data-poster-owes-confirmation]")).toBeNull();
   });
 
   it("stays silent while the box inside is merely DISABLED", () => {

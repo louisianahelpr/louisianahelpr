@@ -567,6 +567,34 @@ export function ApplicantsPanel({
                                 </span>
                               ) : null;
                             })()}
+                            {/* The applicant's message, in the name column right under the chips
+                                (owner, 2026-10-08: "Move the comment up"; it sat below the Hire row).
+                                Compact quote style.
+                                `flagged_hidden` is set server-side by
+                                applications_scan_contact_info when the note carries
+                                a phone number, email, off-platform payment service
+                                or an intent phrase. Setting the flag without
+                                honouring it here would leave the leak on screen and
+                                only LOOK fixed — the note reached this exact
+                                component verbatim in the 2026-09-06 review. */}
+                            {(app.message || app.flagged_hidden) && (
+                              app.flagged_hidden ? (
+                                <p
+                                  className="font-sans text-ds-13 leading-snug mt-1"
+                                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                                >
+                                  This note was hidden — it looked like contact or payment details.
+                                  Keep the conversation on Helpr so your payment stays protected.
+                                </p>
+                              ) : (
+                                <p
+                                  className="font-sans text-ds-13 leading-snug line-clamp-2 mt-1"
+                                  style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+                                >
+                                  "{app.message}"
+                                </p>
+                              )
+                            )}
                           </div>
 
                           <div className="flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1">
@@ -624,33 +652,6 @@ export function ApplicantsPanel({
                           </div>
                         </div>
 
-
-                        {/* Row 2: applicant message — compact quote style.
-                            `flagged_hidden` is set server-side by
-                            applications_scan_contact_info when the note carries
-                            a phone number, email, off-platform payment service
-                            or an intent phrase. Setting the flag without
-                            honouring it here would leave the leak on screen and
-                            only LOOK fixed — the note reached this exact
-                            component verbatim in the 2026-09-06 review. */}
-                        {(app.message || app.flagged_hidden) && (
-                          app.flagged_hidden ? (
-                            <p
-                              className="font-sans text-ds-13 leading-snug pl-14"
-                              style={{ color: "hsl(var(--burnt-sienna))" }}
-                            >
-                              This note was hidden — it looked like contact or payment details.
-                              Keep the conversation on Helpr so your payment stays protected.
-                            </p>
-                          ) : (
-                            <p
-                              className="font-sans text-ds-13 leading-snug line-clamp-2 pl-14"
-                              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
-                            >
-                              "{app.message}"
-                            </p>
-                          )
-                        )}
 
                         {/* Row 3: attachments */}
                         {(app.attachment_urls || []).length > 0 && (

@@ -9,7 +9,6 @@ import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
 import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { CountdownRows, posterOfferClocks } from "./postedJobCard/posterOfferClocks";
-import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
 import { withDisputeSettling } from "../../components/job-card/jobStatusLine";
@@ -660,10 +659,10 @@ function PostedJobCardInner({
                   group-helper roster) and neither stops it internally, so
                   without this every tap in them also toggled the card open or
                   shut. Same pattern as the tracker wrapper above. */}
-              {(job.status === "in_progress" || job.status === "accepted") && (
+              {/* The poster's "I'm Still On" is the Scheduled step's row primary
+                  now (ScheduledStep, owner 2026-10-08), not a panel here. */}
+              {(job.status === "in_progress" || job.status === "accepted") && job.is_group_job && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
-                  {/* `embedded` for the same reason as the tracker above. */}
-                  {!offerUnanswered && <JobConfirmation embedded hideNotYetOpen jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} startTime={job.start_time} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />}
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
 
                 </div>

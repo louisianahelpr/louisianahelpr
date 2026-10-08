@@ -73,6 +73,7 @@ export function JobConfirmation({
   startTime = null,
   jobStatus,
   helperOnTheWayAt,
+  helperArrivedAt = null,
   onConfirm,
   onCantMakeIt,
   variant = "card",
@@ -93,6 +94,9 @@ export function JobConfirmation({
   startTime?: string | null;
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
+  /** The Helpr's "I've Arrived" stamp. On the poster's row it hands the
+   *  primary to the arrival confirm (PosterConfirmationPrimary). */
+  helperArrivedAt?: string | null;
   onConfirm?: () => void;
   /**
    * Opens the caller's existing cancel/decline flow (CancellationDialog for
@@ -162,6 +166,10 @@ export function JobConfirmation({
      The 24h window below is UNCHANGED and deliberately so: widening when a
      poster may confirm is a policy call, not a rendering fix. */
   if (helperOnTheWayAt && !isOwner) return null;
+  // THE POSTER'S ROW (owner, 2026-10-08: "move I'm still on to the right side of
+  // more and under profile"): once the Helpr has arrived, the row's primary is
+  // the arrival confirm (PosterConfirmationPrimary), never two primaries.
+  if (variant === "inline" && isOwner && helperArrivedAt) return null;
 
   const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
   /* THE WINDOW CLOSES WHEN THE JOB DAY DOES — for the helper.
@@ -201,7 +209,7 @@ export function JobConfirmation({
        way, so that button should be confirm you will be at the job, not on my
        way"). */
     const opensAtForNote = new Date(confirmOpensMs(dateNeeded));
-    const waitingPrimary = variant === "inline" && isHelper ? (
+    const waitingPrimary = variant === "inline" && (isHelper || isOwner) ? (
       <>
         <JobStepRowSlot slot="note">
           <p className="font-sans text-ds-10" data-helper-confirm-wait-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -211,7 +219,7 @@ export function JobConfirmation({
           </p>
         </JobStepRowSlot>
         <JobStepRowSlot slot="primary">
-          <JobStepPrimaryButton icon={CheckCircle2} label={HELPER_CONFIRM_LABEL} disabled onClick={() => {}} />
+          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"} disabled onClick={() => {}} />
         </JobStepRowSlot>
       </>
     ) : null;
@@ -534,17 +542,20 @@ export function JobConfirmation({
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : isOwner ? (
+        /* After the poster confirms: their NEXT step, greyed until the Helpr
+           says they've arrived (docs/JOB-LIFECYCLE.md step 6), the same box
+           the panel variant draws. */
         <JobStepPrimaryButton
-          icon={CheckCircle2}
-          label="Confirmed"
-          tone="done"
+          icon={MapPin}
+          label="Confirm They've Arrived"
+          disabled
           onClick={() => {}}
         />
       ) : null
     );
     return (
       <>
-        <JobStepRowSlot slot="note">{deadlineNotice}{nudgeLine}</JobStepRowSlot>
+        <JobStepRowSlot slot="note">{deadlineNotice}{posterNextNote}{nudgeLine}</JobStepRowSlot>
         <JobStepRowSlot slot="primary">{rowCta}</JobStepRowSlot>
         {confirmDialog}
       </>

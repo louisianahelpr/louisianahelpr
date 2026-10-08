@@ -158,7 +158,8 @@ export function JobStatusStrip({
       </span>
       {deadlineInline && line.deadline && (
         <span className="inline-flex items-center gap-1.5" data-countdown-inline="deadline" style={{ color: `hsl(var(${skin.ink}))` }}>
-          <span aria-hidden>·</span>
+          {/* No "·" before the clock (owner, 2026-10-08: "Remove the period before
+              the second clock"): it wraps onto its own line, where a dot leads it. */}
           <DeadlineCountdown compact deadline={line.deadline.at} expiredText={line.deadline.expiredText} consequenceText={line.deadline.consequenceText} />
         </span>
       )}

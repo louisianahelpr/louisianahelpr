@@ -28,6 +28,7 @@
  *
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |   if (step === "scheduled" && !job.helper_confirmed_at) return null; |   if (false) return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | showStartClock={job.status === "accepted"} | showStartClock={false}
+ * @mutate src/components/job-card/JobStatusStrip.tsx |           <DeadlineCountdown compact deadline={line.deadline.at} |           <span aria-hidden>·</span><DeadlineCountdown compact deadline={line.deadline.at}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | showStartClock={isConfirmed} | showStartClock={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
@@ -231,6 +232,8 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
     expect(strip.textContent).toMatch(/Offer sent — .+ (hasn't|haven't) accepted yet/);
     // The answer clock (DeadlineCountdown, mocked here) sits INSIDE the first line.
     expect(strip.querySelector('[data-countdown-inline="deadline"] [data-testid="answer-clock"]')).not.toBeNull();
+    // No "·" leading the clock (owner, 2026-10-08: "Remove the period before the second clock").
+    expect(strip.querySelector('[data-countdown-inline="deadline"]')!.textContent).not.toMatch(/·/);
     expect(strip.textContent).toMatch(/until the job starts/);
     expect(strip.textContent).not.toMatch(/confirm/i);
     expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();

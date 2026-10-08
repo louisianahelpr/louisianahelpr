@@ -91,12 +91,7 @@ export async function fillLogistics(page: Page, slot: Slot, allowReport: (messag
   await page.keyboard.press("Escape");
   allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
   await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-  await page.getByRole("button", { name: /Date Needed/ }).click();
-  await pickCalendarDay(page, slot.isoDay);
-  await expect(
-    page.getByRole("button", { name: /Date Needed/ }),
-    "Date Needed still reads as empty after choosing a day",
-  ).not.toHaveText(/Select a date/);
+  await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
   await pickStartTime(page, slot);
 }
 

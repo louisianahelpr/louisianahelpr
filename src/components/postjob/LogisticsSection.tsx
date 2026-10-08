@@ -398,14 +398,19 @@ export function LogisticsSection({
 
       {/* Date and Start Time sit side by side from md up (owner, 2026-10-05);
           stacked on a phone, where each needs the full width. */}
-      <div className="grid gap-5 md:grid-cols-2 md:items-start">
+      {/* The calendar is always open (owner, 2026-10-08), and the two columns
+          are one height: Start Time's card stretches to the calendar's with
+          the wheel centred in it. */}
+      <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
       <div className="space-y-3 min-w-0">
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
-        <Label htmlFor="date">{isRecurring ? "Start Date" : "Date Needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label id="date-label">{isRecurring ? "Start Date" : "Date Needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <DatePickerField
           id="date"
+          inline
+          labelledBy="date-label"
           value={dateNeeded}
           onChange={setDateNeeded}
           min={todayLocalISO()}
@@ -418,7 +423,7 @@ export function LogisticsSection({
           is wrong when the date is today and the time is what has gone by. */}
       <div
         id="start-time"
-        className="space-y-3 min-w-0"
+        className="flex flex-col gap-3 min-w-0"
         role="group"
         aria-labelledby="start-time-label"
         aria-describedby={scheduleInPast ? "start-time-error" : undefined}
@@ -433,7 +438,9 @@ export function LogisticsSection({
         </Label>
         {/* Fills its column like Date Needed beside it (owner, 2026-10-07:
             "make time fill that empty space on the right"). */}
-        <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" className="max-w-none w-full" />
+        <div className="flex-1 flex flex-col justify-center rounded-2xl border border-input glass-field p-3">
+          <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" className="max-w-none w-full" />
+        </div>
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">

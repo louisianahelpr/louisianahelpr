@@ -49,7 +49,31 @@ interface DatePickerFieldProps {
    * date is picked, so this defaults to off everywhere else.
    */
   showCompleteCheck?: boolean;
+  /**
+   * Draw the month calendar always open, filling its column, instead of a
+   * pill that pops it over the fields below (owner, 2026-10-08, Post a Job:
+   * "leave the calendar popped out same size as the start time box"). The
+   * calendar's own selected day is the read-out; `id` lands on its card.
+   */
+  inline?: boolean;
+  /** With `inline`: the id of the visible label naming the calendar. */
+  labelledBy?: string;
 }
+
+/** Day cells spread across the column (seven equal tracks) instead of the
+ *  popover's fixed 44px grid, so an inline calendar fills its card. */
+const INLINE_GRID = {
+  months: "w-full",
+  month: "w-full space-y-4",
+  weekdays: "grid grid-cols-7",
+  weekday: "rounded-md text-center font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink)/0.9)]",
+  week: "grid grid-cols-7 w-full mt-2",
+  day: "h-11 flex items-center justify-center text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+};
+
+const toLocalIso = (d: Date) =>
+  // Local YYYY-MM-DD (NEVER toISOString → UTC drift)
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /**
  * iOS-style date input. Renders a tappable pill that opens a calendar
@@ -66,6 +90,8 @@ export function DatePickerField({
   className,
   wheel = false,
   showCompleteCheck = false,
+  inline = false,
+  labelledBy,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
 }: DatePickerFieldProps) {
@@ -88,6 +114,30 @@ export function DatePickerField({
         year: "numeric",
       })
     : placeholder;
+
+  if (inline) {
+    return (
+      <div
+        id={id}
+        role="group"
+        aria-labelledby={labelledBy}
+        aria-describedby={ariaDescribedby}
+        className={cn("rounded-2xl border border-input glass-field", className)}
+      >
+        <Suspense fallback={<Skeleton className="h-[22rem] w-full rounded-2xl" aria-hidden />}>
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(d) => d && onChange(toLocalIso(d))}
+            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false)}
+            defaultMonth={selected}
+            classNames={INLINE_GRID}
+            className="p-3 w-full"
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -143,11 +193,7 @@ export function DatePickerField({
             selected={selected}
             onSelect={(d) => {
               if (!d) return;
-              // Format as local YYYY-MM-DD (NEVER toISOString → UTC drift)
-              const yyyy = d.getFullYear();
-              const mm = String(d.getMonth() + 1).padStart(2, "0");
-              const dd = String(d.getDate()).padStart(2, "0");
-              onChange(`${yyyy}-${mm}-${dd}`);
+              onChange(toLocalIso(d));
               setOpen(false);
             }}
             disabled={(d) => d < minDate || (maxDate ? d > maxDate : false)}

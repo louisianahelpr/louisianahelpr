@@ -63,9 +63,13 @@ export function isoDayIn(at: Date, timeZone = "America/Chicago"): string {
  * asserts the popover closed after — the two things the old regex silently
  * skipped.
  */
-export async function pickCalendarDay(page: Page, isoDay: string): Promise<void> {
-  const popover = page.getByRole("dialog", { name: "Choose a date" });
-  await expect(popover, "the calendar popover did not open").toBeVisible({ timeout: 10_000 });
+export async function pickCalendarDay(page: Page, isoDay: string, opts: { inline?: RegExp } = {}): Promise<void> {
+  // `inline`: an always-open calendar (Post a Job since 2026-10-08), found by
+  // the label that names its group; nothing to open and nothing to close.
+  const popover = opts.inline
+    ? page.getByRole("group", { name: opts.inline })
+    : page.getByRole("dialog", { name: "Choose a date" });
+  await expect(popover, "the calendar is not on screen").toBeVisible({ timeout: 10_000 });
   // The grid is lazy (DatePickerField defers react-day-picker's chunk behind a
   // Suspense skeleton). Wait for the month sheet to exist before looking for a
   // day on it — otherwise the paging loop below runs against an empty popover
@@ -88,5 +92,9 @@ export async function pickCalendarDay(page: Page, isoDay: string): Promise<void>
       "and clicking its <td> instead is what silently did nothing before",
   ).toBeEnabled({ timeout: 5_000 });
   await button.click();
+  if (opts.inline) {
+    await expect(cell, `${isoDay} did not become the selected day`).toHaveAttribute("aria-selected", "true", { timeout: 5_000 });
+    return;
+  }
   await expect(popover, `the calendar stayed open after choosing ${isoDay}`).toBeHidden({ timeout: 5_000 });
 }

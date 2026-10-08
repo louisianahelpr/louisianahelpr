@@ -562,12 +562,7 @@ test.describe("post a job", () => {
     await page.keyboard.press("Escape");
     await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
     const slot = slotAhead(100);
-    await page.getByRole("button", { name: /Date Needed/ }).click();
-    await pickCalendarDay(page, slot.isoDay);
-    await expect(
-      page.getByRole("button", { name: /Date Needed/ }),
-      "Date Needed still reads as empty after choosing a day",
-    ).not.toHaveText(/Select a date/);
+    await pickCalendarDay(page, slot.isoDay, { inline: /Date Needed/ });
     await pickStartTime(page, slot);
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await shoot(page, info, "post-step-logistics");

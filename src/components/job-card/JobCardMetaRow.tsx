@@ -325,12 +325,9 @@ export function JobCardMetaRow({
   // setting. The rule above is untouched for every card that shows a city,
   // which is every card on which it was ever measured.
   //
-  // ON A WIDE SCREEN THE ADDRESS SHARES THE LINE (owner, 2026-10-07, the
-  // poster's card at desktop width, Q1399): from `md` up there is room, so the
-  // address sits LEFT and the date and time sit at the RIGHT of the same row
-  // (`md:mr-auto` pushes them over) instead of stacked under it. It may still
-  // wrap inside its own box rather than clip. Phone widths keep the stacked
-  // layout above. Guard: JobCardMetaRow.locationPriority.test.tsx.
+  // ON A WIDE SCREEN THE ADDRESS SHARES THE LINE (owner, 2026-10-07, Q1399): from `md` up
+  // the address sits LEFT, date and time RIGHT (`md:mr-auto`), wrapping in its own box rather
+  // than clipping; phones keep the stacked layout. Guard: JobCardMetaRow.locationPriority.test.tsx.
   const cityFlex = fullAddress
     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto"
     : expiresAt

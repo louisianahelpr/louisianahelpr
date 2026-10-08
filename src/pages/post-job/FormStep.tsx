@@ -159,10 +159,6 @@ export function FormStep({ form }: FormStepProps) {
             stepNumber={3}
             budget={form.budget}
             setBudget={form.setBudget}
-            suggested={form.suggested}
-            budgetPresets={form.budgetPresets}
-            priceStats={form.priceStats}
-            priceStatsLoading={form.priceStatsLoading}
             isUrgent={form.isUrgent}
             setIsUrgent={form.setIsUrgent}
             urgentFee={form.urgentFee}
@@ -170,7 +166,6 @@ export function FormStep({ form }: FormStepProps) {
             customUrgentFee={form.customUrgentFee}
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
-            category={form.category}
             giftAmount={form.giftCreditAmount}
           />
         </div>

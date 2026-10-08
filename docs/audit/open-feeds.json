@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T18:02Z",
+  "measured_at": "2026-10-08T18:11Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,9 +57,137 @@
     ]
   },
   "ledger": {
-    "readable": false,
-    "error": "Command failed: supabase db query --linked -o json SELECT fingerprint, source_kind, source, status, sample_ref,",
-    "open": []
+    "readable": true,
+    "open": [
+      {
+        "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-audit",
+        "issue": 2245
+      },
+      {
+        "fingerprint": "7e141f206640992d5c398b4e39d71f94",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: press-every-control",
+        "issue": 2353
+      },
+      {
+        "fingerprint": "6389f98a9f666200913c7cf501dc289d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: loading-states-refresh",
+        "issue": 2601
+      },
+      {
+        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
+        "source_kind": "error_logs",
+        "source": "push-tokens-empty",
+        "status": "open",
+        "title": "no device can receive a push",
+        "issue": null
+      },
+      {
+        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: vacuity",
+        "issue": 2501
+      },
+      {
+        "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: nightly-red-age",
+        "issue": 2244
+      },
+      {
+        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-real-backend",
+        "issue": 2435
+      },
+      {
+        "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-journeys",
+        "issue": 2436
+      },
+      {
+        "fingerprint": "6205197429d4e577570e7970d3a22f83",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: a11y-webkit-prod",
+        "issue": 2375
+      },
+      {
+        "fingerprint": "54b8c187374af47410a43e9dedb4f4df",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: open-done-when",
+        "issue": 2615
+      },
+      {
+        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: branch-prune",
+        "issue": 2366
+      },
+      {
+        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
+        "source_kind": "nightly_red",
+        "source": "prod-errors",
+        "status": "open",
+        "title": "prod-errors: real users are hitting error screens",
+        "issue": 2478
+      },
+      {
+        "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/app-shared-BltHQJ6d)",
+        "status": "open",
+        "title": "error: usesearchparammirror runaway writes",
+        "issue": null
+      },
+      {
+        "fingerprint": "f08d7f0fc323e27f5b0f419dfb6ff159",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: arrival-confirm-reminder returned 503",
+        "issue": null
+      },
+      {
+        "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
+        "issue": null
+      }
+    ]
   },
   "mirrored": {
     "bus ME-019": "Q1472",
@@ -90,7 +218,9 @@
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 3a3460b71be7": "Q1428",
+    "ledger 41f88aeb227f": "Q1525",
     "ledger 43d77e26f272": "Q1429",
+    "ledger 54b8c187374a": "Q1524",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",

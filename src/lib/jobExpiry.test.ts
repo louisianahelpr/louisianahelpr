@@ -113,7 +113,7 @@ describe("computeJobExpiresAt", () => {
  * start showed "34 minutes left" at 2:03. A new job needs 2 hours' notice and
  * its listing closes at the start.
  *
- * @mutate src/lib/jobExpiry.ts | export const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000; | export const MIN_POST_NOTICE_MS = 0;
+ * @mutate src/lib/jobExpiry.ts | const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000; | const MIN_POST_NOTICE_MS = 0;
  * @mutate src/lib/jobExpiry.ts |   return scheduled.getTime() > now.getTime()\n    ? scheduled.toISOString() |   return scheduled.getTime() > now.getTime() + MIN_LISTING_WINDOW_MS\n    ? scheduled.toISOString()
  */
 describe("a new job needs 2 hours' notice, and its listing closes at its start", () => {

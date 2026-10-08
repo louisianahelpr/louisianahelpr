@@ -57,7 +57,7 @@ Element.prototype.scrollTo = () => {};
 beforeEach(() => update.mockClear());
 
 // Q1461 (owner answer 3): the line also says the access notes stay editable.
-const LOCK_LINE = "The place and details are locked once a Helpr is booked. To change them, use “Ask to change the details” on the job; everyone booked has to agree. You can still update the access and parking notes here; your Helpr is told.";
+const LOCK_LINE = "The place and details are locked once a Helpr is booked. You can still update the access and parking notes here; your Helpr is told.";
 
 describe("a booked job's place and details are not offered for editing (Q1204)", () => {
   it("booked: every locked input is disabled and the one line says why", () => {

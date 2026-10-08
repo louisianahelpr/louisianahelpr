@@ -243,7 +243,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
-              The place and details are locked once a Helpr is booked. To change them, use “Ask to change the details” on the job; everyone booked has to agree. You can still update the access and parking notes here; your Helpr is told.
+              The place and details are locked once a Helpr is booked. You can still update the access and parking notes here; your Helpr is told.
             </DialogCallout>
           )}
 

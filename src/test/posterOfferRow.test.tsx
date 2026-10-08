@@ -62,8 +62,16 @@ function renderRow(j: Job) {
 }
 
 describe("11. the date-change ask is a button left of Message", () => {
-  it("the row reads Ask for a new date or time | Message | Cancel, and the ask opens the request form", async () => {
+  it("an unanswered offer has no ask yet: the row reads Message | Cancel (owner, 2026-10-08)", () => {
     renderRow(job);
+    const labels = [...document.querySelectorAll("[data-job-step] button")]
+      .map((b) => b.textContent?.trim() ?? "")
+      .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
+    expect(labels).toEqual(["Message", "Cancel"]);
+  });
+
+  it("once accepted the row reads Ask for a new date or time | Message | Cancel, and the ask opens the request form", async () => {
+    renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job);
     const labels = [...document.querySelectorAll("[data-job-step] button")]
       .map((b) => b.textContent?.trim() ?? "")
       .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
@@ -73,7 +81,7 @@ describe("11. the date-change ask is a button left of Message", () => {
   });
 
   it("not on a crew or recurring job (the request covers one-time jobs only)", () => {
-    renderRow({ ...job, is_group_job: true } as unknown as Job);
+    renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z", is_group_job: true } as unknown as Job);
     expect(screen.queryByRole("button", { name: /Ask for a new date or time/ })).toBeNull();
   });
 

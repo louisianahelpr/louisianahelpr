@@ -45,6 +45,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts | unconfirmed: { detail: "Offer sent — they haven't accepted yet" }, | unconfirmed: { detail: "They haven't confirmed" },
  * @mutate src/components/job-card/JobStatusStrip.tsx |   const deadlineInline = line.id === "unconfirmed" && !!line.deadline; |   const deadlineInline = false;
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx | const clocks = showStartClock ? collapsedClocks(job, true) : []; | const clocks: never[] = [];
+ * @mutate src/components/series/JobSeriesCardControls.tsx |   if (!job.helper_confirmed_at) return false; |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -82,7 +83,6 @@ vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }))
 vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
 vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => <div data-testid="schedule-change" /> }));
-vi.mock("@/components/schedule/DetailChangeControl", () => ({ DetailChangeControl: () => <div data-testid="detail-change" /> }));
 vi.mock("@/components/job-card/JobCountdown", () => ({
   JobCountdown: ({ label }: { label: string }) => <div data-testid="start-clock">{label}</div>,
 }));
@@ -253,6 +253,11 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
 });
 
 describe("3. the date-change control is behind the expand and never a second primary", () => {
+  it("an unanswered offer has no date-change control at all, even expanded (owner, 2026-10-08)", () => {
+    render(<ScheduleChangeForJob job={offerJob as never} userId="helper-1" viewer="helper" expanded />);
+    expect(screen.queryByTestId("schedule-change")).toBeNull();
+  });
+
   it("collapsed: no date-change control on either card; expanded: it is there", () => {
     const { unmount } = renderPosted(offerJob, false);
     expect(screen.queryByTestId("schedule-change")).toBeNull();
@@ -260,7 +265,8 @@ describe("3. the date-change control is behind the expand and never a second pri
     const a = renderApplied(offerApp, false);
     expect(screen.queryByTestId("schedule-change")).toBeNull();
     a.unmount();
-    render(<ScheduleChangeForJob job={offerJob as never} userId="helper-1" viewer="helper" expanded />);
+    // Expanded AND accepted: the ask exists only once the Helpr has accepted (owner, 2026-10-08).
+    render(<ScheduleChangeForJob job={{ ...offerJob, helper_confirmed_at: "2026-10-05T17:00:00Z" } as never} userId="helper-1" viewer="helper" expanded />);
     expect(screen.getByTestId("schedule-change")).toBeInTheDocument();
   });
 

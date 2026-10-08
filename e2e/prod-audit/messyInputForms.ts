@@ -735,7 +735,6 @@ export const GAPS: Record<string, string> = {
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated
   // by request_job_detail_change (blank, length, contact scan, map point) — pinned by src/test/pglite/jobDetailChange.pglite.mjs.
-  "src/components/schedule/DetailChangeControl.tsx": "needs a booked funded job no prod test account has; server validation proven in jobDetailChange.pglite.mjs",
   // Scanner false positives: the regex matched a string/comment, not a rendered control.
   "src/lib/sentry.ts": "false positive — '<input' in a PII-scrubbing comment/regex, no control",
   "src/lib/nativeCamera.ts": "false positive — creates a hidden file <input> for the camera fallback; file inputs take no typed text",

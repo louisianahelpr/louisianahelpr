@@ -10,7 +10,7 @@ import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { JobCardTitleBar } from "../../components/job-card/JobCardTitleBar";
 import { PersonTile } from "@/components/PersonTile";
-import { JobActionRow, JobActionChip } from "../../components/job-card/JobActionRow";
+import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPrice, formatPriceFloor, formatShortDate } from "@/lib/format";
@@ -770,11 +770,11 @@ function AppliedJobCardInner({
                     onClick={() => {}}
                   />
                 ) : (
-                  <JobActionChip
+                  // The card's next move, so a PRIMARY on the right (owner, 2026-10-08).
+                  <JobStepPrimaryButton
                     icon={Star}
                     label="Leave a Review"
                     ariaLabel="Leave a review for the person who posted this job"
-                    tone="edit"
                     onClick={() => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job")}
                   />
                 )}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DollarSign, CheckCircle2, Star, RotateCcw, Image } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
-import { JobActionChip } from "../../../../components/job-card/JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { PosterStepCtx } from "./posterStepContract";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
@@ -68,6 +68,22 @@ export function CompletedStep({
     <JobStepCard
       side="poster"
       step="completed"
+      /* REVIEW AND TIP ARE THE ROW'S PRIMARIES, right of More (owner,
+         2026-10-08: "tip and review is also a primary button ... all primary
+         buttons should be to the right of more"). Once done they are the
+         quiet "Reviewed" / "Tipped" chips inside More. */
+      primary={
+        (canReview && !hasReviewed) || (!crew && !hasTipped) ? (
+          <>
+            {canReview && !hasReviewed ? (
+              <JobStepPrimaryButton icon={Star} label="Review" ariaLabel={`Review — leave a review for ${reviewName}`} onClick={() => onReview(job)} />
+            ) : null}
+            {!crew && !hasTipped ? (
+              <JobStepPrimaryButton icon={DollarSign} label="Tip" ariaLabel={`Tip ${helperName}`} onClick={() => onTip(job.id, helperName)} />
+            ) : null}
+          </>
+        ) : undefined
+      }
       ask={crewTips.length > 0 ? (
         <ul className="space-y-1.5" aria-label="Tip your crew" data-crew-tips>
           {crewTips.map((m) => (
@@ -122,16 +138,7 @@ export function CompletedStep({
         /* A crew (Q407) is tipped member by member: one Tip per member row in
            the `ask` slot above (Q709(c)), so this job-level chip, which has no
            member to name, is not drawn on a crew. */
-        crew ? null : !hasTipped ? (
-          <JobActionChip
-            key="tip"
-            icon={DollarSign}
-            label="Tip"
-            ariaLabel={`Tip ${helperName}`}
-            tone="boost"
-            onClick={() => onTip(job.id, helperName)}
-          />
-        ) : (
+        crew || !hasTipped ? null : (
           <JobActionChip
             key="tip"
             icon={CheckCircle2}
@@ -144,16 +151,7 @@ export function CompletedStep({
         ),
         canReview
           ? !hasReviewed
-            ? (
-              <JobActionChip
-                key="review"
-                icon={Star}
-                label="Review"
-                ariaLabel={`Review — leave a review for ${reviewName}`}
-                tone="edit"
-                onClick={() => onReview(job)}
-              />
-            )
+            ? null
             : (
               <JobActionChip
                 key="review"

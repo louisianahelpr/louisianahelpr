@@ -575,7 +575,8 @@ const CASES: Array<{
     // gates used to test `job.status === "in_progress"` literally, so a
     // revision job lost its confirmations outright. Same rule as an ordinary
     // in-progress job now: the working vouch is still owed and still offered.
-    name: "Posts · Revision requested, working vouch still owed (Confirm They're Working)",
+    // Marked done: Approve & Pay is the primary; the optional working vouch stands down (owner, 2026-10-08).
+    name: "Posts · Revision requested, Helpr marked done (Approve & Pay over the working vouch)",
     render: () =>
       wrap(
         <InProgressStep
@@ -591,19 +592,20 @@ const CASES: Array<{
         />,
       ),
     minControls: 3,
-    primary: ["Confirm They're Working"],
+    primary: ["Approve & Pay"],
   },
   {
     name: "Posts · In Progress, Helpr marked done (Message · Approve)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), helper_completed_at: ago(1) }))} />),
     minControls: 2,
-    primary: [],
+    primary: ["Approve & Pay"],
   },
   {
     name: "Posts · Completed (Tip · Review · Hire Again)",
     render: () => wrap(<CompletedStep {...posterCtx(makeJob({ status: "completed", poster_completed_at: ago(1), helper_completed_at: ago(2), payment_status: "released" }))} />),
     minControls: 3,
-    primary: [],
+    // Review and Tip are the primaries, right of More (owner, 2026-10-08).
+    primary: ["Review", "Tip"],
   },
   {
     name: "Posts · Disputed (Resolve & Pay + Escalate · Timeline · Message · Contact Admin)",
@@ -704,8 +706,11 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       expect(cls.some((k) => k === "flex-wrap" || k.startsWith("grid")), "the action row can wrap").toBe(false);
 
       // At most ONE primary, and when there is one it is the row's primary slot.
+      // ONE EXCEPTION (owner, 2026-10-08: "tip and review is also a primary
+      // button"): the Done card's Review and Tip, both right of More.
       const glossy = [...card!.querySelectorAll<HTMLElement>("button.btn-grad-primary")].filter((b) => !isContent(b));
-      expect(glossy.length, `primaries: [${glossy.map((b) => b.textContent?.trim()).join(" | ")}]`).toBeLessThanOrEqual(1);
+      const maxPrimaries = c.name.startsWith("Posts · Completed") ? 2 : 1;
+      expect(glossy.length, `primaries: [${glossy.map((b) => b.textContent?.trim()).join(" | ")}]`).toBeLessThanOrEqual(maxPrimaries);
       for (const g of glossy) {
         expect(g.closest("[data-job-step-primary]"), `${g.textContent?.trim()} is glossy but not the row's primary`).not.toBeNull();
       }

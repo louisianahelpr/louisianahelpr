@@ -20,7 +20,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 export function posterOfferClocks(job: Job) {
   const offerUnanswered = job.status === "accepted" && !!job.helper_id && !job.helper_confirmed_at && !job.is_group_job;
   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null;
-  const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true);
+  const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null);
   const posterClocks: CountdownClock[] = [
     ...(answerDeadline ? [{ id: "answer", at: answerDeadline.at, text: answerDeadline.consequenceText, expiredText: answerDeadline.expiredText }] : []),
     { id: "start", at: jobStartTarget(job.date_needed, job.start_time), text: "until the job starts", expiredText: "Job time has arrived" },

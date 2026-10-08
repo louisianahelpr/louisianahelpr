@@ -177,11 +177,11 @@ describe("the gate keys on the STEP, not on where the rail happens to sit", () =
     expect(screen.queryByRole("button", { name: /I'm On My Way/i })).toBeNull();
   });
 
-  it("offers it the moment the accept-time stamp exists — the client is never STRICTER", () => {
-    // The server asks for `helper_confirmed_at` and nothing else: not the
-    // poster's confirmation, not the day-of stamp. A poster who never confirms
-    // must not be able to trap a helper on a job the server would start.
-    renderHelperTracker({ helperConfirmedAt: "2026-09-19T15:00:00.000Z" });
+  it("offers it once the Helpr's OWN day-before confirm exists — never on the accept alone (Q1570)", () => {
+    // The server asks for helper_dayof_confirmed_at (20261008203441), not the
+    // poster's confirmation: a poster who never confirms still cannot trap a
+    // Helpr on a job the server would start.
+    renderHelperTracker({ helperConfirmedAt: "2026-09-19T15:00:00.000Z", helperDayofConfirmedAt: "2026-09-19T16:00:00.000Z" });
     expect(screen.getByRole("button", { name: /I'm On My Way/i })).toBeTruthy();
   });
 });

@@ -51,7 +51,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
   // direct calls / stale tabs. Past start, the in-progress abort exit is the
   // right affordance, not cancel.
   const startPassed = hasJobStarted(job.date_needed, job.start_time);
-  const confirmOpens = confirmationOpensClock(job.date_needed, job.status, false);
+  const confirmOpens = confirmationOpensClock(job.date_needed, job.status, false, undefined, job.start_time ?? null);
 
   // The sanctioned exit (owner, 2026-08-24): cancelling a committed booking
   // reopens the job and counts a reliability strike on the shared ladder

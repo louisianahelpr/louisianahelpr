@@ -21,7 +21,8 @@ import { render, screen } from "@testing-library/react";
  * inert box would occupy the slot the tracker's own next-step CTA needs.
  *
  * NOT covered, because it is a POLICY question rather than a rendering one:
- * the confirmation WINDOW (24h before → noon on the job day for the poster).
+ * the confirmation WINDOW (now runs to the start for the poster; Q1566 and
+ * jobConfirmationPosterWindow.test.tsx).
  * Widening when a poster may confirm is the owner's call, not this fix's.
  */
 

@@ -66,14 +66,17 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // fix-less arrival at all, so arrival_too_far / arrival_location_required /
   // arrival_location_invalid are gone from this table with the RAISEs that
   // produced them — see scripts/migration-raise-codes-allowlist.json.
-  // None of the copy below may offer the Helpr's location as a way round the
-  // poster's tap, because there is no way round it.
+  // SINCE 20261008203441 (owner, 2026-10-08, "GPS skips it") a GPS-verified
+  // arrival clears both gates on its own; these fire only when the location
+  // did not verify it, and then the poster's tap is the blocker.
   // enforce_helper_completion_gates — the Helpr's completion write.
   completion_requires_confirmed_arrival:
     "The person who posted this job has to tap \"Confirm They Arrived\" before you can mark it complete.",
   // enforce_job_tracking_arrival_gate — the tracker's next step.
   tracker_requires_arrival:
     "The person who posted this job has to tap \"Confirm They Arrived\" before you can start working.",
+  // enforce_poster_working_confirm_order, 20261008203441 (Q1571).
+  working_confirm_before_working: "Your Helpr hasn't tapped Start Working yet — you can confirm once they do.",
   // enforce_job_tracking_arrival_gate — the Before photo, migration
   // 20260919195158 (owner, 2026-09-19: "if a before photo is required they
   // can't press the working button until its done"). A DISTINCT code from
@@ -364,6 +367,13 @@ export const RPC_ERROR_COPY = {
     not_the_assigned_helper: NO_LONGER_BOOKED_STATUS,
     job_not_active: JOB_NOT_ACTIVE_STATUS,
     helper_not_confirmed: "Confirm this booking first, then mark yourself on the way.",
+    // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
+    helper_not_dayof_confirmed: "Tap \"Confirm You'll Be at the Job\" first, then you can head out.",
+    on_the_way_too_early: "I'm On My Way turns on 2 hours before the job starts.",
+  },
+  nudge_confirm: {
+    job_not_found: JOB_GONE,
+    not_a_party: "Only the two people on this job can nudge each other.",
   },
   mark_helper_arrival: {
     job_not_found: JOB_GONE,

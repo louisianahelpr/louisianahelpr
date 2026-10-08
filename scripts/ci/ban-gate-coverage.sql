@@ -148,6 +148,7 @@ rpc_exempt(fn, why) AS (
   ('helper_abort_job', 'writes applications + jobs UPDATE, both ban-gated'),
   ('helper_cancel_booking', 'writes applications + jobs UPDATE, both ban-gated'),
   ('helper_mark_on_the_way', 'writes job_tracking + jobs, both ban-gated'),
+  ('ack_backout_notice', 'only stamps a back-out notice addressed to the caller as seen (Q1575); changes nothing about any job or person'),
   ('mark_applications_viewed', 'writes applications UPDATE, ban-gated'),
   ('mark_helper_arrival', 'writes jobs UPDATE, ban-gated'),
   ('poster_cancel_job', 'writes jobs UPDATE, ban-gated'),

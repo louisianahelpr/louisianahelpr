@@ -139,10 +139,10 @@ describe("Q269: retry after a lost apply response", () => {
     await act(async () => { onRetry(); });
     await waitFor(() => expect(server.rpcCalls).toBe(2));
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+    // The "Application Sent" pop-up (Q1550), not a toast.
+    await waitFor(() => expect(result.current.applicationSent?.jobId).toBe("job-1"));
     const errors = vi.mocked(toast.error).mock.calls.map((c) => String(c[0]));
     expect(errors.filter((m) => /already applied/i.test(m)), "told 'already applied' after being told it failed").toEqual([]);
-    expect(String(vi.mocked(toast.success).mock.calls[0][0])).toMatch(/Application sent/);
   });
 
   it("an 'already applied' with no earlier unknown outcome is still shown as the refusal it is", async () => {
@@ -150,7 +150,7 @@ describe("Q269: retry after a lost apply response", () => {
     const { result } = setup();
     act(() => { result.current.handleApplyConfirm("job-2"); });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You've already applied to this job."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.applicationSent).toBeNull();
   });
 
   it("an OLD rejected application is never mistaken for the retry's success (dropped request, then refusal)", async () => {
@@ -163,7 +163,7 @@ describe("Q269: retry after a lost apply response", () => {
 
     await act(async () => { onRetry(); });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You've already applied to this job."));
-    expect(toast.success, "false success over an old rejected row").not.toHaveBeenCalled();
+    expect(result.current.applicationSent, "false success over an old rejected row").toBeNull();
     expect(server.updates, "patched attachments onto the OLD row").toBe(0);
     expect(server.rows.get("job-3")?.status).toBe("rejected");
   });
@@ -177,7 +177,7 @@ describe("Q269: retry after a lost apply response", () => {
     const onRetry = (errorToastMock.mock.calls[0][1] as { onRetry: () => void }).onRetry;
     await act(async () => { onRetry(); });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You've already applied to this job."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.applicationSent).toBeNull();
   });
 
   it("an OLD pending application from before the first attempt is not claimed either", async () => {
@@ -189,7 +189,7 @@ describe("Q269: retry after a lost apply response", () => {
     const onRetry = (errorToastMock.mock.calls[0][1] as { onRetry: () => void }).onRetry;
     await act(async () => { onRetry(); });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You've already applied to this job."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.applicationSent).toBeNull();
   });
 
   it("a server error (not a wire failure) does not make the outcome unknown", async () => {
@@ -200,6 +200,6 @@ describe("Q269: retry after a lost apply response", () => {
     const onRetry = (errorToastMock.mock.calls[0][1] as { onRetry: () => void }).onRetry;
     await act(async () => { onRetry(); });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You've already applied to this job."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.applicationSent).toBeNull();
   });
 });

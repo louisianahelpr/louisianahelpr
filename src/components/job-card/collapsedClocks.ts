@@ -12,7 +12,7 @@ export function collapsedClocks(
   isOwner: boolean,
 ): CountdownClock[] {
   if (!job.date_needed) return [];
-  const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner) : null;
+  const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null) : null;
   return [
     { id: "start", at: jobStartTarget(job.date_needed, job.start_time), text: "until the job starts", expiredText: "Job time has arrived" },
     ...(opens ? [opens.clock] : []),

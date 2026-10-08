@@ -1,4 +1,5 @@
 import { memo, useRef, useState } from "react";
+import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -109,13 +110,10 @@ function AppliedJobCardInner({
   const job = app.job;
   const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
   if (!job) {
-    // An application can outlive its job row's VISIBILITY: once the job
-    // closes to another helper, the jobs SELECT policy hides it from a
-    // rejected applicant, so `app.job` comes back null. The bucket counts
-    // (activityFilters) still tally this application under Done — a silent
-    // `null` here is what made the Done badge read 3 over a list of 2
-    // cards. Render the same minimal "Not selected" card, minus the job
-    // details we can no longer read.
+    // An application can outlive its job row's VISIBILITY: once the job closes to another helper, the jobs SELECT
+    // policy hides it from a rejected applicant, so `app.job` comes back null. The bucket counts (activityFilters)
+    // still tally this application under Done — a silent `null` here is what made the Done badge read 3 over a list
+    // of 2 cards. Render the same minimal "Not selected" card, minus the job details we can no longer read.
     return (
       <div ref={cardRef}>
         <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
@@ -336,6 +334,7 @@ function AppliedJobCardInner({
           onToggle={() => toggleExpandedJobId(app.job_id)}
           category={job.category}
         >
+          <BackoutBanner job={job} />{/* the poster backed out: until Got It (Q1575) */}
           <JobCardTitleBar
             title={job.title || "a job"}
             category={job.category}

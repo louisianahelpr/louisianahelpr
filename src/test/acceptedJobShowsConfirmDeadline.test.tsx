@@ -98,11 +98,11 @@ function renderCard(job: Job) {
 describe("an accepted, unconfirmed job shows the helper its re-open deadline", () => {
   it("days out, before the window opens: says when it re-opens", () => {
     const { container } = renderCard(acceptedJob(dayOut(5)));
-    expect(container.textContent).toMatch(/confirm by .*re-opens to other Helprs/i);
+    expect(container.textContent).toMatch(/confirm by .*reposted to other Helprs/i);
   });
 
-  it("the day before, with the window open or past due: says it re-opens", () => {
+  it("the day before, with the window open or past due: says it is reposted (2 hours before the start)", () => {
     const { container } = renderCard(acceptedJob(dayOut(1)));
-    expect(container.textContent).toMatch(/re-open(s)? to other Helprs/i);
+    expect(container.textContent).toMatch(/reposted to other Helprs/i);
   });
 });

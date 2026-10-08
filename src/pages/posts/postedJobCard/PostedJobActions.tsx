@@ -42,6 +42,8 @@ interface PostedJobActionsProps {
   onConfirmWorking: (jobId: string) => void;
   confirmingWorkingJobId: string | null;
   onActionComplete: () => void;
+  /** The Helpr's tracker says Working (Q1571); see PosterStepCtx. */
+  helperWorking?: boolean;
 }
 
 /**
@@ -124,6 +126,7 @@ export function PostedJobActions({
   confirmingArrivalJobId,
   onConfirmWorking,
   confirmingWorkingJobId,
+  helperWorking = false,
   onActionComplete,
 }: PostedJobActionsProps) {
   // Own instant-release flag — when on, the 24h review countdown is replaced
@@ -333,6 +336,7 @@ export function PostedJobActions({
     completingJobId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,
+    helperWorking,
     instantReleaseOn,
     navigate,
     onBoost,

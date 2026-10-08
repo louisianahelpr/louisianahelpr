@@ -193,6 +193,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
    */
   const REVIEWED: Record<string, "returns-guarded" | "own-row-only" | "no-return"> = {
     "function:get_job_offer_targets": "own-row-only",
+    // Q1575: reads OLD.offered_to_helper_id to name who declined, for the POSTER's own notice; returns nothing.
+    "function:record_backout_notice": "no-return",
     // Q1185: read the offeree to judge or clear a pending direct accept; none returns it.
     "function:direct_accept_block_reason": "no-return",
     "function:complete_pending_accepts_on_setup": "no-return",

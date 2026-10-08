@@ -40,7 +40,6 @@
  * @mutate src/components/profile/SubscriptionTab.tsx | toast.error(err.message); | toast.error("Couldn't start checkout — try again?");
  * @mutate src/components/admin/AdminUserNotes.tsx | "Couldn't save that note — try again." | "Couldn't save that note — try again"
  * @mutate src/pages/profile/AutoTip.tsx | "Couldn't save these settings" | "Couldn't save these settings."
- * @mutate src/pages/home/useApplyFlow.ts | "Application sent. Track it in My Jobs." | "Application sent! Track it in My Jobs."
  * @mutate src/pages/messages/logViolation.ts | "Sharing contact info or taking business off-platform isn't allowed. | "⚠️ Warning: Sharing contact info or taking business off-platform isn't allowed.
  * @mutate src/components/BlockUserDialog.tsx | "Sign in to continue." | "You must be logged in."
  * @mutate src/lib/fileExport.ts | download it from Louisiana Helpr on the web. | download it from helpr on the web.

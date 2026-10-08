@@ -219,6 +219,39 @@ export type Database = {
           },
         ]
       }
+      backout_notices: {
+        Row: {
+          acknowledged_at: string | null
+          actor_name: string | null
+          backout_kind: string
+          created_at: string
+          id: string
+          job_id: string
+          last_push_at: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          actor_name?: string | null
+          backout_kind: string
+          created_at?: string
+          id?: string
+          job_id: string
+          last_push_at?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          actor_name?: string | null
+          backout_kind?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          last_push_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ban_evasion_matches: {
         Row: {
           auto_banned: boolean
@@ -6521,6 +6554,10 @@ export type Database = {
         }[]
       }
       accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
+      ack_backout_notice: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
       admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
@@ -6712,6 +6749,13 @@ export type Database = {
           helper_id: string
           job_id: string
           tip_amount: number
+        }[]
+      }
+      backout_notice_text: {
+        Args: { p_actor: string; p_kind: string; p_title: string }
+        Returns: {
+          message: string
+          title: string
         }[]
       }
       ban_fingerprint: {
@@ -7745,6 +7789,10 @@ export type Database = {
         Args: { p_payment_status: string }
         Returns: boolean
       }
+      job_posted_by_seed: {
+        Args: { p_customer_id: string }
+        Returns: boolean
+      }
       jobs_private_select_columns: { Args: never; Returns: string[] }
       kick_payout_schedule_sync: {
         Args: { p_helper_id: string }
@@ -7859,6 +7907,10 @@ export type Database = {
           _refiled?: boolean
         }
         Returns: undefined
+      }
+      nudge_confirm: {
+        Args: { p_job_id: string }
+        Returns: string
       }
       offer_series_dates: {
         Args: { p_helper_id: string; p_job_id: string }
@@ -8180,6 +8232,15 @@ export type Database = {
         Args: { p_job_id: string; p_reviewee_id: string; p_reviewer_id: string }
         Returns: boolean
       }
+      send_backout_email: {
+        Args: {
+          p_link: string
+          p_message: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       send_ops_daily_digest: { Args: never; Returns: Json }
       series_give_up_strike: {
         Args: { p_dates: string[]; p_helper: string; p_parent: string }
@@ -8252,6 +8313,14 @@ export type Database = {
       start_underfilled_crews: { Args: never; Returns: number }
       subscription_purchase_eligibility: {
         Args: { p_platform: string }
+        Returns: Json
+      }
+      sweep_backout_notice_reminders: {
+        Args: never
+        Returns: number
+      }
+      sweep_confirm_reminders_and_repost: {
+        Args: never
         Returns: Json
       }
       sweep_cron_blackouts: { Args: never; Returns: Json }

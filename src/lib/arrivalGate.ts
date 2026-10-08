@@ -231,7 +231,8 @@ export function arrivalVerdictMessage(v: ArrivalVerdict): string {
     case "gps_verified":
     case "no_job_coordinates":
     case "already_verified":
-      return `You're checked in and your location is confirmed at the job. ${thenPoster}`;
+      // GPS SKIPS THE POSTER'S TAP (owner pop-up 2026-10-08).
+      return "You're checked in and your location is confirmed at the job. You can start working.";
     case "near_miss":
       return v.distanceFt != null
         ? `You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}`

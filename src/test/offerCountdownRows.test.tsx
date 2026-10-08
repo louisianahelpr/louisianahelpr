@@ -17,7 +17,7 @@
  * pinned in src/test/offerCardHierarchy.test.tsx.
  *
  * @mutate src/components/job-card/CountdownRows.tsx |     .sort((a, b) => toMs(a.c.at) - toMs(b.c.at) \|\| a.i - b.i) |     .sort((a, b) => a.i - b.i)
- * @mutate src/components/job-card/collapsedClocks.ts |   const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner) : null; |   const opens = confirmationOpensClock(job.date_needed, job.status, isOwner);
+ * @mutate src/components/job-card/collapsedClocks.ts |   const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null) : null; |   const opens = confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null);
  * @mutate src/components/job-card/confirmationOpensClock.ts |   if (hoursUntilJob <= 24) return null; |   if (hoursUntilJob <= -999) return null;
  */
 import { describe, it, expect } from "vitest";
@@ -80,6 +80,6 @@ describe("which clocks a booked card carries", () => {
     expect(confirmationOpensClock(jobLocalDateISO(4), "accepted", true)).not.toBeNull();
     expect(confirmationOpensClock(jobLocalDateISO(0), "accepted", true)).toBeNull();
     expect(confirmationOpensClock(jobLocalDateISO(4), "completed", true)).toBeNull();
-    expect(confirmationOpensClock(jobLocalDateISO(4), "accepted", false)?.note).toMatch(/confirm by .*re-opens to other Helprs/);
+    expect(confirmationOpensClock(jobLocalDateISO(4), "accepted", false)?.note).toMatch(/confirm by .*reposted to other Helprs/i);
   });
 });

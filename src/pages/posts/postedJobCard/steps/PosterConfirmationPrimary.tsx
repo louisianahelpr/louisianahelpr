@@ -33,15 +33,17 @@ export function PosterConfirmationPrimary({
   confirmingWorkingJobId,
   onConfirmArrival,
   onConfirmWorking,
+  helperWorking = false,
 }: {
   job: Job;
   step: PosterStepId;
+  helperWorking?: boolean;
   confirmingArrivalJobId: string | null;
   confirmingWorkingJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   onConfirmWorking: (jobId: string) => void;
 }) {
-  const rung = posterConfirmationRung(job, step);
+  const rung = posterConfirmationRung(job, step, new Date(), helperWorking);
   if (!rung) return null;
 
   const busy =

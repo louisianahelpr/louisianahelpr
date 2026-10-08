@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { NudgeConfirmLink } from "@/components/job-card/NudgeConfirmLink";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock, MapPin } from "lucide-react";
-import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
@@ -43,10 +44,7 @@ import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 const HELPER_CONFIRM_LABEL = "Confirm You'll Be at the Job";
 
 export function helperDayOfConfirmation({
-  helperConfirmedAt,
   helperDayofConfirmedAt,
-  dateNeeded,
-  startTime = null,
 }: {
   helperConfirmedAt: string | null;
   helperDayofConfirmedAt?: string | null;
@@ -58,12 +56,10 @@ export function helperDayOfConfirmation({
    *  tracker left Confirmed unchecked (owner, 2026-10-08, job 5b68bccb). */
   startTime?: string | null;
 }): string | null {
-  if (helperDayofConfirmedAt) return helperDayofConfirmedAt;
-  if (!helperConfirmedAt) return null;
-  const start = jobStartDateTime(dateNeeded, startTime) ?? jobDayStart(dateNeeded);
-  return start.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000
-    ? helperConfirmedAt
-    : null;
+  // ACCEPTING NEVER COUNTS (owner, 2026-10-08, Q1570: "both must tap
+  // confirm"): an accept inside the window used to stand in for this tap, so
+  // a same-day job reached On My Way with nobody confirming anything.
+  return helperDayofConfirmedAt ?? null;
 }
 
 export function JobConfirmation({
@@ -178,10 +174,14 @@ export function JobConfirmation({
      stand down rather than dead-end the helper, and an unconfirmed helper on an
      8 PM job could set off at 1 PM exactly as before.
      -24 is "any time on the job day", which is the window this card always
-     described in words. The POSTER keeps the original -12: their confirmation
-     gates nothing, and their card is unchanged. */
+     described in words.
+     THE POSTER'S runs to the job's START (owner, 2026-10-08, Q1566: "there is
+     no place for me to confirm the job is still on"): the old -12 closed it at
+     NOON on the job day, so a same-day 2 PM job had no "I'm Still On" after
+     12:00. No start time: the end of the job day. */
+  const posterWindowEnd = ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDate.getTime() + 24 * 3_600_000)).getTime();
   const showConfirmation =
-    isLiveJob && hoursUntilJob <= 24 && hoursUntilJob > (isOwner ? -12 : -24);
+    isLiveJob && hoursUntilJob <= 24 && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24);
 
   /* NOT-YET-OPEN IS A STATE, NOT AN ABSENCE.
      This component used to `return null` for every accepted job more than 24
@@ -231,7 +231,8 @@ export function JobConfirmation({
        re-opens the job 12 hours after the window opens, so the window and the
        deadline are quoted together, from the same shared helper the sweep
        itself calls. */
-    const confirmBy = new Date(confirmDeadlineMs(dateNeeded));
+    // Owed until 2 hours before the start, then reposted (owner, 2026-10-08).
+    const confirmBy = new Date((jobStartDateTime(dateNeeded, startTime) ?? jobDate).getTime() - 2 * 3_600_000);
     /* A STRIP, not a card. The first draft of this state was a full
        liquid-glass card with its own heading and paragraph, which put a THIRD
        card on a scheduled job — "Job starts in 5d 3h", the tracker, and then a
@@ -260,14 +261,14 @@ export function JobConfirmation({
             </p>
             {!isOwner && (
               <p className="text-ds-10 mt-0.5 font-semibold tabular-nums">
-                Then you'll have {CONFIRM_WINDOW_HOURS} hours — confirm by{" "}
+                Confirm by{" "}
                 {confirmBy.toLocaleString("en-US", {
                   timeZone: JOB_TIMEZONE,
                   weekday: "short",
                   hour: "numeric",
                   minute: "2-digit",
                 })}
-                , or the job re-opens to other Helprs.
+                {" "}(2 hours before it starts), or it's reposted to other Helprs.
               </p>
             )}
           </div>
@@ -281,26 +282,21 @@ export function JobConfirmation({
 
   const handleConfirm = async () => {
     setConfirming(true);
-    // The helper's day-before tap writes its OWN stamp. `helper_confirmed_at`
-    // was set the moment they accepted (maybe days ago), so re-writing it here
-    // made this card a no-op for helpers and the "we ask you both" copy a
+    // The helper's day-before tap writes its OWN stamp. `helper_confirmed_at` was set the moment they accepted (maybe
+    // days ago), so re-writing it here made this card a no-op for helpers and the "we ask you both" copy a
     // poster-only promise — the 2026-08-24 lifecycle review's first finding.
     const field = isOwner ? "poster_confirmed_at" : "helper_dayof_confirmed_at";
-    // Cast: Supabase generated types reject computed-key updates because the
-    // index signature widens to `[x: string]: never`. Runtime accepts any
-    // valid column name; the `field` variable is constrained above to one of
-    // two known column names.
+    // Cast: Supabase generated types reject computed-key updates because the index signature widens to `[x: string]:
+    // never`. Runtime accepts any valid column name; the `field` variable is constrained above to one of two known
+    // column names.
     //
-    // .select("id") + unwrapMutation, NOT a bare `const { error }`: this is the
-    // ONE write behind the step the card itself calls "what unlocks the rest of
-    // the tracker", and an UPDATE that matches zero rows (RLS, a job cancelled
-    // out from under the card, a stale id) returns `{ data: [], error: null }`.
-    // Without the row count this sailed down the success path — it set the
-    // local "confirmed ✓" state AND notified the other party that a
-    // confirmation had happened, while `poster_confirmed_at` /
-    // `helper_dayof_confirmed_at` stayed null and the tracker never advanced
-    // past Accepted. Both sides then believed a step had completed that had
-    // not. (CLAUDE.md: "a null error does NOT mean the write happened".)
+    // .select("id") + unwrapMutation, NOT a bare `const { error }`: this is the ONE write behind the step the card
+    // itself calls "what unlocks the rest of the tracker", and an UPDATE that matches zero rows (RLS, a job cancelled
+    // out from under the card, a stale id) returns `{ data: [], error: null }`. Without the row count this sailed
+    // down the success path — it set the local "confirmed ✓" state AND notified the other party that a confirmation
+    // had happened, while `poster_confirmed_at` / `helper_dayof_confirmed_at` stayed null and the tracker never
+    // advanced past Accepted. Both sides then believed a step had completed that had not. (CLAUDE.md: "a null error
+    // does NOT mean the write happened".)
     let confirmFailed = false;
     try {
       unwrapMutation(
@@ -347,10 +343,8 @@ export function JobConfirmation({
     setShowConfirmDialog(false);
   };
 
-  // A helper accept that itself happened inside the 24h window IS a
-  // day-before answer — don't ask the same question twice. One shared rule
-  // (see helperDayOfConfirmation above), so this card and the tracker panel
-  // that gates "I'm On My Way" on it cannot disagree.
+  // Only the Helpr's own tap counts (Q1570). One shared rule (see helperDayOfConfirmation above), so this card and
+  // the tracker panel that gates "I'm On My Way" on it cannot disagree.
   const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded, startTime });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
 
@@ -428,7 +422,10 @@ export function JobConfirmation({
      BOTH variants — the helper's tracker uses `inline`, which is only the
      button, so a deadline shown solely on the card variant would never reach
      the person it applies to. */
-  const deadlineMs = confirmDeadlineMs(dateNeeded);
+  // THE REPOST AT T-2h (owner, 2026-10-08; sweep_confirm_reminders_and_repost): the day-before confirm is owed until
+  // 2 hours before the start, and the line says that moment. No start time: the job day's midnight, minus 2 h.
+  const startForDeadline = jobStartDateTime(dateNeeded, startTime) ?? jobDate;
+  const deadlineMs = startForDeadline.getTime() - 2 * 3_600_000;
   const deadlineNotice = !isOwner && isHelper && !myConfirmed && (
     <p
       className="text-ds-10 font-sans font-semibold tabular-nums mb-1.5"
@@ -439,8 +436,8 @@ export function JobConfirmation({
             weekday: "short",
             hour: "numeric",
             minute: "2-digit",
-          })} (${Math.max(1, Math.round((deadlineMs - now.getTime()) / 60_000 / 60))}h left) or this job re-opens to other Helprs.`
-        : "Confirmation is past due — this job may re-open to other Helprs at any moment."}
+          })} (${Math.max(1, Math.round((deadlineMs - now.getTime()) / 60_000 / 60))}h left) or it's reposted to other Helprs.`
+        : "Confirmation is past due — this job is being reposted to other Helprs."}
     </p>
   );
 
@@ -494,6 +491,11 @@ export function JobConfirmation({
       </Button>
     ) : null
   );
+  // NUDGE (answer 1): while the other side still owes its confirm.
+  const otherUnconfirmed = isOwner ? !helperDayOf : isHelper ? !posterConfirmedAt : false;
+  const nudgeLine = showConfirmation && otherUnconfirmed && jobStatus === "accepted" ? (
+    <NudgeConfirmLink jobId={jobId} otherLabel={isOwner ? "Your Helpr" : "The person who posted it"} />
+  ) : null;
   const posterNextNote = isOwner && myConfirmed ? (
     <p className="font-sans text-center text-ds-10" data-poster-next-step-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       This button turns on once your Helpr says they've arrived.
@@ -542,7 +544,7 @@ export function JobConfirmation({
     );
     return (
       <>
-        <JobStepRowSlot slot="note">{deadlineNotice}</JobStepRowSlot>
+        <JobStepRowSlot slot="note">{deadlineNotice}{nudgeLine}</JobStepRowSlot>
         <JobStepRowSlot slot="primary">{rowCta}</JobStepRowSlot>
         {confirmDialog}
       </>
@@ -589,6 +591,7 @@ export function JobConfirmation({
         {deadlineNotice}
         {confirmCta}
         {posterNextNote}
+        {nudgeLine}
       </div>
 
       {confirmDialog}

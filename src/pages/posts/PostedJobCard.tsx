@@ -1,4 +1,5 @@
 import { memo, useRef } from "react";
+import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -302,18 +303,13 @@ function PostedJobCardInner({
         <JobCardPersonContext.Provider value={personCtx}>
         <div ref={cardRef}>
           <JobCardShell
-            // EVERY card expands now, not just the ones with a description or
-            // an archived-completed summary. A posted card opens collapsed
-            // (owner, 2026-08-27: it used to arrive with the tracker, the
-            // Applicants button and the whole Share/Boost/Edit/Cancel row
-            // already open, so four jobs filled several screens and none of
-            // them could be compared at a glance), and what is behind the tap
-            // is now the card's whole body — so the tap has to be offered on
-            // all of them.
-            // One exception (owner, 2026-09-14, VN-29): a COMPLETED job with a
-            // tip or review still outstanding opens expanded, and collapses
-            // once both are done. The default lives in useCardExpansion
-            // (src/components/job-card), which owns `expandedJobIds`.
+            // EVERY card expands now, not just the ones with a description or an archived-completed summary. A posted
+            // card opens collapsed (owner, 2026-08-27: it used to arrive with the tracker, the Applicants button and
+            // the whole Share/Boost/Edit/Cancel row already open, so four jobs filled several screens and none of
+            // them could be compared at a glance), and what is behind the tap is now the card's whole body — so the
+            // tap has to be offered on all of them. One exception (owner, 2026-09-14, VN-29): a COMPLETED job with a
+            // tip or review still outstanding opens expanded, and collapses once both are done. The default lives in
+            // useCardExpansion (src/components/job-card), which owns `expandedJobIds`.
             expandable
             expanded={isExpanded}
             onToggle={() => toggleExpandedJobId(job.id)}
@@ -323,6 +319,7 @@ function PostedJobCardInner({
             className="group relative scroll-mt-3"
             category={job.category}
           >
+            <BackoutBanner job={job} />{/* someone backed out: until Got It (Q1575) */}
             <JobCardTitleBar
               title={job.title}
               category={job.category}
@@ -741,6 +738,7 @@ function PostedJobCardInner({
                 confirmingArrivalJobId={confirmingArrivalJobId}
                 onConfirmWorking={onConfirmWorking}
                 confirmingWorkingJobId={confirmingWorkingJobId}
+                helperWorking={initialTracking?.status === "working" || initialTracking?.status === "done"}
                 onActionComplete={onActionComplete}
               />
               <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
@@ -791,6 +789,7 @@ function PostedJobCardInner({
 
                 The rule it reads is not new: see `posterStatusLine` in
                 jobStatusLine.ts. */}
+            {!isExpanded && !!(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me && /* Q1551 */ <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={false} hideAsk />}
             {!isExpanded && (
               <PosterStatusStrip
                 job={withDisputeSettling(job, unsettledDisputeJobIds)}
@@ -798,6 +797,7 @@ function PostedJobCardInner({
                 closedApplicants={closedApplicantSummaries?.[job.id] ?? null}
                 completedMeta={completedJobMeta[job.id]}
                 showStartClock={job.status === "accepted"}
+                helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
               />
             )}
           </JobCardShell>

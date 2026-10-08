@@ -220,10 +220,10 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
     ).toContain("text-center");
   });
 
-  it("Q1400: a Helpr not yet arrived draws no arrival box and no waiting line", () => {
+  it("Q1568 (supersedes Q1400): on the way, a greyed arrival box with its line under the row", () => {
     wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(1), helper_arrived_at: null }))} />);
-    expect(screen.queryByRole("button", { name: /Confirm They Arrived/ })).toBeNull();
-    expect(screen.queryByText(/confirm this/i)).toBeNull();
+    expect((screen.getByRole("button", { name: /Confirm They Arrived/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(noteHost().textContent).toMatch(/turns on once your Helpr says they've arrived/);
   });
 
   it("Q1400 can fail: once the Helpr has arrived the box is drawn", () => {

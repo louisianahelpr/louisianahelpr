@@ -18,6 +18,8 @@ import { readApplicationRows, readableApplicationRows } from "@/lib/applicationC
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { useBackoutNotices } from "@/lib/backoutNotices";
+import { fetchScheduleChangesAskedOf } from "@/lib/scheduleChange";
 import { closedApplicantsSummary } from "@/pages/posts/postedJobs/applicantBadge";
 
 /* ============================================================================
@@ -1039,6 +1041,31 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     });
   }, [appliedAppsList, posterNames, appliedDetail.data]);
 
+  // Q1575: an open back-out notice rides on its job, so every bucket, count and
+  // card reads the same fact (activityFilters, BackoutBanner).
+  const backout = useBackoutNotices(user?.id);
+  // Q1551: which jobs have a date/time request waiting on this person (one read).
+  const asked = useQuery({
+    queryKey: ["activity", "scheduleAsks", user?.id],
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    queryFn: () => fetchScheduleChangesAskedOf(user!.id),
+  }).data;
+  const postedJobsList = posted.postedJobs;
+  const tag = useCallback(
+    <J extends { id: string }>(j: J): J => {
+      const n = backout.get(j.id);
+      const a = asked?.includes(j.id);
+      return n || a ? { ...j, ...(n ? { backout_notice: n } : {}), ...(a ? { schedule_change_asked_of_me: true } : {}) } : j;
+    },
+    [backout, asked],
+  );
+  const postedWithBackout = useMemo(() => postedJobsList.map(tag), [postedJobsList, tag]);
+  const appliedWithBackout = useMemo(
+    () => appliedAppsWithNames.map((a) => (a.job ? { ...a, job: tag(a.job) } : a)),
+    [appliedAppsWithNames, tag],
+  );
+
   const activeCore = isPosted ? postedCore : appliedCore;
 
   // THE SKELETON IS FOR A COLD CACHE ONLY — the same rule as the Messages inbox
@@ -1064,8 +1091,8 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   return {
     loading,
     loadError: activeCore.isError,
-    postedJobs: posted.postedJobs,
-    appliedApps: appliedAppsWithNames,
+    postedJobs: postedWithBackout,
+    appliedApps: appliedWithBackout,
     applicantCounts: posted.applicantCounts,
     pendingApplicantCounts: posted.pendingApplicantCounts,
     closedApplicantSummaries: posted.closedApplicantSummaries,

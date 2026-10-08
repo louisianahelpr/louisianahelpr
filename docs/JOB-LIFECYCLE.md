@@ -52,7 +52,7 @@ A decline of an offer, or a cancel by either side after an accept:
 | 5 | **Confirm window open** (midnight the day before; immediately for a job booked inside it) | Primary **I'm Still On** (live). | Primary **Confirm You'll Be at the Job** (live). | Accepting does NOT count as confirming. Each side's tap is its own stamp. |
 | 6 | **Confirmed** (both tapped) | Tracker: Confirmed ✓. Primary greyed **Confirm They've Arrived** ("turns on once Lexi says they've arrived"). | Tracker: Confirmed ✓. Primary greyed **I'm On My Way** ("turns on at 1:00 PM", 2 h before). | On My Way refused until the Helpr has confirmed and it is within 2 h of the start. |
 | 7 | **On the way** | "Lexi is on the way" + live map. Primary greyed **Confirm They've Arrived**. | Primary **I've Arrived** (checks they're at the address). More: Message, Directions, Report a Problem, SOS. | Arrival needs On the way first. |
-| 8 | **Arrived** | "Lexi has arrived". Primary **Confirm They've Arrived** (live). | If photos required: primary **Take Before Photo**, then **Start Working**. Else **Start Working**. | Start Working needs Arrived (and the before photo when required). |
+| 8 | **Arrived** | "Lexi has arrived". Primary **Confirm They've Arrived** (live). | If photos required: primary **Take Before Photo**, then **Start Working**. Else **Start Working**. | Start Working needs Arrived, GPS-verified or confirmed by the poster (and the before photo when required). |
 | 9 | **Working** | "Lexi is working". Primary **Confirm They're Working** — live only after Lexi taps Start Working. | Primary greyed **Mark Job Complete** until the after photo (when required): **Take After Photo**, then **Mark Job Complete**. | Poster's "working" confirm refused until the Helpr's Working. Complete needs Working (+ after photo). |
 | 10 | **Marked done** | "Lexi marked it done — check the work". Timer: "Pays out automatically in 23h". Primary **Approve & Pay**. More: Request a Fix, Dispute. | "Waiting for Sam to approve · pays out in 23h". Primary greyed **Waiting on Sam**. | Release only by approve, the auto-release timer, or an admin. |
 | 11 | **Done** | "Paid". Primary **Leave a Review** (then Tip). | "Paid — $X on its way" (payout in 3 days). Primary **Leave a Review**. | Reviews unlock when both are in or after 14 days. |
@@ -70,7 +70,9 @@ Fix (Helpr gets "Sam asked for a fix" and **I'll Fix It**).
    other Helprs.
 2. **A poster who never confirms:** nothing is blocked; their card keeps asking.
 3. **The poster's arrival and working confirms are optional:** offered only AFTER the Helpr's
-   own step (arrival after "I've Arrived", working after "Start Working"); the Helpr's Start
-   Working and Mark Job Complete never wait on them.
+   own step (arrival after "I've Arrived", working after "Start Working"). Refined by pop-up
+   (2026-10-08, "GPS skips it"): when the Helpr's location verified the arrival, Start Working
+   and Mark Job Complete never wait on the poster; when it did not (Location off, or too far),
+   the poster's "Confirm They Arrived" is still what unlocks them.
 4. **Messaging before a hire:** an applicant can NOT message first. Message opens once the
    poster sends an offer, or when the poster messages an applicant first.

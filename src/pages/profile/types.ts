@@ -20,6 +20,9 @@ export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availabilit
 // title) — screen title and browser tab must agree, and titles are Title
 // Case per PLATFORM_CONVENTIONS. Measured against the rendered h1s
 // 2026-08-24; if a tab's heading changes, change it here in the same commit.
+/** The Profile row "Report a bug" and the support screen it opens (?topic=report) share this title. */
+export const REPORT_BUG_TITLE = "Report a bug";
+
 export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   profile: "Edit Profile",
   earnings: "Money",

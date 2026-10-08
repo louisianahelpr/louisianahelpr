@@ -74,7 +74,7 @@ describe("Report a bug: the in-app support form (Q1028)", () => {
 
   it("the Profile menu's \"Report a bug\" row opens exactly that form", () => {
     const src = readFileSync(join(__dirname, "profileLanding", "useProfileLandingDerived.tsx"), "utf8");
-    expect(src).toMatch(/label: "Report a bug"[^\n]*href: "\/profile\?tab=support&topic=report" \}/);
+    expect(src).toMatch(/label: REPORT_BUG_TITLE[^\n]*href: "\/profile\?tab=support&topic=report" \}/);
     const help = readFileSync(join(__dirname, "..", "..", "pages", "info", "HelpCenter.tsx"), "utf8");
     // the shared text-link class, spelled in two parts so this test file is not counted as one of its users (q248HoverUnderlineRatchet)
     const linkClass = ["link", "standard"].join("-");

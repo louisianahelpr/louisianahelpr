@@ -39,3 +39,20 @@ export const categoryMaterials: Record<string, MaterialItem[]> = {
     { name: "Plywood screws (1 lb box)", estimatedCost: "$8–$12", searchUrl: "https://www.amazon.com/s?k=plywood+screws+1lb", icon: "Wrench" },
   ],
 };
+
+/**
+ * Amazon Associates tracking ID (owner's account, approved provisionally
+ * 2026-10-08). Every "Shop" link goes out through amazonAffiliateUrl, so a
+ * purchase made from it credits Helpr. The program requires the disclosure
+ * AMAZON_ASSOCIATE_DISCLOSURE wherever these links show.
+ */
+export const AMAZON_ASSOCIATE_TAG = "louisianahelp-20";
+export const AMAZON_ASSOCIATE_DISCLOSURE = "As an Amazon Associate, Helpr earns from qualifying purchases.";
+
+/** The same Amazon URL with Helpr's `tag` set (replacing any other tag). */
+export function amazonAffiliateUrl(url: string): string {
+  const u = new URL(url);
+  if (!/(^|\.)amazon\.com$/.test(u.hostname)) return url;
+  u.searchParams.set("tag", AMAZON_ASSOCIATE_TAG);
+  return u.toString();
+}

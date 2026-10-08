@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
@@ -567,7 +567,15 @@ describe("a job-card action row is ONE kind of control", () => {
       const row = container.querySelector("[data-job-step-row]");
       expect(row, "this state renders no job step row").not.toBeNull();
 
-      const controls = rowControls(row!);
+      // Since 2026-10-08 the row is More + the primary; every other control is
+      // inside More. They are still the row's controls, so open More and hold
+      // them to the same signature.
+      const trigger = row!.querySelector<HTMLElement>("[data-job-step-overflow]");
+      if (trigger) await act(async () => { fireEvent.click(trigger); });
+      const panel = document.querySelector("[data-job-step-overflow-panel]");
+      // The panel is a popover (role=dialog), which rowControls skips; read it directly.
+      const inMore = panel ? [...panel.querySelectorAll<HTMLElement>("button, a[href]")] : [];
+      const controls = [...rowControls(row!).filter((el) => el !== trigger), ...inMore];
       widths.push(controls.length);
       expect(
         controls.length,

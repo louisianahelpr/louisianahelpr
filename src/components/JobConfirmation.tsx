@@ -39,6 +39,9 @@ import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/job-card/
  * Returns the effective STAMP (so callers can print it), or null.
  */
 
+/** The Helpr's day-before step, on its button (owner, 2026-10-08). */
+export const HELPER_CONFIRM_LABEL = "Confirm You'll Be at the Job";
+
 export function helperDayOfConfirmation({
   helperConfirmedAt,
   helperDayofConfirmedAt,
@@ -193,7 +196,26 @@ export function JobConfirmation({
      Same card, same two status chips, no button — plus the clock the helpr was
      missing. The 24-hour window itself is unchanged; it just says so now. */
   if (isLiveJob && hoursUntilJob > 24) {
-    if (hideNotYetOpen) return null;
+    /* The Helpr's primary BEFORE the window opens is this step, greyed (owner,
+       2026-10-08: "they must confirm 24 hours before they can mark on their
+       way, so that button should be confirm you will be at the job, not on my
+       way"). */
+    const opensAtForNote = new Date(confirmOpensMs(dateNeeded));
+    const waitingPrimary = variant === "inline" && isHelper ? (
+      <>
+        <JobStepRowSlot slot="note">
+          <p className="font-sans text-ds-10" data-helper-confirm-wait-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            This button turns on{" "}
+            {opensAtForNote.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}
+            , the day before the job.
+          </p>
+        </JobStepRowSlot>
+        <JobStepRowSlot slot="primary">
+          <JobStepPrimaryButton icon={CheckCircle2} label={HELPER_CONFIRM_LABEL} disabled onClick={() => {}} />
+        </JobStepRowSlot>
+      </>
+    ) : null;
+    if (hideNotYetOpen) return waitingPrimary;
     // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the
     // two DST days, and the sweep uses the helper.
     const opensAt = new Date(confirmOpensMs(dateNeeded));
@@ -217,37 +239,41 @@ export function JobConfirmation({
        yet. The date is already on the card twice; what was actually missing is
        one clock and one sentence, so that is all this is. */
     return (
-      <div
-        className="flex items-start gap-2 p-2 rounded-ds-sm border"
-        style={{
-          background: "hsl(var(--amber-tint) / 0.05)",
-          borderColor: "hsl(var(--amber-tint) / 0.20)",
-          color: "hsl(var(--muted-foreground))",
-        }}
-      >
-        <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
-        <div className="min-w-0">
-          <p className="text-ds-11 font-semibold tabular-nums">
-            Confirmation opens in {untilOpen}
-          </p>
-          <p className="text-ds-10 mt-0.5">
-            The day before, we ask you both to confirm you're still on — that's
-            what unlocks the rest of the tracker.
-          </p>
-          {!isOwner && (
-            <p className="text-ds-10 mt-0.5 font-semibold tabular-nums">
-              Then you'll have {CONFIRM_WINDOW_HOURS} hours — confirm by{" "}
-              {confirmBy.toLocaleString("en-US", {
-                timeZone: JOB_TIMEZONE,
-                weekday: "short",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-              , or the job re-opens to other Helprs.
+      <>
+        {waitingPrimary}
+        <div
+          className="flex items-start gap-2 p-2 rounded-ds-sm border"
+          style={{
+            background: "hsl(var(--amber-tint) / 0.05)",
+            borderColor: "hsl(var(--amber-tint) / 0.20)",
+            color: "hsl(var(--muted-foreground))",
+          }}
+        >
+          <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-ds-11 font-semibold tabular-nums">
+              Confirmation opens in {untilOpen}
             </p>
-          )}
+            <p className="text-ds-10 mt-0.5">
+              The day before, we ask you both to confirm you're still on — that's
+              what unlocks the rest of the tracker.
+            </p>
+            {!isOwner && (
+              <p className="text-ds-10 mt-0.5 font-semibold tabular-nums">
+                Then you'll have {CONFIRM_WINDOW_HOURS} hours — confirm by{" "}
+                {confirmBy.toLocaleString("en-US", {
+                  timeZone: JOB_TIMEZONE,
+                  weekday: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+                , or the job re-opens to other Helprs.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </>
+
     );
   }
 
@@ -472,6 +498,11 @@ export function JobConfirmation({
       </Button>
     ) : null
   );
+  const posterNextNote = isOwner && myConfirmed ? (
+    <p className="font-sans text-center text-ds-10" data-poster-next-step-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      This button turns on once your Helpr says they've arrived.
+    </p>
+  ) : null;
 
   /* MERGED INTO THE TRACKER — no box, no heading, no date, no chips.
      Everything this variant drops is said by the step rail directly above it:
@@ -501,7 +532,7 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label="I'm Still On"
+          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"}
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : isOwner ? (
@@ -564,6 +595,7 @@ export function JobConfirmation({
             the button say it. */}
         {deadlineNotice}
         {confirmCta}
+        {posterNextNote}
       </div>
 
       {confirmDialog}

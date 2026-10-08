@@ -248,8 +248,12 @@ describe("helper active card — exactly one way out of a live job", () => {
     if (more && !document.querySelector('[role="dialog"][aria-label="More actions for this job"]')) fireEvent.click(more);
     return [...document.body.querySelectorAll("button")].find((b) => /Report a Problem/i.test(b.textContent || ""));
   };
-  const exitIn = (c: HTMLElement) =>
-    [...c.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
+  // Every chip but the primary is under More since 2026-10-08 (owner): open it.
+  const exitIn = (c: HTMLElement) => {
+    const more = c.querySelector<HTMLElement>("[data-job-step-overflow]");
+    if (more && !document.querySelector('[role="dialog"][aria-label="More actions for this job"]')) fireEvent.click(more);
+    return [...document.body.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
+  };
   const confirmedNotOnTheWay = makeJob({
     status: "in_progress",
     helper_on_the_way_at: null,
@@ -285,16 +289,14 @@ describe("helper active card — exactly one way out of a live job", () => {
       expect(report!.hasAttribute("data-job-action-chip"), "Report a Problem is not a job action chip").toBe(true);
       expect(container.contains(report!), "Report a Problem is on the row instead of inside More").toBe(false);
       expect(report!.closest('[role="dialog"][aria-label="More actions for this job"]')).not.toBeNull();
-      const message = [...container.querySelectorAll("button[data-job-action-chip]")].find((b) =>
+      const message = [...document.body.querySelectorAll("button[data-job-action-chip]")].find((b) =>
         /Message/i.test(b.textContent || ""),
       );
       expect(message, "Message must stay reachable").toBeTruthy();
-      // The More that holds it sits in the ONE row, beside Message (owner,
-      // 2026-09-14, VN-21 — was a `.grid` chip row under a separate primary).
+      // Message is in More with it (owner, 2026-10-08), and More is in the ONE row.
+      expect(message!.closest('[role="dialog"][aria-label="More actions for this job"]'), "Message is not under More").not.toBeNull();
       const more = container.querySelector("[data-job-step-overflow]");
-      expect(more!.closest("[data-job-step-row]"), "More is not in the same row as Message").toBe(
-        message!.closest("[data-job-step-row]"),
-      );
+      expect(more!.closest("[data-job-step-row]"), "More is not in the step's row").not.toBeNull();
     });
   }
 });
@@ -368,7 +370,9 @@ describe("helper active card — at most one primary CTA per state", () => {
     // before removal; the Message chip is the survivor.
     const { container } = renderSection(CASES[3].job);
     await act(async () => { await Promise.resolve(); });
-    const labels = [...container.querySelectorAll("button")].map((b) => (b.textContent || "").trim());
+    const more = container.querySelector<HTMLElement>("[data-job-step-overflow]");
+    if (more) await act(async () => { fireEvent.click(more); });
+    const labels = [...document.body.querySelectorAll("button")].map((b) => (b.textContent || "").trim());
     expect(labels.some((l) => /^Discuss$/i.test(l)), `[${labels.join(" | ")}]`).toBe(false);
     expect(labels.some((l) => /Message/i.test(l)), "Message must stay reachable").toBe(true);
   });

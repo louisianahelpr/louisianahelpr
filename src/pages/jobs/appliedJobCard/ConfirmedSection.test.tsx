@@ -19,6 +19,9 @@ vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null 
 vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 
 import { ConfirmedSection } from "./ConfirmedSection";
+import { openMore } from "@/test/helpers/openMore";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 
 const job = {
   id: "job-1",
@@ -43,19 +46,26 @@ const job = {
 } as unknown as Job;
 const app = { id: "app-1", job_id: "job-1", status: "accepted" } as unknown as AppliedApp;
 
-const renderSection = () =>
-  render(<ConfirmedSection app={app} job={job} userId="helper-1" navigate={() => {}} />);
+// ConfirmedSection reads the pending date/time request (react-query) since
+// 2026-10-08, and its chips live under More: a client, then open More.
+const withClient = (ui: ReactElement) =>
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>);
+const renderSection = async () => {
+  const r = withClient(<ConfirmedSection app={app} job={job} userId="helper-1" navigate={() => {}} />);
+  await openMore(r.container);
+  return r;
+};
 
 describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
-  it("labels the chip Cancel Job, never Can't Make It", () => {
-    renderSection();
+  it("labels the chip Cancel Job, never Can't Make It", async () => {
+    await renderSection();
     const chip = screen.getByRole("button", { name: /^Cancel Job — / });
     expect(chip).toHaveTextContent("Cancel Job");
     expect(screen.queryByText(/can[’']t make it/i)).toBeNull();
   });
 
-  it("opens the same dialog wording the in-progress card uses", () => {
-    renderSection();
+  it("opens the same dialog wording the in-progress card uses", async () => {
+    await renderSection();
     fireEvent.click(screen.getByRole("button", { name: /^Cancel Job — / }));
     expect(screen.getByRole("heading", { name: "Cancel This Job?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel Job" })).toBeInTheDocument();
@@ -70,8 +80,8 @@ describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
 // COALESCE(start_time,'00:00') in America/Chicago. Proven RED before the
 // hasJobStarted guard — the chip rendered in the refused window.
 describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
-  const renderWith = (patch: Partial<Job>) =>
-    render(
+  const renderWith = async (patch: Partial<Job>) => {
+    const r = withClient(
       <ConfirmedSection
         app={app}
         job={{ ...job, ...patch } as Job}
@@ -79,19 +89,22 @@ describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
         navigate={() => {}}
       />,
     );
+    await openMore(r.container);
+    return r;
+  };
 
-  it("hides the chip for a job whose scheduled start is in the past", () => {
-    renderWith({ date_needed: "2020-01-01", start_time: "09:00" });
+  it("hides the chip for a job whose scheduled start is in the past", async () => {
+    await renderWith({ date_needed: "2020-01-01", start_time: "09:00" });
     expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
   });
 
-  it("hides the chip for a null-start (flexible) job on a past day (RPC treats null as midnight)", () => {
-    renderWith({ date_needed: "2020-01-01", start_time: null });
+  it("hides the chip for a null-start (flexible) job on a past day (RPC treats null as midnight)", async () => {
+    await renderWith({ date_needed: "2020-01-01", start_time: null });
     expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
   });
 
-  it("still offers the chip for a clearly future job", () => {
-    renderWith({ date_needed: "2099-01-01", start_time: "09:00" });
+  it("still offers the chip for a clearly future job", async () => {
+    await renderWith({ date_needed: "2099-01-01", start_time: "09:00" });
     expect(screen.getByRole("button", { name: /^Cancel Job/ })).toBeInTheDocument();
   });
 });

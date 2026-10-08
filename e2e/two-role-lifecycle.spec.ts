@@ -31,7 +31,7 @@ import { test, expect, type BrowserContext, type Page } from "./prodTest";
 //      must SUCCEED (regression: the column-whitelist 403 of 2026-08-24).
 //   2. Poster's card reflects the mutual confirm (tracker reaches Confirmed)
 //      without a reload — the realtime channel is part of the contract.
-//   3. The tracker's next action is gated until T-2h ("Actions unlock at…").
+//   3. The tracker's next action is gated until T-2h ("This button turns on at…").
 //
 // The money legs (fund → approve → payout) stay in src/test/edge/ unit tests
 // plus the operator-run sandbox procedure in scripts/e2e/ — a CI browser must
@@ -141,7 +141,7 @@ test.describe("two-role lifecycle", () => {
 
     // ── Helper: the next tracker action stays gated until T-2h ──
     await expect(
-      helper.getByText(/Actions unlock at|Actions available on/i),
+      helper.getByText(/This button turns on/i),
       "tracker actions must be time-gated before T-2h",
     ).toBeVisible({ timeout: 15_000 });
 

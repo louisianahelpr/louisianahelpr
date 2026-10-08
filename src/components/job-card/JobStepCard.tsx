@@ -19,6 +19,19 @@ import { JobStepOverflowChip } from "./JobActionRow";
  *  order; the width-driven overflow follows them. Held here, not per step, so
  *  no step can put them back on the row. */
 export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos"];
+/** The order inside More, most important first (owner, 2026-10-08: "organize
+ *  the stuff in the more button from most important first to least
+ *  important"): talking, getting there, the job's own next asks, housekeeping,
+ *  the ways out, and SOS at the bottom (owner, 2026-10-08: "SOS at bottom").
+ *  Keys not listed sit before the problem/exit group, in the step's own order. */
+export const MORE_ORDER: readonly string[] = [
+  "message", "directions", "photo", "reschedule", "edit", "share", "boost",
+  "report", "dispute", "cancel", "exit", "sos",
+];
+/** EVERY chip lives under More now, on both cards: the row is More (left) and
+ *  the one primary (right) (owner, 2026-10-08: "move everything besides the
+ *  primary button into the more tab, for poster and Helpr; more button will be
+ *  to the left of the primary button"). MORE_ORDER sets the order inside. */
 
 /**
  * JobStepCard — the ONE structure every state of BOTH activity job cards is
@@ -146,7 +159,9 @@ export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos
  *   9. `dialogs` — portalled confirms. Rendered last, occupies no layout.
  */
 function moreOnlyRank(c: ReactNode): number {
-  return isValidElement(c) && typeof c.key === "string" ? MORE_ONLY_CHIP_KEYS.indexOf(c.key) : -1;
+  const i = isValidElement(c) && typeof c.key === "string" ? MORE_ORDER.indexOf(c.key) : -1;
+  // Unlisted keys: after the job's own asks, before the problem/exit group.
+  return i === -1 ? MORE_ORDER.indexOf("report") - 0.5 : i;
 }
 
 export function JobStepCard({
@@ -192,13 +207,15 @@ export function JobStepCard({
   dialogs?: ReactNode;
 }) {
   const allChips = (actions ?? []).filter(Boolean);
-  const isMoreOnly = (c: ReactNode) =>
-    isValidElement(c) && typeof c.key === "string" && MORE_ONLY_CHIP_KEYS.includes(c.key);
+  const isMoreOnly = (_c: ReactNode) => true;
   // Chips pinned inside `More` never compete for a row slot; the row sees one
   // extra slot for the `More` control itself instead.
   const moreOnly = allChips
     .filter(isMoreOnly)
-    .sort((a, b) => moreOnlyRank(a) - moreOnlyRank(b));
+    // Stable: same-rank chips keep the step's order.
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => moreOnlyRank(a.c) - moreOnlyRank(b.c) || a.i - b.i)
+    .map(({ c }) => c);
   const chips = allChips.filter((c) => !isMoreOnly(c));
 
   // Portal hosts. Callback refs into state, so the context re-renders the

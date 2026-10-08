@@ -42,8 +42,34 @@ export function computeJobExpiresAt(
   if (!dateNeeded) return null;
   const scheduled = jobStartDateTime(dateNeeded, startTime ? startTime : "23:59", timeZone);
   if (!scheduled) return null;
-  const floor = now.getTime() + MIN_LISTING_WINDOW_MS;
-  return new Date(Math.max(scheduled.getTime(), floor)).toISOString();
+  // Closes AT the start (owner, 2026-10-08). The old 1-hour floor kept a
+  // short-notice listing up past its own start ("34 minutes left" at 2:03 on a
+  // 2:00 job); a new job now needs MIN_POST_NOTICE_MS of notice instead, so its
+  // start is always the later of the two. The floor stays only for a schedule
+  // already gone (an edit), where the server's own floor applies anyway.
+  return scheduled.getTime() > now.getTime()
+    ? scheduled.toISOString()
+    : new Date(now.getTime() + MIN_LISTING_WINDOW_MS).toISOString();
+}
+
+/** A new job must start at least this far out (owner, 2026-10-08: "at least 2
+ *  hours"). Mirrors trg_jobs_short_notice (20261008190546). Two hours is when
+ *  "I'm On My Way" unlocks, so a job posted any later cannot run its own day. */
+export const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * True when the start is under MIN_POST_NOTICE_MS away, or already past. No
+ * start time ("any time that day") counts as 11:59 PM, the listing's own rule.
+ */
+export function isScheduleTooSoon(
+  dateNeeded: string,
+  startTime: string,
+  now: Date = new Date(),
+  timeZone?: string,
+): boolean {
+  if (!dateNeeded) return false;
+  const scheduled = jobStartDateTime(dateNeeded, startTime ? startTime : "23:59", timeZone);
+  return scheduled !== null && scheduled.getTime() - now.getTime() < MIN_POST_NOTICE_MS;
 }
 
 /**

@@ -7,7 +7,7 @@ import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimit
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { computeBudgetPresets } from "./postJobFormHelpers";
-import { isScheduleInThePast } from "@/lib/jobExpiry";
+import { isScheduleTooSoon } from "@/lib/jobExpiry";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { detailsBlocker } from "./detailsBlocker";
 
@@ -96,7 +96,8 @@ function useScheduleInPast(dateNeeded: string, startTime: string): boolean {
 
   // Read the clock at RENDER, not from the state above — the state exists only
   // to schedule a re-render, so a value read here is never stale.
-  return isScheduleInThePast(dateNeeded, startTime);
+  // Past, or under the 2-hour notice a new job needs (owner, 2026-10-08).
+  return isScheduleTooSoon(dateNeeded, startTime);
 }
 
 export function useJobDerived(params: UseJobDerivedParams) {

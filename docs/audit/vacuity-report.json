@@ -1,10 +1,8 @@
 {
-  "generated": "2026-10-07T22:30:37.275Z",
+  "generated": "2026-10-08T01:09:27.295Z",
   "guards": 1594,
-  "registered": 1593,
-  "unregistered": [
-    "src/hooks/useBugReportScreen.test.ts"
-  ],
+  "registered": 1594,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],

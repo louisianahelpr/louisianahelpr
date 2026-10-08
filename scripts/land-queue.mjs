@@ -129,6 +129,27 @@ export function checksFromGh(run) {
   }
 }
 
+/**
+ * Run the queue's own merge. Between readQueue and this call a PR's merge
+ * state can change (a check re-ran, main moved), and GitHub then answers
+ * "Pull Request is not mergeable": that is WAIT, not a crash (Land queue run
+ * 37606345222, 2026-10-07, Q1487, failed the run on exactly that). The next
+ * event re-reads the real state. Every other gh failure still throws.
+ */
+export function mergeOrWait(run, log = console.log) {
+  try {
+    run();
+    return "merged";
+  } catch (e) {
+    const text = [e && typeof e === "object" && "stderr" in e ? String(e.stderr ?? "") : "", e instanceof Error ? e.message : String(e)].join("\n");
+    if (/not mergeable/i.test(text)) {
+      log(`land-queue: merge refused as not mergeable; waiting for the next event (${text.trim().split("\n")[0].slice(0, 160)})`);
+      return "wait";
+    }
+    throw e;
+  }
+}
+
 function readQueue() {
   const list = JSON.parse(gh(["pr", "list", "--state", "open", "--label", QUEUE_LABEL, "--json", "number,isDraft", "--limit", "50"]));
   const prs = [];
@@ -171,7 +192,7 @@ function act(step) {
       gh(["pr", "update-branch", n, "--rebase"]);
       return;
     case "merge":
-      gh(["pr", "merge", n, "--rebase"]);
+      mergeOrWait(() => gh(["pr", "merge", n, "--rebase"]));
       return;
     default:
       return;

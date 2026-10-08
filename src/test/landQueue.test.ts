@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh } from "../../scripts/land-queue.mjs";
+import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh, mergeOrWait } from "../../scripts/land-queue.mjs";
 import { REQUIRED_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -146,5 +146,30 @@ describe("migration gate checks count in the queue", () => {
     expect(() => checksFromGh(ghError("HTTP 502: Bad Gateway"))).toThrow(/gh pr checks/);
     const steps = planQueue([{ number: 7, mergeStateStatus: "BLOCKED", checks: queuedChecks(checksFromGh(ghError("no required checks reported on the 'land/y' branch")), []) }]);
     expect(steps).toEqual([{ action: "wait", number: 7 }]);
+  });
+});
+
+// Q1487: Land queue run 37606345222 crashed when its own `gh pr merge` was
+// refused as "not mergeable" (the PR's state moved after readQueue).
+// @mutate scripts/land-queue.mjs |     if (/not mergeable/i.test(text)) { |     if (false) {
+// @mutate scripts/land-queue.mjs |       mergeOrWait(() => gh(["pr", "merge", n, "--rebase"])); |       gh(["pr", "merge", n, "--rebase"]);
+describe("the queue's own merge refused as not mergeable is a wait, not a crash (Q1487)", () => {
+  const refused = () => {
+    const e = Object.assign(new Error("Command failed: gh pr merge 2564 --rebase"), {
+      stderr: "GraphQL: Pull Request is not mergeable (mergePullRequest)\n",
+    });
+    throw e;
+  };
+  it("answers wait and logs it", () => {
+    const logs: string[] = [];
+    expect(mergeOrWait(refused, (l: string) => logs.push(l))).toBe("wait");
+    expect(logs.join("\n")).toMatch(/not mergeable/);
+  });
+  it("still throws on any other gh failure", () => {
+    expect(() => mergeOrWait(() => { throw Object.assign(new Error("boom"), { stderr: "HTTP 502" }); }, () => {})).toThrow("boom");
+  });
+  it("act() routes the merge through mergeOrWait", () => {
+    const src = readFileSync(join(process.cwd(), "scripts/land-queue.mjs"), "utf8");
+    expect(src).toMatch(/case "merge":\s*mergeOrWait\(\(\) => gh\(\["pr", "merge", n, "--rebase"\]\)\);/);
   });
 });

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
+import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { isIdentityVerified } from "@/lib/awardGate";
 
@@ -317,12 +318,12 @@ export function useProfileLandingDerived({
         // would have pointed at a redirect back to its neighbour — two menu
         // entries, one destination. The export it led to is called out in the
         // description below so the scent survives the merge.
-        { key: "legal", label: "Legal", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
+        { key: "legal", label: TAB_TITLES.legal, icon: <Gavel className="w-5 h-5" />, desc: "Terms, rules & privacy", tint: SECTION_TINT.legal },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
         // Owner, 2026-10-07 (Q1028): opens the support form on "Something's not
         // working", which attaches the screen, route, device, build and recent errors.
-        { key: "report_bug", label: "Report a bug", icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
+        { key: "report_bug", label: REPORT_BUG_TITLE, icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
         ...(isAdmin
           ? [
               {

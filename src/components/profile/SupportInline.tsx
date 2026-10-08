@@ -2,6 +2,7 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { REPORT_BUG_TITLE } from "@/pages/profile/types";
 import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
 import { withBugReport } from "@/lib/bugReportContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,6 +115,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   // paints, and "Message Admin" is the general case the other two narrow.
   // `?topic=report` ("Report a bug" on the Profile menu, Q1028) opens on the bug topic.
   const [searchParams] = useSearchParams();
+  const openedAsBugReport = searchParams.get("topic") === "report";
   const [category, setCategory] = useState<SupportCategory>(
     () => supportCategories.find((c) => c.key === searchParams.get("topic"))?.key ?? "message",
   );
@@ -269,7 +271,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title="Help & Support" onBack={onBack} />
+      {/* Opened from "Report a bug" (?topic=report), the screen is titled what the
+          row said (owner, 2026-10-08: "header and tabs should match"). */}
+      <ProfileTabHeader title={openedAsBugReport ? REPORT_BUG_TITLE : "Help & Support"} onBack={onBack} />
 
       <form
         ref={formRef}

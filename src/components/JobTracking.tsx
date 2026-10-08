@@ -2375,8 +2375,6 @@ export function JobTracking({
                   unlockDayMs !== null && todayStartMs < unlockDayMs
                     ? ` on ${formatShortDate(new Date(unlockDayMs))}`
                     : "";
-                // Says what the greyed button is waiting for (owner, 2026-10-08:
-                // "say like this button won't activate until...").
                 return `This button turns on at ${unlockAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", ...zoned })}${dateSuffix}`;
               })()
             : `This button turns on ${formatShortDate(jobDay!)}`

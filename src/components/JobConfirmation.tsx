@@ -480,12 +480,8 @@ export function JobConfirmation({
          their control portals into their step card's single action row, where a
          permanent inert box would occupy the primary slot the tracker's own
          next-step CTA needs. */
-      /* Once the poster has confirmed, the button shows the NEXT thing theirs
-         to do, greyed out until it is time (owner, 2026-10-08: "after they
-         confirm the Helpr will say on their way, so the button should change
-         to confirm they have arrived, greyed out until the time"). The live
-         control is the tracker's arrival step, which takes over once the Helpr
-         says they're there. */
+      /* After confirming: the poster's NEXT step, greyed until its time (owner,
+         2026-10-08); the tracker's arrival step is the live control. */
       <Button
         variant="outline"
         size="sm"
@@ -589,10 +585,7 @@ export function JobConfirmation({
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
-        {/* No "You: Confirmed / Helpr: Confirmed" chips and no "Confirmed <time>"
-            receipt (owner, 2026-10-08: "remove you confirmed and confirmed at,
-            the button shows they confirmed"): the tracker's Confirmed step and
-            the button say it. */}
+        {/* No You/Helpr Confirmed chips or receipt (owner, 2026-10-08). */}
         {deadlineNotice}
         {confirmCta}
         {posterNextNote}

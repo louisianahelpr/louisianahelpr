@@ -66,6 +66,7 @@ const SINGLE_HELPER_SELECT =
 const NOT_FOR_A_CREW: Record<string, string> = {
   get_payout_batch_job_ids: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_payout_batches: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
+  sweep_confirm_reminders_and_repost: "one-Helpr jobs only by design (owner 2026-10-08 answer 1): a crew's members confirm on their own roster rows and their unconfirmed spots expire per member (expire_unanswered_offers, Q1409)",
 };
 
 describe("a crew gets its reminders, auto-start and counts (Q728)", () => {

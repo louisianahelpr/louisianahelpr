@@ -117,11 +117,6 @@
       "reason": "Same red proof as pr:2444; kept on origin as the record of the run."
     },
     {
-      "id": "remote:origin/q975-races-10-13-red",
-      "sha": "14ff0cac91e9c7e8e10435dda872088ee062f44f",
-      "reason": "RED PROOF, never to land: races 10-13 with their guards removed (run 37416505050: BAD 5/5 each), the proof that races 10-13 can fail; kept on origin as the record of the run."
-    },
-    {
       "id": "pr:2449",
       "sha": "14ff0cac91e9c7e8e10435dda872088ee062f44f",
       "reason": "RED PROOF, never to land: the auto-land PR branch-prune opened for q975-races-10-13-red (races 10-13 with guards removed, run 37416505050 BAD 5/5). Auto-merge disabled and the PR closed 2026-10-06 (lead); the real races landed with Q975."
@@ -147,6 +142,24 @@
       "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
       "reason": "Unfinished 'one bot on main owns generated files' rework (wip, 2026-10-05); not superseded. Q1423 (post-launch) decides whether to finish or drop it.",
       "checked": "2026-10-08 (lead, content-checked against origin/main: 2/40 distinctive added lines on main)"
+    },
+    {
+      "id": "remote:origin/q975-probe7-red",
+      "sha": "58d0378bd3c68baee59d8b53f0d0f285d8b378e3",
+      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
+      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
+    },
+    {
+      "id": "remote:origin/q975-race-proofs",
+      "sha": "dc907f9f088bcf3675a8bbdbf0ed37b1939519de",
+      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
+      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
+    },
+    {
+      "id": "remote:origin/q975-red-proof",
+      "sha": "c897919a372b393edaa03eca04afd4c68b582b88",
+      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
+      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
     }
   ]
 }

@@ -110,12 +110,10 @@ export function ActivityEmptyState({
      approval that was waiting on them and the control walked past it
      (measured 2026-09-07 on /posts as Audit Weblane). */
   const jumpTo = (statusLabels ?? [])
-    .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
-    .sort((a, b) =>
-      a.key === "needs_you" ? -1
-        : b.key === "needs_you" ? 1
-          : (statusCounts?.[b.key] ?? 0) - (statusCounts?.[a.key] ?? 0),
-    )[0];
+    // TAB ORDER, not fullest (owner, 2026-10-08, the rule the page opens by:
+    // needs you, then waiting, then scheduled...). Fullest offered "Show
+    // Cancelled (4)" over 2 in Waiting on prod at 390 (helper-e2e).
+    .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)[0];
   const filteredElsewhere =
     elsewhere.length === 0
       ? null
@@ -129,11 +127,7 @@ export function ActivityEmptyState({
      matches, and offer the one to jump to; same Needs-you-first order. */
   const searchElsewhere = (statusLabels ?? [])
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (searchMatchCounts?.[f.key] ?? 0) > 0);
-  const searchJumpTo = [...searchElsewhere].sort((a, b) =>
-    a.key === "needs_you" ? -1
-      : b.key === "needs_you" ? 1
-        : (searchMatchCounts?.[b.key] ?? 0) - (searchMatchCounts?.[a.key] ?? 0),
-  )[0];
+  const searchJumpTo = searchElsewhere[0];
   const searchElsewhereText = searchElsewhere.map((f) => `${searchMatchCounts?.[f.key]} in ${f.label}`);
   const searchElsewhereLine =
     searchElsewhereText.length <= 1

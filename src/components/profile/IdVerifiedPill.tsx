@@ -32,7 +32,8 @@ export const ID_VERIFIED_PILL_STYLE: CSSProperties = {
   color: "hsl(var(--gold-ink))",
 };
 
-export const ID_VERIFIED_LABEL = "ID verified";
+/** Owner, 2026-10-08: "there is no such thing as ID verified, only Stripe ID verified". */
+export const ID_VERIFIED_LABEL = "Stripe ID verified";
 
 export const ID_VERIFIED_DESCRIPTION =
   "A government ID was checked by Stripe Identity and matched this member. Earned by completing ID verification in Profile.";

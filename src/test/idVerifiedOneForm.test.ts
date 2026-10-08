@@ -20,7 +20,7 @@ import { execFileSync } from "node:child_process";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
-const WORDING = /["'`>]\s*(?:✓\s*)?(?:ID verified(?: by Stripe)?|ID VERIFIED|Stripe verified|Identity verified)\b/i;
+const WORDING = /["'`>]\s*(?:✓\s*)?(?:(?:Stripe )?ID verified(?: by Stripe)?|ID VERIFIED|Stripe verified|Identity verified)\b/i;
 
 /** Places that state the fact but are not a badge; each says why. */
 // @two-way src/test/idVerifiedOneForm.test.ts:EXEMPT is exact: every entry still matches

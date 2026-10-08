@@ -33,7 +33,7 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : "Accept Job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job";
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Accepting" : "Accept Job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job";
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
@@ -330,15 +330,16 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     [["payout_setup", "stripe_id"], /Not accepted yet: waiting on your payout setup and Stripe ID check/],
     [["stripe_id"], /Not accepted yet: waiting on your Stripe ID check/],
     [["payout_setup"], /Not accepted yet: waiting on your payout setup\./],
-  ] as const)("accepted, waiting on %j: Decline | Accept Job in one row, and the status says not accepted yet", (missing, line) => {
+  ] as const)("accepted, waiting on %j: Decline | Finish Accepting in one row, and the status says not accepted yet", (missing, line) => {
     pendingJobs.add("job-1");
     gateState.missing = [...missing];
     gateState.reason = gateState.missing.includes("payout_setup") ? "helper_payout_setup_incomplete" : "helper_identity_unverified";
     renderOffer();
-    const accept = screen.getByRole("button", { name: /Accept Job/ });
+    // Owner, 2026-10-08: "it should say finish accepting, they already accepted".
+    const accept = screen.getByRole("button", { name: /Finish Accepting/ });
     const row = accept.parentElement!;
     const labels = [...row.querySelectorAll(":scope > button")].map((b) => b.textContent?.trim());
-    expect(labels).toEqual(["Decline", "Accept Job"]);
+    expect(labels).toEqual(["Decline", "Finish Accepting"]);
     expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup|Decline this job/ })).toBeNull();
     expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(line);
   });

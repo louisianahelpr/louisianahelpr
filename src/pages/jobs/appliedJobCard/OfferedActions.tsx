@@ -67,7 +67,9 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // confirm's no-strike promise above.
   // Guards: src/test/offerAcceptForEveryone.test.tsx,
   // src/test/offerCardHierarchy.test.tsx.
-  const acceptLabel = busy ? "Accepting…" : "Accept Job";
+  // Once accepted and waiting only on Stripe, the button finishes that accept
+  // (owner, 2026-10-08: "it should say finish accepting, they already accepted").
+  const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Accepting" : "Accept Job";
   // Item 5 (owner, 2026-10-07): after a pending accept the card says plainly
   // it is NOT accepted yet, and what it waits on (the same profile mirror of
   // helper_accept_missing the pop-up's list comes from).

@@ -25,7 +25,6 @@
  * G1: an agreed new address must carry its own map point (a pinless booked job verifies any arrival).
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 | IF false AND v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END, |          latitude = latitude,
- * @mutate src/lib/jobDetailChange.ts |     if (!point) throw new Error( |     if (false) throw new Error(
  * H1: an agreed address that geocodes to the same point keeps it (the clear stands aside for the agreed write).
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF current_setting('app.detail_change_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n  IF NEW.location |   IF NEW.location
  * G4: the geocoder writes only for the address it looked up.
@@ -129,8 +128,8 @@ describe("a booked job's place and details change only by a request every booked
     expect(request).toMatch(/IF 'location' = ANY \(v_fields\) THEN[\s\S]{0,400}IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 OR v_lng NOT BETWEEN -180 AND 180 THEN\s+RAISE EXCEPTION 'detail_change_location_unmapped';/);
     expect(respond).toContain("latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END,");
     expect(respond).toContain("longitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_longitude ELSE longitude END,");
-    const client = blankComments(readFileSync("src/lib/jobDetailChange.ts", "utf8"));
-    expect(client).toMatch(/point = await geocodeAddress\(changes\.location\);\s+if \(!point\) throw new Error\(/);
+    // The app's "Ask to change the details" and its client (src/lib/jobDetailChange.ts) were
+    // removed (owner, 2026-10-08: "delete ask to change the details"); the server half stands.
   });
 
   it("clients cannot write the request or answer tables; only the parties read them", () => {

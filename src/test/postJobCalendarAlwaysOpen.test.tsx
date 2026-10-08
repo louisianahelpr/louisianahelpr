@@ -4,7 +4,7 @@
  * stretches to the calendar's height. No pill, no popover over the fields
  * below.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx |           inline\n |
+ * @mutate src/components/postjob/LogisticsSection.tsx |           inline\n          labelledBy="date-label" |           labelledBy="date-label"
  * @mutate src/components/DatePickerField.tsx |             onSelect={(d) => d && onChange(toLocalIso(d))} |             onSelect={() => {}}
  */
 import { readFileSync } from "node:fs";

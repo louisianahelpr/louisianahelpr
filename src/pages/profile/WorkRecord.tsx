@@ -331,7 +331,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
             JobCardSkeletons: job-card rows with badge chips, a price tile and
             an apply-button footer, standing in for content that is nothing of
             the kind. See ProfileTabBodyReserve. */}
-        {loading && <ProfileTabBodyReserve />}
+        {loading && <ProfileTabBodyReserve tab="work_record" />}
 
         {isError && !loading && (
           <ErrorState

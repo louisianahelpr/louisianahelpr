@@ -1,9 +1,9 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 /** A wheel event at least this large (px) is a mouse-wheel notch: one step. */
-export const WHEEL_NOTCH_PX = 50;
+const WHEEL_NOTCH_PX = 50;
 /** Smaller trackpad deltas add up; this much travel is one step. */
-export const WHEEL_STEP_PX = 30;
+const WHEEL_STEP_PX = 30;
 
 /**
  * Mouse wheel and trackpad on a scroll-snap picker column, one row at a time.

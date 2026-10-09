@@ -3409,6 +3409,24 @@ export type Database = {
         }
         Relationships: []
       }
+      new_member_admin_notices: {
+        Row: {
+          notified_at: string
+          user_id: string
+          via: string
+        }
+        Insert: {
+          notified_at?: string
+          user_id: string
+          via: string
+        }
+        Update: {
+          notified_at?: string
+          user_id?: string
+          via?: string
+        }
+        Relationships: []
+      }
       notification_dedupe_suppressions: {
         Row: {
           id: number
@@ -5538,6 +5556,58 @@ export type Database = {
           processed_at?: string
         }
         Relationships: []
+      }
+      stuck_payment_stripe_checks: {
+        Row: {
+          checked_at: string
+          job_id: string
+          money_moved: boolean
+          payment_intent_id: string | null
+          payment_status: string
+          session_status: string
+          stripe_session_id: string
+        }
+        Insert: {
+          checked_at?: string
+          job_id: string
+          money_moved: boolean
+          payment_intent_id?: string | null
+          payment_status: string
+          session_status: string
+          stripe_session_id: string
+        }
+        Update: {
+          checked_at?: string
+          job_id?: string
+          money_moved?: boolean
+          payment_intent_id?: string | null
+          payment_status?: string
+          session_status?: string
+          stripe_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stuck_payment_stripe_checks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stuck_payment_stripe_checks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stuck_payment_stripe_checks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppressed_emails: {
         Row: {
@@ -7892,6 +7962,10 @@ export type Database = {
       }
       notification_job_id_from_link: {
         Args: { p_link: string }
+        Returns: string
+      }
+      notify_admins_new_member: {
+        Args: { p_user_id: string; p_via?: string }
         Returns: string
       }
       notify_schedule_change_expired: {

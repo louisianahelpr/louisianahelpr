@@ -118,6 +118,11 @@ const INTENDED_LINK_CHANGES = new Set([
   // ('/admin?view=jobs&job='); the expired crew spot tells both sides.
   "20261005172453_crew_block_and_unanswered_spot.sql::block_user_and_settle",
   "20261005172453_crew_block_and_unanswered_spot.sql::expire_unanswered_offers",
+  // 2026-10-09 review: the stuck-payment admin notice still links
+  // '/admin?view=people&user=%s'. The other copy was the per-POSTER dedupe
+  // lookup (n.link = ...), now per JOB through error_logs' job_id tag: per
+  // poster hid a second stuck job by the same poster entirely.
+  "20261009142754_stuck_payment_needs_stripe_proof.sql::detect_stuck_payments",
 ]);
 
 /**

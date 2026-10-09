@@ -52,6 +52,8 @@ export const DB_ID_COLUMNS = {
  * with the reason. Two-way with types.ts in the test.
  */
 export const NOT_MATCHED = {
+  "stuck_payment_stripe_checks.stripe_session_id": "a cache of Stripe's answer about jobs.stripe_session_id, rewritten every 15 minutes by stuck-payment-check; the job row is the record",
+  "stuck_payment_stripe_checks.payment_intent_id": "the session's PaymentIntent as stuck-payment-check last read it, for the alert text only; jobs.stripe_payment_intent_id is the matched record",
   "jobs.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through jobs.stripe_payment_intent_id",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",

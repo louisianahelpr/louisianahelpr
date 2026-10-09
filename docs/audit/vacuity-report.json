@@ -1,9 +1,10 @@
 {
-  "generated": "2026-10-09T15:39:29.651Z",
-  "guards": 1643,
+  "generated": "2026-10-09T15:52:15.636Z",
+  "guards": 1644,
   "registered": 1639,
   "unregistered": [
     "src/components/admin/adminJobs/activePaidJob.test.ts",
+    "src/components/dashboard/applyConfirmDialog/pitchPerAccount.test.tsx",
     "src/components/ui/anchoredPanel.contentMaxWidth.test.ts",
     "src/test/edgeInvokeSendsBearer.test.ts",
     "src/test/snapPickerHandlesWheel.test.tsx"

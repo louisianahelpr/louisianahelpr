@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
+import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
@@ -45,18 +46,21 @@ const guestTitle = scenarioTitle({ journey: "keyboard", persona: "new", state: "
 // "focused with nothing painted" is what catches it.
 // @mutate src/components/DateWheelPicker.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--olivewood))]" | "focus-visible:outline-none"
 
-test(guestTitle, async ({ browser, journey }) => {
+test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
-  const ctx = await newUserContext(browser, null, { rotation });
-  const page = journey.track("guest", await ctx.newPage());
+  // The DOB wheel left sign-up step 2 in c34c5fee5 (owner, 2026-10-09: the
+  // birthday is asked later). Complete Profile still asks for it with the same
+  // DatePickerField wheel and the same "Choose a date" dialog, so a new
+  // account that has not finished its profile is where a keyboard user meets
+  // it now: the `incomplete` seed account (./incompleteAccount.ts).
+  const incomplete = await getSession(request, "incomplete");
+  await expectGateSendsToCompleteProfile(request, incomplete);
+  const ctx = await newUserContext(browser, incomplete, { rotation });
+  const page = journey.track("incomplete", await ctx.newPage());
 
   await test.step("a. every focusable in the DOB wheel shows focus", async () => {
-    await page.goto("/signup");
-    await page.locator("#email").fill(`keyboard-journey-${Date.now()}@example.com`);
-    await page.locator("#password").fill("Kb!journey12345");
-    for (const id of ["#policies", "#age-confirm"]) await page.locator(id).click();
-    await page.getByRole("button", { name: /continue/i }).first().click();
-    await expect(page.locator("#dob")).toBeVisible({ timeout: 30_000 });
+    await page.goto("/complete-profile");
+    await expect(page.locator("#dob")).toBeVisible({ timeout: 60_000 });
     await page.locator("#dob").click();
     const dialog = page.getByRole("dialog", { name: "Choose a date" });
     await expect(dialog).toBeVisible({ timeout: 10_000 });
@@ -106,7 +110,7 @@ test(guestTitle, async ({ browser, journey }) => {
     }
     await journey.milestone(page, "dob-wheel-focus");
     expect(invisible, "focused with nothing painted").toEqual([]);
-    await assertHealthy(page, "signup DOB picker");
+    await assertHealthy(page, "/complete-profile DOB picker");
   });
 
   await test.step("a2. Tab through the DOB wheel never changes the value", async () => {

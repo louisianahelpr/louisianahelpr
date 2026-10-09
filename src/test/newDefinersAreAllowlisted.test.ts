@@ -56,6 +56,7 @@ const listed = new Set([...Object.keys(allow.authenticated), ...Object.keys(allo
 
 describe("a new app-callable SECURITY DEFINER function is allowlisted before it ships", () => {
   it("finds the functions this window adds (inventory floor)", () => {
+    expect(clientCallableNewDefiners().length).toBeGreaterThan(1);
     expect(clientCallableNewDefiners()).toEqual(expect.arrayContaining(["ack_backout_notice", "nudge_confirm"]));
   });
   it("each has an entry in definer-exec-allowlist.json", () => {

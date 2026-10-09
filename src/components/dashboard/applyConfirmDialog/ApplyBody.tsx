@@ -20,7 +20,7 @@ import {
   MAX_PITCH_LENGTH,
   pitchDraftKey,
   pitchTemplateKey,
-  LEGACY_UNSCOPED_PITCH_KEYS,
+  OLD_SHARED_PITCH_KEYS,
 } from "./applyConfirmDialogHelpers";
 
 /**
@@ -166,7 +166,7 @@ export function ApplyBody({
   useEffect(() => {
     if (!open) return;
     // Pre-account keys: owner unknowable, so dropped, never adopted.
-    for (const k of LEGACY_UNSCOPED_PITCH_KEYS) safeStorage.removeItem(k);
+    for (const k of OLD_SHARED_PITCH_KEYS) safeStorage.removeItem(k);
     if (applyMessage) return;
     if (!draftKey) return;
     const saved = safeStorage.getItem(draftKey);

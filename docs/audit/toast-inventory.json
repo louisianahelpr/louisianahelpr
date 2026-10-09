@@ -2076,7 +2076,7 @@
       "kind": "toast.success",
       "title": {
         "form": "template",
-        "text": "Sent to ${name}."
+        "text": "Sent to ${name}"
       },
       "description": {
         "form": "template",

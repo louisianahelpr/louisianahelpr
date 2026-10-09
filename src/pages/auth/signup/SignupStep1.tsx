@@ -448,6 +448,12 @@ export function SignupStep1({
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>
+      {/* Continue saves the email for ONE reminder if sign-up is not finished
+          (owner 2026-10-09; src/lib/signupLead.ts). Said here, before it
+          happens, in the same muted style as the consent rows. */}
+      <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        We may email you once if you don't finish signing up.
+      </p>
       </div>
 
       {/* Vertical OR rule, lg+ only — the horizontal one inside the right

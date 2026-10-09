@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20261009173906_signup_leads.sql |       AND l.created_at > now() - interval '2 hours'\n | \n
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
- * @mutate src/lib/signupLead.ts |     void captureSignupLead(email, | captureSignupLead(email,
+ * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email you once if you don't finish signing up.\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  */
@@ -152,10 +152,14 @@ describe("signup leads: client and unsubscribe layers", () => {
     expect(block).not.toMatch(/await\s+captureLead/);
     expect(block.indexOf("validateAccountStep")).toBeLessThan(block.indexOf("captureLead"));
     expect(signup).toMatch(/const captureLead = useSignupLeadCapture\(\);/);
-    // The hook fires without awaiting and remembers the last address (typo fix replaces it).
+    // The hook never awaits, remembers the last address (a typo fix replaces
+    // it), and queues each save behind the previous one so a corrected address
+    // can never reach the server before the typo it replaces.
     const hook = lib.slice(lib.indexOf("export function useSignupLeadCapture"));
-    expect(hook).toMatch(/\n\s*void captureSignupLead\(email,[^\n]*capturedLeadRef\.current\);/);
+    expect(hook).not.toMatch(/\bawait\b/);
+    expect(hook).toMatch(/const replaces = capturedLeadRef\.current;/);
     expect(hook).toMatch(/capturedLeadRef\.current = email;/);
+    expect(hook).toMatch(/queueRef\.current = queueRef\.current\.then\(\(\) => captureSignupLead\(email, source, replaces\)\);/);
   });
 
   it("step 1 tells the visitor before it happens", () => {

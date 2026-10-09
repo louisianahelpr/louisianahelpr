@@ -6,6 +6,7 @@
  * @mutate src/lib/signupLead.ts |     if (error && statusOf(error) !== 429) { |     if (false) {
  * @mutate src/lib/signupLead.ts | ...(prev && prev !== next ? { replaces: prev } : {}) | ...{}
  * @mutate src/lib/signupLead.ts | host.endsWith(".louisianahelpr.com") | host.endsWith("louisianahelpr.com")
+ * @mutate src/lib/signupLead.ts | queueRef.current = queueRef.current.then(() => captureSignupLead(email, source, replaces)); | void captureSignupLead(email, source, replaces);
  * @mutate src/lib/signupLead.ts |   } catch (err) {\n    report(err, { tags: { source: "signupLead.capture" } });\n  } |   } finally {}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -15,7 +16,8 @@ const report = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } } }));
 vi.mock("@/lib/errorLogger", () => ({ report: (...a: unknown[]) => report(...a) }));
 
-import { captureSignupLead, signupLeadSource } from "./signupLead";
+import { renderHook } from "@testing-library/react";
+import { captureSignupLead, signupLeadSource, useSignupLeadCapture } from "./signupLead";
 
 describe("captureSignupLead", () => {
   beforeEach(() => {
@@ -56,6 +58,29 @@ describe("captureSignupLead", () => {
     invoke.mockRejectedValue(new Error("offline"));
     await expect(captureSignupLead("me@gmail.com", "direct")).resolves.toBeUndefined();
     expect(report).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useSignupLeadCapture", () => {
+  beforeEach(() => {
+    invoke.mockReset();
+    report.mockReset();
+  });
+
+  it("sends a corrected address only after the typo's save has finished", async () => {
+    let finishFirst!: () => void;
+    invoke
+      .mockImplementationOnce(() => new Promise((r) => { finishFirst = () => r({ data: null, error: null }); }))
+      .mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useSignupLeadCapture());
+    result.current("jon@gmial.com");
+    result.current("jon@gmail.com");
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).toHaveBeenCalledTimes(1);
+    finishFirst();
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+    expect(invoke.mock.calls[1][1]).toEqual({ body: { email: "jon@gmail.com", source: "direct", replaces: "jon@gmial.com" } });
   });
 });
 

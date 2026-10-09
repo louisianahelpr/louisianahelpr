@@ -28,8 +28,8 @@
     "src/components/profile/SubscriptionTab.tsx": 885,
     "src/components/ReportDialog.tsx": 654,
     "src/components/ui/dialog.tsx": 931,
-    "src/pages/admin/Admin.tsx": 659,
-    "src/pages/auth/CompleteProfile.tsx": 971,
+    "src/pages/admin/Admin.tsx": 655,
+    "src/pages/auth/CompleteProfile.tsx": 968,
     "src/pages/auth/Login.tsx": 653,
     "src/pages/auth/Signup.tsx": 621,
     "src/pages/home/Dashboard.tsx": 966,
@@ -41,7 +41,7 @@
     "src/pages/profile/GiftCard.tsx": 847,
     "src/pages/profile/HelprWrapped.tsx": 607,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
-    "src/pages/profile/Profile.tsx": 862,
+    "src/pages/profile/Profile.tsx": 857,
     "src/pages/profile/WorkRecord.tsx": 750,
     "src/pages/user/UserProfile.tsx": 835
   }

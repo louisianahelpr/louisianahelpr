@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
  */
 
 const signOut = vi.fn(async (_options?: unknown) => ({ error: null }));
-const getUser = vi.fn(async () => ({ data: { user: { id: "u1" } } }));
+const getSession = vi.fn(async () => ({ data: { session: { user: { id: "u1" } } } }));
 const clear = vi.fn();
 const removePersistedClient = vi.fn(async () => {});
 const unregisterPushOnSignOut = vi.fn(async () => {});
@@ -25,17 +25,30 @@ const order: string[] = [];
 const clearNativeSessionMirror = vi.fn(async () => {});
 vi.mock("@/integrations/supabase/keychainStorageAdapter", () => ({ clearNativeSessionMirror }));
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
+// A client on which EVERY call hangs: any property is the same proxy, any call
+// returns it, and awaiting it never settles (`then` never calls back). That
+// covers getSession(), signOut(), and a .from().delete().eq() chain alike.
+const hanging: { on: boolean } = { on: false };
+const neverSettles: unknown = new Proxy(function () {}, {
+  get: (_t, prop) => (prop === "then" ? () => { /* never settles */ } : neverSettles),
+  apply: () => neverSettles,
+});
+vi.mock("@/integrations/supabase/client", () => {
+  const working = {
     auth: {
-      getUser: () => getUser(),
+      getSession: () => getSession(),
       signOut: (o?: unknown) => {
         order.push("signOut");
         return signOut(o as never);
       },
     },
-  },
-}));
+  };
+  return {
+    supabase: new Proxy(working, {
+      get: (target, prop) => (hanging.on ? (neverSettles as Record<PropertyKey, unknown>)[prop] : target[prop as keyof typeof target]),
+    }),
+  };
+});
 vi.mock("@/lib/queryClient", () => ({
   queryClient: {
     clear: () => {
@@ -153,6 +166,65 @@ describe("signOutWithPushCleanup", () => {
     }
   });
 
+  // ── "I pressed Log Out and nothing happened" (owner, 2026-10-09) ──
+  // Sign-out awaited getUser(), the push_tokens delete and POST /logout with no
+  // limit. Here EVERY supabase call and the push unregister never settle, and
+  // sign-out must still finish, inside its caps, and still clear this device.
+  it("finishes when every supabase call and the push unregister hang", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    hanging.on = true;
+    try {
+      unregisterPushOnSignOut.mockImplementation(() => new Promise<void>(() => { /* never settles */ }));
+      localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
+      const { signOutWithPushCleanup, PUSH_CLEANUP_CAP_MS, SIGN_OUT_CAP_MS } = await import("./authSignOut");
+      let done = false;
+      const p = signOutWithPushCleanup().then((r) => { done = true; return r; });
+      await vi.advanceTimersByTimeAsync(PUSH_CLEANUP_CAP_MS + SIGN_OUT_CAP_MS - 1);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      const result = await p;
+      expect(done).toBe(true);
+      // A capped /logout counts as a failed sign-out, so the floor ran.
+      expect(result.error).toBeTruthy();
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+      expect(clear).toHaveBeenCalledTimes(1);
+      expect(removePersistedClient).toHaveBeenCalledTimes(1);
+    } finally {
+      hanging.on = false;
+      unregisterPushOnSignOut.mockReset();
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  it("caps a push unregister that never settles even when the session read answers", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      unregisterPushOnSignOut.mockImplementationOnce(() => new Promise<void>(() => { /* never settles */ }));
+      const { signOutWithPushCleanup, PUSH_CLEANUP_CAP_MS } = await import("./authSignOut");
+      let done = false;
+      const p = signOutWithPushCleanup().then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(PUSH_CLEANUP_CAP_MS);
+      await p;
+      expect(done).toBe(true);
+      expect(unregisterPushOnSignOut).toHaveBeenCalledWith("u1");
+      expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+      expect(spy.mock.calls.some((c) => /push-token cleanup did not finish/.test(String(c[0])))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  it("reads the user id from the local session, never a getUser() round trip", async () => {
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup();
+    expect(getSession).toHaveBeenCalledTimes(1);
+    expect(unregisterPushOnSignOut).toHaveBeenCalledWith("u1");
+  });
+
   it("leaves THIS device's session alone for scope:'others' — that sign-out is about other devices", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
@@ -180,6 +252,13 @@ describe("signOutWithPushCleanup", () => {
 // @mutate src/lib/authSignOut.ts | clearPersistedAuthToken(); | void 0;
 // @mutate src/lib/authSignOut.ts |       clearNativeSessionMirror().then(() => "done" as const, () => "done" as const), |       Promise.resolve("done" as const),
 // @mutate src/lib/authSignOut.ts |     if (outcome === "capped") { |     if (false) {
+
+// The caps (owner, 2026-10-09: "I pressed Log Out and nothing happened").
+// Uncapped, a /logout or a push cleanup that never answers leaves sign-out
+// pending for good and the hang tests above never finish.
+// @mutate src/lib/authSignOut.ts | const outcome = await capped(supabase.auth.signOut(options), SIGN_OUT_CAP_MS); | const outcome = await supabase.auth.signOut(options);
+// @mutate src/lib/authSignOut.ts | if ((await capped(pushCleanup, PUSH_CLEANUP_CAP_MS)) === CAPPED) { | if ((await pushCleanup) === undefined && false) {
+// @mutate src/lib/authSignOut.ts | const { data } = await supabase.auth.getSession(); | const { data: { user } } = await supabase.auth.getUser(); const data = { session: { user } };
 
 // "others" keeps THIS device signed in, so nothing of this device is torn down.
 // @mutate src/lib/authSignOut.ts | const { error } = await supabase.auth.signOut({ scope: "others" }); | const { error } = await signOutWithPushCleanup();

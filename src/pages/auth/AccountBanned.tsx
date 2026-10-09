@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { useSignOutAction } from "@/hooks/useSignOutAction";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -24,6 +24,7 @@ const AccountBanned = () => {
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/account-banned"]);
   const navigate = useNavigate();
+  const { signingOut, signOut } = useSignOutAction();
   const { user, profile, isLoading } = useCurrentUser();
 
   // ACCOUNT DELETION LIVES HERE TOO, AND IT HAS TO.
@@ -284,10 +285,11 @@ const AccountBanned = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
+          onClick={() => { void signOut({ after: () => navigate("/") }); }}
+          disabled={signingOut}
           className="text-muted-foreground"
         >
-          <LogOut className="w-4 h-4 mr-1" /> Sign Out
+          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging Out…" : "Sign Out"}
         </Button>
         <Button
           variant="ghost"

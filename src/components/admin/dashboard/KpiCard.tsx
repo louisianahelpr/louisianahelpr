@@ -43,13 +43,20 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
       // Clipping it AT the radius is what makes the bleed read as deliberate.
       className="rounded-ds-md liquid-glass overflow-hidden p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full h-full flex flex-col"
     >
-      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center", accentClasses)}>
-          <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" strokeWidth={2.25} />
+      {/* The tile's name sits beside its icon, not under the number (owner,
+          2026-10-09: "add the page name to the right of each icon and remove it
+          from below the number"). It is still the button's text, so a screen
+          reader reads "New Users (last 7d) 7". */}
+      <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={cn("w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-ds-sm flex items-center justify-center", accentClasses)}>
+            <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" strokeWidth={2.25} />
+          </div>
+          <p className="min-w-0 text-ds-12 sm:text-ds-13 font-medium text-muted-foreground leading-tight">{label}</p>
         </div>
         {trend && (
           <span className={cn(
-            "text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+            "shrink-0 text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -58,7 +65,6 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
         )}
       </div>
       <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
       {trend && compareLabel && (
         <p className={cn(
           "text-ds-10 tabular-nums mt-0.5 leading-tight",

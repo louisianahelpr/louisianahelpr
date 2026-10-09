@@ -154,3 +154,22 @@ export function detectFlags(job: Job): string[] {
 
   return flags;
 }
+
+
+/**
+ * ACTIVE: a real job someone paid for that is not finished or called off
+ * (owner, 2026-10-09: "an active filter bc rn I only want to see the real jobs
+ * that were paid and be able to click to see how many applicants"). Money
+ * held (escrow) or on its way out (payout_pending); status anything but
+ * completed / cancelled; never a test row. Measured on prod 2026-10-09: 4 jobs
+ * (3 open + 1 in progress), against 25 rows on the old All tab.
+ */
+export const ACTIVE_PAYMENT_STATUSES = ["escrow", "payout_pending"] as const;
+const FINISHED_STATUSES = ["completed", "cancelled"];
+export function isActivePaidJob(job: { status: string | null; payment_status: string | null; is_seed: boolean | null }): boolean {
+  return (
+    job.is_seed !== true &&
+    (ACTIVE_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "") &&
+    !FINISHED_STATUSES.includes(job.status ?? "")
+  );
+}

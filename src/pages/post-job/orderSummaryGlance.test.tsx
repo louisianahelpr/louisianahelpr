@@ -124,15 +124,22 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
   });
 });
 
-// Q362 / CC-003: the poster pays the urgent bonus's card fee on top, as its own
-// line, so the Helpr gets the whole bonus; the quote shows the line the charge has.
+// Q362 / CC-003: the poster pays the urgent bonus's card fee on top so the
+// Helpr gets the whole bonus. Owner, 2026-10-09 ("it's all one post"): it is
+// folded into the Service Fee number, no line of its own, and the "(12%)"
+// label drops because the number is no longer exactly 12%.
 // @mutate src/pages/post-job/CheckoutStepView.tsx | urgentCardFeeAmount={form.urgentCardFeeAmount} | urgentCardFeeAmount={0}
-describe("urgent bonus card fee line (Q362)", () => {
-  it("shows the urgent bonus and its card fee as separate lines", () => {
-    const form = { ...makeForm(), isUrgent: true, urgentFeeNum: 15, urgentCardFeeAmount: 0.45, totalCharge: 47.45 };
+// @mutate src/components/postjob/CheckoutStep.tsx |  && !foldUrgentCardFee && ( |  && (
+describe("urgent bonus card fee (Q362, folded 2026-10-09)", () => {
+  it("adds the card fee into the Service Fee number and shows no separate line", () => {
+    const base = makeForm();
+    const form = { ...base, isUrgent: true, urgentFeeNum: 15, urgentCardFeeAmount: 0.45, totalCharge: 47.45 };
     render(<CheckoutStepView form={form as unknown as ReturnType<typeof usePostJobForm>} />);
-    const label = screen.getByText("Urgent Bonus Card Fee");
-    expect(label.parentElement?.textContent).toContain("$0.45");
+    expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
+    const label = screen.getByText("Service Fee");
+    const expected = (Number(base.customerFeeAmount) + 0.45).toFixed(2);
+    expect(label.parentElement?.textContent).toContain(`$${expected}`);
+    expect(screen.queryByText(/Goes to Helpr/)).toBeNull();
   });
 
   it("shows no card fee line on a job that is not urgent", () => {

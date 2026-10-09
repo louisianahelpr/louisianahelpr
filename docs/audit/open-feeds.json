@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-09T00:50Z",
+  "measured_at": "2026-10-09T01:07Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,22 +53,20 @@
         "number": 2615,
         "title": "nightly-red: open-done-when",
         "label": "nightly-red"
-      },
-      {
-        "number": 2623,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2626,
-        "title": "nightly-red: main: E2E happy-path smoke",
-        "label": "nightly-red"
       }
     ]
   },
   "ledger": {
     "readable": true,
     "open": [
+      {
+        "fingerprint": "3a801ee231b0cb5622678dd6e59362c5",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "new member joined",
+        "issue": null
+      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -263,6 +261,7 @@
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 3a55e8af0908": "Q1577",
+    "ledger 3a801ee231b0": "Q1580",
     "ledger 41f88aeb227f": "Q1525",
     "ledger 43d77e26f272": "Q1429",
     "ledger 54b8c187374a": "Q1524",

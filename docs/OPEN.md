@@ -4,11 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 241** (156 to do, 85 fixed with protection pending; 1005 done). Feeds mirrored in: 28 from the alert ledger, 18 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 242** (156 to do, 86 fixed with protection pending; 1005 done). Feeds mirrored in: 29 from the alert ledger, 18 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-09T00:50Z)_
-- **Remote branches:** 5 carry patches not on main, 1 fully merged, of 7 (Q79). _(2026-10-09T00:50Z)_
+- **Workflows on main:** 11 red, 13 stale, 0 unknown, 49 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-09T01:08Z)_
+- **Remote branches:** 5 carry patches not on main, 1 fully merged, of 7 (Q79). _(2026-10-09T01:08Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -134,7 +134,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1246 items — 1005 done, 85 partly done (fixed, protection pending), 156 open.**
+**Queue: 1247 items — 1005 done, 86 partly done (fixed, protection pending), 156 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -739,9 +739,10 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [~] **Q1522 MEDIUM nightly-red: main-batch is red.** Mirrored 2026-10-07 from nightly-red issue #2604 and alert-ledger row e275ee325abe by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2604 · feed: ledger e275ee325abe. done-when: issue #2604 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e275ee325abe1633e514acaa78fef874'` => closed
 - [ ] **Q1524 MEDIUM nightly-red: open-done-when is red.** Mirrored 2026-10-08 from nightly-red issue #2615 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2615. done-when: issue #2615 closed feed: ledger 54b8c187374a. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54b8c187374af47410a43e9dedb4f4df'` => closed
 - [ ] **Q1525 MEDIUM cron http failure: auto-expire-jobs returned 500 (# defect(s) reported).** Mirrored 2026-10-08 from alert-ledger row 41f88aeb227f (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 41f88aeb227f. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '41f88aeb227f0f23692853cc857a3f79'` => closed
-- [ ] **Q1576 MEDIUM nightly-red: main: Supabase DB Deploy is red.** Mirrored 2026-10-08 from nightly-red issue #2623 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2623. done-when: issue #2623 closed
+- [~] **Q1576 MEDIUM nightly-red: main: Supabase DB Deploy is red.** Mirrored 2026-10-08 from nightly-red issue #2623 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2623. done-when: issue #2623 closed
 - [ ] **Q1577 MEDIUM nightly-red: main: E2E happy-path smoke is red.** Mirrored 2026-10-09 from nightly-red issue #2626 and alert-ledger row 3a55e8af0908 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2626 · feed: ledger 3a55e8af0908. done-when: issue #2626 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3a55e8af09089860199b4adb8d01fe1b'` => closed
 - [ ] **Q1578 MEDIUM taxable job charged $# louisiana sales tax.** Mirrored 2026-10-09 from alert-ledger row 764a6f7344b7 (edge_slack: ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 764a6f7344b7. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '764a6f7344b7ccc14d11519a279d69d4'` => closed
+- [ ] **Q1580 MEDIUM new member joined.** Mirrored 2026-10-09 from alert-ledger row 3a801ee231b0 (edge_slack: ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 3a801ee231b0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3a801ee231b0cb5622678dd6e59362c5'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

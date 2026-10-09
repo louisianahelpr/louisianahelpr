@@ -1,5 +1,5 @@
 // Q1166: the sender's branch stops keeping the receiver's receipt.
-// @mutate supabase/migrations/20261005063951_reply_parent_delete_cascade_allowed.sql | NEW.read    := OLD.read;\n    NEW.read_at := OLD.read_at;\n |
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql | NEW.read    := OLD.read;\n    NEW.read_at := OLD.read_at;\n |
 // Q1166: the edited stamp fires only when an UPDATE names content again.
 // @mutate supabase/migrations/20261004001242_messages_status_notices_and_sender_writes.sql | BEFORE UPDATE ON public.messages\n | BEFORE UPDATE OF content ON public.messages\n
 // Q1167: the sender's DELETE reaches the platform's notices again.

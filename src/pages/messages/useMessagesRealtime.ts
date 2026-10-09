@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import type { Conversation, Message } from "@/components/messages/types";
+import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
 
 /**
  * Realtime subscription. Messages I receive (any thread, drives the
@@ -19,6 +20,11 @@ import type { Conversation, Message } from "@/components/messages/types";
  * live `activeConvo` via `activeConvoRef` and call back into the page's
  * state setters so the channel stays mounted for the page's lifetime.
  */
+/** A realtime row -> the client's Message: a team-thread row's NULL job
+ *  becomes its `team:<user>` key (src/lib/teamThread.ts). */
+const asMessage = (row: unknown): Message =>
+  normalizeMessageRow(row as Message & { job_id: string | null }) as Message;
+
 /** How long both channels get to come back before the one catch-up re-read. */
 export const RECOVERY_SETTLE_MS = 750;
 
@@ -76,7 +82,7 @@ export function useMessagesRealtime({
   useEffect(() => {
     if (!userId) return;
     const onInboundInsert = (payload: { new: unknown }) => {
-      const msg = payload.new as Message;
+      const msg = asMessage(payload.new);
       const active = activeConvoRef.current;
       // A status announcement closes (or re-dates) the thread BEFORE the
       // user touches anything. Unconditional on the active thread: the
@@ -87,10 +93,12 @@ export function useMessagesRealtime({
       // threads on ONE job, and a message from applicant B must not be
       // appended into (or marked read by) applicant A's open thread.
       // System rows have no human counterparty and always belong.
+      // A team thread has one other SIDE (staff), not one person: any staff
+      // member's row belongs in it.
       if (
         active &&
         msg.job_id === active.jobId &&
-        (msg.is_system || msg.sender_id === active.otherUserId)
+        (msg.is_system || msg.sender_id === active.otherUserId || isTeamThreadKey(msg.job_id))
       ) {
         setMessages((prev) => [...prev, msg]);
         // A bare builder never fires — PostgrestBuilder issues its fetch
@@ -134,7 +142,12 @@ export function useMessagesRealtime({
           .eq("user_id", userId)
           .eq("type", "message")
           .eq("read", false)
-          .like("link", `%jobId=${msg.job_id}%`)
+          .like(
+            "link",
+            isTeamThreadKey(msg.job_id)
+              ? `%teamThread=${teamUserIdFromKey(msg.job_id)}%`
+              : `%jobId=${msg.job_id}%`,
+          )
           .lte("created_at", msg.created_at)
           .then(({ error }) => {
             if (error) report(error, { tags: { source: "useMessagesRealtime.clearMessageNotif" } });
@@ -153,7 +166,7 @@ export function useMessagesRealtime({
     // reaches the other participant's open thread until they leave and
     // reopen it.
     const onInboundUpdate = (payload: { new: unknown }) => {
-      const updated = payload.new as Message;
+      const updated = asMessage(payload.new);
       setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
     };
     // Both drop together on a socket loss; re-read once, not once per channel.
@@ -191,7 +204,7 @@ export function useMessagesRealtime({
           filter: `sender_id=eq.${userId}`,
         },
         (payload) => {
-          const msg = payload.new as Message;
+          const msg = asMessage(payload.new);
           // The POSTER's copy of a status announcement lands here, not on the
           // receiver listener above: the trigger stamps `sender_id` with
           // `NEW.customer_id` (migration 20260720130000). Same call, so the
@@ -236,7 +249,7 @@ export function useMessagesRealtime({
           filter: `sender_id=eq.${userId}`,
         },
         (payload) => {
-          const updated = payload.new as Message;
+          const updated = asMessage(payload.new);
           setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
           // Q510: the SET NULL that follows an account deletion arrives here as
           // an UPDATE of the viewer's own row. `receiver_id` going null on a

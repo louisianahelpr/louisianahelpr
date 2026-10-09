@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 604,
-    "files": 154,
-    "rendering": 576,
+    "calls": 609,
+    "files": 155,
+    "rendering": 581,
     "suppressedByPolicy": 28,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 39,
-      "toast.error": 476,
+      "toast": 40,
+      "toast.error": 479,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 32,
+      "toast.success": 33,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 323,
-      "template": 77,
-      "dynamic": 244,
+      "literal": 324,
+      "template": 79,
+      "dynamic": 247,
       "jsx": 0
     }
   },
@@ -2061,6 +2061,30 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/AdminMessageUserDialog.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "sendErrorCopy(error)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminMessageUserDialog.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${name}"
+      },
+      "description": {
+        "form": "template",
+        "text": "They'll see it in Messages from the ${TEAM_THREAD_NAME}."
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/AdminNotifications.tsx",
       "line": 170,
       "kind": "toast.error",
@@ -2502,7 +2526,7 @@
     },
     {
       "file": "src/components/admin/AdminUsers.tsx",
-      "line": 173,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3476,7 +3500,17 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 603,
+      "line": 587,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Louisiana Helpr Team conversations can't be hidden."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ConversationList.tsx",
+      "line": 593,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3486,7 +3520,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 1618,
+      "line": 1606,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3496,7 +3530,7 @@
     },
     {
       "file": "src/components/messages/MessageActionSheet.tsx",
-      "line": 88,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5470,7 +5504,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 324,
+      "line": 332,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5480,7 +5514,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 364,
+      "line": 372,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5490,7 +5524,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 374,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5530,7 +5564,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/loadConversations.ts",
-      "line": 244,
+      "line": 345,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -5540,7 +5574,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 138,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5550,7 +5584,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 205,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5560,7 +5594,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 235,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5570,7 +5604,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 271,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5580,7 +5614,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 299,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5590,7 +5624,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 335,
+      "line": 344,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5600,7 +5634,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 352,
+      "line": 361,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5610,7 +5644,17 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 422,
+      "line": 446,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "refusal?.toast ?? copy ?? \"Message didn't go through — tap it to try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 505,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5620,7 +5664,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 549,
+      "line": 579,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5630,7 +5674,17 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 597,
+      "line": 638,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "placeholder.problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useMessagesData.ts",
+      "line": 670,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5640,7 +5694,7 @@
     },
     {
       "file": "src/pages/messages/useMessagesData.ts",
-      "line": 638,
+      "line": 709,
       "kind": "toast.error",
       "title": {
         "form": "literal",

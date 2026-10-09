@@ -26,6 +26,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isTeamThreadKey } from "@/lib/teamThread";
 
 const STORAGE_KEY = "helpr_muted_threads_v2";
 // Legacy key from before the snooze TTL existed — migrated lazily on
@@ -116,6 +117,8 @@ export async function toggleThreadMute(
   jobId: string,
   otherUserId: string,
 ): Promise<boolean> {
+  // thread_mutes.job_id is a job uuid: a team thread is never muted.
+  if (isTeamThreadKey(jobId)) return false;
   const { data, error } = await supabase.rpc("toggle_thread_mute", {
     _job_id: jobId,
     _other_user_id: otherUserId,
@@ -158,6 +161,7 @@ export async function snoozeThread(
   otherUserId: string,
   until: Date | null,
 ): Promise<string | null> {
+  if (isTeamThreadKey(jobId)) return null;
   const untilIso = until ? until.toISOString() : null;
   // The RPC name and return type ARE checked; only `_until` is widened, and
   // not because the types are stale. `set_thread_snooze(_until timestamptz)`
@@ -216,6 +220,7 @@ export async function unmuteThread(
   jobId: string,
   otherUserId: string,
 ): Promise<void> {
+  if (isTeamThreadKey(jobId)) return;
   const { error } = await supabase.rpc("clear_thread_mute", {
     _job_id: jobId,
     _other_user_id: otherUserId,

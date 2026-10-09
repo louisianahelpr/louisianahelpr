@@ -14,6 +14,17 @@ export type Tab = "awaiting_email" | "approved" | "banned" | "all";
 
 const isBanned = (p: Profile) => ["temp_banned", "permanently_banned"].includes(p.ban_status || "");
 const isActive = (p: Profile) => !isAwaitingEmail(p) && !isBanned(p);
+
+/**
+ * A test account: `profiles.is_seed`, the same column the row's TEST chip reads
+ * (AdminUserRow) and every admin dashboard/analytics count already excludes
+ * (Admin.tsx loadStats, AdminAnalytics profilesQuery). Every test login,
+ * apple-reviewer@ included, carries it (measured on prod 2026-10-09: 7 of 16
+ * profiles). Hidden from the Users list AND its counts unless the admin turns
+ * on "Show test accounts" (owner, 2026-10-09: "so i can see the actual number
+ * of real users").
+ */
+export const isTestAccount = (p: Pick<Profile, "is_seed">) => p.is_seed === true;
 export type SortDir =
   | "desc"
   | "asc"
@@ -36,6 +47,8 @@ interface FilterDeps {
   /** null = not known yet; sorts as if empty. */
   lastLoginSummary: Record<string, string> | null;
   paySummary: Record<string, number>;
+  /** False = test accounts (`isTestAccount`) are left out. */
+  includeTest: boolean;
 }
 
 export const filterAndSortProfiles = ({
@@ -46,8 +59,11 @@ export const filterAndSortProfiles = ({
   strikesSummary,
   lastLoginSummary,
   paySummary,
+  includeTest,
 }: FilterDeps): Profile[] => {
   return profiles.filter((p) => {
+    if (!includeTest && isTestAccount(p)) return false;
+
     // Tab filter
     if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
     else if (tab === "approved" && !isActive(p)) return false;
@@ -145,9 +161,13 @@ export const filterAndSortProfiles = ({
 };
 
 export const getTabCounts = (
-  profiles: Profile[],
+  allProfiles: Profile[],
   isUnseen: (p: Profile) => boolean,
+  includeTest: boolean,
 ) => {
+  // The tab badges count the same population the list shows: no test
+  // accounts unless the admin asked for them.
+  const profiles = includeTest ? allProfiles : allProfiles.filter((p) => !isTestAccount(p));
   const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
   const bannedCount = profiles.filter((p) => isBanned(p) && isUnseen(p)).length;
   const approvedCount = profiles.filter((p) => isActive(p) && isUnseen(p)).length;

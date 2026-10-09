@@ -3307,12 +3307,13 @@ export type Database = {
           flagged_hidden: boolean
           id: string
           is_system: boolean
-          job_id: string
+          job_id: string | null
           read: boolean
           read_at: string | null
           receiver_id: string | null
           reply_to_id: string | null
           sender_id: string
+          team_thread_user_id: string | null
         }
         Insert: {
           attachment_duration?: number | null
@@ -3327,12 +3328,13 @@ export type Database = {
           flagged_hidden?: boolean
           id?: string
           is_system?: boolean
-          job_id: string
+          job_id?: string | null
           read?: boolean
           read_at?: string | null
           receiver_id?: string | null
           reply_to_id?: string | null
           sender_id: string
+          team_thread_user_id?: string | null
         }
         Update: {
           attachment_duration?: number | null
@@ -3347,12 +3349,13 @@ export type Database = {
           flagged_hidden?: boolean
           id?: string
           is_system?: boolean
-          job_id?: string
+          job_id?: string | null
           read?: boolean
           read_at?: string | null
           receiver_id?: string | null
           reply_to_id?: string | null
           sender_id?: string
+          team_thread_user_id?: string | null
         }
         Relationships: [
           {
@@ -6641,6 +6644,36 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_send_team_message: {
+        Args: { p_client_id?: string; p_content: string; p_user_id: string }
+        Returns: {
+          attachment_duration: number | null
+          attachment_mime: string | null
+          attachment_size: number | null
+          attachment_url: string | null
+          client_id: string | null
+          content: string
+          created_at: string
+          edited_at: string | null
+          flag_reason: string | null
+          flagged_hidden: boolean
+          id: string
+          is_system: boolean
+          job_id: string | null
+          read: boolean
+          read_at: string | null
+          receiver_id: string | null
+          reply_to_id: string | null
+          sender_id: string
+          team_thread_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_payout_hold: {
         Args: { p_helper_id: string; p_reason: string }
         Returns: {
@@ -8243,6 +8276,36 @@ export type Database = {
         Returns: undefined
       }
       send_ops_daily_digest: { Args: never; Returns: Json }
+      send_team_reply: {
+        Args: { p_client_id?: string; p_content: string }
+        Returns: {
+          attachment_duration: number | null
+          attachment_mime: string | null
+          attachment_size: number | null
+          attachment_url: string | null
+          client_id: string | null
+          content: string
+          created_at: string
+          edited_at: string | null
+          flag_reason: string | null
+          flagged_hidden: boolean
+          id: string
+          is_system: boolean
+          job_id: string | null
+          read: boolean
+          read_at: string | null
+          receiver_id: string | null
+          reply_to_id: string | null
+          sender_id: string
+          team_thread_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       series_give_up_strike: {
         Args: { p_dates: string[]; p_helper: string; p_parent: string }
         Returns: boolean

@@ -434,6 +434,21 @@ export const RPC_ERROR_COPY = {
   admin_release_payout_hold: {
     admin_only: "Only admins can release a payout hold.",
   },
+  // The "Louisiana Helpr Team" thread (20261009223503): the admin's message
+  // (AdminMessageUserDialog, and a reply typed in the thread) and the user's reply.
+  admin_send_team_message: {
+    admin_only: "Only admins can send this. Check your admin role.",
+    cannot_message_self: "You can't message your own account.",
+    empty_message: "Write a message first.",
+    message_too_long: "That message is too long. Messages are limited to 4,000 characters.",
+    user_not_found: "That account no longer exists.",
+  },
+  send_team_reply: {
+    empty_message: "Write a message first.",
+    message_too_long: "That message is too long. Messages are limited to 4,000 characters.",
+    no_team_thread: "This conversation can't take new messages right now.",
+    not_authenticated: "Your session ended. Sign in again to send this.",
+  },
   // useLifecycleHandlers — the shared lifecycle sentences, unchanged.
   report_helper_no_show: {
     job_not_found: LIFECYCLE_REASONS.job_not_found,

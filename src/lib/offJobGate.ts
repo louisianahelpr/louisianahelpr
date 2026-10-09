@@ -22,6 +22,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { isTeamThreadKey } from "@/lib/teamThread";
 import type { Conversation } from "@/components/messages/types";
 
 export type OffJobState = "self" | "other";
@@ -78,7 +79,8 @@ export function useOffJobState({
   userId: string | null;
   skip: boolean;
 }): OffJobState | null {
-  const jobId = activeConvo?.jobId ?? "";
+  // A "Louisiana Helpr Team" thread has no job to be off (src/lib/teamThread.ts).
+  const jobId = isTeamThreadKey(activeConvo?.jobId) ? "" : activeConvo?.jobId ?? "";
   const otherUserId = activeConvo?.otherUserId ?? null;
   // A deleted counterparty keys as "deleted", never "" (messagesReceiverNullable).
   const key = `${jobId}|${otherUserId ?? "deleted"}`;

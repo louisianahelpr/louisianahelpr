@@ -40,21 +40,8 @@ import {
 import type { Conversation } from "./types";
 import { serverNow } from "@/lib/messagingLockout";
 import { isThreadAgedOut, THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
-
-/**
- * Job states that mean "this work is still running", for the Active inbox tab.
- * `open` is deliberately absent: a thread on an open posting is somebody asking
- * about a job nobody has been awarded yet, which is a conversation, not a job in
- * progress. Completed / cancelled are equally absent — those threads are
- * history, and history lives under All.
- */
-const LIVE_JOB_STATUSES = new Set([
-  "accepted",
-  "in_progress",
-  "revision_requested",
-  "disputed",
-  "pending_approval",
-]);
+// The Active tab's predicate and its job states (LIVE_JOB_STATUSES) live there.
+import { isLiveThread } from "./liveThread";
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
 // keeps long lists cheap, but a default cap keeps first paint trivial.
@@ -482,9 +469,7 @@ export function ConversationList({
     const searching = !!searchQuery.trim();
     const byTab =
       inboxTab === "active"
-        ? orderedConversations.filter(
-            (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
-          )
+        ? orderedConversations.filter(isLiveThread)
         : inboxTab === "pinned"
             ? (() => {
                 // Real filter, not a stub: pin state already exists
@@ -597,6 +582,11 @@ export function ConversationList({
   // the cap check stays out of the state updater (no double toast under
   // StrictMode's double-invoked reducers).
   const toggleSelect = (c: Conversation) => {
+    // Selection exists to hide threads, and a team thread cannot be hidden.
+    if (c.teamThread) {
+      toast("Louisiana Helpr Team conversations can't be hidden.");
+      return;
+    }
     const key = convoKey(c);
     const already = selectedKeys.has(key);
     if (!already && selectedKeys.size >= MAX_SELECT) {
@@ -712,9 +702,7 @@ export function ConversationList({
      See the tab strip below and lib/inboxDefault.ts. The "2 unread" caption
      it replaced does NOT come back — its job is now the hidden-unread banner,
      which says the same number only when it is actually being hidden. */
-  const activeThreads = conversations.filter(
-    (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
-  ).length;
+  const activeThreads = conversations.filter(isLiveThread).length;
 
   /* Unread threads the ACTIVE slice does not show — the number the banner
      below prints. Derived from the SAME predicate the Active branch filters
@@ -722,7 +710,7 @@ export function ConversationList({
      different things. An unread thread on an `open` posting is the common
      case; a completed or cancelled one that is still unread is the other. */
   const hiddenUnreadCount = conversations.filter(
-    (c) => c.unread > 0 && !(c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus)),
+    (c) => c.unread > 0 && !isLiveThread(c),
   ).length;
 
   // The device's last count (holds the bar's space while loading, MQ28) and
@@ -1645,7 +1633,9 @@ export function ConversationList({
                       // archive mid-selection or re-archive an already-archived thread. Q335: a deleted-account
                       // thread swipes to archive only; pin stays off (thread_pins.other_user_id is NOT NULL, owner
                       // 2026-09-26: no pin or mute).
-                      return selectMode || isRecentlyDeletedView ? row : (
+                      // A "Louisiana Helpr Team" thread has no job to key an
+                      // archive or pin on (src/lib/teamThread.ts): bare row.
+                      return selectMode || isRecentlyDeletedView || c.teamThread ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}

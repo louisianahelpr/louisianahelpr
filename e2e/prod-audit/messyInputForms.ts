@@ -298,7 +298,9 @@ const SEED_BANNED_EMAIL = "helpr-seed-banned-0912@mailinator.com";
 
 /**
  * Search /admin?view=people (tab=all, so approval/ban status can never hide
- * the target) for one account by email and open its detail dialog, which
+ * the target; test=show, because every account this harness targets is a test
+ * account and the list hides those by default, owner 2026-10-09) for one
+ * account by email and open its detail dialog, which
  * lands on the Actions tab by default (AdminUserDetailDialog.tsx
  * `defaultValue="actions"`) — where AdminUserNotes and UserAuditLog render
  * unconditionally, and Ban/Deny/Formal-Warning/Restrict-Applications are one
@@ -522,7 +524,7 @@ export const FORMS: FormSpec[] = [
   {
     // Notes render unconditionally on the Actions tab for ANY user — no
     // special seed state needed, so the shared poster account is enough.
-    name: "admin-user-notes", url: "/admin?view=people&tab=all", as: "admin",
+    name: "admin-user-notes", url: "/admin?view=people&tab=all&test=show", as: "admin",
     prepare: async (page) => { await openAdminUserByEmail(emailFor("poster"))(page); },
     covers: ["src/components/admin/AdminUserNotes.tsx"],
   },
@@ -555,24 +557,34 @@ export const FORMS: FormSpec[] = [
     // Only a profile carrying a real user_violations row shows "Reverse this
     // strike" — the seed-owned banned tester carries two (prod-seed.mjs
     // viol:banned-1/-2), never the shared accounts.
-    name: "admin-reverse-strike", url: "/admin?view=people&tab=all", as: "admin",
+    name: "admin-reverse-strike", url: "/admin?view=people&tab=all&test=show", as: "admin",
     prepare: openAdminUserAction(SEED_BANNED_EMAIL, /reverse this strike/i),
     covers: ["src/components/admin/userDetail/UserAuditLog.tsx"],
   },
   {
-    name: "admin-ban-dialog", url: "/admin?view=people&tab=all", as: "admin",
+    name: "admin-ban-dialog", url: "/admin?view=people&tab=all&test=show", as: "admin",
     prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /suspend\s*\/\s*ban/i)(page); },
     covers: ["src/components/admin/BanDialog.tsx"],
   },
   {
-    name: "admin-formal-warning", url: "/admin?view=people&tab=all", as: "admin",
+    name: "admin-formal-warning", url: "/admin?view=people&tab=all&test=show", as: "admin",
     prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /^formal warning$/i)(page); },
     covers: ["src/components/admin/FormalWarningDialog.tsx"],
   },
   {
-    name: "admin-restrict-applications", url: "/admin?view=people&tab=all", as: "admin",
+    name: "admin-restrict-applications", url: "/admin?view=people&tab=all&test=show", as: "admin",
     prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /restrict applications/i)(page); },
     covers: ["src/components/admin/RestrictApplicationsDialog.tsx"],
+  },
+  {
+    // 2026-10-09: the admin's direct "Louisiana Helpr Team" message. The sweep
+    // types and never presses Send, so the test poster receives nothing.
+    name: "admin-message-user", url: "/admin?view=people&tab=all&test=show", as: "admin",
+    prepare: async (page) => {
+      await openAdminUserAction(emailFor("poster"), /^message$/i)(page);
+      await page.getByRole("textbox", { name: /message to/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/admin/AdminMessageUserDialog.tsx"],
   },
   { name: "admin-job-refund", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^refund poster$/i), covers: ["src/components/admin/adminJobs/RefundJobDialog.tsx"] },
   { name: "admin-job-remove", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^remove job$/i), covers: ["src/components/admin/adminJobs/RemoveJobDialog.tsx"] },

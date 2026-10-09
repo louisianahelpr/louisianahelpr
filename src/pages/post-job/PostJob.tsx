@@ -44,7 +44,11 @@ const PostJob = () => {
     if (lastStep.current === form.step) return;
     lastStep.current = form.step;
     window.scrollTo(0, 0);
-    document.querySelectorAll<HTMLElement>(".app-shell-scroll").forEach((el) => {
+    // AppPage's own column is the scroller on a phone (measured 2026-10-08 in
+    // WebKit at 390x844: `[data-app-page-scroll]` sat at 536 of 1200 while the
+    // window and .app-shell-scroll were both at 0, so the first fix reset the
+    // wrong element and the owner's phone still opened at the bottom).
+    document.querySelectorAll<HTMLElement>(".app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
       el.scrollTop = 0;
     });
   }, [form.step]);

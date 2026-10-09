@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-09T12:10:59.026Z",
-  "guards": 1634,
-  "registered": 1634,
-  "unregistered": [],
+  "generated": "2026-10-09T12:54:04.108Z",
+  "guards": 1636,
+  "registered": 1635,
+  "unregistered": [
+    "src/test/edgeInvokeSendsBearer.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],

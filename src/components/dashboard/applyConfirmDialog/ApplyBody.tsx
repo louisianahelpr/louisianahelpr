@@ -14,6 +14,7 @@ import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { usePhotoPrompt } from "@/components/PhotoPrompt";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 import {
@@ -95,6 +96,7 @@ export function ApplyBody({
   const jobId = confirmApplyJob?.id ?? null;
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
+  const { askThen: askPhotoThen, dialog: photoPrompt } = usePhotoPrompt();
   const draftKey = pitchDraftKey(userId, jobId);
   const templateKey = pitchTemplateKey(userId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -245,17 +247,21 @@ export function ApplyBody({
       });
       return;
     }
-    if (draftKey) safeStorage.removeItem(draftKey);
-    if (saveAsTemplate && templateKey && applyMessage.trim()) {
-      safeStorage.setItem(templateKey, applyMessage.trim());
-    }
-    setSaveAsTemplate(false);
-    handleApplyConfirm();
+    // No photo yet: ask for one first (skippable, fails open). PhotoPrompt.tsx.
+    void askPhotoThen(() => {
+      if (draftKey) safeStorage.removeItem(draftKey);
+      if (saveAsTemplate && templateKey && applyMessage.trim()) {
+        safeStorage.setItem(templateKey, applyMessage.trim());
+      }
+      setSaveAsTemplate(false);
+      handleApplyConfirm();
+    });
   };
 
   return (
     <div className="min-w-0 flex flex-col gap-3.5">
       <ViolationDialog violations={pendingViolations} onOpenChange={(o) => { if (!o) setPendingViolations(null); }} />
+      {photoPrompt}
       {!confirmApplyJob && (
         <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Are you sure you want to proceed?

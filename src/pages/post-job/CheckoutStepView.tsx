@@ -1,5 +1,6 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
 import type { usePostJobForm } from "./usePostJobForm";
+import { usePhotoPrompt } from "@/components/PhotoPrompt";
 
 interface CheckoutStepViewProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -20,8 +21,12 @@ interface CheckoutStepViewProps {
  * bug even when the surprise is pleasant.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
+  // No photo yet: ask for one before the post goes out (skippable, fails
+  // open; owner 2026-10-09). The form is already validated by this step.
+  const { askThen: askPhotoThen, dialog: photoPrompt } = usePhotoPrompt();
   return (
     <div key="checkout-step" className="space-y-section">
+      {photoPrompt}
       {/* The PostingQualityMeter ("Post quality: Good 73%" + a checklist) used
           to sit here. Removed on owner instruction: this is the pay screen, and
           grading the post at the moment of payment asks the poster to go back
@@ -70,7 +75,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         saving={form.saving || form.redirecting}
         uploading={form.uploading}
         uploadProgress={form.uploadProgress}
-        onSubmit={form.handleSubmit}
+        onSubmit={() => void askPhotoThen(form.handleSubmit)}
       />
     </div>
   );

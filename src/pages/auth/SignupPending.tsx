@@ -286,7 +286,8 @@ const SignupPending = () => {
                   Signup then MOVED those five fields into its own step 2
                   (`SignupStep2`, owner decision 2026-08-29), which is completed
                   BEFORE this screen is ever reached. `PROFILE_GATE_FIELDS`
-                  (ProtectedRoute.tsx:110) is exactly those five, so an email
+                  (ProtectedRoute.tsx) is those fields minus the photo, which
+                  left the gate on 2026-10-09; so an email
                   signup satisfies `isProfileComplete` on arrival and
                   CompleteProfile's own guard (`CompleteProfile.tsx:535`)
                   bounces straight to /home. The user never sees a form —

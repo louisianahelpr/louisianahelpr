@@ -200,14 +200,13 @@ const CompleteProfile = () => {
     return age >= 18;
   }, [dateOfBirth]);
 
-  // Live "Big 7" checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
+  // Live checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
   // this said it did until 2026-09-10, and the divergence has a consequence.
   //
-  // This list has SEVEN items; PROFILE_GATE_FIELDS (ProtectedRoute.tsx) has
-  // FIVE — it carries neither "ZIP code" nor the policy acceptance. The
-  // early-return below bounces to /home on isProfileComplete(profile),
-  // which consults only those five. So an account whose row already holds
-  // full_name, avatar_url, date_of_birth, phone and location but NO zip_code
+  // PROFILE_GATE_FIELDS (ProtectedRoute.tsx) carries neither "ZIP code" nor
+  // the policy acceptance that this list has. The early-return below bounces
+  // to /home on isProfileComplete(profile), which consults only the gate
+  // fields. So an account whose row already holds the gate fields but NO zip_code
   // is redirected away before this screen can ask for the ZIP — i.e. the
   // requirement added 2026-09-05 to close the parish gap is unreachable for
   // exactly the population that predates it. That is the S-001 shape:
@@ -227,7 +226,6 @@ const CompleteProfile = () => {
     const phoneDigits = phone.replace(/\D/g, "");
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
-      { label: "Profile picture", done: Boolean(avatarFile || profile?.avatar_url) },
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
@@ -248,8 +246,6 @@ const CompleteProfile = () => {
   }, [
     firstName,
     lastName,
-    avatarFile,
-    profile?.avatar_url,
     bio,
     dateOfBirth,
     ageOk,
@@ -329,7 +325,6 @@ const CompleteProfile = () => {
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
     if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
-    if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to continue.");
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
@@ -537,9 +532,9 @@ const CompleteProfile = () => {
   }
 
   // Don't trap users who don't actually need this gate. Legacy accounts
-  // bypass entirely, and anyone whose profile already satisfies the Big 7
-  // gets bounced straight to the dashboard instead of staring at a 0/7
-  // checklist they can't dismiss. (Said 0/8; the checklist has seven items.)
+  // bypass entirely, and anyone whose profile already satisfies the gate
+  // gets bounced straight to the dashboard instead of staring at an empty
+  // checklist they can't dismiss.
   // See the divergence note on `checklist` above before touching this gate.
   if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
     return <Navigate to="/home" replace />;
@@ -647,7 +642,7 @@ const CompleteProfile = () => {
               <p className="text-ds-11 text-muted-foreground">
                 {avatarPreview && !avatarBroken
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
-                  : <>Profile photo <span className="text-[hsl(var(--destructive-ink))]">*</span> · tap to add</>}
+                  : <>Profile photo (optional) · tap to add</>}
               </p>
               {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
                   The `avatars` bucket is PUBLIC — anonymously fetchable at a

@@ -83,14 +83,15 @@ type GateProfile = {
 };
 
 /**
- * "Big 7" verification gate enforced for every NEW user (created on/after
+ * Profile verification gate enforced for every NEW user (created on/after
  * the legacy cutoff). Existing users carry `is_legacy_user = true` and
  * bypass the gate so they don't wake up to a locked app. See
  * mem://features/auto-approval-flow for the broader signup contract.
  */
 const PROFILE_GATE_FIELDS = [
   { key: "full_name", label: "Full name" },
-  { key: "avatar_url", label: "Profile picture" },
+  // avatar_url is NOT a gate field (owner, 2026-10-09): the photo is optional
+  // at sign-up and asked for before the first Apply or Post.
   { key: "date_of_birth", label: "Date of birth" },
   { key: "phone", label: "Phone number" },
   { key: "location", label: "City" },
@@ -414,7 +415,7 @@ const ProtectedRoute = ({
 
   if (profile) {
 
-    // Stage 2: Universal "Big 7" verification gate.
+    // Stage 2: Universal profile verification gate.
     // Legacy users (created before the cutoff) bypass the gate entirely.
     // (History: this gate once ran AFTER an `approval_status === "pending"`
     // bounce, trapping half-onboarded users on a review screen for a review

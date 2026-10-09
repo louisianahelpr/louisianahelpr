@@ -27,8 +27,16 @@ import { useEffect, useRef, type RefObject } from "react";
  * The ref keeps the "once" guarantee the empty dep array was reaching for —
  * a re-render that re-asserts `highlight` must not re-scroll a list the user
  * has since scrolled away from.
+ *
+ * `ring: false` scrolls to the card without the burnt-sienna ring. Posts uses
+ * it (owner, 2026-10-09): the orange outline around a job the poster had just
+ * posted read as an error state, not a "here it is".
  */
-export function useHighlightPulse(highlight: boolean, cardRef: RefObject<HTMLDivElement>) {
+export function useHighlightPulse(
+  highlight: boolean,
+  cardRef: RefObject<HTMLDivElement>,
+  { ring = true }: { ring?: boolean } = {},
+) {
   const firedRef = useRef(false);
   useEffect(() => {
     if (!highlight || firedRef.current) return;
@@ -38,6 +46,7 @@ export function useHighlightPulse(highlight: boolean, cardRef: RefObject<HTMLDiv
     // Small delay so the list has finished laying out before we scroll.
     const raf = requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!ring) return;
       el.classList.add("highlight-pulse");
       // Remove the class after the animation ends so a future re-render
       // doesn't re-apply it and so the outline doesn't persist.
@@ -45,5 +54,5 @@ export function useHighlightPulse(highlight: boolean, cardRef: RefObject<HTMLDiv
       el.addEventListener("animationend", onEnd, { once: true });
     });
     return () => cancelAnimationFrame(raf);
-  }, [highlight, cardRef]);
+  }, [highlight, cardRef, ring]);
 }

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useWheelStep } from "@/hooks/useWheelStep";
 
 const PERIOD_OPTIONS: SegmentedOption<"AM" | "PM">[] = [
   { value: "AM", label: "AM" },
@@ -97,6 +98,25 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
       }
     }, 120);
   };
+
+  // Mouse wheel / trackpad: one row per notch, slow swipes add up (useWheelStep).
+  const currentIndex = () => {
+    const known = lastEmitted.current ?? (value == null ? null : String(value));
+    const i = known == null ? -1 : options.findIndex((o) => String(o) === known);
+    return i >= 0 ? i : Math.round((ref.current?.scrollTop ?? 0) / ITEM_HEIGHT);
+  };
+  useWheelStep(
+    ref,
+    (steps) => {
+      const next = Math.max(0, Math.min(options.length - 1, currentIndex() + steps));
+      pick(String(options[next]));
+    },
+    (dir) => {
+      const i = currentIndex();
+      return dir > 0 ? i < options.length - 1 : i > 0;
+    },
+    disabled,
+  );
 
   // Tap-to-select. The wheel only commits on a scroll event, so the value
   // resting in the band at mount (12 / 00 for an empty field) could not be

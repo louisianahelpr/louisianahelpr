@@ -84,7 +84,7 @@ function PostedJobCardInner({
   const cardRef = useRef<HTMLDivElement>(null);
   // Deep-link target: scroll here and pulse once. Same hook the applied card
   // uses — see src/components/job-card/useHighlightPulse.ts.
-  useHighlightPulse(highlight, cardRef);
+  useHighlightPulse(highlight, cardRef, { ring: false });
 
   /* The person slot, opened BEFORE any branch in this component (rules of
      hooks). The tile itself is built further down, once the card knows the

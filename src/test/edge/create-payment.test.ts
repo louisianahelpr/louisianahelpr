@@ -790,27 +790,29 @@ describe("create-payment edge function", () => {
       });
 
       // Q362 / CC-003 (owner MQ11): the Helpr gets 100% of the bonus, so the
-      // poster pays its card fee ON TOP, as its own line, stored inside
-      // customer_fee_amount with the service fee.
-      // @mutate supabase/functions/create-payment/index.ts |       if (urgentCardFeeCents > 0) { |       if (false) {
+      // poster pays its card fee ON TOP, stored inside customer_fee_amount with
+      // the service fee. Owner, 2026-10-09: it rides INSIDE the "Service fee"
+      // line, not a line of its own ("it's all one post"). Same cents.
       // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = (customerFeeCents + urgentCardFeeCents) / 100; |       const customerFeeAmount = customerFeeCents / 100;
-      it("Q362: charges the urgent bonus's card fee on top, as its own line, and stores it in customer_fee_amount", async () => {
+      // @mutate supabase/functions/create-payment/index.ts |             unit_amount: customerFeeCents + (foldCardFee ? urgentCardFeeCents : 0), |             unit_amount: customerFeeCents,
+      it("Q362: charges the urgent bonus's card fee inside the Service fee line and stores it in customer_fee_amount", async () => {
         seedUrgentJob({ is_urgent: true, urgent_fee: 15 });
         await run();
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
         const names = args.line_items.map((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name);
-        const cardFee = args.line_items.find(
-          (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Urgent bonus card fee",
-        );
         expect(names).toContain("Urgent tip");
+        expect(names).not.toContain("Urgent bonus card fee");
         // 1500 bonus: the smallest fee with fee >= round((1500 + fee) * 2.9%) is 45.
-        expect(cardFee?.price_data.unit_amount).toBe(urgentBonusCardFeeCents(1500));
         expect(urgentBonusCardFeeCents(1500)).toBe(45);
         const service = args.line_items.find(
           (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Service fee",
         );
         const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
-        expect(stamp.customer_fee_amount).toBe((service.price_data.unit_amount + 45) / 100);
+        // The whole Service fee line (12% + the 45c card fee) is what customer_fee_amount records.
+        expect(stamp.customer_fee_amount).toBe(service.price_data.unit_amount / 100);
+        const total = args.line_items.reduce((s: number, li: { price_data: { unit_amount: number } }) => s + li.price_data.unit_amount, 0);
+        const budgetCents = args.line_items[0].price_data.unit_amount;
+        expect(total).toBe(budgetCents + 1500 + service.price_data.unit_amount + (names.includes("One-time account setup") ? args.line_items.find((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "One-time account setup").price_data.unit_amount : 0));
       });
 
       // Q362 review finding 2: when the service fee's Stripe-cost floor wins, it
@@ -828,7 +830,10 @@ describe("create-payment edge function", () => {
         // Covered...
         expect(collected).toBeGreaterThanOrEqual(stripeCost);
         // ...and not twice: the old double-count overshot by the whole card fee ($7.47).
-        expect(amount("Service fee")).toBe(200); // pro tier 10% of $20; the floor no longer wins
+        // Pro tier 10% of $20 = 200 (the floor no longer wins), plus the bonus's
+        // own card fee folded into the same line (owner, 2026-10-09) — once.
+        expect(amount("Service fee")).toBe(200 + urgentBonusCardFeeCents(25000));
+        expect(amount("Urgent bonus card fee")).toBe(0);
       });
 
       it("Q362: a job with no urgent bonus has no urgent card fee line", async () => {

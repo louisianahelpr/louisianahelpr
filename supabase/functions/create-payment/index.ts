@@ -749,6 +749,12 @@ serve(async (req) => {
       // until LA Dept. of Revenue clarifies B2C SaaS treatment post-Act 470.
       // (Switch tax_code to "txcd_10103001" if a CPA confirms it should be
       // taxed as a digital service.)
+      // The urgent bonus's card fee rides INSIDE this line (owner, 2026-10-09:
+      // "it's all one post", no separate "Urgent bonus card fee" line). Same
+      // cents, same non-taxable code, and customer_fee_amount already holds
+      // both, so only the grouping changed. With no service fee (fee waived)
+      // the card fee keeps its own line below.
+      const foldCardFee = customerFeeCents > 0 && urgentCardFeeCents > 0;
       if (customerFeeCents > 0) {
         lineItems.push({
           price_data: {
@@ -756,10 +762,12 @@ serve(async (req) => {
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Service fee",
-              description: `${customerFeePercent}% platform service fee`,
+              description: foldCardFee
+                ? `${customerFeePercent}% platform service fee, plus card processing on the urgent bonus`
+                : `${customerFeePercent}% platform service fee`,
               tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
             },
-            unit_amount: customerFeeCents,
+            unit_amount: customerFeeCents + (foldCardFee ? urgentCardFeeCents : 0),
           },
           quantity: 1,
         });
@@ -784,8 +792,9 @@ serve(async (req) => {
         });
       }
       // Q362: the urgent bonus's card fee, paid by the poster so the Helpr
-      // receives the whole bonus. Non-taxable (a processing cost).
-      if (urgentCardFeeCents > 0) {
+      // receives the whole bonus. Non-taxable (a processing cost). Folded into
+      // the service fee line above whenever there is one.
+      if (urgentCardFeeCents > 0 && !foldCardFee) {
         lineItems.push({
           price_data: {
             currency: "usd",

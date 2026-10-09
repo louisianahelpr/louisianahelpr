@@ -187,6 +187,9 @@ export function CheckoutStep({
   // and the total both change wording for it, because "Continue to Payment"
   // in front of a $0.00 total is the screen contradicting itself.
   const giftCoversEverything = hasGift && totalCharge <= 0;
+  // Same rule as create-payment's `foldCardFee`: the bonus's card fee rides in
+  // the Service Fee line whenever there is one.
+  const foldUrgentCardFee = !hasGift && isUrgent && urgentCardFeeAmount > 0 && customerFeeAmount > 0;
   return (
     <>
       {/* No "Review your job before paying" line or step rail (owner): the
@@ -470,22 +473,30 @@ export function CheckoutStep({
               donor already covered the processing floor at donate time
               (create-gift-card-checkout → posterServiceFeeCents(amount, 0)). */}
           <div className="flex justify-between text-ds-13">
+            {/* The urgent bonus's card fee is folded into this number, matching
+                the one "Service fee" line create-payment sends Stripe (owner,
+                2026-10-09: "it's all one post"). The percent label is dropped
+                then, since the number is no longer exactly that percent. */}
             <span className="text-muted-foreground">
-              {hasGift ? "Service Fee" : `Service Fee (${customerFee ?? 12}%)`}
+              {hasGift || foldUrgentCardFee ? "Service Fee" : `Service Fee (${customerFee ?? 12}%)`}
             </span>
             {hasGift ? (
               <span className="font-medium" style={{ color: "hsl(var(--success-ink))" }}>
                 Waived
               </span>
             ) : (
-              <span className="font-medium text-foreground">${formatPriceExact(customerFeeAmount)}</span>
+              <span className="font-medium text-foreground">
+                ${formatPriceExact(customerFeeAmount + (foldUrgentCardFee ? urgentCardFeeAmount : 0))}
+              </span>
             )}
           </div>
           {isUrgent && urgentFeeNum > 0 && (
-            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</>} amount={formatPriceExact(urgentFeeNum)} />
+            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus</>} amount={formatPriceExact(urgentFeeNum)} />
           )}
-          {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it. */}
-          {isUrgent && urgentCardFeeAmount > 0 && (
+          {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it.
+              Its own line only on a gift-funded post, where there is no
+              service fee to carry it (create-payment does the same). */}
+          {isUrgent && urgentCardFeeAmount > 0 && !foldUrgentCardFee && (
             <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}
           {onboardingFeeAmount > 0 && (
@@ -580,8 +591,9 @@ export function CheckoutStep({
             const taxable = hasTaxableLine(category);
             const tax = salesTax;
             // Exempt category (the common case): tax is a known $0, so the
-            // total is exact, not an estimate. Don't show a $0.00 tax row —
-            // a line that always reads zero is noise; the note carries it.
+            // total is exact, not an estimate. No $0.00 tax row and no
+            // "No Louisiana sales tax applies…" note under the total (owner,
+            // 2026-10-09: remove it); the Total line says it all.
             if (!taxable) {
               return (
                 <>
@@ -592,16 +604,6 @@ export function CheckoutStep({
                       ${formatPriceExact(totalWithTax)}
                     </span>
                   </div>
-                  <p className="text-ds-11 text-muted-foreground leading-snug">
-                    {/* "Yard Work" + the literal " work" read "yard work work" —
-                        only append the noun when the label doesn't already end
-                        in it (caught live on the checkout drive, 2026-08-24). */}
-                    No Louisiana sales tax applies to{" "}
-                    {categoryLabel.toLowerCase().endsWith("work")
-                      ? categoryLabel.toLowerCase()
-                      : `${categoryLabel.toLowerCase()} work`}{" "}
-                    — this is the full amount you'll be charged.
-                  </p>
                 </>
               );
             }

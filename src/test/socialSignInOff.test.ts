@@ -1,9 +1,10 @@
 /**
- * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1462). Every
- * entry point reads SOCIAL_SIGN_IN_ENABLED; this checks the switch is off and
- * that each entry point is behind it, so no Apple/Google button can render.
+ * Apple + Google sign-in: ON since 2026-10-09 (owner: "Google + Apple both"),
+ * off for launch 2026-10-06 (Q1462). Every entry point reads
+ * SOCIAL_SIGN_IN_ENABLED; this checks the switch says what the owner decided
+ * and that each entry point is behind it, so turning it off hides every button.
  *
- * @mutate src/lib/socialAuth.ts | export const SOCIAL_SIGN_IN_ENABLED = false; | export const SOCIAL_SIGN_IN_ENABLED = true;
+ * @mutate src/lib/socialAuth.ts | export const SOCIAL_SIGN_IN_ENABLED = true; | export const SOCIAL_SIGN_IN_ENABLED = false;
  * @mutate src/components/profile/SecurityTab.tsx | {SOCIAL_SIGN_IN_ENABLED && <SignInMethodsCard />} | <SignInMethodsCard />
  */
 import { describe, expect, it } from "vitest";
@@ -14,9 +15,9 @@ import { trackedFiles } from "./helpers/trackedFiles";
 
 const ENTRY = /<(SocialAuthButtons|SignInMethodsCard)\b/;
 
-describe("Apple + Google sign-in is off for launch (Q1462)", () => {
-  it("the switch is off", () => {
-    expect(SOCIAL_SIGN_IN_ENABLED).toBe(false);
+describe("Apple + Google sign-in follows its one switch (on since 2026-10-09)", () => {
+  it("the switch is on (owner, 2026-10-09)", () => {
+    expect(SOCIAL_SIGN_IN_ENABLED).toBe(true);
   });
   it("every place that renders a social sign-in entry point is behind the switch (inventory from source)", () => {
     const files = trackedFiles().filter((f) => /^src\/.*\.tsx$/.test(f) && !/\.test\.tsx$/.test(f) && f !== "src/components/auth/SocialAuthButtons.tsx");

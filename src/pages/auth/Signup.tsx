@@ -24,7 +24,6 @@ import {
   SIGNUP_COOLDOWN_KEY,
   validateFile,
   fileToBase64,
-  ageFromDob,
   passwordProblem,
   isAlreadyRegistered,
   noteSignupRedirect,
@@ -97,8 +96,6 @@ const Signup = () => {
   const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
   const [location, setLocation] = useState("");
   // ZIP is REQUIRED (owner, 2026-09-05) — see the validator below. It resolves
   // the member's parish, which is what drives job-match notifications, the
@@ -173,25 +170,13 @@ const Signup = () => {
 
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
-    // Phone is REQUIRED. The photo is OPTIONAL here (owner, 2026-10-09: the
-    // required photo was where real sign-ups stopped); usePhotoPrompt (src/components/PhotoPrompt.tsx) asks
-    // for it before the first Apply or Post instead. Bio remains deferred.
-    if (!phone.trim()) {
-      errors.phone = "Add your phone number";
-    } else if (phone.replace(/\D/g, "").length < 10) {
-      errors.phone = "Enter a valid 10-digit phone number";
-    }
-    // DOB is REQUIRED (it carries a red asterisk on the label, so the
-    // validator must actually enforce it — a marker the form doesn't honour is
-    // worse than no marker). Age is still checked when a value is present.
-    if (!dateOfBirth) {
-      errors.dateOfBirth = "Add your date of birth";
-    } else if (ageFromDob(dateOfBirth) < 18) {
-      errors.dateOfBirth = "You'll need to be 18 or older to join.";
-    }
+    // Photo, phone and birthday are NOT collected here (owner, 2026-10-09:
+    // sign-ups were stopping at step 2). The photo is asked before the first
+    // Apply or Post (src/components/PhotoPrompt.tsx); phone and birthday are on
+    // the profile. Step 1's 18+ box is the age gate (ageAttested).
     // City is REQUIRED (owner decision 2026-08-29) — collecting it here means
-    // an email signup satisfies the full CompleteProfile gate (name, DOB,
-    // phone, city; the photo left the gate 2026-10-09) and skips /complete-profile entirely; only Google/
+    // an email signup satisfies the full CompleteProfile gate (name, city;
+    // photo, phone and birthday left the gate 2026-10-09) and skips /complete-profile entirely; only Google/
     // Apple sign-ins, which never see this step, still land on it.
     if (!location.trim()) errors.location = "Add your city";
     // ZIP is REQUIRED as of 2026-09-05 (owner). It is the ONLY input that
@@ -210,50 +195,8 @@ const Signup = () => {
     // complete-signup function would fail the whole signup on it.
     else if (contactLeakFieldError(bio, "bio")) errors.bio = contactLeakFieldError(bio, "bio")!;
 
-    // Async phone-duplicate check — only runs when all synchronous checks pass,
-    // so we don't waste a round-trip when there are obvious local errors.
-    //
-    // NOTE: `profiles.phone` stores the formatted value produced by
-    // `formatPhone` (e.g. "(504) 555-1234"), not a digits-only string —
-    // see signupHelpers.ts:62-72 and the unmodified pass-through in
-    // complete-signup/index.ts. So an `.eq("phone", digits)` comparison
-    // never matches and duplicate-phone signups slip through.
-    //
-    // Match the last 7 digits via `ilike` instead — tolerant of historical
-    // formatting variations and area-code typos, and matches behavior from
-    // before the (now-broken) "normalize to digits" change.
-    const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
-    if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
-      const lastSeven = normalizedPhone.slice(-7);
-      // Fail CLOSED. Dropping this error let the duplicate-phone gate silently
-      // OPEN on any query failure (RLS change, timeout), which is the one
-      // outcome it exists to prevent. Block with a retryable message instead of
-      // waving a possible duplicate account through.
-      const { data: existing, error: existingError } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .ilike("phone", `%${lastSeven}%`)
-        .limit(5);
-      if (existingError) {
-        report("signup.phoneDedupe.lookupFailed", {
-          severity: "warning",
-          tags: { source: "Signup.phoneDedupe" },
-          context: { message: existingError.message },
-        });
-        errors.phone = "We couldn't verify this phone number just now. Please try again.";
-      } else if (existing && existing.length > 0) {
-        errors.phone = "This phone number is already associated with an account. Please log in instead.";
-        // Monitor false-positive rate — multiple matches likely means our
-        // last-7-digit heuristic is too loose for this number.
-        if (existing.length > 1) {
-          report("signup.phoneDedupe.multipleMatches", {
-            severity: "warning",
-            tags: { source: "Signup.phoneDedupe" },
-            context: { matchCount: existing.length, lastSevenSuffix: lastSeven.slice(-4) },
-          });
-        }
-      }
-    }
+    // Phone is added later: duplicates are refused and the ban-evasion flag
+    // runs there (20261009175007; restoring the phone auto-ban is OPEN).
 
     setStep2Errors(errors);
     if (Object.keys(errors).length > 0) {
@@ -327,13 +270,11 @@ const Signup = () => {
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
-        phone,
         bio,
         location,
         // Required now — the validator above guarantees 5 digits.
         zipCode: zipCode.trim(),
         parish,
-        dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
         // opt in at account-creation time.
@@ -606,10 +547,6 @@ const Signup = () => {
             setFirstName={setFirstName}
             lastName={lastName}
             setLastName={setLastName}
-            phone={phone}
-            setPhone={setPhone}
-            dateOfBirth={dateOfBirth}
-            setDateOfBirth={setDateOfBirth}
             location={location}
             setLocation={setLocation}
             zipCode={zipCode}

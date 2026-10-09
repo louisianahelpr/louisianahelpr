@@ -226,14 +226,10 @@ async function driveSignup(): Promise<string | undefined> {
   fireEvent.change(document.getElementById("avatar")!, { target: { files: [photo] } });
   fireEvent.change(document.getElementById("firstName")!, { target: { value: "Kay" } });
   fireEvent.change(document.getElementById("lastName")!, { target: { value: "Events" } });
-  fireEvent.change(document.getElementById("phone")!, { target: { value: "5045550123" } });
   fireEvent.change(document.getElementById("location")!, { target: { value: "New Orleans" } });
   fireEvent.change(document.getElementById("zipCode")!, { target: { value: "70112" } });
-  // DOB through the real wheel picker: open it, pick a year.
-  fireEvent.click(document.getElementById("dob")!);
-  const yearWheel = await screen.findByRole("listbox", { name: "Year" });
-  const year = Array.from(yearWheel.querySelectorAll<HTMLElement>("[role=option]")).find((o) => o.textContent === "1990")!;
-  fireEvent.click(year);
+  // No phone or birthday on step 2 since 2026-10-09 (asked later); step 1's
+  // 18+ box above is the age gate.
   fireEvent.click(await screen.findByRole("button", { name: /create account/i }));
   await waitFor(() => expect(h.state.invokeCalls.some((c) => c.name === "complete-signup")).toBe(true), { timeout: 4000 });
   return undefined;

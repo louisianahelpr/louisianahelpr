@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 type AuthishError = { name?: unknown; status?: unknown; message?: unknown } | null | undefined;
 
 /** A failure that says nothing about the session: network, timeout, server. */
-export const isTransientAuthError = (err: AuthishError): boolean => {
+const isTransientAuthError = (err: AuthishError): boolean => {
   if (!err) return false;
   const name = typeof err.name === "string" ? err.name : "";
   const status = typeof err.status === "number" ? err.status : undefined;

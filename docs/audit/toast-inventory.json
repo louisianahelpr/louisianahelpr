@@ -2998,7 +2998,7 @@
     },
     {
       "file": "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
-      "line": 238,
+      "line": 235,
       "kind": "errorToast",
       "title": {
         "form": "literal",

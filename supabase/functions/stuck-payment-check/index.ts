@@ -20,7 +20,7 @@
 // settles, refunds or expires anything; settling a paid-but-unsettled job is
 // a person's call after the page.
 //
-// Migration: 20261009142754_stuck_payment_needs_stripe_proof.sql.
+// Migration: 20261009223355_stuck_payment_needs_stripe_proof.sql.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { serve } from "../_shared/buildStamp.ts";

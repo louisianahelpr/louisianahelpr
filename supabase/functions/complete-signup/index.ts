@@ -847,7 +847,7 @@ serve(async (req) => {
     // after signup and 53 s before she confirmed, and an abandoned signup was
     // announced too). The one writer is notify_admins_new_member, run by the
     // auth.users confirm trigger (migration
-    // 20261009142753_new_member_notice_on_email_confirm.sql). It is called here
+    // 20261009223353_new_member_notice_on_email_confirm.sql). It is called here
     // as well because some accounts are ALREADY confirmed by the time the
     // profile is filled in (a provider sign-in confirms at creation; a provider
     // takeover wipes the profile at the confirm and the real owner names

@@ -19,14 +19,14 @@
  * (detect_stuck_payments has no money_moved). Behaviour, both cases:
  * src/test/pglite/stuckPaymentNeedsStripeProof.pglite.mjs.
  *
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |       IF rec.money_moved IS NOT TRUE THEN |       IF false THEN
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |           ON c.job_id = j.id AND c.stripe_session_id = j.stripe_session_id |           ON c.job_id = j.id
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql | 'seed_already_logged', 'not_paid'], 2, | 'seed_already_logged', 'not_paid', 'awaiting_stripe'], 2,
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |     PERFORM cron.schedule('stuck-payment-check', '12-59/15 * * * *', |     PERFORM cron.schedule('stuck-payment-check', '0 * * * *',
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |           IF greatest(rec.created_at, coalesce(rec.updated_at, rec.created_at)) < NOW() - INTERVAL '40 minutes' THEN |           IF false THEN
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |     ORDER BY (c.money_moved IS TRUE) DESC, (c.checked_at IS NULL) DESC, j.created_at\n | \n
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |                  AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed, |                  AND true) AS seed,
- * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |            AND e.tags ->> 'job_id' = rec.id::text\n           AND e.message = 'Stuck payment detected — webhook noop' |            AND e.message = 'Stuck payment detected — webhook noop'
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |       IF rec.money_moved IS NOT TRUE THEN |       IF false THEN
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |           ON c.job_id = j.id AND c.stripe_session_id = j.stripe_session_id |           ON c.job_id = j.id
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql | 'seed_already_logged', 'not_paid'], 2, | 'seed_already_logged', 'not_paid', 'awaiting_stripe'], 2,
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |     PERFORM cron.schedule('stuck-payment-check', '12-59/15 * * * *', |     PERFORM cron.schedule('stuck-payment-check', '0 * * * *',
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |           IF greatest(rec.created_at, coalesce(rec.updated_at, rec.created_at)) < NOW() - INTERVAL '40 minutes' THEN |           IF false THEN
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |     ORDER BY (c.money_moved IS TRUE) DESC, (c.checked_at IS NULL) DESC, j.created_at\n | \n
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |                  AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed, |                  AND true) AS seed,
+ * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |            AND e.tags ->> 'job_id' = rec.id::text\n           AND e.message = 'Stuck payment detected — webhook noop' |            AND e.message = 'Stuck payment detected — webhook noop'
  * @mutate supabase/config.toml |   [functions.stuck-payment-check]\n    verify_jwt = false |   [functions.stuck-payment-check]\n    verify_jwt = true
  */
 import { describe, it, expect } from "vitest";

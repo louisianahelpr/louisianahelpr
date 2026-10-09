@@ -47,6 +47,7 @@ const RESTING: Record<string, string> = {
   abandoned: "terminal: checkout never completed",
   failed: "terminal: Stripe declined the payment",
   chargeback: "terminal for the platform; disputes own it",
+  missing: "not a jobs value: stuck-payment-check's own row (stuck_payment_stripe_checks) saying Stripe has no such Checkout Session",
 };
 
 /** Claims a path takes intending to leave; a row left here is stranded. */

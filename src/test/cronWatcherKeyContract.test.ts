@@ -148,7 +148,7 @@ function emitsKeyAsBoolean(src: string, key: string): boolean {
 // nearly shipped on 2026-09-03 (`skipped: true`), and it takes down
 // silent-failure detection for EVERY cron, not just this one.
 // @mutate supabase/functions/marketing-publish/index.ts | skipped: 0, | skipped: true,
-// @mutate supabase/migrations/20261007043834_error_log_readers_ignore_client_rows.sql | 'already_alerted', v_already_alerted, | 'already_alerted_x', v_already_alerted,
+// @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql | 'already_alerted', v_already_alerted, | 'already_alerted_x', v_already_alerted,
 
 const expectations = registeredExpectations();
 

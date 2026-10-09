@@ -27,7 +27,7 @@
  * detect_stuck_payments (20260506215934) and 13 edge
  * files had neither.
  *
- * @mutate supabase/migrations/20261007043834_error_log_readers_ignore_client_rows.sql | coalesce(j.is_seed OR sp.is_seed, false) AS seed | false AS seed
+ * @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql | coalesce(j.is_seed, false)\n             OR (coalesce(sp.is_seed, false)\n                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed | false AS seed
  * @mutate supabase/functions/execute-dispute-split/index.ts | // seed-policy: | // seed policy -
  * @mutate supabase/migrations/20260924130917_lock_seed_read_in_dispute_alert.sql | SELECT j.is_seed INTO v_seed FROM public.jobs j WHERE j.id = _job_id FOR KEY SHARE; | SELECT false INTO v_seed;
  */

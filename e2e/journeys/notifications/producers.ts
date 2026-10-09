@@ -63,6 +63,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:nudge_confirm": { uncovered: "a Nudge needs a booked job inside its day-before window with the other side unconfirmed; the journeys book same-pass seed jobs that never sit in that window. Proven in src/test/pglite/confirmRepost.pglite.mjs (sent, too soon, already confirmed, not a party, restricted)." },
   "sql:sweep_backout_notice_reminders": { uncovered: "re-pushes only an unacknowledged back-out 30+ minutes old inside 24 h of a start; a journey cannot wait that out. Proven in src/test/pglite/backoutNotices.pglite.mjs." },
   "sql:sweep_confirm_reminders_and_repost": { uncovered: "reminds every 3 h and reposts at T-2h only on jobs posted by real (non-seed) accounts; the journeys post as is_seed and are exempt by design. Proven in src/test/pglite/confirmRepost.pglite.mjs." },
+  "sql:notify_admins_new_member": { uncovered: "\"New member joined\" fires once per account, when a NEW account confirms its email (owner, 2026-10-09); the shared accounts confirmed long ago and a journey cannot click a real verification email. Proven in src/test/pglite/newMemberNoticeOnConfirm.pglite.mjs (confirm sends once, unconfirmed/abandoned/seed never, re-confirm and repeat calls send nothing)." },
   "sql:notify_schedule_change_expired": { uncovered: "fires only when a date/time request is answered after its new time or the original start has passed; a journey cannot wait out a real start. Proven in src/test/pglite/scheduleChangeLeadAndExpiry.pglite.mjs (both reasons, the asker told once each)." },
   "sql:apply_job_denial_consequence": { uncovered: STRIKE },
   "sql:apply_low_rating_flag": { uncovered: STRIKE },
@@ -180,9 +181,6 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:charge-recurring-visits": { uncovered: SCHEDULED_EDGE },
   "edge:check-pro-subscription": {
     uncovered: "writes on a Pro subscription state change; the shared accounts are free tier and a Pro checkout is a recurring charge the journeys do not start",
-  },
-  "edge:complete-signup": {
-    uncovered: "runs once per account at signup; the two shared accounts completed signup long ago and a new account needs email verification the journeys cannot complete",
   },
   "edge:create-notification": { driven: { spec: NOTIF, evidence: 'template: "test"' } },
   "edge:create-payment": { driven: { spec: MONEY, evidence: '"Refund issued"' } },

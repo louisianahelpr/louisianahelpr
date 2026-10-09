@@ -125,6 +125,7 @@ const CLASSIFIED = [
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "release-payout/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "release-payout/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
+  "stuck-payment-check/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id!)#2",
   "void-cancelled-payments/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",

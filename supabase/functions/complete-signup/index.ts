@@ -8,6 +8,7 @@ import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVers
 // address nobody reads.
 import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import { isLockedOut } from "../_shared/banStatus.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import {
   avatarObjectKey,
   avatarObjectNameFromUrl,
@@ -841,78 +842,40 @@ serve(async (req) => {
       }
     }
 
-    // Notify all admins about the new signup (deduped: skip if we already sent one for this user in the last 24h)
+    // "New member joined" is announced when the member CONFIRMS their email,
+    // not here (owner decision, 2026-10-09: Kaci's notice reached the owner 5 s
+    // after signup and 53 s before she confirmed, and an abandoned signup was
+    // announced too). The one writer is notify_admins_new_member, run by the
+    // auth.users confirm trigger (migration
+    // 20261009142753_new_member_notice_on_email_confirm.sql). It is called here
+    // as well because some accounts are ALREADY confirmed by the time the
+    // profile is filled in (a provider sign-in confirms at creation; a provider
+    // takeover wipes the profile at the confirm and the real owner names
+    // themselves through this function). It sends only when the account is
+    // confirmed and named, and at most once per member, so calling it on an
+    // unconfirmed signup ('not_confirmed') or a repeat completion
+    // ('already_sent') sends nothing. Best-effort: an admin notice never fails
+    // a finished signup, but the error is never dropped.
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, location")
-        .eq("user_id", userId)
-        .single();
-
-      // ONE definition, read by both the dedupe query and the insert. Two
-      // hand-written copies of this string is what made the dedupe dead.
-      const NEW_MEMBER_TITLE = "New member joined";
-      const userName = profile?.full_name || "Someone";
-      const userLocation = profile?.location ? ` from ${profile.location}` : "";
-      const notifMessage = `${userName}${userLocation} just joined. They can start posting + applying as soon as they confirm their email.`;
-
-      // Dedupe: skip if an identical notification was sent in the last 24h.
-      //
-      // The title on BOTH sides comes from one constant now. It did not: the
-      // query asked for "👤 New member joined" (with the emoji) while the
-      // insert below wrote "New member joined" (without), so the two could
-      // never match and the dedupe was dead from the day the emoji was
-      // dropped. Verified against prod 2026-08-31: 88 notification rows carry
-      // the plain title and ZERO carry the emoji one, and those 88 rows hold
-      // only 6 distinct messages — one repeated 26 times.
-      //
-      // A failed dedupe READ must fail CLOSED (skip the fan-out) rather than
-      // default to sending: `!existing?.length` treated a read error as "no
-      // prior notification", which is the same shape that re-mailed the cohort.
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: existing, error: existingErr } = await supabase
-        .from("notifications")
-        .select("id")
-        .eq("title", NEW_MEMBER_TITLE)
-        .eq("message", notifMessage)
-        .gte("created_at", since)
-        .limit(1);
-      if (existingErr) {
-        console.error("[complete-signup] admin-notify dedupe read failed; skipping fan-out:", existingErr.message);
-      } else if (!existing?.length) {
-        const { data: admins, error: adminsErr } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (adminsErr) {
-          console.error("[complete-signup] admin lookup failed; no admin was told about this signup:", adminsErr.message);
-        } else if (admins?.length) {
-          const adminNotifs = admins.map((admin: { user_id: string }) => ({
-            user_id: admin.user_id,
-            title: NEW_MEMBER_TITLE,
-            message: notifMessage,
-            // `?view=people&user=<id>` — the id-bearing deep link Admin.tsx:47
-            // actually reads (`searchParams.get("view")`, and the View union
-            // spells it `people`, not `users`). A bare "/admin" made the
-            // reviewer hunt for the account the notification is about.
-            // `admin_alert`: this is the single largest `info` producer in
-            // prod (206 rows, 14 recipients, every one an admin). As `info` it
-            // shared the `work_status` preference with "Helpr is on the way".
-            type: "admin_alert",
-            link: `/admin?view=people&user=${userId}`,
-          }));
-
-          // PostgREST resolves with `{ error }`; it does not throw, so the
-          // enclosing try/catch could never see a failed insert. Read the
-          // error off the result.
-          const { error: notifInsertErr } = await supabase.from("notifications").insert(adminNotifs);
-          if (notifInsertErr) {
-            console.error("[complete-signup] admin notification insert failed:", notifInsertErr.message);
-          }
-        }
+      const { data: noticeOutcome, error: noticeErr } = await supabase.rpc("notify_admins_new_member", {
+        p_user_id: userId,
+        p_via: "complete-signup",
+      });
+      if (noticeErr) {
+        const code = (noticeErr as { code?: string }).code;
+        console.error(
+          `[complete-signup] new-member notice check failed for ${userId}${
+            code === "PGRST202" ? " (notify_admins_new_member not deployed yet: migration lag; the confirm trigger lands with it)" : ""
+          }:`,
+          noticeErr.message ?? noticeErr,
+        );
+      } else {
+        console.log(`[complete-signup] new-member notice for ${userId}: ${String(noticeOutcome)}`);
       }
-    } catch (notifErr) {
-      console.error("Failed to notify admins:", notifErr);
+    } catch (noticeThrow) {
+      // A thrown transport error (timeout) is logged, never allowed to fail
+      // the signup that already completed above.
+      console.error(`[complete-signup] new-member notice check threw for ${userId}:`, caughtMessage(noticeThrow));
     }
 
     return new Response(

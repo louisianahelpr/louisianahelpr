@@ -15,7 +15,7 @@
  * icon actually lands is e2e/prod-audit/applicants-empty-position.spec.ts.
  *
  * Shown red on the original:
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx | align="top" | align="center"
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx | align="top-phone" | align="center"
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -74,7 +74,11 @@ describe("Applicants empty state starts at the top of its card (owner, 2026-10-0
       expect(card!.className, `${phase}: the content is centred down a tall card`).toContain(
         "justify-start",
       );
-      expect(card!.className).not.toContain("justify-center");
+      // Centred on desktop web only (owner, 2026-10-09: "center better" on a
+      // wide window); never centred on a phone.
+      const tokens = card!.className.split(/\s+/);
+      expect(tokens).not.toContain("justify-center");
+      expect(tokens).toContain("[.web-desktop_&]:justify-center");
     });
   }
 

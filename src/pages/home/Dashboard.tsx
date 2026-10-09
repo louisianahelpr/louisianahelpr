@@ -898,7 +898,7 @@ const Dashboard = () => {
 
       <Suspense fallback={null}>
         <OnboardingTour
-          profileComplete={isProfileComplete(profile)}
+          profileComplete={isProfileComplete(profile, user)}
           userId={user?.id}
           onActiveChange={setTourActive}
         />

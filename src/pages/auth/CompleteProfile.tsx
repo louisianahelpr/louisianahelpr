@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
-import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrapMutationRow, isWriteRejected, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { safeInternalRedirect } from "@/lib/authRedirects";
@@ -223,11 +223,9 @@ const CompleteProfile = () => {
   // Each item is satisfied either by the local form state OR by an existing
   // value already on the profile row (e.g. an avatar uploaded previously).
   const checklist = useMemo(() => {
-    const phoneDigits = phone.replace(/\D/g, "");
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
-      { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
       // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
       // screen than on email signup: Google/Apple sign-ins never see
@@ -246,10 +244,8 @@ const CompleteProfile = () => {
   }, [
     firstName,
     lastName,
-    bio,
     dateOfBirth,
     ageOk,
-    phone,
     location,
     // zipCode is load-bearing here, not tidiness: the checklist gates the
     // submit button, so omitting it would leave "ZIP code" permanently
@@ -300,7 +296,7 @@ const CompleteProfile = () => {
         "Profile check",
         12000,
       );
-      if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data))) return false;
+      if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data, user))) return false;
 
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
         ...(current ?? {}),
@@ -322,7 +318,8 @@ const CompleteProfile = () => {
     if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
     if (!dateOfBirth) return fail("Add your date of birth to continue.");
     if (!ageOk) return fail("You'll need to be 18 or older to join.");
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
+    // Phone is optional (owner, 2026-10-09); a number that is typed must be whole.
+    if (phone.trim() && phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
     if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
     // Government-issued ID is no longer required here — it's optional at
@@ -473,7 +470,7 @@ const CompleteProfile = () => {
       hapticSuccess();
       navigate(nextDestination, { replace: true });
     } catch (err: unknown) {
-      const recovered = await recoverCompletedProfile();
+      const recovered = phoneInUseMessage(err) ? false : await recoverCompletedProfile(); // a refused phone is never "recovered"
       if (!recovered) {
         hapticError();
         // A silently-rejected write gets its own sentence (the row wasn't
@@ -482,7 +479,7 @@ const CompleteProfile = () => {
         // The contact-leak trigger's message is the one server text shown
         // verbatim: written for the user, names the field.
         toast.error(
-          contactLeakRejectionMessage(err)
+          contactLeakRejectionMessage(err) ?? phoneInUseMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
               : userFacingError(err, "We couldn't save your profile just yet — give it another try.")),
@@ -536,7 +533,7 @@ const CompleteProfile = () => {
   // gets bounced straight to the dashboard instead of staring at an empty
   // checklist they can't dismiss.
   // See the divergence note on `checklist` above before touching this gate.
-  if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
+  if (profile && (profile.is_legacy_user === true || isProfileComplete(profile, user))) {
     return <Navigate to="/home" replace />;
   }
 
@@ -720,7 +717,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+              <Label htmlFor="phone">Phone <span className="font-normal text-muted-foreground">(optional)</span></Label>
               <div className="relative">
                 <Input
                   id="phone"

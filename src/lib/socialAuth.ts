@@ -17,14 +17,16 @@ import { Capacitor } from "@capacitor/core";
 // it is dead weight. Destructure from the module, never await/return the plugin
 // object itself (thenable assimilation, CLAUDE.md "Platform gotchas").
 /**
- * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1462: "drop apple
- * and google, we can discuss after launch"). App Store guideline 4.8 requires
- * Sign in with Apple whenever Google sign-in is offered, and Apple's Hide My
- * Email forced the link-your-account screen; email sign-in only for launch.
- * Every entry point (Login, Signup step 1, Profile > Security sign-in methods)
- * reads this; the code behind it stays, dormant. Guard: socialSignInOff.test.ts.
+ * Apple + Google sign-in ON (owner, 2026-10-09: sign-ups were stalling on the
+ * two forms; "Google + Apple both"). Off for launch 2026-10-06 (Q1462). Both
+ * together because App Store guideline 4.8 requires Sign in with Apple whenever
+ * Google sign-in is offered; a Hide My Email sign-up still gets the
+ * "I already have an account" link screen (Q446). Every entry point (Login,
+ * Signup step 1, Profile > Security sign-in methods) reads this, and the live
+ * auth config must match it (scripts/check-native-sign-in-config.mjs).
+ * Guard: socialSignInOff.test.ts.
  */
-export const SOCIAL_SIGN_IN_ENABLED = false;
+export const SOCIAL_SIGN_IN_ENABLED = true;
 
 const loadSocialLogin = () => import("@capgo/capacitor-social-login");
 type SocialLoginPlugin = typeof import("@capgo/capacitor-social-login").SocialLogin;

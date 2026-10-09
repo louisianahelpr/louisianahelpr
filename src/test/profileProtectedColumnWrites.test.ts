@@ -381,9 +381,9 @@ describe("client writes to profiles columns that prevent_self_escalation resets"
   });
 
   it("finds the profiles writes it claims to check (inventory floor)", () => {
-    // EXACT, both directions (measured 2026-09-24; 12 -> 13 on 2026-10-09: PhotoPrompt pins avatar_url): a new write must be counted
+    // EXACT, both directions (measured 2026-09-24; 12 -> 13 on 2026-10-09: PhotoPrompt pins avatar_url; 14: it saves phone + birthday): a new write must be counted
     // here on purpose, and a moved-server-side one lowers it (Q304/Q99/Q40 did).
-    expect({ all: writes.length, nonAdmin: writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length }).toEqual({ all: 13, nonAdmin: 13 });
+    expect({ all: writes.length, nonAdmin: writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length }).toEqual({ all: 14, nonAdmin: 14 });
   });
 
   it("resolves every payload it inspects — unresolved is a failure, never clean", () => {

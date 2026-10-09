@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrapMutation, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
@@ -432,7 +432,7 @@ const ProfilePage = () => {
     } catch (err) {
       setSaving(false);
       hapticError();
-      toast.error(contactLeakRejectionMessage(err) ?? mutationErrorMessage(err, "We couldn't save your profile — please try again."));
+      toast.error(contactLeakRejectionMessage(err) ?? phoneInUseMessage(err) ?? mutationErrorMessage(err, "We couldn't save your profile — please try again."));
       return;
     }
     setSaving(false);

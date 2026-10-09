@@ -19,10 +19,8 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
-import { DatePickerField } from "@/components/DatePickerField";
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
-import { formatPhone } from "./signupHelpers";
 
 /**
  * Renders a red inline error message below a form field.
@@ -57,10 +55,6 @@ export interface SignupStep2Props {
   setFirstName: (v: string) => void;
   lastName: string;
   setLastName: (v: string) => void;
-  phone: string;
-  setPhone: (v: string) => void;
-  dateOfBirth: string;
-  setDateOfBirth: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
   /** Optional — unlocks parish-based helper notifications + LA sales tax. */
@@ -114,10 +108,6 @@ export function SignupStep2(props: SignupStep2Props) {
     setFirstName,
     lastName,
     setLastName,
-    phone,
-    setPhone,
-    dateOfBirth,
-    setDateOfBirth,
     location,
     setLocation,
     zipCode,
@@ -137,25 +127,10 @@ export function SignupStep2(props: SignupStep2Props) {
     loading = false,
   } = props;
 
-  // DOB picker bounds. Upper bound = today − 18y (blocks under-18 at the UI
-  // layer; validateAboutYouStep re-checks age as the backstop). Lower bound =
-  // today − 120y so the year dropdown has a sane floor.
-  const maxDob = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().split("T")[0];
-  })();
-  const minDob = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 120);
-    return d.toISOString().split("T")[0];
-  })();
-
   // Live field validity — drives the inline green check (mirrors Step 1's
   // email affordance) so a completed field reads as done, not just un-erroed.
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
-  const phoneValid = phone.replace(/\D/g, "").length >= 10;
   const locationValid = location.trim().length > 0;
 
   return (
@@ -240,76 +215,9 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
-        {/* Date of birth pairs half-width with Phone — but only from `sm` up.
-            This used to be an unconditional `grid-cols-2`, on the reasoning
-            that "a short date never needs a full-width control". Measured at
-            375, that is false in both states: the trigger's text box is 83px
-            wide there, the placeholder "Select a date" wants 96.6px, and a
-            real value — "September 6, 1990" — wants 138.4px. So the field
-            truncated to "Select a ..." before entry and to a fragment of the
-            month AFTER it, meaning a user could not read back the date of
-            birth they had just chosen on a required field that gates an 18+
-            check. Nothing about the pairing survives on a phone; from `sm` the
-            card is wide enough and it pairs as designed. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-          <div className="space-y-2">
-            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
-            {/* Single native date field — on iOS this opens the system wheel
-                picker (one tap), and `max` (today − 18y) keeps the wheel near a
-                plausible birth year and blocks under-18 dates at the UI layer;
-                validateAboutYouStep still re-checks age as the backstop. */}
-            {/* DatePickerField (the app's shared tap-to-open calendar pill)
-                instead of a raw <input type="date"> — the native control renders
-                as a blank, oversized box on iOS with no placeholder. */}
-            <DatePickerField
-              wheel
-              showCompleteCheck
-              id="dob"
-              value={dateOfBirth}
-              onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
-              min={minDob}
-              max={maxDob}
-              aria-invalid={!!fieldErrors.dateOfBirth}
-              aria-describedby={fieldErrors.dateOfBirth ? "dob-error" : undefined}
-              className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
-            />
-            <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
-            <div className="relative">
-              {/* Country code badge — Helpr is Louisiana-only, so every
-                  number is +1. Showing it inline makes the formatting
-                  expectation explicit instead of leaving the user wondering
-                  whether to type the leading 1. */}
-              <span
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-medium pointer-events-none select-none"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                aria-hidden
-              >
-                +1
-              </span>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
-                required
-                aria-required="true"
-                autoComplete="tel"
-                maxLength={14}
-                aria-invalid={!!fieldErrors.phone}
-                aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
-                className={`${inputCls} pl-9${phoneValid && !fieldErrors.phone ? " pr-8" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
-              />
-              {phoneValid && !fieldErrors.phone && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-              )}
-            </div>
-            <FieldError id="phone-error" message={fieldErrors.phone} />
-          </div>
-        </div>
+        {/* Birthday and phone left this step on 2026-10-09 (owner: asked later,
+            before the first Apply or Post). Step 1's 18+ box is the age gate
+            complete-signup accepts (ageAttested) when no birthday is sent. */}
         {/* City is REQUIRED (owner decision 2026-08-29, reversing the prior
             2026-08-22 removal). It was pulled once as free text — any string
             was accepted, so it collected values that were not real Louisiana

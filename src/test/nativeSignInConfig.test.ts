@@ -187,10 +187,16 @@ describe("the nightly runs it and fails on its outcome", () => {
   });
 });
 
-describe("Apple + Google sign-in OFF for launch (Q1462)", () => {
-  it("the real source has the switch off, and then only 'both providers disabled' is checked", () => {
+describe("Apple + Google sign-in ON (owner, 2026-10-09; off for launch was Q1462)", () => {
+  it("the real source has the switch on, so the live config must have both providers enabled", () => {
     const ids = deriveSignInIds(SRC);
-    expect(ids.socialEnabled).toBe(false);
+    expect(ids.socialEnabled).toBe(true);
+    const off = checkAuthConfig({ external_apple_enabled: false, external_google_enabled: false }, ids);
+    const failed = off.filter((r) => !r.ok).map((r) => r.check);
+    expect(failed).toEqual(expect.arrayContaining(["external_apple_enabled is true", "external_google_enabled is true"]));
+  });
+  it("with the switch off, only 'both providers disabled' is checked", () => {
+    const ids = { ...deriveSignInIds(SRC), socialEnabled: false };
     const ok = checkAuthConfig({ external_apple_enabled: false, external_google_enabled: false }, ids);
     expect(ok.map((r) => r.ok)).toEqual([true, true]);
     const bad = checkAuthConfig({ external_apple_enabled: true, external_google_enabled: false }, ids);

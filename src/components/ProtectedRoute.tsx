@@ -92,8 +92,8 @@ const PROFILE_GATE_FIELDS = [
   { key: "full_name", label: "Full name" },
   // avatar_url is NOT a gate field (owner, 2026-10-09): the photo is optional
   // at sign-up and asked for before the first Apply or Post.
-  { key: "date_of_birth", label: "Date of birth" },
-  { key: "phone", label: "Phone number" },
+  // phone left the gate 2026-10-09 (owner: asked later). date_of_birth is
+  // required for Google/Apple sign-ups only: see isProfileComplete.
   { key: "location", label: "City" },
   // Government-issued ID is intentionally NOT a gate field. CompleteProfile
   // makes it optional (identity verification is deferred to first-post / IDV),
@@ -120,9 +120,20 @@ const isFieldComplete = (
   return true;
 };
 
-export const isProfileComplete = (profile: GateProfile | null): boolean => {
+/** Who signed up how: only an email sign-up passed step 1's 18+ box. */
+export type GateUser = { app_metadata?: { provider?: string } } | null | undefined;
+
+/**
+ * Google/Apple sign-ups never see sign-up step 1's 18+ box (the age gate an
+ * email sign-up gives complete-signup as ageAttested), so for them the
+ * birthday Complete Profile collects is the age check, and the gate keeps
+ * requiring it (code review, 2026-10-09). An email sign-up does not need it.
+ */
+export const isProfileComplete = (profile: GateProfile | null, user: GateUser): boolean => {
   if (!profile) return false;
-  return PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key));
+  if (!PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key))) return false;
+  const emailSignup = user?.app_metadata?.provider === "email";
+  return emailSignup || (typeof profile.date_of_birth === "string" && profile.date_of_birth.trim() !== "");
 };
 
 const ProtectedRoute = ({
@@ -424,7 +435,7 @@ const ProtectedRoute = ({
     if (
       !isLegacy &&
       user.email_confirmed_at &&
-      !isProfileComplete(profile) &&
+      !isProfileComplete(profile, user) &&
       !isProfileGateAllowed(location.pathname, location.search)
     ) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });

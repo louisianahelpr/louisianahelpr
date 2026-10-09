@@ -175,3 +175,20 @@ export function mutationErrorMessage(
 function defaultRejectedMessage(action: string): string {
   return `Couldn't ${action} — it may have already changed. Refresh and try again.`;
 }
+
+/**
+ * The database refuses a phone another real account already has
+ * (trg_guard_profile_phone, 20261009175007: unique_violation, hint
+ * 'phone_in_use'). Every screen that saves a phone says so in words instead of
+ * a generic "couldn't save" (code review, 2026-10-09).
+ */
+export const PHONE_IN_USE_MESSAGE = "This phone number is already on another account. Log in to that account instead.";
+
+export function phoneInUseMessage(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null;
+  const e = err as { code?: unknown; hint?: unknown; message?: unknown; cause?: unknown };
+  if (e.code === "23505" && (e.hint === "phone_in_use" || (typeof e.message === "string" && e.message.includes("already on another account")))) {
+    return PHONE_IN_USE_MESSAGE;
+  }
+  return e.cause && e.cause !== err ? phoneInUseMessage(e.cause) : null;
+}

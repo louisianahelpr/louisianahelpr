@@ -61,6 +61,40 @@ import { bodyOf, firstRaise, triggerInventory, triggersOn, type Trg } from "./he
 
 const MIG = join(__dirname, "..", "..", "supabase", "migrations");
 
+/**
+ * NOT SERVER NOTICES: a PERSON'S OWN MESSAGE written through a SECURITY
+ * DEFINER RPC (2026-10-09, the "Louisiana Helpr Team" thread: it has no job,
+ * so the INSERT policy refuses a client INSERT and the server writes it,
+ * 20261009142834). The block gate, the send cap and the ban and
+ * unconfirmed-email gates must refuse these exactly as they refuse a client
+ * INSERT, so they are left OUT of the server-notice inventory below. EXACT and
+ * two-way: each must exist, insert into messages, write sender_id from
+ * auth.uid() and never write is_system (`personSendGaps`).
+ */
+export const PERSON_SEND_RPCS: readonly string[] = ["admin_send_team_message", "send_team_reply"];
+
+/** Why a PERSON_SEND_RPCS function is not the caller's own send, [] when it is. */
+export function personSendGaps(stmt: string): string[] {
+  const out: string[] = [];
+  const body = blankSqlComments(stmt);
+  const caller = /\b(\w+)\s+uuid\s*:=\s*auth\.uid\(\)/i.exec(body)?.[1];
+  if (!caller) out.push("no `<var> uuid := auth.uid()`: the sender is not the caller");
+  const inserts = messageInserts(stmt);
+  if (inserts.length === 0) out.push("no INSERT INTO messages");
+  for (const ins of inserts) {
+    const cols = insertColumns(ins);
+    const vals = /\)\s*VALUES\s*\(([\s\S]*)\)/i.exec(ins);
+    const items = vals ? splitTop(vals[1]) : null;
+    if (!cols || !items || items.length !== cols.length) { out.push("an insert whose values cannot be read"); continue; }
+    if (items[cols.indexOf("sender_id")] !== caller) out.push(`sender_id is ${items[cols.indexOf("sender_id")]}, not the caller`);
+    const sys = cols.indexOf("is_system");
+    if (sys >= 0 && items[sys].toLowerCase() !== "false") out.push(`is_system is ${items[sys]}`);
+  }
+  return out;
+}
+
+const isServerInserter = ([name]: [string, FnDef]) => !PERSON_SEND_RPCS.includes(name);
+
 /** Each `INSERT INTO [public.]messages …;` statement in a function body, comments blanked. */
 export function messageInserts(stmt: string): string[] {
   const body = blankSqlComments(stmt);
@@ -231,7 +265,11 @@ function callerGateOffenders(ctx: Ctx, gate: string): string[] {
 const files = () => migrationFiles(MIG).map((name) => ({ name, sql: readFileSync(join(MIG, name), "utf8") }));
 
 function context(defs: Map<string, FnDef>, triggers: Map<string, Trg>): Ctx {
-  return { defs, triggers, inserters: [...defs].filter(([, d]) => messageInserts(d.stmt).length > 0) };
+  return {
+    defs,
+    triggers,
+    inserters: [...defs].filter(([, d]) => messageInserts(d.stmt).length > 0).filter(isServerInserter),
+  };
 }
 
 /** The raising INSERT triggers on messages: function -> trigger names. */
@@ -258,7 +296,22 @@ export function rateCount(body: string): { skipsNotices: boolean; window: string
 
 describe("a server-side message insert screens blocked recipients (Q713)", () => {
   const defs = effectiveDefs(MIG);
-  const inserters = [...defs].filter(([, d]) => messageInserts(d.stmt).length > 0);
+  const allInserters = [...defs].filter(([, d]) => messageInserts(d.stmt).length > 0);
+  const inserters = allInserters.filter(isServerInserter);
+
+  it("every PERSON_SEND_RPCS entry exists, inserts into messages, and sends as the caller (two-way)", () => {
+    const named = allInserters.map(([n]) => n);
+    expect(PERSON_SEND_RPCS.filter((n) => !named.includes(n))).toEqual([]);
+    const gaps = PERSON_SEND_RPCS.flatMap((n) => personSendGaps(defs.get(n)?.stmt ?? "").map((g) => `${n}: ${g}`));
+    expect(gaps, "a person-send RPC must write the caller's own, non-system message, or it is a server notice").toEqual([]);
+  });
+
+  it("personSendGaps can fail: a sender that is not the caller, or a system row", () => {
+    const forged = `DECLARE v_me uuid := auth.uid(); BEGIN INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES (NULL, p_sender, v_me, 'x'); END`;
+    expect(personSendGaps(forged)).toHaveLength(1);
+    const notice = `DECLARE v_me uuid := auth.uid(); BEGIN INSERT INTO public.messages (sender_id, receiver_id, content, is_system) VALUES (v_me, b, 'x', true); END`;
+    expect(personSendGaps(notice)).toHaveLength(1);
+  });
 
   it("the inventory is real", () => {
     expect(defs.size).toBeGreaterThan(300);

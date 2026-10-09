@@ -29,10 +29,32 @@ import {
 } from "./messagesData/loadConversations";
 import { createSendHandlers } from "./messagesData/sendHandlers";
 import { fetchCounterpartyDeleted, flipToDeletedAccountThread, threadPairFilter } from "@/lib/deletedCounterparty";
+import { isTeamThreadKey, normalizeMessageRow, teamThreadKey, teamUserIdFromKey } from "@/lib/teamThread";
+import { buildTeamThreadPlaceholder } from "./messagesData/loadConversations";
 
 /** Stable empty list so a cold cache doesn't hand consumers a new array
     identity on every render (which would defeat the memoized rows). */
 const NO_CONVERSATIONS: Conversation[] = [];
+
+/**
+ * One open thread's rows. A job thread is one job and one pair of people; a
+ * "Louisiana Helpr Team" thread is every row of that user's team thread,
+ * whichever staff member wrote it (src/lib/teamThread.ts). The callers add the
+ * flagged-hidden mirror, ordering and paging.
+ */
+function threadRows(uid: string, convo: Pick<Conversation, "jobId" | "otherUserId">) {
+  const base = supabase.from("messages").select("*");
+  const teamUser = teamUserIdFromKey(convo.jobId);
+  return teamUser !== null
+    ? base.is("job_id", null).eq("team_thread_user_id", teamUser)
+    : base.eq("job_id", convo.jobId).or(threadPairFilter(uid, convo.otherUserId));
+}
+
+/** The notification link fragment that names this thread (for clearing it). */
+const threadLinkFragment = (jobId: string): string => {
+  const teamUser = teamUserIdFromKey(jobId);
+  return teamUser !== null ? `teamThread=${teamUser}` : `jobId=${jobId}`;
+};
 
 /**
  * The Messages page data layer — owns the inbox conversations, the active
@@ -86,6 +108,7 @@ export function useMessagesData({
   cachedUser,
   deepLinkJobId,
   deepLinkUserId,
+  deepLinkTeamUserId = null,
   navigate,
   scrollToBottom,
   activeConvoRef,
@@ -98,6 +121,8 @@ export function useMessagesData({
     | undefined;
   deepLinkJobId: string | null;
   deepLinkUserId: string | null;
+  /** `?teamThread=<user>`: open that user's "Louisiana Helpr Team" thread. */
+  deepLinkTeamUserId?: string | null;
   navigate: NavigateFunction;
   scrollToBottom: (behavior?: ScrollBehavior) => void;
   activeConvoRef: MutableRefObject<Conversation | null>;
@@ -327,12 +352,9 @@ export function useMessagesData({
     // "Poster confirmed complete", …) can render in the same paint as
     // the messages. The job select is narrow — only the fields the
     // event deriver reads.
+    const isTeam = isTeamThreadKey(convo.jobId);
     const [messagesRes, jobRes] = await Promise.all([
-      supabase
-        .from("messages")
-        .select("*")
-        .eq("job_id", convo.jobId)
-        .or(threadPairFilter(resolvedUserId, convo.otherUserId))
+      threadRows(resolvedUserId, convo)
         // Defense-in-depth: mirror the RLS SELECT policy's flagged clause
         // (visible if I'm the sender OR the row isn't hidden) so a scanner-hidden
         // message never surfaces to its receiver even if that policy regresses.
@@ -341,15 +363,19 @@ export function useMessagesData({
         .or(`sender_id.eq.${resolvedUserId},flagged_hidden.eq.false`)
         .order("created_at", { ascending: false })
         .limit(CHAT_PAGE_SIZE),
-      supabase
-        .from("jobs")
-        .select(
-          "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by",
-        )
-        .eq("id", convo.jobId)
-        .maybeSingle(),
+      // A team thread has no job, so no job events.
+      isTeam
+        ? Promise.resolve({ data: null, error: null })
+        : supabase
+            .from("jobs")
+            .select(
+              "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by",
+            )
+            .eq("id", convo.jobId)
+            .maybeSingle(),
     ]);
-    const { data, error } = messagesRes;
+    const { error } = messagesRes;
+    const data = messagesRes.data?.map(normalizeMessageRow) ?? null;
     // Job lookup is best-effort: a failure here just means no system
     // events render. We don't surface it — the message thread still works.
     if (!jobRes.error && jobRes.data) {
@@ -442,7 +468,10 @@ export function useMessagesData({
       // rows no newer than the latest loaded message from THIS thread's
       // counterparty can have been seen by opening this thread.
       // (`data` is newest-first, so find() returns the newest from them.)
-      const newestFromOther = data?.find((m) => m.sender_id === convo.otherUserId);
+      // A team thread's other side is whichever staff member wrote.
+      const newestFromOther = data?.find((m) =>
+        isTeam ? m.sender_id !== resolvedUserId : m.sender_id === convo.otherUserId,
+      );
       if (newestFromOther) {
         // `void <builder>` never issues the request — PostgrestBuilder
         // fetches inside then(). The bell kept counting messages already read.
@@ -452,7 +481,7 @@ export function useMessagesData({
           .eq("user_id", resolvedUserId)
           .eq("type", "message")
           .eq("read", false)
-          .like("link", `%jobId=${convo.jobId}%`)
+          .like("link", `%${threadLinkFragment(convo.jobId)}%`)
           .lte("created_at", newestFromOther.created_at)
           .then(({ error }) => {
             if (error) report(error, { tags: { source: "useMessagesData.clearThreadNotifs" } });
@@ -486,7 +515,8 @@ export function useMessagesData({
     // and never opened the thread. The trigger now also sends `userId`, but
     // requiring it here would still strand every notification already sitting
     // in someone's list.
-    if (!deepLinkJobId) return;
+    // A team-thread key is not a job: those links are `?teamThread=` (below).
+    if (!deepLinkJobId || isTeamThreadKey(deepLinkJobId)) return;
     deepLinkHandled.current = true;
 
     const openIfMatch = (list: Conversation[]) => {
@@ -576,20 +606,63 @@ export function useMessagesData({
     queryClient,
   ]);
 
+  // `?teamThread=<user>`: the "Louisiana Helpr Team" thread for that user —
+  // the link notify_message_recipient writes for a team row, and the admin
+  // dialog's "Open conversation". Same single loader and same confirm-against-
+  // a-refetch as the job deep link above; only staff ever get a placeholder.
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    if (!resolvedUserId || !allConversations) return;
+    if (!deepLinkTeamUserId) return;
+    deepLinkHandled.current = true;
+    const key = teamThreadKey(deepLinkTeamUserId);
+    const find = (list: Conversation[] | undefined) => list?.find((c) => c.jobId === key);
+    const cached = find(allConversations);
+    if (cached) {
+      void openConvo(cached);
+      return;
+    }
+    void (async () => {
+      const placeholderP = buildTeamThreadPlaceholder(resolvedUserId, deepLinkTeamUserId);
+      void placeholderP.catch(() => {});
+      await loadConversations(resolvedUserId);
+      const refreshed = find(
+        queryClient.getQueryData<Conversation[]>(queryKeys.messages.conversations(resolvedUserId)),
+      );
+      if (refreshed) {
+        void openConvo(refreshed);
+        return;
+      }
+      const placeholder = await placeholderP;
+      if ("problem" in placeholder) {
+        toast.error(placeholder.problem);
+        return;
+      }
+      setConversations((prev) => [placeholder, ...prev]);
+      void openConvo(placeholder);
+    })();
+  }, [
+    allConversations,
+    resolvedUserId,
+    deepLinkTeamUserId,
+    openConvo,
+    setConversations,
+    loadConversations,
+    queryClient,
+  ]);
+
   // Pull-to-refresh for the open chat thread: re-fetch the most recent
   // page of messages without the navigate / clear churn that openConvo
   // does, so the thread quietly reconciles to the server's latest state.
   const refreshActiveThread = async () => {
     if (!activeConvo || !userId) return;
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("job_id", activeConvo.jobId)
-      .or(threadPairFilter(userId, activeConvo.otherUserId))
+    const res = await threadRows(userId, activeConvo)
       // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
       .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
+    const { error } = res;
+    const data = res.data?.map(normalizeMessageRow) ?? null;
 
     if (error) {
       console.error("[Messages] refreshActiveThread failed:", error);
@@ -619,16 +692,14 @@ export function useMessagesData({
     if (!activeConvo || !userId || loadingMore || messages.length === 0) return;
     setLoadingMore(true);
     const oldestMsg = messages[0];
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("job_id", activeConvo.jobId)
-      .or(threadPairFilter(userId, activeConvo.otherUserId))
+    const res = await threadRows(userId, activeConvo)
       // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
       .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .lt("created_at", oldestMsg.created_at)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
+    const { error } = res;
+    const data = res.data?.map(normalizeMessageRow) ?? null;
 
     // A failed page fetch: keep the already-loaded thread visible and
     // leave the "Load earlier" affordance so the user can retry.
@@ -704,6 +775,9 @@ export function useMessagesData({
   const counterpartyChecks = useRef(new Set<string>());
   const checkCounterpartyDeleted = useCallback(
     async (jobId: string, otherUserId: string) => {
+      // A team thread is not tied to one counterparty's account; its rows go
+      // with the thread's user (FK cascade). Nothing to ask.
+      if (isTeamThreadKey(jobId)) return;
       const key = `${jobId}_${otherUserId}`;
       if (counterpartyChecks.current.has(key)) return;
       counterpartyChecks.current.add(key);

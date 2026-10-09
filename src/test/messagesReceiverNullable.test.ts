@@ -28,7 +28,7 @@
  * @mutate src/components/messages/chatView/ChatComposer.tsx | if (activeConvo.otherUserId === null) { | if (false) {
  * @mutate src/pages/messages/messagesData/sendHandlers.ts | if (receiverId === null) { | if (false) {
  * @mutate supabase/migrations/20260924013306_messages_receiver_set_null.sql | REFERENCES auth.users(id) ON DELETE SET NULL; | REFERENCES auth.users(id) ON DELETE CASCADE;
- * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(resolvedUserId, convo.otherUserId)) | .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId})`)
+ * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(uid, convo.otherUserId)) | .or(`and(sender_id.eq.${uid},receiver_id.eq.${convo.otherUserId})`)
  * @mutate src/pages/messages/messagesData/loadConversations.ts | otherUserId: counterpartyDeleted ? null : deepLinkUserId, | otherUserId: deepLinkUserId,
  * @mutate src/pages/messages/messagesData/sendHandlers.ts | (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true | false
  * @mutate supabase/migrations/20260926015040_thread_counterparty_deleted.sql | FROM PUBLIC, anon; | FROM PUBLIC;
@@ -39,7 +39,7 @@
  * @mutate src/lib/archivedConversations.ts | return UUID_RE.test(other) ? { jobId, otherUserId: other } : null; | return { jobId, otherUserId: other };
  * @mutate src/lib/archivedConversations.ts | if (cannotExist(error)) { | if (false) {
  * @mutate src/pages/messages/useMessagesData.ts |       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt), |       (c) => c.otherUserId === null \|\| !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
- * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.otherUserId === null ? row : (
+ * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView \|\| c.teamThread ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.teamThread \|\| c.otherUserId === null ? row : (
  * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
  * @mutate src/pages/messages/Messages.tsx | batchArchiveConfirm?.every((c) => c.otherUserId === null) | false
  * @mutate src/pages/messages/Messages.tsx | : batchArchiveConfirm?.some((c) => c.otherUserId === null) | : false
@@ -141,7 +141,11 @@ describe("messages.receiver_id may be a deleted account (Q262)", () => {
 
   it("the Messages thread loads through threadPairFilter (open, refresh, load older)", () => {
     const src = blankComments(read("src/pages/messages/useMessagesData.ts"));
-    expect(src.match(/\.or\(threadPairFilter\(/g)?.length).toBe(3);
+    // One job-thread filter, in threadRows (2026-10-09: the one place that
+    // tells a job thread from a team thread), and the three loads call it.
+    expect(src.match(/\.or\(threadPairFilter\(/g)?.length).toBe(1);
+    expect(src).toMatch(/function threadRows\([\s\S]*?\.or\(threadPairFilter\(uid, convo\.otherUserId\)\)/);
+    expect(src.match(/threadRows\((?:resolvedUserId|userId), (?:convo|activeConvo)\)/g)?.length).toBe(3);
   });
 
   it("no other party is coalesced to \"\" outside KNOWN_COALESCE (exact both ways)", () => {
@@ -257,7 +261,8 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     const toggle = list.slice(list.indexOf("const toggleSelect"), list.indexOf("const handleBatchDelete"));
     expect(toggle.length).toBeGreaterThan(50);
     expect(toggle).not.toMatch(/otherUserId === null/);
-    expect(list).toMatch(/return selectMode \|\| isRecentlyDeletedView \? row : \(/);
+    // A team thread (no job to key an archive on) is the only other bare row.
+    expect(list).toMatch(/return selectMode \|\| isRecentlyDeletedView \|\| c\.teamThread \? row : \(/);
     expect(list).toMatch(/\.filter\(\(c\) => isConvoArchived\(userId, c\.jobId, c\.otherUserId, c\.lastAt\)\)/);
   });
 

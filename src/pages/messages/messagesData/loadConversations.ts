@@ -11,6 +11,84 @@ import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import type { Conversation, Message } from "@/components/messages/types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { fetchCounterpartyDeleted } from "@/lib/deletedCounterparty";
+import {
+  TEAM_THREAD_AVATAR,
+  TEAM_THREAD_NAME,
+  isTeamThreadKey,
+  normalizeMessageRow,
+  teamThreadKey,
+  teamUserIdFromKey,
+} from "@/lib/teamThread";
+
+/**
+ * The inbox row for a "Louisiana Helpr Team" thread. On the user's side it is
+ * the team (name, app icon, no presence); on the staff side it is the person.
+ * None of the job fields exist: no status chip, no lockout, no mute.
+ */
+function teamConversation({
+  uid,
+  teamUser,
+  otherUserId,
+  staffSideProfile,
+  messages,
+}: {
+  uid: string;
+  teamUser: string;
+  otherUserId: string | null;
+  staffSideProfile: ResolvedProfile | undefined;
+  messages: Message[];
+}): Conversation {
+  const viewerIsStaff = teamUser !== uid;
+  const last = messages[0];
+  return {
+    otherUserId,
+    otherUserName: viewerIsStaff ? staffSideProfile?.name || UNRESOLVED_PERSON : TEAM_THREAD_NAME,
+    otherUserAvatarUrl: viewerIsStaff ? staffSideProfile?.avatarUrl ?? null : TEAM_THREAD_AVATAR,
+    jobTitle: viewerIsStaff ? `${TEAM_THREAD_NAME} conversation` : "Direct message",
+    jobId: teamThreadKey(teamUser),
+    jobStatus: null,
+    lastMessage: last?.content ?? "",
+    lastAt: last?.created_at ?? new Date().toISOString(),
+    unread: messages.filter((m) => m.receiver_id === uid && !m.read).length,
+    lastMessageSenderId: last?.sender_id ?? null,
+    lastMessageAttachmentPath: null,
+    lastMessageAttachmentMime: null,
+    lastMessageAttachmentSignedUrl: null,
+    isMuted: false,
+    muteUntil: null,
+    otherUserLastActiveAt: null,
+    teamThread: { userId: teamUser, viewerIsStaff },
+  };
+}
+
+/**
+ * The thread a `?teamThread=<user>` link opens when the inbox has no such
+ * thread yet: only ever the STAFF side starting one (a user has no team thread
+ * until staff writes, and the send RPC is admin-only server-side).
+ */
+export async function buildTeamThreadPlaceholder(
+  uid: string,
+  teamUser: string,
+): Promise<Conversation | { problem: string }> {
+  if (teamUser === uid) return { problem: "There's no message from the Louisiana Helpr Team yet." };
+  // Only staff can read another person's profile row (RLS), so "no row" here
+  // means either a gone account or a caller who is not staff: say neither.
+  // A direct profiles read, not get_safe_profiles: staff may need to reach a
+  // banned or unverified account, which the safe view leaves out. Admin RLS
+  // reads every profile; anyone else simply gets no row.
+  const res = await supabase
+    .from("profiles")
+    .select("user_id, full_name, avatar_url")
+    .eq("user_id", teamUser)
+    .maybeSingle();
+  if (res.error) {
+    report(res.error, { severity: "warning", tags: { source: "buildTeamThreadPlaceholder" } });
+    return { problem: "Couldn't open that conversation — please try again." };
+  }
+  if (!res.data) return { problem: "This conversation isn't available." };
+  const profile = indexProfiles([res.data]).get(teamUser);
+  return teamConversation({ uid, teamUser, otherUserId: teamUser, staffSideProfile: profile, messages: [] });
+}
 
 /**
  * One person, resolved once.
@@ -132,7 +210,9 @@ export async function fetchConversations(
     .limit(200);
 
   const blockedSet = await blockedPromise;
-  const msgs = unwrap(msgsRes);
+  // A team-thread row's NULL job becomes its `team:<user>` key here, once, so
+  // the grouping below treats it like any other thread (src/lib/teamThread.ts).
+  const msgs = unwrap(msgsRes)?.map(normalizeMessageRow);
 
   if (!msgs || msgs.length === 0) return [];
 
@@ -164,6 +244,24 @@ export async function fetchConversations(
   const convoMap = new Map<string, { otherUserId: string | null; jobId: string; messages: Message[] }>();
   for (const m of filteredMsgs) {
     const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
+    // A team thread is ONE thread per user however many staff wrote in it, so
+    // it is keyed by its sentinel alone. Its "other" is the thread's user on
+    // the staff side, and the staff member on the newest row on the user's.
+    const teamUser = teamUserIdFromKey(m.job_id);
+    if (teamUser !== null) {
+      const teamOther = teamUser === uid ? other : teamUser;
+      const entry = convoMap.get(m.job_id);
+      if (!entry) convoMap.set(m.job_id, { otherUserId: teamOther, jobId: m.job_id, messages: [m] });
+      else {
+        entry.messages.push(m);
+        // Newest row first, but a deleted staff account leaves the user's own
+        // reply with receiver_id NULL (SET NULL): take the newest staff member
+        // still there, so the thread never reads as a deleted account while
+        // another admin can still answer (review 2026-10-09 #1).
+        if (entry.otherUserId === null && teamOther !== null) entry.otherUserId = teamOther;
+      }
+      continue;
+    }
     const key = `${m.job_id}_${other === null ? "deleted-account" : other}`;
     if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });
     convoMap.get(key)!.messages.push(m);
@@ -178,7 +276,10 @@ export async function fetchConversations(
         .filter((id): id is string => id !== null),
     ),
   ];
-  const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))];
+  // Team threads have no job: never ask a job-scoped read about their key.
+  const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))].filter(
+    (id) => !isTeamThreadKey(id),
+  );
 
   // Collect the image-attachment paths up-front so we can batch the
   // signed-URL resolution into ONE `createSignedUrls` call alongside
@@ -199,7 +300,7 @@ export async function fetchConversations(
   // RPC isn't deployed yet (PGRST202) — feature degrades quietly,
   // never crashes.
   const mutePairs = [...convoMap.values()].flatMap((v) =>
-    v.otherUserId === null ? [] : [{ jobId: v.jobId, otherUserId: v.otherUserId }],
+    v.otherUserId === null || isTeamThreadKey(v.jobId) ? [] : [{ jobId: v.jobId, otherUserId: v.otherUserId }],
   );
   // Bulk last-active lookup runs alongside the other inbox RPCs so
   // every row's "Active now" / "Active 2h ago" pill is resolved in a
@@ -264,6 +365,17 @@ export async function fetchConversations(
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
+    const teamUser = teamUserIdFromKey(v.jobId);
+    if (teamUser !== null) {
+      return teamConversation({
+        uid,
+        teamUser,
+        otherUserId: v.otherUserId,
+        // The staff side sees the person it is talking to.
+        staffSideProfile: v.otherUserId === null ? undefined : profileMap.get(v.otherUserId),
+        messages: v.messages,
+      });
+    }
     const lastIsImage = !!last.attachment_url && isImageMime(last.attachment_mime);
     // ONE lookup backs both the name and the face. The old code read two
     // separate maps here, which is how a row could show one person's name

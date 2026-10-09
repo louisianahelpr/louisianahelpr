@@ -79,6 +79,13 @@ export function ChatHeader({
   // Q262: messages.receiver_id is SET NULL when the other party deletes their
   // account, so the thread is keyed on no one (loadConversations).
   const otherDeleted = activeConvo.otherUserId === null;
+  // "Louisiana Helpr Team" thread (src/lib/teamThread.ts). On the user's side
+  // the other party is the team, not a person: no profile, no presence. On
+  // either side there is no options menu: muting is job-keyed, and there is
+  // nobody to report or block.
+  const team = activeConvo.teamThread;
+  const viewingTeam = !!team && !team.viewerIsStaff;
+  const noProfile = otherDeleted || viewingTeam;
 
   return (
     /* Standard messaging-app header, one row deep: back button, then the
@@ -150,9 +157,9 @@ export function ChatHeader({
         type="button"
         // Q262: the other party deleted their account, so there is no profile
         // to open. The block stays in place (same layout) but is inert.
-        onClick={otherDeleted ? undefined : onViewProfile}
-        disabled={otherDeleted}
-        aria-label={otherDeleted ? activeConvo.otherUserName : `View ${activeConvo.otherUserName}'s profile`}
+        onClick={noProfile ? undefined : onViewProfile}
+        disabled={noProfile}
+        aria-label={noProfile ? activeConvo.otherUserName : `View ${activeConvo.otherUserName}'s profile`}
         aria-describedby={subtitleId}
         className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press disabled:opacity-100"
       >
@@ -162,7 +169,7 @@ export function ChatHeader({
             glyph in every thread header. UserAvatar keeps the hashed gradient
             monogram underneath and only fades the photo in once it loads. */}
         <UserAvatar
-          userId={activeConvo.otherUserId}
+          userId={viewingTeam ? null : activeConvo.otherUserId}
           src={activeConvo.otherUserAvatarUrl}
           name={activeConvo.otherUserName}
           pixelSize={40}
@@ -182,7 +189,7 @@ export function ChatHeader({
               {activeConvo.otherUserName}
             </span>
             {/* Q262: a deleted account has no presence to show. */}
-            {!otherDeleted && <OnlineIndicator isOnline={isOtherOnline} />}
+            {!noProfile && <OnlineIndicator isOnline={isOtherOnline} />}
             {activeConvo.isMuted && (() => {
               const remaining = snoozeRemainingLabel(activeConvo.muteUntil ?? null);
               return (
@@ -193,7 +200,7 @@ export function ChatHeader({
                 />
               );
             })()}
-            {!otherDeleted && (
+            {!noProfile && (
               <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
             )}
             {activeConvo.jobStatus && !inboxVisible && (() => {
@@ -241,7 +248,7 @@ export function ChatHeader({
           handler behind two icons in the same header. One entry point now. */}
       {/* Q262: mute, report and block all name a person who no longer has an
           account, so a deleted-account thread has no options menu. */}
-      {!otherDeleted && (
+      {!otherDeleted && !team && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

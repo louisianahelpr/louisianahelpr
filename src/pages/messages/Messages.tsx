@@ -38,6 +38,8 @@ const Messages = () => {
   const [searchParams] = useSearchParams();
   const deepLinkJobId = searchParams.get("jobId");
   const deepLinkUserId = searchParams.get("userId");
+  // `?teamThread=<user>` — a "Louisiana Helpr Team" thread (src/lib/teamThread.ts).
+  const deepLinkTeamUserId = searchParams.get("teamThread");
   // The URL's "a thread is open" flag — MobileNav hides the entire bottom
   // dock while it is set. See the contract on CHAT_OPEN_PATH in
   // ./messages/constants; the effect below is what keeps it honest.
@@ -111,6 +113,7 @@ const Messages = () => {
     cachedUser,
     deepLinkJobId,
     deepLinkUserId,
+    deepLinkTeamUserId,
     navigate,
     scrollToBottom,
     activeConvoRef,
@@ -189,7 +192,12 @@ const Messages = () => {
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
-    channelName: activeConvo ? `chat-${activeConvo.jobId}-${[userId, activeConvo.otherUserId].sort().join("-")}` : "none",
+    // A team thread is one room whichever staff member has it open (review #6).
+    channelName: !activeConvo
+      ? "none"
+      : activeConvo.teamThread
+        ? `chat-${activeConvo.jobId}`
+        : `chat-${activeConvo.jobId}-${[userId, activeConvo.otherUserId].sort().join("-")}`,
     userId: userId || "",
     otherUserId: activeConvo?.otherUserId || "",
   });

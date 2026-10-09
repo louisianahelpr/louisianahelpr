@@ -15,6 +15,8 @@ import {
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
 import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
 import { classifySendRefusal } from "@/lib/messageSendRefusal";
+import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
+import { report } from "@/lib/errorLogger";
 import {
   DELETED_ACCOUNT_NOTICE,
   DELETED_ACCOUNT_TOAST,
@@ -83,10 +85,13 @@ export function createSendHandlers({
     // that don't update the inbox preview or unread count.
     if (msg.is_system) return;
     const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+    // A team thread is one thread whichever staff member is on the row.
+    const sameThread = (c: Conversation) =>
+      c.jobId === msg.job_id && (isTeamThreadKey(msg.job_id) || c.otherUserId === other);
     let matched = false;
     setConversations((prev) => {
       const next = prev.map((c) => {
-        if (c.jobId !== msg.job_id || c.otherUserId !== other) return c;
+        if (!sameThread(c)) return c;
         matched = true;
         // An inbound message to a thread that is NOT currently open
         // increments the unread badge; outbound messages and messages
@@ -94,9 +99,7 @@ export function createSendHandlers({
         const active = activeConvoRef.current;
         const isInboundUnseen =
           msg.receiver_id === userId &&
-          !(active &&
-            active.jobId === msg.job_id &&
-            active.otherUserId === other);
+          !(active && sameThread(active));
         return {
           ...c,
           lastMessage: msg.content,
@@ -136,6 +139,11 @@ export function createSendHandlers({
       );
       hapticError();
       toast.error(DELETED_ACCOUNT_NOTICE);
+      return;
+    }
+    const teamUser = teamUserIdFromKey(optimistic.job_id);
+    if (teamUser !== null) {
+      await dispatchTeamMessage(optimistic, teamUser);
       return;
     }
     const insertRow = (withClientId: boolean) => supabase
@@ -358,6 +366,12 @@ export function createSendHandlers({
       return;
     }
 
+    reconcileSent(optimistic, normalizeMessageRow(data), alreadyLanded);
+  };
+
+  // The confirmed server row replaces its optimistic bubble. Shared by the job
+  // INSERT path and the team-thread RPC path.
+  const reconcileSent = (optimistic: Message, data: Message, alreadyLanded: boolean) => {
     // Key product event (Q283): once per stored message, never for a retry
     // that only recovered a row an earlier attempt already wrote.
     if (!alreadyLanded) track("message_sent", { job_id: optimistic.job_id });
@@ -378,6 +392,67 @@ export function createSendHandlers({
     });
     // Refresh the conversation list so the sender's own thread re-sorts.
     loadConversations(userId!);
+  };
+
+  /**
+   * A "Louisiana Helpr Team" thread has no job, so RLS refuses a direct
+   * INSERT; the server writes it. Staff call admin_send_team_message (admin
+   * role checked there), the user send_team_reply (always their own thread).
+   * Same idempotency key, same 23505 read-back, same refusal copy as a job
+   * send; none of the job-only explanations (lockout, off-job, receiver gate)
+   * can apply.
+   */
+  const dispatchTeamMessage = async (optimistic: Message, teamUser: string) => {
+    const call = () =>
+      teamUser === optimistic.sender_id
+        ? supabase.rpc("send_team_reply", { p_content: optimistic.content, p_client_id: optimistic.clientId })
+        : supabase.rpc("admin_send_team_message", {
+            p_user_id: teamUser,
+            p_content: optimistic.content,
+            p_client_id: optimistic.clientId,
+          });
+    let { data, error } = await call();
+    let alreadyLanded = false;
+    if (error && (error as { code?: string }).code === "23505" && optimistic.clientId) {
+      const existing = await supabase
+        .from("messages")
+        .select("*")
+        .eq("sender_id", optimistic.sender_id)
+        .eq("client_id", optimistic.clientId)
+        .maybeSingle();
+      if (existing.error) {
+        // Never dropped: a landed message would otherwise read as failed with
+        // nothing in error_logs to say why.
+        report(existing.error, { severity: "warning", tags: { source: "sendHandlers.teamReadBack" } });
+      } else if (existing.data) {
+        data = existing.data;
+        error = null;
+        alreadyLanded = true;
+      }
+    }
+    if (error || !data) {
+      hapticError();
+      const refusal = classifySendRefusal(error as { code?: string; message?: string } | null);
+      // admin_only / no_team_thread: a send that can never succeed here.
+      const closed = /no_team_thread|admin_only/.test((error as { message?: string } | null)?.message ?? "");
+      toast.error(
+        refusal?.toast ??
+          (closed ? "This conversation can't take new messages." : "Message didn't go through — tap it to try again."),
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === optimistic.clientId
+            ? refusal
+              ? refusal.retryable
+                ? { ...m, sendStatus: "failed", failReason: refusal.kind }
+                : { ...m, sendStatus: "refused", failReason: refusal.kind }
+              : { ...m, sendStatus: closed ? "refused" : "failed" }
+            : m,
+        ),
+      );
+      return;
+    }
+    reconcileSent(optimistic, normalizeMessageRow(data), alreadyLanded);
   };
 
   // Returns `true` when the message was accepted for delivery, `false`
@@ -402,7 +477,10 @@ export function createSendHandlers({
     // attachment messages. Only the app-generated location share skips the
     // scan, identified by the explicit flag threaded from the share-location
     // path (a user-typed "📍" prefix must not exempt a message).
-    const skipScan = opts?.isLocationShare === true;
+    // A "Louisiana Helpr Team" thread is a support conversation: sharing a
+    // phone number there is not off-platform dealing (the server's scanner
+    // skips team rows too, migration 20261009142834).
+    const skipScan = opts?.isLocationShare === true || isTeamThreadKey(activeConvo.jobId);
 
     if (!skipScan && content.trim()) {
       const violations = scanMessage(content);

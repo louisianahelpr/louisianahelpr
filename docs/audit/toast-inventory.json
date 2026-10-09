@@ -812,7 +812,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 94,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -832,7 +832,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 106,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -842,7 +842,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 108,
+      "line": 134,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4662,7 +4662,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 321,
+      "line": 317,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4672,7 +4672,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 428,
+      "line": 425,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4682,11 +4682,11 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 484,
+      "line": 481,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "contactLeakRejectionMessage(err) ?? (isWriteRejected(err) ? mutationErrorMessage(err) : userFacingError(err, \"We couldn't save your profile just yet — give it another try.\"))"
+        "text": "contactLeakRejectionMessage(err) ?? phoneInUseMessage(err) ?? (isWriteRejected(err) ? mutationErrorMessage(err) : userFacingError(err, \"We couldn't save your profile just yet — give it another try.\"))"
       },
       "renders": true
     },
@@ -4792,7 +4792,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 272,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4802,7 +4802,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 292,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4812,7 +4812,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 293,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4822,7 +4822,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 294,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4832,7 +4832,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 307,
+      "line": 250,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4842,7 +4842,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 392,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4852,7 +4852,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 400,
+      "line": 341,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4862,7 +4862,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 448,
+      "line": 389,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4872,7 +4872,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 470,
+      "line": 411,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4882,7 +4882,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 531,
+      "line": 472,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6450,7 +6450,7 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "contactLeakRejectionMessage(err) ?? mutationErrorMessage(err, \"We couldn't save your profile — please try again.\")"
+        "text": "contactLeakRejectionMessage(err) ?? phoneInUseMessage(err) ?? mutationErrorMessage(err, \"We couldn't save your profile — please try again.\")"
       },
       "renders": true
     },

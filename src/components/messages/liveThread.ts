@@ -7,7 +7,7 @@ import type { Conversation } from "./types";
  * progress. Completed / cancelled are equally absent — those threads are
  * history, and history lives under All.
  */
-export const LIVE_JOB_STATUSES = new Set([
+const LIVE_JOB_STATUSES = new Set([
   "accepted",
   "in_progress",
   "revision_requested",

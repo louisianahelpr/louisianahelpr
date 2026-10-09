@@ -383,6 +383,33 @@ void hydrateStorage();
     })();
   };
 
+  // A SIGNED_OUT the app did not ask for is reported (src/lib/unexpectedSignOut.ts).
+  // Its own imports and its own try: a failure here can never cost the
+  // teardown above its listener.
+  const registerUnexpectedSignOutWatch = () => {
+    void (async () => {
+      try {
+        const [{ supabase }, { noteAuthEvent }, { hasPersistedAuthToken }, { report }] = await Promise.all([
+          backgroundImport(() => import("./integrations/supabase/client"), "signout-watch-client"),
+          backgroundImport(() => import("./lib/unexpectedSignOut"), "signout-watch"),
+          backgroundImport(() => import("./lib/persistedAuthToken"), "signout-watch-token-probe"),
+          backgroundImport(() => import("./lib/errorLogger"), "signout-watch-logger"),
+        ]);
+        const state = { lastEvent: null as string | null, signedInAt: null as number | null };
+        supabase.auth.onAuthStateChange((event) => {
+          try {
+            const unexpected = noteAuthEvent(state, event, Date.now(), hasPersistedAuthToken);
+            if (unexpected) report(new Error("Unexpected sign-out"), { severity: "warning", tags: { source: "auth.unexpectedSignOut" }, context: unexpected });
+          } catch {
+            /* diagnostics only: never let a probe throw out of an auth listener */
+          }
+        });
+      } catch {
+        /* diagnostics only: backgroundImport already reported a failed chunk */
+      }
+    })();
+  };
+
   // Double-defer: after the user interacts, wait for the next idle window
   // before pulling Sentry/PostHog/Supabase chunks. Lighthouse simulates a
   // single interaction during its audit, but its measurement window closes
@@ -395,6 +422,7 @@ void hydrateStorage();
     // interaction — by the time anyone can reach a sign-out control, `kick()`
     // has already fired.
     registerSessionTeardown();
+    registerUnexpectedSignOutWatch();
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
       .requestIdleCallback;
     if (typeof ric === "function") {

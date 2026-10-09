@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect, assertHealthy, newUserContext, optionalSession } from "./fixtures";
+import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -91,7 +92,8 @@ test(guestTitle, async ({ browser, journey }) => {
     await expect(page.locator("#firstName")).toBeVisible({ timeout: 30_000 });
     await page.locator("#firstName").fill("Marguerite");
     await page.locator("#lastName").fill("Thibodeaux-Broussard");
-    await page.locator("#phone").fill("5045550199");
+    // No phone here since c34c5fee5 (owner, 2026-10-09): step 2 is name, city
+    // and ZIP; phone and birthday are asked later, in Finish your profile.
     await page.locator("#location").fill("Lafayette, LA");
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
@@ -119,6 +121,7 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(incompleteTitle), "SCENARIO pins another scenario");
   const session = await optionalSession(request, "incomplete");
   test.skip(!session, "PLAYWRIGHT_INCOMPLETE_EMAIL/_PASSWORD not set (or no local .env) — the incomplete-e2e account cannot be signed in");
+  await expectGateSendsToCompleteProfile(request, session!);
   const ctx = await newUserContext(browser, session, { rotation });
   const page = journey.track("incomplete", await ctx.newPage());
   await test.step("/complete-profile: every ✓-bearing field shows its value", async () => {

@@ -564,28 +564,41 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     const dayBefore = new Intl.DateTimeFormat("en-CA", { timeZone: CT, year: "numeric", month: "2-digit", day: "2-digit" }).format(
       new Date(ct(date, "12:00").getTime() - 86_400_000),
     );
-    // The window opens at midnight Central the day before and runs 12 hours
-    // (CONFIRM_OPENS_HOURS_BEFORE / CONFIRM_WINDOW_HOURS): confirm by noon.
+    // The window opens at midnight Central the day before (confirmOpensMs) and
+    // the answer is owed until 2 hours before the start (owner, 2026-10-08:
+    // JobConfirmation's deadline line, and sweep_confirm_reminders_and_repost
+    // in migration 20261008205730 reposts at that moment). The fixture starts
+    // at 10:00, so: confirm by 8:00 AM on the job day. The hours are computed
+    // from the instants, not typed, so a DST change between the two days moves
+    // the expectation with it.
+    const deadline = ct(date, "08:00");
+    const hoursLeft = (at: Date) => Math.max(1, Math.round((deadline.getTime() - at.getTime()) / 3_600_000));
+    // The Helpr's tracker renders JobConfirmation's `inline` variant
+    // (HelperTrackerPanel), whose control is HELPER_CONFIRM_LABEL in
+    // src/components/JobConfirmation.tsx; "I'm Still On" is the poster's.
+    const HELPER_CONFIRM = "Confirm You'll Be at the Job";
     async function helperAt(tz: string, at: Date, want: RegExp, button: boolean, name: string) {
       const { ctx, page } = await openAt(browser, request, tz, at, "helper");
       try {
         await page.goto(`/jobs?job=${job.id}`);
         await page.getByText(title).first().click();
         await expect(page.getByText(want).first(), `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 45_000 });
-        const still = page.getByRole("button", { name: /I'm Still On/ });
-        if (button) await expect(still, `${name}: the day-before answer is offered`).toBeVisible();
-        else await expect(still, `${name}: no answer before the window opens`).toHaveCount(0);
+        const answer = page.getByRole("button", { name: HELPER_CONFIRM });
+        if (button) await expect(answer, `${name}: the day-before answer is offered`).toBeVisible();
+        else await expect(answer, `${name}: no answer before the window opens`).toHaveCount(0);
         await step(journey, page, `confirm-${name}`);
       } finally {
         await ctx.close();
       }
     }
+    const openMorning = ct(dayBefore, "09:00");
+    const dayOf = ct(date, "07:00");
     await helperAt(CT, new Date(ct(dayBefore, "00:00").getTime() - 4 * 3_600_000), /4h 0m until confirmation opens/, false, "before-open"); // the clock panel since Q1399 (#2609)
-    await helperAt(CT, ct(dayBefore, "09:00"), /Confirm by .* 12:00 PM \(3h left\)/, true, "open-morning");
-    await helperAt(CT, ct(dayBefore, "13:00"), /Confirmation is past due/, true, "past-deadline");
-    await helperAt(CT, ct(date, "07:00"), /Confirmation is past due/, true, "day-of");
+    await helperAt(CT, openMorning, new RegExp(`Confirm by .* 8:00 AM \\(${hoursLeft(openMorning)}h left\\)`), true, "open-morning");
+    await helperAt(CT, dayOf, new RegExp(`Confirm by .* 8:00 AM \\(${hoursLeft(dayOf)}h left\\)`), true, "day-of");
+    await helperAt(CT, ct(date, "08:30"), /Confirmation is past due/, true, "past-deadline");
     // An instant, not a wall clock: 9:00 AM Central is 7:00 AM in Los Angeles.
-    await helperAt(PT, ct(dayBefore, "09:00"), /\(3h left\)/, true, "pt-open-morning");
+    await helperAt(PT, openMorning, new RegExp(`\\(${hoursLeft(openMorning)}h left\\)`), true, "pt-open-morning");
   });
 
   test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({

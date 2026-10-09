@@ -30,11 +30,12 @@ import { serviceHeaders, srFetch } from "../serviceRoleFetch";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
+/** The shared accounts' user ids, as source constants (01-browse sends them to the browse fixture). */
+export const POSTER_E2E_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
+export const HELPER_E2E_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+
 /** The shared accounts: never a throwaway, whatever else matches. */
-const SHARED_IDS = new Set([
-  "71c56dfb-b326-4010-b960-b18dd3966e7f", // poster-e2e
-  "437de07d-1bd7-46c8-a451-6b46aa3bcad5", // helper-e2e
-]);
+const SHARED_IDS = new Set([POSTER_E2E_ID, HELPER_E2E_ID]);
 
 export function serviceKey(): string | null {
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";

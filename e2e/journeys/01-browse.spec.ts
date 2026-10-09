@@ -2,6 +2,8 @@ import type { APIRequestContext, Page } from "@playwright/test";
 
 import { ANON, SUPABASE_URL, announceUncovered, test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { HELPER_E2E_ID, POSTER_E2E_ID } from "./throwaway";
+import { ensureBrowseFixture } from "../../scripts/e2e/browseFixture.mjs";
 import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
 
 /**
@@ -155,6 +157,19 @@ test(authedTitle, async ({ browser, request, journey }) => {
   const emptyBeforeLaunch = EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH && (await fundedFloor(request)) === 0;
   test.skip(emptyBeforeLaunch, "prod marketplace is empty before launch (owner 2026-10-01, e2e/prelaunch.ts); search/filter/sort need jobs");
   const helper = await getSession(request, "helper");
+  // Q946/Q1429 (owner, 2026-10-07): the helper always has ONE Cleaning job to
+  // find, whatever the public marketplace holds: the durable is_seed fixture
+  // scripts/e2e/browseFixture.mjs keeps open, funded in the database only, and
+  // free of a leftover application from this helper (an applied-to job leaves
+  // their feed). Without it the Cleaning filter below had nothing to show
+  // (e2e-journeys 37926437936 and 37996630522: zero cards on /home?cat=cleaning).
+  // The ids are source constants and the key comes from the environment only:
+  // the earlier wiring sent ids from the session cache file over HTTP, which
+  // CodeQL flags (js/file-access-to-http #462/#463, c7b95d774).
+  expect(helper.user.id, "the helper session is not helper-e2e, whose id the browse fixture is kept for").toBe(HELPER_E2E_ID);
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
+  expect(serviceKey, "the browse fixture needs the service-role key (CI secret SUPABASE_SERVICE_ROLE_KEY, or export it locally)").toBeTruthy();
+  await ensureBrowseFixture({ supabaseUrl: SUPABASE_URL, serviceKey: serviceKey!, posterId: POSTER_E2E_ID, helperId: HELPER_E2E_ID });
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());
   const cards = page.getByRole("button", { name: /^View .+ — \$/ });

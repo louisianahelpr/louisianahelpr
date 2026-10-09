@@ -319,6 +319,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
+  "new_member_admin_notices.user_id": { reason: "2026-10-09: the server's once-only marker that admins were told this member joined (when they confirmed their email); a timestamp about the account, none of the person's own data" },
   "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },
   "job_refund_claims.claimed_by": { reason: "Q1323: names the code path holding a refund claim ('cancel_escrow' or 'admin_refund_general'), not a person" },
   "job_refund_claims.actor_user_id": { reason: "Q1323: server lock marker naming who started an in-flight refund claim; deleted when the claim is put back, holds none of the person's own data" },

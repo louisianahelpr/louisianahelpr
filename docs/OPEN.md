@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 246** (160 to do, 86 fixed with protection pending; 1005 done). Feeds mirrored in: 33 from the alert ledger, 18 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 247** (161 to do, 86 fixed with protection pending; 1005 done). Feeds mirrored in: 33 from the alert ledger, 18 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 13 red, 13 stale, 0 unknown, 47 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-09T02:13Z)_
@@ -134,7 +134,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1251 items — 1005 done, 86 partly done (fixed, protection pending), 160 open.**
+**Queue: 1252 items — 1005 done, 86 partly done (fixed, protection pending), 161 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1302,3 +1302,4 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q1521 LOW An imported STR checkout can only be found through its notification: nothing in the app lists the turnovers waiting to be posted (lh-authz-rls review of Q768, 2026-10-07).** str-ical-sync (Q768) records each checkout in str_processed_events (job_id NULL) and sends one notice linking /post-job?turnover=<id>; if the host deletes that notice (or the seed boundary trigger drops it for a test account), the claim stays and the checkout is never offered again. Fix: a "Ready to post" list on /str-settings reading the host's own str_processed_events with job_id NULL (or linked to an unfunded job) and checkout_date >= the Louisiana today, each opening /post-job?turnover=<id>; screenshots at 375 and 1440. GUARD when built: a render test of that list plus a source check that it reads the same funded rule as turnoverPrefill.ts. finding: lh-authz-rls@f2e3e3797#4
 - [ ] **Q1523 LOW A crew member's accept is still called "Confirm" (found doing Q1399, 2026-10-07).** The owner's 2026-10-07 rule for offers is accept, never confirm (confirm is the day-before step), but CrewMemberSection's first step reads "Confirm you'll be there..." and "You're confirmed for this crew." (src/pages/jobs/appliedJobCard/CrewMemberSection.tsx, rpc_group_member_confirm). Tier: LOW.
 - [ ] **Q1579 LOW get_category_price_stats is no longer called by the app (owner removed suggested prices from Post a Job, 2026-10-08).** Still EXECUTE for authenticated; allowlisted as reviewed. Revoke it (FROM PUBLIC, anon, authenticated) or drop it in a migration (finding: lead@b2c0a9a81#1). done-when: test src/test/definerExecAllowlist.test.ts
+- [ ] **Q1585 LOW The stuck-payment ledger item closes later than it needs to (found doing the 2026-10-09 stuck-payment false alarm fix).** The alert now needs Stripe's word that the checkout took the money (20261009142754, stuck_payment_stripe_checks.money_moved), but its close question, ops_alert_condition('detect_stuck_payments') (newest text 20260926040011), still asks "is any real unpaid job with a session 10 min to 24 h old", a superset: an open item stays open while some unrelated poster has an unfinished checkout (until void-cancelled-payments abandons it, about 1-2 h). It can never close early. Fix: restate ops_alert_condition's detect_stuck_payments branch to join stuck_payment_stripe_checks on the current session and require money_moved; guard in src/test/stuckPaymentNeedsStripeProof.test.ts.

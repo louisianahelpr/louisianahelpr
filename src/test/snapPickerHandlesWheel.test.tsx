@@ -9,7 +9,8 @@
  * the inventory is read from src/, so a new picker joins this check by
  * existing, and must route its wheel through useWheelStep.
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { useState } from "react";
 import { act, render, screen } from "@testing-library/react";

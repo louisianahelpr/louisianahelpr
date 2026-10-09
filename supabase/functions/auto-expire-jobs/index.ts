@@ -7,6 +7,9 @@ import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { isLiveSeriesParent } from "../_shared/seriesParent.ts";
 
+/** Payment states in which a listing was live to Helprs (open_jobs_browse). */
+const FUNDED_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -295,6 +298,15 @@ serve(async (req) => {
         // Someone claimed it between the read and now. Leave it alone and do
         // NOT notify the poster that it was cancelled — it wasn't.
         console.log(`[auto-expire-jobs] job ${job.id} was claimed since read — skipping cancel`);
+        continue;
+      }
+
+      // A job that was never funded was never shown to anyone: close it
+      // quietly. "No helpr assigned" about a checkout the poster never
+      // finished reads as their real job being cancelled (owner report,
+      // 2026-10-09: Ben's unpaid "Grass cutting" draft beside his paid job).
+      if (!FUNDED_STATUSES.has(job.payment_status ?? "")) {
+        cancelledCount++;
         continue;
       }
 

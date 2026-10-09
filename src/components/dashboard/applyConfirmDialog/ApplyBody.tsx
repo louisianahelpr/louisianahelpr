@@ -13,13 +13,14 @@ import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
 import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 import {
   MAX_PITCH_LENGTH,
   pitchDraftKey,
-  LEGACY_PITCH_DRAFT_KEY,
-  TEMPLATE_KEY,
+  pitchTemplateKey,
+  LEGACY_UNSCOPED_PITCH_KEYS,
 } from "./applyConfirmDialogHelpers";
 
 /**
@@ -92,11 +93,14 @@ export function ApplyBody({
       ? helperApplyBlockNotice(awardBlockReason)
       : null;
   const jobId = confirmApplyJob?.id ?? null;
-  const draftKey = pitchDraftKey(jobId);
+  const { user } = useAuthReady();
+  const userId = user?.id ?? null;
+  const draftKey = pitchDraftKey(userId, jobId);
+  const templateKey = pitchTemplateKey(userId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
 
-  const savedTemplate = safeStorage.getItem(TEMPLATE_KEY);
+  const savedTemplate = templateKey ? safeStorage.getItem(templateKey) : null;
   const differsFromTemplate = !!applyMessage.trim() && applyMessage !== savedTemplate;
 
   // DOES THE HOST SHEET ACTUALLY SCROLL? The submit row's sticky treatment —
@@ -161,46 +165,39 @@ export function ApplyBody({
   // pre-update in-flight pitch isn't lost on the upgrade.
   useEffect(() => {
     if (!open) return;
+    // Pre-account keys: owner unknowable, so dropped, never adopted.
+    for (const k of LEGACY_UNSCOPED_PITCH_KEYS) safeStorage.removeItem(k);
     if (applyMessage) return;
-    if (!jobId) return;
+    if (!draftKey) return;
     const saved = safeStorage.getItem(draftKey);
-    if (saved) {
-      setApplyMessage(saved);
-      return;
-    }
-    const legacy = safeStorage.getItem(LEGACY_PITCH_DRAFT_KEY);
-    if (legacy) {
-      setApplyMessage(legacy);
-      safeStorage.setItem(draftKey, legacy);
-      safeStorage.removeItem(LEGACY_PITCH_DRAFT_KEY);
-    }
-    // Intentionally keyed on `open` + jobId only — restore once per open.
+    if (saved) setApplyMessage(saved);
+    // Intentionally keyed on `open` + draftKey only — restore once per open.
 
-  }, [open, jobId]);
+  }, [open, draftKey]);
 
   // When no draft was found, pre-fill from the saved pitch template so the
   // helpr doesn't start from a blank field every time.
   useEffect(() => {
-    if (!open) return;
-    const template = safeStorage.getItem(TEMPLATE_KEY);
+    if (!open || !templateKey) return;
+    const template = safeStorage.getItem(templateKey);
     if (template && !applyMessage) {
       setApplyMessage(template);
     }
     // Fire once per open; applyMessage intentionally omitted so we don't loop.
 
-  }, [open]);
+  }, [open, templateKey]);
 
   // Auto-save the in-progress pitch, so stepping back or dismissing the sheet
   // never loses what the helpr typed.
   useEffect(() => {
-    if (!open || !jobId) return;
+    if (!open || !draftKey) return;
     if (applyMessage.length === 0) {
       safeStorage.removeItem(draftKey);
       return;
     }
     const handle = setTimeout(() => safeStorage.setItem(draftKey, applyMessage), 200);
     return () => clearTimeout(handle);
-  }, [open, jobId, draftKey, applyMessage]);
+  }, [open, draftKey, applyMessage]);
 
   // The offline toast below is `critical` (it stays until dismissed), so
   // without this it kept saying "You're offline" after the network was back —
@@ -234,23 +231,23 @@ export function ApplyBody({
     // Offline: don't fire a mutation that rolls back silently. Persist the
     // pitch and keep the step up with a clear retry affordance instead.
     if (!online) {
-      if (applyMessage) safeStorage.setItem(draftKey, applyMessage);
+      if (applyMessage && draftKey) safeStorage.setItem(draftKey, applyMessage);
       errorToast("You're offline", {
         description: "We saved your pitch. Try again once you're back online.",
         critical: true,
         id: OFFLINE_TOAST_ID,
         onRetry: () => {
           if (navigator.onLine) {
-            safeStorage.removeItem(draftKey);
+            if (draftKey) safeStorage.removeItem(draftKey);
             handleApplyConfirm();
           }
         },
       });
       return;
     }
-    safeStorage.removeItem(draftKey);
-    if (saveAsTemplate && applyMessage.trim()) {
-      safeStorage.setItem(TEMPLATE_KEY, applyMessage.trim());
+    if (draftKey) safeStorage.removeItem(draftKey);
+    if (saveAsTemplate && templateKey && applyMessage.trim()) {
+      safeStorage.setItem(templateKey, applyMessage.trim());
     }
     setSaveAsTemplate(false);
     handleApplyConfirm();

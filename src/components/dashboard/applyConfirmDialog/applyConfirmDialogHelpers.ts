@@ -2,19 +2,27 @@
 export const MAX_PITCH_LENGTH = 500;
 
 /**
- * Per-job draft key — old single-key behavior meant moving to a different
- * job overwrote your half-written pitch. Scoping by job id keeps each
- * application independent. The `helpr_` prefix is mirrored to Capacitor
- * Preferences (see safeStorage) so a force-quit doesn't lose the draft.
+ * Per-ACCOUNT, per-job draft key. Scoping by job id keeps each application
+ * independent; scoping by user id keeps one account's words out of another's
+ * form on a shared device (owner, 2026-10-09: her saved "plz" pre-filled her
+ * father's application on the same browser — the keys had no user in them).
+ * The `helpr_` prefix is mirrored to Capacitor Preferences (see safeStorage)
+ * so a force-quit doesn't lose the draft. No user, no key: nothing is read
+ * or written signed out.
  */
-export function pitchDraftKey(jobId: string | undefined | null) {
-  return `helpr_apply_pitch_draft_${jobId ?? "unknown"}`;
+export function pitchDraftKey(userId: string | null | undefined, jobId: string | undefined | null): string | null {
+  return userId && jobId ? `helpr_apply_pitch_draft_${userId}_${jobId}` : null;
 }
 
-/** Legacy single-key draft from before drafts were per-job. We migrate
- *  it once into the current job's key so an in-flight pitch from the
- *  pre-update build isn't dropped. */
-export const LEGACY_PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
+/** The account's saved default pitch ("Save as my default pitch"). */
+export function pitchTemplateKey(userId: string | null | undefined): string | null {
+  return userId ? `helpr_pitch_template_${userId}` : null;
+}
 
-/** localStorage key for the helpr's saved default pitch template. */
-export const TEMPLATE_KEY = "helpr_pitch_template";
+/**
+ * Keys from before pitches were per-account. Their owner is unknowable, so
+ * they are dropped rather than adopted — adopting is exactly how one person's
+ * pitch reached another's form. Per-job unscoped drafts
+ * (`helpr_apply_pitch_draft_<jobId>`) are simply never read again.
+ */
+export const LEGACY_UNSCOPED_PITCH_KEYS = ["helpr_pitch_template", "helpr_apply_pitch_draft"] as const;

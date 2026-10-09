@@ -337,7 +337,7 @@ export function screenPanelContentProps(
    *  corners were rounded and its top ones square). Filters asks for it too
    *  (owner, 2026-10-08: "Round the top edge of filters to be like
    *  notifications"). Desktop is a rounded-lg card either way. */
-  options: { roundTopCorners?: boolean } = {},
+  options: { roundTopCorners?: boolean; contentMaxWidth?: number } = {},
 ): {
   side: "bottom";
   align: "center" | "end";
@@ -371,9 +371,18 @@ export function screenPanelContentProps(
     alignOffset: 0,
     avoidCollisions: false,
     style: {
-      width: band.width || undefined,
+      // `contentMaxWidth`: a panel whose content has its own measure (the
+      // Notifications column is max-w-lg) stops at that measure instead of
+      // spanning the screen with blank bands either side of its content
+      // (owner, 2026-10-09, ~700px window: "there is a lot of white space on
+      // the sides"). Centred under the header by the `align: "center"` above;
+      // once it no longer reaches both edges it gets side borders too.
+      width: (options.contentMaxWidth && band.width ? Math.min(band.width, options.contentMaxWidth) : band.width) || undefined,
       maxHeight: band.maxHeight || undefined,
       ...screenPanelSurfaceStyle,
+      ...(options.contentMaxWidth && band.width > options.contentMaxWidth
+        ? { border: "1px solid hsl(var(--olivewood) / 0.18)", borderTop: "none" }
+        : null),
       ...(options.roundTopCorners
         ? {
             borderTopLeftRadius: screenPanelSurfaceStyle.borderBottomLeftRadius,

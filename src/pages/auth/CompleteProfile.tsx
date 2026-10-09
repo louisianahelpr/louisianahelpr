@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { useSignOutAction } from "@/hooks/useSignOutAction";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -51,6 +51,7 @@ const DeleteAccountDialog = lazy(() =>
 const CompleteProfile = () => {
   usePageTitle("Complete Your Profile — Helpr");
   const navigate = useNavigate();
+  const { signingOut, signOut } = useSignOutAction();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();
   const deleteAccount = useDeleteAccount();
@@ -514,13 +515,11 @@ const CompleteProfile = () => {
             type="button"
             variant="outline"
             size="lg"
-            onClick={async () => {
-              await signOutWithPushCleanup();
-              navigate("/login", { replace: true });
-            }}
+            onClick={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
+            disabled={signingOut}
             className="mt-5 w-full rounded-ds-md"
           >
-            <X className="w-4 h-4 mr-2" /> Sign Out
+            <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging Out…" : "Sign Out"}
           </Button>
         </div>
         {deleteDialog}
@@ -924,13 +923,11 @@ const CompleteProfile = () => {
               type="button"
               variant="outline"
               size="lg"
-              onClick={async () => {
-                await signOutWithPushCleanup();
-                navigate("/login", { replace: true });
-              }}
+              onClick={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
+              disabled={signingOut}
               className="w-full rounded-ds-md"
             >
-              <X className="w-4 h-4 mr-2" /> Sign Out
+              <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging Out…" : "Sign Out"}
             </Button>
 
             {/* Same treatment as AccountBanned's, the other account-state

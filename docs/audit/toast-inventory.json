@@ -3806,7 +3806,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 131,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3816,7 +3816,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 151,
+      "line": 152,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -4642,7 +4642,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 168,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4652,7 +4652,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 172,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4662,7 +4662,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 317,
+      "line": 318,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4672,7 +4672,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 425,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4682,7 +4682,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 481,
+      "line": 482,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6426,7 +6426,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 387,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6436,7 +6436,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 411,
+      "line": 410,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6446,7 +6446,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 435,
+      "line": 434,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6456,7 +6456,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 516,
+      "line": 515,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6476,7 +6476,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 532,
+      "line": 531,
       "kind": "toast.error",
       "title": {
         "form": "literal",

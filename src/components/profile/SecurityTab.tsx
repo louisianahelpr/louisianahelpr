@@ -24,9 +24,8 @@ import {
   setAppLockGraceMs,
 } from "@/lib/appLock";
 import { requireBiometric } from "@/lib/biometricGate";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import { toast } from "sonner";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { PasswordResetCard } from "@/components/profile/PasswordResetCard";
@@ -73,23 +72,25 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const { isLoading: factorLoading } = useVerifiedFactor();
   const securityReady = useArrivalGate(!sessionsLoading, !factorLoading);
 
-  // Global sign-out confirmation. Routed through BrandConfirmDialog
+  // Global sign-out confirmation. Routed through SignOutConfirmDialog (BrandConfirmDialog)
   // rather than window.confirm() — native dialogs are off-brand and
   // unreliable inside the Capacitor iOS WebView (the same reason the
   // change-email dialog below replaced prompt()).
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
 
-  const handleSignOutAllOther = async () => {
-    // Supabase doesn't expose a per-session revoke without an admin
-    // service-role bearer (the `auth.admin.signOut` API). The closest
-    // safe-to-ship action from the client is a global sign-out, which
-    // revokes every refresh token for the user (incl. this device).
-    setSignOutDialogOpen(false);
-    const { error } = await signOutWithPushCleanup({ scope: "global" });
-    if (error) {
+  // Supabase doesn't expose a per-session revoke without an admin
+  // service-role bearer (the `auth.admin.signOut` API). The closest
+  // safe-to-ship action from the client is a global sign-out, which
+  // revokes every refresh token for the user (incl. this device).
+  // The dialog stays open on "Logging Out…" until it has finished, and
+  // says so if it failed (2026-10-09: a closed dialog over a pending
+  // sign-out read as "nothing happened").
+  const afterSignOutEverywhere = (result: { error: unknown } | undefined) => {
+    if (result?.error) {
       toast.error("Couldn't sign you out everywhere — try again?");
       return;
     }
+    setSignOutDialogOpen(false);
   };
 
   // Change-email uses an in-app branded dialog rather than the native
@@ -280,16 +281,16 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       {/* Global sign-out confirmation — branded replacement for the
           native confirm(). Sienna tone + warning copy because it signs
           out THIS device too. */}
-      <BrandConfirmDialog
+      <SignOutConfirmDialog
         open={signOutDialogOpen}
         onOpenChange={setSignOutDialogOpen}
         title="Sign Out Everywhere?"
         description="This signs out every device, including this one. You'll need to sign back in here."
-        primaryLabel="Sign Out Everywhere"
+        label="Sign Out Everywhere"
         primaryTone="sienna"
         primaryHaptic="warning"
-        onPrimary={handleSignOutAllOther}
-        secondaryLabel="Cancel"
+        scope="global"
+        after={afterSignOutEverywhere}
       />
 
       {/* ONE PAINT (Q169). The two-step row and the session list each

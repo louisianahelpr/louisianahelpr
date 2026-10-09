@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
 import { ProfileOfflineGate } from "@/components/profile/ProfileOfflineGate";
@@ -537,7 +536,6 @@ const ProfilePage = () => {
   };
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const handleLogout = async () => { await signOutWithPushCleanup(); navigate("/"); };
 
   // The whole delete flow — dialog state, the "DELETE" → "DELETE MY ACCOUNT"
   // phrase mapping, the invoke, the sign-out — lives in `useDeleteAccount`,
@@ -836,16 +834,13 @@ const ProfilePage = () => {
 
     {avatarCropDialog}
 
-    <BrandConfirmDialog
+    <SignOutConfirmDialog
         open={showLogoutDialog}
         onOpenChange={setShowLogoutDialog}
         title="Log Out?"
         description="You can sign back in anytime — your account stays intact."
-        primaryLabel="Log Out"
-        primaryTone="bark"
-        primaryHaptic="medium"
-        onPrimary={handleLogout}
-        secondaryLabel="Cancel"
+        label="Log Out"
+        after={() => navigate("/")}
       />
 
       {/* Mounted only once the user opens it — the dialog chunk (and its

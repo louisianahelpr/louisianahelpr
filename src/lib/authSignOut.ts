@@ -14,6 +14,32 @@ import { purgeApiCache } from "@/lib/apiCachePurge";
 // signOutOtherDevices(), which touches none of it.
 type SignOutOptions = { scope?: "global" | "local" };
 
+// ── NO NETWORK CALL IN HERE MAY BE AWAITED UNBOUNDED ──────────────────────
+// Owner, 2026-10-09: "I pressed Log Out and nothing happened." Sign-out used to
+// await, one after the other and with no limit: getUser() (a round trip to
+// /auth/v1/user), the push_tokens delete, and signOut() (a POST to
+// /auth/v1/logout, which may first refresh an expired token). On a slow or
+// hung line each of those can take as long as the network does, while the
+// person looks at a screen that has not changed. So each step has a cap and
+// sign-out always finishes; the Log Out buttons show "Logging Out…" meanwhile
+// (useSignOutAction). src/lib/authSignOut.test.ts hangs EVERY network call
+// and asserts sign-out still completes.
+export const PUSH_CLEANUP_CAP_MS = 2_000;
+export const SIGN_OUT_CAP_MS = 3_000;
+
+const CAPPED = Symbol("capped");
+async function capped<T>(work: Promise<T>, ms: number): Promise<T | typeof CAPPED> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<typeof CAPPED>((resolve) => { timer = setTimeout(() => resolve(CAPPED), ms); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Sign out AND clear this account's push tokens first, so a signed-out
  * (or handed-off) device stops receiving the user's notifications.
@@ -34,11 +60,19 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // "Sign Out Everywhere" in SecurityTab passes scope "global" explicitly.
   const options: SignOutOptions = { scope: "local", ...requested };
   markIntentionalSignOut();
-  try {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) await unregisterPushOnSignOut(data.user.id);
-  } catch {
-    /* best-effort: never block sign-out on token cleanup */
+  // The user id comes from getSession() — the session this device already
+  // holds — not getUser(), which asks the server. The delete itself is still
+  // RLS-scoped to auth.uid(), so a local read cannot widen it. Capped: a push
+  // cleanup that has not finished in 2 s is abandoned, never waited on.
+  const pushCleanup = (async () => {
+    const { data } = await supabase.auth.getSession();
+    const userId = data.session?.user?.id;
+    if (userId) await unregisterPushOnSignOut(userId);
+  })().catch(() => {
+    /* best-effort: never block sign-out on token cleanup (unregisterPushOnSignOut reports its own failures) */
+  });
+  if ((await capped(pushCleanup, PUSH_CLEANUP_CAP_MS)) === CAPPED) {
+    console.error(`[signOut] push-token cleanup did not finish in ${PUSH_CLEANUP_CAP_MS / 1000}s — signing out anyway`);
   }
   // Same hand-off concern as the push tokens above, one notch milder: the
   // remembered resume route is only ever read for a signed-in session, so a
@@ -83,7 +117,13 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   try {
     // Again here: the push cleanup above can take a while on a slow line.
     markIntentionalSignOut();
-    result = await supabase.auth.signOut(options);
+    // Capped like the push cleanup: a /logout that never answers would leave
+    // the person on "Logging Out…" for good. Past the cap it is treated as a
+    // failed sign-out, so the floor below clears this device's session by hand.
+    const outcome = await capped(supabase.auth.signOut(options), SIGN_OUT_CAP_MS);
+    result = outcome === CAPPED
+      ? { error: new Error(`auth.signOut() did not finish in ${SIGN_OUT_CAP_MS / 1000}s`) as never }
+      : outcome;
   } catch (err) {
     console.error("[signOut] auth.signOut() threw — clearing the session by hand", err);
     result = { error: err as never };

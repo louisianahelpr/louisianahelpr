@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -641,16 +640,13 @@ const Admin = () => {
             the dialog said "Log out", and the cancel offered "Stay logged in",
             while every other surface in the product said sign. Title Case per
             the app-wide Apple-HIG rule for buttons and alert titles. */}
-        <BrandConfirmDialog
+        <SignOutConfirmDialog
           open={showLogoutDialog}
           onOpenChange={setShowLogoutDialog}
           title="Sign Out?"
           description="You'll need to sign back in next time. Your posts and messages stay safe."
-          primaryLabel="Sign Out"
-          primaryTone="bark"
-          primaryHaptic="medium"
-          onPrimary={async () => { await signOutWithPushCleanup(); navigate("/"); }}
-          secondaryLabel="Cancel"
+          label="Sign Out"
+          after={() => navigate("/")}
         />
       </div>
     </SidebarProvider>

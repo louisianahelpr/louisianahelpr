@@ -55,10 +55,17 @@ export default defineConfig({
     // Vitest 4" and ignores the block. So the cap above was DEAD CONFIG and
     // this 8-core box has been running 8 jsdom workers, which is precisely the
     // condition the paragraph above describes. Top-level is the v4 home.
-    pool: "threads",
-    maxThreads: Number(process.env.VITEST_MAX_THREADS) ||
+    // 2026-10-09: `maxThreads`/`minThreads` are NOT Vitest 4 options (its
+    // config types have only `maxWorkers`), so the 2-worker cap above was dead
+    // config again and runs used one worker per core. And under `threads`, a
+    // worktree run of the 250 files related to a sign-up change failed 4 of 6
+    // times with react-dom loading half-initialised ("ReactDOM.createPortal is
+    // not a function", "Named export 'flushSync' not found") in files that pass
+    // alone; under `forks` 4 of 4 runs were clean. Each file now gets its own
+    // process, capped at 2.
+    pool: "forks",
+    maxWorkers: Number(process.env.VITEST_MAX_THREADS) ||
       Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
-    minThreads: 1,
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     globalSetup: ["./src/test/gateLockGlobalSetup.ts"],

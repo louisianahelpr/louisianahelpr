@@ -64,6 +64,10 @@ serve(async (req) => {
       .from("jobs")
       .select("id, title, customer_id, expires_at, category")
       .eq("status", "open")
+      // Only a FUNDED job is live to Helprs. A checkout nobody finished
+      // (unpaid / abandoned) was never shown to anyone, so "no helpr yet,
+      // Boost it" is false (owner report, 2026-10-09: Ben's unpaid draft).
+      .eq("payment_status", "escrow")
       .is("helper_id", null)
       // AL-010: a deleted poster leaves customer_id NULL; the notification
       // insert then fails NOT NULL, the job is never marked, and every run

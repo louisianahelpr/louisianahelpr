@@ -1,5 +1,5 @@
 /**
- * PGlite proof for 20261009142753_new_member_notice_on_email_confirm (owner
+ * PGlite proof for 20261009223353_new_member_notice_on_email_confirm (owner
  * decision 2026-10-09: "New member joined" goes out when the member confirms
  * their email, not at signup; an abandoned signup never notifies).
  *
@@ -27,7 +27,7 @@ import os from "node:os";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const THIS = readFileSync(new URL("../../../supabase/migrations/20261009142753_new_member_notice_on_email_confirm.sql", import.meta.url).pathname, "utf8");
+const THIS = readFileSync(new URL("../../../supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql", import.meta.url).pathname, "utf8");
 const SKIP = process.env.NEW_MIGRATION === "skip";
 
 let failures = 0;

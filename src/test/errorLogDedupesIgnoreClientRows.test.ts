@@ -40,7 +40,7 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 //     so a client cannot forge it (checked in the stamp body, 20260923094457).
 //   (detect_stuck_payments and cron_silent_rule left this list in 20261007043834,
 //   Q1263 / Q1264 (3): both now ignore client rows.)
-// @mutate supabase/migrations/20261009142754_stuck_payment_needs_stripe_proof.sql |              AND coalesce(e.tags ->> 'origin', '') <> 'client'\n             AND e.tags ->> 'source' = 'detect_stuck_payments-seed' |              AND e.tags ->> 'source' = 'detect_stuck_payments-seed'
+// @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |              AND coalesce(e.tags ->> 'origin', '') <> 'client'\n             AND e.tags ->> 'source' = 'detect_stuck_payments-seed' |              AND e.tags ->> 'source' = 'detect_stuck_payments-seed'
 const KNOWN_UNFILTERED: Record<string, number> = {
   cleanup_observability_tables: 1,
   export_my_data: 1,

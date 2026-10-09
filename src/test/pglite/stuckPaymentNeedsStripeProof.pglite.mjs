@@ -1,5 +1,5 @@
 /**
- * PGlite proof for 20261009142754_stuck_payment_needs_stripe_proof (owner
+ * PGlite proof for 20261009223355_stuck_payment_needs_stripe_proof (owner
  * report 2026-10-09: "Stuck payment — webhook may be failing" for a checkout
  * the poster simply never finished).
  *
@@ -47,7 +47,7 @@ const fnFrom = (sql, name) => {
   return { sql: sql.slice(start, sql.indexOf(tag, open) + tag.length) + ";", body: sql.slice(open, sql.indexOf(tag, open)) };
 };
 const md5 = (s) => createHash("md5").update(s).digest("hex");
-const THIS = read("20261009142754_stuck_payment_needs_stripe_proof.sql");
+const THIS = read("20261009223355_stuck_payment_needs_stripe_proof.sql");
 const PROD_DSP = fnFrom(read("20261007043834_error_log_readers_ignore_client_rows.sql"), "detect_stuck_payments");
 const REC = fnFrom(read("20260925231818_cron_work_visibility.sql"), "cron_record_work");
 const SWEEP = fnFrom(read("20261004004835_client_rows_cannot_mute_server_alerts.sql"), "sweep_silent_cron_failures");

@@ -13,7 +13,7 @@
  * THE FIX. stuck-payment-check reads each candidate's session from Stripe and
  * records whether it took the money (stuck_payment_stripe_checks.money_moved);
  * detect_stuck_payments alerts only on money_moved (migration
- * 20261009142754_stuck_payment_needs_stripe_proof.sql, its static guard
+ * 20261009223355_stuck_payment_needs_stripe_proof.sql, its static guard
  * src/test/stuckPaymentNeedsStripeProof.test.ts, and the PGlite proof
  * src/test/pglite/stuckPaymentNeedsStripeProof.pglite.mjs).
  *

@@ -122,7 +122,7 @@ const INTENDED_LINK_CHANGES = new Set([
   // '/admin?view=people&user=%s'. The other copy was the per-POSTER dedupe
   // lookup (n.link = ...), now per JOB through error_logs' job_id tag: per
   // poster hid a second stuck job by the same poster entirely.
-  "20261009142754_stuck_payment_needs_stripe_proof.sql::detect_stuck_payments",
+  "20261009223355_stuck_payment_needs_stripe_proof.sql::detect_stuck_payments",
 ]);
 
 /**

@@ -9,7 +9,7 @@
  * confirming was announced too.
  *
  * NOW. The one writer is notify_admins_new_member (migration
- * 20261009142753_new_member_notice_on_email_confirm.sql), fired by the
+ * 20261009223353_new_member_notice_on_email_confirm.sql), fired by the
  * auth.users confirm trigger. complete-signup never writes a notification; it
  * only asks that function, which sends nothing for an unconfirmed account and
  * at most once per member. SQL behaviour: src/test/pglite/newMemberNoticeOnConfirm.pglite.mjs;

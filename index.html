@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-SB5u712iE2xrOw2MIIrd5s2xRKyV29CVo2a5EiCA3OM=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-6SSGJNaAxv//C19LFgeHG3nZjqzq77WgDNPBhY6snsU=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-SB5u712iE2xrOw2MIIrd5s2xRKyV29CVo2a5EiCA3OM=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-lG9JmnQiZG4k1kKDJeH7CA5DLO4FIgyPfqjn6kUPapE=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -492,7 +492,12 @@
               tasks.push(fetch(failedSrc, { cache: "reload", credentials: "same-origin" }).catch(function () {}));
             }
           } catch (e) { /* proceed to reload */ }
-          Promise.all(tasks).then(go, go);
+          // Never wait forever on the cleanup: a request that stalled once
+          // (the stall path) can stall again, and then nothing would reload.
+          var gone = false;
+          var once = function () { if (!gone) { gone = true; go(); } };
+          setTimeout(once, 3000);
+          Promise.all(tasks).then(once, once);
         }
         // Q229: the failure is sent NOW, straight to error_logs (the anon
         // insert policy anyone_can_insert_errors; same request errorLogger's
@@ -504,29 +509,32 @@
         function saveRecord(rec) {
           try { localStorage.setItem("helpr_boot_failure", JSON.stringify(rec)); } catch (e) { /* storage blocked */ }
         }
-        function beacon(rec) {
+        function post(row, onOk) {
           var h = location.hostname;
           if (h === "localhost" || h === "127.0.0.1" || /\.local$/.test(h)) return;
           var m = function (n) { var el = document.querySelector('meta[name="' + n + '"]'); return el ? el.getAttribute("content") || "" : ""; };
           var base = m("lh-supabase-url"), key = m("lh-supabase-key");
           if (!/^https:\/\//.test(base) || !key || key.charAt(0) === "%" || typeof fetch !== "function") return;
-          var screen = String(rec.url || "").split("?")[0];
           try {
             fetch(base.replace(/\/$/, "") + "/rest/v1/error_logs", {
               method: "POST",
               keepalive: true,
               headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json", "Content-Profile": "public", Prefer: "return=minimal" },
-              body: JSON.stringify({
-                user_id: null, severity: "error",
-                message: "Boot failed: entry module graph did not load (" + rec.src + ")",
-                stack: null, url: rec.url, user_agent: navigator.userAgent,
-                tags: { source: "BootWatchdog", kind: "user-error-screen", route: rec.url, screen: screen, via: "inline-beacon" },
-                context: { failedAt: rec.at }
-              })
+              body: JSON.stringify(row)
             }).then(function (r) {
-              if (r && r.status >= 200 && r.status < 300) { rec.sent = true; saveRecord(rec); }
-            }, function () { /* network down: the record is reported on the next boot */ });
-          } catch (e) { /* the record is reported on the next boot */ }
+              if (onOk && r && r.status >= 200 && r.status < 300) onOk();
+            }, function () { /* network down: nothing more to do here */ });
+          } catch (e) { /* never break the boot over a log row */ }
+        }
+        function beacon(rec) {
+          var screen = String(rec.url || "").split("?")[0];
+          post({
+            user_id: null, severity: "error",
+            message: "Boot failed: entry module graph did not load (" + rec.src + ")",
+            stack: null, url: rec.url, user_agent: navigator.userAgent,
+            tags: { source: "BootWatchdog", kind: "user-error-screen", route: rec.url, screen: screen, via: "inline-beacon" },
+            context: { failedAt: rec.at }
+          }, function () { rec.sent = true; saveRecord(rec); });
         }
         function showFailure(src, offline) {
           var rec = { at: Date.now(), src: src, offline: offline, url: location.pathname };
@@ -551,6 +559,29 @@
           if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paint);
           else paint();
         }
+        function recover(path) {
+          fired = true;
+          failedSrc = path;
+          var offline = navigator.onLine === false;
+          var st = readState();
+          var wait = decide(st.count, st.last, Date.now(), offline);
+          if (wait < 0) {
+            // Spent: keep the episode alive, as recoverFromChunkError does.
+            if (!offline) { try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ } }
+            showFailure(path, offline);
+            return;
+          }
+          setTimeout(function () {
+            // Without storage the counter cannot cap anything, so only a
+            // first attempt, from a page that is not itself a recovery
+            // reload, may go ahead: fail closed, never loop.
+            if (!writeAttempt(st.count + 1) && (st.count > 0 || recentRecoveryReload())) {
+              showFailure(path, false);
+              return;
+            }
+            reloadFresh();
+          }, wait);
+        }
         window.addEventListener("error", function (ev) {
           var t = ev.target;
           if (fired || !t || t === window) return;
@@ -561,28 +592,44 @@
           try { u = new URL(src, location.href); } catch (e) { return; }
           if (u.origin !== location.origin || u.pathname.indexOf("/assets/") !== 0 || !/\.js$/.test(u.pathname)) return;
           if (document.readyState !== "loading" && booted()) return;
-          fired = true;
-          failedSrc = u.pathname;
-          var offline = navigator.onLine === false;
-          var st = readState();
-          var wait = decide(st.count, st.last, Date.now(), offline);
-          if (wait < 0) {
-            // Spent: keep the episode alive, as recoverFromChunkError does.
-            if (!offline) { try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ } }
-            showFailure(u.pathname, offline);
-            return;
-          }
-          setTimeout(function () {
-            // Without storage the counter cannot cap anything, so only a
-            // first attempt, from a page that is not itself a recovery
-            // reload, may go ahead: fail closed, never loop.
-            if (!writeAttempt(st.count + 1) && (st.count > 0 || recentRecoveryReload())) {
-              showFailure(u.pathname, false);
-              return;
-            }
-            reloadFresh();
-          }, wait);
+          recover(u.pathname);
         }, true);
+        // A STALL never fires "error" (owner, 2026-10-09: a Facebook link sat
+        // on the H + bar until a manual refresh). Still on the boot screen
+        // after STALL_MS, visible and online: log which /assets/ scripts never
+        // finished, then take the same budgeted fresh reload the error path
+        // takes. A hidden tab is re-checked when it is looked at, never reloaded.
+        var STALL_MS = 20000;
+        function unfinished() {
+          var done = {}, out = [];
+          try {
+            performance.getEntriesByType("resource").forEach(function (e) {
+              try { if (e.responseEnd > 0) done[new URL(e.name).pathname] = 1; } catch (x) { /* skip */ }
+            });
+          } catch (e) { /* no timing API: report none */ }
+          var els = document.querySelectorAll('script[src*="/assets/"], link[rel="modulepreload"][href*="/assets/"]');
+          for (var i = 0; i < els.length; i++) {
+            var p;
+            try { p = new URL(els[i].getAttribute("src") || els[i].getAttribute("href"), location.href).pathname; } catch (e) { continue; }
+            if (!done[p] && out.indexOf(p) < 0) out.push(p);
+          }
+          return out;
+        }
+        function stallCheck() {
+          if (fired || booted()) return;
+          if (document.visibilityState === "hidden") { setTimeout(stallCheck, 5000); return; }
+          if (navigator.onLine === false) { setTimeout(stallCheck, 5000); return; }
+          var pending = unfinished();
+          post({
+            user_id: null, severity: "error",
+            message: "Boot stalled " + (STALL_MS / 1000) + "s on the startup screen (" + (pending.join(", ") || "no pending script") + ")",
+            stack: null, url: location.pathname, user_agent: navigator.userAgent,
+            tags: { source: "BootWatchdog", kind: "boot-stall", route: location.pathname, screen: location.pathname, via: "inline-beacon" },
+            context: { pending: pending, readyState: document.readyState, attempt: readState().count }
+          });
+          recover(pending[0] || "");
+        }
+        setTimeout(stallCheck, STALL_MS);
       })();
     </script>
 

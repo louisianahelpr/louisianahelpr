@@ -832,7 +832,10 @@ test.describe("My Posts — card density + header", () => {
     // dialog, so `getByRole("dialog")` stops matching it — and the failure
     // reads as "element(s) not found", i.e. indistinguishable from the card
     // having collapsed, which is the very thing this test exists to detect.
-    const modal = page.locator('[role="dialog"], [role="alertdialog"]');
+    // The More panel is a Radix popover (role=dialog too) and can still be in
+    // the DOM, closing, when Edit's sheet opens: main went red on exactly that
+    // ("resolved to 2 elements", 2026-10-09). The overflow panel is not the modal.
+    const modal = page.locator('[role="dialog"]:not([data-job-step-overflow-panel]), [role="alertdialog"]');
     await expect(modal).toBeVisible();
 
     // ...and the card underneath did NOT collapse. Dismiss the modal first:

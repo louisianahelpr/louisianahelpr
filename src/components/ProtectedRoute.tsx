@@ -4,7 +4,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
-import { supabase } from "@/integrations/supabase/client";
+import { confirmSessionLost } from "@/lib/sessionLoss";
 import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
@@ -156,10 +156,17 @@ const ProtectedRoute = ({
   useEffect(() => {
     if (!user) return;
     let fired = false;
+    // A check still running when this screen goes away must not redirect
+    // with a stale path (getSession can retry for ~25 s on a bad network).
+    let cancelled = false;
+    // A null getSession() is NOT proof (2026-10-09 21:45Z, the owner's Mac:
+    // a network-failed token refresh made it null for ~1 s while the session
+    // was alive). confirmSessionLost() tries refreshSession() and answers true
+    // only on a definite auth answer, never on a network error.
     const onDenied = () => {
       if (fired) return;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (fired || data.session) return;
+      void confirmSessionLost().then((lost) => {
+        if (cancelled || fired || !lost) return;
         fired = true;
         report(new Error("Session lost on a signed-in screen"), {
           severity: "warning",
@@ -172,7 +179,10 @@ const ProtectedRoute = ({
       });
     };
     window.addEventListener(PERMISSION_DENIED_EVENT, onDenied);
-    return () => window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
+    };
   }, [user, location.pathname, location.search]);
 
   // Note: previously this component fired a `refresh()` on every mount,

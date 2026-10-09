@@ -8,6 +8,7 @@ import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
+import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort";
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -24,8 +25,27 @@ type SignOutOptions = { scope?: "global" | "local" };
 // sign-out always finishes; the Log Out buttons show "Logging Out…" meanwhile
 // (useSignOutAction). src/lib/authSignOut.test.ts hangs EVERY network call
 // and asserts sign-out still completes.
+//
+// Worst case, every step hanging: push cleanup 2 s + signOut 3 s + the
+// aborted signOut settling 0.5 s + Keychain clear 1.5 s + cache wipe 1.5 s
+// = 8.5 s. Usually it is one round trip.
+//
+// The signOut cap CANCELS, it does not abandon: /auth/v1/ requests made while
+// it runs carry an AbortSignal (src/lib/signOutAbort.ts) and the cap aborts
+// them. Abandoned, a /logout that failed later made auth-js remove whatever
+// session was stored by then, a fresh sign-in included.
 export const PUSH_CLEANUP_CAP_MS = 2_000;
 export const SIGN_OUT_CAP_MS = 3_000;
+export const ABORT_SETTLE_CAP_MS = 500;
+export const CACHE_WIPE_CAP_MS = 1_500;
+
+/** A cap that fired is reported, not only logged (severity warning). */
+function reportCap(message: string, area: "auth" | "push" | "cache") {
+  console.error(`[signOut] ${message}`);
+  void import("@/lib/errorLogger")
+    .then(({ report }) => report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } }))
+    .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
+}
 
 const CAPPED = Symbol("capped");
 async function capped<T>(work: Promise<T>, ms: number): Promise<T | typeof CAPPED> {
@@ -37,6 +57,37 @@ async function capped<T>(work: Promise<T>, ms: number): Promise<T | typeof CAPPE
     ]);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+type SignOutResult = Awaited<ReturnType<typeof supabase.auth.signOut>>;
+
+/**
+ * auth.signOut() under the cap, cancelled (not abandoned) when the cap fires:
+ * the abort makes auth-js's pending request fail, so it removes the session
+ * and emits SIGNED_OUT now, while the dialog is still up, instead of later
+ * over whatever session is stored by then. A throw (navigator-lock timeout)
+ * propagates to the caller's catch.
+ */
+async function cancellableSignOut(options: SignOutOptions): Promise<SignOutResult> {
+  const scope = beginSignOutAbortScope();
+  try {
+    const work = supabase.auth.signOut(options);
+    const outcome = await capped(work, SIGN_OUT_CAP_MS);
+    if (outcome !== CAPPED) return outcome;
+    reportCap(`auth.signOut() did not finish in ${SIGN_OUT_CAP_MS / 1000}s — cancelled`, "auth");
+    scope.abort();
+    const settled = await capped(
+      work.catch((err: unknown) => ({ error: err }) as SignOutResult),
+      ABORT_SETTLE_CAP_MS,
+    );
+    // Capped is never success: for "global" the other devices were not
+    // confirmed signed out. auth-js's own error wins when it has one.
+    const cappedError = new Error(`auth.signOut() did not finish in ${SIGN_OUT_CAP_MS / 1000}s`);
+    if (settled === CAPPED || !settled?.error) return { error: cappedError as never };
+    return settled;
+  } finally {
+    endSignOutAbortScope(scope);
   }
 }
 
@@ -64,15 +115,18 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // holds — not getUser(), which asks the server. The delete itself is still
   // RLS-scoped to auth.uid(), so a local read cannot widen it. Capped: a push
   // cleanup that has not finished in 2 s is abandoned, never waited on.
+  // `hadSession` stays undefined if the read never answered.
+  let hadSession: boolean | undefined;
   const pushCleanup = (async () => {
     const { data } = await supabase.auth.getSession();
+    hadSession = !!data.session;
     const userId = data.session?.user?.id;
     if (userId) await unregisterPushOnSignOut(userId);
   })().catch(() => {
     /* best-effort: never block sign-out on token cleanup (unregisterPushOnSignOut reports its own failures) */
   });
   if ((await capped(pushCleanup, PUSH_CLEANUP_CAP_MS)) === CAPPED) {
-    console.error(`[signOut] push-token cleanup did not finish in ${PUSH_CLEANUP_CAP_MS / 1000}s — signing out anyway`);
+    reportCap(`push-token cleanup did not finish in ${PUSH_CLEANUP_CAP_MS / 1000}s — signing out anyway`, "push");
   }
   // Same hand-off concern as the push tokens above, one notch milder: the
   // remembered resume route is only ever read for a signed-in session, so a
@@ -117,13 +171,14 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   try {
     // Again here: the push cleanup above can take a while on a slow line.
     markIntentionalSignOut();
-    // Capped like the push cleanup: a /logout that never answers would leave
-    // the person on "Logging Out…" for good. Past the cap it is treated as a
-    // failed sign-out, so the floor below clears this device's session by hand.
-    const outcome = await capped(supabase.auth.signOut(options), SIGN_OUT_CAP_MS);
-    result = outcome === CAPPED
-      ? { error: new Error(`auth.signOut() did not finish in ${SIGN_OUT_CAP_MS / 1000}s`) as never }
-      : outcome;
+    if (options.scope === "global" && hadSession === false) {
+      // No session on this device: auth-js would send no /logout at all and
+      // answer { error: null }, so a "Sign Out Everywhere" retried after a
+      // failed one would report success while revoking nothing. Never success.
+      result = { error: new Error("no session on this device, so other devices could not be signed out") as never };
+    } else {
+      result = await cancellableSignOut(options);
+    }
   } catch (err) {
     console.error("[signOut] auth.signOut() threw — clearing the session by hand", err);
     result = { error: err as never };
@@ -184,19 +239,28 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // Best-effort like the push cleanup above — a failed IndexedDB delete must
   // not strand someone in a half-signed-out state — but NOT silent: a swallowed
   // error here is the leak itself, so it is logged rather than dropped.
+  // Signed proof-photo URLs are bearer links to another person's photos;
+  // the next account on this device must not be handed them (Q724). First,
+  // because it cannot throw and nothing before it may skip it.
+  resetProofPhotoSignCache();
+  // In-memory first: synchronous, so it is done before anything can hang.
   try {
-    // Signed proof-photo URLs are bearer links to another person's photos;
-    // the next account on this device must not be handed them (Q724). First,
-    // because it cannot throw and nothing before it may skip it.
-    resetProofPhotoSignCache();
-    // Cache Storage `api-cache`: signed-in Supabase responses an older service
-    // worker wrote to disk (Q1174). Never throws, and runs before the calls that
-    // can, so a failing query-cache wipe cannot skip it.
-    await purgeApiCache();
     queryClient.clear();
-    await removePersistedClient();
   } catch (err) {
     console.error("[signOut] cache wipe failed — prior user data may persist", err);
+  }
+  // Cache Storage `api-cache` (signed-in Supabase responses an older service
+  // worker wrote to disk, Q1174) and the persisted IndexedDB copy. Each is
+  // started regardless of the other, and together they are capped: an
+  // IndexedDB delete blocked by another tab must not hold "Logging Out…".
+  const diskWipe = Promise.all([
+    purgeApiCache(),
+    Promise.resolve().then(() => removePersistedClient()),
+  ]).catch((err) => {
+    console.error("[signOut] cache wipe failed — prior user data may persist", err);
+  });
+  if ((await capped(diskWipe, CACHE_WIPE_CAP_MS)) === CAPPED) {
+    reportCap(`the on-disk cache wipe did not finish in ${CACHE_WIPE_CAP_MS / 1000}s — prior user data may persist`, "cache");
   }
 
   return result;

@@ -3796,17 +3796,17 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 90,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Couldn't sign you out everywhere — try again?"
+        "text": "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again."
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 132,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3816,7 +3816,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 152,
+      "line": 158,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",

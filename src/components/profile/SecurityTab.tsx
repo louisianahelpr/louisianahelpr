@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
@@ -82,12 +83,17 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   // service-role bearer (the `auth.admin.signOut` API). The closest
   // safe-to-ship action from the client is a global sign-out, which
   // revokes every refresh token for the user (incl. this device).
-  // The dialog stays open on "Logging Out…" until it has finished, and
-  // says so if it failed (2026-10-09: a closed dialog over a pending
-  // sign-out read as "nothing happened").
+  // The dialog stays open on "Logging Out…" until it has finished
+  // (2026-10-09: a closed dialog over a pending sign-out read as "nothing
+  // happened"). On an error THIS device is signed out all the same (the
+  // helper's floor clears it), so there is no session left to retry with: a
+  // retry would revoke nothing and report success. Say what is known and send
+  // the person to sign in, never leave a "try again" on a dead session.
+  const navigate = useNavigate();
   const afterSignOutEverywhere = (result: { error: unknown } | undefined) => {
     if (result?.error) {
-      toast.error("Couldn't sign you out everywhere — try again?");
+      toast.error("Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again.");
+      navigate("/login", { replace: true });
       return;
     }
     setSignOutDialogOpen(false);

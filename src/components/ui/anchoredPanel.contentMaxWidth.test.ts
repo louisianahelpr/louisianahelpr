@@ -4,6 +4,7 @@
  * column stayed 512px, "a lot of white space on the sides"). Measured after:
  * 700px viewport -> panel 512 wide at left 94; 375/500 unchanged full width.
  */
+// @mutate src/components/ui/anchoredPanel.tsx | (options.contentMaxWidth && band.width ? Math.min(band.width, options.contentMaxWidth) : band.width) | (band.width)
 import { describe, expect, it } from "vitest";
 import { screenPanelContentProps } from "./anchoredPanel";
 

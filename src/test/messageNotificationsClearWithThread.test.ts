@@ -15,7 +15,7 @@
  *
  * Shown red (2026-09-27) with the trigger function's pair-link match changed.
  *
- * @mutate supabase/migrations/20260927064800_q755_mark_message_notifications_read_with_thread.sql | \|\| '&userId=' \|\| COALESCE(NEW.sender_id::text, '') | \|\| '&user=' \|\| COALESCE(NEW.sender_id::text, '')
+ * @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql | n.link = '/messages?jobId=' \|\| COALESCE(NEW.job_id::text, '') \|\| '&userId=' \|\| COALESCE(NEW.sender_id::text, '') | n.link = '/messages?jobId=' \|\| COALESCE(NEW.job_id::text, '') \|\| '&user=' \|\| COALESCE(NEW.sender_id::text, '')
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

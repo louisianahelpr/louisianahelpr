@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-08T22:46:04.146Z",
-  "guards": 1624,
-  "registered": 1623,
+  "generated": "2026-10-09T00:50:58.902Z",
+  "guards": 1633,
+  "registered": 1632,
   "unregistered": [
     "src/test/jobLifecycleWalk.test.ts"
   ],
@@ -270,6 +270,15 @@
       ],
       "parents": [
         "src/components/MobileNav.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/HelperTierBadge.tsx",
+      "tests": [
+        "src/test/onlyStripeIdVerifiedBadge.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/profileLanding/IdentityHeader.tsx"
       ]
     },
     {

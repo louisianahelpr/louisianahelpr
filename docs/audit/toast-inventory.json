@@ -1,26 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 603,
+    "calls": 600,
     "files": 152,
-    "rendering": 574,
-    "suppressedByPolicy": 29,
+    "rendering": 573,
+    "suppressedByPolicy": 27,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 39,
-      "toast.error": 474,
-      "toast.info": 1,
+      "toast.error": 473,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 32,
+      "toast.success": 31,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
       "literal": 320,
-      "template": 78,
-      "dynamic": 245,
+      "template": 77,
+      "dynamic": 243,
       "jsx": 0
     }
   },
@@ -473,7 +472,7 @@
     },
     {
       "file": "src/components/JobConfirmation.tsx",
-      "line": 321,
+      "line": 316,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -483,7 +482,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 627,
+      "line": 632,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -493,7 +492,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 968,
+      "line": 973,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -503,7 +502,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 978,
+      "line": 983,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -513,7 +512,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 993,
+      "line": 998,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -523,17 +522,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1002,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "Almost — Done unlocks in ${minsLeft} min. Jobs can't be completed in under 30 minutes."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 1054,
+      "line": 1051,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -543,7 +532,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1059,
+      "line": 1056,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -563,7 +552,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1079,
+      "line": 1076,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -573,7 +562,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1165,
+      "line": 1162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -583,7 +572,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1178,
+      "line": 1175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -593,7 +582,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1205,
+      "line": 1202,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -603,7 +592,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1258,
+      "line": 1255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -613,7 +602,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1302,
+      "line": 1299,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -623,7 +612,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1361,
+      "line": 1358,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -633,7 +622,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1420,
+      "line": 1417,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -643,7 +632,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1424,
+      "line": 1421,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3043,27 +3032,7 @@
     },
     {
       "file": "src/components/job-card/NudgeConfirmLink.tsx",
-      "line": 37,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "msg"
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/job-card/NudgeConfirmLink.tsx",
-      "line": 38,
-      "kind": "toast.info",
-      "title": {
-        "form": "dynamic",
-        "text": "msg"
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/job-card/NudgeConfirmLink.tsx",
-      "line": 40,
+      "line": 50,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3457,7 +3426,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 612,
+      "line": 603,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3467,7 +3436,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 1627,
+      "line": 1618,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6159,7 +6128,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 204,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6169,7 +6138,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 210,
+      "line": 213,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -6179,7 +6148,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 254,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6199,7 +6168,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 265,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6209,7 +6178,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 277,
+      "line": 280,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

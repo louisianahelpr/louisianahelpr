@@ -92,6 +92,24 @@ const requireBuildEnv = (mode: string): Plugin => ({
     // process.env vars (how CI passes secrets). Reading process.env alone
     // would falsely fail every local build.
     const env = loadEnv(mode, process.cwd(), "VITE_");
+
+    // A shipped native build with Turnstile off can never sign anyone in.
+    // Supabase Auth has required a captcha token since 2026-10-07 (Q1314), and
+    // an app built without VITE_TURNSTILE_ENABLED sends none, so every email
+    // login, sign-up and password reset is refused ("no captcha_token found")
+    // and the user sees "The security check didn't finish". A binary has no
+    // OTA, so the only cure is another build. The gate defaulted to off and
+    // ios-beta.yml / deploy.yml never set it: only the hand-cut 7117 had it.
+    // build:ios now sets it; this refuses any native build that lost it.
+    if (isCapacitorBuild && env.VITE_TURNSTILE_ENABLED !== "true") {
+      throw new Error(
+        "\n\n  Refusing to build: VITE_TURNSTILE_ENABLED is not \"true\" for a native (Capacitor) build.\n\n" +
+          "  Supabase Auth requires a Turnstile captcha token (Q1314). Without it this app\n" +
+          "  cannot log in, sign up or reset a password, and an installed binary cannot be fixed.\n" +
+          "  Build with `npm run build:ios`, which sets it.\n",
+      );
+    }
+
     const missing = REQUIRED_BUILD_ENV.filter((key) => !env[key]);
     if (!missing.length) return;
 

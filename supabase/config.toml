@@ -209,6 +209,14 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.recheck-pending-accepts]
     verify_jwt = false
+  # signup-lead-reminders: pg_cron posts `Bearer <service_role_key>` (not a
+  # JWT); the function checks it itself with verifyCronSecret.
+  [functions.signup-lead-reminders]
+    verify_jwt = false
+  # record-signup-lead: called from sign-up step 1 by a visitor with no
+  # account. Rate limited per address; the table write is service_role only.
+  [functions.record-signup-lead]
+    verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false
   [functions.payment-confirm-reminder]

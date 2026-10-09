@@ -14,11 +14,17 @@
  *
  * @mutate supabase/migrations/20260923143321_schedule_unscheduled_pruners.sql | PERFORM cron.schedule('cleanup-stripe-webhook-events', | PERFORM cron.unschedule_x('cleanup-stripe-webhook-events',
  * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | CREATE FUNCTION public.cleanup_stripe_webhook_events() | CREATE FUNCTION public.cleanup_stripe_webhook_events_gone()
+ * @mutate supabase/functions/signup-lead-reminders/index.ts | supabase.rpc("sweep_signup_leads") | supabase.rpc("sweep_signup_leads_x")
+ * @mutate supabase/migrations/20261009173906_signup_leads.sql | '/functions/v1/signup-lead-reminders', | '/functions/v1/signup-lead-reminders-x',
+ *
+ * EDGE-RUN pruners (2026-10-09, sign-up leads): a pruner may also be run by a
+ * scheduled EDGE function, i.e. a function directory that some cron.schedule
+ * posts to (`/functions/v1/<dir>`) and whose code calls `.rpc("<pruner>")`.
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { blankSqlComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
 const MIG = join(process.cwd(), "supabase", "migrations");
 const sql = readdirSync(MIG)
@@ -46,12 +52,27 @@ const droppedAt = lastAt(DROP);
 const pruners = [...created.keys()]
   .filter((n) => !((droppedAt.get(n) ?? -1) > created.get(n)!))
   .sort();
-const scheduled = (name: string) => new RegExp(`cron\\.schedule\\s*\\([^;]*\\b${name}\\b`, "i").test(sql);
+const sqlScheduled = (name: string) => new RegExp(`cron\\.schedule\\s*\\([^;]*\\b${name}\\b`, "i").test(sql);
+
+/** Edge functions some cron.schedule posts to, mapped to the source they run. */
+const FUNCTIONS = join(process.cwd(), "supabase", "functions");
+const scheduledEdge = [...sql.matchAll(/cron\.schedule\s*\([^;]*?\/functions\/v1\/([a-z0-9-]+)/gi)]
+  .map((m) => m[1])
+  .filter((dir, i, a) => a.indexOf(dir) === i && existsSync(join(FUNCTIONS, dir, "index.ts")))
+  .map((dir) => blankComments(readFileSync(join(FUNCTIONS, dir, "index.ts"), "utf8")));
+const edgeScheduled = (name: string) =>
+  scheduledEdge.some((src) => new RegExp(`\\.rpc\\(\\s*["']${name}["']`).test(src));
+const scheduled = (name: string) => sqlScheduled(name) || edgeScheduled(name);
 
 describe("every prune/cleanup/sweep function runs (Q167)", () => {
   it("finds the pruners (the parse is not empty)", () => {
     expect(pruners).toContain("cleanup_stripe_webhook_events");
     expect(pruners.length).toBeGreaterThan(10);
+  });
+
+  it("reads the scheduled edge functions (the edge parse is not empty)", () => {
+    expect(scheduledEdge.length).toBeGreaterThan(10);
+    expect(edgeScheduled("sweep_signup_leads")).toBe(true);
   });
 
   it("each one is scheduled by cron or listed as manual", () => {

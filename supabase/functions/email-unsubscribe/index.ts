@@ -295,9 +295,9 @@ serve(async (req) => {
   }
 
   if (!profile) {
-    // No account for this address. Every commercial segment in the product is
-    // built by querying `profiles`, so there is nothing that could mail it
-    // again and nothing to write. Reported as success rather than "unknown
+    // No account for this address. Every commercial segment in the product
+    // except the sign-up lead reminder (stamped below) is built by querying
+    // `profiles`, so there is no profile flag to write. Reported as success rather than "unknown
     // address" so this endpoint cannot be used to test whether an address has
     // a Helpr account.
     //
@@ -306,13 +306,41 @@ serve(async (req) => {
     // which an admin addresses by hand. It is deliberately not written to
     // `suppressed_emails` — that list is permanent and would block the
     // verification email if this person later signed up.
-    console.warn('[email-unsubscribe] no profile for a validly signed address — nothing to write')
+    console.warn('[email-unsubscribe] no profile for a validly signed address; only signup_leads is stamped')
   } else {
     try {
       await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[email-unsubscribe]', message)
+      return req.method === 'POST'
+        ? text('Unsubscribe failed, please retry', 500)
+        : page(
+            'Something went wrong',
+            `<h1>We couldn't save that</h1>
+             <p>Please try the link again in a minute, or email
+             <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
+             and we'll take you off the list by hand.</p>`,
+            500,
+          )
+    }
+  }
+
+  // Sign-up leads (owner 2026-10-09): the "Finish signing up" reminder is
+  // mailed to an address with no profile, so its opt-out lands here too.
+  // Zero rows is legitimate (most addresses are not leads). A failed write
+  // fails the request ONLY when no profile was written above: for a member
+  // the opt-out that matters already committed, so it is logged, not undone
+  // into an error page. A missing table (the function deployed before its
+  // migration) means no reminder can exist yet, so it is nothing to write.
+  const { error: leadError } = await supabase
+    .from('signup_leads')
+    .update({ unsubscribed_at: action === 'resubscribe' ? null : new Date().toISOString() })
+    .eq('email', email)
+    .select('id')
+  if (leadError && leadError.code !== '42P01' && leadError.code !== 'PGRST205') {
+    console.error('[email-unsubscribe] signup_leads write failed:', leadError.message)
+    if (!profile) {
       return req.method === 'POST'
         ? text('Unsubscribe failed, please retry', 500)
         : page(

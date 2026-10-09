@@ -55,10 +55,10 @@ export function PaymentLifecycleSteps() {
               <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                 {step.label}
                 {isFirst && (
-                  <span
-                    className="ml-2 text-ds-10 uppercase tracking-wider font-sans"
-                    style={{ color: "hsl(var(--bark))" }}
-                  >
+                  // A filled pill, the same one CancellationDialog's timeline
+                  // uses, so "you are here" reads at a glance (owner,
+                  // 2026-10-09: bare small caps were easy to miss).
+                  <span className="ml-2 align-middle text-ds-10 font-bold uppercase tracking-wider font-sans bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
                     you are here
                   </span>
                 )}

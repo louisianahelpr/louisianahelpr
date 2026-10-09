@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import { TypedDateInput } from "@/components/TypedDateInput";
+import { useWheelStep } from "@/hooks/useWheelStep";
 import { cn } from "@/lib/utils";
 
 const ITEM_H = 40;
@@ -88,6 +89,18 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
   };
 
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+
+  // Mouse wheel / trackpad: one row per notch, slow swipes add up. Left to
+  // the browser, scroll-snap jumped two rows a notch and snapped small
+  // trackpad moves back to the same row (useWheelStep).
+  useWheelStep(
+    ref,
+    (steps) => {
+      const next = clamp(index + steps, 0, values.length - 1);
+      if (values[next] !== value) onChange(values[next]);
+    },
+    (dir) => (dir > 0 ? index < values.length - 1 : index > 0),
+  );
 
   // WAI-ARIA listbox keyboard model. The column is ONE tab stop; the options
   // are tabIndex=-1 and the selection is announced via aria-activedescendant.

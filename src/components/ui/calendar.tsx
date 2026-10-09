@@ -72,8 +72,13 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         day: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"),
         range_end: "day-range-end",
+        // The day's number is drawn by day_button, which sets its own
+        // ink-deep colour, so the cell's parchment never reached it: the
+        // selected day was dark numerals on bark (owner, 2026-10-09). The
+        // `[&>button]` rule hands the button the same off-white every other
+        // selected control wears.
         selected:
-          "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-sans font-bold",
+          "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] [&>button]:!text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-sans font-bold",
         today:
           "!bg-[hsl(var(--burnt-sienna)/0.10)] !text-[hsl(var(--burnt-sienna))] !font-sans !font-bold ring-1 ring-[hsl(var(--burnt-sienna)/0.28)]",
         outside: "day-outside text-[hsl(var(--olivewood)/0.8)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",

@@ -63,8 +63,12 @@ BEGIN
     VALUES (v_a::text, v_a, jsonb_build_object('sub', v_a::text, 'email', v_email_a, 'email_verified', false), 'email', now(), now(), now()),
            (v_b::text, v_b, jsonb_build_object('sub', v_b::text, 'email', v_email_b, 'email_verified', false), 'email', now(), now(), now());
   END IF;
+  -- B gets its own number: two real accounts may not share one
+  -- (trg_guard_profile_phone, 20261009175007); B's checks only need A phone.
   UPDATE public.profiles
-     SET full_name = 'Oa Eighteen', phone = '(504) 555-0118', location = 'Lafayette, LA', date_of_birth = '1990-01-18'
+     SET full_name = 'Oa Eighteen',
+         phone = CASE WHEN user_id = v_a THEN '(504) 555-0118' ELSE '(504) 555-0119' END,
+         location = 'Lafayette, LA', date_of_birth = '1990-01-18'
    WHERE user_id IN (v_a, v_b);
 
   -- Counted over THIS run's rows only (its tag is in every synthetic address):

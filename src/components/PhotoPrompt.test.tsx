@@ -232,9 +232,9 @@ describe("browse first: the header's Get Started", () => {
 // A profile not loaded yet must let the action through.
 // @mutate src/components/PhotoPrompt.tsx |       if (!cached?.profile) return go(); |       if (!cached?.profile) return;
 // Closing the prompt must not drop the action.
-// @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next && !uploading) proceed(); }} | onOpenChange={(next) => { if (!next && !uploading) setOpen(false); }}
+// @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next && !busy) proceed(); }} | onOpenChange={(next) => { if (!next && !busy) setOpen(false); }}
 // A duplicate phone is said in words, not a generic retry.
-// @mutate src/components/PhotoPrompt.tsx |       if ((res.error as { code?: string } \| null)?.code === "23505") { |       if (false) {
+// @mutate src/components/PhotoPrompt.tsx |       if (inUse) { |       if (false) {
 // A typed phone must be saved.
 // @mutate src/components/PhotoPrompt.tsx |     const savePhone = missing.phone && digits.length >= 10 ? phone.trim() : undefined; |     const savePhone = undefined;
 // The pending action is taken exactly once.

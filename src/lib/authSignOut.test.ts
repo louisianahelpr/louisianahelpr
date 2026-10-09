@@ -65,6 +65,8 @@ vi.mock("@/lib/queryPersister", () => ({
 }));
 vi.mock("@/lib/nativePush", () => ({ unregisterPushOnSignOut }));
 vi.mock("@/lib/lastRoute", () => ({ clearRememberedRoute }));
+const report = vi.fn();
+vi.mock("@/lib/errorLogger", () => ({ report }));
 
 beforeEach(() => {
   order.length = 0;
@@ -177,10 +179,11 @@ describe("signOutWithPushCleanup", () => {
     try {
       unregisterPushOnSignOut.mockImplementation(() => new Promise<void>(() => { /* never settles */ }));
       localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
-      const { signOutWithPushCleanup, PUSH_CLEANUP_CAP_MS, SIGN_OUT_CAP_MS } = await import("./authSignOut");
+      const { signOutWithPushCleanup, PUSH_CLEANUP_CAP_MS, SIGN_OUT_CAP_MS, ABORT_SETTLE_CAP_MS } = await import("./authSignOut");
       let done = false;
       const p = signOutWithPushCleanup().then((r) => { done = true; return r; });
-      await vi.advanceTimersByTimeAsync(PUSH_CLEANUP_CAP_MS + SIGN_OUT_CAP_MS - 1);
+      // push 2 s + signOut 3 s + the cancelled signOut's 0.5 s to settle.
+      await vi.advanceTimersByTimeAsync(PUSH_CLEANUP_CAP_MS + SIGN_OUT_CAP_MS + ABORT_SETTLE_CAP_MS - 1);
       expect(done).toBe(false);
       await vi.advanceTimersByTimeAsync(1);
       const result = await p;
@@ -190,6 +193,11 @@ describe("signOutWithPushCleanup", () => {
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
       expect(clear).toHaveBeenCalledTimes(1);
       expect(removePersistedClient).toHaveBeenCalledTimes(1);
+      // Each cap that fired is REPORTED, not only logged.
+      await vi.dynamicImportSettled();
+      const tags = report.mock.calls.map((c) => (c[1] as { tags: Record<string, string> }).tags);
+      expect(tags).toEqual(expect.arrayContaining([{ area: "push", op: "signOutCap" }, { area: "auth", op: "signOutCap" }]));
+      expect(report.mock.calls.every((c) => (c[1] as { severity: string }).severity === "warning")).toBe(true);
     } finally {
       hanging.on = false;
       unregisterPushOnSignOut.mockReset();
@@ -212,6 +220,59 @@ describe("signOutWithPushCleanup", () => {
       expect(unregisterPushOnSignOut).toHaveBeenCalledWith("u1");
       expect(signOut).toHaveBeenCalledWith({ scope: "local" });
       expect(spy.mock.calls.some((c) => /push-token cleanup did not finish/.test(String(c[0])))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  it("Sign Out Everywhere past its cap is an ERROR, never success (the other devices were not confirmed)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      signOut.mockImplementationOnce(() => new Promise(() => { /* /logout never answers */ }));
+      const { signOutWithPushCleanup, SIGN_OUT_CAP_MS, ABORT_SETTLE_CAP_MS } = await import("./authSignOut");
+      const p = signOutWithPushCleanup({ scope: "global" });
+      await vi.advanceTimersByTimeAsync(SIGN_OUT_CAP_MS + ABORT_SETTLE_CAP_MS);
+      const result = await p;
+      expect(signOut).toHaveBeenCalledWith({ scope: "global" });
+      expect(result.error).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  it("Sign Out Everywhere with no session on this device is an error and sends nothing (auth-js would answer success)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getSession.mockResolvedValueOnce({ data: { session: null } } as never);
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    const result = await signOutWithPushCleanup({ scope: "global" });
+    expect(result.error).toBeTruthy();
+    expect(signOut).not.toHaveBeenCalled();
+    // ...while a plain Log Out with no session is still the ordinary path.
+    getSession.mockResolvedValueOnce({ data: { session: null } } as never);
+    await signOutWithPushCleanup();
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    spy.mockRestore();
+  });
+
+  it("an on-disk cache wipe that never settles cannot hold sign-out; the in-memory wipe still ran", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      removePersistedClient.mockImplementationOnce(() => new Promise<void>(() => { /* IndexedDB blocked */ }));
+      const { signOutWithPushCleanup, CACHE_WIPE_CAP_MS } = await import("./authSignOut");
+      let done = false;
+      const p = signOutWithPushCleanup().then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(CACHE_WIPE_CAP_MS - 1);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await p;
+      expect(done).toBe(true);
+      expect(clear).toHaveBeenCalledTimes(1);
+      await vi.dynamicImportSettled();
+      expect(report.mock.calls.some((c) => (c[1] as { tags: Record<string, string> }).tags.area === "cache")).toBe(true);
     } finally {
       vi.useRealTimers();
       spy.mockRestore();
@@ -256,7 +317,11 @@ describe("signOutWithPushCleanup", () => {
 // The caps (owner, 2026-10-09: "I pressed Log Out and nothing happened").
 // Uncapped, a /logout or a push cleanup that never answers leaves sign-out
 // pending for good and the hang tests above never finish.
-// @mutate src/lib/authSignOut.ts | const outcome = await capped(supabase.auth.signOut(options), SIGN_OUT_CAP_MS); | const outcome = await supabase.auth.signOut(options);
+// @mutate src/lib/authSignOut.ts | const outcome = await capped(work, SIGN_OUT_CAP_MS); | const outcome = await work;
+// @mutate src/lib/authSignOut.ts | if (settled === CAPPED \|\| !settled?.error) return { error: cappedError as never }; | if (settled === CAPPED) return { error: null } as never;
+// @mutate src/lib/authSignOut.ts | if (options.scope === "global" && hadSession === false) { | if (false) {
+// @mutate src/lib/authSignOut.ts | if ((await capped(diskWipe, CACHE_WIPE_CAP_MS)) === CAPPED) { | if ((await diskWipe) === undefined && false) {
+// @mutate src/lib/authSignOut.ts |     .then(({ report }) => report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } })) |     .then(() => undefined)
 // @mutate src/lib/authSignOut.ts | if ((await capped(pushCleanup, PUSH_CLEANUP_CAP_MS)) === CAPPED) { | if ((await pushCleanup) === undefined && false) {
 // @mutate src/lib/authSignOut.ts | const { data } = await supabase.auth.getSession(); | const { data: { user } } = await supabase.auth.getUser(); const data = { session: { user } };
 

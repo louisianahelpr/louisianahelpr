@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { SecurityTab } from "./SecurityTab";
 
 /**
@@ -56,11 +57,13 @@ vi.mock("@/lib/appLock", () => ({
   ],
 }));
 
+// login_history rows; the Sign Out Everywhere button shows only when there are some.
+let loginRows: unknown[] = [];
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        order: () => ({ limit: async () => ({ data: [], error: null }) }),
+        order: () => ({ limit: async () => ({ data: loginRows, error: null }) }),
       }),
     }),
     auth: {
@@ -132,6 +135,7 @@ async function renderTab() {
 const lockSwitch = () => screen.getByRole("switch", { name: "Require Face ID to open Helpr" });
 
 beforeEach(() => {
+  loginRows = [];
   setAppLockEnabledMock.mockReset();
   confirmConsequentialMock.mockReset();
   toastError.mockReset();
@@ -232,3 +236,33 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
  */
 // @mutate src/components/profile/SecurityTab.tsx | if (!ok) {\n      // User cancelled or failed — leave the switch off. The OS already showed\n      // the prompt, so no extra error toast.\n      setAppLockOn(false);\n      return;\n    } | if (false) { setAppLockOn(false); return; }
 // @mutate src/components/profile/SecurityTab.tsx | onUnsecurableDevice: "deny", | onUnsecurableDevice: "allow",
+
+// ── Sign Out Everywhere that could not be confirmed (review of the 2026-10-09
+// "I pressed Log Out and nothing happened" fix). THIS device is signed out by
+// then, so "try again?" on the same page would retry with no session, and
+// auth-js answers that with success while revoking nothing.
+describe("Sign Out Everywhere: an unconfirmed sign-out sends the person to sign in", () => {
+  it("says what is known and goes to /login, never a retry on the dead session", async () => {
+    vi.mocked(signOutWithPushCleanup).mockResolvedValueOnce({ error: new Error("capped") } as never);
+    loginRows = [{ id: "1", created_at: "2026-10-01T00:00:00Z", ip_address: "1.2.3.4", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" }];
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <MemoryRouter initialEntries={["/profile/security"]}>
+        <QueryClientProvider client={qc}>
+          <Routes>
+            <Route path="/profile/security" element={<SecurityTab email="helper@example.com" onBack={() => {}} />} />
+            <Route path="/login" element={<p>login page</p>} />
+          </Routes>
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Sign Out Everywhere/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign Out Everywhere" }));
+    expect(await screen.findByText("login page")).toBeInTheDocument();
+    expect(signOutWithPushCleanup).toHaveBeenCalledWith({ scope: "global" });
+    expect(toastError).toHaveBeenCalledWith(
+      "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again.",
+    );
+  });
+});
+// @mutate src/components/profile/SecurityTab.tsx |       navigate("/login", { replace: true }); |

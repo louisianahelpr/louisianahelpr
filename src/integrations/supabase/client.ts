@@ -5,6 +5,7 @@ import type { Database } from './types';
 import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
+import { signOutAwareFetch } from '@/lib/signOutAbort';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -78,5 +79,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  // A pass-through to fetch, except that during a sign-out its /auth/v1/
+  // requests can be aborted, so the 3 s sign-out cap cancels /logout instead
+  // of abandoning it (src/lib/signOutAbort.ts).
+  global: { fetch: signOutAwareFetch },
 });

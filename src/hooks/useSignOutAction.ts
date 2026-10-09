@@ -36,7 +36,16 @@ export function useSignOutAction() {
       // Never `{ scope: undefined }`: the helper spreads the options over its
       // "local" default, and an explicit undefined would erase it.
       const result = await signOutWithPushCleanup(scope ? { scope } : undefined);
-      await after?.(result);
+      try {
+        await after?.(result);
+      } catch (err) {
+        // Sign-out itself finished; only the follow-up (a navigate, a toast)
+        // threw. Reported, never an unhandled rejection from a click handler.
+        console.error("[signOut] the after-sign-out step threw", err);
+        void import("@/lib/errorLogger")
+          .then(({ report }) => report(err, { severity: "error", tags: { area: "auth", op: "signOutAfter" } }))
+          .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
+      }
       return result;
     } finally {
       pending.current = false;

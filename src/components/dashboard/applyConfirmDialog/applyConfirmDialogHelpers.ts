@@ -25,4 +25,4 @@ export function pitchTemplateKey(userId: string | null | undefined): string | nu
  * pitch reached another's form. Per-job unscoped drafts
  * (`helpr_apply_pitch_draft_<jobId>`) are simply never read again.
  */
-export const LEGACY_UNSCOPED_PITCH_KEYS = ["helpr_pitch_template", "helpr_apply_pitch_draft"] as const;
+export const OLD_SHARED_PITCH_KEYS = ["helpr_pitch_template", "helpr_apply_pitch_draft"] as const;

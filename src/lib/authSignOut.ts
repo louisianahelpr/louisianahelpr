@@ -4,6 +4,7 @@ import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
@@ -32,6 +33,7 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // 2026-09-12 (another browser's refresh then returned refresh_token_not_found).
   // "Sign Out Everywhere" in SecurityTab passes scope "global" explicitly.
   const options: SignOutOptions = { scope: "local", ...requested };
+  markIntentionalSignOut();
   try {
     const { data } = await supabase.auth.getUser();
     if (data.user) await unregisterPushOnSignOut(data.user.id);
@@ -79,6 +81,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // them.
   let result: Awaited<ReturnType<typeof supabase.auth.signOut>>;
   try {
+    // Again here: the push cleanup above can take a while on a slow line.
+    markIntentionalSignOut();
     result = await supabase.auth.signOut(options);
   } catch (err) {
     console.error("[signOut] auth.signOut() threw — clearing the session by hand", err);

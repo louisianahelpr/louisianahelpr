@@ -7,6 +7,8 @@
  * with it. The server half of each step's order is proven by the PGlite files
  * named in the steps (jobStepOrder, confirmRepost, backoutNotices,
  * jobTwoHoursNotice).
+ *
+ * @mutate src/components/job-card/jobStatusLine.ts |   on_the_way: (n) => `${firstName(n)} is on the way`, |   on_the_way: (n) => `${firstName(n)} is coming`,
  */
 import { describe, expect, it } from "vitest";
 import { appliedActivityBucket, postedActivityBucket } from "@/components/job-card/activityFilters";

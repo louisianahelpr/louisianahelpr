@@ -67,5 +67,7 @@ export const stripeBadge = (profile: Profile) => {
   if (s === "pending" || s === "processing") {
     return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Checking</Badge>;
   }
-  return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Not Verified</Badge>;
+  // "Stripe ID", not a bare "Not Verified" (owner, 2026-10-08: "i thought that
+  // meant email and i was confused"): it is the Stripe ID check, and email is not it.
+  return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe ID Not Verified</Badge>;
 };

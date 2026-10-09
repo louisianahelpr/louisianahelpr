@@ -26,8 +26,8 @@ function allowedStatuses(): string[] {
 
 const label = (p: Partial<Profile>) => render(stripeBadge(p as Profile)).container.textContent ?? "";
 const EXPECTED: Record<string, string> = {
-  not_started: "Not Verified",
-  skipped: "Not Verified",
+  not_started: "Stripe ID Not Verified",
+  skipped: "Stripe ID Not Verified",
   pending: "Stripe Checking",
   processing: "Stripe Checking",
   verified: "ID Verified",
@@ -48,7 +48,7 @@ describe("admin ID badge states", () => {
       expect(EXPECTED[s], `no expected badge for new idv_status "${s}"`).toBeDefined();
       expect(label({ idv_status: s }), `idv_status=${s}`).toContain(EXPECTED[s]);
     }
-    expect(label({ idv_status: null })).toContain("Not Verified");
+    expect(label({ idv_status: null })).toContain("Stripe ID Not Verified");
   });
 
   it("never implies the user submitted an ID to us", () => {

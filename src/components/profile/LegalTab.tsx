@@ -35,10 +35,10 @@ import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
  * LANDING tab (`profileLanding/SettingsSection.tsx`) and `/account-banned` —
  * and there is a third account state that can reach neither.
  *
- * `ProtectedRoute`'s "Big 7" completeness gate (full_name, avatar_url,
+ * `ProtectedRoute`'s completeness gate (PROFILE_GATE_FIELDS: full_name,
  * date_of_birth, phone, location) runs on every protected route. `/profile` is
  * no exception: it is bounced to `/complete-profile` when any of
- * those five is blank. The only escape is `isProfileGateAllowed()`, which
+ * those is blank. The only escape is `isProfileGateAllowed()`, which
  * permits exactly one profile address — `/profile` with `?tab=legal`, i.e. this
  * screen. So an account with an incomplete profile had to supply MORE personal
  * data (a photo, a date of birth, a phone number) before it was allowed to

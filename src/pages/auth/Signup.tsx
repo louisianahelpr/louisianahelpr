@@ -173,11 +173,9 @@ const Signup = () => {
 
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
-    // Avatar and phone are REQUIRED (owner decision 2026-08-29, reversing the
-    // prior "deferred to keep signup under a minute" choice) — both carry a
-    // red asterisk on their labels, so the validator must actually enforce
-    // them, same as DOB below. Bio remains optional/deferred.
-    if (!avatarFile) errors.avatar = "Add a profile photo";
+    // Phone is REQUIRED. The photo is OPTIONAL here (owner, 2026-10-09: the
+    // required photo was where real sign-ups stopped); usePhotoPrompt (src/components/PhotoPrompt.tsx) asks
+    // for it before the first Apply or Post instead. Bio remains deferred.
     if (!phone.trim()) {
       errors.phone = "Add your phone number";
     } else if (phone.replace(/\D/g, "").length < 10) {
@@ -192,8 +190,8 @@ const Signup = () => {
       errors.dateOfBirth = "You'll need to be 18 or older to join.";
     }
     // City is REQUIRED (owner decision 2026-08-29) — collecting it here means
-    // an email signup satisfies the full CompleteProfile gate (name, photo,
-    // DOB, phone, city) and skips /complete-profile entirely; only Google/
+    // an email signup satisfies the full CompleteProfile gate (name, DOB,
+    // phone, city; the photo left the gate 2026-10-09) and skips /complete-profile entirely; only Google/
     // Apple sign-ins, which never see this step, still land on it.
     if (!location.trim()) errors.location = "Add your city";
     // ZIP is REQUIRED as of 2026-09-05 (owner). It is the ONLY input that

@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 601,
-    "files": 153,
-    "rendering": 574,
-    "suppressedByPolicy": 27,
+    "calls": 604,
+    "files": 154,
+    "rendering": 576,
+    "suppressedByPolicy": 28,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 39,
-      "toast.error": 474,
+      "toast.error": 476,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 31,
+      "toast.success": 32,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 321,
+      "literal": 323,
       "template": 77,
-      "dynamic": 243,
+      "dynamic": 244,
       "jsx": 0
     }
   },
@@ -809,6 +809,46 @@
         "text": "userFacingError(err, \"We couldn't reset your account just now — try again in a moment.\")"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/PhotoPrompt.tsx",
+      "line": 100,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "uploaded ? mutationErrorMessage(err, \"Photo uploaded, but couldn't pin it to your profile. Try again?\") : mutationErrorMessage(err, \"Couldn't upload your photo. Try again, or tap Not Now.\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, \"Photo uploaded, but couldn't pin it to your profile. Try again?\")"
+          },
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, \"Couldn't upload your photo. Try again, or tap Not Now.\")"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoPrompt.tsx",
+      "line": 112,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your new photo is saved, but we couldn't remove the previous one. It may still be visible. Change your photo again from your profile."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoPrompt.tsx",
+      "line": 114,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Photo added"
+      },
+      "renders": false
     },
     {
       "file": "src/components/PhotoProof.tsx",
@@ -2998,7 +3038,7 @@
     },
     {
       "file": "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
-      "line": 235,
+      "line": 237,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -4622,7 +4662,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 325,
+      "line": 321,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4632,7 +4672,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 433,
+      "line": 428,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4642,7 +4682,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 489,
+      "line": 484,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4752,7 +4792,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 274,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4762,7 +4802,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 294,
+      "line": 292,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4772,7 +4812,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 295,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4782,7 +4822,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 296,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4792,7 +4832,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 309,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4802,7 +4842,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 394,
+      "line": 392,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4812,7 +4852,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 402,
+      "line": 400,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4822,7 +4862,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 450,
+      "line": 448,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4832,7 +4872,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 472,
+      "line": 470,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4842,7 +4882,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 533,
+      "line": 531,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

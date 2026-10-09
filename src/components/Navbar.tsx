@@ -35,6 +35,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
   // native + narrow viewports, so this only suppresses the genuine overlap.
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
+  const getStartedTo = location.pathname === "/browse" ? "/signup" : "/browse";
   const railOwnsNav = isWebDesktop && !!user && isDesktopRailRoute(location.pathname);
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
@@ -164,10 +165,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   className="rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                   style={{ color: "hsl(var(--parchment))" }}
                 >
+                  {/* Browse first (owner, 2026-10-09): Get Started opens the
+                      job list, no account needed; sign-up is asked for at
+                      Apply or Post. ON the job list it is the sign-up, so it
+                      never links to the page already open. */}
                   <Link
-                    to="/signup"
-                    onMouseEnter={() => prefetchRoute("/signup")}
-                    onFocus={() => prefetchRoute("/signup")}
+                    to={getStartedTo}
+                    onMouseEnter={() => prefetchRoute(getStartedTo)}
+                    onFocus={() => prefetchRoute(getStartedTo)}
                   >
                     Get Started
                   </Link>

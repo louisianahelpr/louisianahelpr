@@ -909,20 +909,16 @@ test.describe("My Posts — card density + header", () => {
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
-      /* The tab row sits behind a chevron next to search. On a phone it opens
-         FOLDED on the default filter (`needs_you`) and OPEN on every other
-         filter (owner, 2026-09-25: "This should open with the chevrons
-         collapsed. Not expanded."), so an active non-default filter is never
-         hidden. The state is asserted BEFORE touching anything, then the
-         default is pressed open to read its tab. At desktop width the tabs
-         sit in the header row and there is no chevron. */
+      /* The tab row sits behind a chevron next to search. On a phone it ALWAYS
+         opens FOLDED, whatever the filter (owner, 2026-10-08: "Post and job at
+         the top should open collapsed for their top panels"). The state is
+         asserted BEFORE touching anything, then the row is pressed open to read
+         its tab. At desktop width the tabs sit in the header row and there is
+         no chevron. */
       const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
       if (await toggle.count()) {
-        expect(
-          await toggle.getAttribute("aria-expanded"),
-          `filter=${filter}: the phone tab row opens ${filter === "needs_you" ? "folded on the default filter" : "open on a non-default filter"}`,
-        ).toBe(filter === "needs_you" ? "false" : "true");
-        if (filter === "needs_you") await toggle.click();
+        expect(await toggle.getAttribute("aria-expanded"), `filter=${filter}: the phone tab row opens folded`).toBe("false");
+        await toggle.click();
       }
 
       const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });

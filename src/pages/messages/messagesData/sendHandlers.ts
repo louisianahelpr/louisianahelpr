@@ -484,7 +484,7 @@ export function createSendHandlers({
     // path (a user-typed "📍" prefix must not exempt a message).
     // A "Louisiana Helpr Team" thread is a support conversation: sharing a
     // phone number there is not off-platform dealing (the server's scanner
-    // skips team rows too, migration 20261009142834).
+    // skips team rows too, migration 20261009223503).
     const skipScan = opts?.isLocationShare === true || isTeamThreadKey(activeConvo.jobId);
 
     if (!skipScan && content.trim()) {

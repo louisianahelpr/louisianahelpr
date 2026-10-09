@@ -15,7 +15,7 @@ import {
 // The "Louisiana Helpr Team" thread (owner, 2026-10-09: an admin messages a
 // user directly from the User Profile dialog; two-way). Its rows have NO job:
 // messages.job_id IS NULL, team_thread_user_id = the user
-// (supabase/migrations/20261009142834_team_thread_direct_messages.sql). The
+// (supabase/migrations/20261009223503_team_thread_direct_messages.sql). The
 // client carries such a thread under a sentinel `team:<user>` job key.
 //
 // THE CLASS this guards: a job-less thread reaching a path keyed on a job.
@@ -32,8 +32,8 @@ import {
 // @mutate src/lib/archivedConversations.ts | if (!userId \|\| isTeamThreadKey(jobId)) return;\n  const key = conversationKey(jobId, otherUserId);\n  const archivedAt | if (!userId) return;\n  const key = conversationKey(jobId, otherUserId);\n  const archivedAt
 // @mutate src/lib/threadMutes.ts | if (isTeamThreadKey(jobId)) return false; | if (false) return false;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (teamUser !== null) {\n      await dispatchTeamMessage(optimistic, teamUser); | if (false) {\n      await dispatchTeamMessage(optimistic, teamUser);
-// @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
-// @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql | IF NOT COALESCE(public.has_role(v_admin, 'admin'::public.app_role), false) THEN | IF false THEN
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql | IF NOT COALESCE(public.has_role(v_admin, 'admin'::public.app_role), false) THEN | IF false THEN
 
 const REPO = join(__dirname, "../..");
 const read = (p: string) => readFileSync(join(REPO, p), "utf8");
@@ -155,7 +155,7 @@ describe("server: who may write a team-thread row (newest definitions)", () => {
   });
 
   it("neither is executable by anon, and a job-less row needs a team thread", () => {
-    const mig = blankSqlComments(read("supabase/migrations/20261009142834_team_thread_direct_messages.sql"));
+    const mig = blankSqlComments(read("supabase/migrations/20261009223503_team_thread_direct_messages.sql"));
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.admin_send_team_message\(uuid, text, uuid\) FROM PUBLIC, anon;/);
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.send_team_reply\(text, uuid\) FROM PUBLIC, anon;/);
     expect(mig).toMatch(/CHECK \(\(job_id IS NULL\) <> \(team_thread_user_id IS NULL\)\)/);

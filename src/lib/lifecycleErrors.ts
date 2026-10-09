@@ -434,7 +434,7 @@ export const RPC_ERROR_COPY = {
   admin_release_payout_hold: {
     admin_only: "Only admins can release a payout hold.",
   },
-  // The "Louisiana Helpr Team" thread (20261009142834): the admin's message
+  // The "Louisiana Helpr Team" thread (20261009223503): the admin's message
   // (AdminMessageUserDialog, and a reply typed in the thread) and the user's reply.
   admin_send_team_message: {
     admin_only: "Only admins can send this. Check your admin role.",

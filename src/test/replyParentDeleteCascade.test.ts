@@ -13,9 +13,9 @@
  * reply_to_id or edit someone else's message).
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql |   IF pg_trigger_depth() > 1\n     AND OLD.reply_to_id IS NOT NULL | IF OLD.reply_to_id IS NOT NULL
-// @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql |      AND NOT EXISTS (SELECT 1 FROM public.messages p WHERE p.id = OLD.reply_to_id)\n |      AND true\n
-// @mutate supabase/migrations/20261009142834_team_thread_direct_messages.sql |      AND (to_jsonb(NEW) - 'reply_to_id') = (to_jsonb(OLD) - 'reply_to_id')\n |      AND true\n
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql |   IF pg_trigger_depth() > 1\n     AND OLD.reply_to_id IS NOT NULL | IF OLD.reply_to_id IS NOT NULL
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql |      AND NOT EXISTS (SELECT 1 FROM public.messages p WHERE p.id = OLD.reply_to_id)\n |      AND true\n
+// @mutate supabase/migrations/20261009223503_team_thread_direct_messages.sql |      AND (to_jsonb(NEW) - 'reply_to_id') = (to_jsonb(OLD) - 'reply_to_id')\n |      AND true\n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

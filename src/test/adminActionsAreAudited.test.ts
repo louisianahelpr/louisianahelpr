@@ -85,7 +85,7 @@ const SQL_EXEMPT: Readonly<Record<string, string>> = {
   prevent_self_escalation:
     "BEFORE trigger on user_roles that REFUSES a non-admin role write; the admin grant it lets through is audited by admin-user-actions grant_admin / audit_role_changes.",
   send_team_reply:
-    "a USER's own reply in their \"Louisiana Helpr Team\" thread (20261009142834), not an admin action: has_role(…, 'admin') only picks which admin RECEIVES the reply (the last staff member who wrote and still holds the role). The staff side, admin_send_team_message, writes admin_audit_log.",
+    "a USER's own reply in their \"Louisiana Helpr Team\" thread (20261009223503), not an admin action: has_role(…, 'admin') only picks which admin RECEIVES the reply (the last staff member who wrote and still holds the role). The staff side, admin_send_team_message, writes admin_audit_log.",
 };
 
 // ── 2. Edge functions ───────────────────────────────────────────────────────

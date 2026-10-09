@@ -5,7 +5,7 @@
 // The message lands in the user's Messages as a "Louisiana Helpr Team" thread
 // and fires the normal new-message notification; they can reply there. Written
 // by the admin-only RPC `admin_send_team_message` (migration
-// 20261009142834_team_thread_direct_messages.sql), which also writes the
+// 20261009223503_team_thread_direct_messages.sql), which also writes the
 // admin_audit_log row, so this dialog does not log a second one. The whole
 // conversation lives at /messages?teamThread=<user> for every admin.
 

@@ -423,7 +423,7 @@ export function ChatComposer({
         }}
         onTyping={broadcastTyping}
         // A team thread is text only: attachment storage paths are job-scoped
-        // and the team RPCs take text (migration 20261009142834).
+        // and the team RPCs take text (migration 20261009223503).
         textOnly={!!activeConvo.teamThread}
         jobId={activeConvo.jobId}
         senderId={userId || undefined}

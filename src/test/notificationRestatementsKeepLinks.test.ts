@@ -59,7 +59,7 @@ const INTENDED_LINK_CHANGES = new Set([
   // 2026-10-09: a "Louisiana Helpr Team" thread row (no job) links to
   // '/messages?teamThread=<user>&userId=<sender>'; the job thread's
   // '/messages?jobId=…&userId=…' link is unchanged beside it (nothing gone).
-  "20261009142834_team_thread_direct_messages.sql::notify_message_recipient",
+  "20261009223503_team_thread_direct_messages.sql::notify_message_recipient",
   // Q194: '/earnings' (a retired redirect) -> '/profile?tab=earnings'.
   `${Q194}::notify_helper_on_tip`,
   `${Q194}::notify_on_payment_escrowed`,

@@ -4,7 +4,7 @@
  *
  * Every other thread is keyed on a job. A team-thread row has none
  * (`messages.job_id` NULL, `team_thread_user_id` = the user whose thread it is;
- * migration 20261009142834_team_thread_direct_messages.sql). The Messages page
+ * migration 20261009223503_team_thread_direct_messages.sql). The Messages page
  * keys threads by `${jobId}_${otherUserId}` throughout, so a team row is given a
  * SENTINEL job id at the moment it enters the client (`normalizeMessageRow`):
  * `team:<userId>`. It is never a uuid, so any job-scoped server call that is

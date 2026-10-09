@@ -55,7 +55,7 @@ export const WRITE_RPC = new Set([
   "admin_resolve_ban_evasion_match",
   // 2026-10-09: an admin's direct message to a user (Louisiana Helpr Team
   // thread). Writes messages, notifications and admin_audit_log (migration
-  // 20261009142834, plpgsql volatile).
+  // 20261009223503, plpgsql volatile).
   "admin_send_team_message",
 ]);
 

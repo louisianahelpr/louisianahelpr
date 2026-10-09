@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-09T02:13Z",
+  "measured_at": "2026-10-09T23:21Z",
   "issues": {
     "readable": true,
     "open": [
@@ -55,13 +55,18 @@
         "label": "nightly-red"
       },
       {
-        "number": 2630,
-        "title": "nightly-red: main: E2E happy-path smoke",
+        "number": 2660,
+        "title": "nightly-red: staleness-watch",
         "label": "nightly-red"
       },
       {
-        "number": 2631,
-        "title": "nightly-red: main: Vitest",
+        "number": 2665,
+        "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2668,
+        "title": "nightly-red: db-backup",
         "label": "nightly-red"
       }
     ]
@@ -94,12 +99,12 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
+        "title": "nightly-red: staleness-watch",
+        "issue": 2660
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -115,22 +120,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
-        "source_kind": "error_logs",
-        "source": "push-tokens-empty",
-        "status": "open",
-        "title": "no device can receive a push",
         "issue": null
       },
       {
@@ -150,12 +139,12 @@
         "issue": 2244
       },
       {
-        "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: main: e2e happy-path smoke",
-        "issue": null
+        "title": "nightly-red: db-drift-detect",
+        "issue": 2665
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -190,6 +179,14 @@
         "issue": 2615
       },
       {
+        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-backup",
+        "issue": 2668
+      },
+      {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -198,28 +195,12 @@
         "issue": 2366
       },
       {
-        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
-        "source_kind": "workflow",
-        "source": "uptime",
-        "status": "open",
-        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
-        "issue": null
-      },
-      {
         "fingerprint": "5b3c79ac5eb7674118e5fe66b79204e2",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/jobs · error screen shown: we couldn't load this.",
         "issue": null
-      },
-      {
-        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
-        "source_kind": "nightly_red",
-        "source": "prod-errors",
-        "status": "open",
-        "title": "prod-errors: real users are hitting error screens",
-        "issue": 2478
       },
       {
         "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
@@ -270,18 +251,328 @@
         "issue": null
       },
       {
+        "fingerprint": "dd274a9b4b5744d5de58f13b0d44e430",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
+        "issue": null
+      },
+      {
+        "fingerprint": "cd2127b53ee793651acbc793ffa0a4c6",
+        "source_kind": "sentry",
+        "source": "sentry:cn(assets/Dashboard-Fh8VHeDN)",
+        "status": "open",
+        "title": "error: dashboard.ctx sub-query failed: applications: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "144d5faeaf8f1219d9de2aa26832ee45",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: permission denied for table backout_notices",
+        "issue": null
+      },
+      {
+        "fingerprint": "de37efb6fa8eb03d3529253caf92f7ca",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ErrorState-CvCAqbbI)",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load this.",
+        "issue": null
+      },
+      {
         "fingerprint": "21cbec5b98d2b30b73ce59d970481743",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/posts · error screen shown: we couldn't load this.",
         "issue": null
+      },
+      {
+        "fingerprint": "41fbf03586618aba3c90d9b5fd377c75",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: permission denied for table job_schedule_change_requests",
+        "issue": null
+      },
+      {
+        "fingerprint": "d1585655d567eb1b6f2111f2cc9bf8e5",
+        "source_kind": "sentry",
+        "source": "sentry:O(assets/sentry-zMRIyGwp)",
+        "status": "open",
+        "title": "error: permission denied for function get_job_offer_targets",
+        "issue": null
+      },
+      {
+        "fingerprint": "d2ada3522c22305c1d0f9c8b84a7c538",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "e067480712413dc7e3b99490c9b7c4f6",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "311dfd492bc28babdec51e51f5eb16ca",
+        "source_kind": "sentry",
+        "source": "sentry:Rd(assets/app-shared-DUoNbpYC)",
+        "status": "open",
+        "title": "error: zip # resolved to no louisiana parish",
+        "issue": null
+      },
+      {
+        "fingerprint": "d5cc10e1fb8632f6007d8d61ec03fdd1",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
+        "issue": null
+      },
+      {
+        "fingerprint": "bc6810c9f1abc5a4d47c91b5052650be",
+        "source_kind": "sentry",
+        "source": "sentry:cn(assets/Dashboard-0mtZr9xD)",
+        "status": "open",
+        "title": "error: dashboard.ctx sub-query failed: applications: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "13c460ab330a7ebb509602769f0e692f",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ErrorState-Bx80Picb)",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load this.",
+        "issue": null
+      },
+      {
+        "fingerprint": "e306dea6b0449d7c358e93938a665863",
+        "source_kind": "sentry",
+        "source": "sentry:O(assets/sentry-DVASazR2)",
+        "status": "open",
+        "title": "error: permission denied for function get_job_offer_targets",
+        "issue": null
+      },
+      {
+        "fingerprint": "e81647556a56edd4bb5774fd8aef2aea",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table referral_codes",
+        "issue": null
+      },
+      {
+        "fingerprint": "5d35922623b52f4918670fdc412fe211",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/supabase-B9flpjD6)",
+        "status": "open",
+        "title": "functionshttperror: edge function returned a non-#xx status code",
+        "issue": null
+      },
+      {
+        "fingerprint": "c1ad0c081216f90411b82cd1c4e43267",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "b7cb40a7f7128afa42a94f3cbd104451",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "d3424c5d01adbc086e24a6516bd0ca5e",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table job_schedule_change_requests",
+        "issue": null
+      },
+      {
+        "fingerprint": "6927babb2c1aa0eb8238dd39dab9ff62",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
+        "status": "open",
+        "title": "error: permission denied for table recurring_visit_payments",
+        "issue": null
+      },
+      {
+        "fingerprint": "99390a68ded71e6b94ed26b0ccc27b60",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/supabase-B9flpjD6)",
+        "status": "open",
+        "title": "functionsfetcherror: failed to send a request to the edge function",
+        "issue": null
+      },
+      {
+        "fingerprint": "3a0d59ca52d8b710a720e366c95a17c5",
+        "source_kind": "sentry",
+        "source": "sentry:Vr(assets/supabase-B9flpjD6)",
+        "status": "open",
+        "title": "authapierror: captcha protection: request disallowed (no captcha_token found)",
+        "issue": null
+      },
+      {
+        "fingerprint": "27c479ef17f82b10572c52763447ddfb",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
+        "issue": null
+      },
+      {
+        "fingerprint": "ed4c78a49f57631c633d3aee82dd8b48",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/profile · error screen shown: we couldn't load your payout data.",
+        "issue": null
+      },
+      {
+        "fingerprint": "27437b0c4f14d33f6d15f3891ae04503",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "ab736843373b02b75ec65721e6c8a0bf",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for function get_my_saved_helpers",
+        "issue": null
+      },
+      {
+        "fingerprint": "4b5ace7af16555b478ce897b15a55b52",
+        "source_kind": "sentry",
+        "source": "sentry:du(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: missing authorization header",
+        "issue": null
+      },
+      {
+        "fingerprint": "a75fb3fba970e81ac4e4ad809700c7f1",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/profile · error screen shown: we couldn't load what you've spent.",
+        "issue": null
+      },
+      {
+        "fingerprint": "c47e76e53f84c16be4ea3d7be6b8a925",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ErrorState-X239NUZX)",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your payout data.",
+        "issue": null
+      },
+      {
+        "fingerprint": "6471854dcd820342246ebfc0a3f7d2f7",
+        "source_kind": "sentry",
+        "source": "sentry:cn(assets/Dashboard-CemdAvFV)",
+        "status": "open",
+        "title": "error: dashboard.ctx sub-query failed: applications: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "f3c752b3230f1eba7148311c26382a0d",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table referral_codes",
+        "issue": null
+      },
+      {
+        "fingerprint": "bd4c3063280bfb051c6a46786bf2469d",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table job_schedule_change_requests",
+        "issue": null
+      },
+      {
+        "fingerprint": "ba752f27944d7badb7471a6feee67808",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ErrorState-X239NUZX)",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load this.",
+        "issue": null
+      },
+      {
+        "fingerprint": "ed3f34acc0e12f4b230f3e476ae89208",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table backout_notices",
+        "issue": null
+      },
+      {
+        "fingerprint": "03faea228969686aa13172c5eedaff6c",
+        "source_kind": "sentry",
+        "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
+        "status": "open",
+        "title": "error: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "8ad756b6da760f5bfb117a3507aff0eb",
+        "source_kind": "sentry",
+        "source": "sentry:O(assets/sentry-DkNd1At9)",
+        "status": "open",
+        "title": "error: permission denied for table login_history",
+        "issue": null
+      },
+      {
+        "fingerprint": "d1f8391b44ec63cd3cc15a00cfb9ffd8",
+        "source_kind": "sentry",
+        "source": "sentry:Object.callback(assets/main-ChTLiwi6)",
+        "status": "open",
+        "title": "error: unexpected sign-out",
+        "issue": null
+      },
+      {
+        "fingerprint": "8c46dc7330fc7c0be0c5c613fa9cac0f",
+        "source_kind": "sentry",
+        "source": "sentry:O(assets/sentry-BSkyBh_y)",
+        "status": "open",
+        "title": "error: duplicate key value violates unique constraint \"referral_codes_user_id_key\"",
+        "issue": null
+      },
+      {
+        "fingerprint": "b4de6dae32de47f5f93ba586d603a826",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/ · boot stalled #s on the startup screen (/assets/index-cj3wo4es.js)",
+        "issue": null
+      },
+      {
+        "fingerprint": "02a88ee4875fd5744674856fec734f8f",
+        "source_kind": "sentry",
+        "source": "sentry:sendDataToNative(iabjs://navigation_performance_logger_android)",
+        "status": "open",
+        "title": "error: error invoking postmessage: java object is gone",
+        "issue": null
       }
     ]
   },
   "mirrored": {
-    "bus ME-019": "Q1472",
-    "bus ME-043": "Q1473",
     "bus TC-004": "Q226",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
@@ -297,47 +588,88 @@
     "issue #2462": "Q1430",
     "issue #2501": "Q1426",
     "issue #2580": "Q1513",
-    "issue #2587": "Q1506",
     "issue #2589": "Q1507",
     "issue #2596": "Q1510",
     "issue #2601": "Q1427",
     "issue #2604": "Q1522",
     "issue #2615": "Q1524",
-    "issue #2623": "Q1576",
     "issue #2626": "Q1577",
     "issue #2630": "Q1577",
     "issue #2631": "Q1513",
+    "issue #2660": "Q1507",
+    "issue #2665": "Q1510",
+    "issue #2668": "Q1595",
+    "ledger 02a88ee4875f": "Q1634",
+    "ledger 03faea228969": "Q1629",
     "ledger 06c124e99b6d": "Q1583",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
+    "ledger 13c460ab330a": "Q1607",
+    "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 21cbec5b98d2": "Q1584",
+    "ledger 27437b0c4f14": "Q1619",
+    "ledger 27c479ef17f8": "Q1617",
+    "ledger 311dfd492bc2": "Q1604",
+    "ledger 3a0d59ca52d8": "Q1616",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 3a55e8af0908": "Q1577",
     "ledger 3a801ee231b0": "Q1580",
     "ledger 41f88aeb227f": "Q1525",
+    "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
+    "ledger 4b5ace7af165": "Q1621",
     "ledger 54b8c187374a": "Q1524",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 5b3c79ac5eb7": "Q1581",
+    "ledger 5d35922623b5": "Q1610",
     "ledger 604d92b9bafb": "Q1582",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
+    "ledger 6471854dcd82": "Q1624",
+    "ledger 6927babb2c1a": "Q1614",
     "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 8018e82cb167": "Q1510",
     "ledger 88ecf6e765df": "Q1426",
+    "ledger 8a5eda1d93db": "Q1595",
+    "ledger 8ad756b6da76": "Q1630",
+    "ledger 8c46dc7330fc": "Q1632",
+    "ledger 99390a68ded7": "Q1615",
     "ledger a5d62d53b6a4": "Q1435",
+    "ledger a75fb3fba970": "Q1622",
     "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
+    "ledger ab736843373b": "Q1620",
+    "ledger b4de6dae32de": "Q1633",
+    "ledger b7cb40a7f712": "Q1612",
+    "ledger ba752f27944d": "Q1627",
+    "ledger bc6810c9f1ab": "Q1606",
+    "ledger bd4c3063280b": "Q1626",
+    "ledger c1ad0c081216": "Q1611",
+    "ledger c47e76e53f84": "Q1623",
+    "ledger cd2127b53ee7": "Q1597",
+    "ledger d1585655d567": "Q1601",
+    "ledger d1f8391b44ec": "Q1631",
+    "ledger d2ada3522c22": "Q1602",
+    "ledger d3424c5d01ad": "Q1613",
+    "ledger d5cc10e1fb86": "Q1605",
     "ledger db0fb15c4ec3": "Q1507",
+    "ledger dd274a9b4b57": "Q1596",
+    "ledger de37efb6fa8e": "Q1599",
+    "ledger e06748071241": "Q1603",
     "ledger e275ee325abe": "Q1522",
+    "ledger e306dea6b044": "Q1608",
     "ledger e49f68d9cbd6": "Q1475",
+    "ledger e81647556a56": "Q1609",
+    "ledger ed3f34acc0e1": "Q1628",
+    "ledger ed4c78a49f57": "Q1618",
     "ledger ef92a9f31bed": "Q1476",
     "ledger f08d7f0fc323": "Q1512",
     "ledger f22e3275d50d": "Q1513",
+    "ledger f3c752b3230f": "Q1625",
     "ledger fad6897fcfae": "Q1438",
     "ledger fdf163a422f2": "Q1482"
   }

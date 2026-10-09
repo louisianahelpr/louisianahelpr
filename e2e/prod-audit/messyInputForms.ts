@@ -576,6 +576,16 @@ export const FORMS: FormSpec[] = [
     prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /restrict applications/i)(page); },
     covers: ["src/components/admin/RestrictApplicationsDialog.tsx"],
   },
+  {
+    // 2026-10-09: the admin's direct "Louisiana Helpr Team" message. The sweep
+    // types and never presses Send, so the test poster receives nothing.
+    name: "admin-message-user", url: "/admin?view=people&tab=all&test=show", as: "admin",
+    prepare: async (page) => {
+      await openAdminUserAction(emailFor("poster"), /^message$/i)(page);
+      await page.getByRole("textbox", { name: /message to/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/admin/AdminMessageUserDialog.tsx"],
+  },
   { name: "admin-job-refund", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^refund poster$/i), covers: ["src/components/admin/adminJobs/RefundJobDialog.tsx"] },
   { name: "admin-job-remove", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^remove job$/i), covers: ["src/components/admin/adminJobs/RemoveJobDialog.tsx"] },
   { name: "admin-job-override", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/manual override/i), covers: ["src/components/admin/adminJobs/StatusOverrideDialog.tsx"] },

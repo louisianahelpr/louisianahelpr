@@ -23,6 +23,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { classifySendRefusal } from "@/lib/messageSendRefusal";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { TEAM_THREAD_NAME, teamThreadLink } from "@/lib/teamThread";
 import { formatName } from "@/lib/utils";
@@ -36,14 +38,13 @@ interface AdminMessageUserDialogProps {
   onClose: () => void;
 }
 
-/** The server's refusal codes, in words an admin can act on. */
-function sendErrorCopy(message: string | undefined): string {
-  if (/admin_only/.test(message ?? "")) return "Only admins can send this. Check your admin role.";
-  if (/user_not_found/.test(message ?? "")) return "That account no longer exists.";
-  if (/cannot_message_self/.test(message ?? "")) return "You can't message your own account.";
-  if (/can't message this user/i.test(message ?? "")) return "This person has blocked your account, so the message can't be delivered.";
-  if (/too quickly/i.test(message ?? "")) return "You've sent a lot of messages this hour. Try again in a bit.";
-  return "Couldn't send that message. Try again.";
+/** The RPC's own codes read the shared copy (RPC_ERROR_COPY); the two
+ *  messages-table triggers that can also refuse it (block, send cap) say why. */
+function sendErrorCopy(error: unknown): string {
+  const copy = rpcErrorMessage("admin_send_team_message", error);
+  if (copy) return copy;
+  const refusal = classifySendRefusal(error as { code?: string; message?: string } | null);
+  return refusal?.toast ?? "Couldn't send that message. Try again.";
 }
 
 export function AdminMessageUserDialog({ profile, onClose }: AdminMessageUserDialogProps) {
@@ -81,7 +82,7 @@ export function AdminMessageUserDialog({ profile, onClose }: AdminMessageUserDia
       const landed = !error ? !!data?.id : (error as { code?: string }).code === "23505";
       if (!landed) {
         if (error) report(error, { severity: "warning", tags: { source: "AdminMessageUserDialog.send" } });
-        toast.error(sendErrorCopy(error?.message));
+        toast.error(sendErrorCopy(error));
         return;
       }
       const userId = profile.user_id;

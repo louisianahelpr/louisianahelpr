@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-09T01:07Z",
+  "measured_at": "2026-10-09T02:13Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,6 +53,16 @@
         "number": 2615,
         "title": "nightly-red: open-done-when",
         "label": "nightly-red"
+      },
+      {
+        "number": 2630,
+        "title": "nightly-red: main: E2E happy-path smoke",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2631,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red"
       }
     ]
   },
@@ -82,6 +92,14 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -188,6 +206,14 @@
         "issue": null
       },
       {
+        "fingerprint": "5b3c79ac5eb7674118e5fe66b79204e2",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/jobs · error screen shown: we couldn't load this.",
+        "issue": null
+      },
+      {
         "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
         "source_kind": "nightly_red",
         "source": "prod-errors",
@@ -226,6 +252,30 @@
         "status": "open",
         "title": "taxable job charged $# louisiana sales tax",
         "issue": null
+      },
+      {
+        "fingerprint": "604d92b9bafbaf2e2fba56db7333bf1e",
+        "source_kind": "user-report",
+        "source": "contact-support-guest",
+        "status": "open",
+        "title": "a user report (read it on /admin?view=health)",
+        "issue": null
+      },
+      {
+        "fingerprint": "06c124e99b6d17e98af7c353b5a8bd45",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:support_request",
+        "status": "open",
+        "title": "support: other",
+        "issue": null
+      },
+      {
+        "fingerprint": "21cbec5b98d2b30b73ce59d970481743",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/posts · error screen shown: we couldn't load this.",
+        "issue": null
       }
     ]
   },
@@ -255,10 +305,14 @@
     "issue #2615": "Q1524",
     "issue #2623": "Q1576",
     "issue #2626": "Q1577",
+    "issue #2630": "Q1577",
+    "issue #2631": "Q1513",
+    "ledger 06c124e99b6d": "Q1583",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
+    "ledger 21cbec5b98d2": "Q1584",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 3a55e8af0908": "Q1577",
     "ledger 3a801ee231b0": "Q1580",
@@ -266,6 +320,8 @@
     "ledger 43d77e26f272": "Q1429",
     "ledger 54b8c187374a": "Q1524",
     "ledger 54ef0bfdcec3": "Q1480",
+    "ledger 5b3c79ac5eb7": "Q1581",
+    "ledger 604d92b9bafb": "Q1582",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
     "ledger 764a6f7344b7": "Q1578",

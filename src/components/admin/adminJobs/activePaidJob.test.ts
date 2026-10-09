@@ -3,6 +3,7 @@
  * that were paid and be able to click to see how many applicants"; test jobs in
  * their own Test tab). Prod 2026-10-09: 4 active of 36 job rows.
  */
+// @mutate src/components/admin/adminJobs/adminJobsHelpers.ts |     job.is_seed !== true && |     true &&
 import { describe, expect, it } from "vitest";
 import { isActivePaidJob } from "./adminJobsHelpers";
 

@@ -3,6 +3,7 @@
  * "plz", saved as Lexi, pre-filled her father's application on the same
  * browser). The template and per-job drafts were keyed with no user in them.
  */
+// @mutate src/components/dashboard/applyConfirmDialog/applyConfirmDialogHelpers.ts | `helpr_pitch_template_${userId}` | "helpr_pitch_template"
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

@@ -11,6 +11,7 @@
  * supabase/functions without an explicit Authorization header; the inventory
  * is read from the source tree, so a new caller joins this check by existing.
  */
+// @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |             body: { jobId },\n            headers: {\n              Authorization: `Bearer |             body: { jobId },\n            headers: {\n              Authorization: `Token
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

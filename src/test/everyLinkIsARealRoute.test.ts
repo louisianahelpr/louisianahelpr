@@ -20,7 +20,7 @@
  */
 // @mutate src/lib/nativeLaunchRoute.ts | "/jobs", | "/my-jobs",
 // @mutate supabase/functions/review-nag-cron/index.ts | surface: "/jobs" | surface: "/activity"
-// @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/dashboard?job=' \|\| v_job.id::text;
+// @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/dashboard?job=' \|\| v_job.id::text;
 // @mutate public/.well-known/apple-app-site-association | { "/": "/posts", "comment" | { "/": "/earnings", "comment"
 // @mutate src/App.tsx | <Route path="/posts" element={ | <Route path="/posts-old" element={<Navigate to="/posts" />} /><Route path="/posts" element={
 import { describe, it, expect } from "vitest";

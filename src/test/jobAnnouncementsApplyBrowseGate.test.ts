@@ -31,7 +31,7 @@
  * Behaviour is proven in PGlite: src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs
  * (RED on the previous definitions with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.customer_id IS NOT NULL\n |
@@ -39,14 +39,14 @@
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1411 | OR true)\n    -- Q1411
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN | IF v_job.parish IS NULL THEN
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
  */
@@ -257,7 +257,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(enq).toContain("CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid);");
     // Q723: only a row an error dropped is re-queued; any other row still wins.
     expect(enq).toContain(
-      "ON CONFLICT (user_id, job_id) DO UPDATE SET source = 'instant', notify_at = EXCLUDED.notify_at, title = EXCLUDED.title, message = EXCLUDED.message, link = EXCLUDED.link, send_email = false, status = 'queued', drop_reason = NULL, settled_at = NULL, attempts = 0, retry_after = NULL WHERE public.job_match_queue.status = 'dropped' AND public.job_match_queue.drop_reason LIKE 'error:%' RETURNING id INTO v_id;",
+      "ON CONFLICT (user_id, job_id) DO UPDATE SET source = 'instant', notify_at = EXCLUDED.notify_at, title = EXCLUDED.title, message = EXCLUDED.message, link = EXCLUDED.link, send_email = true, status = 'queued', drop_reason = NULL, settled_at = NULL, attempts = 0, retry_after = NULL WHERE public.job_match_queue.status = 'dropped' AND public.job_match_queue.drop_reason LIKE 'error:%' RETURNING id INTO v_id;",
     );
     expect(enq).toContain("IF public.early_access_visible_at(v_uid, v_job.created_at) <= now() THEN");
   });
@@ -301,7 +301,8 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
 
   it("the parish send calls the gate, refuses a block either way, and claims the shared ledger (never twice)", () => {
     const d = body("deliver_parish_match_alert");
-    expect(d).toContain("IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN RETURN false;");
+    // Any parish since 2026-10-09 (owner): the browse gate alone decides.
+    expect(d).toContain("IF NOT public.job_announceable_to(v_job, p_user_id) THEN RETURN false;");
     expect(d).toContain(
       "WHERE (b.blocker_id = v_job.customer_id AND b.blocked_id = p_user_id) OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) ) THEN RETURN false;",
     );

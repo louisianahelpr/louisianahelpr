@@ -19,7 +19,6 @@
     "sql:public.notifications_fill_job_id": "EXISTS check that a job id is real before stamping notifications.job_id; no lifecycle decision.",
     "sql:public.notify_helper_application_viewed": "Reads job title for notification copy; no decision on job state.",
     "sql:public.notify_helper_on_tip": "Reads job title for notification copy after payment_status flips; no decision on job state.",
-    "sql:public.notify_helpers_on_job_post": "Fan-out of job-match notifications on the INSERTed job's own NEW values; jobs read is a candidate filter only.",
     "sql:public.notify_on_application": "Reads only title + customer_id (never change after posting) to address a notification; no status decision.",
     "sql:public.notify_schedule_change_expired": "Reads only the request's own row and the job's title + customer_id to address a notification after the caller already decided the outcome under the job's FOR UPDATE; no status decision.",
     "sql:public.notify_user_on_review": "Reads title + customer_id for notification copy; no decision on job state.",

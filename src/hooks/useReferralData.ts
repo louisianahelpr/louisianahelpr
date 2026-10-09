@@ -27,6 +27,11 @@ const generateCode = () => {
   return code;
 };
 
+/** The insert lost a race to another mint for the same user (not a code collision). */
+function isUserCodeTaken(err: { code?: string; message?: string }): boolean {
+  return err.code === "23505" && /referral_codes_user_id_key/.test(err.message ?? "");
+}
+
 export async function fetchReferralData(userId: string): Promise<ReferralData> {
   const [codeRes, creditsRes, referralsRes, profileRes] = await Promise.all([
     supabase.from("referral_codes").select("code").eq("user_id", userId).maybeSingle(),
@@ -60,10 +65,22 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
     // That is the ban working, not a fault: the page still renders without a
     // code and the account screen explains the ban, so it is not sent to Sentry
     // (Q302: otherwise every banned sign-in reported an error).
-    if (insertErr && !isAccountRestricted(insertErr)) {
-      report(insertErr, { context: { where: "referral_codes.insert", userId } });
+    // Two concurrent loads can each find no code and each mint one; the second
+    // insert then hits referral_codes_user_id_key (23505). That is not a
+    // fault: the user HAS a code, the other insert wrote it. Read it back
+    // instead of reporting and returning none (prod 2026-10-09, a new member:
+    // one code stored, one 23505 in error_logs).
+    if (insertErr && isUserCodeTaken(insertErr)) {
+      const { data: existing, error: rereadErr } = await supabase
+        .from("referral_codes").select("code").eq("user_id", userId).maybeSingle();
+      if (rereadErr) report(rereadErr, { context: { where: "referral_codes.reread", userId } });
+      referralCode = existing?.code ?? null;
+    } else {
+      if (insertErr && !isAccountRestricted(insertErr)) {
+        report(insertErr, { context: { where: "referral_codes.insert", userId } });
+      }
+      referralCode = inserted?.code ?? null;
     }
-    referralCode = inserted?.code ?? null;
   }
 
   return {

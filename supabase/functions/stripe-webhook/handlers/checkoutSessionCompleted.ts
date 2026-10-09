@@ -1180,8 +1180,18 @@ async function settleCheckoutSession(
       // so a failure here costs reach, not correctness. Logged, never thrown.
       {
         try {
+          // The Authorization header is set EXPLICITLY. supabase-js (2.117) sends
+          // an sb_secret_ key only as `apikey`, never as a Bearer, and
+          // instant-job-match only trusts `Authorization: Bearer <secret>`:
+          // measured on prod, every post-funding call from 2026-10-08 17:48Z
+          // to 2026-10-09 12:16Z came back 401 "Authentication required", so
+          // no funded job ever pushed to a nearby Helpr. Same shape as
+          // stripe-idv-webhook's call to send-account-status-email.
           const { error: matchError } = await supabase.functions.invoke("instant-job-match", {
             body: { jobId },
+            headers: {
+              Authorization: `Bearer ${(Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!}`,
+            },
           });
           if (matchError) {
             logStep("WARN: instant-job-match failed after funding", { jobId, error: matchError.message });

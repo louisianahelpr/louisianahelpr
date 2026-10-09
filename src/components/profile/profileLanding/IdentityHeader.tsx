@@ -200,8 +200,8 @@ export function IdentityHeader({
             )}
           </div>
 
-          {/* Tier + location, vertically centered against the avatar.
-              THE NAME IS NOT HERE ANY MORE (owner, 2026-09-20: "align the
+          {/* Name, tier + location, vertically centered against the avatar.
+              (History: the name left this column on 2026-09-20 — "align the
               landing title to x=72"). It used to be this column's `<h1>`, and
               the avatar in front of it is what set its indent: card gutter 24
               + the card's own `p-4` 17 + the 88px avatar + `gap-4` 16 = x=145,
@@ -225,6 +225,14 @@ export function IdentityHeader({
 
               Nothing else in this row moved. */}
           <div className="flex-1 min-w-0 text-left">
+            {/* The name is back beside the photo (owner, 2026-10-09: "move the
+                name back into the first box to the right of the profile pic");
+                the page title above now reads "Profile". */}
+            {displayName && (
+              <h2 className="font-display italic font-bold text-ds-20 leading-tight break-words" style={{ color: "hsl(var(--ink-deep))" }}>
+                {displayName}
+              </h2>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               {/* Subscription tier badge — only shown when tier is not free.
                   ONE derived chip. This was three copies of the same markup

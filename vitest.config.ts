@@ -62,10 +62,13 @@ export default defineConfig({
     // times with react-dom loading half-initialised ("ReactDOM.createPortal is
     // not a function", "Named export 'flushSync' not found") in files that pass
     // alone; under `forks` 4 of 4 runs were clean. Each file now gets its own
-    // process, capped at 2.
-    pool: "forks",
-    maxWorkers: Number(process.env.VITEST_MAX_THREADS) ||
-      Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
+    // process, capped at 2. LOCAL ONLY: CI never showed the react-dom failure,
+    // and there forks plus a real 2-worker cap pushed the coverage job past its
+    // 35-minute limit (PR #2666), so CI keeps threads and one worker per core.
+    pool: process.env.CI ? "threads" : "forks",
+    maxWorkers: process.env.CI
+      ? undefined
+      : Number(process.env.VITEST_MAX_THREADS) || Math.min(2, Math.max(1, Math.floor(cpus().length / 2))),
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     globalSetup: ["./src/test/gateLockGlobalSetup.ts"],

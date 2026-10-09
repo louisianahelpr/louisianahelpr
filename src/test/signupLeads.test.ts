@@ -76,7 +76,7 @@ describe("signup leads: database layer", () => {
 
   it("every lead function is closed to PUBLIC, anon and authenticated, and granted to nobody else", () => {
     for (const sig of FUNCTIONS) {
-      const esc = sig.replace(/[()]/g, "\\$&");
+      const esc = sig.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       expect(all, sig).toMatch(new RegExp(`REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+public\\.${esc}\\s+FROM\\s+PUBLIC,\\s*anon,\\s*authenticated\\s*;`, "i"));
       expect(all, sig).not.toMatch(new RegExp(`GRANT\\s+[^;]*ON\\s+FUNCTION\\s+public\\.${esc}\\s+TO\\s+[^;]*\\b(?:anon|authenticated|PUBLIC)\\b`, "i"));
       expect(newestBody(sig.split("(")[0]), sig).toMatch(/SECURITY\s+DEFINER[\s\S]*SET\s+search_path\s*=\s*''/i);

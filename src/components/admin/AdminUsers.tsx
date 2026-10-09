@@ -18,7 +18,9 @@ import { type Profile } from "./adminUserHelpers";
 import { useAdminUserSummaries } from "./useAdminUserSummaries";
 import { makeOpenProfile, type AdminProfileBan, type AdminProfileJob, type AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { makeAdminUserActions } from "./adminusers/useAdminUserActions";
-import { filterAndSortProfiles, getTabCounts, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
+import { filterAndSortProfiles, getTabCounts, isTestAccount, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,6 +54,19 @@ const AdminUsers = () => {
     // decorating every link with the value it would have had anyway.
     if (next === "all") params.delete("tab");
     else params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
+
+  // Test accounts (`is_seed`) are hidden from the list AND from every count on
+  // this screen unless the admin turns them on (owner, 2026-10-09: "hide all
+  // test accounts ... so i can see the actual number of real users"). The URL
+  // owns it, like the tab. They are still LOADED, so a ?user=<test id> deep
+  // link and the auto-restricted rail can still open one.
+  const showTest = searchParams.get("test") === "show";
+  const setShowTest = (next: boolean) => {
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set("test", "show");
+    else params.delete("test");
     setSearchParams(params, { replace: true });
   };
 
@@ -243,7 +258,15 @@ const AdminUsers = () => {
     strikesSummary,
     lastLoginSummary,
     paySummary,
+    includeTest: showTest,
   });
+  const testAccountCount = profiles.filter(isTestAccount).length;
+  // A search that only matches hidden test accounts must say so, not read as
+  // "no such user".
+  const hiddenTestMatches =
+    !showTest && filtered.length === 0 && testAccountCount > 0
+      ? filterAndSortProfiles({ profiles, tab, searchQuery, sortDir, strikesSummary, lastLoginSummary, paySummary, includeTest: true }).length
+      : 0;
 
   const isUnseen = (p: Profile) => !seenUserIds.has(p.user_id);
 
@@ -259,7 +282,7 @@ const AdminUsers = () => {
 
   // Tab counts — extracted into getTabCounts
   const { awaitingEmailCount, bannedCount, approvedCount, allCount } =
-    getTabCounts(profiles, isUnseen);
+    getTabCounts(profiles, isUnseen, showTest);
 
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
@@ -340,7 +363,8 @@ const AdminUsers = () => {
 
       {/* Search — panelled as the view's filter block, so the page reads
           header → filters → list like every other admin view. */}
-      <AdminCard title="Find a User" contentClassName="flex flex-col sm:flex-row gap-2">
+      <AdminCard title="Find a User" contentClassName="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
         {/* A magnifier and a placeholder. It had neither — just an aria-label —
             so it rendered as a bare empty pill with no indication of what it
             searched or that it was a search field at all. */}
@@ -395,6 +419,15 @@ const AdminUsers = () => {
             )}
           </SelectContent>
         </Select>
+        </div>
+        {/* Off by default: the counts above and below are real people only. */}
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="show-test-accounts" className="text-ds-13 font-medium text-foreground cursor-pointer">
+            Show test accounts{" "}
+            <span className="text-muted-foreground font-normal">({testAccountCount})</span>
+          </Label>
+          <Switch id="show-test-accounts" checked={showTest} onCheckedChange={setShowTest} />
+        </div>
       </AdminCard>
 
       {isUuid && (
@@ -435,7 +468,11 @@ const AdminUsers = () => {
           variant="inline"
           icon={Users}
           title="No users here"
-          body={`Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`}
+          body={
+            hiddenTestMatches > 0
+              ? `${hiddenTestMatches} test ${hiddenTestMatches === 1 ? "account matches" : "accounts match"}. Turn on Show test accounts to see ${hiddenTestMatches === 1 ? "it" : "them"}.`
+              : `Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`
+          }
         />
       ) : (
         // aria-busy until every per-row summary has settled: a row read before

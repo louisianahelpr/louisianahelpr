@@ -120,5 +120,10 @@
     "observable": "payout_schedule_freezes",
     "why": "One row per held Helpr whose Stripe payout schedule is frozen; requested_at/updated_at/verified_at move on every freeze, restore and 6-hourly re-check (Q1221)",
     "status": "NEVER"
+  },
+  "stuck-payment-check": {
+    "observable": "stuck_payment_stripe_checks",
+    "why": "Every 15 minutes it writes one row per unpaid job's Checkout Session with Stripe's answer (checked_at); no rows for an hour while unpaid jobs exist means it is not running",
+    "status": "NEVER"
   }
 }

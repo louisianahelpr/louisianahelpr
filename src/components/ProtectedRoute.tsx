@@ -4,6 +4,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
@@ -129,6 +131,37 @@ const ProtectedRoute = ({
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
   const location = useLocation();
   const [retrying, setRetrying] = useState(false);
+
+  // SESSION LOST ON A SIGNED-IN SCREEN (2026-10-09). Measured on prod twice in
+  // one morning (Kaci L. 02:47Z, Destiny O. 13:37Z, both minutes after their
+  // email-confirm landing on iPhone Safari): the device stopped sending its
+  // session, so every read came back "permission denied" while this screen
+  // still believed it was signed in, and the person sat on "We couldn't load
+  // this" for minutes. Root cause still open (see unexpectedSignOut.ts); this
+  // is the floor under it. A permission-denied on a protected screen with NO
+  // session left on the device goes to Log In, once, with a one-line note,
+  // and comes straight back here after.
+  useEffect(() => {
+    if (!user) return;
+    let fired = false;
+    const onDenied = () => {
+      if (fired) return;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (fired || data.session) return;
+        fired = true;
+        report(new Error("Session lost on a signed-in screen"), {
+          severity: "warning",
+          tags: { source: "ProtectedRoute.sessionLost", screen: location.pathname },
+          context: { path: location.pathname },
+        });
+        // The note rides in the URL, not storage: it belongs to this one
+        // redirect and cannot resurface on a later visit to /login.
+        window.location.replace(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}&signed_out=session-lost`);
+      });
+    };
+    window.addEventListener(PERMISSION_DENIED_EVENT, onDenied);
+    return () => window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
+  }, [user, location.pathname, location.search]);
 
   // Note: previously this component fired a `refresh()` on every mount,
   // doubling cold-start latency by issuing a redundant Supabase profile

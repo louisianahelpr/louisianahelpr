@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1038,
-  "latest": "20261008205730"
+  "count": 1040,
+  "latest": "20261009175007"
  },
  "functions": {
   "accept_application": [
@@ -2376,6 +2376,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "guard_profile_phone": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "handle_new_user": [

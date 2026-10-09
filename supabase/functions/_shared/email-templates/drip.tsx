@@ -207,3 +207,42 @@ export const ReEngagementEmail = ({
     </Text>
   </BaseLayout>
 )
+
+/**
+ * The ONE follow-up to someone who finished sign-up step 1 (email + password)
+ * but never completed (owner 2026-10-09, "Save it, follow up once"). Sent by
+ * signup-lead-reminders. Commercial: it asks a non-member to join, so it
+ * carries the signed one-click unsubscribe, which also stamps
+ * signup_leads.unsubscribed_at (email-unsubscribe).
+ */
+export const SignupLeadReminderEmail = ({
+  signupUrl,
+  unsubscribeUrl,
+}: {
+  signupUrl: string
+  /** The recipient's signed one-click unsubscribe URL. Always pass it. */
+  unsubscribeUrl: string
+}) => (
+  <BaseLayout
+    preheader="Your Louisiana Helpr account is one step away."
+    footer={
+      <MarketingFooter
+        unsubscribeUrl={unsubscribeUrl}
+        reasonLine="You're receiving this because you started signing up at louisianahelpr.com."
+      />
+    }
+  >
+    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
+      You're almost in.
+    </Heading>
+    <Text className="e-text" style={textStyle}>
+      You started signing up for Louisiana Helpr but didn't finish. It only takes a minute to
+      pick up where you left off, then you can post a job or find local work.
+    </Text>
+    <BrandButton href={signupUrl} label="Finish Signing Up" widthPx={220} />
+    <Text className="e-text" style={textStyle}>
+      This is the only reminder we'll send. If you didn't start signing up, you can ignore this
+      email.
+    </Text>
+  </BaseLayout>
+)

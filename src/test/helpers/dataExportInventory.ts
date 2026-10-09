@@ -334,6 +334,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "payout_schedule_freezes.helper_id": { reason: "Q1221: the server's queue of Stripe payout-schedule changes a payout hold makes; the hold itself is exported in payout_holds, and the schedule is the person's own Stripe setting, shown in their Stripe dashboard" },
   "payout_schedule_freezes.requested_by": { reason: "Q1221: the staff member who placed or released the hold" },
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },
+  "signup_leads.email": { reason: "owner 2026-10-09: the sign-up step-1 address saved BEFORE an account exists (service role only); for a member it holds only the address the account already exports plus a source and timestamps, and a completed row is deleted at 30 days" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },
   "identity_soft_fingerprints.user_id": { reason: "Q1416: ban-evasion data, one salted hash of name + date of birth from the person's own ID check (no name, date or document stored); exporting it would show a banned person which of their details is fingerprinted" },
   "payment_fingerprints.user_id": { reason: "Q1324: ban-evasion data, salted hashes of Stripe card/bank fingerprints (no card or account details); the cards and accounts themselves are the person's own in Stripe, and listing which are fingerprinted would show a banned person which payment method to swap" },

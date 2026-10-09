@@ -10,6 +10,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { useSignupLeadCapture } from "@/lib/signupLead";
 import { withTimeout } from "@/pages/auth/completeProfile/constants";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
@@ -88,6 +89,7 @@ const Signup = () => {
   // tap during validation got through the disabled check and fired a second
   // concurrent auth.signUp().
   const submittingRef = useRef(false);
+  const captureLead = useSignupLeadCapture();
   const captcha = useCaptcha();
 
   // Step 1 fields
@@ -601,17 +603,13 @@ const Signup = () => {
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
+              captureLead(email); // ONE "finish signing up" reminder (owner 2026-10-09); never blocks
               setStep(2);
             }}
           />
         )}
-        {/* "Already have an account? Sign in" used to live here, guarded by
-            `step === 1`. It now closes SignupStep1's social column, where it
-            reads as the alternative to BOTH create-account methods (the mirror
-            of Login's "New to Helpr?"). Keeping this copy as well rendered the
-            link TWICE on step 1 — once mid-card, once again at the bottom.
-            Step 2 never mounts SignupStep1, so the old `step === 1` guard is
-            now structural rather than a condition to remember. */}
+        {/* "Already have an account? Sign in" lives in SignupStep1's social
+            column (as Login's "New to Helpr?"); a second copy here rendered it twice. */}
           </div>
       </div>
     </AuthShell>

@@ -5387,6 +5387,36 @@ export type Database = {
           },
         ]
       }
+      signup_leads: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          reminder_sent_at: string | null
+          source: string | null
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          reminder_sent_at?: string | null
+          source?: string | null
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          reminder_sent_at?: string | null
+          source?: string | null
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
       social_signup_choices: {
         Row: {
           chose_new_at: string | null
@@ -6877,6 +6907,13 @@ export type Database = {
         Args: { p_dates: string[]; p_job_id: string }
         Returns: Json
       }
+      claim_signup_lead_reminders: {
+        Args: { p_limit?: number }
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       cleanup_observability_tables: { Args: never; Returns: Json }
       cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
@@ -8061,6 +8098,10 @@ export type Database = {
         Args: { p_routes: string[]; p_run_ref?: string }
         Returns: number
       }
+      record_signup_lead: {
+        Args: { p_email: string; p_replaces?: string; p_source?: string }
+        Returns: undefined
+      }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
       redeem_gift_card: {
         Args: {
@@ -8343,6 +8384,7 @@ export type Database = {
       sweep_payout_schedule_freezes: { Args: never; Returns: Json }
       sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
+      sweep_signup_leads: { Args: never; Returns: Json }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }
       sync_profiles_update_grants: { Args: never; Returns: Json }

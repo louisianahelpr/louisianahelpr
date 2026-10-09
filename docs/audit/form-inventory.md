@@ -101,7 +101,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/PhotoPrompt.tsx` | input×1 | file |  | Choose a profile photo |
+| `src/components/PhotoPrompt.tsx` | input×2 | file, tel | 14 | Choose a profile photo · prompt-phone · (337) 555-0123 · prompt-dob |
 
 ## /home, /user/:userId, /messages
 
@@ -221,7 +221,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/pages/auth/signup/SignupStep1.tsx` | input×2, checkbox/switch/radio×3 | email, text |  | email · signup-email-error · password · signup-password-error · policies · policies-label · age-confirm · age-confirm-label |
-| `src/pages/auth/signup/SignupStep2.tsx` | input×7, textarea×1, date/calendar×1 | file, text, date, tel | 14, 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · dob · dob-error |
+| `src/pages/auth/signup/SignupStep2.tsx` | input×5, textarea×1 | file, text | 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · location · location-error |
 
 ## /support
 

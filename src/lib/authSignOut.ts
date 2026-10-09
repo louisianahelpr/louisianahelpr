@@ -9,6 +9,7 @@ import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorag
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
 import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort";
+import { forceSignedOutSnapshot } from "@/hooks/useAuthReady";
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -26,9 +27,11 @@ type SignOutOptions = { scope?: "global" | "local" };
 // (useSignOutAction). src/lib/authSignOut.test.ts hangs EVERY network call
 // and asserts sign-out still completes.
 //
-// Worst case, every step hanging: push cleanup 2 s + signOut 3 s + the
-// aborted signOut settling 0.5 s + Keychain clear 1.5 s + cache wipe 1.5 s
-// = 8.5 s. Usually it is one round trip.
+// Worst case, every step hanging, counting only the steps this function
+// AWAITS: push cleanup 2 s + signOut 3 s + the aborted signOut settling 0.5 s
+// + Keychain clear 1.5 s + cache wipe 1.5 s = 8.5 s. Work abandoned at a cap
+// (a hung refresh, the push delete) may run on after that, unawaited.
+// Usually it is one round trip.
 //
 // The signOut cap CANCELS, it does not abandon: /auth/v1/ requests made while
 // it runs carry an AbortSignal (src/lib/signOutAbort.ts) and the cap aborts
@@ -66,8 +69,17 @@ type SignOutResult = Awaited<ReturnType<typeof supabase.auth.signOut>>;
  * auth.signOut() under the cap, cancelled (not abandoned) when the cap fires:
  * the abort makes auth-js's pending request fail, so it removes the session
  * and emits SIGNED_OUT now, while the dialog is still up, instead of later
- * over whatever session is stored by then. A throw (navigator-lock timeout)
- * propagates to the caller's catch.
+ * over whatever session is stored by then. A throw propagates to the
+ * caller's catch.
+ *
+ * What the abort CANNOT reach: the client passes no custom `lock`, so auth-js
+ * runs its lockless path, and signOut() first awaits initializePromise and
+ * any token refresh already in flight (single-flight). A refresh started
+ * before this scope opened (init, the auto-refresh ticker, the push cleanup's
+ * getSession()) carries no signal; if it hangs, /logout is never sent and the
+ * abort aborts nothing. The floor then clears storage by hand and
+ * forceSignedOutSnapshot() tells the app (src/lib/authSignOut.expiredRefresh.test.ts).
+ * auth-js discards that refresh if it completes later.
  */
 async function cancellableSignOut(options: SignOutOptions): Promise<SignOutResult> {
   const scope = beginSignOutAbortScope();
@@ -189,6 +201,10 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
     // Loud, never dropped: this is the branch where the SDK did not do it.
     console.error("[signOut] auth.signOut() failed — clearing the persisted session by hand", result.error);
     clearPersistedAuthToken();
+    // ...and tell the app. The floor emits no SIGNED_OUT, and after a capped
+    // sign-out stuck behind a hung token refresh auth-js emits none either, so
+    // without this the app keeps the old user with no session behind it.
+    forceSignedOutSnapshot();
     // On the app the session is also mirrored in the Keychain and the
     // adapter's cache; left there, the next launch signs the person back in
     // (Q390 review S2).

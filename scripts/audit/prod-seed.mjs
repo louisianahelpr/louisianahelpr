@@ -169,9 +169,13 @@ const OWNED = {
   denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", ban_status: "active" },
   banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", ban_status: "permanently_banned" },
   restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", ban_status: "temp_banned" },
-  // Profile deliberately INCOMPLETE (no avatar, not legacy) so /complete-profile
+  // Profile deliberately INCOMPLETE (no city, not legacy) so /complete-profile
   // actually renders for the sweep instead of redirecting to the dashboard.
-  incomplete: { email: "helpr-seed-incomplete-0912@mailinator.com", full_name: "Seed Incomplete Tester", ban_status: "active", profile: { avatar_url: null, is_legacy_user: false } },
+  // The gate (isProfileComplete, src/components/ProtectedRoute.tsx) is
+  // full_name + location for an email sign-up: "no avatar" stopped counting
+  // when the avatar left it (2943847db, owner 2026-10-09), and phone left it
+  // in c34c5fee5, so the missing field is the city. No avatar is kept too.
+  incomplete: { email: "helpr-seed-incomplete-0912@mailinator.com", full_name: "Seed Incomplete Tester", ban_status: "active", profile: { avatar_url: null, location: null, is_legacy_user: false } },
   // Admin role (one user_roles row, upserted on --apply, deleted on --teardown)
   // so the admin screens can be swept on prod. Owner-approved 2026-09-12.
   admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", ban_status: "active", role: "admin" },
@@ -1030,7 +1034,7 @@ async function verify() {
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {
     await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
   }
-  await check("account incomplete profile (seed, not legacy)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&is_legacy_user=eq.false&select=user_id`, 1);
+  await check("account incomplete profile (seed, not legacy, no city)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&location=is.null&is_legacy_user=eq.false&select=user_id`, 1);
   await check("account admin role (seed)", `user_roles?id=eq.${sid("role:admin")}&role=eq.admin&select=id`, 1);
   await check("account without Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=is.null&select=user_id`, 1);
   // No "account with Stripe (seed)" row: Stripe is LIVE, a sandbox Connect id is

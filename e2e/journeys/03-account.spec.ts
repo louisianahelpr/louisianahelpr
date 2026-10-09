@@ -486,8 +486,16 @@ test(j8, async ({ browser, request, journey }) => {
     await page.waitForTimeout(8_000);
     await journey.milestone(page, "after-sign-in-landing");
     test.info().annotations.push({ type: "sign-in-landing", description: page.url().replace(/#.*/, "#…") });
+    // The helper's OWN name, read from their profile row with the fresh
+    // session: a typed "Hallie Helper" went stale when prod's helper-e2e row
+    // came to say "E2E Helper" (e2e-journeys 37926437936, 2026-10-09). The
+    // heading is profile.full_name trimmed (Profile.tsx `displayName`).
+    const who = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${fresh.user.id}&select=full_name`, { headers: rest(fresh) });
+    expect(who.ok(), `reading the helper's name: HTTP ${who.status()}`).toBe(true);
+    const name = ((await who.json()) as Array<{ full_name: string | null }>)[0]?.full_name?.trim() ?? "";
+    expect(name, "the helper's profile row has no full_name to sign back in as").not.toBe("");
     await page.goto("/profile");
-    await expect(page.getByRole("heading", { name: "Hallie Helper", level: 1 }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name, exact: true, level: 1 }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, "signed back in");
     await journey.milestone(page, "signed-back-in");
   });

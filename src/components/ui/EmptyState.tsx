@@ -63,8 +63,11 @@ interface EmptyStateProps {
    * a caller stretches to fill the screen: centred in a card that tall, the
    * icon lands half a screen down with an empty band above it (owner,
    * 2026-10-01, at the Applicants empty state: "This is kind of low.").
+   * `top-phone` is top on a phone and centred on desktop web (owner,
+   * 2026-10-09, same screen on a wide window: "center better" — top-aligned,
+   * a tall desktop card left a big empty band under its content).
    */
-  align?: "center" | "top";
+  align?: "center" | "top" | "top-phone";
 }
 
 /**
@@ -92,7 +95,8 @@ export function EmptyState({
   align = "center",
 }: EmptyStateProps) {
   const isDock = variant === "dock";
-  const justify = align === "top" ? "justify-start" : "justify-center";
+  const justify =
+    align === "top" ? "justify-start" : align === "top-phone" ? "justify-start [.web-desktop_&]:justify-center" : "justify-center";
   const isBare = variant === "bare";
 
   const variantStyle: CSSProperties = isDock

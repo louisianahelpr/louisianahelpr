@@ -410,7 +410,7 @@ export function ApplicantsEmptyState({
            One return serves every phase (fresh / quiet / imminent / overdue),
            so all four move together. Guarded by applicantsEmptyTop.test.tsx
            and e2e/prod-audit/applicants-empty-position.spec.ts. */
-        align="top"
+        align="top-phone"
         icon={icon}
         /* NO `eyebrow`. `.text-display-eyebrow` is `display: none` app-wide
            (index.css:1966 — "all eyebrows gone", 2026-07-25), so anything

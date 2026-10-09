@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-08T22:48Z",
+  "measured_at": "2026-10-09T00:39Z",
   "issues": {
     "readable": true,
     "open": [
@@ -57,6 +57,11 @@
       {
         "number": 2623,
         "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2626,
+        "title": "nightly-red: main: E2E happy-path smoke",
         "label": "nightly-red"
       }
     ]
@@ -127,6 +132,14 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
+      },
+      {
+        "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: e2e happy-path smoke",
+        "issue": null
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -207,6 +220,14 @@
         "status": "open",
         "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
         "issue": null
+      },
+      {
+        "fingerprint": "764a6f7344b7ccc14d11519a279d69d4",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "taxable job charged $# louisiana sales tax",
+        "issue": null
       }
     ]
   },
@@ -235,17 +256,20 @@
     "issue #2604": "Q1522",
     "issue #2615": "Q1524",
     "issue #2623": "Q1576",
+    "issue #2626": "Q1577",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 3a3460b71be7": "Q1428",
+    "ledger 3a55e8af0908": "Q1577",
     "ledger 41f88aeb227f": "Q1525",
     "ledger 43d77e26f272": "Q1429",
     "ledger 54b8c187374a": "Q1524",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
+    "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 8018e82cb167": "Q1510",

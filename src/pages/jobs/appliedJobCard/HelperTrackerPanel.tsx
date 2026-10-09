@@ -198,6 +198,7 @@ export function HelperTrackerPanel({
         jobLongitude={job.longitude}
         helperOnTheWayAt={job.helper_on_the_way_at}
         helperArrivedAt={job.helper_arrived_at}
+        posterConfirmedWorkingAt={(job as { poster_confirmed_working_at?: string | null }).poster_confirmed_working_at ?? null}
         helperArrivalVerifiedAt={job.helper_arrival_verified_at}
         helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at}
         posterConfirmedArrivalAt={job.poster_confirmed_arrival_at}

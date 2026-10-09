@@ -30,7 +30,7 @@
  * gate that rode on the tracker would have printed the poster's name on every
  * collapsed Jobs card. Both sides are checked collapsed here.
  *
- * @mutate src/components/job-card/JobStepCard.tsx | {personTile}\n        <div\n          ref={rowRef} | <div\n          ref={rowRef}
+ * @mutate src/components/job-card/JobStepCard.tsx | {personTile}\n        {/* THE ROW'S ONE EXPLANATION, ABOVE IT | {/* THE ROW'S ONE EXPLANATION, ABOVE IT
  * @mutate src/components/job-card/jobCardPerson.tsx | return present ? tile : null; | return null;
  * @mutate src/pages/posts/PostedJobCard.tsx | {!stepCarriesTile && helperTile} | {helperTile}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | const bodyCarriesTile = !stepCarriesTile && posterTile !== null; | const bodyCarriesTile = posterTile !== null;

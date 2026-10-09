@@ -567,9 +567,7 @@ export function ApplicantsPanel({
                                 </span>
                               ) : null;
                             })()}
-                            {/* The applicant's message, in the name column right under the chips
-                                (owner, 2026-10-08: "Move the comment up"; it sat below the Hire row).
-                                Compact quote style.
+                            {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").
                                 `flagged_hidden` is set server-side by
                                 applications_scan_contact_info when the note carries
                                 a phone number, email, off-platform payment service

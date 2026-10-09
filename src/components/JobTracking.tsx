@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
@@ -457,6 +458,7 @@ export function JobTracking({
   proofAfterUrls,
   requirePhotoProof,
   posterCompletedAt: initialPosterCompletedAt,
+  posterConfirmedWorkingAt = null,
   initialTracking,
   jobLatitude,
   jobLongitude,
@@ -515,6 +517,8 @@ export function JobTracking({
    *  column's own NOT NULL DEFAULT and the pre-migration behaviour. */
   requirePhotoProof?: boolean | null;
   posterCompletedAt?: string | null;
+  /** `jobs.poster_confirmed_working_at`: starts the 30-minute Done floor (useDoneFloor). */
+  posterConfirmedWorkingAt?: string | null;
   /**
    * Optional pre-fetched latest tracking row. When provided (including
    * `null`, meaning "no tracking row exists yet"), the per-card initial
@@ -587,6 +591,7 @@ export function JobTracking({
     helperCompletedAt: initialHelperCompletedAt ?? null,
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
+  const doneFloorActive = useDoneFloorActive(posterConfirmedWorkingAt ?? jobStamps.arrivedAt);
   const { request: requestPermission } = usePermissionRationale();
   /** Mounted inside a job step card, the next-step CTA is THAT card's primary
    *  and renders in its one action row (owner, 2026-09-14, VN-21). */
@@ -994,15 +999,7 @@ export function JobTracking({
         setUpdating(false);
         return;
       }
-      const workStart = gate?.poster_confirmed_working_at ?? gate?.helper_arrived_at;
-      const MIN_WORK_MS = 30 * 60 * 1000;
-      if (workStart && Date.now() - new Date(workStart).getTime() < MIN_WORK_MS) {
-        const minsLeft = Math.ceil((MIN_WORK_MS - (Date.now() - new Date(workStart).getTime())) / 60000);
-        hapticError();
-        toast.error(`Almost — Done unlocks in ${minsLeft} min. Jobs can't be completed in under 30 minutes.`);
-        setUpdating(false);
-        return;
-      }
+      // The 30-minute floor greys the button at render (useDoneFloor); no toast (owner, 2026-10-08).
     }
 
     const now0 = new Date().toISOString();
@@ -2473,6 +2470,9 @@ export function JobTracking({
          * reason `needsProof` has it: an unloaded gate query must not disable
          * the button on a job that needs no photo at all.
          */
+        // Greyed for the first 30 minutes (useDoneFloor); PayoutUnlockNote says when.
+        const doneTooEarly = isDoneStep && doneFloorActive;
+
         const needsBeforePhoto =
           nextStatus.key === "working" &&
           proofBeforeUrls !== undefined &&
@@ -2577,7 +2577,7 @@ export function JobTracking({
             // control that LOOKED pressable and then failed on tap with a toast
             // is the shape the comment above `needsProof` records as the worse
             // half to get wrong, and it is not coming back for this gate.
-            disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof}
+            disabled={updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly}
           />
         );
 

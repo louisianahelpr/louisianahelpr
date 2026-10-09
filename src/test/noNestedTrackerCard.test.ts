@@ -408,7 +408,8 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
   it("found the inventories (a checker that sees nothing proves nothing)", () => {
     expect(uses.length, uses.join("\n")).toBeGreaterThanOrEqual(4);
     expect(uses.some((u) => u.includes("HelperTrackerPanel.tsx"))).toBe(true);
-    expect(uses.filter((u) => u.includes("PostedJobCard.tsx")).length).toBe(2);
+    // 1 since 2026-10-08: the poster's JobConfirmation moved into ScheduledStep's row (inline, no box).
+    expect(uses.filter((u) => u.includes("PostedJobCard.tsx")).length).toBe(1);
     // Derived, not listed: the shared job card shell and both panels are cards.
     for (const name of ["JobCardShell", "JobTracking"]) {
       expect(cards.has(name), `${name} not detected as a card component`).toBe(true);
@@ -511,7 +512,6 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
 // stopped at the declaration, never reaching <JobCardShell> 380 lines below.
 // @mutate src/pages/posts/PostedJobCard.tsx | <JobTracking embedded includePostingSteps | <JobTracking includePostingSteps
 // Poster side, literally inside <JobCardShell> — the plain ancestor walk.
-// @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId={job.id} isOwner={true} | <JobConfirmation hideNotYetOpen jobId={job.id} isOwner={true}
 // Helpr side, CROSS-FILE: HelperTrackerPanel is flat and its glass ancestor is
 // three files away, so only the render-graph reachability check sees this.
 // @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx | <JobTracking\n        embedded\n | <JobTracking\n

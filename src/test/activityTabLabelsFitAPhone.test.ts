@@ -101,8 +101,8 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/job-card/JobListPage.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
 // @mutate src/pages/posts/PostsHeader.tsx | style={tabFadeStyle} | style={undefined}
 // @mutate src/pages/jobs/JobsHeader.tsx | style={tabFadeStyle} | style={undefined}
-// @mutate src/pages/posts/PostsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
-// @mutate src/pages/jobs/JobsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+// @mutate src/pages/posts/PostsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(false); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+// @mutate src/pages/jobs/JobsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(false); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -512,7 +512,7 @@ describe("an empty Activity list still shows its tabs", () => {
  * the build uses, not a restatement of what it ought to do.
  */
 describe("the status tabs survive first paint, and their breakpoint is a real rule", () => {
-  it("the phone disclosure starts FOLDED on the default filter (owner, 2026-09-25)", () => {
+  it("the phone disclosure always starts FOLDED (owner, 2026-10-08)", () => {
     const SEED_RE = /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(([^)]*)\)/;
     // Owner, 2026-09-25, from iPhone screenshots: "This should open with the
     // chevrons collapsed. Not expanded." A NON-default filter seeds open, so
@@ -527,9 +527,9 @@ describe("the status tabs survive first paint, and their breakpoint is a real ru
       expect(
         seed,
         `${file} seeds the phone status tabs with useState(${seed}). The owner asked ` +
-          "on 2026-09-25 for My Posts / My Jobs to open with the chevron collapsed on the " +
-          "default filter, and open when a non-default filter is active.",
-      ).toBe("!isDefaultFilter");
+          "on 2026-10-08 for My Posts / My Jobs to open with the chevron collapsed, " +
+          "whatever the filter (\"Post and job at the top should open collapsed\").",
+      ).toBe("false");
     }
   });
 

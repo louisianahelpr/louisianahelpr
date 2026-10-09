@@ -63,8 +63,13 @@ export const PROFILE_BADGE_PILL_BOX =
 // One step smaller (owner, 2026-09-14, VN-17: "the badges also need to be
 // smaller") — was px-2.5 py-1.5 text-ds-12 with a 14px icon. The 44px tap
 // target (`after:h-11`) is unchanged.
+// `min-h-0`: the badge is a <button>, and index.css floors every button at a
+// 44px min-height, which drew Verified and First Job taller than the Skills
+// chips beside them (owner, 2026-10-08: "there is 3 different size and font
+// badges. fix this to make it 1"). The 44px TAP area is the `after:h-11`
+// overlay below, so the visible pill can match the skill chip exactly.
 export const PROFILE_BADGE_PILL =
-  `${PROFILE_BADGE_PILL_BOX} whitespace-nowrap ` +
+  `${PROFILE_BADGE_PILL_BOX} min-h-0 whitespace-nowrap ` +
   "transition-opacity active:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
   "relative after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11 after:content-['']";
 

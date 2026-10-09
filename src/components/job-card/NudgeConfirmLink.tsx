@@ -5,7 +5,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 /** What the link says after a tap, in its own place. */
-export const NUDGE_RESULT: Record<string, string> = {
+const NUDGE_RESULT: Record<string, string> = {
   sent: "Nudge sent ✓",
   too_soon: "Nudged recently — you can nudge again 2 hours after the last one",
   already_confirmed: "They've already confirmed",

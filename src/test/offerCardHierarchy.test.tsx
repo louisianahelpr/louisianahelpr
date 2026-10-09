@@ -37,8 +37,6 @@
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
- * @mutate src/pages/posts/PostedJobCard.tsx |                   {!offerUnanswered && <JobConfirmation |                   {<JobConfirmation
- * @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded hideNotYetOpen jobId | <JobConfirmation embedded jobId
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null);
  * @mutate src/components/job-card/jobStatusLine.ts | "left to accept" | "left to confirm"
@@ -374,6 +372,8 @@ describe("7. the poster's EXPANDED offer card agrees on one state (owner, 2026-1
     renderPosted({ ...farOffer, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job, true);
     expect(document.body.textContent).not.toMatch(/Offered to/);
     expect(rows()).toEqual(["confirm-opens", "start"]);
-    expect(screen.getByTestId("job-confirmation")).toHaveAttribute("data-hide-not-yet-open", "true");
+    // The card draws no confirmation panel of its own since 2026-10-08: the
+    // Scheduled step puts I'm Still On in its row (src/test/posterStillOnInRow.test.tsx).
+    expect(screen.queryByTestId("job-confirmation")).toBeNull();
   });
 });

@@ -94,8 +94,7 @@ export function JobConfirmation({
   startTime?: string | null;
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
-  /** The Helpr's "I've Arrived" stamp. On the poster's row it hands the
-   *  primary to the arrival confirm (PosterConfirmationPrimary). */
+  /** The Helpr's "I've Arrived" stamp (hands the poster's row to the arrival confirm). */
   helperArrivedAt?: string | null;
   onConfirm?: () => void;
   /**
@@ -166,10 +165,7 @@ export function JobConfirmation({
      The 24h window below is UNCHANGED and deliberately so: widening when a
      poster may confirm is a policy call, not a rendering fix. */
   if (helperOnTheWayAt && !isOwner) return null;
-  // THE POSTER'S ROW (owner, 2026-10-08: "move I'm still on to the right side of
-  // more and under profile"): once the Helpr is on the way, the row's primary is
-  // the arrival confirm (PosterConfirmationPrimary, greyed until they arrive),
-  // never two ("Should only be the greyed out button at the bottom").
+  // Poster's row, from On My Way: PosterConfirmationPrimary's arrival box is the one primary (owner, 2026-10-08).
   if (variant === "inline" && isOwner && (helperOnTheWayAt || helperArrivedAt)) return null;
 
   const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
@@ -233,21 +229,11 @@ export function JobConfirmation({
     const h = Math.floor((minsUntilOpen % 1440) / 60);
     const m = minsUntilOpen % 60;
     const untilOpen = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
-    /* AND THE NUMBER THAT ACTUALLY BINDS. The strip used to say only when the
-       window opens, which reads as "then you'll have a day" — the owner's
-       objection: "the confirm window is kind of misleading if they have 24
-       hours to confirm it says 24 hours." They do not have 24 hours. The sweep
-       re-opens the job 12 hours after the window opens, so the window and the
-       deadline are quoted together, from the same shared helper the sweep
-       itself calls. */
-    // Owed until 2 hours before the start, then reposted (owner, 2026-10-08).
+    // The window AND the deadline, quoted together: a confirm is owed until 2 hours
+    // before the start, then the job is reposted (owner, 2026-10-08).
     const confirmBy = new Date((jobStartDateTime(dateNeeded, startTime) ?? jobDate).getTime() - 2 * 3_600_000);
-    /* A STRIP, not a card. The first draft of this state was a full
-       liquid-glass card with its own heading and paragraph, which put a THIRD
-       card on a scheduled job — "Job starts in 5d 3h", the tracker, and then a
-       card repeating the same date a third time to say nothing had happened
-       yet. The date is already on the card twice; what was actually missing is
-       one clock and one sentence, so that is all this is. */
+    /* A STRIP, not a card: the date is already on the card twice; what was
+       missing is one clock and one sentence. */
     return (
       <>
         {waitingPrimary}
@@ -543,9 +529,7 @@ export function JobConfirmation({
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : isOwner ? (
-        /* After the poster confirms: their NEXT step, greyed until the Helpr
-           says they've arrived (docs/JOB-LIFECYCLE.md step 6), the same box
-           the panel variant draws. */
+        /* Poster confirmed: their NEXT step, greyed (docs/JOB-LIFECYCLE.md step 6). */
         <JobStepPrimaryButton
           icon={MapPin}
           label="Confirm They've Arrived"

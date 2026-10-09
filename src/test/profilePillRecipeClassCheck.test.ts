@@ -52,7 +52,7 @@ const CAPTION = /uppercase tracking-wider text-ds-10/;
 const INLINE_PILL_BOX = /["'`][^"'`]*\brounded-(?:ds-pill|full)\b[^"'`]*\bp[xy]?-[\d.]+[^"'`]*["'`]/g;
 
 // @mutate src/pages/user/ProfileHeaderCard.tsx | {skills.map((skill) => ( | {[skills.join(", ")].map((skill) => (
-// @mutate src/pages/user/ProfileBadge.tsx | `${PROFILE_BADGE_PILL_BOX} whitespace-nowrap ` + | "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none whitespace-nowrap " +
+// @mutate src/pages/user/ProfileBadge.tsx | `${PROFILE_BADGE_PILL_BOX} min-h-0 whitespace-nowrap ` + | "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none min-h-0 whitespace-nowrap " +
 
 describe("public profile — one pill recipe, no group rendered as prose", () => {
   it("the scan has a real inventory to judge (floor — an empty scan is a failure)", () => {

@@ -332,7 +332,7 @@ describe("the poster's collapsed card announces the dispute", () => {
     expect(
       // hideStatus={isOffered} (owner, 2026-10-05): an offer card says its own state; a disputed card is never an offer.
       /\{!isMinimalCard && !isExpanded && \(\s*<HelperCollapsedStrip/.test(src) &&
-        /<JobStatusStrip line=\{helperStatusLine\(/.test(strip),
+        /<JobStatusStrip line=\{(withReviewed\()?helperStatusLine\(/.test(strip),
       "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);

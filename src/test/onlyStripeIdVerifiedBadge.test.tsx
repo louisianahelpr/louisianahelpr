@@ -6,7 +6,7 @@
  * The class: the tier ladder never draws its "Verified" rung on any profile
  * surface; ID is said once, as "Stripe ID verified".
  *
- * @mutate src/components/profile/HelperTierBadge.tsx |   if (tier === 0 || tier === 1) return null; |   if (tier === 0) return null;
+ * @mutate src/components/profile/HelperTierBadge.tsx |   if (tier === 0 \|\| tier === 1) return null; |   if (tier === 0) return null;
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";

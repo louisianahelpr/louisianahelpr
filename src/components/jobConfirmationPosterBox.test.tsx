@@ -144,4 +144,4 @@ describe("the HELPER's branch is unchanged", () => {
 // …and the TONE half of the same rule: the done box must not wear the live
 // CTA's gloss, or "you already did this" reads as a broken button.
 // @mutate src/components/JobConfirmation.tsx | variant="outline" | variant="primary"
-// @mutate src/components/JobConfirmation.tsx |         Confirm They've Arrived | Confirmed
+// @mutate src/components/JobConfirmation.tsx | <MapPin className="w-3.5 h-3.5 mr-1" />\n        Confirm They've Arrived | <MapPin className="w-3.5 h-3.5 mr-1" />\n        Confirmed

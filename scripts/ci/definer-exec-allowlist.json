@@ -47,7 +47,7 @@
     "decline_job_offer(uuid)": "client",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "end_recurring_series(uuid)": "client",
-    "get_category_price_stats(text, text)": "client",
+    "get_category_price_stats(text, text)": "reviewed 2026-10-08 (Q1579): no longer called by the app (owner removed suggested prices from Post a Job 2026-10-08); aggregates per category/parish, no person. Kept executable until a revoke migration lands.",
     "get_fill_rate_stats(integer)": "client",
     "get_helper_analytics(integer)": "client",
     "get_helper_completed_counts(uuid[])": "client",

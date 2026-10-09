@@ -15,7 +15,7 @@ export function deepLinkReady({ named, settled }: { named: boolean; settled: boo
 }
 
 /** The longest a missing card is waited for before the link falls back to the default tab. */
-export const DEEP_LINK_WAIT_MS = 6000;
+const DEEP_LINK_WAIT_MS = 6000;
 
 type ActivityQuery = { isFetching: boolean; stale: boolean; updatedAt: number };
 

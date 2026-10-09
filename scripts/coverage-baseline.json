@@ -2,6 +2,6 @@
   "_": "Q184 line-coverage floors, enforced in CI by scripts/check-coverage-floor.mjs (vitest.yml). Two-way with a 1.0-point band: below the floor fails, more than 1.0 above it fails until the floor is raised in the same commit. Floors measured on CI run 36350907507 (2026-09-27): src/lib 4099/5184 lines, src/hooks 1595/2409. src/hooks raised to 68.99 from CI run 36952959482 (2026-10-02): 1680/2435. src/hooks raised to 70.65 from main CI run 37601130712 (2026-10-07): 1743/2467 (the Notify-me banner's reader hook was deleted, #2555).",
   "areas": {
     "src/lib/": 79.07,
-    "src/hooks/": 70.65
+    "src/hooks/": 72.14
   }
 }

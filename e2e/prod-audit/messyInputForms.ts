@@ -738,6 +738,7 @@ export const GAPS: Record<string, string> = {
   // Scanner false positives: the regex matched a string/comment, not a rendered control.
   "src/lib/sentry.ts": "false positive — '<input' in a PII-scrubbing comment/regex, no control",
   "src/lib/nativeCamera.ts": "false positive — creates a hidden file <input> for the camera fallback; file inputs take no typed text",
+  "src/components/PhotoPrompt.tsx": "no typed input — one image file picker (type, size and bucket held by assertUploadableAvatar and src/test/uploadMimeParity.test.ts)",
   "src/lib/offerResponseWindow.ts": "false positive — option list for a Select, rendered by DirectOfferBanner",
   "src/components/admin/marketing/marketingTypes.ts": "false positive — type/constant module",
   "src/components/notificationPreferences/constants.tsx": "false positive — constants module",

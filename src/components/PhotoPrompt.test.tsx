@@ -3,7 +3,7 @@
  * 2026-10-09). Real sign-ups stopped at the required photo. Now: the profile
  * gate passes without one, and `usePhotoPrompt` asks at Apply/Post, once per
  * account on this device, and never blocks or doubles the action: Not Now,
- * closing the prompt, and a failed profile read all let it through once.
+ * closing the prompt, and a profile not loaded yet all let it through once.
  * Browse first: the header's Get Started opens the job list, and on the job
  * list it is the sign-up.
  */
@@ -65,7 +65,7 @@ describe("profile photo is optional", () => {
   });
 
   it("asks when there is no photo; Not Now lets the action through once and is remembered", async () => {
-    readAvatar.mockResolvedValue(null);
+    queryClient.setQueryData(queryKeys.currentUser.byId("u1"), { profile: { avatar_url: null } });
     const go = vi.fn();
     render(<Harness go={go} />);
     fireEvent.click(screen.getByText("Apply Now"));
@@ -82,7 +82,7 @@ describe("profile photo is optional", () => {
   });
 
   it("closing the prompt (Escape) is a Not Now, never a dropped Apply", async () => {
-    readAvatar.mockResolvedValue(null);
+    queryClient.setQueryData(queryKeys.currentUser.byId("u1"), { profile: { avatar_url: null } });
     const go = vi.fn();
     render(<Harness go={go} />);
     fireEvent.click(screen.getByText("Apply Now"));
@@ -92,7 +92,7 @@ describe("profile photo is optional", () => {
   });
 
   it("Not Now while a photo is being picked runs the action once, not twice", async () => {
-    readAvatar.mockResolvedValue(null);
+    queryClient.setQueryData(queryKeys.currentUser.byId("u1"), { profile: { avatar_url: null } });
     const go = vi.fn();
     render(<Harness go={go} />);
     fireEvent.click(screen.getByText("Apply Now"));
@@ -118,21 +118,12 @@ describe("profile photo is optional", () => {
     expect(screen.queryByText("Add a profile photo?")).toBeNull();
   });
 
-  it("goes straight through when the profile read finds a photo", async () => {
-    readAvatar.mockResolvedValue("https://x/avatar.jpg");
+  it("fails open: a profile not loaded yet never blocks the Apply, and nothing is fetched", async () => {
     const go = vi.fn();
     render(<Harness go={go} />);
     fireEvent.click(screen.getByText("Apply Now"));
-    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText("Add a profile photo?")).toBeNull();
-  });
-
-  it("fails open: a failed profile read never blocks the Apply", async () => {
-    readAvatar.mockRejectedValue(new Error("network"));
-    const go = vi.fn();
-    render(<Harness go={go} />);
-    fireEvent.click(screen.getByText("Apply Now"));
-    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(readAvatar).not.toHaveBeenCalled();
     expect(screen.queryByText("Add a profile photo?")).toBeNull();
   });
 });
@@ -151,8 +142,8 @@ describe("browse first: the header's Get Started", () => {
 
 // The photo must not be a gate field again.
 // @mutate src/components/ProtectedRoute.tsx |   { key: "date_of_birth", label: "Date of birth" }, |   { key: "avatar_url", label: "Profile picture" }, { key: "date_of_birth", label: "Date of birth" },
-// A failed read must let the action through.
-// @mutate src/components/PhotoPrompt.tsx |           return go();\n        }\n      }\n      if (url) { |           return;\n        }\n      }\n      if (url) {
+// A profile not loaded yet must let the action through.
+// @mutate src/components/PhotoPrompt.tsx |       if (!cached?.profile) return go(); |       if (!cached?.profile) return;
 // Closing the prompt must not drop the action.
 // @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next && !uploading) proceed(); }} | onOpenChange={(next) => { if (!next && !uploading) setOpen(false); }}
 // The pending action is taken exactly once.

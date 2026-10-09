@@ -9,7 +9,6 @@ import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
-import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 
 /**
@@ -18,13 +17,13 @@ import { toast } from "sonner";
  * Sign-up used to REQUIRE a photo, and that step was where real people
  * stopped. The photo is now optional at sign-up; this asks for it at the
  * moment it matters (someone is about to see you), once per account on this
- * device. "Not Now", closing the prompt, and any failure to read the profile
+ * device. "Not Now", closing the prompt, and a profile that is not loaded
  * all let the action through: this prompt must never be the reason an Apply
  * or a Post did not happen.
  *
  * `askThen(go)` runs `go` straight away when the member already has a photo,
  * has been asked before, is offline (the action's own offline handling
- * speaks) or is signed out; otherwise it opens the prompt and runs `go` once,
+ * speaks), is signed out, or their profile is not loaded yet; otherwise it opens the prompt and runs `go` once,
  * after they add a photo or decline. Render `dialog` once.
  */
 export const photoPromptDoneKey = (userId: string) => `lh:photo-prompt-done:${userId}`;
@@ -46,17 +45,12 @@ export function usePhotoPrompt() {
     async (go: () => void) => {
       if (!userId || safeStorage.getItem(photoPromptDoneKey(userId))) return go();
       if (typeof navigator !== "undefined" && navigator.onLine === false) return go();
-      let url = (queryClient.getQueryData(queryKeys.currentUser.byId(userId)) as CachedUser)?.profile?.avatar_url ?? null;
-      if (!url) {
-        try {
-          url = await readProfileAvatarUrl(userId);
-        } catch (err) {
-          // Fail open: the Apply or Post goes ahead without the prompt.
-          report(err, { severity: "warning", tags: { source: "PhotoPrompt.readAvatar" } });
-          return go();
-        }
-      }
-      if (url) {
+      // Decided from the signed-in profile the app already holds (the route
+      // guard loads it before any Apply or Post): no network wait on the tap.
+      // Not loaded yet: fail open, the action goes ahead without the prompt.
+      const cached = queryClient.getQueryData(queryKeys.currentUser.byId(userId)) as CachedUser;
+      if (!cached?.profile) return go();
+      if (cached.profile.avatar_url) {
         safeStorage.setItem(photoPromptDoneKey(userId), "1");
         return go();
       }

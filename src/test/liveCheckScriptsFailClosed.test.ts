@@ -300,10 +300,10 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not check the native sign-in client ids: auth config: Management API 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /auth config: response was not a config object — refusing to report clean/ },
     { label: "config without client-id lists", env: MGMT("nolists"), says: /auth config has no string external_apple_client_id — refusing to report clean/ },
-    // Apple/Google sign-in is OFF for launch (Q1462): a provider still enabled
-    // on prod fails. (The id rules, used when the switch is on, are covered in
+    // Apple/Google sign-in is ON (owner, 2026-10-09): a provider still
+    // disabled on prod fails. (The id rules are covered in
     // src/test/nativeSignInConfig.test.ts.)
-    { label: "a provider still enabled while the switch is off", env: MGMT("nobundle"), says: /FAIL external_apple_enabled is false/ },
+    { label: "a provider still disabled while the switch is on", env: MGMT("nobundle"), says: /FAIL external_google_enabled is true/ },
   ],
   // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
   // A 500 or a bare 200 carries no x-lh-build header, so every function is a
@@ -402,12 +402,12 @@ beforeAll(async () => {
     if (mode === "noident" || mode === "noallow") {
       if (req.url?.endsWith("/config/auth")) {
         return void res.end(JSON.stringify({
-          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: false, external_google_enabled: false,
+          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: true, external_google_enabled: true,
           external_phone_enabled: false, external_anonymous_users_enabled: false, external_github_enabled: false,
           // noallow (Q445a): /home is on neither site_url's host nor the allow-list.
           site_url: mode === "noallow" ? "https://helpr.example.com" : "https://www.louisianahelpr.com",
           uri_allow_list: "https://louisianahelpr-*-louisianahelprs-projects.vercel.app/**",
-          // Apple + Google off, as SOCIAL_SIGN_IN_ENABLED says (Q1462).
+          // Apple + Google on, as SOCIAL_SIGN_IN_ENABLED says (owner, 2026-10-09).
           // Q446 one-account-per-person settings, all as prod has them.
           hook_before_user_created_enabled: true,
           hook_before_user_created_uri: "pg-functions://postgres/public/hook_one_account_per_person",
@@ -424,10 +424,10 @@ beforeAll(async () => {
       if (mode === "nolists") return void res.end(JSON.stringify({ external_google_skip_nonce_check: true }));
       const ids = deriveSignInIds(readSignInSources(ROOT));
       return void res.end(JSON.stringify({
-        // ONE defect: Apple still on while the switch is off (Q1462); Google
-        // already off, so the script's only FAIL line is the injected one.
+        // ONE defect: Google still off while the switch is on (2026-10-09);
+        // every id is right, so the script's only FAIL line is the injected one.
         external_apple_enabled: true, external_google_enabled: false, external_google_skip_nonce_check: true,
-        external_apple_client_id: ids.appleServiceIds.map((x) => x.id).join(","),
+        external_apple_client_id: [...ids.appleServiceIds, ...ids.bundleIds].map((x) => x.id).join(","),
         external_google_client_id: ["111111111111-fixtureweb.apps.googleusercontent.com", ...ids.googleNative.map((x) => x.id)].join(","),
       }));
     }

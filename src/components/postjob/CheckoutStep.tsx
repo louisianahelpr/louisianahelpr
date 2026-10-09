@@ -473,10 +473,8 @@ export function CheckoutStep({
               donor already covered the processing floor at donate time
               (create-gift-card-checkout → posterServiceFeeCents(amount, 0)). */}
           <div className="flex justify-between text-ds-13">
-            {/* The urgent bonus's card fee is folded into this number, matching
-                the one "Service fee" line create-payment sends Stripe (owner,
-                2026-10-09: "it's all one post"). The percent label is dropped
-                then, since the number is no longer exactly that percent. */}
+            {/* Bonus card fee folded in, like create-payment's one "Service fee"
+                line (owner, 2026-10-09); no percent then, it isn't exact. */}
             <span className="text-muted-foreground">
               {hasGift || foldUrgentCardFee ? "Service Fee" : `Service Fee (${customerFee ?? 12}%)`}
             </span>
@@ -493,9 +491,8 @@ export function CheckoutStep({
           {isUrgent && urgentFeeNum > 0 && (
             <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus</>} amount={formatPriceExact(urgentFeeNum)} />
           )}
-          {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it.
-              Its own line only on a gift-funded post, where there is no
-              service fee to carry it (create-payment does the same). */}
+          {/* Q362: the poster pays the bonus's card fee; its own line only when
+              there is no service fee to carry it (gift-funded). */}
           {isUrgent && urgentCardFeeAmount > 0 && !foldUrgentCardFee && (
             <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}

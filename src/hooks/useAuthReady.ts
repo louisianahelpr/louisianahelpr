@@ -94,6 +94,23 @@ const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
 };
 
 /**
+ * Sign-out's floor says "signed out" to the app itself.
+ *
+ * When auth.signOut() fails or hits its cap, signOutWithPushCleanup clears
+ * the stored session by hand (clearPersistedAuthToken + the Keychain). That
+ * floor emits no SIGNED_OUT, and when the cap fired while an expired token's
+ * refresh was hung (started before the sign-out's abort scope, so nothing can
+ * abort it, and signOut() waits on it before sending /logout), auth-js emits
+ * none either. This snapshot then kept the old user: the app stayed "signed
+ * in" with no session, and on the app NativeRedirect sent "/" back to /home.
+ * src/lib/authSignOut.expiredRefresh.test.ts drives that case.
+ */
+export const forceSignedOutSnapshot = () => {
+  if (authSnapshot.isReady && !authSnapshot.user) return;
+  emitAuthSnapshot({ user: null, isReady: true });
+};
+
+/**
  * Is there a Supabase session sitting in storage right now?
  *
  * This is the difference between "we don't know yet" and "logged out", and

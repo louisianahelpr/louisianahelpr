@@ -38,7 +38,21 @@ const urlOf = (input: RequestInfo | URL): string =>
 export const signOutAwareFetch: typeof fetch = (input, init) => {
   const scope = active;
   if (!scope || !urlOf(input).includes("/auth/v1/")) return fetch(input, init);
-  const own = init?.signal;
-  const signal = own && typeof AbortSignal.any === "function" ? AbortSignal.any([own, scope.signal]) : scope.signal;
-  return fetch(input, { ...init, signal });
+  return fetch(input, { ...init, signal: eitherSignal(init?.signal, scope.signal) });
 };
+
+/** Aborts when either does. The caller's own signal is never dropped. */
+function eitherSignal(own: AbortSignal | null | undefined, scope: AbortSignal): AbortSignal {
+  if (!own) return scope;
+  if (typeof AbortSignal.any === "function") return AbortSignal.any([own, scope]);
+  // Older WebKit (no AbortSignal.any): combine by hand.
+  const both = new AbortController();
+  const abort = (from: AbortSignal) => both.abort(from.reason);
+  if (own.aborted) abort(own);
+  else if (scope.aborted) abort(scope);
+  else {
+    own.addEventListener("abort", () => abort(own), { once: true });
+    scope.addEventListener("abort", () => abort(scope), { once: true });
+  }
+  return both.signal;
+}

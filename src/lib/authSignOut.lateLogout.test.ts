@@ -126,8 +126,32 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
     expect(src).toMatch(/global:\s*\{\s*fetch:\s*signOutAwareFetch\s*\}/);
   });
+
+  it("keeps the caller's own signal when AbortSignal.any is missing (older WebKit): either one aborts", async () => {
+    const seen: AbortSignal[] = [];
+    vi.stubGlobal("fetch", vi.fn((_: RequestInfo | URL, init?: RequestInit) => { seen.push(init!.signal!); return Promise.resolve(json({})); }));
+    const anyImpl = AbortSignal.any;
+    (AbortSignal as unknown as { any?: unknown }).any = undefined;
+    try {
+      const { signOutAwareFetch, beginSignOutAbortScope, endSignOutAbortScope } = await import("@/lib/signOutAbort");
+      const scope = beginSignOutAbortScope();
+      const own = new AbortController();
+      await signOutAwareFetch(`${BASE}/auth/v1/logout`, { signal: own.signal });
+      own.abort();
+      expect(seen[0].aborted).toBe(true);
+      const own2 = new AbortController();
+      await signOutAwareFetch(`${BASE}/auth/v1/logout`, { signal: own2.signal });
+      expect(seen[1].aborted).toBe(false);
+      scope.abort();
+      expect(seen[1].aborted).toBe(true);
+      endSignOutAbortScope(scope);
+    } finally {
+      (AbortSignal as unknown as { any?: unknown }).any = anyImpl;
+    }
+  });
 });
 
+// @mutate src/lib/signOutAbort.ts |   if (!own) return scope; |   return scope;
 // @mutate src/lib/authSignOut.ts |     scope.abort(); |
 // @mutate src/integrations/supabase/client.ts |   global: { fetch: signOutAwareFetch }, |
 // @mutate src/lib/signOutAbort.ts |   if (!scope \|\| !urlOf(input).includes("/auth/v1/")) return fetch(input, init); |   return fetch(input, init);

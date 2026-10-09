@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-09T15:52:15.636Z",
-  "guards": 1644,
-  "registered": 1639,
+  "generated": "2026-10-09T16:35:39.699Z",
+  "guards": 1645,
+  "registered": 1640,
   "unregistered": [
     "src/components/admin/adminJobs/activePaidJob.test.ts",
     "src/components/dashboard/applyConfirmDialog/pitchPerAccount.test.tsx",
@@ -10,7 +10,8 @@
     "src/test/snapPickerHandlesWheel.test.tsx"
   ],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/bootStallWatchdog.test.ts"
   ],
   "classD_selfReferential": [
     {

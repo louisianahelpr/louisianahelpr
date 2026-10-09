@@ -15,10 +15,13 @@
  *
  * So a null `getSession()` is not proof. This asks the server: it tries
  * `refreshSession()` and answers `true` ONLY on a definite auth answer
- * (no session stored at all, or the auth server refusing the refresh token
- * with a 4xx). A network failure, a 5xx, a timeout, an offline device or any
- * error it cannot classify answers `false`: nobody is ever signed out because
- * the network blinked.
+ * (no session stored at all, or the auth server itself refusing the refresh
+ * token: an AuthApiError with a 4xx). A network failure, a 5xx, a timeout, an
+ * offline device, a discarded concurrent refresh (409) or any error it cannot
+ * classify answers `false`, so THIS net never signs anyone out because the
+ * network blinked. (auth-js can still drop the session on its own after a
+ * non-retryable refresh failure once the access token has expired; that path
+ * is auth-js's SIGNED_OUT, not this net.)
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,6 +42,10 @@ export const isTransientAuthError = (err: AuthishError): boolean => {
 const isDefiniteAuthLoss = (err: AuthishError): boolean => {
   if (!err) return false;
   if (err.name === "AuthSessionMissingError") return true;
+  // Only the auth server's own refusal counts. AuthRefreshDiscardedError (409:
+  // another tab committed a newer session mid-refresh) is documented as a
+  // no-op, and AuthUnknownError has no reliable status.
+  if (err.name !== "AuthApiError") return false;
   if (isTransientAuthError(err)) return false;
   const status = typeof err.status === "number" ? err.status : 0;
   return status >= 400 && status < 500;
@@ -55,7 +62,10 @@ export async function confirmSessionLost(): Promise<boolean> {
     if (current.session) return false;
     const { data, error } = await supabase.auth.refreshSession();
     if (data?.session) return false;
-    return isDefiniteAuthLoss(error);
+    if (!isDefiniteAuthLoss(error)) return false;
+    // Last look: another tab may have stored a fresh session meanwhile.
+    const { data: after } = await supabase.auth.getSession();
+    return !after.session;
   } catch {
     // refreshSession threw something that is not an AuthError: unknown, so
     // the session is NOT treated as lost.

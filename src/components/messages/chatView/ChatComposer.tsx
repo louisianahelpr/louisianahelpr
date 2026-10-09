@@ -384,6 +384,8 @@ export function ChatComposer({
         // reply there is a guess — when the user typed the last real message,
         // or while they are mid-draft.
         quickReplies={(() => {
+          // Job quick replies ("On my way", …) mean nothing to the team.
+          if (activeConvo.teamThread) return null;
           const realMessages = messages.filter((m) => !m.is_system);
           if (realMessages.length === 0) return null;
           const lastReal = realMessages[realMessages.length - 1];
@@ -420,6 +422,9 @@ export function ChatComposer({
           if (!accepted && content.trim()) setDraft(content);
         }}
         onTyping={broadcastTyping}
+        // A team thread is text only: attachment storage paths are job-scoped
+        // and the team RPCs take text (migration 20261009142834).
+        textOnly={!!activeConvo.teamThread}
         jobId={activeConvo.jobId}
         senderId={userId || undefined}
       />

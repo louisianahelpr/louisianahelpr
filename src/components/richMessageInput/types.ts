@@ -36,4 +36,7 @@ export interface RichMessageInputProps {
   jobId?: string;
   /** Sender ID (current user) — required for attachment uploads (path scoping). */
   senderId?: string;
+  /** Hide the "+" (photo, file, location, voice note, quick replies): the
+   *  thread takes text only. Dictation stays — it only types. */
+  textOnly?: boolean;
 }

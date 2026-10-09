@@ -314,6 +314,10 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // Q1575: a seen/unseen flag over a back-out the person was ALSO told by an
   // in-app notification and email (notifications are exported); no content of its own.
   "backout_notices.user_id": { reason: "UI state for the Needs You banner: whether a back-out notice was seen; the same news is in the exported notifications" },
+  // 2026-10-09: the "Louisiana Helpr Team" thread key. Every such row has its
+  // user as sender (their reply) or receiver (staff's message), so the
+  // messages export (by sender_id / receiver_id) already carries all of them.
+  "messages.team_thread_user_id": { reason: "team-thread key; every row in a user's team thread has that user as sender_id or receiver_id, both already exported" },
   // Staff-only records and ban-evasion data. Staff notes, fraud flags and
   // shadowbans ABOUT the person are exported (owner, 2026-09-26, Q290); what
   // stays out is who on staff wrote or applied them, and records that are the

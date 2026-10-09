@@ -12,13 +12,15 @@ interface MessageActionSheetProps {
   mine: boolean;
   /** Close handler — the parent owns the open/close state. */
   onClose: () => void;
-  /** Open the existing report dialog for an inbound message. */
-  onReport: (id: string) => void;
+  /** Open the existing report dialog for an inbound message. Omitted (with
+   *  `onBlock`) in a "Louisiana Helpr Team" thread: nobody to report or block,
+   *  so an inbound message offers Copy only. */
+  onReport?: (id: string) => void;
   /** Open the existing BlockUserDialog for the thread's other participant.
    *  Same handler the ChatHeader ⋮ menu uses — this sheet only surfaces a
    *  second entry point so a user reacting to one bad message doesn't have
    *  to back out to the header to block. Inbound messages only. */
-  onBlock: () => void;
+  onBlock?: () => void;
   /** Open the existing delete confirm for the viewer's own message. */
   onDelete: (id: string) => void;
   /** Apply/change/clear the viewer's tapback. Tapping the active one clears it. */
@@ -91,12 +93,12 @@ export function MessageActionSheet({
   };
 
   const handleReport = () => {
-    onReport(message.id);
+    onReport?.(message.id);
     onClose();
   };
 
   const handleBlock = () => {
-    onBlock();
+    onBlock?.();
     // Close BEFORE the block dialog opens so the sheet isn't stacked
     // underneath it (same ordering as handleDelete).
     onClose();
@@ -184,7 +186,7 @@ export function MessageActionSheet({
                 tone="danger"
               />
             </>
-          ) : (
+          ) : !onReport || !onBlock ? null : (
             /* Inbound message — the two safety actions, in the same order
                and with the same weight as the ChatHeader ⋮ menu ("Report
                user" then "Block user"). Block is wired to the identical

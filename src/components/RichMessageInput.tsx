@@ -27,7 +27,7 @@ import type { SendAttachment, RichMessageInputProps } from "@/components/richMes
 export type { SendAttachment } from "@/components/richMessageInput/types";
 
 export const RichMessageInput = ({
-  onSend, onTyping, disabled, value, onChange, jobId, senderId, quickReplies,
+  onSend, onTyping, disabled, value, onChange, jobId, senderId, quickReplies, textOnly = false,
 }: RichMessageInputProps) => {
   const [internalText, setInternalText] = useState("");
   const isControlled = value !== undefined;
@@ -445,7 +445,9 @@ export const RichMessageInput = ({
             tap deeper in the sheet the "+" opens.
         
             Nothing was removed: attach and location are both in that sheet
-            now, alongside the camera/library/files sources it already held. */}
+            now, alongside the camera/library/files sources it already held.
+            `textOnly` (a "Louisiana Helpr Team" thread) drops the "+" whole. */}
+        {!textOnly && (
         <Button
           ref={attachButtonRef}
           variant="ghost"
@@ -458,6 +460,7 @@ export const RichMessageInput = ({
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" strokeWidth={2.25} />}
         </Button>
+        )}
         <Input
           aria-label="Type a message"
           placeholder={
@@ -576,7 +579,7 @@ export const RichMessageInput = ({
       </div>
 
       <AttachSourceSheet
-        open={attachSheetOpen}
+        open={attachSheetOpen && !textOnly}
         onOpenChange={setAttachSheetOpen}
         anchorRef={attachButtonRef}
         onPickCamera={pickFromCamera}

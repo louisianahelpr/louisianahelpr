@@ -252,9 +252,9 @@ export function ChatView({
     setSavingEdit(false);
     setEditingMessage(null);
   };
-  // Tapbacks for the open thread. Scoped by job so the realtime subscription
-  // can be filtered server-side (see useMessageReactions).
-  const { reactions, react } = useMessageReactions(activeConvo?.jobId ?? null, userId);
+  // Tapbacks, job-scoped (useMessageReactions). A team thread (src/lib/teamThread.ts) has none, nor replies or report/block.
+  const isTeam = !!activeConvo.teamThread;
+  const { reactions, react } = useMessageReactions(isTeam ? null : activeConvo?.jobId ?? null, userId);
   // The message being replied to. Cleared once a reply actually sends (the
   // composer only clears on acceptance, so a blocked message keeps its reply).
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -302,7 +302,7 @@ export function ChatView({
   // that case is `offJobState` below, asked of the server, not derived here.
   // Keep these in step: the client may never be STRICTER than the RLS policy.
   const isApplicant =
-    !activeConvo.viewerIsPoster && !activeConvo.viewerIsAssignedHelper;
+    !isTeam && !activeConvo.viewerIsPoster && !activeConvo.viewerIsAssignedHelper;
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
 
   // 24h post-completion lockout, for everyone on the job. The closing instant
@@ -426,7 +426,7 @@ export function ChatView({
               below it is only ever there until it is dismissed. Guarded by
               src/test/chatThreadNoDeadBandAboveMessages.test.tsx and
               ChatView.layout.test.tsx. */}
-          {!bannerDismissed && (
+          {!bannerDismissed && !isTeam && (
             <div className="w-full mt-3 shrink-0 rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-[hsl(var(--sienna-ink))]">
@@ -496,7 +496,7 @@ export function ChatView({
             setDeleteMessageConfirm={setDeleteMessageConfirm}
             setActionMessage={setActionMessage}
             reactions={reactions}
-            onReact={react}
+            onReact={isTeam ? undefined : react}
           />
           </div>
           </PullToRefreshWrapper>
@@ -556,13 +556,13 @@ export function ChatView({
         message={actionMessage}
         mine={actionMessage?.sender_id === userId}
         onClose={() => setActionMessage(null)}
-        onReport={(id) => setReportTarget({ type: "message", id })}
-        onBlock={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
+        onReport={isTeam ? undefined : (id) => setReportTarget({ type: "message", id })}
+        onBlock={isTeam ? undefined : () => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
         onDelete={setDeleteMessageConfirm}
         onEdit={(m) => { setEditDraft(m.content); setEditingMessage(m); }}
-        onReact={react}
+        onReact={isTeam ? undefined : react}
         myReaction={actionMessage ? (reactions.get(actionMessage.id)?.mine ?? null) : null}
-        onReply={setReplyTo}
+        onReply={isTeam ? undefined : setReplyTo}
       />
 
       {/* Edit dialog — opened from the action sheet's "Edit" row. A plain

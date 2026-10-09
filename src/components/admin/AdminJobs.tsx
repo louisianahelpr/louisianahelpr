@@ -11,6 +11,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
+import { useApplicantCounts } from "./adminJobs/useApplicantCounts";
 import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly, isGhostJob, isActivePaidJob } from "./adminJobs/adminJobsHelpers";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
@@ -74,9 +75,6 @@ const AdminJobs = () => {
   const [overrideReason, setOverrideReason] = useState("");
   const [overriding, setOverriding] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost" | "active" | "test">("active");
-  // Applications per job, loaded for the Active tab (admins read every application row).
-  // null = not loaded (or failed): cards then show no count rather than a stale or wrong one.
-  const [applicantCounts, setApplicantCounts] = useState<Map<string, number> | null>(null);
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
@@ -407,9 +405,7 @@ const AdminJobs = () => {
     }
   };
 
-  // TEST JOBS LIVE IN THEIR OWN TAB (owner, 2026-10-09: "add a category for
-  // test jobs in filters bc I only want to see the real jobs"). Every other
-  // tab, and every count on them, is real jobs only.
+  // Test jobs have their own tab; every other tab and count is real jobs (owner, 2026-10-09).
   const realJobs = jobs.filter((j) => j.is_seed !== true);
   const testJobs = jobs.filter((j) => j.is_seed === true);
   const realIds = new Set(realJobs.map((j) => j.id));
@@ -423,29 +419,7 @@ const AdminJobs = () => {
   // until the row actually leaves the open/unfunded state.
   const ghostJobs = realJobs.filter(isGhostJob);
   const activeJobs = realJobs.filter(isActivePaidJob);
-  const activeJobIds = activeJobs.map((j) => j.id).join(",");
-  useEffect(() => {
-    setApplicantCounts(null);
-    if (!activeJobIds) return;
-    let cancelled = false;
-    void (async () => {
-      // One exact head-count per job (code review: reading the rows and
-      // counting here would silently cap at PostgREST's row limit).
-      const ids = activeJobIds.split(",");
-      const results = await Promise.all(
-        ids.map((id) => supabase.from("applications").select("id", { count: "exact", head: true }).eq("job_id", id)),
-      );
-      if (cancelled) return;
-      const failed = results.find((r) => r.error);
-      if (failed?.error) {
-        console.error("[AdminJobs] applicant counts:", failed.error);
-        toast.error("Couldn't load applicant counts — refresh to retry.");
-        return;
-      }
-      setApplicantCounts(new Map(ids.map((id, i) => [id, results[i].count ?? 0])));
-    })();
-    return () => { cancelled = true; };
-  }, [activeJobIds]);
+  const applicantCounts = useApplicantCounts(activeJobs.map((j) => j.id));
   const baseJobs =
     filter === "flagged"
       ? realJobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
@@ -470,7 +444,6 @@ const AdminJobs = () => {
   const staleOnlyCount = filteredJobs.filter((j) => isStaleOnly(jobFlags.get(j.id))).length;
 
   const FILTERS: { id: typeof filter; label: string; count: number; icon: typeof Flag }[] = [
-    // Real, paid, not finished: each card shows its applicant count (owner, 2026-10-09).
     { id: "active", label: "Active", count: activeJobs.length, icon: Users },
     { id: "flagged", label: "Flagged", count: flaggedCount, icon: Flag },
     { id: "resolved", label: "Resolved", count: resolvedCount, icon: CheckCircle2 },
@@ -536,15 +509,7 @@ const AdminJobs = () => {
             variant="inline"
             icon={Briefcase}
             title={
-              filter === "active"
-                ? "No active jobs"
-                : filter === "test"
-                  ? "No test jobs"
-                  : filter === "flagged"
-                    ? "No flagged jobs"
-                    : filter === "ghost"
-                      ? "No ghost jobs"
-                      : "No jobs found"
+              ({ active: "No active jobs", test: "No test jobs", flagged: "No flagged jobs", ghost: "No ghost jobs" } as Record<string, string>)[filter] ?? "No jobs found"
             }
             body={
               filter === "active"

@@ -86,7 +86,7 @@ export function AdminMessageUserDialog({ profile, onClose }: AdminMessageUserDia
         return;
       }
       const userId = profile.user_id;
-      toast.success(`Sent to ${name}.`, {
+      toast.success(`Sent to ${name}`, {
         description: `They'll see it in Messages from the ${TEAM_THREAD_NAME}.`,
         action: { label: "Open Conversation", onClick: () => navigate(teamThreadLink(userId)) },
       });

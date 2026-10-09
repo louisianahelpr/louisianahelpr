@@ -9,7 +9,7 @@
 // 2026-10-09, "Save it, follow up once").
 //
 // Each run, scheduled hourly 14:23-23:23 UTC by cron job signup-lead-reminders
-// (migration 20261009173906):
+// (migration 20261009223714):
 //   1. sweep_signup_leads(): marks completed every lead whose address now has
 //      an auth user, and deletes leads older than 30 days.
 //   2. claim_signup_lead_reminders(CAP): stamps reminder_sent_at and returns

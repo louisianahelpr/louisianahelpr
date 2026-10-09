@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261009173906_signup_leads (owner 2026-10-09, "Save it,
+ * PGlite proof for 20261009223714_signup_leads (owner 2026-10-09, "Save it,
  * follow up once"): sign-up step-1 emails are saved service-role only, a lead
  * is completed when its auth user appears, a lead is claimed for its ONE
  * reminder at most once, test/suppressed/unsubscribed/young leads are never
@@ -18,7 +18,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const mig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
-const MIG = "20261009173906_signup_leads.sql";
+const MIG = "20261009223714_signup_leads.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {

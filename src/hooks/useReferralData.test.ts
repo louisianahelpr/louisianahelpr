@@ -300,3 +300,31 @@ describe("fetchReferralData — a banned account's refused mint is not an error 
 // blank referral page that silently mints a new code.
 // @mutate src/hooks/useReferralData.ts | const codeRow = unwrap(codeRes); | const codeRow = codeRes.data;
 // @mutate src/hooks/useReferralData.ts |   unwrap(referralsRes); |   void referralsRes;
+
+describe("fetchReferralData — two loads race to mint the code (prod 2026-10-09)", () => {
+  it("reads back the code the other load wrote instead of reporting and returning none", async () => {
+    vi.mocked(report).mockClear();
+    let codeReads = 0;
+    const base = fromMock.getMockImplementation()!;
+    fromMock.mockImplementation((table: string) => {
+      if (table !== "referral_codes") return base(table);
+      const b: Record<string, unknown> = {};
+      let inserting = false;
+      b.select = () => b;
+      b.eq = () => b;
+      b.insert = () => { inserting = true; return b; };
+      b.maybeSingle = () => Promise.resolve({ data: codeReads++ === 0 ? null : { code: "WON123" }, error: null });
+      b.single = () =>
+        Promise.resolve(
+          inserting
+            ? { data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "referral_codes_user_id_key"' } }
+            : { data: null, error: null },
+        );
+      return b;
+    });
+    setResponse("profiles|select,eq:user_id=u1,single|data", { data: { stripe_account_id: null }, error: null });
+    const out = await fetchReferralData("u1");
+    expect(out.referralCode).toBe("WON123");
+    expect(report).not.toHaveBeenCalled();
+  });
+});

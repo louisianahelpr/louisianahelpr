@@ -19,8 +19,9 @@
  * @mutate supabase/migrations/20261009173906_signup_leads.sql |   DELETE FROM public.signup_leads\n   WHERE created_at < now() - interval '30 days' |   DELETE FROM public.signup_leads\n   WHERE false
  * @mutate supabase/migrations/20261009173906_signup_leads.sql |     AND (completed_at IS NOT NULL OR (reminder_sent_at IS NULL AND unsubscribed_at IS NULL)); |     ;
  * @mutate supabase/migrations/20261009173906_signup_leads.sql |       AND l.created_at > now() - interval '2 hours'\n | \n
- * @mutate src/pages/auth/Signup.tsx |               void captureSignupLead(email, signupLeadSource(window.location.search, document.referrer), capturedLeadRef.current);\n | \n
- * @mutate src/pages/auth/Signup.tsx |               capturedLeadRef.current = email;\n | \n
+ * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
+ * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
+ * @mutate src/lib/signupLead.ts |     void captureSignupLead(email, | captureSignupLead(email,
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email you once if you don't finish signing up.\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  */
@@ -139,6 +140,7 @@ describe("signup leads: database layer", () => {
 describe("signup leads: client and unsubscribe layers", () => {
   const signup = blankComments(readFileSync(join(ROOT, "src/pages/auth/Signup.tsx"), "utf8"));
   const step1 = blankComments(readFileSync(join(ROOT, "src/pages/auth/signup/SignupStep1.tsx"), "utf8"));
+  const lib = blankComments(readFileSync(join(ROOT, "src/lib/signupLead.ts"), "utf8"));
   const unsub = blankComments(readFileSync(join(ROOT, "supabase/functions/email-unsubscribe/index.ts"), "utf8"));
 
   it("step 1 captures the email after validation, without awaiting it (never blocks sign-up)", () => {
@@ -146,10 +148,14 @@ describe("signup leads: client and unsubscribe layers", () => {
     expect(cont).toBeGreaterThan(-1);
     const block = signup.slice(cont, signup.indexOf("setStep(2);", cont));
     expect(block).toMatch(/await validateAccountStep\(\)/);
-    expect(block).toMatch(/\n\s*void captureSignupLead\(email,[^\n]*capturedLeadRef\.current\);/);
-    expect(block).toMatch(/capturedLeadRef\.current = email;/);
-    expect(block).not.toMatch(/await\s+captureSignupLead/);
-    expect(block.indexOf("validateAccountStep")).toBeLessThan(block.indexOf("captureSignupLead"));
+    expect(block).toMatch(/\n\s*captureLead\(email\);/);
+    expect(block).not.toMatch(/await\s+captureLead/);
+    expect(block.indexOf("validateAccountStep")).toBeLessThan(block.indexOf("captureLead"));
+    expect(signup).toMatch(/const captureLead = useSignupLeadCapture\(\);/);
+    // The hook fires without awaiting and remembers the last address (typo fix replaces it).
+    const hook = lib.slice(lib.indexOf("export function useSignupLeadCapture"));
+    expect(hook).toMatch(/\n\s*void captureSignupLead\(email,[^\n]*capturedLeadRef\.current\);/);
+    expect(hook).toMatch(/capturedLeadRef\.current = email;/);
   });
 
   it("step 1 tells the visitor before it happens", () => {

@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
@@ -54,4 +55,17 @@ export async function captureSignupLead(email: string, source: string, replaces?
   } catch (err) {
     report(err, { tags: { source: "signupLead.capture" } });
   }
+}
+
+/**
+ * Step 1's capture, for Signup.tsx: fire-and-forget (never awaited, never
+ * blocks), and it remembers the address it last saved so a corrected typo
+ * replaces it and the typo is never sent the reminder.
+ */
+export function useSignupLeadCapture(): (email: string) => void {
+  const capturedLeadRef = useRef<string | null>(null);
+  return useCallback((email: string) => {
+    void captureSignupLead(email, signupLeadSource(window.location.search, document.referrer), capturedLeadRef.current);
+    capturedLeadRef.current = email;
+  }, []);
 }

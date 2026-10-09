@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-09T13:21:00.602Z",
-  "guards": 1639,
-  "registered": 1637,
+  "generated": "2026-10-09T13:34:46.457Z",
+  "guards": 1640,
+  "registered": 1638,
   "unregistered": [
     "src/test/edgeInvokeSendsBearer.test.ts",
     "src/test/snapPickerHandlesWheel.test.tsx"

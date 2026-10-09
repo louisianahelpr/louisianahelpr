@@ -45,6 +45,9 @@ import {
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
+
+/** The feed's own measure (its column is `max-w-lg`, 32rem): the panel stops here. */
+const NOTIFICATION_PANEL_MAX_WIDTH = 512;
 import { useFramerMotion, type FramerMotion } from "@/components/notificationPanel/useFramerMotion";
 
 /* One day group. When the LAST row of a day leaves (mark read on the Unread
@@ -524,7 +527,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
         <PopoverDismissLayer />
       </PopoverPortal>
       <PopoverContent
-        {...screenPanelContentProps(band, { roundTopCorners: true })}
+        {...screenPanelContentProps(band, { roundTopCorners: true, contentMaxWidth: NOTIFICATION_PANEL_MAX_WIDTH })}
         aria-labelledby={titleId}
         className={screenPanelContentClass(band)}
         // Park focus on the PANEL, not on its first focusable child. Radix's

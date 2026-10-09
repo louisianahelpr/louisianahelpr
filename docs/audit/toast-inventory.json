@@ -812,7 +812,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 100,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -832,7 +832,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 112,
+      "line": 106,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -842,7 +842,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 114,
+      "line": 108,
       "kind": "toast.success",
       "title": {
         "form": "literal",

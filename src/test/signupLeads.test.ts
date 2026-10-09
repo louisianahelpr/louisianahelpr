@@ -9,16 +9,16 @@
  * claim-before-send UPDATE, the completion trigger, the schedule, and the
  * client wiring (step 1 captures without awaiting, and says so on screen).
  *
- * @mutate supabase/migrations/20261009173906_signup_leads.sql | REVOKE ALL ON TABLE public.signup_leads FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.signup_leads FROM PUBLIC;
- * @mutate supabase/migrations/20261009173906_signup_leads.sql | REVOKE ALL ON FUNCTION public.record_signup_lead(text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_signup_lead(text, text, text) FROM PUBLIC;
- * @mutate supabase/migrations/20261009173906_signup_leads.sql | AND l.reminder_sent_at IS NULL\n        AND l.unsubscribed_at IS NULL\n        AND NOT public | AND l.unsubscribed_at IS NULL\n        AND NOT public
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |       FOR UPDATE SKIP LOCKED\n | \n
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |         AND NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.email = l.email)\n        AND NOT EXISTS (SELECT 1 FROM public.profiles | \n        AND NOT EXISTS (SELECT 1 FROM public.profiles
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |         AND NOT public.is_fixture_email(l.email)\n | \n
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |   AFTER INSERT ON auth.users | AFTER UPDATE OF phone ON auth.users
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |   DELETE FROM public.signup_leads\n   WHERE created_at < now() - interval '30 days' |   DELETE FROM public.signup_leads\n   WHERE false
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |     AND (completed_at IS NOT NULL OR (reminder_sent_at IS NULL AND unsubscribed_at IS NULL)); |     ;
- * @mutate supabase/migrations/20261009173906_signup_leads.sql |       AND l.created_at > now() - interval '2 hours'\n | \n
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql | REVOKE ALL ON TABLE public.signup_leads FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.signup_leads FROM PUBLIC;
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql | REVOKE ALL ON FUNCTION public.record_signup_lead(text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_signup_lead(text, text, text) FROM PUBLIC;
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql | AND l.reminder_sent_at IS NULL\n        AND l.unsubscribed_at IS NULL\n        AND NOT public | AND l.unsubscribed_at IS NULL\n        AND NOT public
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |       FOR UPDATE SKIP LOCKED\n | \n
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |         AND NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.email = l.email)\n        AND NOT EXISTS (SELECT 1 FROM public.profiles | \n        AND NOT EXISTS (SELECT 1 FROM public.profiles
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |         AND NOT public.is_fixture_email(l.email)\n | \n
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |   AFTER INSERT ON auth.users | AFTER UPDATE OF phone ON auth.users
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |   DELETE FROM public.signup_leads\n   WHERE created_at < now() - interval '30 days' |   DELETE FROM public.signup_leads\n   WHERE false
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |     AND (completed_at IS NOT NULL OR (reminder_sent_at IS NULL AND unsubscribed_at IS NULL)); |     ;
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql |       AND l.created_at > now() - interval '2 hours'\n | \n
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n

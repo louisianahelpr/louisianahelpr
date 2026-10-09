@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20260923143321_schedule_unscheduled_pruners.sql | PERFORM cron.schedule('cleanup-stripe-webhook-events', | PERFORM cron.unschedule_x('cleanup-stripe-webhook-events',
  * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | CREATE FUNCTION public.cleanup_stripe_webhook_events() | CREATE FUNCTION public.cleanup_stripe_webhook_events_gone()
  * @mutate supabase/functions/signup-lead-reminders/index.ts | supabase.rpc("sweep_signup_leads") | supabase.rpc("sweep_signup_leads_x")
- * @mutate supabase/migrations/20261009173906_signup_leads.sql | '/functions/v1/signup-lead-reminders', | '/functions/v1/signup-lead-reminders-x',
+ * @mutate supabase/migrations/20261009223714_signup_leads.sql | '/functions/v1/signup-lead-reminders', | '/functions/v1/signup-lead-reminders-x',
  *
  * EDGE-RUN pruners (2026-10-09, sign-up leads): a pruner may also be run by a
  * scheduled EDGE function, i.e. a function directory that some cron.schedule

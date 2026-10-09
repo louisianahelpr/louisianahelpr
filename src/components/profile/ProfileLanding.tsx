@@ -36,7 +36,10 @@ export function ProfileLanding({
   return (
     <>
       {/* ── THE PAGE TITLE ──────────────────────────────────────────
-          The member's name, lined up with the identity card and the WORK
+          "Profile". The member's name moved back INTO the identity card,
+          beside the photo (owner, 2026-10-09: "move the name back into the
+          first box to the right of the profile pic"). The title stays,
+          lined up with the identity card and the WORK
           list below it: it starts on the column edge (x=20 at 375, 24 at
           1440). Owner, 2026-09-25: "move the name at the top over to the
           left some" -> "line up with the card".
@@ -53,7 +56,7 @@ export function ProfileLanding({
           PageHeader's app-wide rule. */}
       <div className="-mb-3 lg:-mb-4">
         <PageHeader
-          title={displayName || "Welcome back"}
+          title="Profile"
           hideBack
           width="none"
           topInsetHandled

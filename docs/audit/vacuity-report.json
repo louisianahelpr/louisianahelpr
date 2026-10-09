@@ -1,14 +1,8 @@
 {
-  "generated": "2026-10-09T16:35:39.699Z",
+  "generated": "2026-10-09T16:49:33.744Z",
   "guards": 1645,
-  "registered": 1640,
-  "unregistered": [
-    "src/components/admin/adminJobs/activePaidJob.test.ts",
-    "src/components/dashboard/applyConfirmDialog/pitchPerAccount.test.tsx",
-    "src/components/ui/anchoredPanel.contentMaxWidth.test.ts",
-    "src/test/edgeInvokeSendsBearer.test.ts",
-    "src/test/snapPickerHandlesWheel.test.tsx"
-  ],
+  "registered": 1645,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/test/bootStallWatchdog.test.ts"

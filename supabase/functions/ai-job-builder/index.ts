@@ -3,6 +3,7 @@ import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { sanitizeJob } from "./sanitize.ts";
+import { fetchWithRetry } from "./retry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -126,7 +127,10 @@ Always respond using the generate_job_posting tool.`;
 
     // Google Gemini via its OpenAI-compatible endpoint, so the tool-calling
     // request/response shape below stays identical to a standard OpenAI call.
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    // A brief provider overload is retried in place (retry.ts) before the
+    // poster ever sees a "busy" toast.
+    const response = await fetchWithRetry((signal) => fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      signal,
       method: "POST",
       headers: {
         Authorization: `Bearer ${GEMINI_API_KEY}`,
@@ -174,7 +178,7 @@ Always respond using the generate_job_posting tool.`;
         ],
         tool_choice: { type: "function", function: { name: "generate_job_posting" } },
       }),
-    });
+    }), { onRetry: (attempt, status) => console.warn(`AI gateway ${status}; retry ${attempt}`) });
 
     if (!response.ok) {
       if (response.status === 429) {

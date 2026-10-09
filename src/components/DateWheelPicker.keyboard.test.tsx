@@ -24,13 +24,13 @@ function Harness({ initial }: { initial: string }) {
 const valueText = () => screen.getByTestId("value").textContent;
 
 describe("DateWheelPicker keyboard", () => {
-  it("Tab visits exactly the three listboxes and never changes the value", () => {
+  it("Tab visits the typed box and the three listboxes and never changes the value", () => {
     const { container } = render(<Harness initial="2000-06-15" />);
     // Tab order = every element a sequential Tab can land on, in DOM order.
     const tabbable = Array.from(container.querySelectorAll<HTMLElement>("button, [tabindex], input, a[href]"))
       .filter((el) => el.tabIndex >= 0 && !(el as HTMLButtonElement).disabled);
     expect(tabbable.map((a) => `${a.getAttribute("role") ?? a.tagName}:${a.getAttribute("aria-label") ?? a.textContent}`))
-      .toEqual(["BUTTON:before", "listbox:Month", "listbox:Day", "listbox:Year", "BUTTON:after"]);
+      .toEqual(["BUTTON:before", "INPUT:", "listbox:Month", "listbox:Day", "listbox:Year", "BUTTON:after"]);
     // Walk it forwards and back the way a Tab press does: blur, focus, keyup.
     for (const el of [...tabbable, ...tabbable.slice().reverse()]) {
       el.focus();

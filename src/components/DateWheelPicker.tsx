@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
+import { TypedDateInput } from "@/components/TypedDateInput";
 import { cn } from "@/lib/utils";
 
 const ITEM_H = 40;
@@ -217,39 +218,46 @@ export function DateWheelPicker({ value, onChange, minDate, maxDate }: DateWheel
   };
 
   return (
-    <div className="relative px-3 py-1" style={{ width: 264 }}>
-      {/* Centre band — the "selected" indicator the rows scroll through. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-3 rounded-ds-md"
-        style={{
-          top: `calc(50% - ${ITEM_H / 2}px)`,
-          height: ITEM_H,
-          background: "hsl(var(--olivewood) / 0.10)",
-        }}
-      />
-      <div className="relative grid grid-cols-[1.4fr_0.8fr_1fr]">
-        <WheelColumn
-          ariaLabel="Month"
-          labels={months.map((m) => MONTHS[m])}
-          values={months}
-          value={clamp(month, monthLo, monthHi)}
-          onChange={(m) => emit(year, m, day)}
+    <div style={{ width: 264 }}>
+      {/* TYPE IT INSTEAD (owner, 2026-10-09): the wheel opens on the youngest
+          allowed birthday (today - 18y), so a 1968 birthday was 40 flicks of
+          the year column, and a real user read the "2008" it opened on as the
+          only year on offer. */}
+      <TypedDateInput value={value} onChange={onChange} minDate={minDate} maxDate={maxDate} />
+      <div className="relative px-3 py-1">
+        {/* Centre band — the "selected" indicator the rows scroll through. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-3 rounded-ds-md"
+          style={{
+            top: `calc(50% - ${ITEM_H / 2}px)`,
+            height: ITEM_H,
+            background: "hsl(var(--olivewood) / 0.10)",
+          }}
         />
-        <WheelColumn
-          ariaLabel="Day"
-          labels={days.map(String)}
-          values={days}
-          value={clamp(day, dayLo, dayHi)}
-          onChange={(d) => emit(year, month, d)}
-        />
-        <WheelColumn
-          ariaLabel="Year"
-          labels={years.map(String)}
-          values={years}
-          value={clamp(year, minY, maxY)}
-          onChange={(y) => emit(y, month, day)}
-        />
+        <div className="relative grid grid-cols-[1.4fr_0.8fr_1fr]">
+          <WheelColumn
+            ariaLabel="Month"
+            labels={months.map((m) => MONTHS[m])}
+            values={months}
+            value={clamp(month, monthLo, monthHi)}
+            onChange={(m) => emit(year, m, day)}
+          />
+          <WheelColumn
+            ariaLabel="Day"
+            labels={days.map(String)}
+            values={days}
+            value={clamp(day, dayLo, dayHi)}
+            onChange={(d) => emit(year, month, d)}
+          />
+          <WheelColumn
+            ariaLabel="Year"
+            labels={years.map(String)}
+            values={years}
+            value={clamp(year, minY, maxY)}
+            onChange={(y) => emit(y, month, day)}
+          />
+        </div>
       </div>
     </div>
   );

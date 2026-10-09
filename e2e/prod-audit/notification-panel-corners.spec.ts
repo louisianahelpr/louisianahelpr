@@ -12,7 +12,7 @@
  * writes. A screenshot of the panel's top is kept per run.
  */
 // Shown able to fail: without the option the top corners compute to 0px.
-// @mutate src/components/NotificationPanel.tsx | screenPanelContentProps(band, { roundTopCorners: true }) | screenPanelContentProps(band)
+// @mutate src/components/NotificationPanel.tsx | screenPanelContentProps(band, { roundTopCorners: true, contentMaxWidth | screenPanelContentProps(band, { contentMaxWidth
 import { test, expect, webkit, type Browser } from "../prodTest";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";

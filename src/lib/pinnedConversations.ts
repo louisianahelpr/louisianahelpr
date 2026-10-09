@@ -30,6 +30,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isGoneReference } from "@/lib/goneReference";
 import { planMergeUp } from "@/lib/archivedConversations";
+import { isTeamThreadKey } from "@/lib/teamThread";
 
 const STORAGE_KEY_PREFIX = "helpr_pinned_threads_v2_";
 /** Pre-server key. Read once so existing session pins aren't yanked away. */
@@ -271,7 +272,8 @@ export function getPinnedSet(userId: string): Set<string> {
  * back rather than lying about a pin that was never stored.
  */
 export function togglePinned(userId: string, jobId: string, otherUserId: string): boolean {
-  if (!userId) return false;
+  // thread_pins.job_id is a job uuid: a team thread is never pinned.
+  if (!userId || isTeamThreadKey(jobId)) return false;
   const set = new Set(getPinnedSet(userId));
   const k = pinnedKey(jobId, otherUserId);
   const next = !set.has(k);

@@ -1,6 +1,6 @@
 import {
   CheckCircle2, Clock, ShieldAlert, ShieldCheck, KeyRound,
-  MessageSquareWarning, History, Trash2, Eye, UserMinus,
+  MessageSquareWarning, History, Trash2, Eye, UserMinus, MessageSquare,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
 import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
+import { AdminMessageUserDialog } from "../AdminMessageUserDialog";
 import { isIdentityVerified } from "@/lib/awardGate";
 
 
@@ -61,6 +62,7 @@ export function ActionsTab({
   }, []);
   const isSelf = !!currentAdminId && currentAdminId === viewProfile.user_id;
   const [restrictProfile, setRestrictProfile] = useState<Profile | null>(null);
+  const [messageProfile, setMessageProfile] = useState<Profile | null>(null);
   const showActivityChip = !["permanently_banned", "temp_banned"].includes(viewBanStatus);
 
   const beginImpersonation = async () => {
@@ -133,6 +135,20 @@ export function ActionsTab({
             Two columns fit the longest label ("Restrict Applications") with
             room to spare. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Message (owner, 2026-10-09): a direct, two-way "Louisiana Helpr
+              Team" thread in the user's Messages. Spans both columns so the
+              eight tools below keep their even pairs. Not offered for your own
+              account (the server refuses it too: cannot_message_self). */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start sm:col-span-2"
+            disabled={isSelf}
+            title={isSelf ? "You can't message your own account." : undefined}
+            onClick={() => setMessageProfile(viewProfile)}
+          >
+            <MessageSquare className="w-4 h-4 mr-1.5 text-primary" /> Message
+          </Button>
           {/* Q234: nothing to verify on an account whose identity already is. */}
           <Button
             variant="outline"
@@ -230,6 +246,10 @@ export function ActionsTab({
       <RestrictApplicationsDialog
         profile={restrictProfile}
         onClose={() => setRestrictProfile(null)}
+      />
+      <AdminMessageUserDialog
+        profile={messageProfile}
+        onClose={() => setMessageProfile(null)}
       />
     </TabsContent>
   );

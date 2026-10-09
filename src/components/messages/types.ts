@@ -57,6 +57,9 @@ export type Message = {
    * bubbles. Never set on messages created by a human sender.
    */
   is_system?: boolean;
+  /** Set on a "Louisiana Helpr Team" thread row (its `job_id` is then the
+   *  `team:<user>` sentinel, see src/lib/teamThread.ts). */
+  team_thread_user_id?: string | null;
 };
 
 export type Conversation = {
@@ -140,4 +143,9 @@ export type Conversation = {
       gauge how likely a helpr is to reply soon. Absent when the RPC is
       undeployed (PGRST202) or older than the 7-day staleness cutoff. */
   otherUserLastActiveAt?: string | null;
+  /** Present only on a "Louisiana Helpr Team" thread (no job; `jobId` is the
+      `team:<user>` sentinel). Job-scoped features (status, lockout, mute, pin,
+      archive, reactions, attachments, report/block) are off there.
+      See src/lib/teamThread.ts. */
+  teamThread?: import("@/lib/teamThread").TeamThreadSide;
 };

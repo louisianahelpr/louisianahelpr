@@ -41,6 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isGoneReference } from "@/lib/goneReference";
+import { isTeamThreadKey } from "@/lib/teamThread";
 
 const STORAGE_KEY = "helpr_archived_conversations";
 
@@ -353,7 +354,9 @@ export function archiveConversation(
   jobId: string,
   otherUserId: string | null,
 ): void {
-  if (!userId) return;
+  // thread_archives.job_id is a job uuid: a "Louisiana Helpr Team" thread
+  // (src/lib/teamThread.ts) has none and is never archived.
+  if (!userId || isTeamThreadKey(jobId)) return;
   const key = conversationKey(jobId, otherUserId);
   const archivedAt = new Date().toISOString();
   const map = { ...getArchiveMap(userId), [key]: archivedAt };
@@ -397,7 +400,7 @@ export function unarchiveConversation(
   jobId: string,
   otherUserId: string | null,
 ): void {
-  if (!userId) return;
+  if (!userId || isTeamThreadKey(jobId)) return;
   const key = conversationKey(jobId, otherUserId);
   const previous = getArchiveMap(userId)[key];
   const map = { ...getArchiveMap(userId) };

@@ -30,6 +30,7 @@ import {
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { DockPill } from "@/components/mobileNav/DockPill";
+import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
@@ -628,13 +629,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 onSelect={() => {
                   closeQuickMenu();
                   hapticLight();
-                  // Q262: a deleted-account thread has no userId to link; a
-                  // jobId-only link opens it when it is the job's only thread.
-                  navigate(
-                    c.otherUserId === null
-                      ? `/messages?jobId=${c.jobId}`
-                      : `/messages?jobId=${c.jobId}&userId=${c.otherUserId}`,
-                  );
+                  // Q262 and team threads: see conversationLink.
+                  navigate(conversationLink(c));
                 }}
               />
             ))

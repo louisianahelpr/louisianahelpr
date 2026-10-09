@@ -156,6 +156,9 @@ const ProtectedRoute = ({
   useEffect(() => {
     if (!user) return;
     let fired = false;
+    // A check still running when this screen goes away must not redirect
+    // with a stale path (getSession can retry for ~25 s on a bad network).
+    let cancelled = false;
     // A null getSession() is NOT proof (2026-10-09 21:45Z, the owner's Mac:
     // a network-failed token refresh made it null for ~1 s while the session
     // was alive). confirmSessionLost() tries refreshSession() and answers true
@@ -163,7 +166,7 @@ const ProtectedRoute = ({
     const onDenied = () => {
       if (fired) return;
       void confirmSessionLost().then((lost) => {
-        if (fired || !lost) return;
+        if (cancelled || fired || !lost) return;
         fired = true;
         report(new Error("Session lost on a signed-in screen"), {
           severity: "warning",
@@ -176,7 +179,10 @@ const ProtectedRoute = ({
       });
     };
     window.addEventListener(PERMISSION_DENIED_EVENT, onDenied);
-    return () => window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
+    };
   }, [user, location.pathname, location.search]);
 
   // Note: previously this component fired a `refresh()` on every mount,

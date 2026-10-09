@@ -111,6 +111,48 @@ describe("ProtectedRoute: session lost on a signed-in screen", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  // Review 2026-10-09: a concurrent refresh discarded by auth-js (409) is a no-op.
+  it("stays put when auth-js discards the refresh because another tab stored a newer session (409)", async () => {
+    getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
+    refreshSessionMock.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { name: "AuthRefreshDiscardedError", status: 409, message: "Refresh discarded" },
+    });
+    mount();
+    deny();
+    await settle();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("stays put when a fresh session appears before the answer (last look)", async () => {
+    getSessionMock
+      .mockResolvedValueOnce({ data: { session: null }, error: null })
+      .mockResolvedValue({ data: { session: { access_token: "t3" } }, error: null });
+    refreshSessionMock.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { name: "AuthApiError", status: 400, message: "Invalid Refresh Token: Already Used" },
+    });
+    mount();
+    deny();
+    await settle();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect when the screen unmounts before the check answers", async () => {
+    let answer!: (v: unknown) => void;
+    getSessionMock.mockReturnValueOnce(new Promise((r) => { answer = r; })).mockResolvedValue({ data: { session: null }, error: null });
+    refreshSessionMock.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { name: "AuthSessionMissingError", status: 400, message: "Auth session missing!" },
+    });
+    const { unmount } = mount();
+    deny();
+    unmount();
+    answer({ data: { session: null }, error: null });
+    await settle();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("stays put on a server error (5xx) during the refresh", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
     refreshSessionMock.mockResolvedValue({ data: { session: null, user: null }, error: { name: "AuthRetryableFetchError", status: 502, message: "Bad Gateway" } });
@@ -121,5 +163,7 @@ describe("ProtectedRoute: session lost on a signed-in screen", () => {
   });
 });
 
-// @mutate src/components/ProtectedRoute.tsx |         if (fired \|\| !lost) return; |         if (fired) return;
-// @mutate src/lib/sessionLoss.ts |     return isDefiniteAuthLoss(error); |     return !data?.session;
+// @mutate src/components/ProtectedRoute.tsx |         if (cancelled \|\| fired \|\| !lost) return; |         if (fired \|\| !lost) return;
+// @mutate src/lib/sessionLoss.ts |   if (err.name !== "AuthApiError") return false;\n | \n
+// @mutate src/lib/sessionLoss.ts |     return !after.session; |     return true;
+// @mutate src/lib/sessionLoss.ts |     if (!isDefiniteAuthLoss(error)) return false; |     if (false) return false;

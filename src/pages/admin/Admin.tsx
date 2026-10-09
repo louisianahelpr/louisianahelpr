@@ -1,3 +1,4 @@
+import { ACTIVE_PAYMENT_STATUSES } from "@/components/admin/adminJobs/adminJobsHelpers";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -253,7 +254,11 @@ const Admin = () => {
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
+      // ACTIVE = paid and not finished, the SAME rule as Admin → Jobs → Active
+      // (isActivePaidJob). This tile counted open/accepted/in_progress by status
+      // alone, so an unpaid checkout someone walked away from read as active:
+      // 5 here against 4 on the Jobs tab (prod, 2026-10-09).
+      supabase.from("jobs").select("id", { count: "exact", head: true }).not("status", "in", "(completed,cancelled)").in("payment_status", [...ACTIVE_PAYMENT_STATUSES]).eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
       supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).neq("status", "cancelled").eq("is_seed", false),
@@ -277,7 +282,7 @@ const Admin = () => {
       // Completed jobs in previous window
       supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dPrevStart).lt("updated_at", dStart).eq("is_seed", false),
       // Active-job creation pulse for sparkline (created_at within window)
-      supabase.from("jobs").select("created_at").in("status", ["open", "accepted", "in_progress"]).gte("created_at", dStart).eq("is_seed", false),
+      supabase.from("jobs").select("created_at").not("status", "in", "(completed,cancelled)").in("payment_status", [...ACTIVE_PAYMENT_STATUSES]).gte("created_at", dStart).eq("is_seed", false),
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
       supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, platform_fee_amount, customer_fee_amount, updated_at")
@@ -285,7 +290,7 @@ const Admin = () => {
         .neq("status", "cancelled")
         .gte("updated_at", quarterStart).eq("is_seed", false),
       // Q368: the seed rows the three counts above leave out, for "(+N test)".
-      supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", true),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).not("status", "in", "(completed,cancelled)").in("payment_status", [...ACTIVE_PAYMENT_STATUSES]).eq("is_seed", true),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", true),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", true),
       // Q443: which held jobs a gift card paid (they carry no job PI).

@@ -30,7 +30,8 @@ describe("admin keeps test rows visible and says so", () => {
   it("home reads the seed side of the disputes, active-jobs and subscriptions counts", () => {
     const admin = read("src/pages/admin/Admin.tsx");
     expect(admin).toContain('.eq("status", "disputed").eq("is_seed", true),');
-    expect(admin).toContain('.in("status", ["open", "accepted", "in_progress"]).eq("is_seed", true),');
+    // Active = paid and not finished (isActivePaidJob), same as Admin → Jobs → Active.
+    expect(admin).toContain('.not("status", "in", "(completed,cancelled)").in("payment_status", [...ACTIVE_PAYMENT_STATUSES]).eq("is_seed", true),');
     expect(admin).toContain('.not("subscription_tier", "is", null).eq("is_seed", true),');
     const home = read("src/components/admin/dashboard/DashboardHome.tsx");
     for (const k of ["activeJobs, stats.testActiveJobs", "disputedJobs, stats.testDisputedJobs", "activeSubscriptions, stats.testActiveSubscriptions"]) {

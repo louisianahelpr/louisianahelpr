@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { MapPin, CalendarClock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { MapPin, CalendarClock, AlertTriangle, CheckCircle2, Users } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { jobPaymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
@@ -13,6 +13,8 @@ interface JobListItemProps {
   flags: string[] | undefined;
   isResolved: boolean;
   onOpen: (job: Job) => void;
+  /** Applications on this job; shown on the Active tab. */
+  applicantCount?: number;
 }
 
 /**
@@ -30,7 +32,7 @@ interface JobListItemProps {
  * the single card with an actual moderation flag. Staleness is now a quiet
  * amber note and only real flags tint the card.
  */
-export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps) => {
+export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: JobListItemProps) => {
   const modFlags = moderationFlags(flags);
   const isStale = !!flags?.includes(STALE_DATE_FLAG);
   // Only MODERATION flags earn the destructive card treatment.
@@ -77,6 +79,12 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
         <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span title={job.location ?? undefined} className="truncate">{job.location}</span></span>
         <span className="flex items-center gap-1"><CalendarClock className="w-3 h-3 shrink-0" /> {formatJobDate(job.date_needed)}</span>
         <span className="font-medium text-foreground">${formatPrice(job.budget ?? 0)}</span>
+        {applicantCount !== undefined && (
+          <span className="flex items-center gap-1 font-medium text-foreground">
+            <Users className="w-3 h-3 shrink-0" />
+            {applicantCount === 1 ? "1 applicant" : `${applicantCount} applicants`}
+          </span>
+        )}
       </div>
 
       {showFlagStyle && (

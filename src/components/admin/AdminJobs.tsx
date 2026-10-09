@@ -6,12 +6,12 @@ import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2, Briefcase, Ghost } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase, Ghost, Users, FlaskConical } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
-import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly, isGhostJob } from "./adminJobs/adminJobsHelpers";
+import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly, isGhostJob, isActivePaidJob } from "./adminJobs/adminJobsHelpers";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
 import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
@@ -73,7 +73,10 @@ const AdminJobs = () => {
   const [overrideStatus, setOverrideStatus] = useState<"open" | "completed" | "cancelled">("open");
   const [overrideReason, setOverrideReason] = useState("");
   const [overriding, setOverriding] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost">("flagged");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost" | "active" | "test">("active");
+  // Applications per job, loaded for the Active tab (admins read every application row).
+  // null = not loaded (or failed): cards then show no count rather than a stale or wrong one.
+  const [applicantCounts, setApplicantCounts] = useState<Map<string, number> | null>(null);
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
 
@@ -404,23 +407,57 @@ const AdminJobs = () => {
     }
   };
 
-  const flaggedIds = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id));
+  // TEST JOBS LIVE IN THEIR OWN TAB (owner, 2026-10-09: "add a category for
+  // test jobs in filters bc I only want to see the real jobs"). Every other
+  // tab, and every count on them, is real jobs only.
+  const realJobs = jobs.filter((j) => j.is_seed !== true);
+  const testJobs = jobs.filter((j) => j.is_seed === true);
+  const realIds = new Set(realJobs.map((j) => j.id));
+  const flaggedIds = [...jobFlags.keys()].filter((id) => realIds.has(id) && !resolvedFlags.has(id));
   const flaggedCount = flaggedIds.length;
-  const resolvedCount = [...jobFlags.keys()].filter((id) => resolvedFlags.has(id)).length;
+  const resolvedCount = [...jobFlags.keys()].filter((id) => realIds.has(id) && resolvedFlags.has(id)).length;
   // Ghosts: open to helpers, no money behind them. Computed from the job row
   // rather than read out of `jobFlags` so the tab still lists them after an
   // admin has resolved the flag — resolving a ghost means "I have looked at
   // it", not "the job is funded now", and the class has to stay countable
   // until the row actually leaves the open/unfunded state.
-  const ghostJobs = jobs.filter(isGhostJob);
+  const ghostJobs = realJobs.filter(isGhostJob);
+  const activeJobs = realJobs.filter(isActivePaidJob);
+  const activeJobIds = activeJobs.map((j) => j.id).join(",");
+  useEffect(() => {
+    setApplicantCounts(null);
+    if (!activeJobIds) return;
+    let cancelled = false;
+    void (async () => {
+      // One exact head-count per job (code review: reading the rows and
+      // counting here would silently cap at PostgREST's row limit).
+      const ids = activeJobIds.split(",");
+      const results = await Promise.all(
+        ids.map((id) => supabase.from("applications").select("id", { count: "exact", head: true }).eq("job_id", id)),
+      );
+      if (cancelled) return;
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        console.error("[AdminJobs] applicant counts:", failed.error);
+        toast.error("Couldn't load applicant counts — refresh to retry.");
+        return;
+      }
+      setApplicantCounts(new Map(ids.map((id, i) => [id, results[i].count ?? 0])));
+    })();
+    return () => { cancelled = true; };
+  }, [activeJobIds]);
   const baseJobs =
     filter === "flagged"
-      ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
+      ? realJobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
       : filter === "resolved"
-      ? jobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
+      ? realJobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
       : filter === "ghost"
       ? ghostJobs
-      : jobs;
+      : filter === "active"
+      ? activeJobs
+      : filter === "test"
+      ? testJobs
+      : realJobs;
   // Staleness-only rows sink to the bottom. A passed date is the commonest flag
   // by far and the least actionable one — leaving it interleaved by created_at
   // buried the cards with real moderation flags among twenty that just needed a
@@ -433,6 +470,8 @@ const AdminJobs = () => {
   const staleOnlyCount = filteredJobs.filter((j) => isStaleOnly(jobFlags.get(j.id))).length;
 
   const FILTERS: { id: typeof filter; label: string; count: number; icon: typeof Flag }[] = [
+    // Real, paid, not finished: each card shows its applicant count (owner, 2026-10-09).
+    { id: "active", label: "Active", count: activeJobs.length, icon: Users },
     { id: "flagged", label: "Flagged", count: flaggedCount, icon: Flag },
     { id: "resolved", label: "Resolved", count: resolvedCount, icon: CheckCircle2 },
     // "all" was already a valid filter value with no control to reach it, so
@@ -441,7 +480,8 @@ const AdminJobs = () => {
     // here sorts jobs by what a person did, this one by what our checkout
     // failed to do. Buried among moderation flags it reads as one more banner.
     { id: "ghost", label: "Ghosts", count: ghostJobs.length, icon: Ghost },
-    { id: "all", label: "All", count: jobs.length, icon: Briefcase },
+    { id: "all", label: "All", count: realJobs.length, icon: Briefcase },
+    { id: "test", label: "Test", count: testJobs.length, icon: FlaskConical },
   ];
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
@@ -471,7 +511,7 @@ const AdminJobs = () => {
           EmptyState stays painted — with no outer card it IS the card. */}
       <AdminCard
         surface="none"
-        title={filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
+        title={filter === "active" ? "Active Jobs" : filter === "test" ? "Test Jobs" : filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
         subtitle={
           filteredJobs.length === 0
             ? undefined
@@ -488,6 +528,7 @@ const AdminJobs = () => {
             flags={jobFlags.get(job.id)}
             isResolved={resolvedFlags.has(job.id)}
             onOpen={openJob}
+            applicantCount={filter === "active" ? applicantCounts?.get(job.id) : undefined}
           />
         ))}
         {filteredJobs.length === 0 && (
@@ -495,14 +536,20 @@ const AdminJobs = () => {
             variant="inline"
             icon={Briefcase}
             title={
-              filter === "flagged"
-                ? "No flagged jobs"
-                : filter === "ghost"
-                  ? "No ghost jobs"
-                  : "No jobs found"
+              filter === "active"
+                ? "No active jobs"
+                : filter === "test"
+                  ? "No test jobs"
+                  : filter === "flagged"
+                    ? "No flagged jobs"
+                    : filter === "ghost"
+                      ? "No ghost jobs"
+                      : "No jobs found"
             }
             body={
-              filter === "flagged"
+              filter === "active"
+                ? "No paid job is open or in progress right now."
+                : filter === "flagged"
                 ? "Nothing has tripped a moderation flag."
                 : filter === "ghost"
                   // A meaningful zero, not a shrug: this tab being empty is the

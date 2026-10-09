@@ -13,11 +13,11 @@
  * src/test/pglite/parishMatchAlertsWaitForEarlyAccess.pglite.mjs (GREEN 21/21
  * applied 3x; NEW_MIGRATION=skip -> 15 FAIL on the previous fan-out).
  *
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */
 import { readdirSync, readFileSync } from "node:fs";

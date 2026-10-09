@@ -64,8 +64,15 @@ export async function captureSignupLead(email: string, source: string, replaces?
  */
 export function useSignupLeadCapture(): (email: string) => void {
   const capturedLeadRef = useRef<string | null>(null);
+  // Each save waits for the one before it (captureSignupLead never rejects).
+  // Sent in parallel, a corrected address could reach the server first and
+  // drop the typo's lead before the typo's own save arrived, and the typo
+  // would then get the reminder.
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
   return useCallback((email: string) => {
-    void captureSignupLead(email, signupLeadSource(window.location.search, document.referrer), capturedLeadRef.current);
+    const replaces = capturedLeadRef.current;
+    const source = signupLeadSource(window.location.search, document.referrer);
     capturedLeadRef.current = email;
+    queueRef.current = queueRef.current.then(() => captureSignupLead(email, source, replaces));
   }, []);
 }

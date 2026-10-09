@@ -10,6 +10,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { captureSignupLead, signupLeadSource } from "@/lib/signupLead";
 import { withTimeout } from "@/pages/auth/completeProfile/constants";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
@@ -88,6 +89,9 @@ const Signup = () => {
   // tap during validation got through the disabled check and fired a second
   // concurrent auth.signUp().
   const submittingRef = useRef(false);
+  // The address step 1 last saved as a sign-up lead: a corrected typo
+  // replaces it, so the typo is never sent the reminder.
+  const capturedLeadRef = useRef<string | null>(null);
   const captcha = useCaptcha();
 
   // Step 1 fields
@@ -601,6 +605,10 @@ const Signup = () => {
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
+              // Save the email for ONE "finish signing up" reminder (owner
+              // 2026-10-09). Fire-and-forget: never awaited, never blocks.
+              void captureSignupLead(email, signupLeadSource(window.location.search, document.referrer), capturedLeadRef.current);
+              capturedLeadRef.current = email;
               setStep(2);
             }}
           />

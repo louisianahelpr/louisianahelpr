@@ -116,6 +116,7 @@ describe("no test or seed recipient reaches Resend (Q840)", () => {
       "admin-user-actions/index.ts",
       "auth-email-hook/index.ts",
       "engagement-automations/index.ts",
+      "signup-lead-reminders/index.ts",
     ]);
     expect(having(/read_email_batch/)).toEqual(["process-email-queue/index.ts"]);
   });

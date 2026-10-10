@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1040,
-  "latest": "20261009175007"
+  "count": 1042,
+  "latest": "20261009223355"
  },
  "functions": {
   "accept_application": [
@@ -3279,6 +3279,27 @@
    }
   ],
   "notifications_unlink_deleted_jobs": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "notify_admins_new_member": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_via"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 2
+   }
+  ],
+  "notify_admins_on_email_confirm": [
    {
     "anon": false,
     "args": [],
@@ -13382,6 +13403,40 @@
     "before:insert|update|delete"
    ]
   },
+  "new_member_admin_notices": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "notified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "via": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "notification_dedupe_suppressions": {
    "checks": [],
    "columnGrants": {},
@@ -18706,6 +18761,68 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "stuck_payment_stripe_checks": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "checked_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "money_moved": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "payment_intent_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "payment_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "session_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_session_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"

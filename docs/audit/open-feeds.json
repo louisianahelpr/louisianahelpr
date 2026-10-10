@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-09T23:21Z",
+  "measured_at": "2026-10-10T22:39Z",
   "issues": {
     "readable": true,
     "open": [
@@ -60,11 +60,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2665,
-        "title": "nightly-red: db-drift-detect",
-        "label": "nightly-red"
-      },
-      {
         "number": 2668,
         "title": "nightly-red: db-backup",
         "label": "nightly-red"
@@ -74,14 +69,6 @@
   "ledger": {
     "readable": true,
     "open": [
-      {
-        "fingerprint": "3a801ee231b0cb5622678dd6e59362c5",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "new member joined",
-        "issue": null
-      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -123,6 +110,14 @@
         "issue": null
       },
       {
+        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
+        "source_kind": "error_logs",
+        "source": "push-tokens-empty",
+        "status": "open",
+        "title": "no device can receive a push",
+        "issue": null
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -137,14 +132,6 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 2665
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -193,14 +180,6 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
-      },
-      {
-        "fingerprint": "5b3c79ac5eb7674118e5fe66b79204e2",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/jobs · error screen shown: we couldn't load this.",
-        "issue": null
       },
       {
         "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
@@ -280,14 +259,6 @@
         "source": "sentry:?(assets/ErrorState-CvCAqbbI)",
         "status": "open",
         "title": "error: error screen shown: we couldn't load this.",
-        "issue": null
-      },
-      {
-        "fingerprint": "21cbec5b98d2b30b73ce59d970481743",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/posts · error screen shown: we couldn't load this.",
         "issue": null
       },
       {
@@ -435,14 +406,6 @@
         "issue": null
       },
       {
-        "fingerprint": "ed4c78a49f57631c633d3aee82dd8b48",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/profile · error screen shown: we couldn't load your payout data.",
-        "issue": null
-      },
-      {
         "fingerprint": "27437b0c4f14d33f6d15f3891ae04503",
         "source_kind": "sentry",
         "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
@@ -464,14 +427,6 @@
         "source": "sentry:du(assets/app-shared-CaUCxfK9)",
         "status": "open",
         "title": "error: missing authorization header",
-        "issue": null
-      },
-      {
-        "fingerprint": "a75fb3fba970e81ac4e4ad809700c7f1",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/profile · error screen shown: we couldn't load what you've spent.",
         "issue": null
       },
       {
@@ -555,19 +510,99 @@
         "issue": null
       },
       {
-        "fingerprint": "b4de6dae32de47f5f93ba586d603a826",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/ · boot stalled #s on the startup screen (/assets/index-cj3wo4es.js)",
-        "issue": null
-      },
-      {
         "fingerprint": "02a88ee4875fd5744674856fec734f8f",
         "source_kind": "sentry",
         "source": "sentry:sendDataToNative(iabjs://navigation_performance_logger_android)",
         "status": "open",
         "title": "error: error invoking postmessage: java object is gone",
+        "issue": null
+      },
+      {
+        "fingerprint": "40a33605c7c36df658412ded878cf858",
+        "source_kind": "sentry",
+        "source": "sentry:O(assets/sentry-ITVpS-gS)",
+        "status": "open",
+        "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "1b4eafb1222249c80747fd2995f1e25a",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ProtectedRoute-CAbqOrT0)",
+        "status": "open",
+        "title": "error: session lost on a signed-in screen",
+        "issue": null
+      },
+      {
+        "fingerprint": "65bd41ba445264e1c0d0fc2e16da0297",
+        "source_kind": "sentry",
+        "source": "sentry:cn(assets/Dashboard-tzwA4MtS)",
+        "status": "open",
+        "title": "error: dashboard.ctx sub-query failed: applications: permission denied for table applications",
+        "issue": null
+      },
+      {
+        "fingerprint": "c31b9a387af08fdb8a67be747635588c",
+        "source_kind": "sentry",
+        "source": "sentry:wf(assets/app-shared-BZgXTI1M)",
+        "status": "open",
+        "title": "error: mapkit falling back to the unrestricted build-time token: fetch is aborted",
+        "issue": null
+      },
+      {
+        "fingerprint": "4937f4e1c62a94253c28fe203519e73b",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/app-shared-BZgXTI1M)",
+        "status": "open",
+        "title": "error: profile request timed out",
+        "issue": null
+      },
+      {
+        "fingerprint": "6cc892e3fa10a48e10acaa6a70294d86",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/notificationFeed-B4je1ZJb)",
+        "status": "open",
+        "title": "error: notifications load timed out after #ms",
+        "issue": null
+      },
+      {
+        "fingerprint": "824bcfd4ec0ab78ef98107bf2323796b",
+        "source_kind": "sentry",
+        "source": "sentry:bu(assets/app-shared-B0ccjbe2)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
+        "issue": null
+      },
+      {
+        "fingerprint": "60afeab5c3603f6adc518fe8b8edcd8a",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ProtectedRoute-B5rEuR43)",
+        "status": "open",
+        "title": "error: session lost on a signed-in screen",
+        "issue": null
+      },
+      {
+        "fingerprint": "6d012a67fd60f178de61961633922c03",
+        "source_kind": "sentry",
+        "source": "sentry:ze(assets/Signup-BYQ2_4ZN)",
+        "status": "open",
+        "title": "error: profile already completed. please log in.",
+        "issue": null
+      },
+      {
+        "fingerprint": "ed333dc86f4780c96dc5b20a2ec79581",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ErrorState-DlIpaLwc)",
+        "status": "open",
+        "title": "error: error screen shown: nothing saved yet",
+        "issue": null
+      },
+      {
+        "fingerprint": "08aea1a17f25a50901f36deac98c2b2a",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/home · error screen shown: nothing saved yet",
         "issue": null
       }
     ]
@@ -602,11 +637,13 @@
     "ledger 02a88ee4875f": "Q1634",
     "ledger 03faea228969": "Q1629",
     "ledger 06c124e99b6d": "Q1583",
+    "ledger 08aea1a17f25": "Q1645",
     "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
     "ledger 13c460ab330a": "Q1607",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 1b4eafb12222": "Q1636",
     "ledger 1ef4b10bb74a": "Q1488",
     "ledger 21cbec5b98d2": "Q1584",
     "ledger 27437b0c4f14": "Q1619",
@@ -616,23 +653,30 @@
     "ledger 3a3460b71be7": "Q1428",
     "ledger 3a55e8af0908": "Q1577",
     "ledger 3a801ee231b0": "Q1580",
+    "ledger 40a33605c7c3": "Q1635",
     "ledger 41f88aeb227f": "Q1525",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
+    "ledger 4937f4e1c62a": "Q1639",
     "ledger 4b5ace7af165": "Q1621",
     "ledger 54b8c187374a": "Q1524",
     "ledger 54ef0bfdcec3": "Q1480",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1610",
     "ledger 604d92b9bafb": "Q1582",
+    "ledger 60afeab5c360": "Q1642",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
     "ledger 6471854dcd82": "Q1624",
+    "ledger 65bd41ba4452": "Q1637",
     "ledger 6927babb2c1a": "Q1614",
+    "ledger 6cc892e3fa10": "Q1640",
+    "ledger 6d012a67fd60": "Q1643",
     "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 8018e82cb167": "Q1510",
+    "ledger 824bcfd4ec0a": "Q1641",
     "ledger 88ecf6e765df": "Q1426",
     "ledger 8a5eda1d93db": "Q1595",
     "ledger 8ad756b6da76": "Q1630",
@@ -649,6 +693,7 @@
     "ledger bc6810c9f1ab": "Q1606",
     "ledger bd4c3063280b": "Q1626",
     "ledger c1ad0c081216": "Q1611",
+    "ledger c31b9a387af0": "Q1638",
     "ledger c47e76e53f84": "Q1623",
     "ledger cd2127b53ee7": "Q1597",
     "ledger d1585655d567": "Q1601",
@@ -664,6 +709,7 @@
     "ledger e306dea6b044": "Q1608",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1609",
+    "ledger ed333dc86f47": "Q1644",
     "ledger ed3f34acc0e1": "Q1628",
     "ledger ed4c78a49f57": "Q1618",
     "ledger ef92a9f31bed": "Q1476",

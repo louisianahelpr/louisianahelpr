@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1042,
-  "latest": "20261009223355"
+  "count": 1044,
+  "latest": "20261011110725"
  },
  "functions": {
   "accept_application": [
@@ -802,6 +802,17 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "claim_signup_lead_reminders": [
+   {
+    "anon": false,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 1
    }
   ],
   "cleanup_observability_tables": [
@@ -3103,6 +3114,15 @@
     "nargs": 0
    }
   ],
+  "mark_signup_lead_completed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "marketing_published_today": [
    {
     "anon": false,
@@ -3970,6 +3990,19 @@
     "authenticated": false,
     "nargdefaults": 1,
     "nargs": 2
+   }
+  ],
+  "record_signup_lead": [
+   {
+    "anon": false,
+    "args": [
+     "p_email",
+     "p_source",
+     "p_replaces"
+    ],
+    "authenticated": false,
+    "nargdefaults": 2,
+    "nargs": 3
    }
   ],
   "redact_audit_snapshot": [
@@ -5201,6 +5234,15 @@
    }
   ],
   "sweep_saved_search_alert_queue": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_signup_leads": [
    {
     "anon": false,
     "args": [],
@@ -18434,6 +18476,71 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "signup_leads": {
+   "checks": [
+    "CHECK (((email = lower(btrim(email))) AND ((length(email) >= 3) AND (length(email) <= 254))))",
+    "CHECK (((source IS NULL) OR (((length(source) >= 1) AND (length(source) <= 64)) AND (source ~ '^[a-z0-9._-]+$'::text))))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "completed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "reminder_sent_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "source": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "unsubscribed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"

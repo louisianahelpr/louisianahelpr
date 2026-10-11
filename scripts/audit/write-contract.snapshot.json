@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1044,
-  "latest": "20261011110725"
+  "count": 1045,
+  "latest": "20261011161100"
  },
  "functions": {
   "accept_application": [
@@ -224,6 +224,19 @@
      "p_violation_id",
      "p_reason",
      "p_restore_access"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 3
+   }
+  ],
+  "admin_send_team_message": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_content",
+     "p_client_id"
     ],
     "authenticated": true,
     "nargdefaults": 1,
@@ -4741,6 +4754,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "send_team_reply": [
+   {
+    "anon": false,
+    "args": [
+     "p_content",
+     "p_client_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 2
    }
   ],
   "series_give_up_strike": [
@@ -13169,6 +13194,7 @@
   "messages": {
    "checks": [
     "CHECK (((content IS NULL) OR (char_length(content) <= 4000)))",
+    "CHECK (((job_id IS NULL) <> (team_thread_user_id IS NULL)))",
     "CHECK ((sender_id <> receiver_id))"
    ],
    "columnGrants": {
@@ -13280,7 +13306,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "uuid"
     },
     "read": {
@@ -13316,6 +13342,13 @@
      "generated": false,
      "hasDefault": false,
      "notNull": true,
+     "type": "uuid"
+    },
+    "team_thread_user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
      "type": "uuid"
     }
    },

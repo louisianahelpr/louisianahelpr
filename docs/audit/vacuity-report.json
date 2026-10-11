@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-09T22:46:02.374Z",
-  "guards": 1659,
-  "registered": 1658,
+  "generated": "2026-10-11T16:21:10.240Z",
+  "guards": 1662,
+  "registered": 1661,
   "unregistered": [
     "src/test/nativeBuildTurnstile.test.ts"
   ],

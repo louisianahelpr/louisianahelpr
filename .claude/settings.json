@@ -28,6 +28,7 @@
       "mcp__5c8e03a5-fe06-461e-aa11-954fd11ab2e3__deploy_edge_function",
       "mcp__github__*",
       "mcp__Stripe__stripe_api_read",
+      "mcp__Supabase__execute_sql",
       "mcp__claude-code-remote__send_later",
       "mcp__claude-code-remote__read_documentation",
       "Bash(git push:*)"

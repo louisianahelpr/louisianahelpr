@@ -18,7 +18,7 @@
  *
  * @mutate src/components/job-card/CountdownRows.tsx |     .sort((a, b) => toMs(a.c.at) - toMs(b.c.at) \|\| a.i - b.i) |     .sort((a, b) => a.i - b.i)
  * @mutate src/components/job-card/collapsedClocks.ts |   const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null) : null; |   const opens = confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null);
- * @mutate src/components/job-card/confirmationOpensClock.ts |   if (hoursUntilJob <= 24) return null; |   if (hoursUntilJob <= -999) return null;
+ * @mutate src/components/job-card/confirmationOpensClock.ts |   if (now.getTime() >= opensMs) return null; |   if (now.getTime() >= opensMs + 999 * 3_600_000) return null;
  */
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";

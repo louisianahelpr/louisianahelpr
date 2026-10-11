@@ -63,6 +63,6 @@ describe("SaveBar", () => {
 });
 
 // VN-40 itself, plus the wiring of each button.
-// @mutate src/components/profile/profileEditForm/SaveBar.tsx | if (!dirty && !saving && !justSaved) return null;
+// @mutate src/components/profile/profileEditForm/SaveBar.tsx | if (!shown) return null;
 // @mutate src/components/profile/profileEditForm/SaveBar.tsx | onClick={(e) => onSave(e as unknown as React.FormEvent)}
 // @mutate src/components/profile/profileEditForm/SaveBar.tsx | onClick={onBack}

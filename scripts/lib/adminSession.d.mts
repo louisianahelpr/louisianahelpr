@@ -31,4 +31,11 @@ export function mintAdminSession(opts: {
   timeoutMs?: number;
   retries?: number;
   retryDelayMs?: number;
+  lockDir?: string;
 }): Promise<MintedSession>;
+export function defaultMintLockDir(): string;
+export function withMintLock<T>(
+  email: string,
+  fn: () => Promise<T>,
+  opts?: { dir?: string; staleMs?: number; waitMs?: number; pollMs?: number },
+): Promise<T>;

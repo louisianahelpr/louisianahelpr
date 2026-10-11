@@ -26,6 +26,18 @@
  * `recovery` answers 404 instead. For an existing user the two are the same
  * code path (both write recovery_token; verify handles both in recoverVerify).
  *
+ * ONE MINT PER ACCOUNT AT A TIME (2026-10-11). GoTrue keeps ONE recovery token
+ * per user: a second generate_link for the same address replaces the first
+ * one's token, and the first /verify then answers 403 otp_expired "Email link
+ * is invalid or has expired". Playwright runs two workers (playwright.config.ts,
+ * CI), and e2e/auth.spec.ts's two sign-in tests mint the same account at the
+ * same moment: one lost its token in every nightly e2e-real-backend run from
+ * 10-09 to 10-11 (runs 37918720667, 38066858570, 38157783259 x2), its retry
+ * signed in again, and the job failed "signIns 5 is over its budget 4". So the
+ * generate_link -> verify pair runs under a per-account lock FILE (workers are
+ * separate processes; an in-memory mutex would not reach them).
+ * Guard: src/test/adminSessionMintLock.test.ts.
+ *
  * TRANSPORT. Playwright callers pass `playwrightTransport(api)` so the two
  * requests go through the spec's metered APIRequestContext (e2e/requestMeter
  * counts the /verify as the sign-in); node scripts use the default `fetch`.
@@ -33,7 +45,9 @@
  * Plain JS on purpose: node scripts, a bash script (via the CLI below) and the
  * Playwright TS pipeline all import it. Types: ./adminSession.d.mts.
  */
-import { readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 import { supabaseBase } from "./apiBase.mjs";
@@ -89,6 +103,66 @@ function parse(text, what) {
   }
 }
 
+/**
+ * Where the per-account mint locks live: under $HOME, never the OS temp dir
+ * (src/test/noFixedTmpPathsInTooling.test.ts: a predictable /tmp path can be
+ * pre-created by another local user).
+ */
+export function defaultMintLockDir() {
+  return resolve(homedir(), ".lh-locks", "admin-session");
+}
+
+/**
+ * Run `fn` holding the cross-process lock for `email` (an O_EXCL lock file named
+ * by a hash of the lower-cased address). Waits up to `waitMs`; a lock file older
+ * than `staleMs` was left by a process that died mid-mint and is taken over.
+ */
+export async function withMintLock(email, fn, { dir = defaultMintLockDir(), staleMs = 120_000, waitMs = 180_000, pollMs = 50 } = {}) {
+  mkdirSync(dir, { recursive: true });
+  const key = createHash("sha256").update(String(email).trim().toLowerCase()).digest("hex").slice(0, 24);
+  const path = join(dir, `${key}.lock`);
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    try {
+      const fd = openSync(path, "wx");
+      writeSync(fd, `${process.pid} ${new Date().toISOString()}\n`);
+      closeSync(fd);
+      break;
+    } catch (e) {
+      if (e?.code !== "EEXIST") throw e;
+    }
+    let age = 0;
+    try {
+      age = Date.now() - statSync(path).mtimeMs;
+    } catch (e) {
+      // Released between our open and our stat: try to take it again at once.
+      if (e?.code === "ENOENT") continue;
+      throw e;
+    }
+    if (age > staleMs) {
+      try {
+        unlinkSync(path);
+      } catch (e) {
+        // Another waiter removed the stale lock first: it is free either way.
+        if (e?.code !== "ENOENT") throw e;
+      }
+      continue;
+    }
+    if (Date.now() > deadline) throw new Error(`mintAdminSession: waited ${waitMs}ms for another mint of ${email} to finish (lock ${path})`);
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+  try {
+    return await fn();
+  } finally {
+    try {
+      unlinkSync(path);
+    } catch (e) {
+      // Taken over as stale by another process (only after staleMs): nothing to release.
+      if (e?.code !== "ENOENT") throw e;
+    }
+  }
+}
+
 /** 429, 5xx and a dropped connection are worth one more try; a 4xx about the request is not. */
 const RETRYABLE = (status) => status === 0 || status === 429 || status >= 500;
 
@@ -107,6 +181,7 @@ export async function mintAdminSession({
   timeoutMs = 45_000,
   retries = 1,
   retryDelayMs = 2_000,
+  lockDir = defaultMintLockDir(),
 }) {
   if (!email) throw new Error("mintAdminSession: no email given");
   if (!serviceKey) throw new Error(`mintAdminSession: no service-role key to mint ${email}'s session with (SUPABASE_SERVICE_ROLE_KEY)`);
@@ -146,7 +221,9 @@ export async function mintAdminSession({
 
   const errors = [];
   for (let attempt = 0; ; attempt++) {
-    const r = await once();
+    // generate_link and its /verify never interleave with another mint of this
+    // account (see ONE MINT PER ACCOUNT AT A TIME above). The retry wait is outside the lock.
+    const r = await withMintLock(email, once, { dir: lockDir, staleMs: 2 * timeoutMs + 10_000, waitMs: 4 * timeoutMs + 30_000 });
     if (r.session) return r.session;
     errors.push(r.error);
     if (attempt >= retries || !RETRYABLE(r.status)) throw new Error(errors.join(" | after: "));

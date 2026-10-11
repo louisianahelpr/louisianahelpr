@@ -2275,10 +2275,9 @@ export function JobTracking({
              to render nothing, so this line pointed at an empty space.
              JobConfirmation now shows its own "opens in …" card in that
              window, and this line matches it rather than contradicting it. */
-          // The SAME instant the control below turns on: midnight the day
-          // before (confirmOpensMs, supabase/functions/_shared/confirmDeadline.ts,
-          // Q1647). This measured 24h before the START, so for a 10 AM job the
-          // button was live from midnight while this line stayed silent until 10 AM.
+          // The SAME instant the control below turns on: midnight the day before
+          // (confirmOpensMs, Q1647). It measured 24h before the START, so a 10 AM
+          // job's button was live from midnight while this line was silent.
           const confirmOpen =
             !jobDateNeeded || jobDayMs === null || Date.now() >= confirmOpensMs(jobDateNeeded);
           /* Silent before the window opens: JobConfirmation renders its own

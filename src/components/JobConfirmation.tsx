@@ -147,9 +147,7 @@ export function JobConfirmation({
   const jobDate = jobDayStart(dateNeeded);
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-  // ONE window and ONE deadline, from supabase/functions/_shared/confirmDeadline.ts (Q1647): the
-  // button turns on at midnight the day before (the calendar day, so the two DST days are right too)
-  // and the answer is owed until 2 hours before the start, when the sweep reposts the job.
+  // ONE window, ONE deadline (Q1647, _shared/confirmDeadline.ts): on at midnight the day before, owed until T-2h.
   const opensMs = confirmOpensMs(dateNeeded);
   const confirmOpen = now.getTime() >= opensMs;
   const deadlineMs = confirmDeadlineMs(dateNeeded, startTime);
@@ -204,9 +202,8 @@ export function JobConfirmation({
      coundown for the time to confirm they will be at the job").
 
      Same card, same two status chips, no button — plus the clock the helpr was
-     missing. The window opens at midnight the day before (confirmOpensMs).
-     A date_needed that is not a bare YYYY-MM-DD (never on prod: a NOT NULL
-     DATE) has no window to describe, so it renders nothing, as before. */
+     missing. The window opens at midnight the day before (confirmOpensMs); a
+     malformed date_needed (never on prod: NOT NULL DATE) renders nothing. */
   if (Number.isNaN(opensMs)) return null;
   if (isLiveJob && !confirmOpen) {
     /* The Helpr's primary BEFORE the window opens is this step, greyed (owner,

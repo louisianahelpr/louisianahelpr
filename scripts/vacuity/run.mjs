@@ -279,9 +279,9 @@ const BUILD_ENV = {
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",
 };
 
-function runBuild() {
+function runBuild(timeoutMs = 600_000) {
   const r = spawnSync("npm", ["run", "build"], {
-    cwd: REPO, encoding: "utf8", timeout: 600_000,
+    cwd: REPO, encoding: "utf8", timeout: Math.min(600_000, timeoutMs),
     env: { ...process.env, ...BUILD_ENV, CI: "" },
   });
   return { ok: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
@@ -372,9 +372,14 @@ function specGateEnv(guard) {
   return GATES[guard] ?? {};
 }
 
-function runPlaywright(guard, { rebuild = false } = {}) {
+/** Playwright's per-run spawn budget; a leg's remaining time budget (Q1426) can only lower it. */
+const PW_SPAWN_MS = 900_000;
+
+function runPlaywright(guard, { rebuild = false, timeoutMs = PW_SPAWN_MS } = {}) {
+  const startedAt = Date.now();
+  const left = () => Math.max(1_000, timeoutMs - (Date.now() - startedAt));
   if (rebuild) {
-    const b = runBuild();
+    const b = runBuild(left());
     if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
   }
   // The JSON report is read only to learn WHY tests skipped (Q1144).
@@ -385,7 +390,7 @@ function runPlaywright(guard, { rebuild = false } = {}) {
     [PLAYWRIGHT_CLI,
      "test", guard, `--project=${PW_PROJECT(guard)}`, "--reporter=line,json", "--workers=1"],
     {
-      cwd: REPO, encoding: "utf8", timeout: 900_000,
+      cwd: REPO, encoding: "utf8", timeout: Math.min(PW_SPAWN_MS, left()),
       env: {
         ...process.env,
         PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOut,
@@ -405,16 +410,17 @@ function runPlaywright(guard, { rebuild = false } = {}) {
   const out = (r.stderr || "") + (r.stdout || "");
 
   if (timedOut(r)) {
-    return {
-      green: false,
-      timedOut: true,
-      out:
-        `${guard} was KILLED at the 900s spawn budget — it did not finish, so nothing was ` +
-        `observed either way. Scope it down in specGateEnv (the sweeps take ` +
-        `OVERLAY_SWEEP_ROUTES / EMPTY_SWEEP_ROLES / ERROR_SWEEP_ROLES) so the mutated code path ` +
-        `runs inside the budget. The assertion being proven is identical at 2 routes and at 66.\n` +
-        out.slice(-3000),
-    };
+    // Q1426: a leg's --budget-minutes can cut the spawn below 900s; say which limit hit.
+    const why =
+      timeoutMs < PW_SPAWN_MS
+        ? `${guard} was KILLED when this e2e leg's --budget-minutes ran out (Q1426): it did not finish, so ` +
+          `nothing was observed either way. The leg stopped before its job timeout so the shared accounts ` +
+          `are released with a result; re-size the legs (run.mjs E2E_COST / E2E_LEGS) from the baseline timings above.\n`
+        : `${guard} was KILLED at the 900s spawn budget — it did not finish, so nothing was ` +
+          `observed either way. Scope it down in specGateEnv (the sweeps take ` +
+          `OVERLAY_SWEEP_ROUTES / EMPTY_SWEEP_ROLES / ERROR_SWEEP_ROLES) so the mutated code path ` +
+          `runs inside the budget. The assertion being proven is identical at 2 routes and at 66.\n`;
+    return { green: false, timedOut: true, out: why + out.slice(-3000) };
   }
 
   /*
@@ -471,8 +477,8 @@ function runPlaywright(guard, { rebuild = false } = {}) {
 }
 
 /** Dispatch one guard to the engine that can actually execute it. */
-function runGuard(guard, { rebuild = false } = {}) {
-  return isPlaywrightGuard(guard) ? runPlaywright(guard, { rebuild }) : runVitest([guard]);
+function runGuard(guard, { rebuild = false, timeoutMs } = {}) {
+  return isPlaywrightGuard(guard) ? runPlaywright(guard, { rebuild, timeoutMs }) : runVitest([guard]);
 }
 
 /** Collect every registered mutation, plus every registration error. */
@@ -503,33 +509,90 @@ export function selectKind(mutations, kind) {
 }
 
 /**
- * THE E2E LEGS (Q1270). The weekly full set's Playwright registrations take
- * about 157 minutes (96 at ~98 s), and the job that runs them holds the shared
- * test accounts, where no holder may take longer than an hour
- * (sharedAccountLockJobsAreShort.test.ts). So vacuity.yml runs them in
- * E2E_LEGS sequential legs, each its own lock job under 60 minutes, and each
- * leg takes `--shard k/E2E_LEGS` of the set.
+ * THE E2E LEGS (Q1270, re-sized Q1426). The job that runs the Playwright
+ * registrations holds the shared test accounts, where no holder may take
+ * longer than an hour (sharedAccountLockJobsAreShort.test.ts). So vacuity.yml
+ * runs them in E2E_LEGS sequential legs, each its own lock job under 60
+ * minutes, and each leg takes `--shard k/E2E_LEGS` of the set.
+ *
+ * Q1426: four legs were sized at "~98 s a registration" (a push-run average),
+ * which no full run ever measured. The first full run in legs, scheduled run
+ * 38145674494 on 2026-10-11, had legs 1-3 CANCELLED at their 57-minute timeout
+ * with almost nothing proven: runMutations runs EVERY guard file's unmutated
+ * BASELINE before the first mutation, and those baseline phases alone took
+ * 52.9, 51.7 and 47.6 minutes (18, 20 and 19 guard files). So a leg's cost is
+ * per guard FILE (a full green spec run) plus per registration (a mutated run,
+ * which usually fails fast), not registrations x 98 s. E2E_COST below holds
+ * those measurements; legs are balanced on them, and
+ * src/test/vacuityE2eLegs.test.ts fails when any leg's estimate does not fit
+ * its timeout with margin.
  *
  * A guard FILE never splits across legs (its registrations share one spec's
- * setup, and a leg is easier to read by file). Files go to the lightest leg,
- * largest first, ties to the lower leg, over the files in name order, so the
- * same set always lands the same way and scope.mjs and the gate agree.
+ * baseline, and a leg is easier to read by file). Files go to the lightest leg
+ * by estimated minutes, costliest first, ties by name, ties in load to the
+ * lower leg, so the same set always lands the same way and scope.mjs and the
+ * gate agree.
  */
-export const E2E_LEGS = 4;
+export const E2E_LEGS = 8;
+
+/**
+ * Measured minutes (Q1426, vacuity run 38145674494, 2026-10-11, legs 1-3 job
+ * logs). Refresh from the per-baseline timings index.mjs now prints
+ * ("baseline <guard>: green in Ns") when a full run disagrees.
+ */
+export const E2E_COST = {
+  // Checkout to the gate step: 1.3-1.5 min in each of legs 1-4 (2026-10-11).
+  setupMinutes: 2,
+  // One green baseline run of a guard file, first-run build included: on
+  // 2026-10-11 the baseline phases took 51.7 min over 20 files (leg 2), 47.6 over 19 (leg 3)
+  // and 36.9 over the 17 files beside a11y-prod (leg 1): 2.43 min a file.
+  baselineMinutes: 2.5,
+  // One mutated run: the 15 mutated runs those legs finished (2026-10-11) averaged 38 s
+  // (8 to 118 s; a killed run stops at its first failing test).
+  mutationMinutes: 0.65,
+  // Specs measured far above the average: every run of them, baseline or
+  // mutated, is costed at this. a11y-prod on 2026-10-11: 121 tests in 7.9 min (leg 1, which
+  // ran it twice: red baseline and its retry).
+  heavySpecMinutes: { "e2e/a11y-prod/a11y-prod.spec.ts": 8 },
+};
+
+/** Estimated minutes of ONE Playwright run of `guard` (a baseline or a mutation). */
+export function e2eRunMinutes(guard, isMutation = false) {
+  const heavy = E2E_COST.heavySpecMinutes[guard];
+  if (heavy) return heavy;
+  return isMutation ? E2E_COST.mutationMinutes : E2E_COST.baselineMinutes;
+}
+
+/** Estimated minutes for a guard file's whole share of a leg: its baseline plus each registration's mutated run. */
+export function e2eFileMinutes(guard, registrations) {
+  return e2eRunMinutes(guard) + registrations * e2eRunMinutes(guard, true);
+}
 
 export function shardOf(mutations, n) {
   const byGuard = new Map();
   for (const m of mutations) byGuard.set(m.guard, (byGuard.get(m.guard) ?? 0) + 1);
-  const files = [...byGuard.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  const files = [...byGuard.entries()]
+    .map(([guard, count]) => [guard, e2eFileMinutes(guard, count)])
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
   const load = Array.from({ length: n }, () => 0);
   const legOf = new Map();
-  for (const [guard, count] of files) {
+  for (const [guard, minutes] of files) {
     let best = 0;
     for (let i = 1; i < n; i++) if (load[i] < load[best]) best = i;
-    load[best] += count;
+    load[best] += minutes;
     legOf.set(guard, best + 1);
   }
   return legOf;
+}
+
+/** Estimated minutes of each of `n` legs' gate step (setup excluded), in leg order. */
+export function legEstimates(mutations, n) {
+  const legOf = shardOf(mutations, n);
+  const byGuard = new Map();
+  for (const m of mutations) byGuard.set(m.guard, (byGuard.get(m.guard) ?? 0) + 1);
+  const out = Array.from({ length: n }, () => 0);
+  for (const [guard, count] of byGuard) out[legOf.get(guard) - 1] += e2eFileMinutes(guard, count);
+  return out;
 }
 
 /** The registrations leg `k` (1-based) of `n` runs. */
@@ -603,8 +666,42 @@ export function collectMutations(guards = guardFiles()) {
   return { mutations, errors, exemptions };
 }
 
-export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
+/**
+ * The e2e leg's time budget (Q1426). `fits(guard, isMutation)` says whether
+ * that run's estimated minutes (E2E_COST) fit before `deadline` (ms epoch, null
+ * = no budget); once one does not, nothing after it fits either, so a leg
+ * stops in order rather than picking small runs out of the tail. `timeoutMs()`
+ * caps a spawn so no run outlives the deadline.
+ */
+export function legBudget(deadline, now = Date.now) {
+  const remainingMs = () => (deadline == null ? Infinity : deadline - now());
+  let spent = false;
+  return {
+    fits(guard, isMutation = false) {
+      if (!spent && remainingMs() < e2eRunMinutes(guard, isMutation) * 60_000) spent = true;
+      return !spent;
+    },
+    timeoutMs: () => Math.min(PW_SPAWN_MS, remainingMs()),
+  };
+}
+
+export function runMutations(mutations, { onResult, allowDirty = false, deadline = null } = {}) {
   const results = [];
+  /*
+   * A LEG THAT RUNS OUT OF TIME STOPS ITSELF (Q1426). vacuity.yml's e2e legs
+   * hold the shared prod accounts; a leg GitHub cancels at its timeout holds
+   * them for the whole hour and reports nothing (run 38145674494: three legs,
+   * 57 min each, almost no verdicts). With `deadline` (ms epoch, index.mjs
+   * --budget-minutes) no Playwright run starts unless its estimated minutes
+   * (E2E_COST) fit before it, and no run may outlive it. Everything not run is
+   * INCONCLUSIVE, which fails the gate: red, with every verdict it did reach,
+   * and the accounts let go before the job timeout. Nothing is skipped quietly.
+   */
+  const { fits, timeoutMs: pwTimeout } = legBudget(deadline);
+  const budgetWhy = () =>
+    `not run: this e2e leg's --budget-minutes ran out before this run could fit (Q1426); the leg stops ` +
+    `before its job timeout so the shared accounts are released. Re-size the legs (run.mjs E2E_COST / E2E_LEGS).`;
+  const budgetOut = new Set();
 
   /*
    * THE BASELINE MUST RUN THE GUARD THE SAME WAY THE MUTATION WILL — ALONE.
@@ -670,8 +767,15 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   // absent); the rest reuse it, since nothing is mutated yet.
   let builtOnce = false;
   for (const g of pw) {
-    const r = runPlaywright(g, { rebuild: !builtOnce });
+    if (!fits(g, false)) {
+      budgetOut.add(g);
+      continue;
+    }
+    const t = Date.now();
+    const r = runPlaywright(g, { rebuild: !builtOnce, timeoutMs: pwTimeout() });
     builtOnce = true;
+    // Q1426: the measurement E2E_COST is sized from, printed for every baseline.
+    process.stderr.write(`  baseline ${g}: ${r.green ? "green" : "red"} in ${Math.round((Date.now() - t) / 1000)}s\n`);
     if (r.green) continue;
     // Q1144: deterministic, and not a failure to observe the guard: its whole
     // fixture is unpayable before launch. Scored on its own, never retried.
@@ -693,7 +797,13 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
      * playwright run of a session pays the cold webServer build and is the
      * only one that can lose a race with it.
      */
-    const again = runPlaywright(g, { rebuild: false });
+    if (!fits(g, false)) {
+      budgetOut.add(g);
+      continue;
+    }
+    const t2 = Date.now();
+    const again = runPlaywright(g, { rebuild: false, timeoutMs: pwTimeout() });
+    process.stderr.write(`  baseline ${g} (retry): ${again.green ? "green" : "red"} in ${Math.round((Date.now() - t2) / 1000)}s\n`);
     if (again.green) {
       process.stderr.write(
         `\n! ${g} was RED on its first baseline and GREEN on retry.\n` +
@@ -712,6 +822,11 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const id = `${m.guard} ⟵ ${m.target}`;
     if (livePaySkipped.has(m.guard)) {
       results.push({ ...m, verdict: "live-stripe", why: "every test skipped: its fixture needs a paid job, unpayable while Stripe is live (Q1144)" });
+      onResult?.(results.at(-1));
+      continue;
+    }
+    if (budgetOut.has(m.guard) || (isPlaywrightGuard(m.guard) && !baselineRed.has(m.guard) && !fits(m.guard, true))) {
+      results.push({ ...m, verdict: "inconclusive", why: budgetWhy() });
       onResult?.(results.at(-1));
       continue;
     }
@@ -736,7 +851,10 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const mutated = Buffer.from(applyMutation(original.toString("utf8"), m.find, m.replace));
     try {
       fs.writeFileSync(abs, mutated);
-      const r = runGuard(m.guard, { rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target) });
+      const r = runGuard(m.guard, {
+        rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target),
+        timeoutMs: isPlaywrightGuard(m.guard) ? pwTimeout() : undefined,
+      });
       if (r.timedOut) {
         verdict = "inconclusive";
         why = r.out.trim().split("\n").slice(0, 3).join("\n      ");

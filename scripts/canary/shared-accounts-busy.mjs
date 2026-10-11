@@ -42,7 +42,7 @@ export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
  * A vacuity.yml PUSH run signs in as the shared accounts while its
  * `vacuity-e2e` job (display name below) runs the Playwright registrations
  * under the account lock (Q551). Its other jobs never do. Q1271. Since Q1270
- * that job runs in four legs named "<VACUITY_E2E_JOB> (leg k of 4)", so any
+ * that job runs in legs named "<VACUITY_E2E_JOB> (leg k of n)" (eight since Q1426), so any
  * job whose name starts with it counts.
  */
 export const VACUITY_WORKFLOW = "vacuity.yml";

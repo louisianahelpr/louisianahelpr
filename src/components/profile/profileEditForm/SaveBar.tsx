@@ -1,4 +1,5 @@
 import { Loader2, Check } from "lucide-react";
+import { useDockYield } from "@/components/mobileNav/useDockYield";
 
 interface SaveBarProps {
   dirty: boolean;
@@ -14,13 +15,20 @@ interface SaveBarProps {
  * Flush full-width bar pinned to the screen edge (mirrors MobileNav's own
  * `fixed bottom-0` dock) rather than a rounded card floating with a gap
  * around it. Frosted glass surface so content behind softly blurs through.
+ * It takes the dock's strip, so the dock yields while it shows (Q1646).
  */
 export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarProps) {
   // Only while there is something to save, a save in flight, or the brief
   // "Saved" confirmation. Owner, 2026-09-14 (VN-40): "i don't like that bottom
   // cancel or up to date" — with nothing changed the bar showed a disabled
   // "Up to Date" button and a Cancel with nothing to cancel.
-  if (!dirty && !saving && !justSaved) return null;
+  const shown = dirty || saving || justSaved;
+  // Q1646: this bar is flush on the screen edge, exactly where the bottom dock
+  // (MobileNav, z-50) sits, and its own z-40 cannot lift it over the dock (it
+  // is inside <PageTransition>'s stacking context). So the dock yields the
+  // strip while the bar shows; see useDockYield.
+  useDockYield(shown);
+  if (!shown) return null;
   return (
     <div
       data-rail-inset

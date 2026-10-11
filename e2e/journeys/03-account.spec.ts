@@ -118,6 +118,21 @@ test(j7, async ({ browser, request, journey }) => {
     const save = hp.getByRole("button", { name: "Save Changes" });
     await expect(save, "the save bar never offered Save Changes after an edit").toBeEnabled({ timeout: 15_000 });
     await journey.milestone(hp, "edit-profile-dirty");
+    // Q1646: the save bar was `fixed bottom-0` under the dock (z-50), so the
+    // dock's Profile tab took this click for 20s at tablet-768 on both engines
+    // (run 38157785191). Ask the browser what a tap at the button's centre
+    // actually lands on, at this rotation's viewport, before pressing it.
+    // Static class check: src/test/fixedBottomBarsClearTheDock.test.ts.
+    const hit = await save.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const nav = top?.closest("nav");
+      return {
+        onButton: !!top && el.contains(top),
+        what: top ? `${top.tagName.toLowerCase()}${nav ? ` inside nav[aria-label="${nav.getAttribute("aria-label")}"]` : ""}` : "nothing",
+      };
+    });
+    expect(hit.onButton, `a tap on Save Changes lands on ${hit.what}, not the button (Q1646)`).toBe(true);
     await save.click();
     await expect
       .poll(async () => (await readProfile(request, helper)).bio ?? "", { timeout: 30_000, message: "Save Changes did not write the bio" })

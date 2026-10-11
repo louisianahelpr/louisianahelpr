@@ -1979,6 +1979,17 @@ html.no-bottom-nav {
   --bottom-nav-h: 0px;
 }
 
+/* Q1646: a flush fixed bottom action bar (Edit Profile's SaveBar) owns the
+   bottom strip while it shows, and the dock yields it: `useDockYield`
+   (src/components/mobileNav/useDockYield.ts) sets this class. `visibility`
+   removes the dock from painting, hit-testing, the tab order and the a11y
+   tree in one declaration. `--bottom-nav-h` is deliberately left alone, so the
+   page's scroll clearance does not jump when the bar appears.
+   Guard: src/test/fixedBottomBarsClearTheDock.test.ts. */
+html.dock-yield .mobile-nav-frame {
+  visibility: hidden;
+}
+
 /* Q303: StrikeBanner is z-[59] so it stays above the fixed page chrome, which
    also put it above every modal backdrop (dialog/sheet overlays are z-50): on
    /account-banned the red "Account suspended" strip sat un-dimmed across the

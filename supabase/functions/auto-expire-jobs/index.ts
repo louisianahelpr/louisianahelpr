@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
-import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
+import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
@@ -71,17 +71,28 @@ serve(async (req) => {
     // accepted a job five days out was un-booked at hour 24, four days before
     // the button existed, and told they "didn't start within 24 hours". The
     // deadline now comes from `_shared/confirmDeadline.ts`, which the card
-    // imports too: the window opens at midnight the day before (resolved in
-    // America/Chicago, never a UTC date string) and closes 12 hours later.
+    // imports too: owed until 2 hours before the START (owner, 2026-10-08;
+    // the same instant sweep_confirm_reminders_and_repost reposts at). Q1647:
+    // this read "12 hours after the window opens" (noon the day before) while
+    // the card and the SQL sweep said 2 hours before the start.
     //
-    // `tomorrow` is a coarse DB-side prefilter only — the deadline is at the
-    // EARLIEST noon the day before the job, so nothing dated past tomorrow can
-    // possibly have lapsed. The exact per-job comparison happens below.
+    // WHICH SWEEP OWNS WHICH ROW. `helper_confirmed_at IS NULL` on an accepted
+    // job is an accept that was never completed (complete_job_accept stamps
+    // it). Every such hire carries `response_deadline` (accept_application),
+    // and expire_unanswered_offers expires it then, on the clock the Helpr's
+    // card counts down ("3h left to accept"). So this step never reopens a row
+    // whose answer window is still running: it is the backstop for a row with
+    // no answer window, or one whose expiry has not run.
+    //
+    // `tomorrow` is a coarse DB-side prefilter only — the deadline is 2 hours
+    // before a start that is at the earliest midnight of the job's day, so
+    // nothing dated past tomorrow can possibly have lapsed. The exact per-job
+    // comparison happens below.
     const tomorrow = louisianaToday(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
     const { data: acceptedCandidates, error: fetchError } = await supabase
       .from("jobs")
-      .select("id, title, customer_id, helper_id, date_needed, accepted_at")
+      .select("id, title, customer_id, helper_id, date_needed, start_time, accepted_at, response_deadline")
       .eq("status", "accepted")
       .is("helper_confirmed_at", null)
       // A crew has no lead (Q407): jobs.helper_confirmed_at is never set on a
@@ -103,7 +114,9 @@ serve(async (req) => {
       // rather than stranding the row forever. `date_needed` is NOT NULL in
       // prod, so this is belt-and-braces.
       if (!j.date_needed) return true;
-      return confirmDeadlineMs(j.date_needed, j.accepted_at) <= nowMs;
+      // The poster's answer window is still running: expire_unanswered_offers owns it.
+      if (j.response_deadline && new Date(j.response_deadline).getTime() > nowMs) return false;
+      return confirmDeadlineMs(j.date_needed, j.start_time ?? null) <= nowMs;
     });
 
     let expiredCount = 0;
@@ -184,7 +197,9 @@ serve(async (req) => {
           // ever permitted to do — the job may still be days away. What they
           // missed is the confirmation, and the copy has to name the thing the
           // card actually asked them for, on the clock the card actually showed.
-          message: `You didn't confirm "${job.title}" within ${CONFIRM_WINDOW_HOURS} hours of the confirmation window opening, so it's been re-opened for other helprs.`,
+          // These rows are accepts that were never completed (helper_confirmed_at
+          // IS NULL), so the copy names that, at the one deadline (Q1647).
+          message: `You didn't finish accepting "${job.title}" by ${CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it started, so it's been re-opened for other Helprs.`,
           // `expired` is the existing type for exactly this (it maps to
           // `job_updates`), and it is what the notification centre already
           // draws an expiry icon for.

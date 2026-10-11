@@ -12,7 +12,7 @@ import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck,
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { jobStartDateTime } from "@/lib/dateUtils";
-import { jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
+import { confirmOpensMs, jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalVerdict } from "@/lib/arrivalGate";
@@ -2275,11 +2275,12 @@ export function JobTracking({
              to render nothing, so this line pointed at an empty space.
              JobConfirmation now shows its own "opens in …" card in that
              window, and this line matches it rather than contradicting it. */
-          // Measured from the real START, not from midnight of the job's
-          // day. Off midnight, an evening job's window opened up to 18 hours
-          // early and this line promised a control that was not there yet.
+          // The SAME instant the control below turns on: midnight the day
+          // before (confirmOpensMs, supabase/functions/_shared/confirmDeadline.ts,
+          // Q1647). This measured 24h before the START, so for a 10 AM job the
+          // button was live from midnight while this line stayed silent until 10 AM.
           const confirmOpen =
-            !startAt || startAt.getTime() - Date.now() <= 24 * 3_600_000;
+            !jobDateNeeded || jobDayMs === null || Date.now() >= confirmOpensMs(jobDateNeeded);
           /* Silent before the window opens: JobConfirmation renders its own
              "Confirmation opens in …" strip directly below in that state and
              says the same thing with a clock attached. Two sentences saying

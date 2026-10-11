@@ -133,13 +133,13 @@ export function daysPastDue(dateNeeded: string | null | undefined): number {
 }
 
 /**
- * Re-exported so the confirm card reads the SAME deadline the
- * `auto-expire-jobs` sweep enforces. One number, one definition — see
- * `supabase/functions/_shared/confirmDeadline.ts` for why it is 12 hours from
- * midnight-the-day-before and why the zone has to be explicit.
+ * Re-exported so the confirm card reads the SAME window and deadline the
+ * sweeps enforce. One rule, one definition — see
+ * `supabase/functions/_shared/confirmDeadline.ts` (opens at midnight the day
+ * before; owed until 2 hours before the start) and why the zone is explicit.
  */
 export {
-  CONFIRM_WINDOW_HOURS,
+  CONFIRM_DEADLINE_HOURS_BEFORE_START,
   CONFIRM_OPENS_HOURS_BEFORE,
   confirmOpensMs,
   confirmDeadlineMs,

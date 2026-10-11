@@ -1,44 +1,42 @@
 /**
  * `auto-expire-jobs` step 1 — the un-booking clock must not run before the
- * helper could answer.
+ * deadline the Helpr is shown.
  *
- * THE DEFECT. Step 1 re-opened any job that was `accepted`, unconfirmed and
- * accepted more than 24 hours ago, with NO predicate on `date_needed`. But
- * `JobConfirmation` renders no confirm control until the job is inside 24
- * hours. A helper who accepted a job five days out was therefore un-booked at
- * hour 24 — four days before the button that would have saved them appeared —
- * and notified "You didn't start … within 24 hours", which was not something
- * they were ever permitted to do.
+ * THE FIRST DEFECT (2026-09-21). Step 1 re-opened any job that was `accepted`,
+ * unconfirmed and accepted more than 24 hours ago, with NO predicate on
+ * `date_needed`, so a helper who accepted a job five days out was un-booked at
+ * hour 24, days before the button that would have saved them appeared.
  *
- * THE RULE (one number, enforced and displayed): the confirmation window opens
- * at midnight the day before the job in America/Chicago and closes
- * CONFIRM_WINDOW_HOURS later — so, for a job accepted in advance, noon the day
- * before. `_shared/confirmDeadline.ts` is the single definition; the card
- * imports the same function.
+ * THE SECOND (Q1647, 2026-10-11). The deadline it then used was "12 hours after
+ * the window opens" (noon the day before), while the card and the SQL sweep
+ * `sweep_confirm_reminders_and_repost` say "2 hours before the start" (owner,
+ * 2026-10-08). One rule now: `confirmDeadlineMs(date_needed, start_time)` in
+ * `_shared/confirmDeadline.ts`, which the card imports too
+ * (src/test/confirmDeadlineOneRule.test.ts keeps the SQL on it).
+ *
+ * AND THE ANSWER WINDOW WINS. An accepted row with no `helper_confirmed_at` is
+ * a hire the Helpr has not finished accepting; its `response_deadline` is the
+ * clock their card counts down, and expire_unanswered_offers owns it. This
+ * step never reopens a row whose answer window is still running.
  *
  * These run the REAL function source through the edge harness. The supabase
- * mock does not apply PostgREST filters, so the far-out job IS handed to the
- * function — which is exactly the point: the assertion is on the decision the
- * function makes, not on a query string.
+ * mock does not apply PostgREST filters, so every seeded row IS handed to the
+ * function — the assertion is on the decision the function makes.
  *
- * PROVEN ABLE TO FAIL 2026-09-21. Restoring the PRE-FIX decision — every
- * candidate row expires, no `date_needed` predicate at all — un-books the
- * five-days-out helper and the just-accepted one: 3 failed, 1 passed.
- *
- * The mutation deliberately targets the SWEEP's decision, not
- * `CONFIRM_WINDOW_HOURS` in `_shared/confirmDeadline.ts`: this file imports
- * that constant as its own oracle, so moving it moves both sides at once and
- * proves nothing.
+ * The mutations target the SWEEP's decision, not the constant in
+ * `_shared/confirmDeadline.ts`: this file imports that helper as its own
+ * oracle, so moving it moves both sides at once and proves nothing.
  */
-// @mutate supabase/functions/auto-expire-jobs/index.ts | return confirmDeadlineMs(j.date_needed, j.accepted_at) <= nowMs; | return true;
+// @mutate supabase/functions/auto-expire-jobs/index.ts | return confirmDeadlineMs(j.date_needed, j.start_time ?? null) <= nowMs; | return true;
+// @mutate supabase/functions/auto-expire-jobs/index.ts | if (j.response_deadline && new Date(j.response_deadline).getTime() > nowMs) return false; | void 0;
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import {
-  CONFIRM_WINDOW_HOURS,
-  confirmOpensMs,
+  CONFIRM_DEADLINE_HOURS_BEFORE_START,
+  confirmDeadlineMs,
 } from "../../../supabase/functions/_shared/confirmDeadline";
 
 const CRON_SECRET = "cron-secret-expire";
@@ -61,14 +59,26 @@ function cronRequest(fn: EdgeHarness): Request {
   });
 }
 
-/** `YYYY-MM-DD` for a day offset, as `date_needed` (America/Chicago) holds it. */
-function dateNeededInDays(days: number): string {
-  return new Intl.DateTimeFormat("en-CA", {
+/** `YYYY-MM-DD` and `HH:MM` of an instant, as `date_needed`/`start_time` (America/Chicago) hold it. */
+function centralSlot(ms: number): { date_needed: string; start_time: string } {
+  const date_needed = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(Date.now() + days * 24 * HOUR));
+  }).format(new Date(ms));
+  const start_time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Chicago",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(ms));
+  return { date_needed, start_time };
+}
+
+/** A start `hours` from now, rounded down to the minute (the column has no seconds). */
+function startIn(hours: number) {
+  return centralSlot(Math.floor((Date.now() + hours * HOUR) / 60_000) * 60_000);
 }
 
 /**
@@ -83,10 +93,6 @@ function seedAcceptedJob(row: Record<string, unknown>) {
     rows: [],
     selectOverrides: [
       { includes: "accepted_at", result: { rows: [row] } },
-      // The PRE-FIX step-1 read (`id, title, customer_id, helper_id`) has to
-      // land on this row too, or "fails before" is a false pass: without this
-      // entry the old column list fell through to the step-2 override and the
-      // sweep simply saw no candidates.
       { includes: "helper_id", result: { rows: [row] } },
       { includes: "id, title, customer_id", result: { rows: [] } },
     ],
@@ -106,78 +112,49 @@ function reopenWrites() {
   );
 }
 
-describe("auto-expire-jobs · confirmation window", () => {
+const base = {
+  title: "Paint the fence",
+  customer_id: "poster-1",
+  helper_id: "helper-1",
+  accepted_at: new Date(Date.now() - 5 * 24 * HOUR).toISOString(),
+  response_deadline: null,
+};
+
+describe("auto-expire-jobs · one confirm deadline (2 hours before the start)", () => {
   beforeEach(() => {
     resetSupabaseMock();
     resetSharedMocks();
     resetEnv();
   });
 
-  it("does NOT un-book a helper on a job whose confirm window has not opened", async () => {
+  it("does NOT un-book a job five days out", async () => {
     const fn = await load();
-    // Accepted five days ago, job is five days out: the confirm control does
-    // not exist yet, so there is nothing this helper failed to do.
-    seedAcceptedJob({
-      id: "job-farout",
-      title: "Paint the fence",
-      customer_id: "poster-1",
-      helper_id: "helper-1",
-      date_needed: dateNeededInDays(5),
-      accepted_at: new Date(Date.now() - 5 * 24 * HOUR).toISOString(),
-    });
-
+    seedAcceptedJob({ ...base, id: "job-farout", ...startIn(5 * 24) });
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);
-
     expect(reopenWrites()).toHaveLength(0);
-    // And nobody was told they missed a deadline that had not started.
     expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
   });
 
-  it("does NOT un-book inside the window but before the deadline", async () => {
+  it("does NOT un-book 4 hours before the start, long past the old noon-the-day-before rule (Q1647)", async () => {
     const fn = await load();
-    const dateNeeded = dateNeededInDays(1);
-    // One hour after the window opened: 11 of the 12 hours remain.
-    const accepted = new Date(confirmOpensMs(dateNeeded) - 3 * 24 * HOUR).toISOString();
-    seedAcceptedJob({
-      id: "job-in-window",
-      title: "Mow the lawn",
-      customer_id: "poster-1",
-      helper_id: "helper-1",
-      date_needed: dateNeeded,
-      accepted_at: accepted,
-    });
-
-    // Only meaningful while "now" really is inside the window; the window for a
-    // job dated tomorrow is open from midnight today to noon today.
-    const nowMs = Date.now();
-    const opens = confirmOpensMs(dateNeeded);
-    const deadline = opens + CONFIRM_WINDOW_HOURS * HOUR;
+    // The old rule (12 hours after midnight the day before) had lapsed for
+    // every job starting this soon; the deadline the card shows has not. Four
+    // hours (not three) so a DST-ambiguous wall time cannot move it past.
+    const slot = startIn(4);
+    expect(confirmDeadlineMs(slot.date_needed, slot.start_time)).toBeGreaterThan(Date.now());
+    seedAcceptedJob({ ...base, id: "job-in-time", ...slot });
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);
-
-    if (nowMs < deadline) {
-      expect(reopenWrites()).toHaveLength(0);
-    } else {
-      // Past noon local: the deadline has genuinely lapsed and it must expire.
-      expect(reopenWrites()).toHaveLength(1);
-    }
-    expect(nowMs).toBeGreaterThan(opens - 24 * HOUR);
+    expect(reopenWrites()).toHaveLength(0);
   });
 
-  it("DOES un-book once the confirm deadline has lapsed", async () => {
+  it("DOES un-book once 2 hours before the start has passed, and says so", async () => {
     const fn = await load();
-    // The job is today, so the window opened at midnight yesterday and closed
-    // at noon yesterday — unambiguously in the past at every hour of today.
-    seedAcceptedJob({
-      id: "job-lapsed",
-      title: "Haul the debris",
-      customer_id: "poster-1",
-      helper_id: "helper-1",
-      date_needed: dateNeededInDays(0),
-      accepted_at: new Date(Date.now() - 6 * 24 * HOUR).toISOString(),
-    });
-
+    // Half an hour out: 90 minutes past the deadline, more than a DST hour.
+    const slot = startIn(0.5);
+    expect(confirmDeadlineMs(slot.date_needed, slot.start_time)).toBeLessThanOrEqual(Date.now());
+    seedAcceptedJob({ ...base, id: "job-lapsed", title: "Haul the debris", ...slot });
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);
 
@@ -185,7 +162,6 @@ describe("auto-expire-jobs · confirmation window", () => {
     expect(reopens).toHaveLength(1);
     expect((reopens[0].payload as Record<string, unknown>).helper_id).toBeNull();
 
-    // And the copy no longer blames them for not STARTING.
     const helperNote = scenario.writes.find(
       (w) =>
         w.table === "notifications" &&
@@ -193,26 +169,22 @@ describe("auto-expire-jobs · confirmation window", () => {
     );
     expect(helperNote).toBeDefined();
     const msg = String((helperNote!.payload as Record<string, unknown>).message);
-    expect(msg).toContain("didn't confirm");
+    // These rows are accepts never completed: the copy names that.
+    expect(msg).toContain("didn't finish accepting");
     expect(msg).not.toContain("didn't start");
-    expect(msg).toContain(String(CONFIRM_WINDOW_HOURS));
+    expect(msg).toContain(`${CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it started`);
   });
 
-  it("gives a helper who accepts inside the window the full grace period", async () => {
+  it("leaves a hire whose answer window is still running to expire_unanswered_offers", async () => {
     const fn = await load();
-    // Job is today (window opened at midnight yesterday, closed at noon
-    // yesterday) but the helper only accepted an hour ago. A deadline that
-    // already expired before they were involved is not a window — the clock
-    // runs from their acceptance.
+    // Past the confirm deadline, but the poster gave the Helpr until the start
+    // to answer ("1h left to accept" on their card).
     seedAcceptedJob({
-      id: "job-late-accept",
-      title: "Move a couch",
-      customer_id: "poster-1",
-      helper_id: "helper-1",
-      date_needed: dateNeededInDays(0),
-      accepted_at: new Date(Date.now() - 1 * HOUR).toISOString(),
+      ...base,
+      id: "job-answer-window",
+      ...startIn(0.5),
+      response_deadline: new Date(Date.now() + 1 * HOUR).toISOString(),
     });
-
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);
     expect(reopenWrites()).toHaveLength(0);

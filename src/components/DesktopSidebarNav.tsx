@@ -20,7 +20,6 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-export { isDesktopRailRoute };
 
 /**
  * DesktopSidebarNav — the persistent RIGHT-rail navigation shown ONLY on the

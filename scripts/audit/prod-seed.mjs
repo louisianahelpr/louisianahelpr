@@ -103,8 +103,43 @@ async function rest(method, pathQ, body, { prefer, token } = {}) {
 const select = (q) => rest("GET", q);
 const inList = (ids) => `in.(${ids.join(",")})`;
 
+/**
+ * A seed id cannot claim a NATURAL key another writer already holds.
+ *
+ * `on_conflict=id` merges only into a row with the same id. A table with a
+ * second UNIQUE key (user_roles (user_id, role), saved_jobs (user_id, job_id),
+ * ...) refuses a seed row whose natural key is already held by a row someone
+ * else wrote at a random id: 409 23505, and the whole --apply stops. On
+ * 2026-10-09 the shared accounts were re-created by hand and the admin role
+ * was granted at its own id; every --apply after that died on
+ * `POST user_roles → 409 Key (user_id, role)=(d3128db4-…, admin) already exists`
+ * (prod-audit run 38156083978). So, before the write, each row whose natural
+ * key is held by a DIFFERENT id is dropped (that row already gives the state;
+ * it is not ours to rewrite: crew_confirm_pending FKs group_job_helpers.id,
+ * referrals FKs referral_codes.id), and the rest upsert on id as before, which
+ * still repairs the seed's own rows. src/test/seedUpsertsHonourNaturalKeys.test.ts
+ * fails on an upsert into such a table that declares neither.
+ */
+async function dropRowsHeldByAnotherWriter(table, rows, naturalKey) {
+  const cols = naturalKey.split(",");
+  const kept = [];
+  for (const r of rows) {
+    if (cols.some((c) => r[c] === undefined || r[c] === null)) throw new Error(`${table}: row ${r.id} has no ${naturalKey} to check`);
+    const q = cols.map((c) => `${c}=eq.${encodeURIComponent(String(r[c]))}`).join("&");
+    const held = await select(`${table}?${q}&select=id`);
+    if (held.length && held[0].id !== r.id) {
+      console.log(`${table}: (${naturalKey}) already held by ${held[0].id}; kept it, seed row ${r.id} not written`);
+      continue;
+    }
+    kept.push(r);
+  }
+  return kept;
+}
+
 /** Upsert by primary key, returning the rows. Chunked: PostgREST bodies stay small. */
-async function upsert(table, rows, onConflict = "id", { verifyByIdInstead = false } = {}) {
+async function upsert(table, rows, onConflict = "id", { verifyByIdInstead = false, naturalKey = null } = {}) {
+  if (naturalKey) rows = await dropRowsHeldByAnotherWriter(table, rows, naturalKey);
+  if (!rows.length) return [];
   // PostgREST bulk bodies need identical keys on every row (PGRST102): fill the gaps with null.
   const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))];
   rows = rows.map((r) => Object.fromEntries(keys.map((k) => [k, r[k] ?? null])));
@@ -429,6 +464,10 @@ const avatarObjectUrl = (helperId, name) => `${BASE}/storage/v1/object/public/av
  */
 async function resolvingAvatarUrl(url) {
   if (!url) return null;
+  // Only a stored object counts. fetch() answers a `data:` URI itself with 200,
+  // so the 1x1 PNG the 2026-10-09 hand re-creation wrote to helper-e2e
+  // "resolved" and --apply left it in place (Q1649).
+  if (!/^https:\/\//.test(url)) return null;
   let r;
   try {
     r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(20_000) });
@@ -585,7 +624,7 @@ async function applyGroupJob(posterId, helperId, applicantId) {
   // with a lead. Setting it to the first helper made every --apply 400 from
   // 2026-09-25 (prod-audit run 36272080924).
   await upsert("jobs", [{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: null }]);
-  await upsert("group_job_helpers", groupJobHelperRows(jobId, helperId, applicantId));
+  await upsert("group_job_helpers", groupJobHelperRows(jobId, helperId, applicantId), "id", { naturalKey: "job_id,helper_id" });
   return jobId;
 }
 
@@ -626,7 +665,7 @@ async function apply() {
     if (!p[0]?.is_seed) throw new Error(`REFUSED: created account ${key} is not is_seed`);
   }
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
-  await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })));
+  await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })), "id", { naturalKey: "user_id,role" });
 
   const posterJobs = [
     { id: sid("job:poster-open"), customer_id: posterId, title: "SEED Mow and edge a corner lot", category: "yard_work", budget: 95, status: "open" },
@@ -783,7 +822,7 @@ async function apply() {
     { id: sid("search:helper"), user_id: helperId, name: "SEED Handyman near Lafayette", category: "handyman", radius_miles: 25, min_budget: 100, notify_enabled: false },
     { id: sid("search:poster"), user_id: posterId, name: "SEED Storm prep", category: "storm_prep", max_budget: 400, notify_enabled: false },
   ]);
-  await upsert("saved_jobs", [{ id: sid("saved:helper-pets"), user_id: helperId, job_id: sid("job:pets") }]);
+  await upsert("saved_jobs", [{ id: sid("saved:helper-pets"), user_id: helperId, job_id: sid("job:pets") }], "id", { naturalKey: "user_id,job_id" });
   await upsert("thread_archives", [{ user_id: posterId, job_id: sid("job:poster-open"), other_user_id: helperId }], "user_id,job_id,other_user_id");
   await upsert("str_calendar_connections", [
     { id: sid("str:inactive"), user_id: posterId, platform: "airbnb", ical_url: "https://example.invalid/seed.ics", property_name: "SEED Bywater double", auto_create_cleaning: false, is_active: false, last_sync_error: "SEED: inactive fixture" },
@@ -792,7 +831,7 @@ async function apply() {
   // Referrals: the poster's own code (reused if it exists) referring owned accounts.
   let code = (await select(`referral_codes?user_id=eq.${posterId}&select=id`))[0];
   if (!code) code = (await upsert("referral_codes", [{ id: sid("refcode:poster"), user_id: posterId, code: "SEEDPERRY0912" }]))[0];
-  await upsert("referrals", ["pending", "denied"].map((k) => ({ id: sid(`referral:${k}`), referral_code_id: code.id, referrer_id: posterId, referred_id: ids[k] })));
+  await upsert("referrals", ["pending", "denied"].map((k) => ({ id: sid(`referral:${k}`), referral_code_id: code.id, referrer_id: posterId, referred_id: ids[k] })), "id", { naturalKey: "referred_id" });
 
   // Notifications (inbox content) for the pair and the heavy account.
   const notifTypes = ["application", "job_update", "payment", "review", "message", "warning", "system_alert"];
@@ -1035,7 +1074,10 @@ async function verify() {
     await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
   }
   await check("account incomplete profile (seed, not legacy, no city)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&location=is.null&is_legacy_user=eq.false&select=user_id`, 1);
-  await check("account admin role (seed)", `user_roles?id=eq.${sid("role:admin")}&role=eq.admin&select=id`, 1);
+  // By (user_id, role), not by the seed id: a role granted at another id is
+  // kept by --apply (dropRowsHeldByAnotherWriter) and is still the admin role.
+  const adminAccount = await profileByEmail(OWNED.admin.email);
+  await check("account admin role (seed)", `user_roles?user_id=eq.${adminAccount?.user_id ?? "00000000-0000-0000-0000-000000000000"}&role=eq.admin&select=id`, 1);
   await check("account without Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=is.null&select=user_id`, 1);
   // No "account with Stripe (seed)" row: Stripe is LIVE, a sandbox Connect id is
   // unusable under the live key (#1582), and the owner decided 2026-09-30 that

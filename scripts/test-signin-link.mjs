@@ -68,16 +68,18 @@ const repoRoot = path.resolve(__dirname, "..");
 export const ACCOUNTS = {
   poster: {
     email: "helpr-audit-web-0824@mailinator.com",
-    userId: "96c9899e-87a2-49e2-bbdd-268717d52aee",
+    userId: "83e390e0-da42-4324-bae3-fb947ba2b439",
     label: "Account A — Audit Weblane (poster: 7 posted jobs, every state)",
   },
   helper: {
     email: "eli.test.helper@louisianahelpr.com",
     // Re-created again: f6cc3ebb-… was gone from auth.users on 2026-10-01
-    // (Q905). Live id measured 2026-10-02 (execute_sql, auth.users by email).
+    // (Q905), and f55112c7-… on 2026-10-09 01:29Z, when all six shared
+    // accounts were deleted and re-created by hand (Q1649). Live ids here
+    // measured 2026-10-11 (execute_sql, auth.users by email).
     // scripts/check-test-account-strikes.mjs fails nightly if any pinned id
     // here stops matching the live account for its email.
-    userId: "f55112c7-612e-44a0-b6aa-443cdfbc33d6",
+    userId: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607",
     label: "Account B — Audit Helper (works Account A's jobs)",
   },
   // The `poster` account above owns ZERO rows in prod `jobs` as of 2026-09-07
@@ -87,12 +89,12 @@ export const ACCOUNTS = {
   // enough posted jobs (6) to reproduce a loaded My Posts.
   "poster-e2e": {
     email: "helpr-e2e-poster-0902@mailinator.com",
-    userId: "71c56dfb-b326-4010-b960-b18dd3966e7f",
+    userId: "951264df-1e7c-4b6f-912e-a1be37e0dbfb",
     label: "E2E poster 0902 (6 posted jobs — the populated My Posts fixture)",
   },
   "helper-e2e": {
     email: "helpr-e2e-helper-0902@mailinator.com",
-    userId: "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+    userId: "7b923b19-aba5-44cb-8730-8c33ba2b9321",
     label: "E2E helper 0902 (counterparty to poster-e2e)",
   },
   // Created and removed by scripts/audit/prod-seed.mjs (--apply / --teardown),

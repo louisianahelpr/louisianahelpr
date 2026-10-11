@@ -183,7 +183,7 @@ if (stage === "cancelled") {
   await shot("cancelled-existing-thread-375");
 
   // 2. THE RACE: a live thread, text in the box, job cancelled underneath.
-  await goto(`/messages?jobId=${ledger.cancelJobId}&userId=437de07d-1bd7-46c8-a451-6b46aa3bcad5`);
+  await goto(`/messages?jobId=${ledger.cancelJobId}&userId=7b923b19-aba5-44cb-8730-8c33ba2b9321`);
   await sleep(1500);
   const ta = await page.$('input[placeholder="Type a message…"]');
   if (!ta) { say("[cancelled] NO COMPOSER on the live thread — cannot run the race"); }

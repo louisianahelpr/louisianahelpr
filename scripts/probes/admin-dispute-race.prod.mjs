@@ -27,8 +27,8 @@ if (!["release", "refund"].includes(kind) || !piFile) {
   process.exit(2);
 }
 const PIS = readFileSync(piFile, "utf8").split("\n").filter(Boolean).map((l) => l.trim().split(/\s+/));
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const admin = session("admin-e2e");
 const adminTok = admin.access_token;
 const ADMIN_ID = admin.user.id;

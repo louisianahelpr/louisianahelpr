@@ -42,8 +42,8 @@ import fs from "node:fs";
 const LIVE = fs.readFileSync(new URL("./fixtures/dispute-table-door.live.sql", import.meta.url), "utf8");
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260915033734_dispute_markers_server_owned.sql", import.meta.url), "utf8");
 
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const ADMIN = "22222222-2222-4222-8222-222222222222";
 
 const J = {

@@ -74,8 +74,8 @@ import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 const argv = process.argv.slice(2);
 const LISTING_MODE = argv[0] === "--listings";
 const [nArg, out] = LISTING_MODE ? [null, argv[1]] : argv;
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const SEED_HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const SEED_HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 
 /**
  * The guest marketplace, as a guest should find it.
@@ -154,8 +154,8 @@ function tokenFor(account) {
   return tokens.get(account);
 }
 const ACCOUNT_IDS = {
-  poster: "96c9899e-87a2-49e2-bbdd-268717d52aee",
-  helper: "f55112c7-612e-44a0-b6aa-443cdfbc33d6",
+  poster: "83e390e0-da42-4324-bae3-fb947ba2b439",
+  helper: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607",
   "poster-e2e": POSTER,
   "helper-e2e": SEED_HELPER,
 };

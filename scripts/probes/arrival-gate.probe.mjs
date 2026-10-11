@@ -101,7 +101,7 @@ GRANT ALL ON public.job_tracking TO service_role;
 `;
 
 const POSTER = "76b07824-9b41-4741-a4c4-4f8de362f682";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const STRANGER = "11111111-1111-4111-8111-111111111111";   // another Helpr, not on these jobs
 const HELPER2 = "33333333-3333-4333-8333-333333333333";    // the next Helpr after a reopen
 const JOB_LAT = 29.9296, JOB_LNG = -90.0989;             // New Orleans (the seed job's own site)

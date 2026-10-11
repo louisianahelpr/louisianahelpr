@@ -25,8 +25,8 @@ import crypto from "node:crypto";
 import { URL_, ANON, readEnv, session } from "./lib/prodEnv.mjs";
 
 const SR = readEnv().SUPABASE_SERVICE_ROLE_KEY;
-const A_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const B_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const A_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const B_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 // J1 (A posts) and J2 (B posts) are seeded per run and deleted in `finally`.
 // They used to be hard-coded ids; both jobs were later deleted, which turned
 // every positive check RED and made B's refusals pass for the wrong reason

@@ -219,7 +219,7 @@ export function readShellSpacing(): SpacingRow {
 }
 
 /** Real ids for the catalog's `/user/:id` rows (the catalog's fakes are mock-only). */
-const REAL_USER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const REAL_USER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 
 export interface SpacingScreen {
   name: string;

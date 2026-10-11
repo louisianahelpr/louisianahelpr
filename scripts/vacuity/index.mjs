@@ -227,12 +227,23 @@ for (const e of sel.errors) fail(e);
 const shardIdx = argv.indexOf("--shard");
 const SHARD = shardIdx >= 0 ? /^(\d+)\/(\d+)$/.exec(String(argv[shardIdx + 1] ?? "")) : null;
 if (shardIdx >= 0 && !SHARD) fail(`--shard takes k/n (e.g. 2/4), got ${JSON.stringify(argv[shardIdx + 1])}`);
+/*
+ * --budget-minutes m (Q1426): the mutation phase's wall-clock budget, counted
+ * from when this process started. vacuity.yml's e2e legs pass it under their
+ * job timeout, so a leg that cannot finish stops itself, red, with the verdicts
+ * it reached, instead of holding the shared accounts until GitHub cancels it
+ * (run.mjs runMutations `deadline`).
+ */
+const budgetIdx = argv.indexOf("--budget-minutes");
+const BUDGET_MIN = budgetIdx >= 0 ? Number(argv[budgetIdx + 1]) : null;
+if (budgetIdx >= 0 && !(BUDGET_MIN > 0)) fail(`--budget-minutes takes a positive number of minutes, got ${JSON.stringify(argv[budgetIdx + 1])}`);
 const kinded = selectKind(sel.scoped, KIND);
 const scoped = SHARD ? selectShard(kinded, Number(SHARD[1]), Number(SHARD[2])) : kinded;
 
 if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
   console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}${SHARD ? ` (leg ${SHARD[1]} of ${SHARD[2]})` : ""}…`);
   const results = runMutations(scoped, {
+    deadline: BUDGET_MIN > 0 ? t0 + BUDGET_MIN * 60_000 : null,
     onResult: (r) => {
       const tag =
         r.verdict === "killed" ? c.green("killed  ") :
@@ -319,7 +330,7 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
   if (inconclusive.length)
     fail(
       `mutation: ${inconclusive.length} of ${results.length} registration(s) INCONCLUSIVE — the guard was ` +
-        `already red before any mutation, so nothing was proven. This is usually the environment (no ` +
+        `already red before any mutation, or the run could not finish inside its time budget, so nothing was proven. This is usually the environment (no ` +
         `resolvable vitest in this worktree), not the code. A run that could not observe anything is not ` +
         `a run that found nothing:\n` +
         inconclusive.map((r) => `    ${r.guard} ⟵ ${r.target}  (${r.why ?? "unknown"})`).join("\n"),

@@ -6,7 +6,8 @@ import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { isDesktopRailRoute, useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 interface NavbarProps {
   /**

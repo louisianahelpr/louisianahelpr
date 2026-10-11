@@ -1,36 +1,37 @@
-import { jobLocalMidnightMs } from "./cancellationFee.ts";
+import { jobLocalMidnightMs, jobLocalStartMs } from "./cancellationFee.ts";
 
 /**
- * ONE number for "the helper must confirm by", enforced and displayed.
+ * ONE rule for the Helpr's day-before "Confirm You'll Be at the Job", enforced
+ * and displayed (docs/JOB-LIFECYCLE.md, approved by the owner 2026-10-08).
  *
- * WHY THIS EXISTS. `auto-expire-jobs` re-opened any `accepted` job whose
- * acceptance was 24h old and unconfirmed, with NO predicate on `date_needed`.
- * `JobConfirmation` only renders a confirm control once the job is inside 24
- * hours. So a helper who accepted a job five days out was un-booked at hour
- * 24 — four days before the button that would have saved them existed — and
- * told "You didn't start … within 24 hours", which was not something they
- * were ever permitted to do.
+ * THE RULE.
+ *   - The window OPENS at midnight the day before the job (`date_needed` is a
+ *     bare DATE; midnight is resolved in America/Chicago, see below). Before
+ *     that the Helpr's primary is the same button, greyed, saying when it turns
+ *     on (contract step 4); from then on it is live (step 5).
+ *   - The answer is owed until CONFIRM_DEADLINE_HOURS_BEFORE_START hours before
+ *     the job's START (owner's answer 1: "if they don't, 2 hrs before it's
+ *     reposted"). `sweep_confirm_reminders_and_repost` (migration
+ *     20261008205730) reposts at that instant; the card prints it.
  *
- * THE RULE. The confirmation window OPENS at midnight the day before the job
- * (`date_needed` is a bare DATE; midnight is resolved in America/Chicago, see
- * below) and the helper gets `CONFIRM_WINDOW_HOURS` to answer — so for a job
- * accepted in advance the deadline is NOON THE DAY BEFORE, leaving the poster
- * the rest of that day plus the job day to re-fill. A helper who accepts
- * INSIDE the window gets the same 12 hours measured from their acceptance
- * instead, because a clock that has already run out is not a window.
+ * Q1647: this file used to say the window closed 12 hours after it opened (noon
+ * the day before) while the card and the SQL sweep said 2 hours before the
+ * start, so `auto-expire-jobs` could reopen a job a day and a half before the
+ * deadline the Helpr was shown. There is one deadline now, and
+ * src/test/confirmDeadlineOneRule.test.ts fails if the SQL sweep's interval,
+ * the card or the edge function stops agreeing with it.
  *
  * TIMEZONE. Deliberately NOT `toISOString().slice(0, 10)`. `date_needed` is a
- * bare `YYYY-MM-DD` that only means anything in Louisiana's zone; a UTC date
- * string is 5-6 hours off, which on a 12-hour window is half of it. This
- * resolves midnight through `jobLocalMidnightMs` — the same DST-correct,
- * explicitly-zoned helper the cancellation ladder and `src/lib/jobDate.ts`
- * already use — so the cron (Deno, UTC) and the browser (whatever zone the
- * reader is in) compute the identical instant.
- *
- * Both the sweep and the card import from here. That is the point: the UI may
- * never imply a window longer than the one the cron enforces.
+ * bare `YYYY-MM-DD` that only means anything in Louisiana's zone. Both instants
+ * resolve through the DST-correct, explicitly-zoned helpers the cancellation
+ * ladder uses (`jobLocalMidnightMs`, and `jobLocalStartMs`, the twin of the SQL
+ * `(date_needed + COALESCE(start_time, '00:00')) AT TIME ZONE
+ * 'America/Chicago'`), so the cron (Deno, UTC), the database and the browser
+ * compute the identical instant.
  */
-export const CONFIRM_WINDOW_HOURS = 12;
+export const CONFIRM_DEADLINE_HOURS_BEFORE_START = 2;
+/** A description of the ordinary day only: the window opens at the previous
+ *  CALENDAR day's midnight, which is 23 or 25 hours on the two DST days. */
 export const CONFIRM_OPENS_HOURS_BEFORE = 24;
 
 const HOUR_MS = 3_600_000;
@@ -53,22 +54,16 @@ function previousDay(dateNeeded: string): string {
   return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, "0")}-${String(prev.getUTCDate()).padStart(2, "0")}`;
 }
 
-/** Epoch ms at which the confirm control appears — midnight the day before. */
+/** Epoch ms at which the confirm control turns on — midnight the day before. */
 export function confirmOpensMs(dateNeeded: string): number {
   return jobLocalMidnightMs(previousDay(dateNeeded));
 }
 
 /**
- * Epoch ms by which the helper must have confirmed.
- *
- * `acceptedAt` is optional because the two card call sites do not pass the
- * column through; omitting it yields the EARLIER (window-open) deadline, which
- * is never later than the one the cron computes with it. Erring early is the
- * only safe direction — the card must not promise time the sweep will not give.
+ * Epoch ms by which the Helpr must have confirmed: CONFIRM_DEADLINE_HOURS_BEFORE_START
+ * before the job's start. A null `startTime` is midnight of the job day, as in
+ * the SQL sweep's `COALESCE(start_time, '00:00')`.
  */
-export function confirmDeadlineMs(dateNeeded: string, acceptedAt?: string | null): number {
-  const opens = confirmOpensMs(dateNeeded);
-  const accepted = acceptedAt ? new Date(acceptedAt).getTime() : Number.NaN;
-  const from = Number.isFinite(accepted) ? Math.max(opens, accepted) : opens;
-  return from + CONFIRM_WINDOW_HOURS * HOUR_MS;
+export function confirmDeadlineMs(dateNeeded: string, startTime: string | null): number {
+  return jobLocalStartMs(dateNeeded, startTime) - CONFIRM_DEADLINE_HOURS_BEFORE_START * HOUR_MS;
 }

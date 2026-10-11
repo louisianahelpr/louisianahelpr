@@ -5,9 +5,9 @@
  * clock is invisible until it fires."
  *
  * The ghosting clock is not `jobs.expires_at` (that only cancels OPEN jobs).
- * It is `auto-expire-jobs` step 1: an accepted job with no
- * `helper_confirmed_at` is reopened at `confirmDeadlineMs(date_needed)`
- * (supabase/functions/_shared/confirmDeadline.ts). The card states that same
+ * It is the day-before confirm's deadline, `confirmDeadlineMs(date_needed,
+ * start_time)` (supabase/functions/_shared/confirmDeadline.ts: 2 hours before
+ * the start, when sweep_confirm_reminders_and_repost reposts). The card states that same
  * deadline through JobConfirmation, mounted by HelperTrackerPanel, in both
  * states: before the window opens ("confirm by ..., or the job re-opens") and
  * once it is open ("Confirm by ... or this job re-opens" / "past due").

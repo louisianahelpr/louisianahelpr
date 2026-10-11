@@ -12,7 +12,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock, MapPin } from "lucide-react";
-import { confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
@@ -49,11 +49,10 @@ export function helperDayOfConfirmation({
   helperConfirmedAt: string | null;
   helperDayofConfirmedAt?: string | null;
   dateNeeded: string;
-  /** The job's start. The window is the 24 hours before the START, the same
-   *  instant the tracker's Confirmed step measures from (JobTracking
-   *  deriveCurrentStatusIdx). This used midnight of the job's day, so an
-   *  accept 24h37m before a 2 PM start read "Helpr: Confirmed" here while the
-   *  tracker left Confirmed unchecked (owner, 2026-10-08, job 5b68bccb). */
+  /** The job's start. Unused since Q1570 (only the Helpr's own day-before
+   *  stamp counts); kept so callers need not change. An accept 24h37m before a
+   *  2 PM start once read "Helpr: Confirmed" here while the tracker left
+   *  Confirmed unchecked (owner, 2026-10-08, job 5b68bccb). */
   startTime?: string | null;
 }): string | null {
   // ACCEPTING NEVER COUNTS (owner, 2026-10-08, Q1570: "both must tap
@@ -148,6 +147,12 @@ export function JobConfirmation({
   const jobDate = jobDayStart(dateNeeded);
   const now = new Date();
   const hoursUntilJob = (jobDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+  // ONE window and ONE deadline, from supabase/functions/_shared/confirmDeadline.ts (Q1647): the
+  // button turns on at midnight the day before (the calendar day, so the two DST days are right too)
+  // and the answer is owed until 2 hours before the start, when the sweep reposts the job.
+  const opensMs = confirmOpensMs(dateNeeded);
+  const confirmOpen = now.getTime() >= opensMs;
+  const deadlineMs = confirmDeadlineMs(dateNeeded, startTime);
 
   /* THE HELPER'S card hides once they are on the way or beyond: they have
      answered "still on?" with their feet, and the tracker below takes over.
@@ -186,7 +191,7 @@ export function JobConfirmation({
      12:00. No start time: the end of the job day. */
   const posterWindowEnd = ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDate.getTime() + 24 * 3_600_000)).getTime();
   const showConfirmation =
-    isLiveJob && hoursUntilJob <= 24 && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24);
+    isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24);
 
   /* NOT-YET-OPEN IS A STATE, NOT AN ABSENCE.
      This component used to `return null` for every accepted job more than 24
@@ -199,13 +204,16 @@ export function JobConfirmation({
      coundown for the time to confirm they will be at the job").
 
      Same card, same two status chips, no button — plus the clock the helpr was
-     missing. The 24-hour window itself is unchanged; it just says so now. */
-  if (isLiveJob && hoursUntilJob > 24) {
+     missing. The window opens at midnight the day before (confirmOpensMs).
+     A date_needed that is not a bare YYYY-MM-DD (never on prod: a NOT NULL
+     DATE) has no window to describe, so it renders nothing, as before. */
+  if (Number.isNaN(opensMs)) return null;
+  if (isLiveJob && !confirmOpen) {
     /* The Helpr's primary BEFORE the window opens is this step, greyed (owner,
        2026-10-08: "they must confirm 24 hours before they can mark on their
        way, so that button should be confirm you will be at the job, not on my
        way"). */
-    const opensAtForNote = new Date(confirmOpensMs(dateNeeded));
+    const opensAtForNote = new Date(opensMs);
     const waitingPrimary = variant === "inline" && (isHelper || isOwner) ? (
       <>
         <JobStepRowSlot slot="note">
@@ -222,8 +230,8 @@ export function JobConfirmation({
     ) : null;
     if (hideNotYetOpen) return waitingPrimary;
     // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the
-    // two DST days, and the sweep uses the helper.
-    const opensAt = new Date(confirmOpensMs(dateNeeded));
+    // two DST days.
+    const opensAt = new Date(opensMs);
     const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
     const d = Math.floor(minsUntilOpen / 1440);
     const h = Math.floor((minsUntilOpen % 1440) / 60);
@@ -231,7 +239,7 @@ export function JobConfirmation({
     const untilOpen = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
     // The window AND the deadline, quoted together: a confirm is owed until 2 hours
     // before the start, then the job is reposted (owner, 2026-10-08).
-    const confirmBy = new Date((jobStartDateTime(dateNeeded, startTime) ?? jobDate).getTime() - 2 * 3_600_000);
+    const confirmBy = new Date(deadlineMs);
     /* A STRIP, not a card: the date is already on the card twice; what was
        missing is one clock and one sentence. */
     return (
@@ -263,7 +271,7 @@ export function JobConfirmation({
                   hour: "numeric",
                   minute: "2-digit",
                 })}
-                {" "}(2 hours before it starts), or it's reposted to other Helprs.
+                {" "}({CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it starts), or it's reposted to other Helprs.
               </p>
             )}
           </div>
@@ -410,17 +418,16 @@ export function JobConfirmation({
     </Dialog>
   );
 
-  /* THE DEADLINE, ONCE THE WINDOW IS OPEN. Same source as the sweep
+  /* THE DEADLINE, ONCE THE WINDOW IS OPEN. Same source as the sweeps
      (`confirmDeadlineMs`), so the card cannot imply a window longer than the
-     one `auto-expire-jobs` enforces. Helper-only: the poster's confirmation
+     one `sweep_confirm_reminders_and_repost` and `auto-expire-jobs` enforce. Helper-only: the poster's confirmation
      gates nothing and nothing expires on it. Rendered above the control in
      BOTH variants — the helper's tracker uses `inline`, which is only the
      button, so a deadline shown solely on the card variant would never reach
      the person it applies to. */
   // THE REPOST AT T-2h (owner, 2026-10-08; sweep_confirm_reminders_and_repost): the day-before confirm is owed until
-  // 2 hours before the start, and the line says that moment. No start time: the job day's midnight, minus 2 h.
-  const startForDeadline = jobStartDateTime(dateNeeded, startTime) ?? jobDate;
-  const deadlineMs = startForDeadline.getTime() - 2 * 3_600_000;
+  // 2 hours before the start, and the line says that moment (`deadlineMs` above). No start time: the job day's
+  // midnight, minus 2 h.
   const deadlineNotice = !isOwner && isHelper && !myConfirmed && (
     <p
       className="text-ds-10 font-sans font-semibold tabular-nums mb-1.5"

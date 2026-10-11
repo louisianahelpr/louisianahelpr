@@ -17,13 +17,18 @@
  * `refreshSession()` and answers `true` ONLY on a definite auth answer
  * (no session stored at all, or the auth server itself refusing the refresh
  * token: an AuthApiError with a 4xx). A network failure, a 5xx, a timeout, an
- * offline device, a discarded concurrent refresh (409) or any error it cannot
- * classify answers `false`, so THIS net never signs anyone out because the
- * network blinked. (auth-js can still drop the session on its own after a
- * non-retryable refresh failure once the access token has expired; that path
- * is auth-js's SIGNED_OUT, not this net.)
+ * offline device, a refresh auth-js itself discarded (AuthRefreshDiscardedError)
+ * or any error it cannot classify answers `false`, so THIS net never signs
+ * anyone out because the network blinked. (auth-js can still drop the session
+ * on its own after a non-retryable refresh failure once the access token has
+ * expired; that path is auth-js's SIGNED_OUT, not this net.)
+ *
+ * Every `false` that absorbed a would-be sign-out is reported once a minute at
+ * most (source "sessionLoss.transient", error name and status only), so
+ * error_logs shows how often this net saves a session.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 type AuthishError = { name?: unknown; status?: unknown; message?: unknown } | null | undefined;
 
@@ -42,13 +47,50 @@ const isTransientAuthError = (err: AuthishError): boolean => {
 const isDefiniteAuthLoss = (err: AuthishError): boolean => {
   if (!err) return false;
   if (err.name === "AuthSessionMissingError") return true;
-  // Only the auth server's own refusal counts. AuthRefreshDiscardedError (409:
-  // another tab committed a newer session mid-refresh) is documented as a
-  // no-op, and AuthUnknownError has no reliable status.
+  // Only the auth server's own refusal counts, so two different 409s differ:
+  // - AuthRefreshDiscardedError (auth-js's OWN status-409 error: storage changed
+  //   under the refresh, another tab or a sign-out got there first) never
+  //   reached the server's verdict; it is not lost (the name check below).
+  // - GoTrue's 409 "Too many concurrent token refresh requests" arrives as an
+  //   AuthApiError (auth-js lib/fetch.ts handleError: only 500 and 501-530 are
+  //   retryable) and IS counted lost. That is right because auth-js does not
+  //   keep the session on it: _callRefreshToken (auth-js 2.116.0 installed,
+  //   2.117.2 locked; read 2026-10-11) calls _removeSession() on every
+  //   non-retryable AuthError once the access token has expired, and keeps it
+  //   only while the access token is still valid. In that kept case the
+  //   "last look" getSession() below returns it, so the answer is still false.
+  // AuthUnknownError has no reliable status, so it is not lost either.
   if (err.name !== "AuthApiError") return false;
   if (isTransientAuthError(err)) return false;
   const status = typeof err.status === "number" ? err.status : 0;
   return status >= 400 && status < 500;
+};
+
+/** One report a minute at most per kind, so a burst of denials reports once. */
+const REPORT_EVERY_MS = 60_000;
+const lastReportAt: Record<"transient" | "threw", number> = { transient: -Infinity, threw: -Infinity };
+const shouldReport = (kind: "transient" | "threw"): boolean => {
+  const now = Date.now();
+  if (now - lastReportAt[kind] < REPORT_EVERY_MS) return false;
+  lastReportAt[kind] = now;
+  return true;
+};
+
+/**
+ * A would-be sign-out this net absorbed. Name and status only: never the
+ * message, a token or anything about the person.
+ */
+const reportTransient = (reason: string, err?: AuthishError): void => {
+  if (!shouldReport("transient")) return;
+  report(new Error(`Session check kept a signed-in member signed in (${reason})`), {
+    severity: "warning",
+    tags: {
+      source: "sessionLoss.transient",
+      reason,
+      error_name: typeof err?.name === "string" ? err.name : "none",
+      error_status: typeof err?.status === "number" ? err.status : -1,
+    },
+  });
 };
 
 /**
@@ -57,18 +99,37 @@ const isDefiniteAuthLoss = (err: AuthishError): boolean => {
  */
 export async function confirmSessionLost(): Promise<boolean> {
   try {
-    if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      reportTransient("offline");
+      return false;
+    }
     const { data: current } = await supabase.auth.getSession();
+    // A session is present: the denial was a real refusal, not a lost sign-in,
+    // and nothing would have signed anyone out, so there is nothing to report.
     if (current.session) return false;
     const { data, error } = await supabase.auth.refreshSession();
-    if (data?.session) return false;
-    if (!isDefiniteAuthLoss(error)) return false;
+    if (data?.session) {
+      reportTransient("refreshed");
+      return false;
+    }
+    if (!isDefiniteAuthLoss(error)) {
+      reportTransient("not-definite", error);
+      return false;
+    }
     // Last look: another tab may have stored a fresh session meanwhile.
     const { data: after } = await supabase.auth.getSession();
-    return !after.session;
-  } catch {
-    // refreshSession threw something that is not an AuthError: unknown, so
-    // the session is NOT treated as lost.
+    if (after.session) {
+      reportTransient("last-look", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    // getSession/refreshSession threw something that is not an AuthError (a
+    // storage read failure, say): unknown, so the session is NOT treated as
+    // lost, but it is reported (once a minute at most) so it is seen.
+    if (shouldReport("threw")) {
+      report(err, { severity: "warning", tags: { source: "sessionLoss.threw" } });
+    }
     return false;
   }
 }

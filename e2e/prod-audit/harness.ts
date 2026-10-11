@@ -27,8 +27,8 @@ export type { Role, Session };
 /** Every row a spec writes carries this in its text, so cleanup finds it. */
 export const MARKER = "[E2E-PRODAUDIT]";
 
-export const POSTER_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-export const HELPER_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+export const POSTER_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+export const HELPER_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 
 /** The four seeded accounts scripts/test-signin-link.mjs may mint for. */
 export type Account = "poster" | "helper" | "incomplete" | "admin";

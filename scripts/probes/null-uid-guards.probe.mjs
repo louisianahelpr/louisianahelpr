@@ -51,8 +51,8 @@ const LIVE = read("./fixtures/null-uid-guards.live.sql");
 const MIG = read("../../supabase/migrations/20260915101102_null_uid_is_not_server.sql");
 const CHECK = read("../ci/null-uid-trust.sql");
 
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const STRANGER = "5eed0000-0000-4000-8000-00000000abcd";
 const ADMIN = "22222222-2222-4222-8222-222222222222";
 const JOB = "10000000-0000-4000-8000-000000000001";

@@ -41,8 +41,8 @@ import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
 const ONLY = process.argv[3] ?? "all";
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const LIVE = ["accepted", "in_progress", "revision_requested"];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tag = () => Math.random().toString(36).replace(/[0-9.]/g, "").slice(0, 6);

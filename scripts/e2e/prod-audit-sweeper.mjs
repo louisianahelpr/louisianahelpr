@@ -87,8 +87,8 @@ export const PRESS_TITLE_MARKER = "PRESS DO NOT ACCEPT";
 /** Every marker this sweeper owns. main() runs one pass per marker. */
 export const JOB_TITLE_MARKERS = [JOB_TITLE_MARKER, PRESS_TITLE_MARKER];
 /** e2e/prod-audit/harness.ts POSTER_ID / HELPER_ID — the only two accounts that suite signs in as. */
-export const POSTER_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-export const HELPER_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+export const POSTER_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+export const HELPER_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 /**
  * "customer_id is one of the shared test poster accounts": today only
  * POSTER_ID ever posts a job in this suite (interruptions.spec.ts's

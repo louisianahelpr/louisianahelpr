@@ -71,8 +71,8 @@ const LIVEJOB = sliceBlock(
   "enforce_completion_on_live_job",
 );
 
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
 const OFFERED = "33333333-3333-4333-8333-333333333333";
 const ADMIN = "22222222-2222-4222-8222-222222222222";
 

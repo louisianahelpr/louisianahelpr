@@ -48,8 +48,8 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { rest } from "./lib/prodEnv.mjs";
 
-const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f"; // poster-e2e ("Perry Poster")
-const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5"; // helper-e2e
+const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb"; // poster-e2e ("Perry Poster")
+const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321"; // helper-e2e
 
 /** Newest inbound message of three LIVE threads — flipped to unread for (a). */
 const UNREAD_MESSAGE_IDS = [

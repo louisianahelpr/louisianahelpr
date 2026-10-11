@@ -21,8 +21,9 @@ tour.
 
 ## Seeded two-role identities
 
-> **Every id below was re-read from prod on 2026-09-12 and is a `user_id`,
-> not a `profiles.id`.** The previous version of this section named
+> **Every id below was re-read from prod on 2026-10-11 (execute_sql, auth.users
+> and profiles by email) after all six shared accounts were deleted and
+> re-created on 2026-10-09 (Q1649). The `user_id` column is the auth id.** The previous version of this section named
 > `e977a30f-7065-4e75-8498-dba435ac2044` as Audit Weblane's "profile id". That
 > id exists nowhere in the database — not as a `profiles.id`, not as a
 > `user_id`, not in `auth.users`. It was stale enough to be actively
@@ -32,10 +33,10 @@ tour.
 
 | Who | Email | `user_id` | `profiles.id` |
 |---|---|---|---|
-| Perry Poster (main E2E poster, 66 jobs) | `helpr-e2e-poster-0902@mailinator.com` | `71c56dfb-b326-4010-b960-b18dd3966e7f` | `b1180344-fc7a-43a3-8a89-8b1bd7ddfe00` |
-| Hallie Helper (main E2E helper) | `helpr-e2e-helper-0902@mailinator.com` | `437de07d-1bd7-46c8-a451-6b46aa3bcad5` | `214b6436-bb04-47ea-bb68-203280621caa` |
-| Eli Testhelper | `eli.test.helper@louisianahelpr.com` | `f55112c7-612e-44a0-b6aa-443cdfbc33d6` | `f86b6a29-66ca-4317-a928-6768fc31abfd` |
-| Audit Weblane | `helpr-audit-web-0824@mailinator.com` | `96c9899e-87a2-49e2-bbdd-268717d52aee` | `62e886c6-8f1e-4706-9445-1f40ead73e11` |
+| E2E poster (main E2E poster) | `helpr-e2e-poster-0902@mailinator.com` | `951264df-1e7c-4b6f-912e-a1be37e0dbfb` | `680e462e-54eb-4f69-ac66-5bdd0d2ff3d2` |
+| E2E helper (main E2E helper) | `helpr-e2e-helper-0902@mailinator.com` | `7b923b19-aba5-44cb-8730-8c33ba2b9321` | `8cc881ff-efa0-4051-a3e8-5be9f0241be2` |
+| Eli Testhelper | `eli.test.helper@louisianahelpr.com` | `5af6ce6d-68a8-4f98-b9d4-4fab20f1a607` | `5580ce3c-16e1-4556-8697-50254c65e063` |
+| Audit Weblane | `helpr-audit-web-0824@mailinator.com` | `83e390e0-da42-4324-bae3-fb947ba2b439` | `097a7974-16a5-4f42-8001-2ff271a734fe` |
 
 - **Poster (seeded)**: `helpr-audit-web-0824@mailinator.com` ("Audit Weblane").
   Prefer this, or the Perry/Hallie pair below, over the owner's account. The

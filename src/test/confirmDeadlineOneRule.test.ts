@@ -31,7 +31,8 @@
  * @mutate supabase/functions/auto-expire-jobs/index.ts | ${CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it started | 2 hours before it started
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

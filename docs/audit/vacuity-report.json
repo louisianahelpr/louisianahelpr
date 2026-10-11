@@ -1,12 +1,13 @@
 {
-  "generated": "2026-10-11T21:41:16.022Z",
-  "guards": 1670,
-  "registered": 1669,
+  "generated": "2026-10-11T22:08:53.566Z",
+  "guards": 1671,
+  "registered": 1670,
   "unregistered": [
     "src/test/nativeBuildTurnstile.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/adminSessionMintLock.test.ts",
     "src/test/bootStallWatchdog.test.ts"
   ],
   "classD_selfReferential": [

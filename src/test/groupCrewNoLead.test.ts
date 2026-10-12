@@ -80,6 +80,7 @@ const HELPER_ID_KEYED =
  * roster-aware one fails until it is taken off.
  */
 const SINGLE_HELPER_ONLY: Record<string, string> = {
+  rpc_admin_end_recurring_series: "reads helper_id only to REFUSE an admin who worked the series (admin_is_party); it grants nothing, and a recurring series is a one-Helpr booking",
   nudge_confirm: "one-Helpr booking by design (owner 2026-10-08): a crew's members confirm on their roster rows (rpc_group_member_confirm)",
   record_backout_notice: "returns at once for a group job (crew back-outs have their own notices, Q1409)",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",

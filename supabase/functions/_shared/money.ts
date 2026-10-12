@@ -112,3 +112,22 @@ export function isDefiniteStripeRefusal(err: unknown): boolean {
     "StripeAuthenticationError",
   ].includes(type);
 }
+
+/**
+ * What a payout WITHHELD and never sent, for the ledger row's metadata
+ * (Q1520): the one-time onboarding fee taken from a first payout, and the
+ * sub-dollar remainder of rounding the payout down to whole dollars. The
+ * earnings export (get_helper_earnings_export) adds both to the row's fee,
+ * so its gross is everything the Helpr earned, not only what was sent.
+ */
+export function payoutWithheldMetadata(
+  unroundedPayoutCents: number,
+  onboardingFeeCents: number,
+  paidCents: number,
+): { onboarding_fee_cents: number; rounding_remainder_cents: number } {
+  const onboarding = Math.max(0, Math.round(onboardingFeeCents));
+  return {
+    onboarding_fee_cents: onboarding,
+    rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)),
+  };
+}

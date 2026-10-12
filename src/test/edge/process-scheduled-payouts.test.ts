@@ -265,6 +265,13 @@ describe("process-scheduled-payouts edge function", () => {
       // $107.20 → $107. Flooring first ($109 − $2.30 = $106.70 → $106) costs a second dollar.
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
       expect(transferArg.amount).toBe(10700);
+      // Q1520: the ledger row records the $2.30 fee and the 20c rounded off.
+      // @mutate supabase/functions/process-scheduled-payouts/index.ts |             ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100)), |
+      const withheld = { onboarding_fee_cents: 230, rounding_remainder_cents: 20 };
+      const claim = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect((claim?.payload as { metadata?: unknown } | undefined)?.metadata).toEqual(expect.objectContaining(withheld));
+      expect((settle?.payload as { metadata?: unknown } | undefined)?.metadata).toEqual(expect.objectContaining(withheld));
     });
 
     it("does not claim or deduct when the helper already paid the fee", async () => {

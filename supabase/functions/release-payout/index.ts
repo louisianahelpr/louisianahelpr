@@ -51,7 +51,7 @@ import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { roundPayoutDownCents } from "../_shared/money.ts";
+import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 const corsHeaders = {
@@ -975,7 +975,8 @@ serve(async (req) => {
     stripeAccountId: helper.stripe_account_id,
     initiatedBy,
     initiatedByUserId,
-    metadata: { source: "release-payout" },
+    // Q1520: what this payout withholds (onboarding fee, round-down remainder).
+    metadata: { source: "release-payout", ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents) },
     // Q1211: a refund or cancel that landed after this job was read stops it.
     expectPaymentStatus: "payout_pending",
   });
@@ -1112,7 +1113,11 @@ serve(async (req) => {
     amountCents: payoutCents,
     platformFeeCents,
     stripeAccountId: helper.stripe_account_id,
-    metadata: { source: "release-payout", transfer_group: transfer.transfer_group ?? null },
+    metadata: {
+      source: "release-payout",
+      transfer_group: transfer.transfer_group ?? null,
+      ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents),
+    },
   });
   if (!settled.ok) {
     console.error(

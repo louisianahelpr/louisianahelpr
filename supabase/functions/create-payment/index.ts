@@ -18,7 +18,7 @@ import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
@@ -4576,7 +4576,14 @@ async function transferToHelper(
         paid_at: new Date().toISOString(),
         initiated_by: "admin",
         initiated_by_user_id: initiatedByUserId,
-        metadata: { source: "admin_release_dispute" },
+        // Q1520: the cents rounded off (no onboarding fee on this path).
+        // Named keys, no spread: checkoutMetadataKeysAreWritten reads every
+        // metadata literal in this file and a spread makes its inventory blind.
+        metadata: {
+          source: "admin_release_dispute",
+          onboarding_fee_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).onboarding_fee_cents,
+          rounding_remainder_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).rounding_remainder_cents,
+        },
       });
     if (ledgerErr && ledgerErr.code === "23505") {
       // A concurrent call for the same job may have got past the duplicate

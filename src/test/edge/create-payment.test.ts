@@ -2544,6 +2544,25 @@ describe("create-payment edge function", () => {
       const auditWrites = () =>
         scenario.writes.filter((w) => w.table === "admin_audit_log" && w.op === "insert");
 
+      // Q1520 (review of the export change): the cents a Quick Release rounds
+      // off are recorded on its ledger row, for the earnings export.
+      // @mutate supabase/functions/create-payment/index.ts |           rounding_remainder_cents: payoutWithheldMetadata(Math.round(amount * 100), 0, amountCents).rounding_remainder_cents, |
+      it("Quick Release records the cents it rounds off on the ledger row (Q1520)", async () => {
+        seedReleasable();
+        const job = (scenario.reads.jobs.rows ?? [])[0] as Record<string, unknown>;
+        // $100.50 less the Helpr's 12% tier fee ($12.06) = $88.44 owed, $88 sent.
+        Object.assign(job, { budget: 100.5, platform_fee_amount: 10.05 });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const row = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
+        const payload = row?.payload as { amount_cents?: number; metadata?: Record<string, unknown> } | undefined;
+        expect(payload?.amount_cents).toBe(8800);
+        expect(payload?.metadata).toEqual(expect.objectContaining({ source: "admin_release_dispute", onboarding_fee_cents: 0, rounding_remainder_cents: 44 }));
+      });
+
       it("Quick Release leaves the job REVIEWABLE", async () => {
         seedReleasable();
         const fn = await load();

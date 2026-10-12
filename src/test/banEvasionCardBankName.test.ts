@@ -42,7 +42,7 @@
  * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n  THEN |   THEN
- * @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
  * @mutate supabase/migrations/20261012065930_retained_ban_marks_doubt_row.sql |           v_own_reason,\n           p_user_id, |           v_row.reason,\n           p_user_id,
  */

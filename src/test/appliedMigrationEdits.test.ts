@@ -21,8 +21,10 @@ const ROOT = resolve(__dirname, "../..");
 // F is only the LABEL of a synthetic edit (nothing here reads it from disk). It names a migration
 // whose functions no later migration redefines, so this test is not a pin on superseded SQL
 // (guardsReadTheNewestMigration); 42a7962cc's own victim was 20260926040011_ops_alert_pending_watchdog.sql.
-// (Was 20261003214350, until 20261007033530 (Q552) redefined its direct_accept_block_reason.)
-const F = "supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql";
+// (Was 20261003214350, until 20261007033530 (Q552) redefined its direct_accept_block_reason; then
+// 20261007033530, until 20261012185633 (Q1401) redefined four of its functions. Now a migration
+// that defines no function at all, so no later restatement can make this label stale.)
+const F = "supabase/migrations/20261011110725_add_missing_indexes.sql";
 // The shape of 42a7962cc's edit to that file.
 const BEFORE = "EXCEPTION WHEN OTHERS THEN\n  RAISE WARNING 'fold failed: %', SQLERRM;\nEND;\n";
 const AFTER = "EXCEPTION WHEN OTHERS THEN\n  -- Filed, not just warned.\n  PERFORM public.log_cron_defect('check_ops_alert_pending', 'fold', SQLERRM, '{}');\nEND;\n";

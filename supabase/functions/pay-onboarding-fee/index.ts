@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 /**
  * Settle the one-time account setup fee EARLY, on its own.
@@ -116,7 +117,9 @@ serve(async (req) => {
       return fail(409, "There's no setup fee to pay on your account.");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account pays on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -168,6 +171,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     console.error("[pay-onboarding-fee] error:", error);
     return fail(500, "Something went wrong starting that payment. Please try again.");
   }

@@ -9,6 +9,13 @@ import {
   webhookRejectResponse,
 } from "../_shared/stripeWebhookReject.ts";
 import { logStep, type WebhookContext } from "./context.ts";
+import {
+  StripeModeRefused,
+  stripeSecretKeyFor,
+  isRoutedTestCheckout,
+  testEventScope,
+  TEST_WEBHOOK_SECRET_ENV,
+} from "../_shared/stripeMode.ts";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted.ts";
 import { handleCheckoutSessionExpired } from "./handlers/checkoutSessionExpired.ts";
 import { handleCustomerSubscriptionUpdated } from "./handlers/customerSubscriptionUpdated.ts";
@@ -24,6 +31,27 @@ import { handleTransferCreated } from "./handlers/transferCreated.ts";
 import { handleTransferFailed } from "./handlers/transferFailed.ts";
 import { handleTransferReversed } from "./handlers/transferReversed.ts";
 import { handleTransferCanceled } from "./handlers/transferCanceled.ts";
+
+// The event types a TEST-mode endpoint event may run (owner 2026-10-12, test
+// mode for test accounts): what the routed checkout, payout, refund, dispute
+// and Connect flows produce. Anything else from the test endpoint is
+// acknowledged and not applied.
+const TEST_MODE_EVENT_TYPES = new Set([
+  "checkout.session.completed",
+  "checkout.session.expired",
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed",
+  "charge.refunded",
+  "charge.refund.updated",
+  "charge.dispute.created",
+  "charge.dispute.funds_withdrawn",
+  "charge.dispute.closed",
+  "transfer.created",
+  "transfer.failed",
+  "transfer.reversed",
+  "transfer.canceled",
+  "account.updated",
+]);
 
 // Dispatch map: one handler per Stripe event type. Adding support for a new
 // event = add a handler file + one entry here. Anything not listed falls
@@ -130,6 +158,14 @@ serve(async (req) => {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  // TEST-mode endpoint (owner 2026-10-12, test mode for test accounts): its
+  // own signing secret(s), tried only after every live secret has missed. An
+  // event verified by one of these is a TEST-mode event, whatever it claims.
+  const testWebhookSecrets = (Deno.env.get(TEST_WEBHOOK_SECRET_ENV) ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  let verifiedByTestSecret = false;
 
   // Returns the event or throws — keeping the single-expression `try` below
   // means `event` stays definitely-assigned for the compiler, which a bare
@@ -142,6 +178,15 @@ serve(async (req) => {
       } catch (e) {
         // Expected when this event came from the OTHER endpoint. Only the
         // last failure is surfaced; a miss here is not itself an error.
+        lastErr = e;
+      }
+    }
+    for (const secret of testWebhookSecrets) {
+      try {
+        const testEvent = await stripe.webhooks.constructEventAsync(body, sig, secret);
+        verifiedByTestSecret = true;
+        return testEvent;
+      } catch (e) {
         lastErr = e;
       }
     }
@@ -163,7 +208,7 @@ serve(async (req) => {
     console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
     console.error(`[STRIPE-WEBHOOK] Signature schemes: ${delivery.schemes.join(",") || "none"} (Stripe adds v0 only to TEST-mode events)`);
     console.error(`[STRIPE-WEBHOOK] Claimed (UNVERIFIED) event: ${delivery.claimedId ?? "none"} type=${delivery.claimedType ?? "none"} livemode=${delivery.claimedLivemode}`);
-    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} secret(s), lengths: ${webhookSecrets.map((s) => s.length).join(", ")}`);
+    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} live secret(s), lengths: ${webhookSecrets.map((s) => s.length).join(", ")}; ${testWebhookSecrets.length} test secret(s)`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${delivery.bodyBytes} bytes`);
     console.error("[STRIPE-WEBHOOK] → Refusing (400) so Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
     await postSlackOpsAlert(
@@ -179,7 +224,86 @@ serve(async (req) => {
     return webhookRejectResponse("signature_verification_failed");
   }
 
-  logStep("Event received", { type: event.type, id: event.id });
+  logStep("Event received", { type: event.type, id: event.id, via: verifiedByTestSecret ? "test_endpoint" : "live_endpoint" });
+
+  // ---- TEST-mode events (owner 2026-10-12, test mode for test accounts) ----
+  // Signed by the TEST endpoint's secret, so it can only be a sandbox event:
+  //   - it must say livemode=false (a live event signed by the test secret is
+  //     impossible; refuse it rather than guess);
+  //   - it runs on the TEST key, never the live one (a missing or non-test
+  //     STRIPE_TEST_SECRET_KEY refuses 500, so Stripe retries once it is set);
+  //   - it may only touch test accounts: an event whose metadata names a real
+  //     person or a real person's job is acknowledged and NOT processed, with
+  //     an alert (a retry would never change the answer).
+  // A live-verified event takes the unchanged path below.
+  let handlerStripe: Stripe = stripe;
+  if (verifiedByTestSecret) {
+    if (event.livemode !== false) {
+      console.error(`[STRIPE-WEBHOOK] event ${event.id} verified by the TEST endpoint secret but livemode=${String(event.livemode)}; refusing`);
+      return webhookRejectResponse("livemode_mismatch");
+    }
+    try {
+      handlerStripe = new Stripe(stripeSecretKeyFor("test"), { apiVersion: "2025-08-27.basil" });
+      // Only the event types the test-mode flows produce. Pro subscriptions
+      // (customer.subscription.*) stay live-only (Q1751), and their handlers
+      // fall back to matching a person by EMAIL, so a sandbox renewal could
+      // otherwise grant or revoke a real person's Pro (lh-money-escrow review
+      // 2026-10-12, finding 4).
+      if (!TEST_MODE_EVENT_TYPES.has(event.type)) {
+        console.log(JSON.stringify({ event: "stripe_test_event_type_not_routed", event_id: event.id, event_type: event.type }));
+        return new Response(JSON.stringify({ received: true, ignored: "test_event_type_not_routed" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      const eventObject = (event.data as { object?: unknown } | undefined)?.object;
+      // A test-mode checkout is applied only when a mode-routed function
+      // created it. Pro and gift-card checkout stay live-only, and their
+      // branches grant by email or credit a recipient email, so a sandbox
+      // session must never reach them (lh-authz-rls review of the rebuild,
+      // finding 1).
+      if (event.type.startsWith("checkout.session.") && !isRoutedTestCheckout(eventObject)) {
+        console.error(JSON.stringify({ event: "stripe_test_checkout_not_routed", event_id: event.id, event_type: event.type }));
+        return new Response(JSON.stringify({ received: true, ignored: "test_checkout_not_routed" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      const scope = await testEventScope(supabase, eventObject);
+      // A Connect account update for an account no profile holds names nobody
+      // and changes nothing; one held by a real profile is refused below.
+      if (!scope.ok) {
+        console.error(JSON.stringify({ event: "stripe_test_event_names_real_account", event_id: event.id, event_type: event.type, people: scope.people, real: scope.real }));
+        await postSlackOpsAlert({
+          kind: "stripe_webhook_error",
+          severity: "warning",
+          title: "Stripe TEST-mode event names a real account: not processed",
+          message: `\`${event.type}\` (${event.id}) came from the test-mode endpoint but names ${scope.real} real account(s). Test mode is for test accounts only, so it was acknowledged and NOT applied.`,
+          fields: { "Event ID": event.id },
+          oncePerDayKey: `stripe-test-event-real-account-${event.type}`,
+        });
+        return new Response(JSON.stringify({ received: true, ignored: "test_event_names_real_account" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    } catch (modeErr) {
+      if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+      console.error(JSON.stringify({ event: "stripe_mode_refused", fn: "stripe-webhook", reason: modeErr.reason, detail: modeErr.message, event_id: event.id }));
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Stripe TEST-mode event refused (500) — test mode misconfigured",
+        message: `\`${event.type}\` (${event.id}) from the test-mode endpoint could not run: ${modeErr.reason}. Stripe retries it once this is fixed.`,
+        fields: { "Event ID": event.id },
+        oncePerDayKey: `stripe-webhook-test-mode-${modeErr.reason}`,
+      });
+      return new Response(JSON.stringify({ received: false, error: "stripe_test_mode_unavailable" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+  }
 
   // ---- Key mode vs event mode (Q891 item 4) ----
   // A correctly signed event can still belong to the other Stripe mode: a
@@ -195,7 +319,7 @@ serve(async (req) => {
   // judged: it takes the old path.
   const keyMode = stripeKeyMode(stripeKey);
   const eventMode = typeof event.livemode === "boolean" ? (event.livemode ? "LIVE" : "TEST") : "UNKNOWN";
-  if (keyMode !== "UNKNOWN" && eventMode !== "UNKNOWN" && keyMode !== eventMode) {
+  if (!verifiedByTestSecret && keyMode !== "UNKNOWN" && eventMode !== "UNKNOWN" && keyMode !== eventMode) {
     console.log(JSON.stringify({
       event: "stripe_webhook_livemode_mismatch", fn: "stripe-webhook",
       key_mode: keyMode, event_mode: eventMode, event_id: event.id, event_type: event.type,
@@ -333,7 +457,7 @@ serve(async (req) => {
   };
 
   try {
-    const ctx: WebhookContext = { stripe, supabase, logStep };
+    const ctx: WebhookContext = { stripe: handlerStripe, supabase, logStep };
     const handler = EVENT_HANDLERS[event.type];
     if (handler) {
       await handler(event, ctx);

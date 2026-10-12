@@ -338,6 +338,21 @@ describe("engagement-automations edge function", () => {
       expect(b.adminDigest).toBe(1);
     });
 
+    // Owner 2026-10-12, test mode for test accounts: a test job's platform fee
+    // was paid on the Stripe TEST key, so the digest's "Revenue" reads real
+    // jobs only.
+    // @mutate supabase/functions/engagement-automations/index.ts | .select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false) | .select('platform_fee_amount').eq('status', 'completed')
+    it("the digest's revenue read counts real jobs only (never a test-mode fee)", async () => {
+      const fn = await loadConfigured();
+      seedAdmin();
+
+      await fn.fetch(cronRequest(fn));
+
+      const revenueRead = (scenario.readQueries ?? []).find((q) => q.table === "jobs" && q.cols.includes("platform_fee_amount"));
+      expect(revenueRead, "the digest read the jobs' platform fees").toBeDefined();
+      expect(revenueRead!.filters).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+    });
+
     it("HONOURS the suppression list for the admin digest too", async () => {
       // The file's own header says the hard list "applies to EVERY send below,
       // transactional included, because continuing to mail a hard-bounced

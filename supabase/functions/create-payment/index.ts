@@ -34,6 +34,100 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
+import {
+  jobMoneyMode,
+  readJobParties,
+  sessionIdMode,
+  stripeModeForParties,
+  stripeModeRefusedResponse,
+  StripeModeRefused,
+  stripeSecretKeyFor,
+  type MoneyKind,
+  type StripeMode,
+} from "../_shared/stripeMode.ts";
+
+/**
+ * What each action does with a job's money (MoneyKind, _shared/stripeMode.ts).
+ * NEW money needs every party in one mode. Money ALREADY taken runs where it
+ * sits (the stored Checkout Session's mode): a payout also needs every payee
+ * of that mode, a refund only ever returns it to the payer, so a real poster's
+ * live escrow is refundable even with a test Helpr hired on it (lh-money-escrow
+ * and lh-authz-rls reviews 2026-10-12, finding 1). An action not listed moves
+ * no money on a job (revisions) and runs in the caller's own mode.
+ */
+const ACTION_MONEY_KIND: Record<string, MoneyKind> = {
+  escrow: "new",
+  tip: "new",
+  recurring_visit: "new",
+  release: "payout",
+  admin_release_dispute: "payout",
+  cancel_escrow: "refund",
+  admin_refund_dispute: "refund",
+  admin_refund_general: "refund",
+};
+const STRIPE_MODE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Which Stripe mode this request runs in (owner 2026-10-12; rules in
+ * _shared/stripeMode.ts jobMoneyMode). The caller is the actor: a REAL caller
+ * never counts beyond being a party (the owner, a real admin, settles a test
+ * job in test mode); a TEST caller must be of the money's mode, so a test
+ * account never moves live money (for the seed admin that holds while it is
+ * enrolled: an admin can edit any profile, its own is_seed included).
+ *
+ * The job only counts for someone ON it (poster, Helpr, crew) or for an admin.
+ * Anyone else naming a job id is answered in their OWN mode and then refused by
+ * the action's own ownership check, so the answer never tells a stranger
+ * whether a job belongs to a test account (no oracle).
+ *
+ * `jobId` is read exactly as the action reads it (the raw string): Postgres
+ * accepts other spellings of a uuid, so a mode decided on a stricter parse than
+ * the action's own read could be skipped (lh-authz-rls review, finding 2).
+ * Throws StripeModeRefused; the top-level catch answers it.
+ */
+async function createPaymentStripeMode(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  callerId: string,
+  action: unknown,
+  // deno-lint-ignore no-explicit-any
+  body: any,
+): Promise<StripeMode> {
+  let jobId: string | null = typeof body?.jobId === "string" && body.jobId.length > 0 ? body.jobId : null;
+  // recurring_visit's own handler refuses any paymentId that is not a
+  // canonical uuid before it reads a row, so the same rule here reads the
+  // same row it would. (A lookup, not an action dispatch: kept out of the
+  // `if (action === …)` shape the handler's dispatch guard counts.)
+  const visitPaymentId: string | null =
+    action === "recurring_visit" && typeof body?.paymentId === "string" && STRIPE_MODE_UUID_RE.test(body.paymentId)
+      ? body.paymentId
+      : null;
+  if (visitPaymentId) {
+    const { data: visit, error: visitErr } = await db
+      .from("recurring_visit_payments").select("parent_job_id, payer_id").eq("id", visitPaymentId).maybeSingle();
+    if (visitErr) throw new StripeModeRefused("lookup_failed", `recurring_visit_payments read failed: ${visitErr.message}`);
+    // Only the payer's own visit names a series; the action refuses anyone else's.
+    jobId = visit?.payer_id === callerId && typeof visit?.parent_job_id === "string" ? visit.parent_job_id : null;
+  }
+  const kind = typeof action === "string" ? ACTION_MONEY_KIND[action] : undefined;
+  if (!kind) return stripeModeForParties(db, [callerId]);
+  let isAdmin = false;
+  if (typeof action === "string" && action.startsWith("admin_")) {
+    // A LOOKUP, not the gate: every admin_* action still checks has_role
+    // itself before it moves money (and audits). Read as has_role's own body
+    // reads it (user_roles, role 'admin'). Fail closed: an unreadable role must
+    // not silently become "not an admin" (that admin would then be answered in
+    // their own mode).
+    const { data: roleRows, error: roleErr } = await db
+      .from("user_roles").select("user_id").eq("user_id", callerId).eq("role", "admin");
+    if (roleErr) throw new StripeModeRefused("lookup_failed", `admin role read failed: ${roleErr.message}`);
+    isAdmin = Array.isArray(roleRows) && roleRows.some((r: { user_id?: string }) => r.user_id === callerId);
+  }
+  const job = await readJobParties(db, jobId);
+  const jobCounts = isAdmin || job.partyIds.includes(callerId);
+  if (!jobCounts) return stripeModeForParties(db, [callerId]);
+  return jobMoneyMode(db, jobId, { kind, actorId: callerId, job });
+}
 
 /**
  * Q1324 (money review 2026-10-06): an account under an open ban settlement
@@ -160,7 +254,13 @@ serve(async (req) => {
     const isNative = isNativeRequest(body);
     const { action } = body;
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12, "Test mode for test accounts"): TEST when
+    // every party to this payment is a test account, LIVE when none is, and
+    // refused on a mix. Decided here from the database, never from the body:
+    // the body only names WHICH job, and the job's own rows say who is on it.
+    // See _shared/stripeMode.ts.
+    const stripeMode = await createPaymentStripeMode(supabaseAdmin, user.id, action, body);
+    const stripe = new Stripe(stripeSecretKeyFor(stripeMode), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -289,7 +389,15 @@ serve(async (req) => {
       // a fresh one is minted. previousSessionId itself is KEPT: the stamp
       // below is guarded on it and the idempotency key is scoped to it.
       let prior: Stripe.Checkout.Session | null = null;
-      if (previousSessionId) {
+      // The same for a LIVE session left on a test account's job (minted before
+      // test accounts moved to test mode, 2026-10-12): the test key cannot read
+      // it. None of those was ever paid (measured 2026-10-12: 0 of 68), and a
+      // Checkout Session expires on its own within 24 hours.
+      const priorFromOtherMode = sessionIdMode(previousSessionId) === "live" && stripeMode === "test";
+      if (priorFromOtherMode) {
+        console.warn(`[create-payment] prior session on job ${jobId} is a live-mode session and this job runs in test mode; minting a fresh test-mode one`);
+      }
+      if (previousSessionId && !priorFromOtherMode) {
         try {
           prior = await stripe.checkout.sessions.retrieve(previousSessionId, {
             expand: ["payment_intent"],
@@ -3627,6 +3735,10 @@ serve(async (req) => {
 
     throw new PublicError("Invalid action");
   } catch (error) {
+    // A payment that runs in neither Stripe mode (a test account paired with a
+    // real one, a missing test key, an unreadable test-account list): nothing
+    // was sent to Stripe, and the answer says so.
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     // A stored id from the Stripe sandbox read under the live key (a job paid
     // before prod went live): retrying never changes Stripe's answer and no
     // real money sits behind it, so it is a 409 with a plain sentence, not a

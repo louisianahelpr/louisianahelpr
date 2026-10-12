@@ -179,7 +179,12 @@ interface PendingAcceptRecheck {
  * the Helpr's own `status` call owns clearing it).
  */
 export async function recheckPendingAccepts(
-  stripe: Stripe,
+  /**
+   * The client for ONE Helpr's Stripe mode (owner 2026-10-12: a test account's
+   * Connect account lives in test mode and is read with the test key). Throws
+   * when that Helpr's mode cannot be decided; the Helpr is then a defect.
+   */
+  stripeFor: (helperId: string) => Promise<Stripe>,
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
 ): Promise<PendingAcceptRecheck> {
@@ -214,6 +219,13 @@ export async function recheckPendingAccepts(
     out.defects.push(`${due.length} Helprs wait on setup; ${PENDING_ACCEPT_RECHECK_CAP} are re-read this run, the rest on later runs`);
   }
   for (const p of due.slice(0, PENDING_ACCEPT_RECHECK_CAP)) {
+    let stripe: Stripe;
+    try {
+      stripe = await stripeFor(p.user_id);
+    } catch (e) {
+      out.defects.push(`Helpr ${p.user_id}: no Stripe mode (${caughtMessage(e)})`);
+      continue;
+    }
     let account: Stripe.Account;
     try {
       account = await stripe.accounts.retrieve(p.stripe_account_id);

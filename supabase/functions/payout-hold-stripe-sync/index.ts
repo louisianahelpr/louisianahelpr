@@ -34,6 +34,7 @@ import {
   reconcilePayoutFreeze,
   supabaseFreezeStore,
 } from "../_shared/payoutFreeze.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SWEEP_LIMIT = 25;
@@ -118,11 +119,11 @@ serve(async (req) => {
     ])];
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-    apiVersion: "2025-08-27.basil",
-  });
+  // Stripe mode (owner 2026-10-12): each Helpr's Connect account is read and
+  // updated with the key of that Helpr's own mode (a test account: the test key).
+  const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
   const store = supabaseFreezeStore(supabaseAdmin);
-  const port = {
+  const portFor = (stripe: Stripe) => ({
     async retrieveSchedule(accountId: string): Promise<PayoutSchedule | null> {
       const account = await stripe.accounts.retrieve(accountId);
       return ((account as { settings?: { payouts?: { schedule?: PayoutSchedule } } }).settings?.payouts?.schedule) ?? null;
@@ -135,10 +136,20 @@ serve(async (req) => {
       );
     },
     isAccountGone: (err: unknown) => isUnusableConnectAccountError(err),
-  };
+  });
 
   const results: Array<{ helper_id: string } & FreezeOutcome> = [];
   for (const id of helperIds) {
+    let port: ReturnType<typeof portFor>;
+    try {
+      port = portFor((await stripes.clientForParties([id])).stripe);
+    } catch (modeErr) {
+      if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+      const failed: Extract<FreezeOutcome, { kind: "failed" }> = { kind: "failed", state: null, message: `stripe mode ${modeErr.reason}: ${modeErr.message}`, attempts: null, requestedBy: null };
+      results.push({ helper_id: id, ...failed });
+      await reportFailure(supabaseAdmin, id, failed);
+      continue;
+    }
     let outcome = await reconcilePayoutFreeze(id, store, port);
     if (outcome.kind === "failed" && outcome.state === "restore_requested") {
       // The restore may have landed at Stripe before this run failed, while a

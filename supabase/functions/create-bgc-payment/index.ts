@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { BGC_FEE_CENTS } from "../_shared/productPrices.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,7 +116,9 @@ serve(async (req) => {
       return fail(409, "You're already background-checked.");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account pays on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -168,6 +171,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     console.error("[create-bgc-payment] error:", error);
     return fail(500, "Something went wrong starting your background check. Please try again.");
   }

@@ -737,6 +737,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-auth.ts";`,
   );
 
+  // Stripe mode (owner 2026-10-12, test mode for test accounts):
+  // `_shared/stripeMode.ts` has ZERO imports and decides which Stripe key a
+  // payment runs on. A stub would be the one gate between a test account and
+  // live money that nobody tested, so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeMode\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeMode.ts";`,
+  );
+
   // Arrival rule: `_shared/arrivalRule.ts` has ZERO imports and is the one
   // predicate (GPS verified AND poster confirmed, VN-33) that create-payment's
   // helper release and the app's completion gate both read.

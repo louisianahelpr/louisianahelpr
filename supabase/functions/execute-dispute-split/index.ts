@@ -66,6 +66,7 @@ import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 /**
  * The client type these helpers accept.
@@ -130,7 +131,6 @@ serve(async (req) => {
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "";
   const anonKey =
     (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "";
-  const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
@@ -383,6 +383,21 @@ serve(async (req) => {
     }
   }
 
+  // Stripe mode (owner 2026-10-12): the split runs where the escrow sits (the
+  // stored session's mode). A Helpr of the other mode, or a test-account admin
+  // on live money, moves nothing; a full refund to the poster stays possible
+  // through create-payment admin_refund_dispute, which needs only the payer.
+  let stripeSecretKey: string;
+  try {
+    stripeSecretKey = stripeSecretKeyFor(await jobMoneyMode(supabaseAdmin, job.id, { kind: "payout", actorId: adminUserId }));
+  } catch (modeErr) {
+    if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+    console.error(JSON.stringify({ event: "stripe_mode_refused", fn: "execute-dispute-split", reason: modeErr.reason, detail: modeErr.message, job_id: job.id }));
+    return await refuse(
+      { error: modeErr.publicMessage, code: "stripe_mode_refused", reason: modeErr.reason },
+      modeErr.reason === "mixed_parties" ? 409 : 503,
+    );
+  }
   const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
 
   // ── 3. Re-verify the PaymentIntent against Stripe — never the DB row alone ─

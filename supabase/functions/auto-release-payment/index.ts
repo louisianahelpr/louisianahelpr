@@ -12,6 +12,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,9 +86,10 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Stripe mode (owner 2026-10-12): each job is verified with the key of its
+    // own mode (test accounts on the test key); a job mixing test and real
+    // accounts is skipped and counted.
+    const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -381,6 +383,15 @@ serve(async (req) => {
       let paymentIntentId = job.stripe_payment_intent_id;
 
       if (!isPifFunded) {
+        let stripe: Stripe;
+        try {
+          ({ stripe } = await stripes.clientForJob(job.id, "read"));
+        } catch (e) {
+          if (!(e instanceof StripeModeRefused)) throw e;
+          results.push({ job_id: job.id, status: "stripe_mode_refused", error: e.reason });
+          jobDefect(job.id, `stripe mode ${job.id}: ${e.reason}: ${e.message}`);
+          continue;
+        }
         if (!paymentIntentId && job.stripe_session_id) {
           try {
             const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });

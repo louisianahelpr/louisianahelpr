@@ -13,8 +13,8 @@
  * Reads the NEWEST definition of redeem_gift_card (any dollar tag, comments
  * blanked) and asserts the minimum check exists and sits before the reserve.
  *
- * @mutate supabase/migrations/20261012081639_gift_funds_unfunded_abandoned_job.sql | if v_difference_cents > 0 and v_difference_cents < 50 then | if false then
- * @mutate supabase/migrations/20261012081639_gift_funds_unfunded_abandoned_job.sql | v_difference_cents > 0 and v_difference_cents < 50 | v_difference_cents > 0 and v_difference_cents < 5
+ * @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | if v_difference_cents > 0 and v_difference_cents < 50 then | if false then
+ * @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | v_difference_cents > 0 and v_difference_cents < 50 | v_difference_cents > 0 and v_difference_cents < 5
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

@@ -30,6 +30,8 @@ import {
 //   4. the server: only an admin may open a thread, and a reply can only ever
 //      land in the caller's own thread.
 // @mutate src/lib/archivedConversations.ts | if (!userId \|\| isTeamThreadKey(jobId)) return;\n  const key = conversationKey(jobId, otherUserId);\n  const archivedAt | if (!userId) return;\n  const key = conversationKey(jobId, otherUserId);\n  const archivedAt
+// @mutate src/pages/messages/messagesData/loadConversations.ts | staffSideMap.get(teamUser) ?? (v.otherUserId | (v.otherUserId
+// @mutate src/pages/messages/messagesData/loadConversations.ts | : supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", staffTeamUsers), | : supabase.rpc("get_safe_profiles", { user_ids: staffTeamUsers }),
 // @mutate src/lib/threadMutes.ts | if (isTeamThreadKey(jobId)) return false; | if (false) return false;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (teamUser !== null) {\n      await dispatchTeamMessage(optimistic, teamUser); | if (false) {\n      await dispatchTeamMessage(optimistic, teamUser);
 // @mutate supabase/migrations/20261011161100_team_thread_direct_messages.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
@@ -162,5 +164,29 @@ describe("server: who may write a team-thread row (newest definitions)", () => {
     // The client may read the column, never write it.
     expect(mig).toMatch(/GRANT SELECT \(team_thread_user_id\) ON public\.messages TO authenticated;/);
     expect(mig).not.toMatch(/GRANT (?:INSERT|UPDATE)[^;]*team_thread_user_id/);
+  });
+});
+
+describe("the staff side names the thread's user even when banned or unverified (Q1591 (a))", () => {
+  // get_safe_profiles leaves banned and unverified accounts out, so a staff-side
+  // name read through it falls back to the house label. Every place that builds
+  // a team thread for STAFF (teamConversation's callers in loadConversations)
+  // must name the person from a direct profiles read (admin RLS reads every row).
+  const src = blankComments(read("src/pages/messages/messagesData/loadConversations.ts"));
+  const callers = [...src.matchAll(/return teamConversation\(\{[\s\S]*?\}\)/g)].map((m) => m[0]);
+
+  it("finds every builder (inventory floor)", () => {
+    // 2026-10-12: the ?teamThread= placeholder and the inbox.
+    expect(callers.length).toBeGreaterThan(1);
+  });
+
+  it("each staff-side profile comes from a direct profiles read, never get_safe_profiles", () => {
+    expect(src).toMatch(/staffSideProfile: profile,/); // the placeholder's own direct read
+    expect(src).toMatch(/\.from\("profiles"\)\s*\.select\("user_id, full_name, avatar_url"\)\s*\.eq\("user_id", teamUser\)/);
+    expect(src).toMatch(/supabase\.from\("profiles"\)\.select\("user_id, full_name, avatar_url"\)\.in\("user_id", staffTeamUsers\)/);
+    expect(src).toMatch(/const staffSideMap = indexProfiles\(unwrap\(staffSideRes\)\);/);
+    for (const c of callers) {
+      expect(c, c).toMatch(/staffSideProfile:\s*(?:profile,|\s*staffSideMap\.get\(teamUser\))/);
+    }
   });
 });

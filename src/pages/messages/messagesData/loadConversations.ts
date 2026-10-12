@@ -282,6 +282,18 @@ export async function fetchConversations(
         .filter((id): id is string => id !== null),
     ),
   ];
+  // Q1591 (a): the people this viewer talks to as STAFF in a team thread. Their
+  // names come from a direct profiles read (admin RLS reads every row), not
+  // get_safe_profiles, which leaves banned and unverified accounts out: staff
+  // must still see who a banned person is (the ?teamThread= placeholder does
+  // the same). Anyone else gets no row and the house fallback label.
+  const staffTeamUsers = [
+    ...new Set(
+      [...convoMap.values()]
+        .map((c) => teamUserIdFromKey(c.jobId))
+        .filter((t): t is string => t !== null && t !== uid),
+    ),
+  ];
   // Team threads have no job: never ask a job-scoped read about their key.
   const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))].filter(
     (id) => !isTeamThreadKey(id),
@@ -313,7 +325,7 @@ export async function fetchConversations(
   // single round-trip instead of N. The RPC was shipped in
   // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
   // degrade silently when the function isn't deployed (PGRST202).
-  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets] = await Promise.all([
+  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets, staffSideRes] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
     // No offered_to_helper_id here: it is not selectable (20260915045110,
     // owner decision 2026-09-14). Whether *I* am a job's offeree comes from
@@ -326,6 +338,9 @@ export async function fetchConversations(
     // Degrades to "no lockout shown" on PGRST202 (see messagingLockout.ts).
     fetchMessagingClosesAt(jobIds),
     fetchJobOfferTargets(jobIds),
+    staffTeamUsers.length === 0
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", staffTeamUsers),
   ]);
   const lastActiveMap = new Map<string, string>();
   if (
@@ -358,6 +373,7 @@ export async function fetchConversations(
   // to, and the exact mechanism that hid this whole class of bug. A failure now
   // flips the query to its error state and the page offers a retry.
   const profileMap = indexProfiles(unwrap(profilesRes));
+  const staffSideMap = indexProfiles(unwrap(staffSideRes));
   // Job titles ARE enrichment — a thread with a "Job" placeholder title is
   // still usable, so a failed jobs read degrades rather than blanking the
   // inbox. But it is reported, never silently dropped.
@@ -377,8 +393,10 @@ export async function fetchConversations(
         uid,
         teamUser,
         otherUserId: v.otherUserId,
-        // The staff side sees the person it is talking to.
-        staffSideProfile: v.otherUserId === null ? undefined : profileMap.get(v.otherUserId),
+        // The staff side sees the person it is talking to: the thread's user,
+        // read directly (Q1591 (a)), so a banned or unverified one is named.
+        staffSideProfile:
+          staffSideMap.get(teamUser) ?? (v.otherUserId === null ? undefined : profileMap.get(v.otherUserId)),
         messages: v.messages,
       });
     }

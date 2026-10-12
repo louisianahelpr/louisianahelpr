@@ -52,7 +52,7 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, failingRunRef, firstSeenNightlyIssues, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, newNightlyRedSlackText, postSlackText, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
-import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
+import { missingSentryEnvIsAlert, realOccurrenceAt, sentryIssueTagUrl, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 import { ALERT_ISSUE_LABELS, ALERT_LABELS, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
 
@@ -391,9 +391,26 @@ async function sync() {
       if (!res.ok) throw new Error(`Sentry ${res.status}: ${(await res.text()).slice(0, 200)}`);
       const issues = await res.json();
       if (!Array.isArray(issues)) throw new Error(`Sentry answered without an issue list: ${JSON.stringify(issues).slice(0, 160)}`);
-      for (const i of issues) await recordOpsAlert(sentryIssueToAlert(i));
+      let automatedOnly = 0;
+      for (const i of issues) {
+        // Q1604: the occurrence is the newest event an automated browser did
+        // NOT send (sentryLedgerSync.mjs realOccurrenceAt). An unreadable tag
+        // answer keeps the issue's own lastSeen.
+        let tag = null;
+        try {
+          const tr = await fetch(sentryIssueTagUrl(so, i.id), {
+            headers: { Authorization: `Bearer ${st}` }, signal: AbortSignal.timeout(15000),
+          });
+          if (tr.ok) tag = await tr.json();
+        } catch (e) {
+          log.push(`sentry: ${i.shortId ?? i.id} automated-tag read failed (${String(e.message).slice(0, 80)}); its lastSeen stands`);
+        }
+        const seenAt = realOccurrenceAt(tag, i.lastSeen);
+        if (seenAt === null) { automatedOnly++; continue; }
+        await recordOpsAlert({ ...sentryIssueToAlert(i), seenAt });
+      }
       const resolved = issues.filter((i) => i.status === "resolved").length;
-      log.push(`sentry: ${issues.length} issue(s) with an event in the last 25h synced (${resolved} of them already "resolved" in Sentry)`);
+      log.push(`sentry: ${issues.length} issue(s) with an event in the last 25h synced (${resolved} of them already "resolved" in Sentry; ${automatedOnly} skipped: every event from an automated browser)`);
     } catch (e) {
       sentryProblem = `Sentry could not be read: ${String(e.message).slice(0, 200)}`;
     }

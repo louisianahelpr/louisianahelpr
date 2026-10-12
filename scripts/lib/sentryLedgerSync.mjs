@@ -43,6 +43,43 @@ export function sentryIssuesUrl(org, project, base = "https://sentry.io") {
   return `${base}/api/0/projects/${org}/${project}/issues/?query=${encodeURIComponent(SENTRY_SYNC_QUERY)}&statsPeriod=24h&limit=100`;
 }
 
+/**
+ * AN AUTOMATED BROWSER NEVER REOPENS A LEDGER ITEM (Q1604). src/lib/sentry.ts
+ * tags every event `automated: "true"|"false"` (navigator.webdriver, Q275),
+ * and the journeys type deliberate bad input on prod: ZIP 99999 keeps a test
+ * job's parish null so no real Helpr is notified (e2e/journeys/postJobForm.ts).
+ * Sentry groups those with the real user's event of the same shape, so the
+ * issue's lastSeen moved on every journey run and reopened the item each time
+ * (JAVASCRIPT-1V, measured 2026-10-12: 39 untagged events from 09-13, 4
+ * automated, 1 real). The error_logs path already skips rows tagged automated.
+ *
+ * So the occurrence is the newest event that was NOT automated, read from the
+ * issue's own `automated` tag distribution (each value carries its lastSeen).
+ * An untagged event ("" — from before the tag existed) counts as real. If the
+ * distribution cannot be read, the issue's own lastSeen stands: a broken read
+ * never hides an alert.
+ */
+export function sentryIssueTagUrl(org, issueId, key = "automated", base = "https://sentry.io") {
+  return `${base}/api/0/organizations/${org}/issues/${encodeURIComponent(issueId)}/tags/${key}/`;
+}
+
+/**
+ * @returns the lastSeen of the newest non-automated event, `fallback` when the
+ * tag answer is unreadable, or null when every event was automated.
+ */
+export function realOccurrenceAt(tag, fallback) {
+  const values = tag && Array.isArray(tag.topValues) ? tag.topValues : null;
+  if (!values || values.length === 0) return fallback ?? null;
+  let newest = null;
+  for (const v of values) {
+    if (String(v?.value) === "true") continue;
+    const at = v?.lastSeen;
+    if (typeof at !== "string" || Number.isNaN(Date.parse(at))) return fallback ?? null;
+    if (!newest || Date.parse(at) > Date.parse(newest)) newest = at;
+  }
+  return newest;
+}
+
 /** One Sentry issue as a ledger occurrence (recordOpsAlert's argument). */
 export function sentryIssueToAlert(i) {
   const status = String(i?.status ?? "unknown");

@@ -16,7 +16,7 @@ export const logStep = (step: string, details?: any) => {
 };
 
 /**
- * Q1652: thrown by a handler that must see this event again LATER, not
+ * Q1654: thrown by a handler that must see this event again LATER, not
  * because anything failed (a refund whose own path is still telling the card
  * holder). index.ts rolls back the dedupe row and answers 503 so Stripe
  * redelivers, without the "processing error" page a real failure gets.

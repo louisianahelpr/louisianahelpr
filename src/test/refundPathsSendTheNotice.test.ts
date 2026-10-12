@@ -1,5 +1,5 @@
 /**
- * Q1652 class guard: every code path in supabase/functions that sends money
+ * Q1654 class guard: every code path in supabase/functions that sends money
  * back to the person who paid tells them, through the ONE refund notice
  * (_shared/refundNotice.ts: in the app and by email, the amount, the card, the
  * reference, 5-10 business days, what was kept and why).
@@ -77,7 +77,7 @@ const RELEASE_EXEMPT: Record<string, string> = {
 /**
  * Files that make a refund WITHOUT calling sendRefundNotice themselves
  * (file -> reason). Every other file with a refunds.create announces its own
- * refund at once, with the amounts it computed (review of Q1652 #3/#9). EXACT.
+ * refund at once, with the amounts it computed (review of Q1654 #3/#9). EXACT.
  */
 // @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_OWN_NOTICE entry
 const REFUND_OWN_NOTICE: Record<string, string> = {
@@ -119,7 +119,7 @@ function refundWordsInNotices(): Map<string, number> {
   return out;
 }
 
-describe("Q1652: every refund path tells the person their money is back", () => {
+describe("Q1654: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
     expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(11);

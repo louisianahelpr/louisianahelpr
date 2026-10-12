@@ -1793,7 +1793,7 @@ serve(async (req) => {
       : `$${formatExactDollars(refundDollars)} has been refunded to your original payment method.`;
     const settled = `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
     if (refundId && refundCents > 0) {
-      // Q1652: THE refund notice (in the app and by email: amount, card,
+      // Q1654: THE refund notice (in the app and by email: amount, card,
       // reference, 5-10 business days), claimed on the refund's id. The
       // charge.refunded webhook leaves a refund carrying metadata.dispute_id
       // to this path, so the decision and the gift always reach the poster.
@@ -1802,7 +1802,7 @@ serve(async (req) => {
         kind: "refund",
         paymentIntentId: paymentIntentId ?? null,
         amountCents: refundCents,
-        // What the CARD charge kept (second review of Q1652, N1): the Helpr's
+        // What the CARD charge kept (second review of Q1654, N1): the Helpr's
         // share of it and the card processing fee, so refunded + kept is the
         // receipt's total. A gift's share is not on the card at all.
         keptCents: Math.max(0, capturedCents - refundCents),

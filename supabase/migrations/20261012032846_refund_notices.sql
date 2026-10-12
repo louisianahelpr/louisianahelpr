@@ -1,4 +1,4 @@
--- Q1652 (docs/OPEN.md; owner report 2026-10-12: "was i refunded for mow and
+-- Q1654 (docs/OPEN.md; owner report 2026-10-12: "was i refunded for mow and
 -- weed eat yard? i dont think i got an email that i was refunded").
 --
 -- One row per refund notice ever sent, keyed on the money movement it is
@@ -43,4 +43,4 @@ REVOKE ALL ON TABLE public.refund_notices FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.refund_notices TO service_role;
 
 COMMENT ON TABLE public.refund_notices IS
-  'Q1652: one refund notice (in-app + email) per refund or released hold; the primary key dedupes the senders. Server-only.';
+  'Q1654: one refund notice (in-app + email) per refund or released hold; the primary key dedupes the senders. Server-only.';

@@ -342,7 +342,7 @@ serve(async (req) => {
     }
   } catch (err) {
     if (err instanceof WebhookDeferred) {
-      // Q1652: not a failure. Stripe redelivers on the non-2xx; nobody is paged.
+      // Q1654: not a failure. Stripe redelivers on the non-2xx; nobody is paged.
       logStep("Event deferred; Stripe will redeliver", { reason: err.message });
       await rollbackIdempotency();
       return new Response(JSON.stringify({ received: false, deferred: true }), {

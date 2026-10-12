@@ -1,5 +1,5 @@
 /**
- * Q1652 (owner report 2026-10-12): "was i refunded for mow and weed eat yard?
+ * Q1654 (owner report 2026-10-12): "was i refunded for mow and weed eat yard?
  * i dont think i got an email that i was refunded".
  *
  * Measured on prod: job 5d43debf was auto-cancelled, void-cancelled-payments
@@ -51,7 +51,7 @@ const OWNER_REFUND = { id: "re_3UOcZ8Kp2H4b7tEC1cVCF92O", amount: 10000, status:
 const minutesAgo = (m: number) => Math.floor(Date.now() / 1000) - m * 60;
 const VISA_4242 = { type: "card", card: { brand: "visa", last4: "4242", wallet: null } };
 // The owner's real charge (ch_3UOcZ8Kp2H4b7tEC1lZSOnVi, read live by the
-// review of Q1652): paid with Link, not a card.
+// review of Q1654): paid with Link, not a card.
 const LINK = { type: "link", link: { country: "US" } };
 
 const posterNotices = () =>
@@ -92,7 +92,7 @@ async function deliverChargeRefunded(over: Record<string, unknown> = {}) {
   return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=abc" } }));
 }
 
-describe("Q1652: the charge.refunded webhook tells the poster about EVERY refund", () => {
+describe("Q1654: the charge.refunded webhook tells the poster about EVERY refund", () => {
   beforeEach(() => {
     resetEnv();
     resetStripeMock();
@@ -299,7 +299,7 @@ describe("Q1652: the charge.refunded webhook tells the poster about EVERY refund
   });
 });
 
-describe("Q1652: void-cancelled-payments tells the poster when it releases a card hold", () => {
+describe("Q1654: void-cancelled-payments tells the poster when it releases a card hold", () => {
   const CRON_SECRET = "cron-secret-void";
   beforeEach(() => {
     resetEnv();

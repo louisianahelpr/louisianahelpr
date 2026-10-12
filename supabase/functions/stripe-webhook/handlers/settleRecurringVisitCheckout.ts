@@ -199,7 +199,7 @@ export async function settleRecurringVisitCheckout(
  * earlier delivery wrote it. An unreadable check is treated as not told
  * (a second notice at worst, never none).
  *
- * Q1652: it is THE refund notice (_shared/refundNotice.ts: in the app and by
+ * Q1654: it is THE refund notice (_shared/refundNotice.ts: in the app and by
  * email, with the amount, the reference and 5-10 business days), claimed on
  * the refund's id, so the charge.refunded event this refund raises finds it
  * already sent and does not tell the payer a second time.
@@ -210,7 +210,7 @@ async function tellPayerRefunded(
 ): Promise<{ told: boolean; alreadyTold: boolean }> {
   if (!v.payerId) return { told: false, alreadyTold: false };
   // The refund's id rides in the link too, so the refund notice's own dedupe
-  // (it matches the reference) sees this notice (second review of Q1652, N6).
+  // (it matches the reference) sees this notice (second review of Q1654, N6).
   // An earlier notice is found by its payment, whichever form its link took.
   const visitLink = `/posts?visit_refund=${encodeURIComponent(v.pi)}`;
   const link = v.refundId ? `${visitLink}&refund=${encodeURIComponent(v.refundId)}` : visitLink;

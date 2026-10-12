@@ -29,9 +29,9 @@ const GIFT_GOES_BACK_WHOLE =
  * 'released' (the Helpr was paid), 'chargeback' (the card network holds it) or
  * 'refunded' (already closed).
  */
-/** Q1652: how long the path that made a refund has to tell the card holder before this handler does. */
+/** Q1654: how long the path that made a refund has to tell the card holder before this handler does. */
 const PATH_GRACE_S = 15 * 60;
-/** Q1652: the head start every other path gets to claim its own refund's notice. */
+/** Q1654: the head start every other path gets to claim its own refund's notice. */
 const PATH_HEAD_START_S = 2 * 60;
 
 const REFUND_CLOSABLE_PAYMENT_STATES = [
@@ -122,7 +122,7 @@ export async function handleChargeRefunded(
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
   const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
-  // Q1652: one sentence the refund notice adds for the newest refund (the gift
+  // Q1654: one sentence the refund notice adds for the newest refund (the gift
   // card a full refund gave back), set below where that is decided.
   let noticeExtra: string | null = null;
 
@@ -363,7 +363,7 @@ export async function handleChargeRefunded(
         });
       }
 
-      // Q1652: the card holder's notice is sent below for EVERY refund, full
+      // Q1654: the card holder's notice is sent below for EVERY refund, full
       // or partial (it was this "Refund processed" row, full refunds only,
       // in-app only). The gift sentence rides on it.
       noticeExtra = giftSentence.trim() || null;
@@ -442,7 +442,7 @@ export async function handleChargeRefunded(
     }
   }
 
-  // Q1652 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
+  // Q1654 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
   // Eat Yard" reached the card and nobody was told). EVERY refund the platform
   // makes raises this event, whichever path made it, so this is where the
   // person who paid is told: once per live refund (refund_notices dedupes a
@@ -452,7 +452,7 @@ export async function handleChargeRefunded(
   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) {
     const method = paymentMethodFromCharge(charge);
     // What was CAPTURED, not authorised: a hold captured in part released the
-    // rest, which was never "kept" (review of Q1652 #10).
+    // rest, which was never "kept" (review of Q1654 #10).
     const capturedCents = Number((charge as { amount_captured?: number | null }).amount_captured ?? charge.amount ?? 0);
     const keptCents = Math.max(0, capturedCents - liveRefundedCents);
     const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
@@ -483,7 +483,7 @@ export async function handleChargeRefunded(
       // itself. Until then this event is deferred (Stripe redelivers, nobody
       // is paged); past it, a refund still untold gets this notice, so a path
       // that stopped between its refund and its notice never leaves the
-      // person untold (second review of Q1652, N2/N3).
+      // person untold (second review of Q1654, N2/N3).
       if (releaseTold !== null && Number(r.amount ?? 0) === releaseTold) {
         logStep("Refund notice skipped: the released hold's notice already told them", { refund: r.id });
         continue;

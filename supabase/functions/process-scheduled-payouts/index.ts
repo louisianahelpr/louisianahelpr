@@ -651,7 +651,7 @@ serve(async (req) => {
           ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
           : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`;
         if (refundId && cardCents > 0) {
-          // Q1652: a card refund gets THE refund notice (in the app and by
+          // Q1654: a card refund gets THE refund notice (in the app and by
           // email), claimed on the refund's id, so the charge.refunded
           // webhook's safety net and a re-run never send a second one. The
           // rest of the charge paid the crew: nothing is "kept".

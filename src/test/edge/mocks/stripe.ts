@@ -51,7 +51,7 @@ export interface StripeMock {
     update: ReturnType<typeof vi.fn>;
     /** Q1104: charge-recurring-visits asks for a prior visit charge before minting one. Defaults to none. */
     list: ReturnType<typeof vi.fn>;
-    /** Q1652: void-cancelled-payments captures only the fee from a hold and releases the rest. */
+    /** Q1654: void-cancelled-payments captures only the fee from a hold and releases the rest. */
     capture: ReturnType<typeof vi.fn>;
   };
   /** Saved-card lookup — what makes an off-session auto-tip possible at all. */

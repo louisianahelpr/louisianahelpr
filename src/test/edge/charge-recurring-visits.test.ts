@@ -951,6 +951,24 @@ describe("charge-recurring-visits edge function", () => {
     expect(res.status).toBe(200);
   });
 
+  // Q1339 (lh-money-escrow review): on the window's last run no later run ever
+  // looks for the intent, so the page sends a person to check it by hand.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | message: visitDate <= addDays(today, 1) | message: false
+  it("on the window's last run the UNKNOWN page says to check the charge by hand", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.create.mockRejectedValue(new Error("request timed out"));
+
+    await runOn(fn, "2026-09-03");
+
+    const critical = slackAlerts.find(
+      (a) => (a as { title?: string }).title === "Recurring visit charge outcome UNKNOWN",
+    ) as { message?: string } | undefined;
+    expect(critical?.message).toContain("last funding run");
+    expect(critical?.message).toContain("in Stripe by hand now");
+    expect(critical?.message).not.toContain("do not refund it before then");
+  });
+
   it("pages when Stripe never answers — the intent may be holding money with no visit", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -961,16 +979,22 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(2);
     expect(insertedVisits()).toHaveLength(0);
-    // NOT a routine decline: tomorrow's run would charge again on a fresh key,
-    // and there would be no 23505 to catch it.
+    // NOT a routine decline: a PaymentIntent may hold the poster's money with
+    // no visit behind it, so it pages.
     expect(res.status).toBe(500);
     expect(reasons(b)).toContain("charge outcome unknown");
     const critical = slackAlerts.find(
       (a) => (a as { title?: string }).title === "Recurring visit charge outcome UNKNOWN",
-    ) as { fields?: Record<string, string> } | undefined;
+    ) as { message?: string; fields?: Record<string, string> } | undefined;
     expect(critical).toBeDefined();
     expect(critical?.fields?.visitDate).toBe(VISIT_DATE);
     expect(critical?.fields?.amountCents).toBe("11200");
+    // Q1339: since Q1104 the next run adopts that charge, so the page must say
+    // so and warn against an early refund, never "charge again on a fresh key".
+    // @mutate supabase/functions/charge-recurring-visits/index.ts | message: visitDate <= addDays(today, 1) | message: true
+    expect(critical?.message).toContain("so do not refund it before then");
+    expect(critical?.message).toContain("books the visit on it and charges nothing new");
+    expect(critical?.message).not.toMatch(/charge again on a fresh key/);
     // The helper is still told not to head out — that fact is true either way.
     const notified = scenario.writes
       .filter((w) => w.table === "notifications" && w.op === "insert")

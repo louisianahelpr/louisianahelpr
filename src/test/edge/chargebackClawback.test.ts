@@ -712,7 +712,7 @@ describe("card-dispute clawback (Q202)", () => {
       event(id, "transfer.reversed", { id: "tr_1", amount: 9000, amount_reversed: amountReversed, reversed, destination: "acct_helper" });
     const ledgerFlip = () => writesTo("payout_transfers", "update").find((w) => payload(w).status === "reversed");
 
-    // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | metadata: { ...priorMetadata, amount_reversed_cents: amountReversedCents, fully_reversed: fullyReversed }, | metadata: priorMetadata,
+    // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | metadata: { ...priorMetadata, amount_reversed_cents: recordedReversedCents, fully_reversed: recordedFullyReversed }, | metadata: priorMetadata,
     // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | const fullyReversed = transfer.reversed === true \|\| amountReversedCents >= Number(transfer.amount ?? 0); | const fullyReversed = true;
     // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | metadata: { ...priorMetadata, amount_reversed_cents | metadata: { amount_reversed_cents
     it("(3) a PARTIAL reversal keeps 'reversed' (every payout guard holds on it) and records how much came back", async () => {
@@ -739,6 +739,24 @@ describe("card-dispute clawback (Q202)", () => {
       scenario.reads.chargeback_clawbacks = { rows: [{ dispute_id: "dp_1", status: "reversed" }] };
       await post(fn);
       expect(payload(ledgerFlip()!).metadata).toEqual({ amount_reversed_cents: 9000, fully_reversed: true });
+    });
+
+    // Q1340: amount_reversed is cumulative. A late, older delivery (the smaller
+    // reversal arriving after the larger one) must not lower the record.
+    // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | const recordedReversedCents = Math.max(priorReversedCents, amountReversedCents); | const recordedReversedCents = amountReversedCents;
+    // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | const recordedFullyReversed = fullyReversed \|\| priorMetadata.fully_reversed === true; | const recordedFullyReversed = fullyReversed;
+    it("(3) an older, smaller reversal delivered late never lowers the recorded amount (Q1340)", async () => {
+      const fn = await load();
+      reversedEvent("evt_q1340_late_partial", 3000, false);
+      scenario.reads.payout_transfers = { rows: [{ metadata: { source: "process-scheduled-payouts", amount_reversed_cents: 9000, fully_reversed: true } }] };
+      scenario.writeSelectRows.payout_transfers = [{ job_id: "job-1" }];
+      scenario.reads.chargeback_clawbacks = { rows: [{ dispute_id: "dp_1", status: "reversed" }] };
+      await post(fn);
+      expect(payload(ledgerFlip()!).metadata).toEqual({
+        source: "process-scheduled-payouts",
+        amount_reversed_cents: 9000,
+        fully_reversed: true,
+      });
     });
 
     // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts |   if (currentErr) { |   if (false) {

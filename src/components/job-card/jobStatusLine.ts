@@ -667,7 +667,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* A crew member the poster hired, whose spot is not confirmed yet (Q1402):
      the crew card's one button is "Confirm My Spot" (CrewMemberSection), so
      "Accept or decline it" named a choice that card does not offer. */
-  confirm_spot: { detail: "Confirm your spot" },
+  // A crew member ACCEPTS their spot (Q1523, owner Q1399): the strip names the button's step.
+  confirm_spot: { detail: "Accept your spot" },
   confirmed: { detail: "You're scheduled" },
   /* The day-before window is open and this Helpr has not confirmed (Q1574). */
   confirm_day: { detail: "Confirm you'll be at the job" },

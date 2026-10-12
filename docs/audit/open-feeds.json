@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-12T18:39Z",
+  "measured_at": "2026-10-12T18:50Z",
   "issues": {
     "readable": true,
     "open": [
@@ -583,13 +583,10 @@
     "issue #2601": "Q1427",
     "issue #2615": "Q1524",
     "issue #2660": "Q1507",
-    "issue #2668": "Q1595",
     "issue #2894": "Q1426",
     "ledger 02a88ee4875f": "Q1634",
     "ledger 03faea228969": "Q1602",
     "ledger 06c124e99b6d": "Q1583",
-    "ledger 08aea1a17f25": "Q1645",
-    "ledger 0fa6c60d7a29": "Q1511",
     "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
@@ -600,11 +597,9 @@
     "ledger 27c479ef17f8": "Q1596",
     "ledger 311dfd492bc2": "Q1604",
     "ledger 36bcfb8c2391": "Q1696",
-    "ledger 3a0d59ca52d8": "Q1616",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 3a801ee231b0": "Q1580",
     "ledger 40a33605c7c3": "Q1603",
-    "ledger 41f88aeb227f": "Q1525",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
     "ledger 4937f4e1c62a": "Q1639",
@@ -618,7 +613,6 @@
     "ledger 6389f98a9f66": "Q1427",
     "ledger 6471854dcd82": "Q1597",
     "ledger 65bd41ba4452": "Q1597",
-    "ledger 6927babb2c1a": "Q1614",
     "ledger 6cc892e3fa10": "Q1640",
     "ledger 6d012a67fd60": "Q1643",
     "ledger 764a6f7344b7": "Q1578",
@@ -626,9 +620,7 @@
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
-    "ledger 8a5eda1d93db": "Q1595",
     "ledger 8ad756b6da76": "Q1630",
-    "ledger 8c46dc7330fc": "Q1632",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",
     "ledger a75fb3fba970": "Q1622",
@@ -642,7 +634,6 @@
     "ledger bd4c3063280b": "Q1600",
     "ledger c1ad0c081216": "Q1603",
     "ledger c31b9a387af0": "Q1638",
-    "ledger c47e76e53f84": "Q1623",
     "ledger cd2127b53ee7": "Q1597",
     "ledger d1585655d567": "Q1601",
     "ledger d1f8391b44ec": "Q1631",
@@ -661,7 +652,6 @@
     "ledger ed3f34acc0e1": "Q1598",
     "ledger ed4c78a49f57": "Q1618",
     "ledger ef92a9f31bed": "Q1476",
-    "ledger f08d7f0fc323": "Q1512",
     "ledger f3c752b3230f": "Q1609"
   }
 }

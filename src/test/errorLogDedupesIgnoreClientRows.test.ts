@@ -34,7 +34,8 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 //     (user-error-screen rows are client rows; their caps are per account / per fingerprint).
 //   sweep_old_error_logs 2, cleanup_observability_tables 1: retention deletes, not a throttle.
 //   export_my_data 1: the caller's own rows.
-//   send_ops_daily_digest 1: lists rows for the owner to read; it mutes nothing.
+//   send_ops_daily_digest 2: lists rows for the owner to read; it mutes nothing. The second
+//     (Q1352, 20261012071234) counts source='csp' rows, which are client rows by design.
 //   prevent_self_escalation 1: its once-an-hour dedupe is on source 'rls-escalation-refused',
 //     a paging source stamp_error_log_origin rewrites to 'client-error' on any client row,
 //     so a client cannot forge it (checked in the stamp body, 20260923094457).
@@ -47,7 +48,7 @@ const KNOWN_UNFILTERED: Record<string, number> = {
   ops_alert_condition: 2,
   ops_alert_record_user_error_screen: 3,
   prevent_self_escalation: 1,
-  send_ops_daily_digest: 1,
+  send_ops_daily_digest: 2,
   sweep_old_error_logs: 2,
 };
 

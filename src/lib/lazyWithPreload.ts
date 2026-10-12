@@ -35,6 +35,11 @@ import { markChunkLoadSucceeded } from "./chunkReload";
  * cached as a permanent failure — `lazy()` itself retries on render and
  * `chunkReload` handles a stale-deploy 404 — so a preload failure is swallowed
  * here and left for the render path to surface.
+ *
+ * `ComponentType<any>` (the two `any` left in scripts/any-baseline.json, Q806)
+ * is React's own bound for `lazy()`: a component's props are contravariant, so
+ * `ComponentType<unknown>` or `ComponentType<Record<string, unknown>>` would
+ * refuse every page component that declares real props.
  */
 export interface PreloadableComponent<T extends ComponentType<any>> extends LazyExoticComponent<T> {
   preload: () => void;

@@ -1,9 +1,6 @@
 {
   "_": "`any` ratchet, enforced by src/test/anyRatchet.test.ts. Per-file AnyKeyword counts in non-test src/ (node scripts/any-baseline.mjs). Exact both ways: when you remove an `any`, regenerate with `node scripts/any-baseline.mjs --write` in the same commit; never raise an entry.",
   "files": {
-    "src/hooks/useDashboardData.ts": 3,
-    "src/hooks/useMapKitJs.ts": 6,
-    "src/lib/lazyWithPreload.ts": 2,
-    "src/pages/user/useUserProfileData.ts": 6
+    "src/lib/lazyWithPreload.ts": 2
   }
 }

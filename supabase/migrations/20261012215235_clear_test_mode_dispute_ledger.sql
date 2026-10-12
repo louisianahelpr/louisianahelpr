@@ -41,7 +41,11 @@
 --   - nothing left to clear answers nothing_to_clear and writes nothing.
 -- Then the audit row FIRST (every removed ledger row in full, as jsonb), the
 -- ledger rows removed (trg_audit_payment_refunds / trg_audit_payout_transfers
--- log each DELETE too), both stamps cleared.
+-- log each DELETE too), both stamps cleared, and execution_error set to start
+-- with 'test-mode records cleared by an admin': execute-dispute-split refuses
+-- to split a decision carrying it (its money-moved records are gone), so the
+-- clear committing without the re-open (a separate transaction, as the admin)
+-- leaves nothing a retry could pay out; the button re-opens it.
 --
 -- Replay-safe: CREATE OR REPLACE only. REVOKE FROM PUBLIC, anon,
 -- authenticated; EXECUTE for service_role.
@@ -144,6 +148,13 @@ BEGIN
      AND EXISTS (SELECT 1 FROM public.gift_cards g WHERE g.restored_from_job_id = _d.job_id) THEN
     RAISE EXCEPTION 'clear_ledger_gift_restored'
       USING HINT = 'A gift card was restored from this job; reconcile it by hand.';
+  END IF;
+  -- The re-open that follows (rpc_supersede_dispute_decision) refuses while the
+  -- job has another open dispute; refuse here first so the clear never
+  -- commits for a decision that cannot be re-opened (money review of
+  -- 6b2434f20, #1).
+  IF EXISTS (SELECT 1 FROM public.disputes o WHERE o.job_id = _d.job_id AND o.status = 'open') THEN
+    RAISE EXCEPTION 'dispute_already_open';
   END IF;
   -- A money-moving transfer row with no Stripe id cannot be checked at Stripe.
   IF EXISTS (SELECT 1 FROM public.payout_transfers t

@@ -56,6 +56,7 @@
  * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |                 AND t.stripe_transfer_id IS NULL) THEN |                 AND false) THEN
  * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |      OR _d.execution_status NOT IN ('failed', 'executing') THEN |      OR false THEN
  * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |             OR c.money_step_at IS NOT NULL) |             )
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |          execution_error = left('test-mode records cleared by an admin (checked at Stripe): ' |          execution_error = left('records cleared (checked at Stripe): '
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -141,6 +142,9 @@ describe("Q1280: a test-mode dispute stamp has a hand path out", () => {
     expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeGreaterThan(0);
     expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeLessThan(c.indexOf("DELETE FROM public.payment_refunds"));
     expect(c).toMatch(/'removed_payment_refunds', _removed_refunds/);
+    // The marker the split refuses on is what the clear writes (money review #1).
+    expect(c).toMatch(/execution_error = left\('test-mode records cleared by an admin \(checked at Stripe\): '/);
+    expect(c).toMatch(/WHERE o\.job_id = _d\.job_id AND o\.status = 'open'\) THEN RAISE EXCEPTION 'dispute_already_open'/);
     const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql"), "utf8"));
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.clear_test_mode_dispute_ledger\(uuid, uuid, text\[\], text\[\], text\) FROM PUBLIC, anon, authenticated;/);
     expect(mig).not.toMatch(/GRANT [^;]*clear_test_mode_dispute_ledger[^;]*\b(?:anon|authenticated)\b/);

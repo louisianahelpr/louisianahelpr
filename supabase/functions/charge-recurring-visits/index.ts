@@ -931,7 +931,13 @@ serve(async (req) => {
           // an intent whose fee_withheld tag could not be written (the tag
           // and the refund can fail together): ops refunded the amount the
           // alert named, and paging them for the fee every day would be wrong.
-          if (live.some((r: Stripe.Refund) => r.metadata?.fee_withheld === "true") || refunded >= lessFeeCents) {
+          // Q1735 (money review of 6b2434f20, #4b): a series an ADMIN ended owes
+          // the poster the card fee too, so a refund that kept it (a hand refund
+          // of the old amount, or a mid-run fee_withheld refund whose
+          // platform-end read failed) is not settled: ops are told to refund
+          // the rest.
+          const owesTheFee = platformEnded && refunded < amountCents;
+          if (!owesTheFee && (live.some((r: Stripe.Refund) => r.metadata?.fee_withheld === "true") || refunded >= lessFeeCents)) {
             (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
             continue;
           }
@@ -1964,6 +1970,10 @@ serve(async (req) => {
           // below goes through that is the designed outcome, not a defect.
           const seriesEndedMidRun = String(childErr?.message ?? "").startsWith("series_ended:");
           let platformEndedMidRun = false;
+          // The record could not be read: the fee is withheld for now and ops
+          // are told, but the poster is NOT told "less the card fee", which an
+          // admin end would contradict (money review of 6b2434f20, #4a).
+          let platformEndUnknown = false;
           // Q1735 (owner, 2026-10-12): the PLATFORM ending it is not the
           // parties' doing: refunded in full. Unread, today's rule stands
           // (the fee is withheld) and the run says so.
@@ -1974,6 +1984,7 @@ serve(async (req) => {
               .eq("parent_job_id", parent.id)
               .limit(1);
             if (peErr) {
+              platformEndUnknown = true;
               fail(`series ${parent.id} ${visitDate}: could not read whether the platform ended it (${peErr.message}); the card fee was withheld. If series_platform_ends has a row for ${parent.id}, refund the remaining fee on ${intent.id} by hand.`);
             } else if ((pe ?? []).length > 0) {
               platformEndedMidRun = true;
@@ -2066,7 +2077,7 @@ serve(async (req) => {
           }
           // Q415 (e): money was kept, so the poster is told how much came back
           // and why the rest did not. A silent partial refund reads as theft.
-          if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) {
+          if (refundParams.amount !== undefined && !platformEndUnknown && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) {
             const problem = await tellVisitRefund(supabase, {
               refund: refundMade,
               recipientId: String(parent.customer_id),
@@ -2078,7 +2089,7 @@ serve(async (req) => {
               } after it was charged.`,
             });
             if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`);
-          } else if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) {
+          } else if (refundParams.amount !== undefined && !platformEndUnknown && !alreadyRefunded && parent.customer_id) {
             const refundedCents = refundParams.amount;
             const withheldCents = capturedCents - refundedCents;
             const link = "/posts";

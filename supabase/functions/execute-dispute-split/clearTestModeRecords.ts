@@ -29,6 +29,14 @@ import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/
 
 export const CLEAR_TEST_MODE_ACTION = "clear_test_mode_records";
 
+/**
+ * The start of disputes.execution_error once clear_test_mode_dispute_ledger
+ * has cleared a dispute's records (20261012215235). The split refuses such a
+ * decision (index.ts): its fail-closed "money already moved" records are gone,
+ * so the only way on is the re-open (money review of 6b2434f20, #1).
+ */
+export const TEST_MODE_CLEARED_MARKER = "test-mode records cleared by an admin";
+
 /** Supersede's money-moving transfer states (rpc_supersede_dispute_decision). */
 const MONEY_TRANSFER_STATES = ["pending", "paid", "reversed"];
 
@@ -49,12 +57,13 @@ export async function clearTestModeRecords(args: {
 
   const { data: dispute, error: dErr } = await supabaseAdmin
     .from("disputes")
-    .select("id, job_id, status, execution_refund_id, execution_transfer_id")
+    .select("id, job_id, status, execution_error, execution_refund_id, execution_transfer_id")
     .eq("id", disputeId)
     .maybeSingle<{
       id: string;
       job_id: string;
       status: string;
+      execution_error: string | null;
       execution_refund_id: string | null;
       execution_transfer_id: string | null;
     }>();
@@ -62,6 +71,34 @@ export async function clearTestModeRecords(args: {
   if (!dispute) return { status: 404, body: { error: "dispute not found" } };
   if (dispute.status === "superseded") {
     return { status: 200, body: { action: "already_superseded" } };
+  }
+  const alreadyCleared = (dispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER);
+
+  // The ESCROW itself must be a Stripe test object too (money review of
+  // 6b2434f20, #2): a job paid with live money, or with nothing Stripe can
+  // vouch for (a gift card only), is never un-stuck from here.
+  const { data: job, error: jobErr } = await supabaseAdmin
+    .from("jobs")
+    .select("stripe_payment_intent_id, stripe_session_id")
+    .eq("id", dispute.job_id)
+    .maybeSingle<{ stripe_payment_intent_id: string | null; stripe_session_id: string | null }>();
+  if (jobErr) return { status: 500, body: { error: "job lookup failed — retry" } };
+  if (!job) return { status: 404, body: { error: "job not found for this dispute" } };
+  const escrowKind = job.stripe_payment_intent_id ? "payment_intent" : job.stripe_session_id ? "checkout.session" : null;
+  const escrowId = job.stripe_payment_intent_id ?? job.stripe_session_id;
+  if (!escrowKind || !escrowId) {
+    return { status: 409, body: { error: "this job has no Stripe payment to check, so it cannot be shown to be test mode — nothing was changed; reconcile it by hand" } };
+  }
+  try {
+    if (escrowKind === "payment_intent") await stripe.paymentIntents.retrieve(escrowId);
+    else await stripe.checkout.sessions.retrieve(escrowId);
+    return { status: 409, body: { error: `this job's payment ${escrowId} is LIVE money at Stripe, not test mode — nothing was changed; reconcile it by hand` } };
+  } catch (e) {
+    if (!isTestObjectUnderLiveKey(e)) {
+      console.error(`[execute-dispute-split] clear_test_mode_records: could not check ${escrowKind} ${escrowId} at Stripe:`, e);
+      return { status: 502, body: { error: `could not check this job's payment at Stripe — nothing was changed; retry` } };
+    }
+    logTestObjectUnderLiveKey("execute-dispute-split", { dispute_id: disputeId, job_id: dispute.job_id, object: escrowKind, id: escrowId, step: "clear_test_mode_records" });
   }
 
   const [refundsRes, transfersRes] = await Promise.all([
@@ -91,6 +128,16 @@ export async function clearTestModeRecords(args: {
     ...transferRows.map((t) => t.stripe_transfer_id as string),
     ...(dispute.execution_transfer_id ? [dispute.execution_transfer_id] : []),
   ])].sort();
+
+  // Nothing recorded and never cleared: re-opening would only loop, because a
+  // decision on a Stripe test-mode payment can never execute (money review of
+  // 6b2434f20, #3; docs/OPEN.md Q1736).
+  if (refundIds.length === 0 && transferIds.length === 0 && !alreadyCleared) {
+    return {
+      status: 409,
+      body: { error: "no test-mode refund or transfer is recorded for this dispute, so there is nothing to clear — nothing was changed. A decision on a Stripe test-mode payment cannot be settled from here." },
+    };
+  }
 
   // Every id must be a TEST object. Sequential on purpose: a handful of ids.
   const checks: Array<["refund" | "transfer", string]> = [

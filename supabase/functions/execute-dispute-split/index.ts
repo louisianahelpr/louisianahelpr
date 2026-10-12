@@ -58,7 +58,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // this exact form when it bundles the function for vitest.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { CLEAR_TEST_MODE_ACTION, clearTestModeRecords } from "./clearTestModeRecords.ts";
+import { CLEAR_TEST_MODE_ACTION, TEST_MODE_CLEARED_MARKER, clearTestModeRecords } from "./clearTestModeRecords.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
@@ -241,6 +241,17 @@ serve(async (req) => {
   if (dispute.status !== "decided") {
     return await refuse(
       { error: `dispute status is ${dispute.status}, expected decided`, dispute_status: dispute.status },
+      409,
+    );
+  }
+  // Q1732 (money review of 6b2434f20, #1): an admin cleared this decision's
+  // Stripe test-mode records, so the fail-closed "money already moved" rows
+  // and stamps are gone. It is never split again, only re-opened (the same
+  // button supersedes it). Plain json, not refuse(): markFailed would
+  // overwrite the marker this check reads.
+  if ((dispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) {
+    return json(
+      { error: "this decision's Stripe test-mode records were cleared, so it cannot be settled; press Clear test-mode records and re-open to re-open the dispute" },
       409,
     );
   }

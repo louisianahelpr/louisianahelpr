@@ -8,10 +8,10 @@ name: Partly-done items ready to tick
 # re-run the checks by hand (commit daa403bf7). Nothing re-checked them.
 #
 # A `[~]` item now carries `done-when:` markers (syntax: top of docs/OPEN.md),
-# and scripts/open-done-when.mjs runs them. This workflow runs it nightly and
-# keeps ONE `nightly-red: open-done-when` issue open while any item is READY to
-# tick or any marker cannot be read; the issue body lists which. It closes
-# itself on the first run with nothing to tick.
+# and scripts/open-done-when.mjs runs them. This workflow runs it on schedule,
+# TICKS every READY item (2026-10-12, job `tick` below) and keeps ONE
+# `nightly-red: open-done-when` issue open only while a marker cannot be read
+# or the run crashed; the issue body lists which.
 #
 # SQL markers run read-only through the Management API (read_only:true, the
 # same transport prod-errors.yml uses for the ops alert ledger); only a single
@@ -65,13 +65,29 @@ jobs:
         run: node scripts/ci/wait-prod-load.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-  check:
+  # Owner, 2026-10-12: "make it an automated ticking mechanism". This job used
+  # to only REPORT the READY items (58 sat untouched behind nightly-red #2615,
+  # because open-auto-tick.yml skips `test` markers). It now TICKS them, test
+  # markers included, and lands the ticks through the same refresh-PR contract
+  # open-auto-tick.yml uses (bot branch + PR + auto-merge through the required
+  # checks; never a push to main). A READY item is no longer a red: the run is
+  # red only when a marker cannot be read or parsed, or something crashed.
+  # --status-file lets the PR land the items that DID hold before the next
+  # step fails the run on the ones that could not be read (fail closed: a
+  # missing status file is a crash, and is red too).
+  tick:
     needs: prod-load-turn
-    name: Run every done-when marker
+    name: Tick every [~] item whose done-when markers all hold (tests included)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The test markers run in one vitest call (~60 files) before the refresh.
+    timeout-minutes: 60
+    # The ONLY write grant in this workflow (Q57 refresh-PR contract).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
     outputs:
-      report: ${{ steps.run.outputs.report }}
+      report: ${{ steps.result.outputs.report }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -82,32 +98,54 @@ jobs:
 
       - run: npm install --no-audit --no-fund --legacy-peer-deps
 
-      - name: Which [~] items can be ticked?
-        id: run
+      - uses: ./.github/actions/refresh-pr
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: open-done-when
+          title: "chore(open): tick the items whose done-when markers all hold (nightly, tests included)"
+          paths: |
+            docs/OPEN.md
+            docs/archive
+            docs/SCOREBOARD.md
+            docs/GUARD-BURNDOWN.md
+            docs/audit
+          # Same chain as open-auto-tick.yml (feeds snapshot first, #2301), but
+          # WITHOUT --no-test.
+          regenerate: node scripts/open-sync-trackers.mjs && node scripts/open-done-when.mjs --tick --out "$RUNNER_TEMP/done-when.md" --status-file "$RUNNER_TEMP/done-when.status" && npm run -s inventories:refresh
+          body: "Each ticked line carries what its done-when markers read (sql on prod, issues, PRs, and the named test files passing on main). Nothing is ticked on a skipped or failed marker."
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
+      - name: Red only on markers that could not be read (or a crash)
+        id: result
+        if: ${{ !cancelled() }}
         run: |
-          set -uo pipefail
-          node scripts/open-done-when.mjs --out /tmp/done-when.md | tee -a "$GITHUB_STEP_SUMMARY"
-          STATUS=${PIPESTATUS[0]}
-          # A crash before --out leaves no file: say so in the issue body; the
-          # step still exits with the script's own status below.
-          if [ ! -f /tmp/done-when.md ]; then
-            echo "open-done-when.mjs wrote no report (exit $STATUS)" > /tmp/done-when.md
-          fi
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/done-when.md"
+          STATUS_FILE="$RUNNER_TEMP/done-when.status"
           {
             echo "report<<DONE_WHEN_EOF"
-            cat /tmp/done-when.md
+            if [ -f "$REPORT" ]; then cat "$REPORT"; else echo "open-done-when.mjs wrote no report (it crashed or never ran)"; fi
             echo ""
             echo "DONE_WHEN_EOF"
           } >> "$GITHUB_OUTPUT"
-          exit "$STATUS"
+          if [ ! -f "$STATUS_FILE" ]; then
+            echo "::error::open-done-when.mjs wrote no status file: it crashed or never ran, so nothing can be said about the markers"
+            exit 1
+          fi
+          STATUS=$(cat "$STATUS_FILE")
+          if [ "$STATUS" != "0" ]; then
+            echo "::error::a done-when marker could not be read or parsed (listed in the report); the items that held were still ticked"
+            exit 1
+          fi
+          echo "every done-when marker read; READY items ticked through the refresh PR"
 
   notify:
     name: Report nightly result
-    needs: [check]
+    needs: [tick]
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -121,7 +159,7 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: open-done-when
-          status: ${{ needs.check.result == 'success' && 'success' || 'failure' }}
+          status: ${{ needs.tick.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          body-extra: ${{ needs.check.outputs.report }}
+          body-extra: ${{ needs.tick.outputs.report }}

@@ -84,6 +84,20 @@ export function laborTaxCode(category: string | null | undefined): string {
 }
 
 /**
+ * A CEILING on a labor line's Louisiana sales tax, for decisions made before
+ * Checkout knows the address (Q1658: the $300 3D Secure line). 15% sits above
+ * every combined rate measured so far (11.25% in Delcambre, 2026-10-12); a
+ * ceiling only errs toward asking for 3D Secure, never away from it. Not a
+ * price: never show or charge this number.
+ */
+const LA_SALES_TAX_CEILING_RATE = 0.15;
+
+export function salesTaxCeilingCents(budgetCents: number, category: string | null | undefined): number {
+  const base = taxableBaseCents(budgetCents, category);
+  return base > 0 ? Math.ceil(base * LA_SALES_TAX_CEILING_RATE) : 0;
+}
+
+/**
  * Whether ANY line on the checkout is taxable.
  *
  * Kept as its own function because the answer is deliberately narrower than it

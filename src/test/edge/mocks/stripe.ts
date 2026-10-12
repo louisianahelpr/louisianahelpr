@@ -99,7 +99,7 @@ export interface StripeMock {
   /** charge-recurring-visits: tax quote, then the committed transaction (ME-014). */
   tax: {
     calculations: { create: ReturnType<typeof vi.fn> };
-    transactions: { createFromCalculation: ReturnType<typeof vi.fn> };
+    transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn> };
   };
   payouts: { create: ReturnType<typeof vi.fn> };
   charges: {
@@ -199,7 +199,7 @@ export const stripeMock: StripeMock = {
   },
   tax: {
     calculations: { create: vi.fn() },
-    transactions: { createFromCalculation: vi.fn() },
+    transactions: { createFromCalculation: vi.fn(), createReversal: vi.fn() },
   },
   payouts: {
     create: vi.fn(),

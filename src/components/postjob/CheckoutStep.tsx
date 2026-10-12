@@ -27,6 +27,7 @@ import { formatPriceExact } from "@/lib/format";
 import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
+import { POSTER_SERVICE_FEE_DESCRIPTION } from "@/lib/posterFees";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -68,7 +69,6 @@ interface CheckoutStepProps {
   budgetNum: number;
   /** Parish-scoped helpr-activity signal, or null when not meaningful. */
   helprActivity: HelprActivity | null;
-  customerFee: number | null;
   customerFeeAmount: number;
   /** Q362: card fee on the urgent bonus, paid on top so the Helpr gets all of it (dollars). */
   urgentCardFeeAmount?: number;
@@ -131,7 +131,6 @@ export function CheckoutStep({
   urgentFeeNum,
   budgetNum,
   helprActivity,
-  customerFee,
   customerFeeAmount,
   urgentCardFeeAmount = 0,
   onboardingFeeAmount,
@@ -466,17 +465,18 @@ export function CheckoutStep({
             </div>
           )}
           <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />
-          {/* Service fee — waived outright on a gift-funded post. create-payment
-              returns from the gift card branch before the tier/fee pricing runs, so
-              there is no percentage to state; printing "12%  $0.00" would
-              invite the poster to check arithmetic that isn't happening. The
-              donor already covered the processing floor at donate time
-              (create-gift-card-checkout → posterServiceFeeCents(amount, 0)). */}
+          {/* Service fee — Stripe's card-processing cost on this charge and
+              nothing more (owner, 2026-10-11: no platform percentage for
+              posters on any tier). Waived outright on a gift-funded post:
+              create-payment returns from the gift card branch before the fee
+              pricing runs, and the donor already covered the processing cost at
+              donate time (create-gift-card-checkout → posterCardCostFeeCents). */}
           <div className="flex justify-between text-ds-13">
             {/* Bonus card fee folded in, like create-payment's one "Service fee"
-                line (owner, 2026-10-09); no percent then, it isn't exact. */}
+                line (owner, 2026-10-09). The words match that Stripe line's
+                description (POSTER_SERVICE_FEE_DESCRIPTION). */}
             <span className="text-muted-foreground">
-              {hasGift || foldUrgentCardFee ? "Service Fee" : `Service Fee (${customerFee ?? 12}%)`}
+              {hasGift ? "Service Fee" : `Service Fee (${POSTER_SERVICE_FEE_DESCRIPTION.toLowerCase()})`}
             </span>
             {hasGift ? (
               <span className="font-medium" style={{ color: "hsl(var(--success-ink))" }}>

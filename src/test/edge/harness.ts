@@ -559,8 +559,8 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutFreeze.ts";`,
   );
 
-  // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
-  // TypeScript too (it only re-exports the helper ladder + the floor helper), so
+  // Poster card-cost service fee: `_shared/posterFees.ts` is pure
+  // TypeScript too (it only imports the Stripe cost helper), so
   // the generated file points at the REAL module — the poster fee the checkout
   // charges stays under test rather than being mocked away.
   out = out.replace(

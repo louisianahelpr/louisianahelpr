@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { TIER_PERKS } from "./subscriptionTiers";
-import { posterFeePercentForTier } from "./posterFees";
+import { POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "./posterFees";
 import { blankComments } from "../test/helpers/blankNonCode";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
@@ -14,7 +14,7 @@ import {
 } from "./moneyLimits";
 
 // moneyFigures.parity — guards the user-facing money figures that are NOT yet
-// consolidated into a single importable config: the poster "service fee" %, and
+// consolidated into a single importable config: the poster "service fee", and
 // the urgent-job bonus floor / presets. These currently live as duplicated
 // literals (a DB-backed value with a hardcoded fallback, plus prose in Legal /
 // Terms). This test asserts the CURRENT canonical values so an unintended edit
@@ -23,57 +23,51 @@ import {
 //
 // Companion guards:
 //   - helperFees.parity.test.ts     — helper-side platform commission ladder
-//   - posterFees.parity.test.ts     — poster tier service-fee ladder + Stripe floor (UI↔edge)
+//   - posterFees.parity.test.ts     — poster card-cost service fee (UI↔edge)
 //   - escrowTiming.parity.test.ts   — escrow auto-release schedule (48h/24h/72h)
 //   - productPrices.parity.test.ts  — fixed boost / background-check prices
 
-describe("poster service fee (%) — tier-derived, not a flat rate", () => {
-  // SOURCE OF TRUTH: the poster's OWN subscription tier, resolved by
-  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/11/10/9/8
-  // ladder as the helper commission. The edge authority is
-  // supabase/functions/_shared/posterFees.ts and the two are guarded against
-  // drift by posterFees.parity.test.ts.
+describe("poster service fee — Stripe's card cost only, no percentage (owner, 2026-10-11)", () => {
+  // SOURCE OF TRUTH: posterCardCostFeeCents (src/lib/posterFees.ts), mirrored
+  // by the edge authority supabase/functions/_shared/posterFees.ts and guarded
+  // against drift by posterFees.parity.test.ts. Posters pay no platform
+  // percentage on any tier; the Helpr commission keeps the 12/11/10/9/8 ladder.
   //
-  // platform_settings.customer_fee_percent (DB, admin-editable via
-  // AdminSettings.tsx) is now only a FALLBACK, used when a poster's profile /
-  // tier can't be read:
-  //   src/pages/post-job/useJobFormEffects.ts     → `row.customer_fee_percent ?? 10` (fallback)
-  //   supabase/functions/create-payment/index.ts → global percent only when posterProfile is null
+  // platform_settings.customer_fee_percent (DB, shown read-only in
+  // AdminSettings.tsx) prices nothing any more.
   //
-  // User copy that previously restated a flat "10%" must now describe the tiered
-  // model (fixed in #107):
+  // User copy that describes the fee:
   //   src/pages/info/legal/TermsSection.tsx
-  //   src/components/profile/LegalTab.tsx
   //   src/pages/info/helpCenter/helpCenterContent.ts
+  //   src/components/profile/SubscriptionTab.tsx
+  //   src/components/postjob/CheckoutStep.tsx
 
-  it("resolves the poster fee from their tier via the shared ladder", () => {
-    expect(posterFeePercentForTier("free")).toBe(12);
-    expect(posterFeePercentForTier("pro")).toBe(10);
-    expect(posterFeePercentForTier("elite")).toBe(8);
+  it("charges no platform percentage", () => {
+    expect(POSTER_SERVICE_FEE_PERCENT).toBe(0);
   });
 
-  it("defaults an unknown/missing tier to the free (never-undercharge) rate", () => {
-    expect(posterFeePercentForTier(null)).toBe(12);
-    expect(posterFeePercentForTier(undefined)).toBe(12);
-    expect(posterFeePercentForTier("nonsense")).toBe(12);
-  });
-
-  it("uses the SAME ladder as the helper-side tier commission", () => {
-    // Poster service fee and helper platform fee share one 12/11/10/9/8 ladder —
-    // one user, one tier, one percent. Assert the source ladder so a future
-    // change to one tier is caught here too.
+  it("the Helpr commission keeps its own ladder, which no longer prices posting", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
-      // DERIVED, never hand-listed. This literal omitted `plus` (restored
-      // 2026-09-05), so the loop silently skipped that rung — the same shape
-      // that let Plus's fee be set below Elite's guarded floor with every test
-      // green. Object.keys(TIER_PERKS) grows on its own.
     for (const tier of Object.keys(TIER_PERKS) as (keyof typeof TIER_PERKS)[]) {
-      expect(posterFeePercentForTier(tier)).toBe(TIER_PERKS[tier].platformFeePercent);
+      // $100 job: the poster's fee is the card cost ($3.30), never the tier's %.
+      expect(posterCardCostFeeCents(10_000)).not.toBe(TIER_PERKS[tier].platformFeePercent * 100);
     }
     expect(Object.keys(TIER_PERKS).length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(3);
+  });
+
+  it("no user copy still sells a plan-based or percentage poster fee", () => {
+    for (const file of [
+      "src/pages/info/legal/TermsSection.tsx",
+      "src/pages/info/helpCenter/helpCenterContent.ts",
+      "src/components/profile/SubscriptionTab.tsx",
+      "src/components/postjob/CheckoutStep.tsx",
+    ]) {
+      const code = blankComments(readFileSync(resolve(__dirname, "../..", file), "utf8"));
+      expect(code, file).not.toMatch(/posting or helping|plan-based service fee|Poster service fee:|service fee you pay to post|Service Fee \(\$\{customerFee/);
+    }
   });
 });
 

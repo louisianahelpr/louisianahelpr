@@ -1,6 +1,7 @@
 // Single source of truth for the fee-percent fallback used when a job row
-// pre-dates the `helper_fee_percent` / `customer_fee_percent` columns (a
-// column-null read on old rows).
+// pre-dates the `helper_fee_percent` column (a column-null read on old rows).
+// (The poster-side twin went away on 2026-10-11: posters pay no platform
+// percentage, so there is no poster percent left to fall back to.)
 //
 // Historically ~16 files had a raw `?? 10` or `|| 10` sprinkled at the read
 // site. Cowork audit 2026-07-08 called this out as exactly the class of
@@ -21,13 +22,6 @@
  * that needs a numeric fallback should use this constant, not a raw 10.
  */
 export const HELPER_FEE_LEGACY_FALLBACK_PERCENT = 10;
-
-/**
- * Fallback poster-side service fee % when `jobs.customer_fee_percent`
- * is null (legacy row pre-dating the column). Same rationale as
- * `HELPER_FEE_LEGACY_FALLBACK_PERCENT`, mirrored for the poster leg.
- */
-export const CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT = 10;
 
 /**
  * Resolve a job row's `helper_fee_percent` to a number, falling back ONLY when

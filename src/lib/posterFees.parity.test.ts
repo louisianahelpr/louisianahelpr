@@ -1,106 +1,70 @@
 import { describe, it, expect } from "vitest";
 import {
-  posterFeePercentForTier as uiPosterFeePercentForTier,
-  posterServiceFeeCents as uiPosterServiceFeeCents,
+  POSTER_SERVICE_FEE_PERCENT as uiPercent,
+  POSTER_SERVICE_FEE_DESCRIPTION as uiDescription,
+  posterCardCostFeeCents as uiFee,
 } from "./posterFees";
 // The edge helpers are plain TS (no Deno imports at module scope), so vitest can
 // import them directly. This test is the guard that keeps the poster-fee logic
 // identical across the two runtimes — a drift here would make the shown checkout
 // total disagree with what the poster is actually charged.
 import {
-  posterFeePercentForTier as edgePosterFeePercentForTier,
-  posterServiceFeeCents as edgePosterServiceFeeCents,
+  POSTER_SERVICE_FEE_PERCENT as edgePercent,
+  POSTER_SERVICE_FEE_DESCRIPTION as edgeDescription,
+  posterCardCostFeeCents as edgeFee,
 } from "../../supabase/functions/_shared/posterFees";
 import { stripeProcessingCostCents } from "./stripeFees";
 
-describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
-  const tiers = ["free", "basic", "pro", "elite", "PRO", null, undefined, "business", "nonsense"];
-
-  it("resolves the same fee percent for every tier on both runtimes", () => {
-    for (const tier of tiers) {
-      expect(uiPosterFeePercentForTier(tier)).toBe(edgePosterFeePercentForTier(tier));
-    }
+describe("poster service fee = Stripe's card cost only (owner, 2026-10-11) — UI ↔ edge parity", () => {
+  it("both runtimes charge NO platform percentage and describe the fee the same way", () => {
+    expect(uiPercent).toBe(0);
+    expect(edgePercent).toBe(0);
+    expect(uiDescription).toBe(edgeDescription);
+    expect(uiDescription).not.toMatch(/%|surcharge/i);
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 9 / 8 ladder from the free/paid tiers", () => {
-    expect(uiPosterFeePercentForTier("free")).toBe(12);
-    expect(uiPosterFeePercentForTier("basic")).toBe(11);
-    expect(uiPosterFeePercentForTier("pro")).toBe(10);
-    expect(uiPosterFeePercentForTier("elite")).toBe(8);
-  });
-
-  it("charges a legacy 'business' the FREE rate on both runtimes, not 6%", () => {
-    // The `business` tier was retired on 2026-09-01 — nothing could sell or
-    // store it and the prod census was zero rows. A stale string must fall
-    // through to the never-under-charge default on the poster side too, so the
-    // two roles cannot disagree about what it costs.
-    expect(uiPosterFeePercentForTier("business")).toBe(12);
-    expect(edgePosterFeePercentForTier("business")).toBe(12);
-  });
-
-  it("reverts an EXPIRED paid tier to the free rate on both runtimes", () => {
-    const past = new Date(Date.now() - 86_400_000).toISOString();
-    const future = new Date(Date.now() + 86_400_000).toISOString();
-    expect(uiPosterFeePercentForTier("elite", past)).toBe(12);
-    expect(edgePosterFeePercentForTier("elite", past)).toBe(12);
-    // A still-active paid tier keeps its discounted rate.
-    expect(uiPosterFeePercentForTier("elite", future)).toBe(8);
-    expect(edgePosterFeePercentForTier("elite", future)).toBe(8);
-  });
-
-  it("computes the same service fee (with floor) for a grid of budgets/tiers/extras", () => {
-    const budgets = [1000, 2500, 5000, 10_000, 25_000, 100]; // cents; incl. a sub-floor tiny value
-    const percents = [12, 11, 10, 8];
-    const extras = [0, 500, 700];
-    for (const b of budgets) {
-      for (const p of percents) {
-        for (const e of extras) {
-          expect(uiPosterServiceFeeCents(b, p, e)).toBe(edgePosterServiceFeeCents(b, p, e));
+  it("computes the same fee for a grid of budgets / extras / prepaid card cost", () => {
+    let n = 0;
+    for (const b of [0, 100, 1000, 2500, 3000, 5000, 10_000, 25_000, 100_000]) {
+      for (const e of [0, 200, 500, 700, 25_000]) {
+        for (const p of [0, 15, 45]) {
+          expect(uiFee(b, e, p), `${b}/${e}/${p}`).toBe(edgeFee(b, e, p));
+          n++;
         }
+      }
+    }
+    expect(n).toBeGreaterThan(100);
+  });
+
+  it("covers Stripe's real cost on the WHOLE charge (fee included), by at most 1c", () => {
+    // `fee >= stripeCost(budget + fee + other)` is the money-safety rule; the
+    // closed-form solve can land 1c above the exact minimum, never more.
+    for (let b = 100; b <= 60_000; b += 137) {
+      for (const e of [0, 200, 500, 900]) {
+        const fee = uiFee(b, e);
+        expect(fee).toBe(edgeFee(b, e));
+        const cost = stripeProcessingCostCents(b + fee + e);
+        expect(fee, `${b}/${e}`).toBeGreaterThanOrEqual(cost);
+        expect(fee - cost, `${b}/${e}`).toBeLessThanOrEqual(1);
       }
     }
   });
 
-  it("floors the fee at Stripe's processing cost so a tiny job can't lose money", () => {
-    // $1 job at 8% → tier fee = 8¢, but Stripe costs ~33¢: the floor must win.
-    const fee = uiPosterServiceFeeCents(100, 8, 0);
-    expect(fee).toBeGreaterThan(8);
-    expect(fee).toBe(edgePosterServiceFeeCents(100, 8, 0));
+  it("is the card cost, not a tier percent: $30 → $1.21, $100 → $3.30, $250 → $7.78", () => {
+    // Before 2026-10-11 a free-tier poster paid 12%: $3.60, $12.00, $30.00.
+    expect(uiFee(3000)).toBe(121);
+    expect(uiFee(10_000)).toBe(330);
+    expect(uiFee(25_000)).toBe(edgeFee(25_000));
+    expect(uiFee(25_000)).toBe(778);
   });
 
-  it("uses the raw tier percentage when it already exceeds the Stripe floor", () => {
-    // A $250 job at 12% → tier fee = $30, far above Stripe's ~$8.70 cost.
-    expect(uiPosterServiceFeeCents(25_000, 12, 0)).toBe(3000);
-  });
-
-  it("never collects less than Stripe's real cost on the WHOLE charge (fee incl.)", () => {
-    // Regression guard for the floor self-reference bug: the collected fee is
-    // itself part of the charge, so the invariant is
-    // `fee ≥ stripeCost(budget + fee + other)`. The old floor measured against
-    // `budget + tierFee + other` and undershot by ~1¢ exactly when the floor
-    // was meant to protect us. Sweep the small-budget/high-extra region where
-    // the floor binds and assert the invariant holds on BOTH runtimes.
-    for (const b of [100, 500, 1000, 1500, 5000]) {
-      for (const p of [12, 11, 10, 8]) {
-        for (const e of [0, 200, 500, 900]) {
-          const fee = uiPosterServiceFeeCents(b, p, e);
-          expect(fee).toBe(edgePosterServiceFeeCents(b, p, e));
-          expect(fee).toBeGreaterThanOrEqual(stripeProcessingCostCents(b + fee + e));
-        }
-      }
-    }
+  it("charges nothing on nothing", () => {
+    expect(uiFee(0)).toBe(0);
+    expect(edgeFee(0)).toBe(0);
   });
 });
 
-// The Stripe floor itself, dropped on each runtime in turn — the case where a
-// tiny job's tier fee (8c on a $1 job) is less than what the charge costs to
-// process. Mutating either runtime also reds the UI<->edge parity, which is the
-// drift this file was written for.
-//
-// NOT registered, deliberately: the two lines that COMPUTE the floor (the
-// closed-form gross-up and the `while` that nudges it up) are mutually
-// redundant — they converge on the same fixed point, so breaking either one
-// alone is behaviour-preserving and any mutation of it SURVIVES. That is
-// defensive duplication in the source, not a hole in this guard.
-// @mutate src/lib/posterFees.ts | return Math.max(tierFeeCents, floorCents); | return tierFeeCents;
-// @mutate supabase/functions/_shared/posterFees.ts | return Math.max(tierFeeCents, floorCents); | return tierFeeCents;
+// The card-cost solve itself, dropped on each runtime in turn: a fee that
+// skips the gross-up undershoots Stripe's cost on the fee's own share.
+// @mutate src/lib/posterFees.ts |   let feeCents = base > 0 ? Math.ceil((base * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT)) : 0;\n  while (feeCents > 0 && feeCents < stripeProcessingCostCents(base + feeCents)) feeCents++; |   let feeCents = stripeProcessingCostCents(base);
+// @mutate supabase/functions/_shared/posterFees.ts |   let feeCents = base > 0 ? Math.ceil((base * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT)) : 0;\n  while (feeCents > 0 && feeCents < stripeProcessingCostCents(base + feeCents)) feeCents++; |   let feeCents = stripeProcessingCostCents(base);

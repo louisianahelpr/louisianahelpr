@@ -620,18 +620,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       the other features make it the first thing in the
                       list").
 
-                      "% platform fee" full stop named only half of what this
-                      number does. `platformFeePercent` is ALSO the service fee
-                      a poster is charged at checkout — `posterFeePercentForTier`
-                      is a straight alias of `tierFeePercent`, one user, one
-                      tier, one percent — so on a marketplace where every
-                      account can post and can help, a poster read the fee that
-                      applies to them as belonging to someone else. Naming both
-                      activities on the same bullet is the accuracy fix and the
-                      conversion fix at once, and it fits the measured bullet
-                      budget: "12% fee, posting or helping" is 27 characters
-                      against the 28 that "1 free Job Boost every month"
-                      already occupies on the tightest card. */}
+                      Since 2026-10-11 (owner) posting has no platform fee on
+                      any tier: a poster pays only a service fee that covers
+                      card processing (src/lib/posterFees.ts). So this number
+                      is the cut on jobs you DO, and the bullet says exactly
+                      that, without naming a role. "12% fee on jobs you do" is
+                      22 characters, inside the 28 that "1 free Job Boost every
+                      month" already occupies on the tightest card. */}
                   <li
                     className="flex items-start gap-1 font-sans text-ds-11"
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
@@ -641,7 +636,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       style={{ color: accent }}
                       strokeWidth={2.5}
                     />
-                    <span>{tier.feePercent}% fee, posting or helping</span>
+                    <span>{tier.feePercent}% fee on jobs you do</span>
                   </li>
                   {tier.features
                     .filter((f) => !/^Everything in/i.test(f))
@@ -841,13 +836,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         })}
       </div>
 
-      {/* ONE FEE, EITHER WAY — the sentence this page was missing entirely.
-          Every tagline and every perk bullet on the cards above was written
-          for a Helpr, but the tier's percentage sets the poster's checkout
-          service fee too (see the fee bullet's note). A poster who opened
-          Membership was therefore never told that the thing on sale would cut
-          what they pay to post. The per-card bullet states the fact; this
-          states the rule once, in the place a reader looks for the catch.
+      {/* POSTING IS FREE OF PLATFORM FEES (owner, 2026-10-11). The tier
+          sets only the cut on jobs you do; posting costs a service fee that
+          covers card processing, on every tier. Stated once, in the place a
+          reader looks for the catch, so nobody buys a tier expecting it to
+          cut what they pay to post.
 
           Deliberately a single line rather than a fourth explainer box: the
           card list above is `flex-1 … justify-between`, so anything tall added
@@ -857,9 +850,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
         <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-          One fee, either way.
+          Posting has no platform fee.
         </span>{" "}
-        Your tier sets the cut on what you earn and the service fee you pay to post.
+        Your tier sets the cut on what you earn. Posting a job costs only a service fee that covers card processing.
       </p>
 
       {/* RESTORE PURCHASES. Apple requires this control in any app selling

@@ -60,18 +60,23 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
 export const NONTAXABLE_TAX_CODE = "txcd_00000000";
 
 /**
- * The code on a TAXABLE labor line. Stripe's "General - Services".
+ * The code on a TAXABLE labor line: Stripe's "Repair of Tangible Personal
+ * Property", the LA R.S. 47:301.3 item-7 service the Q374 decision taxes
+ * (assembly and handyman: labor to fabricate, repair or maintain movable
+ * property).
  *
- * OPEN QUESTION, not a settled answer (ME-043, docs/OPEN.md Q374): on the test
- * account an assembly job at a Baton Rouge address came back Tax $0.00 with
- * this code. Two causes fit and neither was measurable from code: no Louisiana
- * registration under Stripe Tax in that mode, or Stripe treating "General -
- * Services" as untaxed in Louisiana (an enumerated-services state) where a
- * repair/maintenance-of-tangible-property code would tax it. Changing the
- * value is a classification decision for the CPA review; when it is made, it
- * is this one line.
+ * It was "General - Services" (txcd_20030000) until 2026-10-12, and that code
+ * is EXEMPT in Louisiana, an enumerated-services state: the first live taxable
+ * checkout (assembly, Delcambre LA, 2026-10-08, cs_live_b164CN…) came back
+ * taxability_reason "product_exempt" with the live LA registration active, and
+ * the webhook's taxable-zero-tax alert fired (docs/OPEN.md Q1578). Measured on
+ * live Stripe Tax (calculation taxcalc_1UPcYUKp2H4b7tECOt3PgfHe, $100 lines at
+ * that address): General - Services $0 product_exempt, Installation of TPP $0,
+ * Repairs to Real Property $0, Fabrication $11.25 and Repair of TPP $11.25
+ * standard_rated. src/test/stripeTaxCodes.test.ts pins this to the codes that
+ * measurement showed taxed.
  */
-export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
+export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005";
 
 /** The Stripe tax code for a job's labor line, from the category rule above. */
 export function laborTaxCode(category: string | null | undefined): string {

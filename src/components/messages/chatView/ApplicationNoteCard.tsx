@@ -63,7 +63,7 @@ export async function fetchApplicationNote(jobId: string, applicantId: string): 
 
 /** Whether this thread may show the card at all: the viewer posted the job
  *  and the other person is a live account. */
-export function showsApplicationNote(convo: Pick<Conversation, "viewerIsPoster" | "otherUserId">): boolean {
+function showsApplicationNote(convo: Pick<Conversation, "viewerIsPoster" | "otherUserId">): boolean {
   return convo.viewerIsPoster === true && !!convo.otherUserId;
 }
 

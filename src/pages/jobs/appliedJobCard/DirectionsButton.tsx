@@ -60,6 +60,9 @@ export function DirectionsButton({ location }: { location: string | null | undef
       // the way to the decision — it must not out-shout "Mark Job Complete".
       // Same olivewood tint Message wears, which is the tone this row speaks in.
       style={jobActionChipStyle("neutral")}
+      // Slot merges it onto the <a>. The 320px density gate measures every
+      // `[data-job-action-chip]` (Q1080).
+      data-job-action-chip=""
     >
       <a
         href={href}

@@ -498,6 +498,79 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
       expect(scenario.writes.some((w) => w.table === "stripe_webhook_events")).toBe(false);
     });
 
+    // lh-authz-rls review of the rebuild, finding 1: Postgres casts every one
+    // of these spellings to the real job's row, so the scope check must too.
+    const LETTER_JOB = "abcdef01-2345-4abc-8def-0123456789ab";
+    it.each([
+      ["upper case", LETTER_JOB.toUpperCase()],
+      ["no hyphens", LETTER_JOB.replace(/-/g, "")],
+      ["braces", `{${LETTER_JOB.toUpperCase()}}`],
+    ])("a TEST-endpoint event naming a REAL person's job in %s is NOT applied", async (_label, spelled) => {
+      env();
+      enrol(TEST_POSTER);
+      scenario.reads.jobs = { rows: [{ id: LETTER_JOB, customer_id: REAL_POSTER, helper_id: null }] };
+      const res = await deliver(event(false, { job_id: spelled }), "test");
+      expect(res.status).toBe(200);
+      expect(await json(res)).toMatchObject({ ignored: "test_event_names_real_account" });
+      expect(scenario.writes.some((w) => w.table === "stripe_webhook_events")).toBe(false);
+    });
+
+    it("a TEST-endpoint event naming a REAL person by EMAIL is NOT applied", async () => {
+      env();
+      enrol(TEST_POSTER);
+      scenario.reads.profiles = {
+        ...(scenario.reads.profiles ?? {}),
+        selectOverrides: [
+          ...(scenario.reads.profiles?.selectOverrides ?? []),
+          { includes: "user_id", result: { rows: [{ user_id: REAL_POSTER }] } },
+        ],
+      };
+      const ev = { id: "evt_mail", type: "charge.refund.updated", livemode: false, data: { object: { id: "obj_1", metadata: {}, receipt_email: "Real.Person@example.com" } } };
+      const res = await deliver(ev, "test");
+      expect(res.status).toBe(200);
+      expect(await json(res)).toMatchObject({ ignored: "test_event_names_real_account" });
+      const byEmail = scenario.readQueries.find((r) => r.table === "profiles" && r.filters.some((f) => f.op === "in" && f.column === "email"));
+      expect(byEmail?.filters.find((f) => f.column === "email")?.value).toEqual(["Real.Person@example.com", "real.person@example.com"]);
+    });
+
+    it.each([
+      ["a Pro pass", { tier: "pro", user_id: "TEST" }],
+      ["a Pro subscription billing cycle", { billing_cycle: "one_time", user_id: "TEST" }],
+      ["a gift card", { kind: "gift_card_purchase", recipient_email: "someone@example.com" }],
+      ["an unknown kind", { kind: "something_new" }],
+    ])("a TEST-endpoint checkout for %s is NOT applied (only mode-routed checkouts run in test mode)", async (_label, metadata) => {
+      env();
+      enrol(TEST_POSTER);
+      const meta = Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, v === "TEST" ? TEST_POSTER : v]));
+      const ev = { id: "evt_cs", type: "checkout.session.completed", livemode: false, data: { object: { id: "cs_test_x", object: "checkout.session", mode: "payment", client_reference_id: TEST_POSTER, metadata: meta } } };
+      const res = await deliver(ev, "test");
+      expect(res.status).toBe(200);
+      expect(await json(res)).toMatchObject({ ignored: "test_checkout_not_routed" });
+      expect(scenario.writes.some((w) => w.table === "stripe_webhook_events")).toBe(false);
+    });
+
+    it("a TEST-endpoint subscription-mode checkout is NOT applied", async () => {
+      env();
+      enrol(TEST_POSTER);
+      const ev = { id: "evt_sub", type: "checkout.session.completed", livemode: false, data: { object: { id: "cs_test_s", mode: "subscription", client_reference_id: TEST_POSTER, metadata: {} } } };
+      expect(await json(await deliver(ev, "test"))).toMatchObject({ ignored: "test_checkout_not_routed" });
+    });
+
+    it.each([
+      ["escrow", { job_id: "JOB", customer_id: "TEST" }],
+      ["a tip", { type: "tip", job_id: "JOB", tipper_id: "TEST" }],
+      ["a boost", { kind: "job_boost", job_id: "JOB" }],
+    ])("a TEST-endpoint checkout for %s passes the routing check", async (_label, metadata) => {
+      env();
+      enrol(TEST_POSTER);
+      scenario.reads.jobs = { rows: [{ id: JOB, customer_id: TEST_POSTER, helper_id: null }] };
+      const meta = Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, v === "TEST" ? TEST_POSTER : v === "JOB" ? JOB : v]));
+      const ev = { id: "evt_ok", type: "checkout.session.completed", livemode: false, data: { object: { id: "cs_test_ok", mode: "payment", metadata: meta } } };
+      const body = await json(await deliver(ev, "test"));
+      expect(body.ignored).not.toBe("test_checkout_not_routed");
+      expect(body.ignored).not.toBe("test_event_names_real_account");
+    });
+
     it("a TEST-endpoint Pro subscription event is acknowledged and NOT applied (Pro stays live-only)", async () => {
       env();
       enrol(TEST_POSTER);

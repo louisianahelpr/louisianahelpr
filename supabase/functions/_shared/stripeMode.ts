@@ -261,7 +261,42 @@ export async function jobMoneyMode(
   return mode;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Any spelling Postgres accepts as a uuid (upper case, braces, hyphens
+ * anywhere between digit groups, none at all), as the canonical lowercase
+ * form the database returns; null for anything else. A handler hands the raw
+ * value to `.eq()`, and Postgres casts every one of those spellings to the
+ * same row (measured on prod 2026-10-12: a braced, upper-case, unhyphenated
+ * job id matched it), so the scope check must read them the same way
+ * (lh-authz-rls review of the rebuild, finding 1).
+ */
+function canonicalUuid(value: string): string | null {
+  let s = value.trim();
+  if (s.startsWith("{") && s.endsWith("}")) s = s.slice(1, -1);
+  s = s.replace(/-/g, "");
+  if (!/^[0-9a-f]{32}$/i.test(s)) return null;
+  s = s.toLowerCase();
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
+
+/**
+ * Every email a checkout handler could act on: the buyer's
+ * (customer_email, customer_details.email, receipt_email) and any metadata
+ * value shaped like one (a gift's recipient_email).
+ */
+// deno-lint-ignore no-explicit-any
+function eventEmails(eventObject: any, metaValues: unknown[]): string[] {
+  const found = [
+    eventObject?.customer_email,
+    eventObject?.customer_details?.email,
+    eventObject?.receipt_email,
+    ...metaValues,
+  ].filter((v): v is string => typeof v === "string" && EMAIL_RE.test(v.trim()));
+  // Raw AND lower-cased: a handler matches the value it was given.
+  return uniqIds(found.flatMap((e) => [e.trim(), e.trim().toLowerCase()]));
+}
 
 /**
  * Who a TEST-mode webhook event is about, so stripe-webhook can refuse one
@@ -281,9 +316,20 @@ export async function testEventScope(
 ): Promise<{ ok: boolean; people: number; real: number }> {
   const raw: unknown[] = [];
   const meta = eventObject && typeof eventObject === "object" ? eventObject.metadata : null;
-  if (meta && typeof meta === "object") raw.push(...Object.values(meta as Record<string, unknown>));
+  const metaValues = meta && typeof meta === "object" ? Object.values(meta as Record<string, unknown>) : [];
+  raw.push(...metaValues);
   if (eventObject && typeof eventObject === "object") raw.push(eventObject.client_reference_id);
-  const uuids = uniqIds(raw.filter((v): v is string => typeof v === "string" && UUID_RE.test(v)));
+  const uuids = uniqIds(raw.map((v) => (typeof v === "string" ? canonicalUuid(v) : null)));
+  // People named by email (lh-authz-rls review of the rebuild, finding 1).
+  const emails = eventEmails(eventObject, metaValues);
+  const emailPeople: string[] = [];
+  if (emails.length > 0) {
+    const byEmail = await db.from("profiles").select("user_id").in("email", emails);
+    if (byEmail?.error || !Array.isArray(byEmail?.data)) {
+      throw new StripeModeRefused("lookup_failed", `profiles by email read failed: ${byEmail?.error?.message ?? "no rows array"}`);
+    }
+    emailPeople.push(...uniqIds((byEmail.data as Array<{ user_id?: string | null }>).map((r) => r.user_id)));
+  }
   // A Connect account carries no metadata: its owner is whoever's profile
   // holds its id (a sandbox id a REAL profile still holds must not be fed
   // test-mode state; lh-money-escrow review 2026-10-12, finding 4).
@@ -296,9 +342,10 @@ export async function testEventScope(
     accountOwners.push(...uniqIds((ownersRes.data as Array<{ user_id?: string | null }>).map((r) => r.user_id)));
   }
   if (uuids.length === 0) {
-    const ownerTests = await loadTestAccountIds(db, accountOwners);
-    const realOwners = accountOwners.filter((id) => !ownerTests.has(id)).length;
-    return { ok: realOwners === 0, people: accountOwners.length, real: realOwners };
+    const named = uniqIds([...accountOwners, ...emailPeople]);
+    const namedTests = await loadTestAccountIds(db, named);
+    const realNamed = named.filter((id) => !namedTests.has(id)).length;
+    return { ok: realNamed === 0, people: named.length, real: realNamed };
   }
   const jobsRes = await db.from("jobs").select("id").in("id", uuids);
   if (jobsRes?.error || !Array.isArray(jobsRes?.data)) {
@@ -317,10 +364,31 @@ export async function testEventScope(
     const restSet = new Set(rest);
     people.push(...uniqIds((usersRes.data as Array<{ user_id?: string | null }>).map((r) => r.user_id)).filter((id) => restSet.has(id)));
   }
-  const everyone = uniqIds([...people, ...accountOwners]);
+  const everyone = uniqIds([...people, ...accountOwners, ...emailPeople]);
   const tests = await loadTestAccountIds(db, everyone);
   const real = everyone.filter((id) => !tests.has(id)).length;
   return { ok: real === 0, people: everyone.length, real };
+}
+
+/** The metadata.kind of every checkout a mode-routed function creates. */
+const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit"]);
+
+/**
+ * True when a Checkout Session came from a function that decides its Stripe
+ * mode (create-payment escrow / tip / recurring visit, create-boost-payment,
+ * pay-onboarding-fee, create-bgc-payment), so a TEST-mode event about it may
+ * run. Anything else is refused: a subscription or Pro pass (metadata.tier,
+ * billing_cycle), a gift card (gift_card_purchase), or a kind nobody routes.
+ */
+// deno-lint-ignore no-explicit-any
+export function isRoutedTestCheckout(session: any): boolean {
+  if (!session || typeof session !== "object" || session.mode !== "payment") return false;
+  const meta = (session.metadata && typeof session.metadata === "object" ? session.metadata : {}) as Record<string, unknown>;
+  if (meta.tier !== undefined || meta.billing_cycle !== undefined) return false;
+  if (meta.type === "tip") return true;
+  if (typeof meta.kind === "string") return ROUTED_TEST_CHECKOUT_KINDS.has(meta.kind);
+  // An escrow checkout (create-payment action "escrow"): names its job, no kind or type.
+  return meta.type === undefined && typeof meta.job_id === "string" && meta.job_id.length > 0;
 }
 
 /** True for a test-mode key prefix. */

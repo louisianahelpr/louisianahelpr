@@ -12,6 +12,7 @@ import { logStep, type WebhookContext } from "./context.ts";
 import {
   StripeModeRefused,
   stripeSecretKeyFor,
+  isRoutedTestCheckout,
   testEventScope,
   TEST_WEBHOOK_SECRET_ENV,
 } from "../_shared/stripeMode.ts";
@@ -256,6 +257,18 @@ serve(async (req) => {
         });
       }
       const eventObject = (event.data as { object?: unknown } | undefined)?.object;
+      // A test-mode checkout is applied only when a mode-routed function
+      // created it. Pro and gift-card checkout stay live-only, and their
+      // branches grant by email or credit a recipient email, so a sandbox
+      // session must never reach them (lh-authz-rls review of the rebuild,
+      // finding 1).
+      if (event.type.startsWith("checkout.session.") && !isRoutedTestCheckout(eventObject)) {
+        console.error(JSON.stringify({ event: "stripe_test_checkout_not_routed", event_id: event.id, event_type: event.type }));
+        return new Response(JSON.stringify({ received: true, ignored: "test_checkout_not_routed" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
       const scope = await testEventScope(supabase, eventObject);
       // A Connect account update for an account no profile holds names nobody
       // and changes nothing; one held by a real profile is refused below.

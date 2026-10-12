@@ -225,6 +225,16 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/insertNotifications.ts";`,
   );
 
+  // Refund notice (Q1654): `_shared/refundNotice.ts` imports only zero-import
+  // modules (caughtMessage, functionFetch; the email goes through the global
+  // `fetch` at call time), so
+  // the REAL module runs: its claim, notification and email are the behaviour
+  // under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/refundNotice\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/refundNotice.ts";`,
+  );
+
   // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
   // takes the Supabase client as a parameter), so the generated file points at
   // the REAL module — same reasoning as payoutClaim above, and for the same
@@ -924,6 +934,10 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
   // The preamble's local binding SHADOWS this inside every rewritten module, so
   // nothing that worked before changes behaviour.
   (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
+
+  // Q1654: the refund notice's email (a fetch to send-notification-email) is
+  // recorded in mocks/shared.ts `notificationEmails`, never sent.
+  (await import("./mocks/shared.ts")).installNotificationEmailFetch();
 
   const entryGenPath = join(GEN_DIR, entry.genName);
   try {

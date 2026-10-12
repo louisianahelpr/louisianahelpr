@@ -87,18 +87,17 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (seriesEndedMidRun \|\| holderChangedMidRun) { |             if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (seriesEndedMidRun \|\| holderChangedMidRun) { |             if (true) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const refundCents = Math.max(0, captured - actualOrEstimatedFeeCents(pi, captured)); | const refundCents = captured;
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded } = await createRefundOnce( |             ({ alreadyRefunded } = await createRefundOnce(
+// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce( |             ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     return;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
 // Q750 (3): Stripe's "charge_already_refunded" (past the 24h key) is a failed refund again.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  && code !== "charge_already_refunded") throw e; | ) throw e;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) { | if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) { | if (refundParams.amount !== undefined && parent.customer_id) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { | if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | let capturedCents = paidRow ? paidRow.amount_cents : totalCents; | let capturedCents = NaN;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!(Number.isFinite(captured) && captured > 0 && Number.isFinite(refundCents))) { |   if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               refundParams.metadata = { fee_withheld: "true" }; |               refundParams.metadata = undefined;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | We refunded $${(refundedCents / 100).toFixed(2)} | We refunded $${(intent.amount / 100).toFixed(2)}
-// @mutate supabase/functions/charge-recurring-visits/index.ts |               fail(`series ${parent.id} ${visitDate}: poster was not told of the fee-withheld refund | console.log(`series ${parent.id} ${visitDate}: poster was not told of the fee-withheld refund
+// @mutate supabase/functions/charge-recurring-visits/index.ts |               keptCents: Math.max(0, capturedCents - refundMade.cents), |               keptCents: 0,
+// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); |             if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (live.length > 0) { |         if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| true) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| refunded >= owedCents) {
@@ -568,7 +567,8 @@ describe("charge-recurring-visits edge function", () => {
       .map((w) => w.payload as { user_id: string; message: string })
       .find((p) => p.user_id === POSTER_ID);
     expect(notice?.message).toContain("We refunded $96.80");
-    expect(notice?.message).toContain("fee of $3.20");
+    // Q1654: THE refund notice: amount, reference, and the card fee kept.
+    expect(notice?.message).toContain("We kept $3.20: the card processor's fee, which can't be returned.");
     expect(notice?.message).toContain("the date changed hands");
   });
 
@@ -590,7 +590,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(500);
-    expect(JSON.stringify(b)).toContain("poster was not told of the fee-withheld refund");
+    expect(JSON.stringify(b)).toContain("the refund notice was not sent");
   });
 
   it("Q415 (e): a charge no bigger than its fee is kept, with no $0 refund sent to Stripe", async () => {
@@ -2117,7 +2117,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("less the card fee");
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("We kept $3.20: the card processor's fee");
     expect(b.errors).toBe(0);
   });
 
@@ -2140,7 +2140,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("less the card fee");
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("We kept $3.20: the card processor's fee");
     expect(b.errors).toBe(0);
   });
 
@@ -2212,7 +2212,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
-    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toContain("less the card fee");
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toContain("card processor's fee");
     expect(b.errors).toBe(0);
   });
 

@@ -32,8 +32,8 @@
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
-// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
-// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | AND v_job.date_needed < CURRENT_DATE THEN\n    RETURN 'job_date_has_passed'; | AND v_job.date_needed < CURRENT_DATE - 1 THEN\n    RETURN 'job_date_has_passed';
+// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
+// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
@@ -159,7 +159,8 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     }
     // the conditions themselves, not only their answers (a mutated condition kept its RETURN)
     expect(gate).toMatch(/COALESCE\(public\.get_user_credential_tier\(p_helper\), 0\) < v_job\.credential_tier THEN\s+RETURN 'credential_tier_required';/);
-    expect(gate).toMatch(/IF v_job\.date_needed IS NOT NULL AND v_job\.date_needed < CURRENT_DATE THEN\s+RETURN 'job_date_has_passed';/);
+    // Q1401 (20261012185633): the offer closes at the job's start, not its day.
+    expect(gate).toMatch(/IF v_job\.date_needed IS NOT NULL\s+AND public\.job_offer_cutoff\(v_job\.date_needed, v_job\.start_time\) <= now\(\) THEN\s+RETURN 'job_date_has_passed';/);
     expect(gate).toContain("public.is_helper_shadowbanned(p_helper)");
     // the tap refuses the same things before recording anything (should-fix B)
     expect(direct).toMatch(/IF public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/);

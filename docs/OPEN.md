@@ -1130,7 +1130,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — the 320 truncation gate has a hole
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] **Q1080** LOW activity-card-density.spec.ts inventory misses Directions/SOS/Share/capture-chip controls (no data-job-action-chip hook) — Not independently reverified; reported still open — self-drawing row controls lack the density-gate hook. (archive L6871) **DONE 2026-10-12 (lane 5):** measured first: src/test/jobRowControlSameness.test.tsx with a new "every row chip carries data-job-action-chip" check failed 11 of its 13 row states on main (Directions, SOS — share your location, Share this job, the Before/After photo chip). SosShareButton, DirectionsButton (via Slot onto the <a>), PhotoProof's row chip and ShareJobButton's stack layout now carry the hook; 17/17 green. GUARD: src/test/jobRowControlSameness.test.tsx (unhooked check, `@mutate src/components/SosShareButton.tsx` turns 6 states red).
 
 ### TIGHTEST ROW IN THE APP — needs the lead's eyes at 320
 Reconciled 2026-09-23; detail in the archive at the line shown.

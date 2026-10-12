@@ -852,7 +852,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 109,
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -862,7 +862,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 113,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 130,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -882,7 +882,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 141,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -892,7 +892,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 182,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 191,
+      "line": 190,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 202,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1252,7 +1252,7 @@
     },
     {
       "file": "src/components/SosShareButton.tsx",
-      "line": 203,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",

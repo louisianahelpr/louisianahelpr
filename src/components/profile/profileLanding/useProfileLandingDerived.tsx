@@ -1,12 +1,12 @@
 import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
-  CalendarDays, Heart, ShieldCheck, Home, Gift, Coins, UserPlus,
-  TrendingUp, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle, Type, Clock, Bug,
+  Coins, UserPlus, TrendingUp, Crown, FileText, Gavel, HelpCircle,
+  AlertTriangle, Type, Bug,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
+import { SECTION_TINT, WORK_MENU_GROUP } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { isIdentityVerified } from "@/lib/awardGate";
@@ -15,36 +15,6 @@ interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
 }
 
-/**
- * ONE TINT PER SECTION.
- *
- * These were assigned ad hoc: 21 rows across 6 tints with no rule, so Schedule
- * was sienna while Availability directly beneath it was sage, and Gift Card
- * carried a raw `155 50% 30%` literal instead of a brand token — which the
- * project's own guidance forbids. The owner spotted it: "Why are some the same
- * colors and some do not match???" There was no answer, because there was no
- * rule.
- *
- * Now the tint carries information: it tells you which group a row belongs to.
- * Warnings & Strikes stays destructive-red — the one deliberate
- * exception, because "this is a penalty surface" outranks "this is the Legal
- * group".
- */
-const SECTION_TINT = {
-  /** Account + household. Cool blue-grey — the "about you" group. */
-  account: "var(--stormy-sky)",
-  /** Work + credentials. Warm sienna. */
-  work: "var(--burnt-sienna)",
-  /** Money. Green, the colour money already reads as. */
-  money: "var(--sage)",
-  /** Legal, support, admin. Quiet grey-blue — REVERSED 2026-08-24 (owner):
-   *  the whole group in red made Help & Support read like an emergency and
-   *  spent the alarm colour on rows that carry none. Red now belongs to
-   *  Warnings & Strikes alone. */
-  legal: "var(--stormy-sky)",
-  /** Warnings & Strikes only — the one genuinely consequential row. */
-  danger: "var(--destructive)",
-} as const;
 
 export function useProfileLandingDerived({
   profile,
@@ -151,49 +121,9 @@ export function useProfileLandingDerived({
     // phone/app surface, where there is no side panel. The row and the
     // sidebar can coexist: one is the desktop shortcut, this is the way in
     // everywhere else. SECTION_TINT.danger was even kept around for it.
-    {
-      title: "Work",
-      items: [
-        // Two rows, not one. These used to be a single "Schedule" row opening
-        // a screen with a Calendar|Hours segmented control — a second choice
-        // after the one you just made. Split on owner request 2026-08-19.
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
-        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
-        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
-        {
-          key: "credentials",
-          label: "Licensed & Insured",
-          icon: <ShieldCheck className="w-5 h-5" />,
-          desc: "Add your license and insurance",
-          tint: SECTION_TINT.work,
-        },
-        {
-          key: "str-settings",
-          label: "Host Automation",
-          icon: <Home className="w-5 h-5" />,
-          desc: "Auto-post cleanings on Airbnb / VRBO checkout",
-          tint: SECTION_TINT.work,
-          href: "/profile?tab=str_settings",
-        },
-        {
-          key: "gift-card",
-          label: "Gift Card",
-          icon: <Gift className="w-5 h-5" />,
-          // Not "job credits" (owner, 2026-08-30) — there is no credit balance
-          // in this product. It sends a real Helpr gift card by email that the
-          // recipient claims and puts toward any job.
-          desc: "Send a Helpr gift card by email",
-          tint: SECTION_TINT.work,
-          // A TAB, like every sibling in this list (2026-09-11).
-          href: "/profile?tab=gift_card",
-        },
-        // "Benefits & Perks" (/benefits) removed 2026-08-31 (owner): the page
-        // it opened had no partner agreements behind it, so the row promised
-        // "health coverage, financial tools & supply discounts" that Helpr
-        // never actually offered. Page and route deleted; the row goes with
-        // them rather than becoming a dead entry point.
-      ],
-    },
+    // Static (no profile or role input), so the landing's loading skeleton
+    // draws these same rows as its first frame (Q1173): see workMenuGroup.tsx.
+    WORK_MENU_GROUP,
     {
       title: "Money",
       items: [

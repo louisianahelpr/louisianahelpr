@@ -31,88 +31,16 @@ export function SettingsSection({
     <div>
       <div className="space-y-4">
         {/* Unified list-of-rows navigation, grouped by section. */}
-        {menuGroups.map((group) => {
-          return (
-            <section key={group.title}>
-              {/* Card eyebrow (owner, 2026-08-24: "better organization") — the
-                  groups always HAD titles in the data; they were just never
-                  painted, so four look-alike cards ran together. Quiet gray
-                  sans, same recipe the filter sheet settled on. */}
-              <p className="px-1 pb-1.5 text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
-                {group.title}
-              </p>
-              <div className="rounded-ds-lg liquid-glass overflow-hidden">
-                {group.items.map((item, idx) => (
-                  <button
-                    key={item.label}
-                    onClick={() => {
-                      if (item.href) onNavigate(item.href);
-                      else onSelectTab(item.key);
-                    }}
-                    className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
-                  >
-                    {idx > 0 && (
-                      <span
-                        aria-hidden
-                        className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
-                      />
-                    )}
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="shrink-0">
-                        <div
-                          className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
-                          style={{
-                            color: `hsl(${item.tint ?? "var(--olivewood)"})`,
-                            background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
-                          }}
-                        >
-                          {item.icon}
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span>{item.label}</span>
-                          {(item.needsAction || item.incompleteLabel) && (() => {
-                            const blocking = !!item.needsAction;
-                            /* TINT and INK are separate tokens. Both branches
-                               used the SAME raw brand hue for the fill and the
-                               label, and neither --destructive nor
-                               --burnt-sienna has a dark sibling — so on the
-                               dark canvas "Action Needed" measured 3.64:1 and
-                               "Set up" 3.84:1 at 10px, both under AA, on the
-                               chips whose whole job is to be noticed.
-                               --danger-ink is the theme-adaptive red the app
-                               already mints for exactly this. */
-                            const tint = blocking
-                              ? "var(--destructive)"
-                              : "var(--burnt-sienna)";
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
-                                style={{
-                                  background: `hsl(${tint} / 0.12)`,
-                                  color: "hsl(var(--danger-ink))",
-                                  letterSpacing: "0.04em",
-                                }}
-                              >
-                                <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                                {blocking ? "Action Needed" : item.incompleteLabel}
-                              </span>
-                            );
-                          })()}
-                        </p>
-                        <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
-                      </div>
-                    </div>
-                    <span className="w-5 flex items-center justify-center shrink-0">
-                      <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+        {menuGroups.map((group) => (
+          <SettingsGroup
+            key={group.title}
+            group={group}
+            onSelect={(item) => {
+              if (item.href) onNavigate(item.href);
+              else onSelectTab(item.key);
+            }}
+          />
+        ))}
 
         {/* Account actions — two stacked pills of the same shape so the
             footer reads as a finished pair. Sign out is a soft muted
@@ -150,5 +78,101 @@ export function SettingsSection({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * One titled group of rows: the eyebrow over its `liquid-glass` card.
+ *
+ * With no `onSelect` the rows are drawn but inert (disabled, out of the tab
+ * order): that is the landing's loading skeleton drawing the static Work
+ * group as its first frame (ProfilePageSkeleton, Q1173). Same markup either
+ * way, so the skeleton's rows cannot drift from the loaded ones.
+ */
+export function SettingsGroup({
+  group,
+  onSelect,
+}: {
+  group: { title: string; items: MenuItem[] };
+  onSelect?: (item: MenuItem) => void;
+}) {
+  return (
+    <section>
+      {/* Card eyebrow (owner, 2026-08-24: "better organization") — the
+          groups always HAD titles in the data; they were just never
+          painted, so four look-alike cards ran together. Quiet gray
+          sans, same recipe the filter sheet settled on. */}
+      <p className="px-1 pb-1.5 text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
+        {group.title}
+      </p>
+      <div className="rounded-ds-lg liquid-glass overflow-hidden">
+        {group.items.map((item, idx) => (
+          <button
+            key={item.label}
+            onClick={onSelect ? () => onSelect(item) : undefined}
+            disabled={!onSelect}
+            tabIndex={onSelect ? undefined : -1}
+            className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+          >
+            {idx > 0 && (
+              <span
+                aria-hidden
+                className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
+              />
+            )}
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="shrink-0">
+                <div
+                  className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
+                  style={{
+                    color: `hsl(${item.tint ?? "var(--olivewood)"})`,
+                    background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
+                  }}
+                >
+                  {item.icon}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{item.label}</span>
+                  {(item.needsAction || item.incompleteLabel) && (() => {
+                    const blocking = !!item.needsAction;
+                    /* TINT and INK are separate tokens. Both branches
+                       used the SAME raw brand hue for the fill and the
+                       label, and neither --destructive nor
+                       --burnt-sienna has a dark sibling — so on the
+                       dark canvas "Action Needed" measured 3.64:1 and
+                       "Set up" 3.84:1 at 10px, both under AA, on the
+                       chips whose whole job is to be noticed.
+                       --danger-ink is the theme-adaptive red the app
+                       already mints for exactly this. */
+                    const tint = blocking
+                      ? "var(--destructive)"
+                      : "var(--burnt-sienna)";
+                    return (
+                      <span
+                        className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
+                        style={{
+                          background: `hsl(${tint} / 0.12)`,
+                          color: "hsl(var(--danger-ink))",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
+                        {blocking ? "Action Needed" : item.incompleteLabel}
+                      </span>
+                    );
+                  })()}
+                </p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
+              </div>
+            </div>
+            <span className="w-5 flex items-center justify-center shrink-0">
+              <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }

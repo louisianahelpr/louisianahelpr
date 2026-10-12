@@ -11,6 +11,7 @@ import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
+import { paymentMethodFromCharge, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
@@ -115,6 +116,9 @@ export async function handleChargeRefunded(
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
   const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
+  // Q1652: one sentence the refund notice adds for the newest refund (the gift
+  // card a full refund gave back), set below where that is decided.
+  let noticeExtra: string | null = null;
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup
   // below cannot see it and this handler used to no-op on a refunded gift,
@@ -353,16 +357,10 @@ export async function handleChargeRefunded(
         });
       }
 
-      const { error: notifyErr } = await supabase.from("notifications").insert({
-        user_id: refundedJob.customer_id,
-        title: "Refund processed",
-        message: `Your payment for "${refundedJob.title}" has been refunded.${giftSentence}`,
-        type: "payment",
-        // The refunded job, not the My Posts default bucket — a refunded job
-        // is `cancelled`/`done`, never "Needs you".
-        link: `/posts?job=${refundedJob.id}`,
-      });
-      if (notifyErr) logStep("WARN: refund notification insert failed", { error: notifyErr.message });
+      // Q1652: the card holder's notice is sent below for EVERY refund, full
+      // or partial (it was this "Refund processed" row, full refunds only,
+      // in-app only). The gift sentence rides on it.
+      noticeExtra = giftSentence.trim() || null;
 
       logStep("Job marked as refunded", { jobId: refundedJob.id });
     }
@@ -435,6 +433,78 @@ export async function handleChargeRefunded(
         }
       }
       logStep("Partial refund ledger rows written", { refundIds: ordinaryRefunds.map((r) => r.id), pi: refundPiId });
+    }
+  }
+
+  // Q1652 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
+  // Eat Yard" reached the card and nobody was told). EVERY refund the platform
+  // makes raises this event, whichever path made it, so this is where the
+  // person who paid is told: once per live refund (refund_notices dedupes a
+  // redelivery and any path that told them itself), in the app and by email,
+  // with the amount, the card, the reference and what was kept. An
+  // onboarding-fee correction has its own notice (settleOnboardingFee).
+  if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) {
+    const method = paymentMethodFromCharge(charge);
+    const keptCents = Math.max(0, Number(charge.amount ?? 0) - liveRefundedCents);
+    const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
+    let piMeta: Promise<Record<string, string> | null> | null = null;
+    const loadMetadata = () => (piMeta ??= (async () => {
+      if (!refundPiId) return chargeMeta;
+      try {
+        const pi = await stripe.paymentIntents.retrieve(refundPiId);
+        return { ...((pi?.metadata ?? {}) as Record<string, string>), ...chargeMeta };
+      } catch (e) {
+        // Not fatal: the notice falls back to the charge's own metadata, and
+        // a refund nobody can be told about pages ops below.
+        logStep("WARN: PaymentIntent read for the refund notice failed", { pi: refundPiId, error: String(e) });
+        return chargeMeta;
+      }
+    })());
+    // A refund made long before this event (a later refund on the same charge)
+    // is not announced now, days late: only refunds from the last 72 hours.
+    const since = Number((event as { created?: number }).created ?? Math.floor(Date.now() / 1000)) - 72 * 3600;
+    for (const r of ordinaryRefunds) {
+      if (typeof r.created === "number" && r.created < since) {
+        logStep("Refund notice skipped: refund older than 72h", { refund: r.id, created: r.created });
+        continue;
+      }
+      const result = await sendRefundNotice(supabase, {
+        key: `refund:${r.id}`,
+        kind: "refund",
+        paymentIntentId: refundPiId ?? null,
+        amountCents: Number(r.amount ?? 0),
+        keptCents,
+        metadata: (r.metadata ?? null) as Record<string, string> | null,
+        method,
+        extra: r.id === latestRefund?.id ? noticeExtra : null,
+        loadMetadata,
+      });
+      if (result.status === "failed") {
+        // Nothing was written (the claim was given back): Stripe redelivers,
+        // and every step above is idempotent on a redelivery.
+        throw new Error(`Refund notice for ${r.id} failed: ${result.error}`);
+      }
+      if (result.status === "unwritten") {
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Refund made, but its notice was not written",
+          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back to the card, but the refund notice insert matched zero rows, so the card holder was not told. Tell them by hand.`,
+          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—" },
+          oncePerDayKey: `refund-notice-unwritten:${r.id}`,
+        });
+      }
+      if (result.status === "no_recipient") {
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Refund made, but nobody could be told",
+          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back to the card, but no job or payer is linked to the payment, so no refund notice was sent. Tell the card holder by hand.`,
+          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—" },
+          oncePerDayKey: `refund-notice-no-recipient:${r.id}`,
+        });
+      }
+      logStep("Refund notice", { refund: r.id, status: result.status, emailed: result.emailed ?? false, error: result.error });
     }
   }
 }

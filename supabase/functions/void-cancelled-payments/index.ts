@@ -15,6 +15,7 @@ import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from ".
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { paymentMethodFromCharge, refundDollars, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
 
@@ -226,6 +227,37 @@ serve(async (req) => {
      * Modelled on execute-dispute-split:879-885, the reference implementation
      * for "the money already moved, so this write is not allowed to be quiet".
      */
+    /**
+     * Q1652: a released card hold raises no charge.refunded, so the poster is
+     * told HERE (the refunds this function makes are told by the webhook).
+     * One notice, in the app and by email, claimed on the PaymentIntent.
+     */
+    const tellPosterHoldReleased = async (
+      job: { id: string; customer_id?: string | null },
+      // deno-lint-ignore no-explicit-any
+      pi: any,
+      releasedCents: number,
+      keptCents: number,
+      keptReason: string | null,
+    ) => {
+      const charge = pi?.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+      const result = await sendRefundNotice(supabaseAdmin, {
+        key: `release:${pi.id}`,
+        kind: "release",
+        paymentIntentId: pi.id,
+        amountCents: releasedCents,
+        keptCents,
+        keptReason,
+        recipientId: job.customer_id ?? null,
+        jobId: job.id,
+        method: paymentMethodFromCharge(charge),
+      });
+      if (result.status === "failed" || result.status === "unwritten" || result.status === "no_recipient") {
+        console.error(`[void-cancelled-payments] hold-release notice for job ${job.id} not sent:`, result);
+        defects.record(`hold-release notice ${job.id}: ${result.status}${result.error ? ` (${result.error})` : ""}`);
+      }
+    };
+
     const settleCancelledJob = async (
       job: { id: string; title: string },
       patch: Record<string, unknown>,
@@ -1456,6 +1488,13 @@ serve(async (req) => {
             // crew's block fees.
             const feeCents = Math.round(cancellationFee * 100) + blockCents;
             await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
+            // Q1652: the rest of the hold goes back; tell the poster what and why.
+            const both = cancellationFee > 0 && blockCents > 0;
+            const keptParts = [
+              cancellationFee > 0 ? `${both ? `${refundDollars(Math.round(cancellationFee * 100))} ` : "the "}cancellation fee for your Helpr` : null,
+              blockCents > 0 ? `${both ? `${refundDollars(blockCents)} ` : "the fees "}for the crew spots you closed close to the start` : null,
+            ].filter((x): x is string => !!x);
+            await tellPosterHoldReleased(job, pi, Math.max(0, Number(pi.amount ?? 0) - feeCents), feeCents, keptParts.join(" and ") || null);
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -1471,6 +1510,8 @@ serve(async (req) => {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
+            // Q1652: the whole hold goes back; tell the poster.
+            await tellPosterHoldReleased(job, pi, Number(pi.amount ?? 0), 0, null);
             const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
             if (settledVoid) voided++;
             results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });

@@ -355,6 +355,7 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   offer: makeApp({ status: "pending" }, { status: "open", direct_offer_status: "pending", offered_to_helper_id: HELPER }),
   offer_expired: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: null, response_deadline: ago(1) }),
   confirm_booking: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: null }),
+  confirm_spot: makeApp({}, { status: "accepted", is_group_job: true, helper_confirmed_at: null }),
   confirmed: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4), helper_dayof_confirmed_at: ago(1) }),
   confirm_day: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4) }),
   today: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(4), date_needed: TODAY }),

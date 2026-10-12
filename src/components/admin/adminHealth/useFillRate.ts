@@ -13,7 +13,14 @@ export const useFillRate = () => {
   // period refetches without invalidating the rest of AdminHealth.
   const fillQueryKey = ["admin-fill-rate", fillDays];
   // fillLoading: the fallback below is a shell of zeros, not a reading (Q1287).
-  const { data: fillData, isFetching: fillFetching, isInitialLoading: fillLoading } = useInstantQuery<FillRateSummary>({
+  const {
+    data: fillData,
+    isFetching: fillFetching,
+    isInitialLoading: fillLoading,
+    isError: fillIsError,
+    dataUpdatedAt: fillUpdatedAt,
+    refetch: refetchFill,
+  } = useInstantQuery<FillRateSummary>({
     key: fillQueryKey,
     fallback: {
       total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
@@ -48,6 +55,15 @@ export const useFillRate = () => {
     },
   });
 
+  // A failed read is not "no data" (lh-silent-failure review of Q1287): the
+  // fallback shell above is zeros, so without these the panel said "No job
+  // data for this period yet." when get_fill_rate_stats had failed. Same
+  // never-loaded / stale split AdminHealth applies to its health reads.
+  // dataUpdatedAt is per key, so a failed read for a newly picked period
+  // counts as never loaded.
+  const fillNeverLoaded = fillIsError && !fillUpdatedAt;
+  const fillStale = fillIsError && !!fillUpdatedAt;
+
   const sortedParishes = useMemo(() => {
     if (!fillData?.parishes) return [];
     return [...fillData.parishes].sort((a, b) => {
@@ -62,5 +78,8 @@ export const useFillRate = () => {
     else { setFillSort(key); setFillSortAsc(key === "fill_rate_pct"); }
   };
 
-  return { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort };
+  return {
+    fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort,
+    fillNeverLoaded, fillStale, fillUpdatedAt, refetchFill,
+  };
 };

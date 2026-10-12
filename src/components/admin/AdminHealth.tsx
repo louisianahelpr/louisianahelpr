@@ -76,7 +76,10 @@ const AdminHealth = () => {
   const qc = useQueryClient();
   const [sendingTestPush, setSendingTestPush] = useState(false);
 
-  const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort } = useFillRate();
+  const {
+    fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort,
+    fillNeverLoaded, fillStale, fillUpdatedAt, refetchFill,
+  } = useFillRate();
   const { data: configChecks } = useConfigChecks();
   const { data: cronChecks } = useCronHealth();
   const { data: openAlerts } = useOpenAlerts();
@@ -445,6 +448,23 @@ const AdminHealth = () => {
           }
           contentClassName="space-y-4"
         >
+          {/* A failed read is not "no data": never loaded shows an error with
+              retry instead of the fallback's "—" and zeros; loaded earlier
+              keeps the last reading, marked stale (same rule as Platform
+              Status above). */}
+          {fillStale && (
+            <p className="text-ds-12 font-medium text-destructive" role="status">
+              Couldn't refresh the fill rate. The numbers below are from {new Date(fillUpdatedAt).toLocaleTimeString()}.
+            </p>
+          )}
+          {fillNeverLoaded ? (
+            <ErrorState
+              variant="inline"
+              title="Couldn't load the fill rate"
+              body="The read behind these numbers failed, so none of them is shown rather than zeros."
+              onRetry={() => void refetchFill()}
+            />
+          ) : (<>
           {/* 3 stat cards */}
           <div className="grid grid-cols-3 gap-2 text-ds-13">
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
@@ -524,6 +544,7 @@ const AdminHealth = () => {
           {!fillLoading && sortedParishes.length === 0 && fillData.total_jobs === 0 && (
             <p className="text-ds-11 text-muted-foreground">No job data for this period yet.</p>
           )}
+          </>)}
         </AdminCard>
       )}
 

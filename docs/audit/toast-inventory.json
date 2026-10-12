@@ -3480,7 +3480,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 237,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3490,7 +3490,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 247,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "template",

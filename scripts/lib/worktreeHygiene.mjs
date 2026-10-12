@@ -7,7 +7,10 @@
  * worktree under <main>/.claude/worktrees/ is now unlocked and removed once its
  * agent has provably finished:
  *   - its HEAD has no commit outside origin/main (`rev-list --count` is 0, or
- *     `git cherry` shows every commit already upstream by patch-id);
+ *     `git cherry` shows every commit already upstream by patch-id, or its
+ *     CONTENT is on main: scripts/lib/strandedContent.mjs strict
+ *     `contentLanded`, the same test `npm run stranded` uses, so a HEAD
+ *     re-landed by hand/squash is not kept forever);
  *   - `git status --porcelain` is empty (tracked AND untracked);
  *   - no process has its cwd inside it (lsof/ps, injected by the caller);
  *   - the pid named in its lock reason, if any, is not running;
@@ -20,6 +23,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, statSync, realpathSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
+import { makeContentJudge, contentLanded, contentNote } from "./strandedContent.mjs";
 
 export const AGENT_WORKTREE_DIR = join(".claude", "worktrees");
 
@@ -60,8 +64,10 @@ export function classifyWorktree(f, minAgeMs) {
   if (f.statusError) return { action: "skip", reason: `git status failed: ${f.statusError}` };
   if (f.dirty > 0) return { action: hold, reason: `uncommitted/untracked changes (${f.dirty} path(s))` };
   if (f.ahead === null) return { action: "skip", reason: "rev-list failed" };
-  const merged = f.ahead === 0 || f.allUpstream === true;
-  if (!merged) return { action: hold, reason: `${f.ahead} commit(s) not in origin/main` };
+  const merged = f.ahead === 0 || f.allUpstream === true || f.contentLanded === true;
+  if (!merged) {
+    return { action: hold, reason: `${f.ahead} commit(s) not in origin/main${f.contentNote ? ` (${f.contentNote})` : ""}` };
+  }
   if (f.cwdInside) return { action: "skip", reason: "a running process has its cwd inside it" };
   if (f.locked && f.lockPid !== null && f.lockPidAlive) {
     return { action: "skip", reason: `its lock holder (pid ${f.lockPid}) is still running` };
@@ -137,11 +143,13 @@ export function pidAlive(pid) {
  * @param {string} [o.base]
  * @param {(pid: number) => boolean} [o.pidAlive]
  * @param {() => boolean} [o.outOfTime]
+ * @param {(ref: string) => object} [o.contentOf] strict content judge (default: makeContentJudge(repo, base))
  */
 export function planWorktreeCleanup(repo, o) {
   const nowMs = o.nowMs ?? Date.now();
   const minAgeMs = o.minAgeMs ?? 120 * 60_000;
   const base = o.base ?? "origin/main";
+  const contentOf = o.contentOf ?? makeContentJudge(repo, base);
   const alive = o.pidAlive ?? pidAlive;
   const common = gitIn(repo, ["rev-parse", "--git-common-dir"]);
   if (!common.ok) throw new Error(`not a git repo: ${common.out}`);
@@ -173,6 +181,8 @@ export function planWorktreeCleanup(repo, o) {
       statusError: null,
       ahead: null,
       allUpstream: false,
+      contentLanded: false,
+      contentNote: "",
       cwdInside: false,
       lockPid: lockPid(wt.lockReason),
       lockPidAlive: false,
@@ -188,6 +198,19 @@ export function planWorktreeCleanup(repo, o) {
       if (f.ahead > 0) {
         const ch = gitIn(wt.path, ["cherry", base, "HEAD"]);
         f.allUpstream = ch.ok && ch.out !== "" && ch.out.split("\n").every((l) => l.startsWith("-"));
+      }
+      // Patch-ids say not landed: let CONTENT decide (only for a clean tree;
+      // uncommitted work is kept whatever its HEAD holds).
+      if (f.ahead > 0 && !f.allUpstream && f.dirty === 0 && !f.statusError) {
+        const head = gitIn(wt.path, ["rev-parse", "HEAD"]);
+        try {
+          if (!head.ok) throw new Error(head.out);
+          const r = contentOf(head.out);
+          f.contentLanded = contentLanded(r);
+          if (!f.contentLanded) f.contentNote = contentNote(r);
+        } catch (e) {
+          f.contentNote = `content check failed: ${String(e.message || e).split("\n")[0]}`;
+        }
       }
       f.cwdInside = cwdInside(p);
       f.lockPidAlive = f.lockPid !== null && alive(f.lockPid);

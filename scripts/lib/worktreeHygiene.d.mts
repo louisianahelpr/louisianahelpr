@@ -1,7 +1,9 @@
+import type { ContentResult } from "./strandedContent.mjs";
 export interface WorktreeEntry { path: string; locked: boolean; lockReason: string; prunable: boolean; branch: string | null; bare: boolean }
 export interface WorktreeFacts {
   bare: boolean; locked: boolean; agentOwned: boolean; prunable: boolean; exists: boolean;
   dirty: number; statusError: string | null; ahead: number | null; allUpstream: boolean;
+  contentLanded?: boolean; contentNote?: string;
   cwdInside: boolean; lockPid: number | null; lockPidAlive: boolean; ageMs: number | null;
 }
 export interface WorktreeDecision { action: "remove" | "report" | "skip"; unlock?: boolean; reason?: string }
@@ -18,6 +20,9 @@ export function classifyWorktree(f: WorktreeFacts, minAgeMs: number): WorktreeDe
 export function pidAlive(pid: number): boolean;
 export function planWorktreeCleanup(
   repo: string,
-  o: { cwds: string[] | null; nowMs?: number; minAgeMs?: number; base?: string; pidAlive?: (pid: number) => boolean; outOfTime?: () => boolean },
+  o: {
+    cwds: string[] | null; nowMs?: number; minAgeMs?: number; base?: string; pidAlive?: (pid: number) => boolean;
+    outOfTime?: () => boolean; contentOf?: (ref: string) => ContentResult;
+  },
 ): WorktreePlan;
 export function applyWorktreePlan(repo: string, plan: WorktreePlan): { removed: string[]; refused: { path: string; reason: string }[] };

@@ -7,7 +7,7 @@
  * liveness probe injected.
  */
 // @mutate scripts/lib/worktreeHygiene.mjs |   if (f.locked && !f.agentOwned) return | if (f.locked) return
-// @mutate scripts/lib/worktreeHygiene.mjs |   const merged = f.ahead === 0 \|\| f.allUpstream === true; |   const merged = true;
+// @mutate scripts/lib/worktreeHygiene.mjs |   const merged = f.ahead === 0 \|\| f.allUpstream === true \|\| f.contentLanded === true; |   const merged = true;
 // @mutate scripts/lib/worktreeHygiene.mjs |   if (f.dirty > 0) return { action: hold, | if (false) return { action: hold,
 // @mutate scripts/lib/worktreeHygiene.mjs |   if (f.cwdInside) return | if (false) return
 // @mutate scripts/lib/worktreeHygiene.mjs |   if (f.locked && f.lockPid !== null && f.lockPidAlive) { |   if (false) {

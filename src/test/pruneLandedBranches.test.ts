@@ -7,7 +7,7 @@
  * branches and deleted 0. Runs scripts/lib/branchHygiene.mjs against a real
  * fixture repo (bare origin + clone).
  */
-// @mutate scripts/lib/branchHygiene.mjs |   const landed = f.merged \|\| f.unlanded === 0; |   const landed = f.merged;
+// @mutate scripts/lib/branchHygiene.mjs |   const landed = f.merged \|\| f.unlanded === 0 \|\| f.contentLanded === true; |   const landed = f.merged \|\| f.contentLanded === true;
 // @mutate scripts/lib/branchHygiene.mjs |   if (f.checkedOut) return | if (false) return
 // @mutate scripts/lib/branchHygiene.mjs |   if (f.ageMs !== null && f.ageMs < minAgeMs) { |   if (false) {
 // @mutate scripts/lib/branchHygiene.mjs |         : gitIn(repo, ["update-ref", "-d", `refs/heads/${d.branch}`, d.sha]); |         : gitIn(repo, ["update-ref", "-d", `refs/heads/${d.branch}`]);
@@ -111,7 +111,9 @@ describe("rebase-landed branches are cleaned up; unlanded ones are kept", () => 
 
   it("a branch with one patch not on main is still skipped, and says which", () => {
     const p = plan();
-    expect(skipReason(p, "one-unlanded")).toMatch(/^1 patch\(es\) not on origin\/main: add u\.txt$/);
+    // A new file's short line ("unlanded") is under the 12-char significance
+    // floor, so the strict content check (pruneByContent.test.ts) keeps it too.
+    expect(skipReason(p, "one-unlanded")).toMatch(/^1 patch\(es\) not on origin\/main: add u\.txt \(by content: 1 short line/);
   });
 
   it("keeps the other safety skips: checked out, and the age gate", () => {

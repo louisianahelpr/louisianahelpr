@@ -7,19 +7,27 @@
  * rebase-landed branch read as "unlanded" and was kept forever: on 2026-10-02 a
  * run skipped 24 branches and deleted none.
  *
- * A branch is LANDED when either
+ * A branch is LANDED when any of
  *   - its tip is an ancestor of origin/main (the old --merged rule), or
  *   - `git cherry origin/main <branch>` prints no `+` line, i.e. every commit on
- *     it is patch-equivalent to a commit already on origin/main.
- * It is deleted only if it is landed, is not main/master, is not checked out in
- * any worktree, and its reflog was last touched more than MIN_AGE ago. An
- * ancestor branch goes through `git branch -d` (as before); a patch-landed one
- * through `git update-ref -d refs/heads/<b> <sha>`, which refuses if the branch
- * moved after it was checked. Never `branch -D`, never --force.
+ *     it is patch-equivalent to a commit already on origin/main, or
+ *   - its CONTENT is on main (scripts/lib/strandedContent.mjs, strict
+ *     `contentLanded`): every added line is on main and every deletion landed.
+ *     Patch-ids miss work re-landed by hand, split, squashed or edited on the
+ *     way: on 2026-10-12 hygiene kept 118 branches by patch-id while
+ *     `stranded-work.mjs --local` found lines off main in only 94 items, so the
+ *     rest were never cleaned and the list never shrank.
+ * It is deleted only if it is landed, is not main/master, is not a claim/*
+ * branch (a lane's lock), is not checked out in any worktree, and its reflog
+ * was last touched more than MIN_AGE ago. An ancestor goes through
+ * `git branch -d` (as before); a patch- or content-landed one through
+ * `git update-ref -d refs/heads/<b> <sha>`, which refuses if the branch moved
+ * after it was checked. Never `branch -D`, never --force.
  */
 import { execFileSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { makeContentJudge, contentLanded, contentNote } from "./strandedContent.mjs";
 
 function gitIn(cwd, argv, timeout = 30_000) {
   try {
@@ -40,22 +48,24 @@ function gitIn(cwd, argv, timeout = 30_000) {
 /**
  * Decide one branch from gathered facts.
  * f: { name, merged: boolean, unlanded: number | null, unlandedSubjects: string[],
- *      checkedOut: boolean, ageMs: number | null }
- * @returns {{action: "delete" | "skip", how?: "merged" | "patch", reason?: string}}
+ *      contentLanded?: boolean, contentNote?: string, checkedOut: boolean, ageMs: number | null }
+ * @returns {{action: "delete" | "skip", how?: "merged" | "patch" | "content", reason?: string}}
  */
 export function classifyBranch(f, minAgeMs) {
   if (f.name === "main" || f.name === "master") return { action: "skip", reason: "the main branch" };
-  if (f.unlanded === null && !f.merged) return { action: "skip", reason: "git cherry failed" };
-  const landed = f.merged || f.unlanded === 0;
+  if (f.name.startsWith("claim/")) return { action: "skip", reason: "a claim/* branch (a lane's lock)" };
+  if (f.unlanded === null && !f.merged && f.contentLanded !== true) return { action: "skip", reason: "git cherry failed" };
+  const landed = f.merged || f.unlanded === 0 || f.contentLanded === true;
   if (!landed) {
     const subj = f.unlandedSubjects.slice(0, 3).join("; ");
-    return { action: "skip", reason: `${f.unlanded} patch(es) not on origin/main${subj ? `: ${subj}` : ""}` };
+    const note = f.contentNote ? ` (${f.contentNote})` : "";
+    return { action: "skip", reason: `${f.unlanded} patch(es) not on origin/main${subj ? `: ${subj}` : ""}${note}` };
   }
   if (f.checkedOut) return { action: "skip", reason: "checked out in a worktree" };
   if (f.ageMs !== null && f.ageMs < minAgeMs) {
     return { action: "skip", reason: `created/moved ${Math.round(f.ageMs / 60_000)}m ago (< ${minAgeMs / 60_000}m)` };
   }
-  return { action: "delete", how: f.merged ? "merged" : "patch" };
+  return { action: "delete", how: f.merged ? "merged" : f.unlanded === 0 ? "patch" : "content" };
 }
 
 /**
@@ -67,9 +77,11 @@ export function classifyBranch(f, minAgeMs) {
  * @param {number} [o.minAgeMs]
  * @param {number} [o.nowMs]
  * @param {() => boolean} [o.outOfTime]
+ * @param {(ref: string) => object} [o.contentOf] strict content judge (default: makeContentJudge(repo, base))
  */
 export function planBranchCleanup(repo, o) {
   const base = o.base ?? "origin/main";
+  const contentOf = o.contentOf ?? makeContentJudge(repo, base);
   const minAgeMs = o.minAgeMs ?? 120 * 60_000;
   const nowMs = o.nowMs ?? Date.now();
   const common = gitIn(repo, ["rev-parse", "--git-common-dir"]);
@@ -99,13 +111,28 @@ export function planBranchCleanup(repo, o) {
         unlandedSubjects = plus.map((l) => l.replace(/^\+ [0-9a-f]+ /, ""));
       }
     }
+    // Patch-ids say not landed (or could not tell): let CONTENT decide.
+    let cLanded = false;
+    let cNote = "";
+    if (!merged && unlanded !== 0 && !name.startsWith("claim/")) {
+      try {
+        const r = contentOf(sha);
+        cLanded = contentLanded(r);
+        if (!cLanded) cNote = contentNote(r);
+      } catch (e) {
+        cNote = `content check failed: ${String(e.message || e).split("\n")[0]}`;
+      }
+    }
     let ageMs = null;
     try {
       ageMs = nowMs - statSync(join(commonDir, "logs", "refs", "heads", ...name.split("/"))).mtimeMs;
     } catch {
       /* no reflog: age unknown, as before */
     }
-    const f = { name, merged, unlanded, unlandedSubjects, checkedOut: o.checkedOut.has(name), ageMs };
+    const f = {
+      name, merged, unlanded, unlandedSubjects, contentLanded: cLanded, contentNote: cNote,
+      checkedOut: o.checkedOut.has(name), ageMs,
+    };
     const d = classifyBranch(f, minAgeMs);
     if (d.action === "delete") plan.delete.push({ branch: name, sha, how: d.how });
     else plan.skip.push({ branch: name, sha, reason: d.reason, unlanded, unlandedSubjects });
@@ -113,7 +140,7 @@ export function planBranchCleanup(repo, o) {
   return plan;
 }
 
-/** Carry out plan.delete. Ancestors: `branch -d`; patch-landed: compare-and-delete the ref. */
+/** Carry out plan.delete. Ancestors: `branch -d`; patch- or content-landed: compare-and-delete the ref. */
 export function applyBranchPlan(repo, plan) {
   const deleted = [];
   const refused = [];

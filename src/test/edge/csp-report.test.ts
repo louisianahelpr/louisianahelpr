@@ -121,8 +121,8 @@ describe("csp-report", () => {
   // Q1716: only the exact Vercel Toolbar host is noise; a lookalike is a real
   // violation and is still stored.
   // @mutate supabase/functions/csp-report/report.ts | NOISE_HOSTS.has(parsed.hostname) | parsed.hostname.startsWith("vercel.live")
-  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS | parsed.port === "" && NOISE_HOSTS
-  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS | parsed.protocol === "https:" && NOISE_HOSTS
+  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && !parsed.port && NOISE_HOSTS | !parsed.port && NOISE_HOSTS
+  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && !parsed.port && NOISE_HOSTS | parsed.protocol === "https:" && NOISE_HOSTS
   it.each([
     ["a lookalike host", "https://vercel.live.evil.example/feedback.js"],
     ["plain http", "http://vercel.live/_next-live/feedback/feedback.js"],

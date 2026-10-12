@@ -20,7 +20,7 @@
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |   IF NOT public.has_role(_uid, 'admin') THEN |   IF false THEN
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |      OR _d.execution_status NOT IN ('failed', 'executing') THEN |      OR false THEN
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |   IF EXISTS (SELECT 1 FROM public.payout_transfers t |   IF false AND EXISTS (SELECT 1 FROM public.payout_transfers t
- * @mutate supabase/functions/execute-dispute-split/index.ts |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes)" }, |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },
+ * @mutate supabase/functions/execute-dispute-split/index.ts |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes; when the books already record a test-mode refund or transfer, the admin presses Clear test-mode records and re-open)" }, |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },
  *
  * Q1383 (lh-authz-rls review of Q1280): the REFUND-side twin,
  * rpc_clear_test_mode_dispute_refund_stamp (20261012194318_clear_test_mode_dispute_refund_stamp.sql), because markFailed stamps
@@ -38,6 +38,24 @@
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |      AND COALESCE(_d.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl() THEN |      AND false THEN
  * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |   IF _uid = _customer OR _uid = _helper THEN |   IF false THEN
  * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql | REVOKE ALL ON FUNCTION public.rpc_clear_test_mode_dispute_refund_stamp(uuid, text, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_clear_test_mode_dispute_refund_stamp(uuid, text, text) FROM anon;
+ *
+ * Q1732 (owner decision 2026-10-12): the admin button for a test-mode refund
+ * or transfer the BOOKS already record (payment_refunds / payout_transfers),
+ * which both stamp clears refuse by design. clear_test_mode_dispute_ledger
+ * (20261012215235_clear_test_mode_dispute_ledger.sql) is service_role only;
+ * the Stripe check lives in execute-dispute-split's clearTestModeRecords.ts.
+ * Behaviour: src/test/pglite/testModeDisputeLedgerClears.pglite.mjs (ALL PASS
+ * applied 3x; 26 FAIL without it); the edge half:
+ * src/test/edge/clearTestModeDisputeRecords.test.ts.
+ *
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |   IF _admin IS NULL OR NOT public.has_role(_admin, 'admin') THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |   IF _admin = _customer OR _admin = _helper THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |   IF _refunds_now IS DISTINCT FROM _refunds_checked |   IF false
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |      OR _transfers_now IS DISTINCT FROM _transfers_checked THEN |      OR false THEN
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql | REVOKE ALL ON FUNCTION public.clear_test_mode_dispute_ledger(uuid, uuid, text[], text[], text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.clear_test_mode_dispute_ledger(uuid, uuid, text[], text[], text) FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |                 AND t.stripe_transfer_id IS NULL) THEN |                 AND false) THEN
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |      OR _d.execution_status NOT IN ('failed', 'executing') THEN |      OR false THEN
+ * @mutate supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql |             OR c.money_step_at IS NOT NULL) |             )
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -106,6 +124,33 @@ describe("Q1280: a test-mode dispute stamp has a hand path out", () => {
     expect(code("rpc_supersede_dispute_decision")).toMatch(/OR _d\.execution_refund_id IS NOT NULL/);
     const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql"), "utf8"));
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.rpc_clear_test_mode_dispute_refund_stamp\(uuid, text, text\) FROM PUBLIC, anon;/);
+  });
+
+  it("Q1732: the ledger clear is service_role only and keeps every money gate", () => {
+    const c = code("clear_test_mode_dispute_ledger");
+    expect(c).toMatch(/SECURITY DEFINER/i);
+    expect(c).toMatch(/IF _admin IS NULL OR NOT public\.has_role\(_admin, 'admin'\) THEN RAISE/);
+    expect(c).toMatch(/IF _admin = _customer OR _admin = _helper THEN RAISE/);
+    expect(c).toMatch(/IF _refunds_now IS DISTINCT FROM _refunds_checked OR _transfers_now IS DISTINCT FROM _transfers_checked THEN RAISE EXCEPTION 'clear_ledger_changed'/);
+    expect(c).toMatch(/AND t\.stripe_transfer_id IS NULL\) THEN RAISE EXCEPTION 'clear_ledger_unverifiable'/);
+    expect(c).toMatch(/OR _d\.execution_status NOT IN \('failed', 'executing'\) THEN RAISE/);
+    expect(c).toMatch(/NOT IN \('escrow', 'payout_pending'\) THEN RAISE/);
+    expect(c).toMatch(/OR c\.money_step_at IS NOT NULL\)/);
+    expect(c).toMatch(/AND COALESCE\(_d\.execution_started_at, now\(\)\) >= now\(\) - public\.dispute_settlement_claim_ttl\(\) THEN RAISE EXCEPTION 'dispute_settlement_in_progress'/);
+    // Audit row (with every removed row) before anything is removed.
+    expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeGreaterThan(0);
+    expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeLessThan(c.indexOf("DELETE FROM public.payment_refunds"));
+    expect(c).toMatch(/'removed_payment_refunds', _removed_refunds/);
+    const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations/20261012215235_clear_test_mode_dispute_ledger.sql"), "utf8"));
+    expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.clear_test_mode_dispute_ledger\(uuid, uuid, text\[\], text\[\], text\) FROM PUBLIC, anon, authenticated;/);
+    expect(mig).not.toMatch(/GRANT [^;]*clear_test_mode_dispute_ledger[^;]*\b(?:anon|authenticated)\b/);
+    // The edge branch is the only caller, and it checks at Stripe first.
+    const branch = blankComments(readFileSync(resolve(ROOT, "supabase/functions/execute-dispute-split/clearTestModeRecords.ts"), "utf8"));
+    expect(branch).toMatch(/isTestObjectUnderLiveKey\(e\)/);
+    expect(branch.indexOf("refunds.retrieve")).toBeGreaterThan(0);
+    expect(branch.indexOf("refunds.retrieve")).toBeLessThan(branch.indexOf('rpc("clear_test_mode_dispute_ledger"'));
+    expect(branch).toMatch(/adminClient\.rpc\("rpc_supersede_dispute_decision"/);
+    expect(branch).not.toMatch(/markFailed\(/);
   });
 
   it("supersede still reads a stamp as money moved", () => {

@@ -68,24 +68,23 @@ export async function clearTestModeRecords(args: {
     supabaseAdmin
       .from("payment_refunds")
       .select("stripe_refund_id")
-      .eq("job_id", dispute.job_id)
-      .returns<{ stripe_refund_id: string }[]>(),
+      .eq("job_id", dispute.job_id),
     supabaseAdmin
       .from("payout_transfers")
       .select("stripe_transfer_id, status")
       .eq("job_id", dispute.job_id)
-      .in("status", MONEY_TRANSFER_STATES)
-      .returns<{ stripe_transfer_id: string | null; status: string }[]>(),
+      .in("status", MONEY_TRANSFER_STATES),
   ]);
   if (refundsRes.error || transfersRes.error) {
     return { status: 500, body: { error: "could not read this job's refund and transfer records — retry" } };
   }
-  const transferRows = transfersRes.data ?? [];
+  const refundRows = (refundsRes.data ?? []) as { stripe_refund_id: string }[];
+  const transferRows = (transfersRes.data ?? []) as { stripe_transfer_id: string | null; status: string }[];
   if (transferRows.some((t) => !t.stripe_transfer_id)) {
     return { status: 409, body: { error: "a transfer record on this job has no Stripe id, so it cannot be checked — reconcile it by hand" } };
   }
   const refundIds = [...new Set([
-    ...(refundsRes.data ?? []).map((r) => r.stripe_refund_id),
+    ...refundRows.map((r) => r.stripe_refund_id),
     ...(dispute.execution_refund_id ? [dispute.execution_refund_id] : []),
   ])].sort();
   const transferIds = [...new Set([

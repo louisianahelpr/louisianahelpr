@@ -153,8 +153,27 @@ export function parseReports(contentType: string | null, body: string): ParseRes
 const NOISE_URL = /^(moz-extension|chrome-extension|safari-extension|safari-web-extension|ms-browser-extension|webkit-masked-url|about|data):/i;
 const NOISE_KEYWORD = /^(about|data)$/i;
 
+// The Vercel Toolbar: Vercel injects https://vercel.live/_next-live/feedback/
+// feedback.js into our pages for anyone signed in to Vercel, our CSP (rightly)
+// blocks it, and the browser reports it. Nothing of ours loads from vercel.live
+// (vercel.json's CSP never names it), so a report blocking it is never about
+// the app. Measured 2026-10-12: all 115 stored csp rows (10-05..10-12) were this
+// one script (Q1716), so a real violation sat beside daily noise.
+const NOISE_HOSTS = new Set(["vercel.live"]);
+
+function noisyHost(u: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    return false; // not a URL: the scheme checks above decide it
+  }
+  // Default port only, the same as isOurDocument below.
+  return parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS.has(parsed.hostname);
+}
+
 function noisy(u: string): boolean {
-  return NOISE_URL.test(u) || NOISE_KEYWORD.test(u);
+  return NOISE_URL.test(u) || NOISE_KEYWORD.test(u) || noisyHost(u);
 }
 
 // The only documents that carry our CSP (and so the only ones a browser

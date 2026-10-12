@@ -454,6 +454,8 @@ serve(async (req) => {
     // notification type is transactional — a job update, a payment, a message
     // — and must never carry an unsubscribe control, because a mail client
     // will happily use one to opt a user out of their own account notices.
+    // The one exception is `job_match` (below), whose control is scoped to
+    // that email alone.
     //
     // A promotion, on the other hand, is commercial mail and needs the same
     // treatment as a campaign: the marketing footer with a signed one-click
@@ -461,6 +463,17 @@ serve(async (req) => {
     // `promotion` notification today, so this is a hole being closed before
     // it is used rather than a live defect.
     const isCommercial = category === 'promotions'
+    // Q1585 (owner, 2026-10-12): every member gets the "new job posted" email
+    // for every new job, so mailbox providers treat it as bulk mail. It carries
+    // RFC 8058 one-click List-Unsubscribe headers whose signed link turns off
+    // exactly that email (email_job_matches, the switch on the Notifications
+    // screen) and nothing else; no marketing footer, it is not commercial.
+    const isJobMatch = category === 'job_matches'
+    const listHeaders = isCommercial
+      ? await unsubscribeHeaders(profile.email)
+      : isJobMatch
+        ? await unsubscribeHeaders(profile.email, 'job_matches')
+        : null
     const unsubscribeUrl = isCommercial
       ? ((await buildUnsubscribeUrl(profile.email)) ?? undefined)
       : undefined
@@ -482,7 +495,7 @@ serve(async (req) => {
       text,
       message_id: messageId,
       template_name: `notification_${category}`,
-      ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
+      ...(listHeaders ? { headers: listHeaders } : {}),
     }
 
     const { error: pendingLogError } = await supabase.from('email_send_log').insert({
@@ -540,7 +553,7 @@ serve(async (req) => {
           // fallback would ship a commercial promotion with the footer link
           // but no native unsubscribe control — the two paths must not differ
           // in what the recipient can do about the mail.
-          ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
+          ...(listHeaders ? { headers: listHeaders } : {}),
         })
         const { error: sentLogError } = await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
         if (sentLogError) console.error('email_send_log sent update failed:', sentLogError.message)

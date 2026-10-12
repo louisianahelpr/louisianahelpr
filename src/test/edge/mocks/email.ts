@@ -33,10 +33,26 @@ export const buildUnsubscribeUrl = vi.fn(
     `https://app.test/unsubscribe?e=${encodeURIComponent(email)}`,
 );
 
-export const unsubscribeHeaders = vi.fn(async (recipientEmail?: string) => ({
-  "List-Unsubscribe": `<https://app.test/unsubscribe?e=${encodeURIComponent(recipientEmail ?? "")}>`,
+export const unsubscribeHeaders = vi.fn(async (recipientEmail?: string, list: "promotions" | "job_matches" = "promotions") => ({
+  "List-Unsubscribe": `<https://app.test/unsubscribe?e=${encodeURIComponent(recipientEmail ?? "")}${list === "promotions" ? "" : `&list=${list}`}>`,
   "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 }));
+
+/**
+ * email-unsubscribe's side. A token "verifies" when its sig is `ok-<list>`, so
+ * a test can hand the handler a link signed for one list and present it as
+ * another. The real HMAC and its list scoping are tested directly against
+ * `_shared/unsubscribe.ts` (src/test/edge/jobMatchListUnsubscribe.test.ts).
+ */
+export const verifyUnsubscribeToken = vi.fn(
+  async (e: string | null, sig: string | null, list: "promotions" | "job_matches" = "promotions"): Promise<string | null> =>
+    e && sig === `ok-${list}` ? e.toLowerCase() : null,
+);
+export const unsubscribeSigningConfigured = vi.fn(() => true);
+export const unsubscribeListFrom = (value: string | null): "promotions" | "job_matches" =>
+  value === "job_matches" ? "job_matches" : "promotions";
+export const SUPPORT_EMAIL = "admin@louisianahelpr.test";
+export const LOGO_URL = "https://app.test/logo.png";
 
 export const renderEmail = vi.fn(async (element: unknown) => {
   emailRenders.push(element);

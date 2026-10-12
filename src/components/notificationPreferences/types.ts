@@ -43,9 +43,10 @@ export interface Prefs {
       producers fired. Defaults true — nobody loses matches silently. */
   job_matches: boolean;
   email_job_matches: boolean;
-  /** When true, non-urgent job matches are batched into a daily
-      digest instead of being pushed individually. Urgent jobs always
-      fire realtime regardless. */
+  /** RETIRED for job matches (Q1585, owner 2026-10-12): the "Daily Match
+      Digest" switch is gone, the server ignores this column for job matches
+      and a trigger holds it false. Kept so the row type still matches the
+      table (and older builds that still send it). */
   match_digest_mode: boolean;
   /** Opt-in (default FALSE): "<Helpr> updated availability" nudges for saved
       Helprs, sent by the saved-helper-availability-push cron. A STANDALONE

@@ -260,8 +260,9 @@ async function openActivity(page: Page, url: string) {
 /**
  * OWNER, 2026-09-25 (iPhone screenshots of My Posts, My Jobs, Messages): "This
  * should open with the chevrons collapsed. Not expanded." On a phone the row
- * now arrives FOLDED on the default filter and one press on the chevron opens
- * it; a non-default filter still arrives open. This presses it open.
+ * now arrives FOLDED and one press on the chevron opens it. Since 2026-10-08
+ * ("Post and job at the top should open collapsed") that holds for EVERY
+ * filter, not only the default one. This presses it open.
  */
 async function unfold(page: Page, closedLabel: string) {
   const chevron = page.locator(`button[aria-expanded="false"][aria-label="${closedLabel}"]`);
@@ -270,9 +271,6 @@ async function unfold(page: Page, closedLabel: string) {
     await page.waitForTimeout(250);
   }
 }
-
-/** The default Activity bucket — the one a plain /posts or /jobs lands on. */
-const DEFAULT_BUCKET = "needs_you";
 
 /**
  * THE CLAIM, at one width on one screen: the row is there and every one of
@@ -403,10 +401,17 @@ test("every bucket on both Activity screens keeps its tabs, empty or full @375",
     for (const route of ROUTES) {
       for (const key of BUCKETS) {
         await openActivity(page, `${route.url}?filter=${key}`);
-        // The default bucket arrives folded on a phone (owner, 2026-09-25);
-        // every OTHER bucket must arrive open, so an active filter is never
-        // hidden. Only the default one is pressed open.
-        if (key === DEFAULT_BUCKET) await unfold(page, "Filter by status");
+        // EVERY bucket arrives folded on a phone (owner, 2026-10-08: "Post and
+        // job at the top should open collapsed for their top panels"; it
+        // superseded the 2026-09-25 rule that a non-default filter arrives
+        // open, which this loop still asserted and failed on in prod-audit run
+        // 38181023758). Arriving folded is checked, then one press opens it.
+        const arrived = await readTabs(page);
+        expect(
+          arrived.collapsedBy,
+          `${route.url}?filter=${key}@375: the status tabs arrived OPEN; the owner asked on 2026-10-08 for them to open collapsed`,
+        ).not.toBeNull();
+        await unfold(page, "Filter by status");
         const shot = await readTabs(page);
         // "Populated" is read off the row itself, in the SAME DOM snapshot as
         // the boxes above (a second evaluate later races the count query and

@@ -2,7 +2,7 @@ import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "rea
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Search, Plus, Bell } from "lucide-react";
+import { Search, Plus, Bell, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -465,12 +465,12 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : savedOnly && visibleJobs.length === 0 ? (
-        /* Saved-only with nothing saved. Handled BEFORE the generic empty
-           state below, which reads `filters.filteredJobs` — that list is full
-           (there are jobs, they just aren't saved), so without this branch the
-           feed rendered an empty panel with no explanation at all. */
+        /* Saved-only with nothing saved: an EMPTY state, before the generic one below
+           (which reads the full `filters.filteredJobs`). Never ErrorState: it reports
+           every render as a person's error screen, which paged ops (Q1645). */
         <div className="px-3 pt-4 flex-1 min-h-0 flex">
-          <ErrorState
+          <EmptyState
+            icon={Bookmark}
             title="Nothing saved yet"
             body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
           />

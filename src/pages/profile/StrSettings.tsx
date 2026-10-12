@@ -32,6 +32,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
+import { ReadyTurnovers } from "./strSettings/ReadyTurnovers";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
 import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
 import { userFacingError } from "@/lib/userFacingError";
@@ -313,6 +314,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
               />
             ) : (
               <>
+                {connections.length > 0 && <ReadyTurnovers />}
                 {connections.length > 0 && (
                   <div className="space-y-3">
                     {connections.map((conn) => (

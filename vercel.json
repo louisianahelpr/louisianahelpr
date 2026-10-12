@@ -100,7 +100,7 @@
       "destination": "/api/share?_og=noindex&_id=account-banned"
     },
     {
-      "source": "/((?!api/|_vercel/).*)",
+      "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
       "destination": "/index.html"
     }
   ],

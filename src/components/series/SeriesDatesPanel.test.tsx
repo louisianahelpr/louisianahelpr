@@ -17,6 +17,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter, useLocation } from "react-router-dom";
 
 type Rows = { data: unknown; error: unknown };
 const tables = vi.hoisted(() => ({ value: {} as Record<string, Rows> }));
@@ -38,11 +39,19 @@ import { SeriesDatesPanel } from "./SeriesDatesPanel";
 import { fetchSeriesDates, foldSeriesDates } from "@/lib/seriesDates";
 
 const ME = "helpr-me";
+
+/** Where the poster's Message took them (owner, 2026-10-11). */
+function LocationProbe() {
+  const loc = useLocation();
+  return <output data-testid="location">{loc.pathname + loc.search}</output>;
+}
 const OTHER = "helpr-other";
 
 function renderPanel(props: Partial<React.ComponentProps<typeof SeriesDatesPanel>> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
+    <MemoryRouter>
+    <LocationProbe />
     <QueryClientProvider client={client}>
       <SeriesDatesPanel
         jobId="p1"
@@ -56,7 +65,8 @@ function renderPanel(props: Partial<React.ComponentProps<typeof SeriesDatesPanel
         splitOk
         {...props}
       />
-    </QueryClientProvider>,
+    </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -182,6 +192,9 @@ describe("SeriesDatesPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: /1 of 3 upcoming dates have a Helpr · 2 open/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Offer dates" }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("offer_series_dates", { p_job_id: "p1", p_helper_id: "applicant-1" }));
+    // ...and can message them first (owner, 2026-10-11): the job's thread with that applicant.
+    fireEvent.click(screen.getByRole("button", { name: /^Message / }));
+    expect(screen.getByTestId("location").textContent).toBe("/messages?jobId=p1&userId=applicant-1");
   });
 
   it("picking sends only the open dates ticked, never one of the viewer's own", async () => {

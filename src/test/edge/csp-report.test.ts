@@ -118,6 +118,34 @@ describe("csp-report", () => {
     expect(rateLimitCalls).toEqual([expect.objectContaining({ keyPrefix: "csp-report", maxRequests: 20 })]);
   });
 
+  // Q1716: only the exact Vercel Toolbar host is noise; a lookalike is a real
+  // violation and is still stored.
+  // @mutate supabase/functions/csp-report/report.ts | NOISE_HOSTS.has(parsed.hostname) | parsed.hostname.startsWith("vercel.live")
+  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS | parsed.port === "" && NOISE_HOSTS
+  // @mutate supabase/functions/csp-report/report.ts | parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS | parsed.protocol === "https:" && NOISE_HOSTS
+  it.each([
+    ["a lookalike host", "https://vercel.live.evil.example/feedback.js"],
+    ["plain http", "http://vercel.live/_next-live/feedback/feedback.js"],
+    ["a non-default port", "https://vercel.live:8443/_next-live/feedback/feedback.js"],
+  ])("keeps %s that only looks like the Vercel Toolbar", async (_label, blocked) => {
+    const fn = await load();
+    const res = await post(fn, legacy({ "blocked-uri": blocked }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(1);
+  });
+
+  // A violation RAISED BY the toolbar's script (its source file is on
+  // vercel.live) is the toolbar's too, whatever it tried to load.
+  it("drops a violation whose source file is the Vercel Toolbar's script", async () => {
+    const fn = await load();
+    const res = await post(fn, legacy({
+      "blocked-uri": "inline",
+      "source-file": "https://vercel.live/_next-live/feedback/feedback.js",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+  });
+
   it("a Reporting API batch (application/reports+json) inserts ONE row from its csp-violation entries", async () => {
     const fn = await load();
     const res = await post(fn, reportingApi({}), "application/reports+json");
@@ -137,6 +165,9 @@ describe("csp-report", () => {
     ["about:", "about:blank"],
     ["data:", "data:text/javascript,alert(1)"],
     ["bare data keyword", "data"],
+    // Q1716: every stored csp row on prod 2026-10-05..10-12 (115) was this.
+    // @mutate supabase/functions/csp-report/report.ts | const NOISE_HOSTS = new Set(["vercel.live"]); | const NOISE_HOSTS = new Set<string>([]);
+    ["Vercel Toolbar", "https://vercel.live/_next-live/feedback/feedback.js"],
   ])("drops %s noise before any database call", async (_label, blocked) => {
     const fn = await load();
     const res = await post(fn, legacy({ "blocked-uri": blocked }));

@@ -2,28 +2,22 @@
 // Fire-and-forget: callers should NOT await this on latency-sensitive paths,
 // and failures NEVER throw — Slack outages must not break platform flows.
 //
-// TWO TRANSPORTS, tried in order:
+// ONE TRANSPORT: SLACK_WEBHOOK_URL, an ordinary Slack Incoming Webhook. One
+// secret, no third party, no bot scopes.
 //
-//   1. SLACK_WEBHOOK_URL — an ordinary Slack Incoming Webhook. One secret, no
-//      third party, no bot scopes. This is the preferred setup.
-//   2. LOVABLE_API_KEY + SLACK_API_KEY — the original path, relaying through
-//      connector-gateway.lovable.dev.
+// There used to be a second, the original LOVABLE_API_KEY + SLACK_API_KEY path
+// relaying through Lovable's connector gateway, kept "so an existing deployment
+// configured that way keeps working". Its two-key guard is why every alert in
+// this project once silently no-opped. Deleted 2026-10-12 (docs/OPEN.md Q1684):
+// prod's secret list (`supabase secrets list`) had no LOVABLE_API_KEY, so it
+// could never run. (SLACK_API_KEY stays: slack-ops-alert posts with it directly.)
 //
-// Transport 2 is kept only so an existing deployment configured that way keeps
-// working. It is not the recommended setup: it routes production incident
-// alerts through a third-party gateway and needs TWO credentials, and its
-// `if (!lovableKey || !slackKey) return` guard is why every alert in this
-// project silently no-opped — including the two in stripe-webhook that fire
-// when payments break. Prefer transport 1.
-//
-// With neither configured this still returns quietly, but now says so in the
+// With no webhook configured this still returns quietly, but says so in the
 // log rather than vanishing, so a missing alarm is discoverable.
 
 import { effectiveSeverity, escapeSlackText, safeSlackLink, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
 import { recordOpsAlertLedger } from './opsAlertLedger.ts'
 import { getAppUrl } from './appUrl.ts'
-
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 
 type SlackAlertSeverity = AlertSeverity
 
@@ -358,9 +352,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
     }
 
     const webhookUrl = Deno.env.get('SLACK_WEBHOOK_URL')
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
-    const slackKey = Deno.env.get('SLACK_API_KEY')
-    if (!webhookUrl && !(lovableKey && slackKey)) {
+    if (!webhookUrl) {
       if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
       // Loud on purpose. The silent version of this line meant a critical
       // "payments are broken" alert produced no Slack message AND no trace.
@@ -402,10 +394,9 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       })
     }
 
-    // An Incoming Webhook is bound to one channel at creation, so `channel`
-    // is only meaningful on the gateway transport; it is sent anyway because
-    // legacy custom-integration webhooks still honour it and modern ones
-    // ignore it harmlessly.
+    // An Incoming Webhook is bound to one channel at creation; `channel` is
+    // sent anyway because legacy custom-integration webhooks still honour it
+    // and modern ones ignore it harmlessly.
     const payload = {
       channel,
       text: `${icon} ${escapeSlackText(input.title)} — ${escapeSlackText(input.message)}`,
@@ -413,31 +404,15 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       attachments: [{ color: SEVERITY_COLOR[severity], blocks: [] }],
     }
 
-    const res = webhookUrl
-      ? await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000),
-        })
-      : await fetch(`${GATEWAY_URL}/chat.postMessage`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${lovableKey}`,
-            // The guard at the top of this function already returned unless
-            // `webhookUrl` OR (`lovableKey` && `slackKey`) is set, so reaching
-            // this branch means both gateway keys are present. TS cannot narrow
-            // through that composite condition; assert what the guard proved
-            // rather than weaken the guard.
-            'X-Connection-Api-Key': slackKey as string,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000),
-        })
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000),
+    })
 
     if (!res.ok) {
-      console.warn('[postSlackOpsAlert] Slack gateway non-OK', res.status, await res.text())
+      console.warn('[postSlackOpsAlert] Slack webhook non-OK', res.status, await res.text())
       if (heldKey) await releaseAlertKey(heldKey.rowId, input, heldKey.key)
     }
   } catch (err) {

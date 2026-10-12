@@ -187,6 +187,22 @@ describe("postSlackOpsAlert: a failed post must not burn the day's token", () =>
     expect(rowPatches()).toHaveLength(1);
   });
 
+  // Q1684 (2026-10-12): the Lovable connector-gateway transport (LOVABLE_API_KEY +
+  // SLACK_API_KEY) is deleted; prod's secret list has no LOVABLE_API_KEY, so it
+  // could never run. With those two keys and no webhook, nothing leaves for a
+  // third party and the key is released, exactly as with no transport at all.
+  // @mutate supabase/functions/_shared/slack-alerts.ts |     if (!webhookUrl) { |     if (!webhookUrl && !Deno.env.get('LOVABLE_API_KEY')) {
+  it("the old gateway keys alone send nothing anywhere (no third-party relay)", async () => {
+    const env: Record<string, string> = { SUPABASE_URL: SUPA, SECRET_KEY: "svc", LOVABLE_API_KEY: "lk", SLACK_API_KEY: "xoxb" };
+    (globalThis as any).Deno = { env: { get: (k: string) => env[k] } };
+    await post({ kind: "support_request", severity: "info", oncePerDayKey: "support-request:beef" });
+    const outside = calls.filter((c) => !c.url.startsWith(SUPA));
+    expect(outside.map((c) => c.url)).toEqual([]);
+    expect(rowPatches()).toHaveLength(1);
+    // Inventory floor: the alert really ran (it wrote its ledger row first).
+    expect(rowInserts().length).toBeGreaterThan(0);
+  });
+
   it("a successful post keeps the key, so a same-day duplicate is still suppressed", async () => {
     await post({ kind: "support_request", severity: "info", oncePerDayKey: "support-request:aaaa" });
     expect(slackPosts()).toHaveLength(1);

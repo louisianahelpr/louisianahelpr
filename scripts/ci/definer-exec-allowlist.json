@@ -45,6 +45,7 @@
     "claim_series_dates(uuid, date[])": "client",
     "clear_available_now()": "client",
     "clear_thread_mute(uuid, uuid)": "client",
+    "crew_closed_spot_count(uuid)": "client",
     "decline_job_offer(uuid)": "client",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "end_recurring_series(uuid)": "client",

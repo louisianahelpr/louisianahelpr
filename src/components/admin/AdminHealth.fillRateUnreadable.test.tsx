@@ -78,7 +78,9 @@ describe("Admin Health's fill rate when its read fails (Q1672)", () => {
     // Retry re-reads, and a read that now answers replaces the error with readings.
     fill.fail = false;
     const before = fill.calls;
-    fireEvent.click(screen.getByRole("button", { name: /try again|retry/i }));
+    const retry = screen.getByRole("button", { name: /try again|retry/i });
+    expect((retry as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(retry);
     await waitFor(() => expect(container.textContent).toContain("75%"));
     expect(fill.calls).toBeGreaterThan(before);
     expect(container.textContent).not.toContain("Couldn't load fill rate");

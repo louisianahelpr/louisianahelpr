@@ -452,6 +452,7 @@ const AdminHealth = () => {
               title="Couldn't load fill rate"
               body="The read behind these numbers failed, so none of them is shown rather than zeros."
               onRetry={() => void refetchFill()}
+              retryDisabled={fillFetching}
             />
           ) : (<>
           {fillStale && (

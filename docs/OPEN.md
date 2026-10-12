@@ -682,6 +682,7 @@ sure someone hears it and closes it.
     only the share itself (budget + urgent fee) goes back. The platform fee, sales tax and any gift
     card on that charge are NOT returned. Should they be returned in proportion to the share?
     ANSWERED 2026-09-27: yes, pro-rata. BUILT (see the ANSWERED block above); guard src/test/edge/process-scheduled-payouts-crew.test.ts.
+- [~] **Q1693 HIGH The land queue read only the 50 NEWEST queued PRs, so its head kept moving and nothing merged (lane 2, 2026-10-12).** Measured 14:25Z: 94 open PRs carry `land-queue`; scripts/land-queue.mjs listed them with `gh pr list --limit 50` (gh returns newest first) and took the oldest of those as head, so every newly queued PR pushed the window and changed the head before its checks (behind 477 queued runs) could finish; main had no merge since 11:17Z. Same cap class elsewhere: land.sh's superseded-PR sweep (no limit: gh default 30, 142 open PRs), stranded-work open PRs (200) and closed PRs (500), open-sync-trackers feeds (200), ops-alert-ledger (100), scoreboard and morning-page nightly-red (100), nightly-red-age.yml (100). Fix: every set read passes `--limit 1000`; the queue throws rather than pick a head from a read that hit its cap. GUARD: src/test/ghListReadsWholeSet.test.ts (red on main's 9 call sites). Q1687 (runner capacity, owner decision) stays open. done-when: test src/test/ghListReadsWholeSet.test.ts
 
 ## FEEDS — mirrored from the alert ledger, nightly-red issues and the audit bus (node scripts/open-sync-trackers.mjs)
 

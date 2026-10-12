@@ -178,7 +178,7 @@ async function gather({ now, scoreboardPath }) {
   const commits = await attempt(() => sh("git", ["log", "HEAD", `--since=${since}`, "--no-merges", "--format=%H%x09%s"])
     .split("\n").filter(Boolean).map((l) => { const [sha, ...rest] = l.split("\t"); return { sha, subject: rest.join("\t") }; }));
   const scoreboard = await attempt(() => readFileSync(scoreboardPath, "utf8"));
-  const nightlyRed = await attempt(() => JSON.parse(sh("gh", ["issue", "list", "--label", "nightly-red", "--state", "open", "--limit", "100", "--json", "number,title,createdAt"])));
+  const nightlyRed = await attempt(() => JSON.parse(sh("gh", ["issue", "list", "--label", "nightly-red", "--state", "open", "--limit", "1000", "--json", "number,title,createdAt"])));
   let sqlFn = null;
   const sql = async (q) => {
     if (!sqlFn) sqlFn = (await import("./lib/opsAlertLedger.mjs")).sql;

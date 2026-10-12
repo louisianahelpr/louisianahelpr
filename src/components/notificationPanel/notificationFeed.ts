@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { report } from "@/lib/errorLogger";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 import type { Notification } from "./types";
 import {
   getNotificationSnapshot,
@@ -29,13 +30,10 @@ import {
  */
 
 const LOAD_TIMEOUT_MS = 15_000;
+// Visible time only: a phone put away mid-load is not a stalled load
+// (src/lib/visibleDeadline.ts).
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
-  Promise.race([
-    Promise.resolve(pending),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`notifications load timed out after ${LOAD_TIMEOUT_MS}ms`)), LOAD_TIMEOUT_MS),
-    ),
-  ]);
+  raceVisibleDeadline(pending, LOAD_TIMEOUT_MS, `notifications load timed out after ${LOAD_TIMEOUT_MS}ms`);
 
 let inFlight: { userId: string; promise: Promise<void> } | null = null;
 

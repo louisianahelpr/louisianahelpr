@@ -279,7 +279,7 @@ BEGIN
   -- pending ask lapses, nothing changes until they ask again. The job lock
   -- is the one settle_job_detail_change takes next anyway (job, then request).
   SELECT j.customer_id INTO v_poster FROM public.jobs j WHERE j.id = OLD.job_id FOR UPDATE;
-  IF auth.uid() IS NOT NULL AND auth.uid() = v_poster THEN
+  IF auth.uid() = v_poster THEN
     UPDATE public.job_detail_change_requests
        SET status = 'expired', decided_at = now()
      WHERE job_id = OLD.job_id AND status = 'pending';

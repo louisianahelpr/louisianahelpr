@@ -317,13 +317,15 @@ describe("Q449: a WON chargeback lets a decided split run", () => {
     expect(restore?.selectCols).toBe("id");
     // The internal dispute's markers are not this outcome's to write.
     for (const w of jobUpdates()) expect(payloadOf(w)).not.toHaveProperty("dispute_status");
-    // Admins are told to run the decided split now, and to check first that
-    // the charge can still be refunded (unverified in Stripe test mode).
+    // Admins are told to run the decided split now.
     const note = adminNotes()[0];
     expect(String(note?.title)).toMatch(/still on hold/);
     expect(String(note?.message)).toMatch(/back to escrow/);
     expect(String(note?.message)).toMatch(/Retry settlement/);
-    expect(String(note?.message)).toMatch(/can still be refunded/);
+    // Q1425: a won-dispute charge CAN be refunded (Q449, measured in test
+    // mode), so the notice sends the admin straight to Retry settlement.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | so the decided split can run now: Retry settlement on the dispute.` | so the decided split can run now: Retry settlement on the dispute. First check in Stripe that this charge can still be refunded.`
+    expect(String(note?.message)).not.toMatch(/check in Stripe|can still be refunded/i);
     expect(alerts().some((a) => a.severity === "critical")).toBe(false);
   });
 

@@ -21,6 +21,11 @@ import type { Profile } from "../adminUserHelpers";
 // @mutate src/components/admin/AdminUsers.tsx | includeTest: showTest, | includeTest: true,
 // @mutate src/components/admin/AdminUsers.tsx | getTabCounts(profiles, isUnseen, showTest); | getTabCounts(profiles, isUnseen, true);
 // @mutate src/pages/admin/Admin.tsx | supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false), | supabase.from("profiles").select("id", { count: "exact", head: true }),
+// @mutate src/components/admin/adminHealth/useHealthData.ts | await supabase.from("jobs").select("id, parish, created_at").eq("status", "open").eq("is_seed", false), | await supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
+// @mutate src/components/admin/adminHealth/useHealthData.ts |               .eq("email_verified", true)\n              .eq("is_seed", false), |               .eq("email_verified", true),
+//   4. (Q1592) the Health screen's marketplace numbers (supply by parish, the
+//      week's jobs, time to first application): every jobs/profiles read in
+//      useHealthData.ts.
 
 const REPO = join(__dirname, "../../../..");
 
@@ -113,5 +118,33 @@ describe("every admin count of profiles says what it does with test accounts", (
     expect(src).toMatch(/const profilesQuery = \(columns: string\) => supabase\.from\("profiles"\)\.select\(columns\)\.eq\("is_seed", false\);/);
     // ...and it is the only way that screen reads profiles.
     expect(src.match(/\.from\(\s*["']profiles["']\s*\)/g)?.length).toBe(1);
+  });
+});
+
+/** Every `.from("jobs" | "profiles")` chain in `text`, as the chain's text (to its `;` or `),` line end). */
+function jobsAndProfilesChains(text: string): string[] {
+  const out: string[] = [];
+  const re = /\.from\(\s*["'`](?:jobs|profiles)["'`]\s*\)/g;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const rest = text.slice(m.index, m.index + 600);
+    const end = rest.search(/;|\),\s*\n/);
+    out.push(end === -1 ? rest : rest.slice(0, end + 1));
+  }
+  return out;
+}
+
+describe("the Health screen's marketplace numbers leave test rows out (Q1592)", () => {
+  const file = "src/components/admin/adminHealth/useHealthData.ts";
+  const chains = jobsAndProfilesChains(blankComments(readFileSync(join(REPO, file), "utf8")));
+
+  it("finds the reads it guards (inventory floor)", () => {
+    // 2026-10-12: four week's-job counts, open jobs and verified profiles for
+    // supply by parish, the week's jobs for time to first application.
+    expect(chains.length).toBeGreaterThan(6);
+  });
+
+  it("each jobs/profiles read filters is_seed = false", () => {
+    const bad = chains.filter((c) => !/\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/.test(c)).map((c) => c.replace(/\s+/g, " "));
+    expect(bad).toEqual([]);
   });
 });

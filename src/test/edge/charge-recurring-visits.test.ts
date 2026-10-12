@@ -1708,6 +1708,29 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.funded).toBe(0);
   });
 
+  // Q1733 (owner, 2026-10-12): a series the PLATFORM ended refunds in full.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               platformEndedMidRun = true; |               void 0;
+  it("Q1733: a series the PLATFORM ended after this run read it: the refused visit is refunded IN FULL", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_day1" });
+    expect(stripeMock.paymentIntents.update).not.toHaveBeenCalledWith("pi_day1", { metadata: { refund_withhold_fee: "true" } });
+    expect(b.errors).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+  });
+
   it("a series ended mid-run whose refund FAILS is still a defect", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -2190,6 +2213,39 @@ describe("charge-recurring-visits edge function", () => {
   // A paid visit skipped BEFORE the charge re-read (series ended, date no
   // longer held) never had its intent tagged; the sweep reads the cause.
   const untaggedIntent = { ...taggedIntent, metadata: {} };
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | (seriesEndedCause && !platformEnded) | seriesEndedCause
+  it("Q1733: a paid visit of a series the PLATFORM ended is refunded IN FULL (card fee included)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1733: an unreadable platform-end record refunds nothing this run (retried), never a guess", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [], error: { message: "boom" } };
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(b.errors).toBeGreaterThan(0);
+  });
 
   it("Q808: a paid visit of an ENDED series, skipped before the charge re-read (intent untagged), is refunded less the fee", async () => {
     const fn = await loadConfigured();

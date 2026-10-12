@@ -138,6 +138,8 @@ export function SosShareButton({ onOpen }: { onOpen: () => void }) {
       className={JOB_ACTION_CHIP_CLASS}
       style={{ ...SOS_TINT, border: SOS_TINT.border }}
       aria-label="SOS — share your location"
+      // The 320px density gate measures every `[data-job-action-chip]` (Q1080).
+      data-job-action-chip=""
       // No stopPropagation any more: the click has to reach the `More`
       // panel's own onClick so the panel closes behind the sheet, exactly as
       // Report a Problem's does. JobStepCard's root already stops it before

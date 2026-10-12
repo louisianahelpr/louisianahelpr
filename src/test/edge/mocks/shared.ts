@@ -179,6 +179,7 @@ export const postSlackOpsAlert = vi.fn(async (input: unknown) => {
 export const ledgerWrites: unknown[] = [];
 export const recordOpsAlertLedger = vi.fn(async (input: unknown) => {
   ledgerWrites.push(input);
+  return true; // the real one answers whether ops_alert_record took it (Q1582)
 });
 
 /** Captures every gift card email the function tried to send. */

@@ -56,7 +56,9 @@ describe("admin dispute history (Q1327)", () => {
   it("the queue keeps every older record per job and reads both answers", () => {
     expect(page).toMatch(/setEarlierDisputes\(grouped\.earlier\);/);
     expect(page).toMatch(/execution_error, helper_response"/);
-    expect((page.match(/is_seed, dispute_helper_response"\)/g) ?? []).length).toBe(2);
+    // Open, decided AND stranded (decided, unsettled) jobs: every jobs read the card renders.
+    expect((page.match(/is_seed, dispute_helper_response"/g) ?? []).length).toBe(3);
+    expect(page).not.toMatch(/sales_tax_amount, is_seed"/);
     expect(page).toMatch(/earlierDisputes=\{earlierDisputes\[job\.id\]\}/);
   });
 

@@ -94,7 +94,6 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q1537: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a plain-open look at My Posts and My Jobs with Needs You empty; no test account has that state today",
   Q1558: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a look at My Jobs and Home empty states at 320, 375 and 1440, which read POST RPCs the harness blocks",
   Q1286: "owner1012 screens lane: built and guarded; waits on a look at the wipe notice on /complete-profile at 375 and 1440 and a live function check after deploy",
-  Q1288: "owner1012 screens lane: built and guarded; waits on a look at the empty/error title gap at 375 and 1440",
   Q1326: "owner1012 double-booking lane: built and guarded; waits on a live grant check after deploy and a look at the card notice at 375 and 1440",
   Q1554: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a prod look at a Helpr's scheduled card; no test Helpr holds a booked job and My Jobs needs a POST read the harness blocks",
   Q1561: "reopened 2026-10-12 after the auto-tick closed it on its unit test: the Helpr card's look on prod; no test Helpr holds a booked job and My Jobs needs a POST read the harness blocks",

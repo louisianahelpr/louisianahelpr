@@ -15,6 +15,14 @@ import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from ".
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+
+/**
+ * Q1654: the untold-refund sweep (Part G) looks at refunds made from here on.
+ * Older ones went out before refunds were announced at all; telling those
+ * people now is the owner's call, not this cron's.
+ */
+const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
 
@@ -226,6 +234,49 @@ serve(async (req) => {
      * Modelled on execute-dispute-split:879-885, the reference implementation
      * for "the money already moved, so this write is not allowed to be quiet".
      */
+    /**
+     * Q1654: the poster is told, once, in the app and by email, whenever this
+     * function sends money back: a released card hold (which raises no
+     * charge.refunded) or a cancellation refund (told here with the amounts
+     * computed here; the webhook's notice for the same refund is the safety
+     * net and loses the claim). A released hold is told AFTER the job's state
+     * writes, so a slow email never widens the window a cron timeout could
+     * leave a job unsettled in (review of Q1654 #12); a refund is told right
+     * after its ledger row, so this path wins the claim with its own amounts.
+     */
+    const tellPosterMoneyBack = async (
+      job: { id: string; customer_id?: string | null },
+      // deno-lint-ignore no-explicit-any
+      pi: any,
+      n: { key: string; kind: "refund" | "release"; amountCents: number; keptCents: number; keptReason: string | null },
+    ) => {
+      const charge = pi?.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+      const result = await sendRefundNotice(supabaseAdmin, {
+        key: n.key,
+        kind: n.kind,
+        paymentIntentId: pi.id,
+        amountCents: n.amountCents,
+        keptCents: n.keptCents,
+        keptReason: n.keptReason,
+        recipientId: job.customer_id ?? null,
+        jobId: job.id,
+        method: paymentMethodFromCharge(charge),
+      });
+      const problem = refundNoticeProblem(result);
+      if (problem) {
+        console.error(`[void-cancelled-payments] ${n.key} for job ${job.id}: ${problem}`);
+        defects.record(`refund notice ${job.id}: ${problem}`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Money went back to a poster who was not fully told",
+          message: `${n.key} (${refundDollars(n.amountCents)}) for job ${job.id}: ${problem}. Tell them by hand.`,
+          fields: { job_id: job.id, notice: n.key, status: result.status },
+          oncePerDayKey: `refund-notice:${n.key}`,
+        });
+      }
+    };
+
     const settleCancelledJob = async (
       job: { id: string; title: string },
       patch: Record<string, unknown>,
@@ -1456,6 +1507,13 @@ serve(async (req) => {
             // crew's block fees.
             const feeCents = Math.round(cancellationFee * 100) + blockCents;
             await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
+            // Q1654: the rest of the hold goes back; the poster is told what and
+            // why once the job is settled below.
+            const both = cancellationFee > 0 && blockCents > 0;
+            const keptParts = [
+              cancellationFee > 0 ? `${both ? `${refundDollars(Math.round(cancellationFee * 100))} ` : "the "}cancellation fee for your Helpr` : null,
+              blockCents > 0 ? `${both ? `${refundDollars(blockCents)} ` : "the fees "}for the crew spots you closed close to the start` : null,
+            ].filter((x): x is string => !!x);
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -1471,12 +1529,19 @@ serve(async (req) => {
               cancellation_fee: cancellationFee,
             }, "fee capture");
             if (settledFee) refunded++;
+            await tellPosterMoneyBack(job, pi, {
+              key: `release:${pi.id}`, kind: "release",
+              amountCents: Math.max(0, Number(pi.amount ?? 0) - feeCents), keptCents: feeCents,
+              keptReason: keptParts.join(" and ") || null,
+            });
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
           } else {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
             const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
+            // Q1654: the whole hold went back; tell the poster.
+            await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null });
             if (settledVoid) voided++;
             results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });
           }
@@ -1551,6 +1616,7 @@ serve(async (req) => {
             continue;
           }
           const alreadyRefunded = (priorRefunds ?? []).length > 0;
+          let cancellationRefundNotice: Parameters<typeof tellPosterMoneyBack>[2] | null = null;
 
           if (refundAmount > 0 && !alreadyRefunded) {
             // Idempotency key still set: it is the cheap in-window guard against
@@ -1560,6 +1626,26 @@ serve(async (req) => {
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
             );
+            // Q1654: announced at once (so this path, not the webhook's safety
+            // net, wins the claim), with what was kept and why in the amounts
+            // computed HERE (review of Q1654 #3), not rebuilt from job columns.
+            if (refund?.id) {
+              const serviceKeptCents = fullSeriesRefund ? 0 : Math.min(serviceFeeCents, nonRefundableCents);
+              const processingKeptCents = nonRefundableCents - serviceKeptCents;
+              const feeCents = Math.round(cancellationFee * 100);
+              const parts = [
+                feeCents > 0 ? `${refundDollars(feeCents)} cancellation fee paid to your Helpr` : null,
+                blockFeeCents > 0 ? `${refundDollars(blockFeeCents)} for the crew spots you closed close to the start` : null,
+                serviceKeptCents > 0 ? `${refundDollars(serviceKeptCents)} service fee, which isn't refunded when a job is cancelled` : null,
+                processingKeptCents > 0 ? `${refundDollars(processingKeptCents)} card processing fee, which can't be returned` : null,
+              ].filter((x): x is string => !!x);
+              const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
+              cancellationRefundNotice = {
+                key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,
+                keptCents: Math.max(0, capturedCents - refundedCents),
+                keptReason: parts.length === 1 ? parts[0].replace(/^\$[\d,.]+ /, "the ") : parts.join(", ") || null,
+              };
+            }
             // Ledger row (F-MONEY-04). Best-effort: the refund is already out,
             // so a ledger write failure is logged, not thrown. Upsert on the
             // Stripe refund id so a cron re-run doesn't duplicate the row.
@@ -1595,6 +1681,7 @@ serve(async (req) => {
                 },
               });
             }
+            if (cancellationRefundNotice) await tellPosterMoneyBack(job, pi, cancellationRefundNotice);
           } else if (alreadyRefunded) {
             // A refund for this cancellation is already on the ledger. Fall
             // through to the status flip so the job finally leaves escrow —
@@ -1789,6 +1876,70 @@ serve(async (req) => {
       }
     }
 
+    // ── Part G: refunds nobody has told the person about (Q1654) ───────────
+    // Every path that makes a refund tells the person itself, right after its
+    // ledger row; the charge.refunded webhook tells them about a Dashboard
+    // refund. A path that stopped between the refund and its notice (a cron
+    // killed at the gateway limit, a worker lost) would leave them untold, so
+    // every hour a refund on the ledger that is 15 minutes old with no
+    // finished notice is sent here (the claim dedupes it against any other
+    // sender). Only refunds made after this sweep shipped: older ones are an
+    // owner decision, not a backfill this cron makes on its own.
+    let untoldRefundsSent = 0;
+    {
+      const from = new Date(Math.max(Date.now() - 7 * 86_400_000, Date.parse(UNTOLD_REFUND_SWEEP_FROM))).toISOString();
+      const until = new Date(Date.now() - 15 * 60_000).toISOString();
+      const { data: ledger, error: ledgerErr } = await supabaseAdmin
+        .from("payment_refunds")
+        .select("stripe_refund_id, stripe_payment_intent_id, job_id, customer_id, amount_cents")
+        .gte("created_at", from)
+        .lte("created_at", until)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (ledgerErr) {
+        defects.record(`untold refund sweep read: ${ledgerErr.message}`);
+      } else if ((ledger ?? []).length > 0) {
+        const rows = (ledger ?? []) as Array<{ stripe_refund_id: string | null; stripe_payment_intent_id: string | null; job_id: string | null; customer_id: string | null; amount_cents: number | null }>;
+        const keys = rows.filter((r) => r.stripe_refund_id).map((r) => `refund:${r.stripe_refund_id}`);
+        const { data: told, error: toldErr } = await supabaseAdmin
+          .from("refund_notices").select("notice_key").in("notice_key", keys).not("notification_id", "is", null);
+        const toldMissing = !!toldErr && (toldErr.code === "42P01" || toldErr.code === "PGRST205");
+        if (toldErr && !toldMissing) {
+          defects.record(`untold refund sweep claim read: ${toldErr.message}`);
+        } else if (!toldMissing) {
+          const done = new Set(((told ?? []) as Array<{ notice_key: string }>).map((t) => t.notice_key));
+          for (const r of rows) {
+            const key = `refund:${r.stripe_refund_id}`;
+            if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
+            const result = await sendRefundNotice(supabaseAdmin, {
+              key,
+              kind: "refund",
+              paymentIntentId: r.stripe_payment_intent_id,
+              amountCents: Number(r.amount_cents),
+              // What was kept is the path's to say; the safety net says only
+              // what came back, to which payment method, and when.
+              keptCents: 0,
+              recipientId: r.customer_id,
+              jobId: r.job_id,
+            });
+            if (result.status === "sent") untoldRefundsSent++;
+            const problem = refundNoticeProblem(result);
+            if (problem) {
+              defects.record(`untold refund ${r.stripe_refund_id}: ${problem}`);
+              await postSlackOpsAlert({
+                kind: "custom",
+                severity: "warning",
+                title: "Money went back to a poster who was not fully told",
+                message: `Refund ${r.stripe_refund_id} (${refundDollars(Number(r.amount_cents))}) for job ${r.job_id ?? "—"}: ${problem}. Tell them by hand.`,
+                fields: { refund_id: r.stripe_refund_id, job_id: r.job_id ?? "—", status: result.status },
+                oncePerDayKey: `refund-notice:${key}`,
+              });
+            }
+          }
+        }
+      }
+    }
+
     return cronResult(
       "void-cancelled-payments",
       {
@@ -1799,6 +1950,7 @@ serve(async (req) => {
         gifts_unfrozen: giftsUnfrozen,
         crew_shares_retried: crewSharesRetried,
         block_fees_retried: blockFeesRetried,
+        untold_refunds_sent: untoldRefundsSent,
         fee_transfers_retried: feeTransfersRetried,
         total: jobs?.length || 0,
         results,

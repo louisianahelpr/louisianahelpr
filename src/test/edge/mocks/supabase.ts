@@ -85,6 +85,13 @@ export interface TableResult {
    */
   selectOverrides?: Array<{ includes: string; result: TableResult }>;
   /**
+   * Per-FILTER overrides: the first entry whose column was filtered `eq` to
+   * its value wins (checked after `selectOverrides`). For a path that reads one
+   * table by two different keys and must find the row by only one of them.
+   * Additive: a scenario that does not set this behaves exactly as before.
+   */
+  eqOverrides?: Array<{ column: string; value: unknown; result: TableResult }>;
+  /**
    * The exact row count PostgREST reports for `.select(cols, { count: "exact" })`.
    *
    * OPT-IN ON PURPOSE. Real PostgREST answers the count from a `COUNT(*)` that
@@ -191,7 +198,7 @@ export interface SupabaseScenario {
    *   - anything the builder does not implement at all. A chain that calls a
    *     method missing from this class throws, which is loud, not silent —
    *     see the `.not` / `.ilike` notes below.
-   *   - filters are still NOT used for MATCHING. The scenario decides the
+   *   - filters are still NOT used for MATCHING (except `eqOverrides`). The scenario decides the
    *     result by table name, so recording tells you what the code ASKED for,
    *     never what the server would have returned for it.
    *
@@ -529,7 +536,9 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
       });
       const base = scenario.reads[this.table] ?? {};
       const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));
-      const t = override ? override.result : base;
+      const eqOverride = override ? undefined
+        : base.eqOverrides?.find((o) => this.filters.some((f) => f.op === "eq" && f.column === o.column && f.value === o.value));
+      const t = override ? override.result : eqOverride ? eqOverride.result : base;
       if (t.error) return { data: null, error: t.error, count: null };
       const all = t.rows ?? [];
       // Two different count behaviours, and the split is deliberate.

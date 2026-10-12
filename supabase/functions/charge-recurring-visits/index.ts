@@ -82,6 +82,7 @@ import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
 /**
  * The client type these helpers accept.
@@ -262,7 +263,7 @@ async function createRefundOnce(
   stripe: Stripe,
   params: Stripe.RefundCreateParams,
   opts: { idempotencyKey: string },
-): Promise<{ alreadyRefunded: boolean }> {
+): Promise<{ alreadyRefunded: boolean; refund: { id: string; cents: number } | null }> {
   let created: Stripe.Refund | undefined;
   try {
     created = await stripe.refunds.create(params, opts);
@@ -276,7 +277,7 @@ async function createRefundOnce(
     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e;
     const prior = await stripe.refunds.list({ payment_intent: String(params.payment_intent), limit: 100 });
     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
-    return { alreadyRefunded: true };
+    return { alreadyRefunded: true, refund: null };
   }
   // Q809 (review): inside the key's ~24h window Stripe REPLAYS the original
   // refund object, including one that has since FAILED. That returned nothing
@@ -284,7 +285,40 @@ async function createRefundOnce(
   if (created?.status === "failed" || created?.status === "canceled") {
     throw new Error(`refund ${created.id} for ${String(params.payment_intent)} came back '${created.status}' (${created.failure_reason ?? "no reason"})`);
   }
-  return { alreadyRefunded: false };
+  return {
+    alreadyRefunded: false,
+    refund: created?.id ? { id: created.id, cents: Math.round(Number(created.amount ?? params.amount ?? 0)) } : null,
+  };
+}
+
+/**
+ * Q1654: THE refund notice for a visit refund (in the app and by email:
+ * amount, card, reference, 5-10 business days, the card fee kept), claimed on
+ * the refund's id so the charge.refunded webhook never sends a second one.
+ * Returns a defect line when the payer was not fully told.
+ */
+// deno-lint-ignore no-explicit-any
+async function tellVisitRefund(supabase: any, v: {
+  refund: { id: string; cents: number };
+  recipientId: string;
+  parentJobId: string;
+  paymentIntentId: string;
+  keptCents: number;
+  extra: string;
+}): Promise<string | null> {
+  const result = await sendRefundNotice(supabase, {
+    key: `refund:${v.refund.id}`,
+    kind: "refund",
+    paymentIntentId: v.paymentIntentId,
+    amountCents: v.refund.cents,
+    keptCents: v.keptCents,
+    keptReason: v.keptCents > 0 ? "the card processor's fee, which can't be returned" : null,
+    recipientId: v.recipientId,
+    jobId: v.parentJobId,
+    jobByPayment: false,
+    extra: v.extra,
+  });
+  return refundNoticeProblem(result);
 }
 
 /**
@@ -834,6 +868,7 @@ serve(async (req) => {
       const dateUnheldCause = !nowHolder || (row.helper_id != null && nowHolder.helper_id !== row.helper_id);
       let refundParams: Stripe.RefundCreateParams = { payment_intent: pi };
       let alreadyRefunded = false;
+      let refundMade: { id: string; cents: number } | null = null;
       try {
         // Q415 (e): the run that charged this intent may already have refunded
         // it less the card fee, and only failed to mark the row. A bare refund
@@ -904,9 +939,9 @@ serve(async (req) => {
           continue;
         }
         if (withholdFee) {
-          if (owedCents !== 0) ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
+          if (owedCents !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
         } else {
-          ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
+          ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(stripe, refundParams, { idempotencyKey: sweepRefundKey }));
         }
       } catch (e) {
         fail(`visit payment ${row.id}: paid visit was never booked and the refund of ${pi} failed (${(e as Error).message})`);
@@ -922,7 +957,20 @@ serve(async (req) => {
         continue;
       }
       (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
-      if (row.payer_id && !alreadyRefunded) {
+      if (row.payer_id && !alreadyRefunded && refundMade && refundMade.cents > 0) {
+        const feeKept = refundParams.amount !== undefined;
+        const problem = await tellVisitRefund(supabase, {
+          refund: refundMade,
+          recipientId: String(row.payer_id),
+          parentJobId: String(row.parent_job_id),
+          paymentIntentId: pi,
+          keptCents: feeKept ? Math.max(0, Number(row.amount_cents) - refundMade.cents) : 0,
+          extra: feeKept
+            ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid.`
+            : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
+        });
+        if (problem) fail(`visit payment ${row.id}: ${problem}`);
+      } else if (row.payer_id && !alreadyRefunded) {
         const link = "/posts";
         const kept = refundParams.amount !== undefined;
         const { data: n, error: nErr } = await supabase.from("notifications").insert({
@@ -1898,6 +1946,7 @@ serve(async (req) => {
           const refundParams: Stripe.RefundCreateParams = { payment_intent: intent.id };
           let capturedCents = paidRow ? paidRow.amount_cents : totalCents;
           let alreadyRefunded = false;
+          let refundMade: { id: string; cents: number } | null = null;
           try {
             if (seriesEndedMidRun || holderChangedMidRun) {
               // Tell the stale-visit sweep why, before any refund request: if
@@ -1918,7 +1967,7 @@ serve(async (req) => {
             // A charge no bigger than its fee leaves nothing to return. Stripe
             // refuses a $0 refund, and that refusal would raise the "refund by
             // hand" alert below for money that is correctly kept.
-            if (refundParams.amount !== 0) ({ alreadyRefunded } = await createRefundOnce(
+            if (refundParams.amount !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(
               stripe,
               refundParams,
               // Keyed on the INTENT, not on (series, date). Those are not the
@@ -1958,7 +2007,19 @@ serve(async (req) => {
           }
           // Q415 (e): money was kept, so the poster is told how much came back
           // and why the rest did not. A silent partial refund reads as theft.
-          if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) {
+          if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) {
+            const problem = await tellVisitRefund(supabase, {
+              refund: refundMade,
+              recipientId: String(parent.customer_id),
+              parentJobId: String(parent.id),
+              paymentIntentId: intent.id,
+              keptCents: Math.max(0, capturedCents - refundMade.cents),
+              extra: `The visit on ${visitDate} wasn't booked because ${
+                seriesEndedMidRun ? "the series ended" : "the date changed hands"
+              } after it was charged.`,
+            });
+            if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`);
+          } else if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) {
             const refundedCents = refundParams.amount;
             const withheldCents = capturedCents - refundedCents;
             const link = "/posts";

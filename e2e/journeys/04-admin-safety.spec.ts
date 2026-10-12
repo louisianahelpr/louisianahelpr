@@ -207,19 +207,27 @@ test.describe.serial("admin and safety journeys", () => {
       await journey.milestone(page, "admin-after-full-refund");
     });
 
-    await test.step("the poster is told twice, with a link to the job", async () => {
+    await test.step("the poster is told once per refund, with a link to the job", async () => {
+      // Q1654: ONE notice per refund (in the app and by email), claimed on the
+      // refund's id, so the charge.refunded webhook no longer adds a second
+      // "Refund processed" for the same refund (that was Q300).
       const r = await request.get(
-        `${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&link=eq.${encodeURIComponent(`/posts?job=${jobId}`)}&select=title,type&order=created_at.asc`,
+        `${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&link=like.${encodeURIComponent(`/posts?job=${jobId}&refund=*`)}&select=title,message,type&order=created_at.asc`,
         { headers: rest(poster) },
       );
-      const titles = ((await r.json()) as { title: string }[]).map((n) => n.title);
-      expect(titles.slice(0, 2)).toEqual(["Partial refund issued", "Refund issued"]);
-      // The stripe-webhook charge.refunded handler ALSO writes "Refund processed"
-      // for the same full refund (measured on the first run, 2026-09-23): one
-      // refund, two notifications. Filed as Q300; when it is fixed this list
-      // is exactly the two above and the line below is deleted.
-      expect(titles.slice(2).every((t) => t === "Refund processed"), `unexpected refund notifications: ${titles.join(", ")}`).toBe(true);
-      if (titles.length > 2) test.info().annotations.push({ type: "known-defect", description: `Q300: ${titles.length} refund notifications for 2 refunds: ${titles.join(", ")}` });
+      const notes = (await r.json()) as { title: string; message: string; type: string }[];
+      expect(notes, `refund notices: ${notes.map((n) => n.title).join(", ")}`).toHaveLength(2);
+      for (const n of notes) {
+        expect(n.title).toMatch(/^Refund issued: \$/);
+        expect(n.type).toBe("payment");
+        expect(n.message).toMatch(/refund reference re_/);
+        expect(n.message).toMatch(/5-10 business days/);
+      }
+      const others = await request.get(
+        `${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&job_id=eq.${jobId}&title=in.(%22Refund%20processed%22,%22Partial%20refund%20issued%22,%22Refund%20issued%22)&select=title`,
+        { headers: rest(poster) },
+      );
+      expect((await others.json()) as unknown[], "no second, old-style refund notice").toHaveLength(0);
     });
 
     await test.step("both moves are on the admin audit log", async () => {

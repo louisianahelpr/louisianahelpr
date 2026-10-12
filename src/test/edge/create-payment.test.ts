@@ -27,7 +27,7 @@ import {
   resetSupabaseMock,
   type SupabaseScenario,
 } from "./mocks/supabase";
-import { rateLimitState, resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { rateLimitState, resetSharedMocks, slackAlerts, notificationEmails } from "./mocks/shared";
 import { urgentBonusCardFeeCents } from "../../../supabase/functions/_shared/stripeFees";
 import { posterCardCostFeeCents } from "../../../supabase/functions/_shared/posterFees";
 import { TIER_FEE_PERCENT } from "../../../supabase/functions/_shared/helperFees";
@@ -3540,6 +3540,34 @@ describe("create-payment edge function", () => {
       expect(
         scenario.writes.some((w) => w.table === "admin_audit_log"),
       ).toBe(true);
+    });
+
+    // Q1654: the admin's refund sends THE refund notice (in the app and by
+    // email), claimed on the refund's id, so the charge.refunded webhook does
+    // not add a second one. Its old in-app-only "Partial refund issued" row is gone.
+    // @mutate supabase/functions/create-payment/index.ts |       if (generalRefundForNotice) { |       if (false) {
+    it("Q1654: admin_refund_general tells the poster once, claimed on the refund (no second notice from the webhook)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, budget: 100, title: "Goodwill job", stripe_payment_intent_id: "pi_g" }],
+      };
+      scenario.writeSelectRows.notifications = [{ id: "notice-g" }];
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 11200, amount_received: 11200 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_g", amount: 2500 });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", amountCents: 2500, reason: "partial completion" } }));
+      expect(res.status).toBe(200);
+      const toPoster = scenario.writes
+        .filter((w) => w.table === "notifications" && w.op === "insert")
+        .map((w) => w.payload as Record<string, unknown>)
+        .filter((n) => n.user_id === POSTER.id);
+      expect(toPoster.map((n) => n.title)).toEqual(["Refund issued: $25"]);
+      expect(String(toPoster[0].message)).toContain("refund reference re_g");
+      expect(String(toPoster[0].message)).toContain("Reason: partial completion.");
+      expect(String(toPoster[0].message)).not.toContain("We kept");
+      expect(scenario.writes.filter((w) => w.table === "refund_notices" && w.op === "insert").map((w) => (w.payload as { notice_key: string }).notice_key)).toEqual(["refund:re_g"]);
+      expect(notificationEmails).toHaveLength(1);
     });
 
     // The full-refund flip matched on id alone and wrote cancelled/refunded

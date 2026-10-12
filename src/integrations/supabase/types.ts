@@ -4998,6 +4998,50 @@ export type Database = {
           },
         ]
       }
+      refund_notices: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          email_error: string | null
+          emailed: boolean
+          job_id: string | null
+          notice_key: string
+          notification_id: string | null
+          payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          email_error?: string | null
+          emailed?: boolean
+          job_id?: string | null
+          notice_key: string
+          notification_id?: string | null
+          payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          email_error?: string | null
+          emailed?: boolean
+          job_id?: string | null
+          notice_key?: string
+          notification_id?: string | null
+          payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_notices_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           assigned_to: string | null

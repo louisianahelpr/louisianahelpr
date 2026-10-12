@@ -9,9 +9,11 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
+import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
+import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, releasedCentsAlreadyTold, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
@@ -116,6 +118,9 @@ export async function handleChargeRefunded(
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
   const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
+  // Q1654: one sentence the refund notice adds for the newest refund (the gift
+  // card a full refund gave back), set below where that is decided.
+  let noticeExtra: string | null = null;
 
   // Q1655: a taxed recurring visit's Stripe Tax transaction is reversed (full
   // refund) or paged for a hand reversal (partial). Never throws.
@@ -360,16 +365,10 @@ export async function handleChargeRefunded(
         });
       }
 
-      const { error: notifyErr } = await supabase.from("notifications").insert({
-        user_id: refundedJob.customer_id,
-        title: "Refund processed",
-        message: `Your payment for "${refundedJob.title}" has been refunded.${giftSentence}`,
-        type: "payment",
-        // The refunded job, not the My Posts default bucket — a refunded job
-        // is `cancelled`/`done`, never "Needs you".
-        link: `/posts?job=${refundedJob.id}`,
-      });
-      if (notifyErr) logStep("WARN: refund notification insert failed", { error: notifyErr.message });
+      // Q1654: the card holder's notice is sent below for EVERY refund, full
+      // or partial (it was this "Refund processed" row, full refunds only,
+      // in-app only). The gift sentence rides on it.
+      noticeExtra = giftSentence.trim() || null;
 
       logStep("Job marked as refunded", { jobId: refundedJob.id });
     }
@@ -442,6 +441,97 @@ export async function handleChargeRefunded(
         }
       }
       logStep("Partial refund ledger rows written", { refundIds: ordinaryRefunds.map((r) => r.id), pi: refundPiId });
+    }
+  }
+
+  // Q1654 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
+  // Eat Yard" reached the card and nobody was told). EVERY refund the platform
+  // makes raises this event, whichever path made it, so this is where the
+  // person who paid is told: once per live refund (refund_notices dedupes a
+  // redelivery and any path that told them itself), in the app and by email,
+  // with the amount, the card, the reference and what was kept. An
+  // onboarding-fee correction has its own notice (settleOnboardingFee).
+  if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) {
+    const method = paymentMethodFromCharge(charge);
+    // What was CAPTURED, not authorised: a hold captured in part released the
+    // rest, which was never "kept" (review of Q1654 #10).
+    const capturedCents = Number((charge as { amount_captured?: number | null }).amount_captured ?? charge.amount ?? 0);
+    const keptCents = Math.max(0, capturedCents - liveRefundedCents);
+    const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
+    let piMeta: Promise<Record<string, string> | null> | null = null;
+    const loadMetadata = () => (piMeta ??= (async () => {
+      if (!refundPiId) return chargeMeta;
+      try {
+        const pi = await stripe.paymentIntents.retrieve(refundPiId);
+        return { ...((pi?.metadata ?? {}) as Record<string, string>), ...chargeMeta };
+      } catch (e) {
+        // Not fatal: the notice falls back to the charge's own metadata, and
+        // a refund nobody can be told about pages ops below.
+        logStep("WARN: PaymentIntent read for the refund notice failed", { pi: refundPiId, error: caughtMessage(e) });
+        return chargeMeta;
+      }
+    })());
+    // A refund made long before this event (a later refund on the same charge)
+    // is not announced now, days late: only refunds from the last 72 hours.
+    const since = Number((event as { created?: number }).created ?? Math.floor(Date.now() / 1000)) - 72 * 3600;
+    const releaseTold = await releasedCentsAlreadyTold(supabase, refundPiId ?? null);
+    // Refunds a PATH made and wrote to the ledger: that path tells the person
+    // itself, right after its ledger row, with the amounts it computed. The
+    // webhook answers 200 and leaves them to it; the hourly untold-refund
+    // sweep (void-cancelled-payments) is the safety net for a path that
+    // stopped first. Not deferring through Stripe's retries: a re-run repeats
+    // this whole event (third review of Q1654).
+    const { data: pathRows, error: pathRowsErr } = await supabase.from("payment_refunds")
+      .select("stripe_refund_id, source").in("stripe_refund_id", ordinaryRefunds.map((r) => r.id))
+      .neq("source", "stripe_dashboard");
+    if (pathRowsErr) logStep("WARN: path ledger read for the refund notice failed; sending from here", { error: pathRowsErr.message });
+    const madeByAPath = new Set(((pathRows ?? []) as Array<{ stripe_refund_id: string }>).map((x) => x.stripe_refund_id));
+    for (const r of ordinaryRefunds) {
+      if (typeof r.created === "number" && r.created < since) {
+        logStep("Refund notice skipped: refund older than 72h", { refund: r.id, created: r.created });
+        continue;
+      }
+      const md = (r.metadata ?? null) as Record<string, string> | null;
+      // A hold captured in part released the rest, already announced as a
+      // release; should Stripe also list that as a Refund, it is the same
+      // money: same amount, no metadata of ours, made with the release.
+      if (
+        releaseTold && Number(r.amount ?? 0) === releaseTold.cents && Object.keys(md ?? {}).length === 0 &&
+        typeof r.created === "number" && Math.abs(r.created - releaseTold.createdS) < 600
+      ) {
+        logStep("Refund notice skipped: the released hold's notice already told them", { refund: r.id });
+        continue;
+      }
+      if (pathAnnouncesRefund(md) || madeByAPath.has(r.id)) {
+        logStep("Refund notice left to the path that made it", { refund: r.id });
+        continue;
+      }
+      const result = await sendRefundNotice(supabase, {
+        key: `refund:${r.id}`,
+        kind: "refund",
+        paymentIntentId: refundPiId ?? null,
+        amountCents: Number(r.amount ?? 0),
+        keptCents,
+        metadata: (r.metadata ?? null) as Record<string, string> | null,
+        method,
+        extra: r.id === latestRefund?.id ? noticeExtra : null,
+        loadMetadata,
+      });
+      // in_flight: another sender is writing it now. duplicate / dropped:
+      // done. failed: nothing was written and the claim was given back; it is
+      // paged below and the hourly untold-refund sweep sends it.
+      const problem = refundNoticeProblem(result);
+      if (problem) {
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Refund made, but the card holder was not fully told",
+          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
+          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—", "Status": result.status },
+          oncePerDayKey: `refund-notice:${r.id}`,
+        });
+      }
+      logStep("Refund notice", { refund: r.id, status: result.status, emailed: result.emailed ?? false, error: result.error });
     }
   }
 }

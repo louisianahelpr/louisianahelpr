@@ -12,10 +12,10 @@
  * id, so a gift-funded job never reads as card-paid (lh-money-escrow review #1).
  */
 
-// @mutate supabase/migrations/20261012081639_gift_funds_unfunded_abandoned_job.sql |   if coalesce(v_job.payment_status, 'unpaid') not in ('unpaid', 'abandoned', 'failed') then |   if v_job.payment_status is distinct from 'unpaid' then
+// @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql |   if coalesce(v_job.payment_status, 'unpaid') not in ('unpaid', 'abandoned', 'failed') then |   if v_job.payment_status is distinct from 'unpaid' then
 // @mutate supabase/functions/create-payment/index.ts | new Set(["unpaid", "abandoned", "failed"]) | new Set(["unpaid", "abandoned", "failed", "refunded"])
-// @mutate supabase/migrations/20261012081639_gift_funds_unfunded_abandoned_job.sql | payment_status = 'escrow', stripe_session_id = null where | payment_status = 'escrow' where
-// @mutate supabase/migrations/20261012081639_gift_funds_unfunded_abandoned_job.sql | where g.id = p_credit_id and g.status = 'reserved' and g.job_id = p_job_id) then | where false) then
+// @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | payment_status = 'escrow', stripe_session_id = null, customer_fee_amount = 0 where | payment_status = 'escrow', customer_fee_amount = 0 where
+// @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql | where g.id = p_credit_id and g.status = 'reserved' and g.job_id = p_job_id) then | where false) then
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

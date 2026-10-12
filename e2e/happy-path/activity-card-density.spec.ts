@@ -569,9 +569,10 @@ test.describe("My Posts — card density + header", () => {
       `chip labels rendered screen-reader-only at 320px: ${invisible.join(", ")}`,
     ).toEqual([]);
     // …and the gate must actually have chips to look at, or it passes vacuously
-    // the day someone drops the attribute. Two, not the three the row shows:
-    // SOS is a SosShareButton, not a JobActionChip, so it carries no hook. The
-    // two that do are exactly the two the tap-target loop above names.
+    // the day someone drops the attribute. Since Q1080 every self-drawn chip
+    // (SOS, Directions, Share, the photo chip) carries the hook too, and
+    // src/test/jobRowControlSameness.test.tsx fails on a row chip without it;
+    // two is the floor the tap-target loop above names.
     expect(
       await page.locator("[data-job-action-chip]").count(),
       "no action chips found at 320px — the gate above would pass on an empty row",

@@ -61,6 +61,9 @@ import { join, resolve } from "node:path";
 // every rendered control and compares them to each other.
 // @mutate src/components/job-card/JobActionRow.tsx | className={JOB_ROW_CONTROL_SHAPE} | className="w-full h-auto"
 // @mutate src/pages/jobs/appliedJobCard/DirectionsButton.tsx | <span className={JOB_ROW_LABEL_CLASS}>Directions</span> | Directions
+// The density-gate hook (Q1080): drop it from one self-drawn chip and the
+// unhooked check names it.
+// @mutate src/components/SosShareButton.tsx | data-job-action-chip="" | data-sos=""
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -581,6 +584,20 @@ describe("a job-card action row is ONE kind of control", () => {
         controls.length,
         `expected at least ${c.minControls} controls in the row, got [${controls.map(nameOf).join(" | ")}]`,
       ).toBeGreaterThanOrEqual(c.minControls);
+
+      // EVERY CHIP CARRIES THE DENSITY-GATE HOOK (Q1080). The 320px "no action
+      // label truncates / is painted" gate in activity-card-density.spec.ts
+      // reads only `[data-job-action-chip]`, so a control that draws itself
+      // (Directions, SOS, Share, the photo chip) without it is invisible to
+      // that gate. Every control outside the primary host is a chip; the
+      // primary has its own gloss checks.
+      const unhooked = controls
+        .filter((el) => !el.closest("[data-job-step-primary]") && !el.hasAttribute("data-job-action-chip"))
+        .map(nameOf);
+      expect(
+        unhooked,
+        "these row chips carry no data-job-action-chip, so the 320px density gate never measures their label",
+      ).toEqual([]);
 
       const sigs = controls.map((el) => ({ name: nameOf(el), sig: signature(el) }));
       const first = sigs[0];

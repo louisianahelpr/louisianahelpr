@@ -16,7 +16,7 @@ import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal,
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, retryFailedRefundEmails, sendRefundNotice, REFUND_EMAIL_MAX_ATTEMPTS } from "../_shared/refundNotice.ts";
 
 /**
  * Q1714: the untold-refund sweep (Part G) looks at refunds made from here on.
@@ -2070,6 +2070,31 @@ serve(async (req) => {
       }
     }
 
+    // ── Part H: refund notices whose email failed ─────────────────────────
+    // The in-app notice was written but its email was not (a send-notification-
+    // email outage, a 401): Part G sees a finished notice and moves on, so
+    // without this the email never goes. Bounded (3 sends in all, notices
+    // under 7 days old); the last failure pages for a person.
+    let refundEmailsRetried = 0;
+    let refundEmailsSent = 0;
+    {
+      const r = await retryFailedRefundEmails(supabaseAdmin);
+      refundEmailsRetried = r.retried;
+      refundEmailsSent = r.emailed;
+      if (r.skipped) console.warn(`[void-cancelled-payments] refund email retry skipped: ${r.skipped}`);
+      for (const p of r.problems) defects.record(`refund email retry: ${p}`);
+      for (const key of r.gaveUp) {
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "A refund notice email failed every try",
+          message: `The in-app refund notice ${key} was written, but its email failed ${REFUND_EMAIL_MAX_ATTEMPTS} times (refund_notices.email_error has the last reason). Email the person by hand.`,
+          fields: { notice: key },
+          oncePerDayKey: `refund-email-gave-up:${key}`,
+        });
+      }
+    }
+
     return cronResult(
       "void-cancelled-payments",
       {
@@ -2081,6 +2106,8 @@ serve(async (req) => {
         crew_shares_retried: crewSharesRetried,
         block_fees_retried: blockFeesRetried,
         untold_refunds_sent: untoldRefundsSent,
+        refund_emails_retried: refundEmailsRetried,
+        refund_emails_sent: refundEmailsSent,
         fee_transfers_retried: feeTransfersRetried,
         total: jobs?.length || 0,
         results,

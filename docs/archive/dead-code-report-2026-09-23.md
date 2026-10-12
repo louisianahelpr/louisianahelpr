@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-10-12 by Q1507: its still-true findings not already queued are Q1680, Q1681, Q1682, Q1683, Q1684; findings checked against the source on 2026-10-12.
+
 # What the app no longer uses: dead-code report (Q41), 2026-09-23
 
 REPORT ONLY. Nothing was deleted or changed. Measured on main @ d12ea4946 and on

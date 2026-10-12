@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { posterPaidDollars } from "@/lib/posterJobCost";
 import { posterSpentCents, spentRows, spentTotalCents, type PosterSpendJob } from "@/lib/posterSpend";
-import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
+import { JOB_COLUMNS_AHEAD_OF_DB, JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
@@ -63,16 +63,19 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
     expect(without.posterGross).toBe(11.2);
     expect(withFee.posterGross).toBe(13.2);
     const admin = blankComments(readFileSync(join(ROOT, "src/components/admin/AdminDisputes.tsx"), "utf8"));
-    expect(admin.match(/sales_tax_amount, onboarding_fee_amount, is_seed/g)?.length).toBe(3);
+    expect(admin.match(/readJobsAheadOfDb\(\s*"[^"]*sales_tax_amount, onboarding_fee_amount, is_seed/g)?.length).toBe(3);
   });
 
-  it("the Money tab and Home History read the column", () => {
-    expect(JOB_READABLE_COLUMN_LIST).toContain("onboarding_fee_amount");
+  it("the Money tab and Home History read the column, deploy-safe (a read before db-deploy retries without it)", () => {
+    // NOT in the shared readable list: a column there that the web app selects
+    // before db-deploy adds it 42703s every jobs read in the app (jobColumns.ts).
+    expect(JOB_READABLE_COLUMN_LIST).not.toContain("onboarding_fee_amount");
+    expect(JOB_COLUMNS_AHEAD_OF_DB).toContain("onboarding_fee_amount");
     const spent = blankComments(readFileSync(join(ROOT, "src/components/profile/earningsTab/SpentSection.tsx"), "utf8"));
     expect(spent.length).toBeGreaterThan(1000);
-    expect(spent).toMatch(/\.from\("jobs"\)[\s\S]{0,200}\.select\("[^"]*\bonboarding_fee_amount\b[^"]*"\)/);
+    expect(spent).toMatch(/readJobsAheadOfDb\(\s*"[^"]*\bonboarding_fee_amount\b[^"]*",\s*\(columns\) => supabase\.from\("jobs"\)\.select\(columns\)/);
     const history = blankComments(readFileSync(join(ROOT, "src/pages/profile/HomeHistory.tsx"), "utf8"));
-    expect(history).toContain(".select(JOB_READABLE_COLUMNS)");
+    expect(history).toMatch(/readJobsAheadOfDb\(`\$\{JOB_READABLE_COLUMNS\}, onboarding_fee_amount`/);
     expect(history).toContain("posterPaidDollars(");
   });
 
@@ -89,7 +92,8 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
 });
 
 // @mutate src/lib/posterJobCost.ts |     num(job.sales_tax_amount) +\n    num(job.onboarding_fee_amount) |     num(job.sales_tax_amount)
-// @mutate src/lib/jobColumns.ts |   "onboarding_fee_amount",\n |
+// @mutate src/lib/jobColumns.ts | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const; | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
+// @mutate src/pages/profile/HomeHistory.tsx | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, onboarding_fee_amount`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | sales_tax_amount, onboarding_fee_amount, payment_status | sales_tax_amount, payment_status
 // @mutate supabase/migrations/20261012171259_job_setup_fee_stamped.sql |     NEW.onboarding_fee_amount := NULL; |     NULL;
 // @mutate src/lib/disputeSplitPreview.ts |     (job.onboarding_fee_amount ?? 0); |     0;

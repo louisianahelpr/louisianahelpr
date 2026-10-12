@@ -162,6 +162,13 @@ while :; do
   # value measured on the rebased tree (its own guard prints it).
   node "$LAND_FROZEN_DIR/landRecount.mjs"
 
+  # New items filed as Q?<tag> placeholders get their numbers HERE, above
+  # everything on origin/main and this tree, so a number is never taken from a
+  # stale base and never sits in a commit subject (2026-10-12: subjects naming
+  # a renumbered Q turned check-fixes-update-their-items red after landing).
+  # Guard: src/test/openAssignNumbers.test.ts.
+  node scripts/open-assign-numbers.mjs --base origin/main
+
   # Queue numbers are taken from each lane's own base, so two lanes file the
   # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the
   # rebase, the item already on main keeps the number and this branch's copy

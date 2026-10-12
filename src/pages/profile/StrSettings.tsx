@@ -2,7 +2,8 @@
  * StrSettings — the Profile "Host Automation" tab.
  *
  * "Rental Host Automation" settings. Lets users connect Airbnb / VRBO iCal
- * feeds so Helpr auto-posts a cleaning job each time a guest checks out.
+ * feeds so Helpr drafts a cleaning job for the host to post each time a guest
+ * checks out (Q768: it never posts one itself).
  *
  * Was the standalone route `/str-settings` until 2026-09-02. It was only ever
  * reached FROM Profile's own chrome, so it was a Profile tab wearing a route's
@@ -77,8 +78,8 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
     mutationFn: async (form: AddFormState) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // This budget is the flat dollar amount every auto-posted cleaning job
-      // will be created with, so it must be the host's OWN number. The old
+      // This budget is the flat dollar amount every drafted cleaning job is
+      // pre-filled with in Post a Job, so it must be the host's OWN number. The old
       // `parseFloat(...) || 80` silently turned "", "abc" or "0" into $80 and
       // accepted "5" despite the input advertising a $10 minimum — a host
       // could end up committing to a price they never chose. Refuse the save
@@ -226,9 +227,9 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
   // Factual cadence copy — verbatim in both places it renders (desktop rail /
   // mobile footnote). Only one of the two is ever on screen.
   const cadenceNote =
-    "Helpr fetches your calendar every few hours. Cleaning jobs are created " +
-    "for checkouts up to 7 days out. Jobs you created manually are never " +
-    "affected.";
+    "Helpr checks your calendar every few hours and tells you about each " +
+    "checkout up to 7 days out, with a cleaning job filled in for you to post. " +
+    "Nothing is posted or charged until you post it.";
 
   return (
     <ProfileTabBody>
@@ -290,7 +291,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                 variant="inline"
                 icon={CalendarDays}
                 title="Never scramble for a cleaner again"
-                body="Connect your Airbnb or VRBO calendar. When a guest checks out, Helpr automatically posts a cleaning job — so you always have someone lined up before the next guest arrives."
+                body="Connect your Airbnb or VRBO calendar. When a guest checks out, Helpr fills in a cleaning job for you to post — so you can line someone up before the next guest arrives."
                 action={
                   <BarkPillButton onClick={() => setAddOpen(true)}>
                     <Plus className="w-4 h-4 mr-1.5" />

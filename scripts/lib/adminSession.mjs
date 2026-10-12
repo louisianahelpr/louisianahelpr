@@ -165,6 +165,14 @@ export async function withMintLock(email, fn, { dir = defaultMintLockDir(), stal
 
 /** 429, 5xx and a dropped connection are worth one more try; a 4xx about the request is not. */
 const RETRYABLE = (status) => status === 0 || status === 429 || status >= 500;
+/**
+ * Our recovery token was voided by another mint of the same address on ANOTHER
+ * machine (the lock file only orders mints on one machine): GoTrue keeps one
+ * recovery token per user, so the loser's /verify answers 403 otp_expired.
+ * A fresh generate_link -> /verify is the remedy, so it counts as retryable;
+ * it costs one more metered /verify, only when the race happened (Q1651).
+ */
+const VOIDED_BY_ANOTHER_MINT = (r) => r.status === 403 && /otp_expired/.test(String(r.error ?? ""));
 
 /**
  * Mint a session for `email` with the service role. Returns the GoTrue token
@@ -226,7 +234,7 @@ export async function mintAdminSession({
     const r = await withMintLock(email, once, { dir: lockDir, staleMs: 2 * timeoutMs + 10_000, waitMs: 4 * timeoutMs + 30_000 });
     if (r.session) return r.session;
     errors.push(r.error);
-    if (attempt >= retries || !RETRYABLE(r.status)) throw new Error(errors.join(" | after: "));
+    if (attempt >= retries || !(RETRYABLE(r.status) || VOIDED_BY_ANOTHER_MINT(r))) throw new Error(errors.join(" | after: "));
     await new Promise((res) => setTimeout(res, retryDelayMs));
   }
 }

@@ -18,6 +18,8 @@
  * The released-locks check is only as good as its floor: locks taken anywhere
  * but lockDir must turn it red too.
  * @mutate scripts/lib/adminSession.mjs | withMintLock(email, once, { dir: lockDir, | withMintLock(email, once, { dir: undefined,
+ * Two RUNNERS (one lock dir each) can still race; the loser re-mints once (Q1651).
+ * @mutate scripts/lib/adminSession.mjs | !(RETRYABLE(r.status) \|\| VOIDED_BY_ANOTHER_MINT(r)) | !RETRYABLE(r.status)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -100,6 +102,34 @@ describe("mintAdminSession: one mint per account at a time", () => {
     expect(heldAtGenerate).toHaveLength(3);
     expect(heldAtGenerate.every((n) => n === 1)).toBe(true);
     expect(readdirSync(lockDir)).toEqual([]); // every lock released
+  });
+
+  it("two runners (separate lock dirs) minting one account both sign in: the voided one re-mints once (Q1651)", async () => {
+    const { fetchImpl, calls } = fakeGoTrue();
+    vi.stubGlobal("fetch", fetchImpl);
+    const otherDir = mkdtempSync(join(tmpdir(), "lh-mint-lock-other-"));
+    try {
+      const mint = (dir: string) => mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir: dir, retryDelayMs: 50 });
+      const results = await Promise.allSettled([mint(lockDir), mint(otherDir)]);
+      expect(results.map((r) => (r.status === "rejected" ? String(r.reason) : "ok"))).toEqual(["ok", "ok"]);
+      // The race happened (one token voided) and cost exactly one more generate + verify.
+      expect(calls).toEqual({ generate: 3, verify: 3, expired: 1 });
+    } finally {
+      rmSync(otherDir, { recursive: true, force: true });
+    }
+  });
+
+  it("a 403 that is not otp_expired is not retried", async () => {
+    let generates = 0;
+    vi.stubGlobal("fetch", async (url: string) => {
+      if (url.endsWith("/auth/v1/admin/generate_link")) {
+        generates++;
+        return new Response(JSON.stringify({ hashed_token: "h" }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ error_code: "user_banned" }), { status: 403 });
+    });
+    await expect(mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir, retryDelayMs: 10 })).rejects.toThrow(/403/);
+    expect(generates).toBe(1);
   });
 
   it("a lock left by a dead process is taken over once stale", async () => {

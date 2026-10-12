@@ -49,6 +49,7 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
+import { adminBadgeFor, useStalledQueueCount } from "@/components/admin/adminRailBadges";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
@@ -81,15 +82,6 @@ const VIEW_LABELS: Record<View, string> = {
     banreview: "Ban Review",
     stalled: "Stuck Jobs",
   };
-
-function adminBadgeFor(id: string, unreadCounts: Record<string, number>, stats: Stats): number | undefined {
-  const uc = unreadCounts[id];
-  if (uc && uc > 0) return uc;
-  if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
-  if (id === "reports" && stats.openReports > 0) return stats.openReports;
-  if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;
-  return undefined;
-}
 
 const Admin = () => {
   // Which chrome this page owns — see the two render sites below.
@@ -155,6 +147,9 @@ const Admin = () => {
   // supplies the shared loading flag (the redundant useAdminAuth redirect
   // hook has been removed).
   const { isLoading: loading } = useCurrentUser();
+  // Q1071: the Stuck Jobs rail count (src/components/admin/adminRailBadges.ts).
+  const stalledCount = useStalledQueueCount(!loading);
+  const openQueues = { stalled: stalledCount.data };
 
   const loadUnreadCounts = useCallback(async () => {
     // `excludeSeed` marks the sections whose table HAS an is_seed column, which
@@ -479,11 +474,11 @@ const Admin = () => {
   useEffect(() => {
     const next: Record<string, number> = {};
     for (const g of adminNavGroups) for (const { id } of g.items) {
-      const n = adminBadgeFor(id, unreadCounts, stats);
+      const n = adminBadgeFor(id, unreadCounts, stats, { stalled: stalledCount.data });
       if (n) next[id] = n;
     }
     publishAdminBadges(next);
-  }, [unreadCounts, stats]);
+  }, [unreadCounts, stats, stalledCount.data]);
 
   if (loading) {
     return (
@@ -493,7 +488,7 @@ const Admin = () => {
     );
   }
 
-  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats);
+  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats, openQueues);
 
   const getBadgeColor = (id: string): string => {
     if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";
@@ -545,7 +540,7 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
-          dataError={statsLoadError || unreadCountsError}
+          dataError={statsLoadError || unreadCountsError || stalledCount.isError}
         />
       );
     }

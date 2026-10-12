@@ -33,6 +33,8 @@ import { helperDisplayFeePercent, helperShareCount, type HelperEarningsJob } fro
 export interface DisputeSplitJob extends HelperEarningsJob {
   customer_fee_amount?: number | null;
   sales_tax_amount?: number | null;
+  /** The one-time setup fee this job's checkout kept (Q1346): part of the capture. */
+  onboarding_fee_amount?: number | null;
 }
 
 export interface SplitPreview {
@@ -106,7 +108,10 @@ export function previewDisputeSplit(
     budget +
     (job.customer_fee_amount ?? 0) +
     (job.urgent_fee ?? 0) +
-    (job.sales_tax_amount ?? 0);
+    (job.sales_tax_amount ?? 0) +
+    // Q1346: the executor splits pi.amount_received, which includes the setup
+    // fee on the poster's first checkout.
+    (job.onboarding_fee_amount ?? 0);
   const capturedCents = Math.round(captured * 100);
   const processingCents = capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0;
   const refundableCents = Math.max(0, capturedCents - processingCents);

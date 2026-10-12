@@ -99,6 +99,11 @@ export const EXEMPT: Record<string, string> = {
     "A monitor, not a suite: its only prod touch is CJ-011's cron-detectors-alive.mjs, one read-only " +
     "Management API query of cron.job / cron.job_run_details for four jobs, once a day. The rest " +
     "of the workflow reads the GitHub API. Nothing it does loads prod the way a suite does.",
+  "feature-switch-audience.yml":
+    "A monitor, not a suite (hidden feature switches, 20261012031120): one service-role read of " +
+    "feature_switches (a handful of rows), one auth user lookup for its probe account, three " +
+    "single-row reads, two service-role session mints and one feature_enabled_for call per switch " +
+    "for each of three callers, once a day. No browser, no journey, no writes beyond the probe account.",
 };
 
 /**

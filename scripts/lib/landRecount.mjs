@@ -3,7 +3,7 @@
  * After a land.sh rebase: write the MEASURED value into every exact-count
  * constant whose conflict ./landRebaseResolve.mjs settled with main's value.
  *
- * Both sides of a rebase may move a count (MARKERLESS_PARTLY_DONE,
+ * Both sides of a rebase may move a count (MARKERLESS_PARTLY_DONE until 2026-10-12, now an id list,
  * UNNUMBERED_OPEN_LINES, ...) and neither number is right for the merged
  * tree. The guard that owns the constant measures it: run that test file,
  * read vitest's `expected <measured> to be <constant>`, write <measured>, and

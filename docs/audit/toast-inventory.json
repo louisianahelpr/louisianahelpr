@@ -6540,7 +6540,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 132,
+      "line": 133,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6550,7 +6550,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 137,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6560,7 +6560,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 163,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6570,7 +6570,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6590,7 +6590,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6600,7 +6600,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 206,
+      "line": 207,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6610,7 +6610,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 212,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "literal",

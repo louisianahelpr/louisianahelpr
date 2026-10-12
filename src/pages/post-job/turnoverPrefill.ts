@@ -56,8 +56,48 @@ export function buildTurnoverPrefill(row: TurnoverRow): TurnoverPrefill {
     budget: conn?.cleaning_budget != null ? String(conn.cleaning_budget) : "",
     location: conn?.property_address ?? "",
     dateNeeded: row.checkout_date,
-    alreadyPosted: row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""),
+    alreadyPosted: isTurnoverPosted(row),
   };
+}
+
+/** The one "already posted" rule: the event points at a FUNDED, live job. Post a
+ *  Job and the Ready-to-post list on /str-settings (Q1521) both read it. */
+function isTurnoverPosted(row: Pick<TurnoverRow, "job_id" | "jobs">): boolean {
+  return row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? "");
+}
+
+interface ReadyTurnover {
+  id: string;
+  checkoutDate: string;
+  propertyName: string;
+}
+
+/**
+ * Q1521: the host's imported checkouts still waiting to be posted (today or
+ * later in Louisiana, not yet linked to a funded job), soonest first. The
+ * notice is the only other way in, and a deleted notice used to lose the
+ * checkout for good. RLS: only the calendar's owner reads its events.
+ */
+export async function fetchReadyTurnovers(todayYmd: string): Promise<ReadyTurnover[]> {
+  const rows = (unwrap(
+    await supabase
+      .from("str_processed_events")
+      .select("id, checkout_date, job_id, jobs(status, payment_status), str_calendar_connections(property_name, is_active)")
+      .gte("checkout_date", todayYmd)
+      .order("checkout_date", { ascending: true })
+      .limit(50),
+  ) ?? []) as Array<
+    Pick<TurnoverRow, "id" | "checkout_date" | "job_id" | "jobs"> & {
+      str_calendar_connections: { property_name: string | null; is_active: boolean | null } | null;
+    }
+  >;
+  return rows
+    .filter((r) => r.str_calendar_connections?.is_active !== false && !isTurnoverPosted(r))
+    .map((r) => ({
+      id: r.id,
+      checkoutDate: r.checkout_date,
+      propertyName: r.str_calendar_connections?.property_name || "Unnamed property",
+    }));
 }
 
 /** Read the host's own turnover (RLS: only the calendar's owner can SELECT it). Null when it is not theirs or gone. */

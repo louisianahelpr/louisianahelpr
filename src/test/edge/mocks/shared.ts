@@ -98,7 +98,9 @@ export const notificationEmailAnswer: { status: number; body: Record<string, unk
 const EMAIL_FETCH_MARK = "__lhNotificationEmailFetch";
 export function installNotificationEmailFetch() {
   const current = globalThis.fetch as typeof fetch & { [EMAIL_FETCH_MARK]?: boolean };
-  if (current?.[EMAIL_FETCH_MARK]) return;
+  // Already installed, or a test stubbed `fetch` itself (a vi.fn): that test
+  // owns every call, the refund email included.
+  if (current?.[EMAIL_FETCH_MARK] || (current as unknown as { mock?: unknown })?.mock) return;
   const wrapped = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (new URL(url).pathname === "/functions/v1/send-notification-email") {

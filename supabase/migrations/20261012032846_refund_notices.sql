@@ -35,6 +35,9 @@ CREATE INDEX IF NOT EXISTS refund_notices_user_id_idx ON public.refund_notices (
 CREATE INDEX IF NOT EXISTS refund_notices_job_id_idx ON public.refund_notices (job_id);
 
 ALTER TABLE public.refund_notices ENABLE ROW LEVEL SECURITY;
+-- Q807: every public table created since gets the unconfirmed-email write gate
+-- (a no-op for service_role, the only writer here).
+SELECT public.attach_unconfirmed_email_gate();
 
 REVOKE ALL ON TABLE public.refund_notices FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.refund_notices TO service_role;

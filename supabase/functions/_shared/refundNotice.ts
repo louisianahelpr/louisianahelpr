@@ -25,9 +25,11 @@
  * type the old "Refund processed" row used: the person's own Email switches
  * and the seed boundary apply there exactly as for every other money notice.
  *
- * ZERO imports on purpose (like insertNotifications.ts), so any function and
- * the edge harness can load it as it is.
+ * Its two imports (caughtMessage, functionFetch) have zero imports themselves, so any function and
+ * the edge harness load the real module as it is.
  */
+import { caughtMessage } from "./caughtMessage.ts";
+import { fetchFunction } from "./functionFetch.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = any;
@@ -78,7 +80,7 @@ export interface RefundNoticeInput {
   endpoint?: { url: string; key: string } | null;
 }
 
-export type RefundNoticeStatus =
+type RefundNoticeStatus =
   | "sent"          // in-app row written (emailed says whether the email went)
   | "duplicate"     // another sender already told them about this refund
   | "in_flight"     // another sender claimed it seconds ago and is writing it now
@@ -182,7 +184,7 @@ const METHOD_TYPES: Record<string, string> = {
 };
 
 /** "your Visa ending in 4242", "Apple Pay (Visa ending in 4242)", or the fallback. */
-export function describePaymentMethod(m: PaymentMethodLabel | null | undefined): string {
+function describePaymentMethod(m: PaymentMethodLabel | null | undefined): string {
   if (!m) return "your original payment method";
   const brand = m.brand ? (BRANDS[m.brand] ?? m.brand.charAt(0).toUpperCase() + m.brand.slice(1)) : null;
   const card = m.last4 ? `${brand ?? "card"} ending in ${m.last4}` : brand;
@@ -218,7 +220,7 @@ const cents = (dollars: number | string | null | undefined): number => {
  * their receipt. The caller's reason wins; then the refund's own metadata;
  * then what the job says happened to it.
  */
-export function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "metadata">, job: JobRow | null): string {
+function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "metadata">, job: JobRow | null): string {
   if (!(keptCents > 0)) return "";
   const kept = refundDollars(keptCents);
   const why = input.keptReason ?? input.metadata?.kept_reason ?? null;
@@ -248,7 +250,7 @@ export function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "
 }
 
 /** Title and body. Exported so the guard and the tests read the words the poster reads. */
-export function refundNoticeCopy(input: RefundNoticeInput, job: JobRow | null): { title: string; message: string } {
+function refundNoticeCopy(input: RefundNoticeInput, job: JobRow | null): { title: string; message: string } {
   const amount = refundDollars(input.amountCents);
   const what = job?.title ? ` for "${job.title}"` : "";
   const to = describePaymentMethod(input.method);
@@ -438,7 +440,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         emailError = "no SUPABASE_URL / service key to reach send-notification-email";
       } else {
         try {
-          const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
+          const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
             body: JSON.stringify({ notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null }),
@@ -450,7 +452,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
           if (!res.ok) emailError = `send-notification-email answered ${res.status}`;
           else if (body.skipped) { emailSkipped = true; emailError = `skipped: ${body.reason ?? "unknown"}`; }
         } catch (e) {
-          emailError = e instanceof Error ? e.message : String(e);
+          emailError = caughtMessage(e);
         }
       }
       if (claimed) {
@@ -467,6 +469,6 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       throw e;
     }
   } catch (e) {
-    return { status: "failed", error: e instanceof Error ? e.message : String(e) };
+    return { status: "failed", error: caughtMessage(e) };
   }
 }

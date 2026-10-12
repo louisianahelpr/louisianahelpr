@@ -227,7 +227,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/checkoutSessionCompleted": {
     uncovered: GAP("the tip leg in 04-money-outcomes (it RECORDS whether this handler's \"You received a tip!\" row lands beside the trigger's, but does not assert it: two in-app rows for one tip is a suspected duplicate)"),
   },
-  "edge:stripe-webhook/handlers/settleRecurringVisitCheckout": { uncovered: STRIPE_EVENT("checkout.session.completed for a recurring-visit payment (journeys never pay on live)") },
+  // Q1652: THE refund notice every refund path sends (in the app and by email).
+  // The admin full + partial refund leg asserts its two rows by their refund
+  // link and copy.
+  "edge:_shared/refundNotice": { driven: { spec: "e2e/journeys/04-admin-safety.spec.ts", evidence: "Refund issued: \\$" } },
   "edge:stripe-webhook/handlers/settleOnboardingFee": {
     uncovered: "fires on the one-time onboarding-fee checkout; both shared accounts paid it long ago",
   },

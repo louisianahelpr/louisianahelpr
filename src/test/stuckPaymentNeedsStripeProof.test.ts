@@ -15,6 +15,13 @@
  * (src/test/edge/stuck-payment-check.test.ts pins what "moved" means). Inventory
  * from the effective definitions (later rewrites applied), comments blanked.
  *
+ * Q1594: the ledger item's close question (ops_alert_condition's
+ * detect_stuck_payments branch) drops exactly the detector's not_paid jobs
+ * (a FRESH not-paid answer), so an unfinished checkout cannot keep it open,
+ * while money moved or no current answer (awaiting_stripe, filed under the
+ * same source) still keeps it open. Behaviour:
+ * src/test/pglite/stuckPaymentCloseNeedsMoneyMoved.pglite.mjs.
+ *
  * Red on the original: run against origin/main 6f4775024 the gate test fails
  * (detect_stuck_payments has no money_moved). Behaviour, both cases:
  * src/test/pglite/stuckPaymentNeedsStripeProof.pglite.mjs.
@@ -27,6 +34,8 @@
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |     ORDER BY (c.money_moved IS TRUE) DESC, (c.checked_at IS NULL) DESC, j.created_at\n | \n
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |                  AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed, |                  AND true) AS seed,
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |            AND e.tags ->> 'job_id' = rec.id::text\n           AND e.message = 'Stuck payment detected — webhook noop' |            AND e.message = 'Stuck payment detected — webhook noop'
+ * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |                                OR c.session_status IN ('expired', 'missing')), false) |                                OR c.session_status IN ('expired', 'missing')), true)
+ * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |          AND NOT coalesce(c.money_moved IS NOT TRUE |          AND NOT coalesce(true
  * @mutate supabase/config.toml |   [functions.stuck-payment-check]\n    verify_jwt = false |   [functions.stuck-payment-check]\n    verify_jwt = true
  */
 import { describe, it, expect } from "vitest";
@@ -65,6 +74,24 @@ describe("the stuck-payment alert needs Stripe's proof that money moved", () => 
 
   it("trusts only an answer about the job's CURRENT session", () => {
     expect(code("detect_stuck_payments")).toMatch(/ON\s+c\.job_id\s*=\s*j\.id\s+AND\s+c\.stripe_session_id\s*=\s*j\.stripe_session_id/i);
+  });
+
+  it("the ledger item's close question needs the same proof (Q1594)", () => {
+    const body = code("ops_alert_condition");
+    const start = body.search(/p_source\s*=\s*'detect_stuck_payments'\s+THEN/i);
+    expect(start).toBeGreaterThan(-1);
+    const rest = body.slice(start);
+    const branch = rest.slice(0, rest.search(/\bELSIF\b/i));
+    // Fail-closed: a LEFT join (no answer = still failing), current session only…
+    expect(branch).toMatch(
+      /LEFT\s+JOIN\s+public\.stuck_payment_stripe_checks\s+c\s+ON\s+c\.job_id\s*=\s*j\.id\s+AND\s+c\.stripe_session_id\s*=\s*j\.stripe_session_id\s+WHERE/i,
+    );
+    // …dropping only the detector's not_paid disposition, missing answer = keep.
+    expect(branch).toMatch(
+      /AND\s+NOT\s+coalesce\(\s*c\.money_moved\s+IS\s+NOT\s+TRUE\s+AND\s+\(\s*c\.checked_at\s*>\s*now\(\)\s*-\s*interval\s+'45 minutes'\s+OR\s+c\.session_status\s+IN\s+\(\s*'expired'\s*,\s*'missing'\s*\)\s*\)\s*,\s*false\s*\)/i,
+    );
+    // …and the window is the detector's own.
+    expect(code("detect_stuck_payments")).toMatch(/rec\.checked_at\s*>\s*NOW\(\)\s*-\s*INTERVAL\s+'45 minutes'\s+OR\s+rec\.session_status\s+IN\s+\('expired',\s*'missing'\)/i);
   });
 
   it("not_paid counts as handled work; awaiting_stripe never does (a dead checker must still page)", () => {

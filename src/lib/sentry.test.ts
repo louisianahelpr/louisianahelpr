@@ -374,6 +374,17 @@ describe("captureException", () => {
     expect(captureExceptionMock).toHaveBeenCalledWith(err, { extra: { user_id: "u1" } });
   });
 
+  // report()'s severity is the level Sentry stores (2026-10-12: warnings were
+  // stored as level:error). Guard: src/lib/reportSeverityReachesSentry.test.ts.
+  // @mutate src/lib/sentry.ts | ...(level ? { level } : {}) | ...{}
+  it("forwards the level beside extra", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const err = new Error("warn");
+    captureException(err, { user_id: "u1" }, "warning");
+    expect(captureExceptionMock).toHaveBeenCalledWith(err, { extra: { user_id: "u1" }, level: "warning" });
+  });
+
   it("does NOT throw when Sentry SDK throws internally", async () => {
     captureExceptionMock.mockImplementation(() => {
       throw new Error("Sentry transport down");

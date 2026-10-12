@@ -369,10 +369,21 @@ function normalizeToError(err: unknown): unknown {
   return err;
 }
 
-export function captureException(err: unknown, context?: Record<string, unknown>) {
+/**
+ * `level` is report()'s severity. Without it every report() reached Sentry as
+ * level "error" (measured 2026-10-12: "Session lost on a signed-in screen",
+ * reported as a warning, is level:error on Sentry JAVASCRIPT-3H), so the
+ * ledger sync, which maps Sentry's level, recorded warnings as errors.
+ */
+export function captureException(
+  err: unknown,
+  context?: Record<string, unknown>,
+  level?: "fatal" | "error" | "warning" | "info",
+) {
   if (!initialized) return;
   try {
-    sentryCaptureException(normalizeToError(err), context ? { extra: context } : undefined);
+    const hint = { ...(context ? { extra: context } : {}), ...(level ? { level } : {}) };
+    sentryCaptureException(normalizeToError(err), Object.keys(hint).length ? hint : undefined);
   } catch { /* ignore */ }
 }
 

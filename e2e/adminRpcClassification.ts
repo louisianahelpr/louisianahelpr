@@ -27,9 +27,13 @@ import { join } from "node:path";
  * `admin_gift_card_paid_job_ids` added 2026-10-04 (Q454's gift-refund warning).
  * Verified live on prod: `pg_proc.provolatile = 's'`, SECURITY DEFINER, no
  * INSERT/UPDATE/DELETE in its body.
+ *
+ * `admin_signup_leads` added 2026-10-12 (Q1587): LANGUAGE sql STABLE SECURITY
+ * DEFINER, one SELECT over signup_leads (migration 20261012043611). Not on prod
+ * until that migration lands: re-check provolatile = 's' there after it deploys.
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_signup_leads(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is

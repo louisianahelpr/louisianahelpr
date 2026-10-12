@@ -351,9 +351,10 @@ serve(async (req) => {
     // this endpoint is unauthenticated, so a subject in the fingerprint would
     // let anyone mint unbounded items (authz review of Q64, M2); the count
     // still says how many arrived, and each is in the support inbox.
+    let itemRecorded = reportLogged
     if (!reportLogged) {
       const emailSubject = `[${topicLabel}] ${subject || 'No subject'} — ${name}`
-      await recordOpsAlertLedger({
+      itemRecorded = await recordOpsAlertLedger({
         sourceKind: 'user-report',
         source: userId ? 'contact-support-unlogged' : 'contact-support-guest',
         title: `Support (${userId ? 'queue insert failed' : 'guest'}) [${topicLabel}]`,
@@ -379,6 +380,10 @@ serve(async (req) => {
     await postSlackOpsAlert({
       kind: 'support_request',
       severity: 'info',
+      // This request is already ONE ledger item: the user-report item above,
+      // or trg_reports_zz_ledger on the reports row (Q1582/Q1583). If the
+      // user-report write did not land, the Slack post's own item is the trail.
+      ledger: !itemRecorded,
       oncePerDayKey: supportRequestKey({ email, subject, message }),
       title: `Support: ${topicLabel}`,
       message: subject || message.slice(0, 200),

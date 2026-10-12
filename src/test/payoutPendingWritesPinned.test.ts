@@ -9,6 +9,14 @@
 // assigned payout_pending write. A write's chain runs to its `.select(`; the
 // pin (.eq/.in on "payment_status") must sit inside it.
 //
+// What it does NOT see (Q1343): only LITERAL edge-function writes are in the
+// inventory, i.e. an object literal `payment_status: "payout_pending"` or the
+// assignment `.payment_status = "payout_pending";`. A computed value (a
+// variable or ternary that evaluates to 'payout_pending', a spread of a
+// prebuilt object) and every SQL function or trigger that sets it (migrations
+// under supabase/migrations, RPCs called from the client or a cron) are out of
+// its reach; a write there passes this guard whether or not it is pinned.
+//
 // @mutate supabase/functions/create-payment/index.ts |         if (updateFields.payment_status === "payout_pending") conditional = conditional.eq("payment_status", "escrow"); |         void 0;
 // @mutate supabase/functions/auto-release-payment/index.ts |         .eq("payment_status", "escrow")\n        .select("id"); |         .select("id");
 import { describe, it, expect } from "vitest";

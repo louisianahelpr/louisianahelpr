@@ -183,7 +183,9 @@ test.skip(!avail.ok, avail.why);
 
 async function posterPage(browser: Browser, request: APIRequestContext) {
   const poster = await getSession(request, "poster");
-  const ctx = await newUserContext(browser, poster);
+  // Louisiana time: its post leg picks a CT day, and pickCalendarDay refuses a
+  // context on another zone (e2e/calendarPicker.ts).
+  const ctx = await newUserContext(browser, poster, { timezoneId: ZONE });
   const page = await ctx.newPage();
   return { poster, ctx, page };
 }

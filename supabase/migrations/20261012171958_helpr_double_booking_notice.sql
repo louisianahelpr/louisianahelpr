@@ -100,6 +100,7 @@ DECLARE
   v_title text;
   v_date date;
   v_other record;
+  v_seed boolean;
 BEGIN
   IF TG_TABLE_NAME = 'jobs' THEN
     v_job := NEW.id;
@@ -120,7 +121,7 @@ BEGIN
     IF v_other.id IS NULL THEN
       RETURN NULL;
     END IF;
-    SELECT j.title, j.date_needed INTO v_title, v_date FROM public.jobs j WHERE j.id = v_job;
+    SELECT j.title, j.date_needed, j.is_seed INTO v_title, v_date, v_seed FROM public.jobs j WHERE j.id = v_job;
 
     INSERT INTO public.notifications (user_id, job_id, title, message, type, link)
     VALUES (
@@ -136,12 +137,15 @@ BEGIN
     -- Never refuse a hire because its heads-up could not be written; the
     -- in-app notice on the card (my_schedule_clashes) still shows the clash.
     -- Recorded where ops reads (error_logs), best effort.
-    RAISE WARNING 'notify_helpr_of_booking_clash: % (job %, helper %)', SQLERRM, v_job, v_helper;
+    RAISE WARNING 'notify_helpr_of_booking_clash: % (job %, user %)', SQLERRM, v_job, v_helper;
     BEGIN
       INSERT INTO public.error_logs (severity, message, url, tags, context)
       VALUES ('error', 'Double-booking notice not sent: ' || SQLERRM,
               format('/admin?view=jobs&job=%s', v_job),
-              jsonb_build_object('source', 'notify_helpr_of_booking_clash', 'origin', 'server'),
+              -- A seed/E2E job's failure goes to the daily digest, not the page
+              -- (error_log_is_seed reads tags.seed); unknown counts as real.
+              jsonb_build_object('source', 'notify_helpr_of_booking_clash', 'origin', 'server',
+                                 'seed', COALESCE(v_seed, false)),
               jsonb_build_object('job_id', v_job, 'helper_id', v_helper));
     EXCEPTION WHEN OTHERS THEN
       NULL; -- the WARNING above is the last resort; a hire is never refused for a log row

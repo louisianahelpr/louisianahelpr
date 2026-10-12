@@ -766,7 +766,7 @@ serve(async (req) => {
           // Refuse and leave the decision to a person.
           logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "transfer", id: dispute.execution_transfer_id });
           return await refuse(
-            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamp with rpc_clear_test_mode_dispute_stamp, then supersedes)" },
+            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes)" },
             409,
           );
         } else {

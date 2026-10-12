@@ -97,3 +97,21 @@ const VALID_TABS = new Set<string>([...Object.keys(TAB_TITLES), "landing"]);
 export function resolveTab(raw: string | null | undefined): Tab {
   return raw && VALID_TABS.has(raw) ? (raw as Tab) : "landing";
 }
+
+/**
+ * The title a Profile tab's screen paints, for EVERY renderer of that header:
+ * the loaded tab, its loading fallback, its offline gate and the browser tab.
+ * The support tab opened from the "Report a bug" row (`?topic=report`) is
+ * titled REPORT_BUG_TITLE. Reading TAB_TITLES alone there made the loading
+ * header say "Help & Support" and then flip to "Report a bug" (measured on
+ * prod at 1440, 2026-10-12, Q1530).
+ */
+export function profileTabTitle(tab: Exclude<Tab, "landing">, search: string): string {
+  if (tab === "support" && new URLSearchParams(search).get("topic") === "report") return REPORT_BUG_TITLE;
+  return TAB_TITLES[tab];
+}
+
+/** The URL's query string at render time ("" outside a browser). */
+export function currentSearch(): string {
+  return typeof window === "undefined" ? "" : window.location.search;
+}

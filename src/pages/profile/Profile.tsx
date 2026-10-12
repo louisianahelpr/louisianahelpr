@@ -46,7 +46,7 @@ import {
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
-import { TAB_TITLES, resolveTab, type Profile, type Tab } from "./types";
+import { TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
@@ -139,7 +139,7 @@ const ProfilePage = () => {
   usePageTitle(
     tab === "landing" || !TAB_TITLES[tab]
       ? "My Profile — Helpr"
-      : `${TAB_TITLES[tab]} — My Profile — Helpr`,
+      : `${profileTabTitle(tab, searchParams.toString())} — My Profile — Helpr`,
   );
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser

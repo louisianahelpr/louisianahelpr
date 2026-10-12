@@ -365,8 +365,8 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
             budget: 100, customer_fee_amount: 10,
             // Client-written and wrong on purpose: the stamp must not echo it.
             cancellation_fee: 99,
-            date_needed: "2026-10-20", start_time: "10:00:00", cancelled_at: "2026-10-20T13:00:00.000Z",
-            helper_id: "helper-1", helper_confirmed_at: "2026-10-18T12:00:00.000Z",
+            date_needed: "2024-10-20", start_time: "10:00:00", cancelled_at: "2024-10-20T13:00:00.000Z",
+            helper_id: "helper-1", helper_confirmed_at: "2024-10-18T12:00:00.000Z",
             customer_id: "poster-1", helper_fee_percent: 10,
           }],
         },

@@ -10,6 +10,7 @@ import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { effectiveSeverity, escapeSlackText, safeSlackLink, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
 import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
 const SLACK_API_URL = 'https://slack.com/api'
@@ -94,7 +95,7 @@ function buildBlocks(body: AlertBody, severity: AlertSeverity) {
     })
   }
 
-  const link = safeSlackLink(body.link)
+  const link = safeSlackLink(body.link, getAppUrl())
   if (link) {
     blocks.push({
       type: 'context',

@@ -21,6 +21,7 @@
 
 import { effectiveSeverity, escapeSlackText, safeSlackLink, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
 import { recordOpsAlertLedger } from './opsAlertLedger.ts'
+import { getAppUrl } from './appUrl.ts'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 
@@ -393,7 +394,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       })
     }
 
-    const link = safeSlackLink(input.link)
+    const link = safeSlackLink(input.link, getAppUrl())
     if (link) {
       blocks.push({
         type: 'context',

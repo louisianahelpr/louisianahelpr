@@ -13,7 +13,7 @@
 // @mutate .github/workflows/open-done-when.yml |           if [ ! -f "$STATUS_FILE" ]; then |           if false; then
 // @mutate .github/workflows/open-done-when.yml |           if [ "$STATUS" != "0" ]; then |           if false; then
 // @mutate scripts/open-done-when.mjs |     if (!existsSync(mk.path)) throw new Error | if (false) throw new Error
-// @mutate scripts/open-done-when.mjs |       writeFileSync(opt("status-file"), `${status}\n`); |       writeFileSync(opt("status-file"), `0\n`);
+// @mutate scripts/open-done-when.mjs |     const status = problems.length ? 1 : 0; |     const status = 0;
 // @mutate scripts/open-done-when.mjs |     out.set(rel, r.status === "passed"); |     out.set(rel, r.status !== "skipped");
 import { describe, it, expect } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";

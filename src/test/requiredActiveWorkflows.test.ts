@@ -68,7 +68,13 @@ describe("every bot workflow must stay enabled (watchdog inventory)", () => {
   });
 
   it("the owner's named workflows are required", () => {
-    for (const f of ["open-auto-tick.yml", "open-done-when.yml", "db-deploy.yml", "functions-deploy.yml", "prod-deploy.yml", "db-backup.yml", "branch-prune.yml", "staleness-watch.yml", "scoreboard.yml", "loading-states-refresh.yml", "write-contract-refresh.yml", "morning-page.yml", "nightly-webkit.yml", "e2e-real-backend.yml", "e2e-journeys.yml"]) {
+    const named = [
+      "open-auto-tick.yml", "open-done-when.yml", "db-deploy.yml", "functions-deploy.yml", "prod-deploy.yml", "db-backup.yml",
+      "branch-prune.yml", "staleness-watch.yml", "scoreboard.yml", "loading-states-refresh.yml", "morning-page.yml",
+      "write-contract-refresh.yml",
+      "e2e-real-backend.yml", "e2e-journeys.yml", "nightly-webkit.yml",
+    ];
+    for (const f of named) {
       expect(REQUIRED_ACTIVE, f).toContain(f);
     }
   });

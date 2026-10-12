@@ -179,6 +179,11 @@ const catalogCheck = (readFail: RegExp): Case[] => [
 ];
 
 const HERMETIC: Record<string, Case[]> = {
+  // Bot-workflow watchdog (2026-10-12): a failed or short workflow listing is exit 2, never "nothing disabled".
+  "scripts/check-workflows-active.mjs": [
+    { label: "gh read fails", cli: CLI_FAIL, says: /could not read workflow states/ },
+    { label: "gh read is empty", cli: { out: "", code: 0 }, says: /the read is incomplete/ },
+  ],
   "scripts/check-anon-table-grants.mjs": catalogCheck(/could not read live grant catalog/),
   "scripts/check-job-access-notes-live.mjs": catalogCheck(/could not read the live catalog/),
   "scripts/check-ban-gate-coverage.mjs": catalogCheck(/could not read the live catalog/),

@@ -11,6 +11,8 @@ name: Branch prune
 # turns this red.
 # Script + decision function: scripts/prune-stale-branches.mjs
 # Guard: src/test/pruneStaleBranches.test.ts
+# Stale claim/* branches (6 h, no open PR names the item): scripts/prune-stale-claims.mjs,
+# guard src/test/pruneStaleClaims.test.ts.
 #
 # The `stranded` job (docs/OPEN.md Q1146; owner 2026-10-03: "nothing should
 # ever be left stranded", "nothing should ever be closed without merging")
@@ -47,6 +49,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || secrets.GITHUB_TOKEN }}
         run: node scripts/prune-stale-branches.mjs --apply
+      # Owner, 2026-10-12: a lane that dies leaves its claim/Q<n> branch behind
+      # and the item stays claimed for good. Delete claim/* branches claimed
+      # over 6 h ago that no open PR mentions and that carry nothing beyond
+      # main; each decision is logged to the job summary.
+      # Script: scripts/prune-stale-claims.mjs. Guard: src/test/pruneStaleClaims.test.ts.
+      - name: Delete stale claim/* branches (over 6 h, no open PR names the item)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/prune-stale-claims.mjs --apply
 
   stranded:
     runs-on: ubuntu-latest

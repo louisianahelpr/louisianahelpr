@@ -25,8 +25,13 @@
  * @mutate supabase/functions/record-signup-lead/index.ts |   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders); |   if (false) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
  * @mutate supabase/functions/record-signup-lead/index.ts |   return EMAIL_RE.test(email) ? email : null; |   return email;
  * @mutate supabase/functions/record-signup-lead/index.ts |       return json({ error: "Could not save" }, 500);\n    }\n  } catch |     }\n  } catch
+ * @mutate supabase/functions/record-signup-lead/index.ts |     if (verdict === "refused") return json({ error: "Security check failed" }, 403); |     void verdict;
+ * @mutate supabase/functions/record-signup-lead/index.ts |   if (outcome?.success === true && outcome.action === SIGNUP_ACTION) return "ok"; |   if (outcome) return "ok";
+ * @mutate supabase/functions/record-signup-lead/index.ts |   if (outcome?.success === true) {\n |   if (false) {\n
+ * @mutate supabase/functions/record-signup-lead/index.ts | token.length > MAX_TOKEN_LEN) { | token.length > MAX_TOKEN_LEN && false) {
+ * @mutate supabase/functions/record-signup-lead/index.ts |     if (verdict === "unavailable") return json({ error: "Could not verify" }, 503); |     void verdict;
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -224,5 +229,94 @@ describe("record-signup-lead: anonymous step-1 capture", () => {
     scenario.rpcErrors = { record_signup_lead: { message: "down", code: "XX000" } };
     const res = await capture({ email: "a@gmail.com" });
     expect(res.status).toBe(500);
+  });
+});
+
+describe("record-signup-lead: the Turnstile bot check (Q1589)", () => {
+  const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+  let verifyBodies: URLSearchParams[] = [];
+  let answer: () => Promise<Response>;
+
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      TURNSTILE_SECRET_KEY: "turnstile-secret",
+    });
+    scenario.rpc.record_signup_lead = null;
+    verifyBodies = [];
+    answer = async () => Response.json({ success: true, action: "signup" });
+    const passThrough = globalThis.fetch;
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url === SITEVERIFY) {
+        verifyBodies.push(new URLSearchParams(String(init?.body ?? "")));
+        return answer();
+      }
+      return passThrough(input, init);
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetEnv();
+  });
+
+  const recorded = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "record_signup_lead");
+
+  it("a capture with no token is refused and nothing is saved, without asking Cloudflare", async () => {
+    const res = await capture({ email: "stranger@gmail.com" });
+    expect(res.status).toBe(403);
+    expect(recorded()).toEqual([]);
+    expect(verifyBodies).toEqual([]);
+  });
+
+  it("a token Cloudflare rejects (spent, forged, expired) is refused and nothing is saved", async () => {
+    answer = async () => Response.json({ success: false, "error-codes": ["timeout-or-duplicate"] });
+    const res = await capture({ email: "stranger@gmail.com", captcha_token: "used-token" });
+    expect(res.status).toBe(403);
+    expect(recorded()).toEqual([]);
+    expect(verifyBodies.map((b) => [b.get("secret"), b.get("response")])).toEqual([["turnstile-secret", "used-token"]]);
+  });
+
+  it("an oversized token is refused without a round trip", async () => {
+    const res = await capture({ email: "a@gmail.com", captcha_token: "x".repeat(2049) });
+    expect(res.status).toBe(403);
+    expect(verifyBodies).toEqual([]);
+  });
+
+  it("a token Cloudflare accepts saves the lead (204)", async () => {
+    const res = await capture({ email: "a@gmail.com", captcha_token: "good-token" });
+    expect(res.status).toBe(204);
+    expect(recorded().map((c) => c.args)).toEqual([{ p_email: "a@gmail.com", p_source: null, p_replaces: null }]);
+  });
+
+  it("a valid token minted on another form (login, password reset) is not this form's proof", async () => {
+    answer = async () => Response.json({ success: true, action: "login" });
+    const res = await capture({ email: "a@gmail.com", captcha_token: "login-token" });
+    expect(res.status).toBe(403);
+    expect(recorded()).toEqual([]);
+  });
+
+  it("Cloudflare down saves nothing (503), never a guess either way", async () => {
+    answer = async () => { throw new TypeError("network down"); };
+    const res = await capture({ email: "a@gmail.com", captcha_token: "good-token" });
+    expect(res.status).toBe(503);
+    expect(recorded()).toEqual([]);
+  });
+
+  it("a wrong secret is our fault: 500 (reported), not a 403 blamed on the visitor", async () => {
+    answer = async () => Response.json({ success: false, "error-codes": ["invalid-input-secret"] });
+    const res = await capture({ email: "a@gmail.com", captcha_token: "good-token" });
+    expect(res.status).toBe(500);
+    expect(recorded()).toEqual([]);
+  });
+
+  it("the rate limit still runs first, so a flood never reaches Cloudflare", async () => {
+    rateLimitState.allowed = false;
+    const res = await capture({ email: "a@gmail.com", captcha_token: "good-token" });
+    expect(res.status).toBe(429);
+    expect(verifyBodies).toEqual([]);
   });
 });

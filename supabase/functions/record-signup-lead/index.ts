@@ -26,6 +26,14 @@
 //   * The answer never depends on whether the address has an account, so this
 //     is not an enumeration oracle: a valid address always gets 204.
 //   * The password is never sent here.
+//   * Bot check (Q1589): the capture carries a Cloudflare Turnstile token from
+//     the sign-up page's widget, verified here with TURNSTILE_SECRET_KEY (the
+//     same Turnstile secret Supabase Auth holds for its own CAPTCHA). The rate
+//     limit alone stops one address, not a rotating-IP caller spending the
+//     sending domain's reputation on strangers' inboxes. With the secret set,
+//     a missing, spent or forged token is refused (403) and nothing is saved.
+//     Without it the capture is saved unchecked and the gap is logged on every
+//     call, so a missing secret is visible rather than quietly permanent.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "../_shared/buildStamp.ts";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
@@ -51,6 +59,58 @@ function normalizeLeadSource(raw: unknown): string | null {
   return s.length > 0 ? s : null;
 }
 
+const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+/** Cloudflare's own token-size ceiling; anything longer is not a token. */
+const MAX_TOKEN_LEN = 2048;
+/** The `action` the sign-up page's <TurnstileField> renders with (src/pages/auth/Signup.tsx). */
+const SIGNUP_ACTION = "signup";
+
+type CaptchaVerdict = "ok" | "refused" | "misconfigured" | "unavailable";
+
+/**
+ * Spend one Turnstile token at Cloudflare. A token is single-use, so a replay
+ * of a captured one is refused too. "misconfigured" is OUR fault (a wrong or
+ * missing secret) and is not blamed on the visitor; "unavailable" is
+ * Cloudflare not answering, which saves nothing rather than guessing.
+ */
+async function verifyTurnstile(secret: string, token: unknown, remoteIp: string | null): Promise<CaptchaVerdict> {
+  if (typeof token !== "string" || token.length === 0 || token.length > MAX_TOKEN_LEN) {
+    // Logged, not silent: a client shipping with no site key would send no
+    // token at all, and every lead would be refused here with nothing else
+    // showing it (the client keeps a 403 quiet).
+    console.warn(`[record-signup-lead] refused: ${typeof token === "string" && token.length > 0 ? "oversized" : "missing"} captcha_token`);
+    return "refused";
+  }
+  const form = new URLSearchParams({ secret, response: token });
+  if (remoteIp) form.set("remoteip", remoteIp);
+  let outcome: { success?: unknown; action?: unknown; "error-codes"?: unknown };
+  try {
+    const res = await fetch(SITEVERIFY_URL, { method: "POST", body: form, signal: AbortSignal.timeout(5000) });
+    if (!res.ok) {
+      console.error(`[record-signup-lead] siteverify answered ${res.status}`);
+      return "unavailable";
+    }
+    outcome = await res.json();
+  } catch (e) {
+    console.error("[record-signup-lead] siteverify unreachable:", caughtMessage(e));
+    return "unavailable";
+  }
+  // The sign-up page's widget mints tokens for action "signup"; one minted on
+  // the login or password-reset form is not this form's proof.
+  if (outcome?.success === true && outcome.action === SIGNUP_ACTION) return "ok";
+  if (outcome?.success === true) {
+    console.warn(`[record-signup-lead] refused: token minted for action ${JSON.stringify(outcome.action)}`);
+    return "refused";
+  }
+  const codes = Array.isArray(outcome?.["error-codes"]) ? (outcome["error-codes"] as unknown[]).map(String) : [];
+  if (codes.includes("missing-input-secret") || codes.includes("invalid-input-secret")) {
+    console.error(`[record-signup-lead] TURNSTILE_SECRET_KEY was refused by Cloudflare: ${codes.join(",")}`);
+    return "misconfigured";
+  }
+  console.warn(`[record-signup-lead] refused by siteverify: ${codes.join(",") || "no error code"}`);
+  return "refused";
+}
+
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -72,7 +132,7 @@ serve(async (req) => {
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
-  let body: { email?: unknown; source?: unknown; replaces?: unknown };
+  let body: { email?: unknown; source?: unknown; replaces?: unknown; captcha_token?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -83,6 +143,17 @@ serve(async (req) => {
   if (!email) return json({ error: "Invalid email" }, 400);
   const source = normalizeLeadSource(body?.source);
   const replaces = normalizeLeadEmail(body?.replaces);
+
+  const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY")?.trim();
+  if (turnstileSecret) {
+    const remoteIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const verdict = await verifyTurnstile(turnstileSecret, body?.captcha_token, remoteIp);
+    if (verdict === "refused") return json({ error: "Security check failed" }, 403);
+    if (verdict === "misconfigured") return json({ error: "Could not save" }, 500);
+    if (verdict === "unavailable") return json({ error: "Could not verify" }, 503);
+  } else {
+    console.warn("[record-signup-lead] TURNSTILE_SECRET_KEY is not set: lead saved with no bot check (Q1589)");
+  }
 
   try {
     const supabase = createClient(

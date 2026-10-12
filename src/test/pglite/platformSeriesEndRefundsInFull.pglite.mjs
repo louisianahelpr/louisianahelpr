@@ -104,16 +104,25 @@ const ends = async () => {
 await db.exec(`SELECT set_config('test.uid', '', false)`);
 await db.query(`SELECT public.end_recurring_series_by_platform('${VISIT}', 'chargeback', 'Stripe dispute dp_1')`);
 let e = await ends();
-check("a chargeback end records the series as ended by the platform", Array.isArray(e) && e.length === 1 && e[0].parent_job_id === SERIES && e[0].kind === "chargeback", JSON.stringify(e));
+check("a CHARGEBACK end (the poster's own dispute) records nothing: Q808's withheld fee stands", Array.isArray(e) && e.length === 0, JSON.stringify(e));
 const pn = (await db.query(`SELECT message FROM public.notifications WHERE user_id = '${POSTER}'`)).rows.map((r) => r.message);
-check("the poster is told a paid unbooked visit is refunded IN FULL", pn.some((m) => /refunded in full\./.test(m)) && !pn.some((m) => /less the card processing fee/.test(m)), JSON.stringify(pn));
-await db.query(`SELECT public.end_recurring_series_by_platform('${VISIT}', 'admin', 'again later')`);
-e = await ends();
-check("a second end adds no second record", Array.isArray(e) && e.length === 1, JSON.stringify(e));
+check("  and the poster is told the card fee is kept", pn.some((m) => /refunded, less the card processing fee\./.test(m)), JSON.stringify(pn));
 await db.exec(`SELECT set_config('test.uid', '${ADMIN}', false)`);
 await db.query(`SELECT public.rpc_admin_end_recurring_series('${SERIES2}', 'the poster asked support to stop it')`);
 e = await ends();
-check("an admin end records kind admin with the admin", Array.isArray(e) && e.some((r) => r.parent_job_id === SERIES2 && r.kind === "admin" && r.admin_id === ADMIN), JSON.stringify(e));
+check("an ADMIN end records the series with kind admin and the admin", Array.isArray(e) && e.length === 1 && e[0].parent_job_id === SERIES2 && e[0].kind === "admin" && e[0].admin_id === ADMIN, JSON.stringify(e));
+const an = (await db.query(`SELECT message FROM public.notifications WHERE user_id = '${ADMIN_POSTER}'`)).rows.map((r) => r.message);
+check("  and its poster is told a paid unbooked visit is refunded IN FULL", an.some((m) => /refunded in full\./.test(m)), JSON.stringify(an));
+await db.exec(`SELECT set_config('test.uid', '', false)`);
+await db.query(`SELECT public.end_recurring_series_by_platform('${SERIES2}', 'admin', 'again later')`);
+e = await ends();
+check("a second end adds no second record", Array.isArray(e) && e.length === 1, JSON.stringify(e));
+// A series its POSTER already ended: a later admin end is already_ended and records nothing.
+await db.exec(`INSERT INTO public.jobs (id, title, customer_id, recurring_helper_id, helper_id, recurrence_days, parent_job_id, date_needed, series_ended_on, status)
+  VALUES ('${ONE_OFF}', 'Gutters', '${POSTER}', NULL, NULL, ARRAY[4], NULL, ${today} + 1, ${today}, 'open')`);
+const r3 = (await db.query(`SELECT public.end_recurring_series_by_platform('${ONE_OFF}', 'admin', 'admin after poster') AS r`)).rows[0].r;
+e = await ends();
+check("a series the poster ended first: the admin end is already_ended and buys no full refund", r3.action === "already_ended" && Array.isArray(e) && !e.some((x) => x.parent_job_id === ONE_OFF), JSON.stringify(r3));
 
 if (!MODE) {
   const priv = async (role, p) => (await db.query(`SELECT has_table_privilege('${role}', 'public.series_platform_ends', '${p}') x`)).rows[0].x;

@@ -45,7 +45,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
 // @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          width="none" | hideBack\n          reserveBackSlot\n          width="none"
-// @mutate src/components/SkeletonLoaders.tsx | <Skeleton className="h-[calc(var(--headline-hero)*1.1)] w-44 rounded-md" /> | <span className="w-11 h-11 -ml-2 block shrink-0" aria-hidden="true" /><Skeleton className="h-[calc(var(--headline-hero)*1.1)] w-44 rounded-md" />
+// @mutate src/components/profile/ProfilePageSkeleton.tsx | hideBack\n        width="none" | hideBack\n        reserveBackSlot\n        width="none"
 // @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <div className="flex-1 min-w-0 text-left"> | <div className="flex-1 min-w-0 text-left"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");
@@ -56,12 +56,12 @@ const strip = (src: string) => blankComments(src);
 
 const BACK_BUTTON = strip(read("src/components/BackButton.tsx"));
 const PAGE_HEADER = strip(read("src/components/PageHeader.tsx"));
-const SKELETONS = strip(read("src/components/SkeletonLoaders.tsx"));
+const SKELETONS = strip(read("src/components/profile/ProfilePageSkeleton.tsx"));
 const LANDING = strip(read("src/components/profile/ProfileLanding.tsx"));
 const IDENTITY = strip(read("src/components/profile/profileLanding/IdentityHeader.tsx"));
 /** Exactly the landing skeleton's body, so another skeleton's slot cannot satisfy or fail it. */
 const LANDING_SKELETON = (() => {
-  const start = SKELETONS.indexOf("const LandingTitleSkeleton");
+  const start = SKELETONS.indexOf("export const ProfilePageSkeleton");
   return start === -1 ? "" : SKELETONS.slice(start, SKELETONS.indexOf("\n);", start));
 })();
 
@@ -157,7 +157,7 @@ describe("the Profile title line has one definition", () => {
     // "line up with the card". The empty back slot put it 48px in.
     for (const [name, src] of [
       ["ProfileLanding.tsx", LANDING],
-      ["SkeletonLoaders.tsx (LandingTitleSkeleton)", LANDING_SKELETON],
+      ["ProfilePageSkeleton.tsx (the landing skeleton)", LANDING_SKELETON],
     ] as const) {
       expect(src.length, `${name}: nothing to scan — this guard has rotted`).toBeGreaterThan(40);
       expect(

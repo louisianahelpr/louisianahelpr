@@ -1,5 +1,5 @@
 import AppShell from "@/components/AppShell";
-import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import ProfileTabFallback from "@/components/profile/ProfileTabFallback";
 import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { resolveTab } from "@/pages/profile/types";
@@ -21,9 +21,9 @@ import { resolveTab } from "@/pages/profile/types";
  * DOCUMENT_SCROLL_ROUTES (AppShell owns its own internal scroll container),
  * and this fallback does not change that.
  *
- * Cheap to import eagerly: AppShell is already in the entry chunk (PageScaffold
- * wraps it for DashboardRouteSkeleton) and SkeletonLoaders imports nothing but
- * the Skeleton primitive.
+ * Loaded on demand (App.tsx skeletonOnDemand), not in the entry chunk: the
+ * landing skeleton draws the real title and Work rows (Q1173), so it brings
+ * PageHeader, the settings-row markup and six lucide icons with it.
  */
 const ProfileRouteSkeleton = () => {
   // The tab is in the URL, so it is knowable in THIS frame — the first of the

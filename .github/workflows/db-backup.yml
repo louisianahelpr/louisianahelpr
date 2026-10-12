@@ -168,6 +168,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           set -euo pipefail
           mkdir -p out
@@ -188,7 +189,13 @@ jobs:
           }
           dump --role-only -f out/roles.sql
           dump             -f out/schema.sql
+          # Exact prod row counts of every public/auth table right before and
+          # right after the data dump, so "Verify the dump is real" can prove
+          # data.sql holds every table that had rows the whole time (#2668).
+          # Outside out/ so they never reach the archive.
+          node scripts/backup-coverage.mjs count counts-before.json
           dump --data-only -f out/data.sql
+          node scripts/backup-coverage.mjs count counts-after.json
           ls -l out/
 
       - name: Export the pg_cron schedules and storage policies
@@ -294,28 +301,29 @@ jobs:
           # table,
           #   INSERT INTO "public"."profiles" (...) VALUES (...),(...),(...);
           # not COPY blocks, and not one statement per row. So a statement
-          # count is a count of TABLES, and the only honest row-level signals
-          # are per-table presence and total byte weight. Both are used below;
-          # neither is a proxy for the other.
+          # count is a count of TABLES.
           #
-          # This still catches the failure the job exists for. A dump of an
-          # empty database emits no INSERT for a table with no rows, so an
-          # emptied `profiles` fails the per-table check, and a broadly empty
-          # database fails the size floor.
+          # EVERY TABLE THAT HAS ROWS ON PROD IS IN THE DUMP (#2668, 2026-10-12).
+          # This used to assert that five named tables always have rows. On
+          # 2026-10-09 00:59Z a cleanup deleted 453 seed jobs and every message
+          # with them, so public.messages was truly EMPTY at three dumps in a
+          # row: the dump was right and the check went red for three nights on
+          # a statement about prod, not about the backup. Now each table's rows
+          # are counted on prod right before and right after the dump, and the
+          # run fails when a table had rows both times but data.sql has no
+          # INSERT for it: every table, not five. The tables that must never be
+          # empty at all (auth.users, profiles, jobs, applications) still fail
+          # when prod has none; that is data loss, not a small backup.
+          # scripts/lib/backupCoverage.mjs; src/test/backupCoverage.test.ts.
           #
-          # auth.users is in the list deliberately. It lives outside `public`
+          # auth.users is in that list deliberately. It lives outside `public`
           # and is easy to assume Supabase keeps for you — it does not, on this
           # plan. Restoring `public.profiles` without it would give back every
           # row of user data with nothing able to log in and claim it.
-          echo "--- row counts ---"
-          for t in '"auth"."users"' '"public"."profiles"' '"public"."jobs"' '"public"."applications"' '"public"."messages"'; do
-            N=$(grep -cF "INSERT INTO ${t} " out/data.sql || true)
-            printf '%-28s %s statement(s) — multi-row, see note above\n' "$t" "$N"
-            if [ "$N" -lt 1 ]; then
-              echo "::error::data.sql has no rows for ${t} — dump is structurally valid but empty where it matters"
-              FAIL=1
-            fi
-          done
+          if ! node scripts/backup-coverage.mjs verify counts-before.json counts-after.json out/data.sql; then
+            echo "::error::data.sql is missing a table that has rows on prod (see the table above)"
+            FAIL=1
+          fi
           # Tables carrying data (one statement each — see above). 62 at the
           # time of writing; 30 leaves room to drop features without nagging.
           TABLES=$(grep -cE "^INSERT INTO " out/data.sql || true)

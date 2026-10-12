@@ -69,7 +69,7 @@ import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafe
 import { LOADING_SEL, LOADING_TEXT_RX_SOURCE, SELF_HEAL_MS, SELF_HEAL_SEL, awaitLoadingQuiet, awaitSelfHeal, classifyBoot, countLoadingMarkers, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
-  claimRow, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
+  claimRow, drainedQueueShard, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -1053,10 +1053,11 @@ async function main() {
   };
 
   let queueStopped = false;
+  let claimedElsewhere = 0;
   for (const [routeIdx, route] of routeSet.entries()) {
     if (queueStopped) break;
     if (route.redirect) {
-      if (QUEUE_DIR && !claimRow({ dir: QUEUE_DIR, key: `${String(routeIdx).padStart(3, "0")}-redirect` })) continue;
+      if (QUEUE_DIR && !claimRow({ dir: QUEUE_DIR, key: `${String(routeIdx).padStart(3, "0")}-redirect` })) { claimedElsewhere += 1; continue; }
       results.push({ route: route.url, persona: "-", status: "redirect", note: "pure redirect route — its target is walked on its own row", controls: [] });
       continue;
     }
@@ -1067,7 +1068,7 @@ async function main() {
         const action = queuedRowAction({ overBudget: overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS }), lastWave: LAST_WAVE });
         // An earlier wave out of time leaves every unclaimed row to the next wave.
         if (action === "stop") { queueStopped = true; break; }
-        if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) continue; // another shard has it
+        if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) { claimedElsewhere += 1; continue; } // another shard has it
       }
       const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [], startedAt: Date.now(), paceMs: 0 };
       results.push(rec);
@@ -2010,7 +2011,9 @@ async function main() {
   // (2) UNCOVERED personas (not minted) were a ::warning:: — every control on
   // their routes went unpressed and the run still exited 0.
   const uncoveredPersonas = Object.keys(unavailable);
-  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || totalFound === 0 || uncoveredPersonas.length > 0 || notReached.length > 0) {
+  const drained = drainedQueueShard({ queueDir: QUEUE_DIR, rowsWalked: results.length, claimedElsewhere, stopped: queueStopped });
+  if (drained) console.log(`queue drained: earlier waves claimed all ${claimedElsewhere} row(s); this shard had nothing left to press (Q1689)`);
+  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || (totalFound === 0 && !drained) || uncoveredPersonas.length > 0 || notReached.length > 0) {
     console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s), ${totalFound} control(s) found, ${uncoveredPersonas.length} persona(s) uncovered${uncoveredPersonas.length ? ` (${uncoveredPersonas.join(", ")})` : ""}, ${notReached.length} row(s) not reached (time budget)`);
     process.exit(1);
   }

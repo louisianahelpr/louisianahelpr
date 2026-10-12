@@ -828,12 +828,41 @@ describe("stripe-webhook edge function", () => {
         },
       });
       scenario.writeSelectRows.profiles = [{ user_id: "poster-1" }];
+      scenario.reads.jobs = { rows: [{ id: "job-1", is_seed: false }] };
       await fn.fetch(webhookRequest(fn, "{}"));
       const stamps = scenario.writes.filter(
         (w) => w.table === "jobs" && "onboarding_fee_amount" in ((w.payload ?? {}) as Record<string, unknown>),
       );
       expect(stamps).toEqual([]);
-      expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Setup fee not recorded on its job")).toBe(true);
+      const alert = (slackAlerts as Array<{ title?: string; seed?: boolean }>).find((a) => a.title === "Setup fee not recorded on its job");
+      expect(alert).toBeDefined();
+      // A real job's alert pages (seed false), it is not sent to the digest.
+      expect(alert?.seed).toBe(false);
+    });
+
+    // A seed/E2E job's setup-fee alert goes to the daily digest, not the page
+    // (alertingDetectorsDeclareSeedPolicy: the alert carries the job's is_seed).
+    // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |   return (data as { is_seed?: boolean } \| null)?.is_seed === true; |   return false;
+    it("a seed job's setup-fee alert is marked seed, from the job's is_seed (Q1346)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_nofee_seed",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_nofee_seed",
+            mode: "payment",
+            customer_email: "poster@test.com",
+            payment_intent: "pi_nofee_seed",
+            metadata: { job_id: "job-1", onboarding_fee_charged: "true", customer_id: "poster-1" },
+          },
+        },
+      });
+      scenario.writeSelectRows.profiles = [{ user_id: "poster-1" }];
+      scenario.reads.jobs = { rows: [{ id: "job-1", is_seed: true }] };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const alert = (slackAlerts as Array<{ title?: string; seed?: boolean }>).find((a) => a.title === "Setup fee not recorded on its job");
+      expect(alert?.seed).toBe(true);
     });
 
     it("a losing (duplicate, refunded) checkout never stamps the fee on its job (Q1346)", async () => {

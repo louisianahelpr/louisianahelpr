@@ -18,18 +18,24 @@
  *     workflow marks wave 1 as not last and wave 2 as last.
  *
  * @mutate scripts/audit/press-every-control.mjs | if (process.env.SHARD && !QUEUE_DIR) { | if (process.env.SHARD) {
- * @mutate scripts/audit/press-every-control.mjs | if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) continue; | claimRow({ dir: QUEUE_DIR, key: rowKey });
+ * @mutate scripts/audit/press-every-control.mjs | if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) { claimedElsewhere += 1; continue; } | claimRow({ dir: QUEUE_DIR, key: rowKey });
  * @mutate scripts/audit/pressFailureClass.mjs | return lastWave ? "not-reached" : "stop"; | return "not-reached";
  * @mutate scripts/audit/pressFailureClass.mjs | if (e && e.code === "EEXIST") return false; | if (e && e.code === "EEXIST") return true;
  * @mutate scripts/audit/press-wave.sh | export PRESS_QUEUE_DIR="${PRESS_QUEUE_DIR:-test-results/press-queue/$RUN_BASE}" | export PRESS_QUEUE_DIR=""
  * @mutate .github/workflows/press-every-control.yml |           PRESS_LAST_WAVE: "1" |           PRESS_LAST_WAVE: "0"
+ *
+ * Q1689: a later wave that finds every row already claimed is a DRAINED queue,
+ * not an empty inventory (press-every-control 37605969628, 2026-10-07: leg 6
+ * printed found=0 and failed the run after legs 1-5 pressed every row).
+ * @mutate scripts/audit/pressFailureClass.mjs | rowsWalked === 0 && claimedElsewhere > 0 && !stopped | rowsWalked === 0 && !stopped
+ * @mutate scripts/audit/press-every-control.mjs | (totalFound === 0 && !drained) | totalFound === 0
  */
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
-import { claimRow, queuedRowAction, releaseRow } from "../../scripts/audit/pressFailureClass.mjs";
+import { claimRow, drainedQueueShard, queuedRowAction, releaseRow } from "../../scripts/audit/pressFailureClass.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
@@ -59,8 +65,8 @@ describe("press shards claim rows from one queue (#1582)", () => {
   it("the harness claims every row and drops the static split when a queue is set", () => {
     const src = blankComments(read("scripts/audit/press-every-control.mjs"));
     expect(src).toContain("if (process.env.SHARD && !QUEUE_DIR) {");
-    expect(src).toContain("if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) continue;");
-    expect(src).toMatch(/if \(QUEUE_DIR && !claimRow\(\{ dir: QUEUE_DIR, key: `\$\{String\(routeIdx\)\.padStart\(3, "0"\)\}-redirect` \}\)\) continue;/);
+    expect(src).toContain("if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) { claimedElsewhere += 1; continue; }");
+    expect(src).toMatch(/if \(QUEUE_DIR && !claimRow\(\{ dir: QUEUE_DIR, key: `\$\{String\(routeIdx\)\.padStart\(3, "0"\)\}-redirect` \}\)\) \{ claimedElsewhere \+= 1; continue; \}/);
     // A row cut short in an earlier wave is handed back, not reported.
     expect(src).toContain("releaseRow({ dir: QUEUE_DIR, key: rowKey });");
     // The default is the safe one: a lone run reports what it did not reach.
@@ -81,5 +87,26 @@ describe("press shards claim rows from one queue (#1582)", () => {
     waves.forEach((s, i) => {
       expect(s.env?.PRESS_LAST_WAVE, `wave ${i + 1}`).toBe(i === waves.length - 1 ? "1" : "0");
     });
+  });
+});
+
+describe("a drained queue is not an empty inventory (Q1689)", () => {
+  it("a shard that walked nothing because earlier waves claimed every row is drained", () => {
+    expect(drainedQueueShard({ queueDir: "q", rowsWalked: 0, claimedElsewhere: 120, stopped: false })).toBe(true);
+  });
+
+  it("an empty inventory, a stopped wave, a shard that walked rows, or no queue is never drained", () => {
+    expect(drainedQueueShard({ queueDir: "q", rowsWalked: 0, claimedElsewhere: 0, stopped: false })).toBe(false);
+    expect(drainedQueueShard({ queueDir: "q", rowsWalked: 0, claimedElsewhere: 5, stopped: true })).toBe(false);
+    expect(drainedQueueShard({ queueDir: "q", rowsWalked: 3, claimedElsewhere: 5, stopped: false })).toBe(false);
+    expect(drainedQueueShard({ queueDir: "", rowsWalked: 0, claimedElsewhere: 5, stopped: false })).toBe(false);
+  });
+
+  it("the harness exempts only a drained shard from the found=0 failure, and counts rows other shards hold", () => {
+    const src = blankComments(read("scripts/audit/press-every-control.mjs"));
+    expect(src).toMatch(/\(totalFound === 0 && !drained\)/);
+    expect(src).toMatch(/drainedQueueShard\(\{ queueDir: QUEUE_DIR, rowsWalked: results\.length, claimedElsewhere, stopped: queueStopped \}\)/);
+    // Both claim sites (walked rows and redirect rows) count a row another shard holds.
+    expect(src.match(/\{ claimedElsewhere \+= 1; continue; \}/g)?.length).toBe(2);
   });
 });

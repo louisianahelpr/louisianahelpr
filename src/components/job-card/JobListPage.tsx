@@ -580,11 +580,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <ActivityEmptyState
               tab={tab}
               loadError={!!loadError}
-              // The PAID count (postedCounts.all), not postedJobs.length: never-
-              // paid rows are in no bucket, so counting them read "No jobs in
-              // this view — try a different filter" over five empty buckets
-              // (seen on prod 2026-10-12, helper-e2e, one abandoned checkout).
-              // src/test/emptyPostsCountsOnlyPaidJobs.test.tsx.
               postedJobsCount={postedCounts.all}
               appliedAppsCount={appliedApps.length}
               statusFilter={statusFilter}

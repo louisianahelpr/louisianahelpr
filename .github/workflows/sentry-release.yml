@@ -96,7 +96,6 @@ jobs:
       # Added — this workflow set the other 3 VITE_ vars but not this one,
       # which is a real gap Vercel's own build does not have.
       VITE_SUPABASE_PROJECT_ID:      ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-      VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
 
     steps:
       - name: Check Sentry secrets

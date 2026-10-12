@@ -19,7 +19,8 @@ import type { Database } from "@/integrations/supabase/types";
  * when the two drift, and when the migrations' column grant disagrees with it.
  */
 // Q1206: a flagged text is moved out of the readable column into a server-only one.
-export const APPLICATION_PRIVATE_COLUMNS = ["flag_reason", "message_withheld", "offer_message_withheld"] as const;
+// Q1502: job_point_void marks a frozen job point voided by a move.
+export const APPLICATION_PRIVATE_COLUMNS = ["flag_reason", "message_withheld", "offer_message_withheld", "job_point_void"] as const;
 
 export const APPLICATION_READABLE_COLUMN_LIST = [
   "attachment_urls",

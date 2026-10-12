@@ -170,6 +170,32 @@ async function shouldNudgeForReason(
   return true;
 }
 
+/**
+ * Q1504: a toast must not sit over an open modal's buttons. Seen at 375 on
+ * /posts: this nudge stayed above a BrandConfirmDialog and hid its "Send
+ * request" until dismissed. Radix dialogs, alert dialogs and vaul drawers all
+ * mark their open content `[role=dialog|alertdialog][data-state=open]`.
+ */
+export const OPEN_MODAL_SELECTOR = '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]';
+
+export function modalIsOpen(doc: Document = document): boolean {
+  return doc.querySelector(OPEN_MODAL_SELECTOR) !== null;
+}
+
+/**
+ * Resolves true once no modal is open (at once when none is), false if one is
+ * still open after `timeoutMs`; the nudge is then skipped and NOT marked shown,
+ * so its next trigger can try again.
+ */
+export async function waitForNoModal(timeoutMs = 120_000, stepMs = 500): Promise<boolean> {
+  const until = Date.now() + timeoutMs;
+  while (modalIsOpen()) {
+    if (Date.now() >= until) return false;
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+  return true;
+}
+
 /** Copy lives next to the trigger so the toast stays grep-able.
  *  Title only — the explainer line under it was cut on the owner's call
  *  (2026-08-24): the question plus Enable / × says everything. */
@@ -211,6 +237,8 @@ export function usePushPermissionNudge() {
       inFlight.add(reason);
       try {
         if (!(await shouldNudgeForReason(reason))) return;
+        // Never over an open dialog's buttons (Q1504): wait for it to close.
+        if (!(await waitForNoModal())) return;
         // Mark before showing the toast so durable storage matches the
         // in-memory inFlight guard across reloads — once we've decided
         // to surface this reason, treat it as shown.

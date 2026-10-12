@@ -11,7 +11,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -624,7 +624,8 @@ serve(async (req) => {
             : pi.latest_charge.id;
         }
         const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
-          idempotencyKey: `cancel-fee-${feeRow.id}`,
+          // Q1381: a retry of a failed row is a new attempt, not Stripe's replay of the failure.
+          idempotencyKey: feeTransferIdempotencyKey(`cancel-fee-${feeRow.id}`, wasFailed),
         });
         console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${helperId} for job ${job.id} (${transfer.id})`);
         await markFeeRow(job.id, feeRow, {
@@ -645,6 +646,12 @@ serve(async (req) => {
       } catch (transferErr: any) {
         console.error(`Failed to transfer cancellation fee to helper ${helperId}:`, transferErr);
         const reason = String(transferErr?.message ?? transferErr).slice(0, 500);
+        if (!isDefiniteStripeRefusal(transferErr)) {
+          // Q1381 review: the transfer may exist. The row keeps its status, so
+          // the next attempt reuses this same key and Stripe dedupes it.
+          defects.record(`cancellation fee transfer ${job.id}: outcome unknown (${reason.slice(0, 160)}); retried under the same key`);
+          return;
+        }
         await markFeeRow(job.id, feeRow, { status: "failed", failure_reason: reason }, `transfer failed (${reason.slice(0, 80)})`);
         // Already failed and paged once: Part E keeps retrying quietly.
         if (wasFailed) return;
@@ -827,7 +834,8 @@ serve(async (req) => {
             transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
           }
           const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
-            idempotencyKey: `cancel-fee-${job.id}-${share.helper_id}`,
+            // Q1381: a retry of a failed share is a new attempt, not Stripe's replay of the failure.
+            idempotencyKey: feeTransferIdempotencyKey(`cancel-fee-${job.id}-${share.helper_id}`, share.status === "failed"),
           });
           console.log(`Crew cancellation fee share $${shareAmount}: platform kept $${platformCut}, transferred $${memberPayout} to ${share.helper_id} for job ${job.id}`);
           await markShare(share, { status: "paid", stripe_transfer_id: transfer.id, paid_at: new Date().toISOString() }, `was paid (${transfer.id})`);
@@ -841,6 +849,12 @@ serve(async (req) => {
           });
         } catch (transferErr) {
           console.error(`Failed to transfer crew cancellation fee share ${share.id} to ${share.helper_id}:`, transferErr);
+          if (!isDefiniteStripeRefusal(transferErr)) {
+            // Q1381 review: the transfer may exist. The share keeps its status,
+            // so the next attempt reuses this same key and Stripe dedupes it.
+            defects.record(`crew cancellation fee transfer ${share.id}: outcome unknown (${((transferErr as Error)?.message ?? "").slice(0, 160)}); retried under the same key`);
+            continue;
+          }
           // Already failed and paged once: Part D keeps retrying quietly.
           if (share.status === "failed") continue;
           defects.record(`crew cancellation fee transfer ${share.id}: ${(transferErr as Error)?.message ?? transferErr}`);

@@ -555,7 +555,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const unfilledCents = unpaidBudgetCents - blockFeeCents + Math.max(0, urgentCents - paidUrgent); |       const unfilledCents = unpaidBudgetCents + Math.max(0, urgentCents - paidUrgent);
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |         const paidFees = await payCrewBlockFees( |         const paidFees = { allPaid: true, problems: [] as string[] }; void (payCrewBlockFees as unknown)(
-  // @mutate supabase/functions/_shared/crewBlockFees.ts |         idempotencyKey: `crew-block-fee-${row.id}`, |         idempotencyKey: `crew-block-fee-${row.id}-${Date.now()}`,
+  // @mutate supabase/functions/_shared/crewBlockFees.ts | feeTransferIdempotencyKey(`crew-block-fee-${row.id}`, row.status === "failed"), | `crew-block-fee-${row.id}-${Date.now()}`,
   it("pays the blocked member's fee once (keyed on the ledger row), then refunds only the rest of the closed spot's share", async () => {
     seedBlocked();
     await run();
@@ -580,7 +580,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
   it("a fee transfer that fails never holds up the poster: the fee is still withheld, the rest refunded, the job released, the row failed for the sweep", async () => {
     seedBlocked();
     stripeMock.transfers.create.mockImplementation(async (params: { destination: string; metadata?: { type?: string } }) => {
-      if (params.metadata?.type === "crew_block_fee") throw new Error("Stripe is down");
+      if (params.metadata?.type === "crew_block_fee") throw Object.assign(new Error("account restricted"), { type: "StripeInvalidRequestError" });
       return { id: `tr_${params.destination}` };
     });
     await run();

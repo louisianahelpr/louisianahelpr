@@ -239,7 +239,9 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
     const h = await load();
     await h.fetch(cronReq());
-    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: "cancel-fee-job-crew-member-b" }]);
+    // A FAILED share's retry is salted with the hour (Q1381): a new attempt, not Stripe's replay of the failure.
+    // @mutate supabase/functions/void-cancelled-payments/index.ts | feeTransferIdempotencyKey(`cancel-fee-${job.id}-${share.helper_id}`, share.status === "failed"), | `cancel-fee-${job.id}-${share.helper_id}`,
+    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: expect.stringMatching(/^cancel-fee-job-crew-member-b-h\d+$/) }]);
     expect(ledgerFlips()[0]).toEqual(expect.objectContaining({ status: "paid", stripe_transfer_id: "tr_member-b" }));
     // The sweep asks for FAILED shares as well as pending ones.
     const sweep = (scenario.readQueries ?? []).find(
@@ -247,6 +249,30 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     );
     expect(sweep?.filters.find((f) => f.column === "status")?.value).toEqual(["pending", "failed"]);
     expect(slackAlerts).toHaveLength(0);
+  });
+
+  // Q1381 review (lh-money-escrow, MEDIUM): a PENDING share whose transfer
+  // times out may have been paid; it is not marked failed, so its next attempt
+  // keeps the unsalted key and Stripe dedupes it.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (!isDefiniteStripeRefusal(transferErr)) {\n            // Q1381 review: the transfer may exist. The share keeps its status, |           if (false) {\n            // Q1381 review: the transfer may exist. The share keeps its status,
+  it("a crew share whose transfer errors ambiguously stays pending (same key next time), never marked failed", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_crew" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-3", job_id: "job-crew", helper_id: "member-c", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "pending", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_crew", status: "succeeded", latest_charge: "ch_crew" });
+    stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers()).toEqual([{ helper: "member-c", cents: 4400, key: "cancel-fee-job-crew-member-c" }]);
+    expect(ledgerFlips().filter((p) => (p as Record<string, unknown>).status === "failed")).toHaveLength(0);
   });
 
   it("Part D pays nothing on a crew job with a decided, unexecuted dispute (Q231)", async () => {
@@ -397,7 +423,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   it("a block fee that cannot be paid now never holds up the poster: still withheld, the rest refunded, the row failed for Part F", async () => {
     seedWithBlockFee();
     stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string; type?: string } }) => {
-      if (params.metadata.type === "crew_block_fee") throw new Error("Stripe is down");
+      if (params.metadata.type === "crew_block_fee") throw Object.assign(new Error("account restricted"), { type: "StripeInvalidRequestError" });
       return { id: `tr_${params.metadata.helper_id}` };
     });
     const h = await load();
@@ -407,6 +433,28 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
       { idempotencyKey: "cancel-refund-job-crew" },
     );
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(true);
+  });
+
+  // Q1381 review (lh-money-escrow, MEDIUM): Part A's first attempt times out
+  // (Stripe may have made the transfer); Part F re-reads the row later in the
+  // SAME run. It must retry under the SAME key so Stripe dedupes it, never a
+  // salted one that would be a second transfer.
+  // @mutate supabase/functions/_shared/crewBlockFees.ts |       if (!isDefiniteStripeRefusal(e)) { |       if (false) {
+  it("an ambiguous block-fee transfer error is retried in the same run under the same key, never a new one", async () => {
+    seedWithBlockFee();
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string; type?: string } }) => {
+      if (params.metadata.type === "crew_block_fee") throw Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" });
+      return { id: `tr_${params.metadata.helper_id}` };
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(false);
+    const keys = new Set(
+      stripeMock.transfers.create.mock.calls
+        .filter((call) => (call[0] as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee")
+        .map((call) => (call[1] as { idempotencyKey: string }).idempotencyKey),
+    );
+    expect([...keys]).toEqual(["crew-block-fee-bf-1"]);
   });
 
   // HIGH (lh-money-escrow review): a block fee already out is this loop's own
@@ -446,7 +494,8 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     await h.fetch(cronReq());
     const fee = blockTransfers();
     expect(fee).toHaveLength(1);
-    expect((fee[0][1] as { idempotencyKey: string }).idempotencyKey).toBe("crew-block-fee-bf-9");
+    // A FAILED row's retry: keyed on its row, salted with the hour (Q1381).
+    expect((fee[0][1] as { idempotencyKey: string }).idempotencyKey).toMatch(/^crew-block-fee-bf-9-h\d+$/);
     expect((fee[0][0] as Record<string, unknown>).source_transaction).toBe("ch_done");
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });

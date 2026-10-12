@@ -151,21 +151,41 @@ const ScrollToTop = () => {
   };
 
   // The button fades/scales in and out with a plain CSS transition (Q1356:
-  // framer-motion left this file so no route downloads it for a fade). It
-  // stays mounted; while hidden it is `visibility: hidden`, so it is neither
-  // tappable nor in the accessibility tree, and the visibility flip waits for
-  // the fade-out to finish.
+  // framer-motion left this file so no route downloads it for a fade). Like
+  // AnimatePresence did, it mounts when it is wanted, draws one frame in its
+  // hidden pose so the fade-in has somewhere to start, and unmounts once the
+  // fade-out has finished: a hidden button must not stay in the page, where
+  // tap-target and press-every-control scans would find a 35px box.
   const duration = reducedMotion ? 120 : 180;
   const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
   const hiddenTransform = reducedMotion ? "none" : "translateY(8px) scale(0.8)";
+  const [rendered, setRendered] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (visible) {
+      setRendered(true);
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setShown(true));
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
+    }
+    setShown(false);
+    const t = window.setTimeout(() => setRendered(false), duration);
+    return () => window.clearTimeout(t);
+  }, [visible, duration]);
+
+  if (!rendered) return null;
   return (
     <button
       type="button"
       onClick={scrollToTop}
       aria-label="Scroll to top"
-      aria-hidden={visible ? undefined : true}
-      tabIndex={visible ? undefined : -1}
-      data-visible={visible ? "true" : "false"}
+      aria-hidden={shown ? undefined : true}
+      tabIndex={shown ? undefined : -1}
       // Sit above the floating MobileNav dock + home indicator, hugging
       // the right edge. z below the nav (which is z-40+) so it never
       // overlaps the dock's controls.
@@ -181,12 +201,10 @@ const ScrollToTop = () => {
           "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
           "0 2px 6px hsl(var(--olivewood) / 0.10), " +
           "0 8px 18px -6px hsl(var(--olivewood) / 0.16)",
-        opacity: visible ? 1 : 0,
-        transform: visible ? undefined : hiddenTransform,
-        visibility: visible ? "visible" : "hidden",
-        transition: visible
-          ? `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}, visibility 0s`
-          : `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}, visibility 0s linear ${duration}ms`,
+        opacity: shown ? 1 : 0,
+        transform: shown ? undefined : hiddenTransform,
+        pointerEvents: shown ? undefined : "none",
+        transition: `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}`,
       }}
     >
       <ChevronUp className="h-5 w-5" strokeWidth={2.25} />

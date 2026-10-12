@@ -41,6 +41,9 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   no_helper_assigned: "No Helpr has been assigned to this job yet.",
   not_authorized: "Only the person who posted this job can do that.",
   job_not_found: "We couldn't find that job.",
+  // change_request_daily_cap, a BEFORE INSERT trigger on both change-request
+  // tables (20261012045427, Q1501): 5 asks per person per job in a day.
+  change_request_rate_limited: "You've asked to change this job a lot today. Wait a while, or message them to sort it out.",
   // dispute paths
   dispute_already_open: "There's already an open dispute on this job.",
   dispute_window_closed:

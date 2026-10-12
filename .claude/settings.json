@@ -32,6 +32,14 @@
       "mcp__claude-code-remote__send_later",
       "mcp__claude-code-remote__read_documentation",
       "Bash(git push:*)"
+    ],
+    "ask": [
+      "Bash(git push* -f*)",
+      "Bash(git push* :*)",
+      "Bash(git push*--delete*)",
+      "Bash(git push*--force*)",
+      "mcp__github__delete_file",
+      "mcp__plugin_github_github__delete_file"
     ]
   }
 }

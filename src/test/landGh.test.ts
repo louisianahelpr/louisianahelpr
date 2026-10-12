@@ -1,4 +1,5 @@
-// @mutate scripts/lib/landGh.mjs |   if (status.mergeable_state === "dirty") return | if (status.mergeable_state === "dirty" \|\| status.mergeable_state === "behind") return
+// @mutate scripts/lib/landGh.mjs | realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) main( | fileURLToPath(import.meta.url) === process.argv[1]) main(
+// @mutate scripts/lib/landGh.mjs |   if (status.mergeable_state === "dirty") return |if (status.mergeable_state === "dirty" \|\| status.mergeable_state === "behind") return
 // @mutate scripts/lib/landGh.mjs |     if (unanswered >= UNANSWERED_LIMIT_MIN) return | if (false) return
 // @mutate scripts/lib/landGh.mjs |   if (status.mergeable_state === "dirty") return { verdict: "rebase" | if (false) return { verdict: "rebase"
 // @mutate scripts/lib/landGh.mjs |   if (status.failed.length) return | if (false) return
@@ -18,7 +19,9 @@
  * (BEHIND stays the land queue's).
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
   decidePoll,
@@ -93,5 +96,30 @@ describe("land.sh uses it after the push (no GraphQL-only wait)", () => {
     for (const v of VERDICTS) expect(code, v).toMatch(new RegExp(`\\n\\s*${v}\\)`));
     // landGh.mjs is frozen with the other tools, so a rebase cannot swap it mid-run
     expect(code).toMatch(/for t in [^\n]*landGh\.mjs/);
+  });
+});
+
+/*
+ * 2026-10-12 (train/2026-10-12-big): land.sh runs a FROZEN copy of landGh.mjs
+ * from $TMPDIR, which on macOS sits under /var, a symlink to /private/var. The
+ * old main-module check compared import.meta.url (the real path) with
+ * process.argv[1] (the symlinked path), never matched, so every landGh call
+ * printed nothing and exited 0: land.sh logged "PR #" and waited on a PR it
+ * never opened. Run through a symlinked directory, landGh must still run main().
+ */
+describe("landGh runs its command when started through a symlinked path (frozen copy in $TMPDIR)", () => {
+  it("an unknown command is refused (main ran), not silently ignored", () => {
+    const real = mkdtempSync(join(tmpdir(), "landgh-real-"));
+    const link = `${real}-link`;
+    try {
+      copyFileSync(join(__dirname, "..", "..", "scripts", "lib", "landGh.mjs"), join(real, "landGh.mjs"));
+      symlinkSync(real, link);
+      const r = spawnSync("node", [join(link, "landGh.mjs"), "no-such-command"], { encoding: "utf8" });
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain("landGh: unknown command no-such-command");
+    } finally {
+      rmSync(link, { force: true });
+      rmSync(real, { recursive: true, force: true });
+    }
   });
 });

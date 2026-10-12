@@ -24,8 +24,8 @@
  * Guard: src/test/landGh.test.ts (decidePoll, every verdict, and the limits).
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 /** Minutes a land PR may wait in all (a queue wait is several PRs' worth of checks). */
 export const WAIT_LIMIT_MIN = 180;
@@ -164,4 +164,9 @@ function main(argv) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main(process.argv.slice(2));
+// Compare REAL paths: land.sh runs a frozen copy from $TMPDIR, which on macOS is
+// under /var, a symlink to /private/var. An href compare never matched there, so
+// main() never ran, every call printed nothing and exited 0, and land.sh reported
+// "PR #" with no PR opened (train/2026-10-12-big, 2026-10-12).
+// Guard: src/test/landGh.test.ts.
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) main(process.argv.slice(2));

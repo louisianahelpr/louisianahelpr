@@ -11,6 +11,7 @@ import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
+import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
 
 /**
  * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
@@ -115,6 +116,12 @@ export async function handleChargeRefunded(
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
   const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
+
+  // Q1655: a taxed recurring visit's Stripe Tax transaction is reversed (full
+  // refund) or paged for a hand reversal (partial). Never throws.
+  if (!isOnboardingFeeCorrection) {
+    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefundCount: ordinaryRefunds.length, logStep });
+  }
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup
   // below cannot see it and this handler used to no-op on a refunded gift,

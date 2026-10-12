@@ -46,6 +46,7 @@ import { relative, resolve } from "node:path";
 import {
   effectiveSalesTaxRate,
   laborTaxCode,
+  salesTaxCeilingCents,
   NONTAXABLE_TAX_CODE,
   TAXABLE_CATEGORIES,
   TAXABLE_LABOR_TAX_CODE,
@@ -208,6 +209,14 @@ describe("Stripe tax codes (ME-043)", () => {
     expect(LA_UNTAXED_CODES_MEASURED).not.toContain(TAXABLE_LABOR_TAX_CODE);
     expect(LA_TAXED_LABOR_CODES.has(TAXABLE_LABOR_TAX_CODE), TAXABLE_LABOR_TAX_CODE).toBe(true);
     for (const c of TAXABLE_CATEGORIES) expect(LA_TAXED_LABOR_CODES.has(laborTaxCode(c)), c).toBe(true);
+  });
+
+  it("the pre-Checkout tax ceiling covers the measured Louisiana rate and is 0 on exempt labor (Q1658)", () => {
+    // 11.25%: Delcambre, live Stripe Tax 2026-10-12 (taxcalc_1UPcYUKp2H4b7tECOt3PgfHe).
+    expect(salesTaxCeilingCents(10_000, "assembly")).toBeGreaterThanOrEqual(1_125);
+    expect(salesTaxCeilingCents(26_000, "handyman")).toBe(3_900);
+    expect(salesTaxCeilingCents(26_000, "yard_work")).toBe(0);
+    expect(salesTaxCeilingCents(0, "assembly")).toBe(0);
   });
 
   it("flags $0 tax on taxable labor billed to Louisiana, and nothing else", () => {

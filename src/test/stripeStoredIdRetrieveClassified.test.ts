@@ -215,6 +215,7 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.subscriptions.retrieve(session.subscription)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefundUpdated.ts::stripe.charges.retrieve(chargeId)": EVENT,
+  "stripe-webhook/handlers/_visitTaxReversal.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(closedDispute.charge as string)": EVENT,
   "stripe-webhook/handlers/chargeDisputeCreated.ts::stripe.charges.retrieve(dispute.charge as string)": EVENT,
   "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.paymentIntents.retrieve(piId)": EVENT,

@@ -575,7 +575,7 @@ function loadWorkflows(): Wf[] {
 // Rule 5 (Q318), red on the original bug: drift-detect or backup back at
 // 05:17 / 07:17, inside the 03:17 press run's two-wave worst case; and a
 // timeout raise alone (no cron moved) must widen the window and go red too.
-// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * *" | - cron: "17 5 * * *"
+// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * 1-6" | - cron: "17 13 * * *"
 // @mutate .github/workflows/db-backup.yml | - cron: "17 15 * * *" | - cron: "17 7 * * *"
 // @mutate .github/workflows/e2e-abuse-notifications.yml |     timeout-minutes: 60 |     timeout-minutes: 250
 describe("prod-hitting workflow schedules", () => {

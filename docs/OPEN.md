@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 290** (197 to do, 93 fixed with protection pending; 1031 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 289** (196 to do, 93 fixed with protection pending; 1032 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-10T22:38Z)_
@@ -134,7 +134,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1321 items — 1031 done, 93 partly done (fixed, protection pending), 197 open.**
+**Queue: 1321 items — 1032 done, 93 partly done (fixed, protection pending), 196 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -947,7 +947,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Owner visual notes 2026-09-14 (53 entries)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [~] **Q965** MEDIUM Visual-notes side-findings (Worked-together count, disputed-card ask, App.tsx comment drift, manifest dupe, favicon, VN-45 referral credits, VN-54) — Mostly open (VN-54 closed inline); other side-findings not independently reconfirmed. (archive L3022) **TRIAGE 2026-10-06 (d) re-measured:** index.html now has one rel="manifest" (source; the served HTML not re-read); public/favicon.ico is still PNG data (`file`: PNG 48x48). The other side-findings were not re-measured. **PARTLY FIXED 2026-10-07 (lane money-b), measured:** served HTML had TWO manifest links (curl www: 2); index.html's own link removed, the PWA plugin's stays (guard src/test/oneManifestLink.test.ts); /favicon.ico is now a real ICO (16/32/48) of the same artwork (guard src/test/faviconIsIco.test.ts); 'Worked together' counts jobs finished together, the broad count still gates messaging (guard src/test/workedTogetherCountsCompleted.test.ts); /help and /support added to NATIVE_APP_SHELL_ROUTES like /legal (guard src/test/publicHeaderPagesNativeLocked.test.ts, red on origin/main); App.tsx comments now say /legal /help /support ARE wrapped in PageTransition. Not changed: the disputed Helpr card's photo chip is the owner's 2026-09-19 decision (HelperPhotoAsk 'dispute' step); VN-45 measured consistent (referral_credits 0 rows, referrals 2). LEFT (browser): look at /help and /support on native, and check on the web that the marketing Navbar stays fixed while /legal and /help scroll (PageTransition's will-change: transform makes it the containing block).
-- [ ] **Q967** LOW Visual-notes follow-ups found while fixing (JobConfirmation copy, dispute-copy contradiction, unused code, RecognitionRow chips, VN-2 blank poster name) — Open, not reached: several small reported-not-changed copy/dead-code items from 2026-09-14. (archive L3030) **TRIAGE 2026-10-06 (d) narrowed, measured on origin/main:** done since: JobConfirmation.tsx no longer says "See what happens"; lifecycleErrors job_not_completed now reads "This job hasn't been marked complete yet."; live open_dispute_as refuses a completed job for a person (job_already_completed); HelperAvailabilityDisplay and DEFAULT_DESIGN are gone from src/; RecognitionRow now says the licence/insurance is "under review". Left: VN-2 (a blank POSTED BY name for an applicant viewer), which needs a browser look.
 
 ### Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-12T11:20:37.816Z",
+  "generated": "2026-10-12T15:01:41.775Z",
   "guards": 1677,
   "registered": 1677,
   "unregistered": [],
@@ -159,6 +159,15 @@
       "module": "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx",
       "tests": [
         "src/components/dashboard/jobDetailDialog/JobStatTiles.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/JobDetailDialog.tsx"
+      ]
+    },
+    {
+      "module": "src/components/dashboard/JobPosterCard.tsx",
+      "tests": [
+        "src/components/dashboard/JobPosterCard.test.tsx"
       ],
       "parents": [
         "src/components/dashboard/JobDetailDialog.tsx"

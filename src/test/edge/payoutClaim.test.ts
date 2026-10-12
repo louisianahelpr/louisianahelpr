@@ -206,7 +206,9 @@ describe("claimPayout re-reads the job under the claim — Q1211", () => {
   it("both payout paths ask for the re-read", () => {
     for (const f of ["supabase/functions/process-scheduled-payouts/index.ts", "supabase/functions/release-payout/index.ts"]) {
       const src = blankComments(readFileSync(f, "utf8"));
-      const call = src.slice(src.indexOf("claimPayout(supabaseAdmin"), src.indexOf("claimPayout(supabaseAdmin") + 1400);
+      // The call runs to its first "});". 4000 chars, not 1400: Q1520's withheld
+      // metadata pushed process-scheduled-payouts' expectPaymentStatus past 1400.
+      const call = src.slice(src.indexOf("claimPayout(supabaseAdmin"), src.indexOf("claimPayout(supabaseAdmin") + 4000);
       expect(call.slice(0, call.indexOf("});")), f).toMatch(/expectPaymentStatus:\s*"payout_pending"/);
     }
   });

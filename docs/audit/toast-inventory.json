@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 609,
-    "files": 157,
+    "calls": 610,
+    "files": 158,
     "rendering": 581,
-    "suppressedByPolicy": 28,
+    "suppressedByPolicy": 29,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
@@ -13,13 +13,13 @@
       "toast.error": 479,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 33,
+      "toast.success": 34,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
       "literal": 324,
       "template": 79,
-      "dynamic": 247,
+      "dynamic": 248,
       "jsx": 0
     }
   },
@@ -852,7 +852,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 109,
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -862,7 +862,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 113,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 130,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -882,7 +882,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 141,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -892,7 +892,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 182,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 191,
+      "line": 190,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 202,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1252,7 +1252,7 @@
     },
     {
       "file": "src/components/SosShareButton.tsx",
-      "line": 203,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2198,7 +2198,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 94,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2208,7 +2208,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 125,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2218,7 +2218,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 129,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2228,7 +2228,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 144,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2238,7 +2238,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 146,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2248,7 +2248,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 162,
+      "line": 155,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2268,7 +2268,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 189,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2278,7 +2278,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 206,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2288,7 +2288,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 208,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2298,7 +2298,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 223,
+      "line": 216,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2308,7 +2308,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 233,
+      "line": 226,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2318,7 +2318,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 248,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2328,7 +2328,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 264,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2338,7 +2338,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 307,
+      "line": 300,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2348,7 +2348,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 343,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2358,7 +2358,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 355,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2368,7 +2368,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 389,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2947,6 +2947,26 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't save that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
+      "line": 61,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${change.key} is now ${FEATURE_AUDIENCE_LABEL[change.to]}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
+      "line": 64,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"admin_set_feature_switch\", err) ?? userFacingError(err, \"Couldn't change that switch — nothing was changed. Try again.\")"
       },
       "renders": true
     },
@@ -4826,7 +4846,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 218,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4836,7 +4856,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 238,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4846,7 +4866,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 239,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4856,7 +4876,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 240,
+      "line": 239,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4866,7 +4886,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 253,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4876,7 +4896,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 336,
+      "line": 335,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4886,7 +4906,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 344,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4896,17 +4916,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 392,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "${userFacingError(completionErr, \"We couldn't finish setting up your profile.\")} Your account is created: confirm your email, then sign in to finish."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 414,
+      "line": 413,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4916,7 +4926,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 475,
+      "line": 474,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

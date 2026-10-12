@@ -3896,6 +3896,60 @@ describe("create-payment edge function", () => {
         scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.status === "cancelled", rows: [] }];
       };
 
+      // Q1674 (owner, 2026-10-12, second pop-up): an admin's FULL refund keeps a
+      // first job's $2 setup fee too; the ledger reason and the notice say so.
+      // @mutate supabase/functions/create-payment/index.ts |           const keptSetupCents = isPartial ? 0 : setupFeeKeptCents(job); |           const keptSetupCents = 0;
+      // @mutate supabase/functions/create-payment/index.ts | : null, generalKeptSetupCents) | : null, 0)
+      it("a full refund of a first job returns everything but the kept $2 setup fee, still cancels the job, and says so (Q1674)", async () => {
+        seedFull();
+        scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], onboarding_fee_amount: 2 };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 11400, amount_received: 11400 });
+        stripeMock.refunds.list.mockResolvedValue({ data: [] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_g", amount: 11200 });
+        const res = await call();
+        expect(res.status).toBe(200);
+        const args = stripeMock.refunds.create.mock.calls[0][0];
+        expect(args.amount).toBe(11200);
+        expect(args.metadata).toMatchObject({ partial: "false", source: "admin_refund_general", kept_setup_fee_cents: "200" });
+        expect(closingFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+        const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+        expect(String((ledger?.payload as Record<string, unknown>)?.reason)).toContain("less the kept $2 setup fee");
+        const note = scenario.writes.find(
+          (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
+        );
+        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("the one-time $2.00 account setup fee, which is paid once and never refunded");
+      });
+
+      // lh-money-escrow review N1: earlier admin PARTIALS that already returned
+      // everything but the kept fee must not leave the job payable (Q1320).
+      // @mutate supabase/functions/create-payment/index.ts |           if (!nothingLeftToSend) { |           if (true) {
+      it("a full refund after partials already returned all but the kept $2 sends nothing to Stripe and still cancels the job (Q1674)", async () => {
+        seedFull();
+        scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], onboarding_fee_amount: 2 };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 11400, amount_received: 11400 });
+        stripeMock.refunds.list.mockResolvedValue({
+          data: [{ id: "re_part", amount: 11200, status: "succeeded", metadata: { source: "admin_refund_general", partial: "true" } }],
+        });
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(closingFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "Full refund sent nothing: only the kept setup fee was left")).toBe(true);
+        // The poster is not told a NEW refund is on its way (lh-money-escrow re-review note 1).
+        const note = scenario.writes.find(
+          (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
+        );
+        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("The earlier refunds already returned everything except the one-time $2.00 account setup fee");
+      });
+
+      it("control for Q1674: a full refund of a job with no setup fee still refunds the whole charge (no amount sent)", async () => {
+        seedFull();
+        stripeMock.refunds.list.mockResolvedValue({ data: [] });
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create.mock.calls[0][0]).not.toHaveProperty("amount");
+      });
+
       it("is pinned to the status it read and to its own claim ('cancelling', or its own charge.refunded's 'refunded')", async () => {
         seedFull();
         const res = await call();

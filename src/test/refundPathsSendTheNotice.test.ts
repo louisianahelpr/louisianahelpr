@@ -95,7 +95,7 @@ const REFUND_OWN_NOTICE: Record<string, string> = {
 // @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_WORDS_ALLOWED entry
 const REFUND_WORDS_ALLOWED: Record<string, { lines: number; why: string }> = {
   "supabase/functions/charge-recurring-visits/index.ts": { lines: 4, why: "the $0 fallback: the card fee took the whole payment, so nothing was refunded" },
-  "supabase/functions/create-payment/index.ts": { lines: 4, why: "to the HELPR (two writes): the job they worked was refunded to its poster" },
+  "supabase/functions/create-payment/index.ts": { lines: 6, why: "to the HELPR (two writes): the job they worked was refunded to its poster; and admin_refund_general's full refund that sent NOTHING (earlier partials returned all but the kept $2 setup fee, Q1674): no refund id to claim a refund notice on, so the poster is told the job is cancelled" },
   "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts": { lines: 2, why: "a chargeback the bank decided for the card holder: no refund was made" },
   "supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts": { lines: 2, why: "a refund that FAILED after it was made" },
   "supabase/functions/stripe-webhook/handlers/chargeRefunded.ts": { lines: 2, why: "to the HELPR: the decided split cannot be paid" },

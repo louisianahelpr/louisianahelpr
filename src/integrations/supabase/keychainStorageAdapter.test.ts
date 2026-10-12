@@ -131,6 +131,22 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
     expect(kcAccessMock).toHaveBeenCalledWith(AFTER_FIRST_UNLOCK_THIS_DEVICE);
   });
 
+  // Q1463: the app's synchronous session readers wait on this signal; without
+  // it they wait out the 2.5 s backstop on every launch.
+  // @mutate src/integrations/supabase/keychainStorageAdapter.ts | void hydratePromise.finally(() => { hydrated = true; markSessionKnown(); }); | void hydratePromise.finally(() => { hydrated = true; });
+  it("the restore settling marks the stored session known (sessionKnown), at once", async () => {
+    (window as unknown as { Capacitor?: unknown }).Capacitor = { isNativePlatform: () => true, getPlatform: () => "ios" };
+    try {
+      const { sessionKnown } = await import("@/lib/sessionKnown");
+      expect(sessionKnown()).toBe(false);
+      await loadAdapter();
+      await Promise.resolve();
+      expect(sessionKnown()).toBe(true);
+    } finally {
+      delete (window as unknown as { Capacitor?: unknown }).Capacitor;
+    }
+  });
+
   it("hydrate copies auth-token keys from the Keychain into localStorage + cache", async () => {
     kcKeysMock.mockResolvedValue([AUTH_KEY]);
     kcGetItemMock.mockResolvedValue("restored-jwt");

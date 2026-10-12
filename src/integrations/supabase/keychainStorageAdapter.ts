@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { KeychainAccess, SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { markSessionKnown } from '@/lib/sessionKnown';
 
 // Native-side mirror for sb-*-auth-token entries. WebKit can evict
 // localStorage under memory pressure on iOS, silently logging users out, so
@@ -193,7 +194,9 @@ export const hydratePromise: Promise<void> = (async () => {
 // settles (capped at HYDRATE_TIMEOUT_MS), getItem returns a Promise, which
 // supabase-js's storage contract allows (`await this.storage.getItem`).
 let hydrated = false;
-void hydratePromise.finally(() => { hydrated = true; });
+// markSessionKnown: the app's synchronous session readers (src/lib/sessionKnown.ts)
+// wait for this, or they read an evicted localStorage as "signed out" (Q1463).
+void hydratePromise.finally(() => { hydrated = true; markSessionKnown(); });
 function readSync(key: string): string | null {
   if (cache.has(key)) return cache.get(key) ?? null;
   try { return localStorage.getItem(key); } catch { /* Silent by design: WebKit storage blocked; no stored session is the honest answer and the caller signs in again. */ return null; }

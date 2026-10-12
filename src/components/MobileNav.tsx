@@ -20,7 +20,7 @@ import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
 import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
-import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import {
   leftItems,
@@ -57,10 +57,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // for a beat on a stale token, which is what happened for every visitor
   // before.
   //
-  // Read once into a ref: the probe touches localStorage and the answer cannot
-  // change under this component (a sign-out unmounts it), so re-reading on
-  // every render would be a synchronous storage hit per keystroke elsewhere.
-  const maybeSignedIn = useRef(hasPersistedAuthToken()).current;
+  // Read once, not per render (a synchronous storage hit), and once more when
+  // the app's Keychain restore lands: before it, an evicted localStorage
+  // reads "no token" for a signed-in person and the dock jumped in late
+  // (Q1463).
+  const maybeSignedIn = useStoredSessionHint();
   const isGuest = isLoading ? !maybeSignedIn : !user;
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,

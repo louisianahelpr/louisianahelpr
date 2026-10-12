@@ -38,9 +38,13 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
 
   return (
     <div className="rounded-ds-md p-4 space-y-3" style={cardStyle}>
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+      {/* Header row. It WRAPS: the name keeps at least 10rem before the sync
+          status drops to its own line. Unwrapped, "Sync failed — reconnect?"
+          left the property name 4 letters at 375 ("Proo…", seen on prod
+          2026-10-12 proving Q1119), so a host could not tell which calendar
+          had failed. src/test/strConnectionNameKeepsRoom.test.ts. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+        <div className="flex items-center gap-2 min-w-0 flex-[1_1_10rem]">
           {/* Platform badge */}
           <span
             className="shrink-0 rounded-full px-2 py-0.5 font-sans font-semibold uppercase text-ds-10"

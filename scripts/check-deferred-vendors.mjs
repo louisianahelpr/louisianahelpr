@@ -275,6 +275,13 @@ for (const x of routeSrc.matchAll(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*impo
 const ROUTE_ROOTS = [...routeSpecifiers].map((spec) => ({ label: spec, name: spec.split("/").pop() }));
 // The dock is a lazy chunk of its own, started with every signed-in page.
 ROUTE_ROOTS.push({ label: "components/MobileNav", name: "MobileNav" });
+// Q1356 (owner, 2026-10-12: drop the page-change fade, keep the swipe-back):
+// App.tsx loads these two on EVERY route, guest `/` included, once the page has
+// settled. Each carried framer-motion (~39 kB gzip) for a fade; neither may again.
+ROUTE_ROOTS.push({ label: "components/PageTransition", name: "PageTransition" });
+ROUTE_ROOTS.push({ label: "components/ScrollToTop", name: "ScrollToTop" });
+// The win-beat host mounts on every route too; SuccessMoment itself loads on the first fire.
+ROUTE_ROOTS.push({ label: "components/feedback/SuccessMomentHost", name: "SuccessMomentHost" });
 if (ROUTE_ROOTS.length < 8) {
   fail(`read only ${ROUTE_ROOTS.length} first-screen roots from routePreload.ts (expected 8+). The scan is blind; fix it.`);
 }
@@ -354,5 +361,5 @@ if (violations.length) {
 }
 
 console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps)`);
-console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav) carries a deferred package beyond the ${Object.keys(known).length} known`);
+console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav, PageTransition, ScrollToTop, SuccessMomentHost) carries a deferred package beyond the ${Object.keys(known).length} known`);
 console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

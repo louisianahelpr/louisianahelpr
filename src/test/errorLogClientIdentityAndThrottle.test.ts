@@ -1,14 +1,14 @@
 // @mutate supabase/migrations/20260923094457_error_logs_client_identity_and_throttle.sql | IF current_user = 'authenticated' THEN\n    NEW.user_id := auth.uid(); | IF current_user = 'authenticated' THEN\n    NULL;
 // @mutate supabase/migrations/20260923094457_error_logs_client_identity_and_throttle.sql | NEW.created_at := now();\n\n  v_source | v_source
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | v_account_cap  CONSTANT int := 60; | v_account_cap  CONSTANT int := 6000;
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | IF v_n >= v_guest_cap THEN\n        PERFORM | IF false THEN\n        PERFORM
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | IF coalesce(NEW.tags ->> 'origin', '') <> 'client' THEN\n    RETURN NEW; | IF false THEN\n    RETURN NEW;
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | EXCEPTION WHEN OTHERS THEN\n    -- The logger must never break the app: on any failure, keep the row.\n    RETURN NEW; | EXCEPTION WHEN division_by_zero THEN\n    RETURN NEW;
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | v_account_cap  CONSTANT int := 60; | v_account_cap  CONSTANT int := 6000;
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | IF v_n >= v_guest_cap THEN\n          PERFORM | IF false THEN\n          PERFORM
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | IF coalesce(NEW.tags ->> 'origin', '') <> 'client' THEN\n    RETURN NEW; | IF false THEN\n    RETURN NEW;
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | EXCEPTION WHEN OTHERS THEN\n    -- The logger must never break the app: on any failure, keep the row.\n    RETURN NEW; | EXCEPTION WHEN division_by_zero THEN\n    RETURN NEW;
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | CREATE TRIGGER trg_error_logs_01_throttle | CREATE TRIGGER trg_error_logs_000_throttle
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | v_guest_cap    CONSTANT int := 300; | v_guest_cap    CONSTANT int := 120;
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | AND e.tags ->> 'guest_fp' = v_fp | AND true
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | NEW.tags := jsonb_set(NEW.tags, '{guest_fp}', to_jsonb(v_fp), true); | NULL;
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM public.record_error_log_throttle_drop('guest');\n | 
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | v_guest_cap    CONSTANT int := 300; | v_guest_cap    CONSTANT int := 120;
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | AND e.tags ->> 'guest_fp' = v_fp | AND true
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | NEW.tags := jsonb_set(NEW.tags, '{guest_fp}', to_jsonb(v_fp), true); | NULL;
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | PERFORM public.record_error_log_throttle_drop('guest');\n | 
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | VALUES (date_trunc('minute', now()), pg_backend_pid(), p_kind | VALUES (date_trunc('minute', now()), 0, p_kind
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ALTER TABLE public.error_log_throttle_drops ENABLE ROW LEVEL SECURITY; | 
 // @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
@@ -19,6 +19,10 @@
 // @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | GROUP BY d.drop_kind) k; | GROUP BY d.kind) k;
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | CHECK (drop_kind IN ('guest', 'guest_fp', 'account')) | CHECK (drop_kind IN ('guest', 'guest_fp'))
 // @mutate src/integrations/supabase/types.ts | backend_pid: number\n          drop_kind: string\n          dropped: number | backend_pid: number\n          kind: string\n          dropped: number
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | AND coalesce(e.tags ->> 'source', '') <> 'csp' | AND true
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | AND e.tags ->> 'source' = 'csp' | AND true
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | CHECK (drop_kind IN ('guest', 'guest_fp', 'account', 'csp')) | CHECK (drop_kind IN ('guest', 'guest_fp', 'account'))
+// @mutate supabase/migrations/20261012145240_csp_reports_own_error_log_budget.sql | v_csp_cap      CONSTANT int := 100; | v_csp_cap      CONSTANT int := 1000;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -49,6 +53,11 @@ import { readdirSync } from "./helpers/trackedFiles";
  *   must be counted (error_log_throttle_drops, bounded + never raising) and
  *   reach the ops ledger when sustained (check_error_log_throttle -> source
  *   'error-log-throttled' -> ops_alert_condition closes only on a clean minute).
+ *
+ * Q1351: guest CSP reports (csp-report inserts with the anon key, tags.source
+ *   'csp') have their own bucket (v_csp_cap), the shared guest bucket counts
+ *   only non-CSP rows, and drop_kind's CHECK admits 'csp'. Behaviour: the same
+ *   PGlite proof (NEW_MIGRATION=skip-q1351 -> 5 FAILED).
  */
 
 const MIG = join(__dirname, "..", "..", "supabase", "migrations");
@@ -171,10 +180,10 @@ describe("error_logs client insert path (Q106, Q98)", () => {
       expect(fp, "Q113: per-fingerprint guest cap").toBeGreaterThan(6);
       expect(fp * 10, "Q113: one fingerprint must be a small slice of the guest bucket").toBeLessThanOrEqual(guest);
       const counts = [...b.matchAll(/SELECT count\(\*\) INTO v_n FROM \((.*?)\) x; IF v_n >= (v_\w+) THEN PERFORM public\.record_error_log_throttle_drop\('(\w+)'\); RETURN NULL; END IF;/g)];
-      expect(counts.length, `${f?.file}: expected fingerprint, guest and account counts, each counting then dropping the row`).toBe(3);
+      expect(counts.length, `${f?.file}: expected fingerprint, csp, guest and account counts, each counting then dropping the row`).toBe(4);
       const byCap = Object.fromEntries(counts.map((m) => [m[2], m[1]]));
       const kindOf = Object.fromEntries(counts.map((m) => [m[2], m[3]]));
-      expect(kindOf).toEqual({ v_guest_fp_cap: "guest_fp", v_guest_cap: "guest", v_account_cap: "account" });
+      expect(kindOf).toEqual({ v_guest_fp_cap: "guest_fp", v_csp_cap: "csp", v_guest_cap: "guest", v_account_cap: "account" });
       expect(byCap.v_guest_fp_cap).toContain("e.user_id IS NULL");
       expect(byCap.v_guest_fp_cap).toContain("e.tags ->> 'guest_fp' = v_fp");
       expect(byCap.v_guest_cap).toContain("e.user_id IS NULL");
@@ -184,6 +193,35 @@ describe("error_logs client insert path (Q106, Q98)", () => {
         expect(c).toContain("e.tags ->> 'origin' = 'client'");
         expect(c).toMatch(new RegExp(`LIMIT ${cap}$`));
       }
+    });
+
+    it("Q1351: guest CSP reports have their own bucket, and the guest crash bucket does not count them", () => {
+      const guest = Number(b.match(/v_guest_cap CONSTANT int := (\d+);/)?.[1]);
+      const csp = Number(b.match(/v_csp_cap CONSTANT int := (\d+);/)?.[1]);
+      // Prod 30-day peak (2026-10-12): 4 csp rows in one minute.
+      expect(csp, `${f?.file}: no v_csp_cap`).toBeGreaterThan(16);
+      expect(csp, "the CSP bucket must be smaller than the guest crash bucket").toBeLessThan(guest);
+      const counts = [...b.matchAll(/SELECT count\(\*\) INTO v_n FROM \((.*?)\) x; IF v_n >= (v_\w+) THEN/g)];
+      const byCap = Object.fromEntries(counts.map((m) => [m[2], m[1]]));
+      expect(byCap.v_csp_cap).toContain("e.user_id IS NULL");
+      expect(byCap.v_csp_cap, "the CSP bucket counts only CSP rows").toContain("e.tags ->> 'source' = 'csp'");
+      expect(byCap.v_guest_cap, "the guest bucket must not count CSP rows (Q1351)").toContain("coalesce(e.tags ->> 'source', '') <> 'csp'");
+      const branch = b.indexOf("IF coalesce(NEW.tags ->> 'source', '') = 'csp' THEN");
+      expect(branch, "a CSP row must be routed to its own bucket").toBeGreaterThan(b.indexOf("LIMIT v_guest_fp_cap"));
+      expect(branch).toBeLessThan(b.indexOf("LIMIT v_csp_cap"));
+      expect(b.indexOf("LIMIT v_csp_cap")).toBeLessThan(b.indexOf("ELSE", branch));
+      expect(b.indexOf("LIMIT v_guest_cap"), "the guest bucket is the non-CSP branch").toBeGreaterThan(b.indexOf("ELSE", branch));
+    });
+
+    it("Q1351: the newest drop_kind CHECK admits every kind the throttle records", () => {
+      let check = "";
+      for (const file of files) {
+        for (const m of stripSqlComments(sqlOf.get(file)!).matchAll(/ADD CONSTRAINT error_log_throttle_drops_drop_kind_check CHECK \(drop_kind IN \(([^)]*)\)\)/g)) check = m[1];
+      }
+      const allowed = [...check.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
+      const recorded = [...new Set([...b.matchAll(/record_error_log_throttle_drop\('(\w+)'\)/g)].map((m) => m[1]))].sort();
+      expect(recorded.length).toBeGreaterThan(3);
+      expect(allowed, "a kind outside the CHECK is swallowed by the recorder: that drop is invisible").toEqual(recorded);
     });
 
     it("Q113: every dropped row is counted first (no silent RETURN NULL)", () => {

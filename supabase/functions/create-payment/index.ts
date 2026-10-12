@@ -13,7 +13,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
-import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
@@ -604,7 +604,7 @@ serve(async (req) => {
         // platform_fee_percent is deliberately NOT selected: nothing below
         // binds it, and the stored value (15) matches no rate in the tier
         // ladder, so reading it here only invites someone to start trusting it.
-        // The poster-side rate comes from the poster's own tier below.
+        // The poster pays no platform rate at all (owner, 2026-10-11).
         .select("customer_fee_percent, helper_fee_percent, onboarding_fee_cents")
         .limit(1).single();
       if (settingsErr || settings?.customer_fee_percent == null || settings?.helper_fee_percent == null) {
@@ -615,59 +615,39 @@ serve(async (req) => {
       // selected and null-checked above because an unreadable/incomplete
       // settings row means the pricing config is broken and this function must
       // fail loud rather than price escrow on guesses — but its VALUE no longer
-      // reaches any charge (see the fee fallback below for why).
+      // reaches any charge: the poster's service fee is Stripe's card cost
+      // only (posterCardCostFeeCents, owner 2026-10-11).
       const helperFeePercent = settings.helper_fee_percent;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
-      // Check if the poster owes the one-time onboarding fee (first job post) and
-      // resolve their OWN subscription tier so the service fee follows the
-      // 12/11/10/9/8 ladder — one user, one tier, one percent, whichever side of
-      // the job they are on.
-      // If that read fails, the fee falls back to the FREE-tier rate — see the
-      // fallback expression below for why it is not the global setting.
+      // Check if the poster owes the one-time onboarding fee (first job post).
+      // Owner, 2026-10-11: the poster's tier no longer prices anything at
+      // checkout (posters pay no platform percentage on any tier; the service
+      // fee is Stripe's card cost only, `posterCardCostFeeCents`), so the
+      // tier columns are not read here any more.
       const { data: posterProfile, error: posterProfileErr } = await supabaseAdmin
         .from("profiles")
-        .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
+        .select("onboarding_fee_paid")
         .eq("user_id", user.id)
         .single();
       if (posterProfileErr) {
-        // Don't fail the charge — fall back to the free-tier rate — but make the
-        // failure findable, never silent. Critically, only bill the one-time
-        // onboarding fee when we can PROVE it's unpaid: a read failure leaves
-        // posterProfile null, so guarding on `!!posterProfile` prevents
-        // re-charging onboarding to someone who already paid it.
-        console.error(`[create-payment] poster profile read failed — using the free-tier fee fallback, skipping onboarding charge:`, posterProfileErr);
+        // Don't fail the charge, but make the failure findable, never silent.
+        // Critically, only bill the one-time onboarding fee when we can PROVE
+        // it's unpaid: a read failure leaves posterProfile null, so guarding on
+        // `!!posterProfile` prevents re-charging onboarding to someone who
+        // already paid it.
+        console.error(`[create-payment] poster profile read failed — skipping onboarding charge:`, posterProfileErr);
       }
       const owesOnboardingFee = !!posterProfile && !posterProfile.onboarding_fee_paid && onboardingFeeCents > 0;
-      // FALLBACK = DEFAULT_TIER_FEE_PERCENT (the free rate), never
-      // `platform_settings.customer_fee_percent` and never a bare literal.
-      //
-      // This used to be `globalCustomerFeePercent`. The stored global is 10 and
-      // the free ladder rung is 12, so an unreadable poster profile quietly
-      // billed a free-tier poster 10% — two points of budget under their real
-      // rate, on the ONE path where the number is charged to a card. The helper
-      // side had the identical bug on its payout fallbacks and was fixed the
-      // same way; this is its charge-side twin, and it matters more, because a
-      // payout re-resolves the rate later (process-scheduled-payouts) while a
-      // capture does not: the shortfall is never clawed back.
-      //
-      // Direction is the whole argument. An unexpected value must never
-      // UNDER-charge the platform — over-charging a discounted poster is
-      // refundable, a discount already given is not recoverable — and
-      // DEFAULT_TIER_FEE_PERCENT is deliberately the free (highest) rung, so it
-      // is the safe end of the ladder in both roles.
-      //
-      // Deriving it from DEFAULT_TIER_FEE_PERCENT rather than writing 12 keeps
-      // this pinned to the ladder: retune TIER_FEE_PERCENT.free and both the
-      // poster and helper fallbacks move with it, automatically and together.
-      const customerFeePercent = posterProfile
-        ? posterFeePercentForTier(posterProfile.subscription_tier, posterProfile.subscription_expires_at)
-        : DEFAULT_TIER_FEE_PERCENT;
+      // Stamped on the job (platform_fee_percent, the poster-side column) and
+      // on the PaymentIntent metadata, so the row records which pricing it was
+      // charged under: 0 = card cost only (owner, 2026-10-11).
+      const customerFeePercent = POSTER_SERVICE_FEE_PERCENT;
 
-      // Customer service fee (added as a line item — taxable, platform revenue).
-      // Floored at Stripe's real processing cost on the WHOLE transaction (budget
-      // + fee + urgent tip + onboarding) so a tiny job can never leave the
-      // platform underwater on Stripe fees.
+      // Customer service fee (its own non-taxable line item): Stripe's real
+      // processing cost on the WHOLE transaction (budget + fee + urgent tip +
+      // onboarding) and nothing more (owner, 2026-10-11), so the platform never
+      // nets a loss on Stripe fees and the poster pays no platform percentage.
       // SERVER-AUTHORITATIVE URGENT FEE — never trust jobs.urgent_fee.
       //
       // is_urgent / urgent_fee are client-set at INSERT and the jobs INSERT
@@ -706,9 +686,8 @@ serve(async (req) => {
       // customer_fee_amount: non-refundable like the service fee (Stripe keeps
       // its cut on a refund) and included in every "what the poster paid" sum.
       const urgentCardFeeCents = urgentBonusCardFeeCents(urgentFeeCents);
-      const customerFeeCents = posterServiceFeeCents(
+      const customerFeeCents = posterCardCostFeeCents(
         Math.round(job.budget * 100),
-        customerFeePercent,
         urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,
         urgentCardFeeCents,
       );
@@ -745,10 +724,10 @@ serve(async (req) => {
         },
       ];
 
-      // Poster service fee — treated as a non-taxable platform commission
-      // until LA Dept. of Revenue clarifies B2C SaaS treatment post-Act 470.
-      // (Switch tax_code to "txcd_10103001" if a CPA confirms it should be
-      // taxed as a digital service.)
+      // Poster service fee — Stripe's card-processing cost on this charge
+      // (owner, 2026-10-11), on a non-taxable line, as the tier-percent fee it
+      // replaced was. Only the labor line of a taxable category is taxed
+      // (_shared/salesTax.ts); this line's tax code is unchanged.
       // The urgent bonus's card fee rides INSIDE this line (owner, 2026-10-09:
       // "it's all one post", no separate "Urgent bonus card fee" line). Same
       // cents, same non-taxable code, and customer_fee_amount already holds
@@ -762,9 +741,11 @@ serve(async (req) => {
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Service fee",
+              // The same few words the app shows beside the fee. Never a
+              // percentage: there is none (owner, 2026-10-11).
               description: foldCardFee
-                ? `${customerFeePercent}% platform service fee, plus card processing on the urgent bonus`
-                : `${customerFeePercent}% platform service fee`,
+                ? `${POSTER_SERVICE_FEE_DESCRIPTION}, including the urgent bonus`
+                : POSTER_SERVICE_FEE_DESCRIPTION,
               tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
             },
             unit_amount: customerFeeCents + (foldCardFee ? urgentCardFeeCents : 0),

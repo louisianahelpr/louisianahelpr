@@ -55,7 +55,7 @@ export const TermsContent = () => {
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `Both sides pay a plan-based platform fee: the poster pays a service fee added at checkout (${TIER_PERKS.free.platformFeePercent}% on Free down to ${FEE_FLOOR.platformFeePercent}% on ${FEE_FLOOR.name}), and the Helpr's platform fee (${FEE_FLOOR.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, on the same ladder) is deducted from their payout. Each side's own plan determines their own %.`,
+        `Posting a job has no platform fee: the poster pays the job budget plus a service fee that only covers card processing. The Helpr's platform fee (${FEE_FLOOR.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, set by their own plan) is deducted from their payout.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -122,13 +122,13 @@ export const TermsContent = () => {
       />
       <PolicyRowItem
         icon={DollarSign}
-        title="Split fee model"
+        title="Fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name} (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Service fee (covers card processing):</strong> added at checkout when you post a job. It equals the card-processing cost of that payment and nothing more; there is no platform fee for posting, on any plan.</p>
             <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}. Every payout is rounded down to the whole dollar.</p>
 
-            <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the Helpr's plan-based fee. The service fee goes to card processing.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. The whole bonus goes to the Helpr (split among the crew on a group job); its card-processing fee is paid by the poster, added on top and shown before they pay, and is never taken from the bonus.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.

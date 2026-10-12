@@ -4,14 +4,13 @@ import { ONE_TIME_PASS_DAYS, TIER_PERKS, type SubscriptionTier } from "@/lib/sub
 /**
  * EVERY BLURB ON THIS PAGE IS ROLE-NEUTRAL, AND THAT IS A CORRECTNESS RULE,
  * NOT A STYLE ONE. Each `forWhom` read "For Helprs …" while the tier's
- * `platformFeePercent` sets BOTH numbers it can set: the commission deducted
- * from a helper's payout AND the service fee a poster is charged at checkout
- * (`posterFeePercentForTier` in `src/lib/posterFees.ts` is a straight alias of
- * `tierFeePercent` — one user, one tier, one percent). There are no roles on
- * this app: every account can post and can help. So a poster reading this page
- * was shown the exact product that would cut their posting fee, described
- * entirely as something for other people, and every perk listed was helper-side
- * — a missed conversion and an inaccuracy in the same sentence.
+ * `platformFeePercent` sets the commission deducted from the payout on jobs
+ * the member does. It no longer touches posting: since 2026-10-11 (owner) a
+ * poster pays no platform percentage on any tier, only a service fee that
+ * covers card processing (`posterCardCostFeeCents` in `src/lib/posterFees.ts`).
+ * There are no roles on this app: every account can post and can help, so a
+ * blurb written "For Helprs …" described the product as something for other
+ * people — a missed conversion and an inaccuracy in the same sentence.
  *
  * Keep new copy here neutral, and keep it SHORT: `forWhom` renders beside the
  * tier name under `truncate` (SubscriptionTab.tsx), where it already truncated

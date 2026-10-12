@@ -1,8 +1,8 @@
 // helperFees — single source of truth for the tiered platform fee, for the Deno
-// edge runtime. It is the commission deducted from a helper's payout AND (via
-// `posterFees.ts`, which aliases the resolver below) the service fee a poster is
-// charged at checkout: one user, one tier, one percent, whichever side of the
-// job they are on.
+// edge runtime: the commission deducted from a Helpr's payout. It no longer
+// prices posting: since 2026-10-11 (owner) a poster pays no platform
+// percentage on any tier, only Stripe's card cost (`posterFees.ts`, which
+// imports nothing from this ladder).
 //
 // The subscription tier sets the percentage:
 //
@@ -65,15 +65,14 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
 export const DEFAULT_TIER_FEE_PERCENT = TIER_FEE_PERCENT.free; // 12
 
 /**
- * THE tier → fee-percent resolver, for BOTH roles.
+ * THE tier → Helpr-commission resolver.
  *
- * Product rule: one user, one tier, one percent — the percentage a person is
- * charged must be identical whether they are posting a job or helping on one.
- * So this function is the single resolver both sides call, and it must take the
- * SAME inputs on both sides or the two roles can still diverge on the inputs
- * even while sharing the table.
+ * Until 2026-10-11 the poster's service fee was this same percent ("one user,
+ * one tier, one percent"). The owner removed the poster percentage that day:
+ * posters pay Stripe's card cost only, so only the Helpr side calls this.
  *
- * `expiresAt` used to live only on the poster side (`posterFeePercentForTier`),
+ * `expiresAt` used to live only on the poster side (the retired
+ * `posterFeePercentForTier`),
  * which meant the two resolvers had different signatures and only one of them
  * could see a lapsed subscription. Nothing shipped a wrong percent because every
  * helper-side CALLER (`getHelperFeePercent`, `money-reconciliation`) did its own
@@ -141,8 +140,8 @@ export async function getHelperFeePercent(
       console.warn(`[helperFees] tier read failed for ${helperId}, using fallback ${fallbackPercent}%:`, error);
       return fallbackPercent;
     }
-    // Expiry is handled INSIDE feePercentForTier so this path and the poster
-    // path (`posterFeePercentForTier`) cannot drift on the lapsed-tier rule.
+    // Expiry is handled INSIDE feePercentForTier so every caller applies the
+    // same lapsed-tier rule.
     return feePercentForTier(data.subscription_tier, data.subscription_expires_at);
   } catch (e) {
     console.warn(`[helperFees] tier read threw for ${helperId}, using fallback ${fallbackPercent}%:`, e);

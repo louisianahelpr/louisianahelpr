@@ -5,6 +5,7 @@ import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
+import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
 
 /**
  * Pure helpers for the Post-a-Task submit flow.
@@ -55,7 +56,6 @@ export interface BuildJobInsertPayloadInput {
   helpersNeeded: string;
   isUrgent: boolean;
   urgentFee: string;
-  platformFee: number | null;
   salesTaxRate: number;
   /** When the poster is a business with W-9 policy enabled, the accepted
    *  helper must e-sign a W-9 before payout. See helper_w9_records. */
@@ -130,7 +130,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     helpersNeeded,
     isUrgent,
     urgentFee,
-    platformFee,
     salesTaxRate,
     offerToHelperId,
     department,
@@ -160,9 +159,13 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // rule is enforced server-side by trg_job_expiry_floor (20260831201631).
   const expiresAt = computeJobExpiresAt(firstVisit, startTime);
 
-  // Lock platform fee and sales tax at creation time
-  const lockedFeePercent = platformFee ?? 0;
-  const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
+  // The poster-side fee percent is a constant now: posters pay no platform
+  // percentage, only Stripe's card cost (owner, 2026-10-11). create-payment
+  // stamps the same 0 at escrow, together with platform_fee_amount (the
+  // Helpr commission), which this insert deliberately leaves unset: a $0
+  // stamp would read as a comped commission on every helper earnings surface
+  // (helperEarnings.ts trusts a stamped 0) until escrow overwrote it.
+  const lockedFeePercent = POSTER_SERVICE_FEE_PERCENT;
   // Sales tax is locked the same way — but it applies ONLY to the labor line
   // of a taxable category (assembly today; see lib/salesTax.ts, mirrored from
   // the edge module create-payment actually charges from). This used to be a
@@ -234,7 +237,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     is_urgent: isUrgent,
     urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
     platform_fee_percent: lockedFeePercent,
-    platform_fee_amount: lockedFeeAmount,
     // Q1486: the column is a FRACTION (ck_jobs_sales_tax_rate_range, 0..1);
     // lockedSalesTaxRate is the parish PERCENT that salesTaxCents takes.
     sales_tax_rate: salesTaxRateFraction(lockedSalesTaxRate),

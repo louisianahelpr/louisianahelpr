@@ -255,6 +255,12 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", args: ["HEAD"], env: MGMT("fail"), says: /could not read prod schema_migrations: Management API query failed: 500/ },
     { label: "Management API []", args: ["HEAD"], env: MGMT("empty"), says: /schema_migrations came back empty; refusing to treat nothing as applied/ },
   ],
+  // Q1321 (db-drift-detect.yml): GET /v1/projects/{ref}/advisors/performance (LH_SUPABASE_API_BASE).
+  "scripts/check-performance-advisor.mjs": [
+    { label: "no credentials", says: /could not read the performance advisor: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not read the performance advisor: Management API GET \/advisors\/performance 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /the advisor returned no result — refusing to report clean/ },
+  ],
   // Q164 (db-drift-detect.yml): GET /v1/projects/{ref}/functions (LH_SUPABASE_API_BASE).
   "scripts/check-deployed-functions.mjs": [
     { label: "no credentials", says: /could not list the deployed edge functions: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },

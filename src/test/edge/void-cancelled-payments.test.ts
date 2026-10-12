@@ -339,3 +339,52 @@ describe("void-cancelled-payments — Q891: a test-mode Stripe object under the 
 // plus split on one charge, the double-settle this file exists to prevent.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | if (settlement.blocked) { | if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((livePayouts ?? []).length > 0) { | if (false) {
+
+// ── Q1345: the uncaptured-hold path stamps the fee it captured ─────────────
+//
+// On a requires_capture PaymentIntent the cron captures ONLY the fee and
+// releases the rest. The amount lived only in Stripe: the job row kept the
+// client-written cancellation_fee, which Spent and the fee pill read. The
+// settle write now carries the fee this capture charged.
+// @mutate supabase/functions/void-cancelled-payments/index.ts |               cancellation_fee_status: "charged",\n              cancellation_fee: cancellationFee,\n | cancellation_fee_status: "charged",\n
+describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured hold is stamped on the job", () => {
+  beforeEach(() => {
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+  afterEach(() => resetEnv());
+
+  it("the settle write stamps cancellation_fee = the captured amount, not the client-written figure", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [{
+        includes: "cancellation_fee",
+        result: {
+          rows: [{
+            id: "job-hold", title: "Late cancel on a hold", stripe_session_id: null, stripe_payment_intent_id: "pi_hold",
+            budget: 100, customer_fee_amount: 10,
+            // Client-written and wrong on purpose: the stamp must not echo it.
+            cancellation_fee: 99,
+            date_needed: "2026-10-20", start_time: "10:00:00", cancelled_at: "2026-10-20T13:00:00.000Z",
+            helper_id: "helper-1", helper_confirmed_at: "2026-10-18T12:00:00.000Z",
+            customer_id: "poster-1", helper_fee_percent: 10,
+          }],
+        },
+      }],
+      rows: [],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_hold", status: "requires_capture", amount: 11000, amount_received: 0, latest_charge: null,
+    });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+    const capturedCents = stripeMock.paymentIntents.capture.mock.calls[0][1].amount_to_capture as number;
+    expect(capturedCents).toBeGreaterThan(0);
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" &&
+      (w.payload as Record<string, unknown>).cancellation_fee_status === "charged");
+    expect(settle, "no settle write with cancellation_fee_status 'charged'").toBeDefined();
+    expect((settle!.payload as Record<string, unknown>).cancellation_fee).toBe(capturedCents / 100);
+  });
+});

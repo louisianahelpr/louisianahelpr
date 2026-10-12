@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { report } from "@/lib/errorLogger";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 /**
  * Loads Apple's MapKit JS (the same SDK that powers maps.apple.com)
@@ -186,8 +187,10 @@ async function fetchServerToken(): Promise<string | null> {
   try {
     // Bounded: MapKit is blocking on this callback, and a hung fetch would
     // reproduce the very "Locating… forever" hang this hook already guards.
+    // Visible time only (src/lib/visibleDeadline.ts): a phone put away
+    // mid-fetch used to abort here on return ("Fetch is aborted", 2026-10-09)
+    // and fall back to the unrestricted token for no reason.
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), SERVER_TOKEN_TIMEOUT_MS);
     // GET, not POST. The edge function answers `Cache-Control: private,
     // max-age=3300` precisely so a browser can reuse the token for 55 minutes
     // (it lives 60), but a POST response is never served from the HTTP cache —
@@ -195,11 +198,18 @@ async function fetchServerToken(): Promise<string | null> {
     // paid a fresh edge round-trip, which is what keeps hitting the abort
     // above. The function is method-agnostic (only OPTIONS is special-cased);
     // verified 2026-09-11 against prod: GET → 200 with a valid token in 0.75s.
-    const res = await fetch(`${base}/functions/v1/mapkit-token`, {
-      method: "GET",
-      headers: { apikey },
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timer));
+    const res = await raceVisibleDeadline(
+      fetch(`${base}/functions/v1/mapkit-token`, {
+        method: "GET",
+        headers: { apikey },
+        signal: controller.signal,
+      }),
+      SERVER_TOKEN_TIMEOUT_MS,
+      "mapkit-token timed out",
+    ).catch((e: unknown) => {
+      controller.abort(); // a timed-out request is not left running
+      throw e;
+    });
 
     if (!res.ok) {
       reportServerTokenFailure(`mapkit-token responded ${res.status}`);

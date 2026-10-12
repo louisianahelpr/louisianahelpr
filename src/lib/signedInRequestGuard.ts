@@ -9,8 +9,9 @@
  * session itself went away, see "Not covered here" below.) auth-js keeps the
  * session in storage, but while the
  * stored access token is expired and the refresh has failed, `getSession()`
- * answers `session: null` (auth-js 2.116.0 `__loadSession`), and for the next
- * ~60 s its refresh cooldown hands every caller the same cached failure.
+ * answers `session: null` (auth-js 2.117.2 `__loadSession`, the version the
+ * lockfile ships), and for the next 60 s (REFRESH_FAILURE_COOLDOWN_MS) its
+ * refresh cooldown hands every caller the same cached failure.
  * supabase-js then builds each request with the PUBLISHABLE key as its bearer
  * (`fetchWithAuth` falls back to `supabaseKey` when there is no session token;
  * edge-function calls go out with no Authorization at all). PostgREST runs
@@ -24,12 +25,14 @@
  * /functions/v1/ or /storage/v1/ request that carries no member token while a
  * session is still stored on this device is rejected as a transport failure
  * (a TypeError whose message starts "Failed to fetch", the family
- * src/lib/networkFailure.ts recognises). postgrest-js then retries an
- * idempotent read itself (1 s, 2 s, 4 s), and every retry asks auth-js for the
- * session again, so the read goes out with the member's token as soon as the
- * refresh lands; a write fails as "connection trouble" instead of being sent
- * as anon. A visitor with no stored session is untouched: their requests go
- * out exactly as before.
+ * src/lib/networkFailure.ts recognises): the screen shows connection trouble,
+ * and a write fails as "connection trouble" instead of being sent as anon.
+ * postgrest-js's own read retries (1 s, 2 s, 4 s) mostly fall inside the 60 s
+ * cooldown and RPCs (POST) are not retried at all, so RECOVERY is explicit:
+ * every hold sets a flag, and client.ts, on the next TOKEN_REFRESHED or
+ * SIGNED_IN, takes it (`takeHeldSinceRefresh`) and refetches the active
+ * queries that ended in an error. A visitor with no stored session is
+ * untouched: their requests go out exactly as before.
  *
  * Not covered here, on purpose: a session that is GONE from storage while a
  * screen still believes it is signed in. That is a real sign-out, and the
@@ -73,9 +76,22 @@ export function defaultAuthStorageKey(supabaseUrl: string): string {
 const urlOf = (input: RequestInfo | URL): string =>
   typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 
+/** Origin + path, no trailing slash: the form supabase-js builds its URLs from (`new URL`). */
+function normalisedBase(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return `${u.origin}${u.pathname}`.replace(/\/+$/, "");
+  } catch {
+    // Silent by design: an unparseable URL is not one of the client's own
+    // data-surface URLs, so nothing about it is held.
+    return null;
+  }
+}
+
 function surfaceOf(url: string, base: string): GuardedSurface | null {
-  if (!url.startsWith(base)) return null;
-  const path = url.slice(base.length);
+  const at = normalisedBase(url);
+  if (at === null || !at.startsWith(base)) return null;
+  const path = at.slice(base.length) + "/";
   for (const surface of GUARDED_SURFACES) {
     if (path.startsWith(`/${surface}/v1/`)) return surface;
   }
@@ -102,8 +118,22 @@ function holdsRefreshableSession(raw: string | null): boolean {
   }
 }
 
+let heldSinceRefresh = false;
+
+/**
+ * Was any request held since the last call? Clears the flag. client.ts asks
+ * on TOKEN_REFRESHED / SIGNED_IN and refetches the queries the hold failed.
+ */
+export function takeHeldSinceRefresh(): boolean {
+  const held = heldSinceRefresh;
+  heldSinceRefresh = false;
+  return held;
+}
+
 export function guardSignedInRequests(opts: SignedInRequestGuardOptions): typeof fetch {
-  const base = opts.supabaseUrl.replace(/\/+$/, "");
+  // Normalised like supabase-js's own `new URL(...)`: a differently written env
+  // value (case, trailing slash) must not make the guard silently inert.
+  const base = normalisedBase(opts.supabaseUrl) ?? opts.supabaseUrl.replace(/\/+$/, "");
   const anonBearer = `Bearer ${opts.publishableKey}`;
   return async (input, init) => {
     const surface = surfaceOf(urlOf(input), base);
@@ -120,6 +150,7 @@ export function guardSignedInRequests(opts: SignedInRequestGuardOptions): typeof
           stored = null;
         }
         if (holdsRefreshableSession(stored)) {
+          heldSinceRefresh = true;
           const method = (init?.method ?? (typeof Request !== "undefined" && input instanceof Request ? input.method : "GET")).toUpperCase();
           try {
             opts.onHeld?.({ surface, method });

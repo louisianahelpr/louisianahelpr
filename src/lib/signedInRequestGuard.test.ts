@@ -20,6 +20,9 @@
  * @mutate src/lib/signedInRequestGuard.ts |       const carriesNoMemberToken = authorization === null \|\| authorization === anonBearer; |       const carriesNoMemberToken = authorization === null;
  * @mutate src/lib/signedInRequestGuard.ts |     if (path.startsWith(`/${surface}/v1/`)) return surface; |     if (path.startsWith(`/${surface}/v2/`)) return surface;
  * @mutate src/integrations/supabase/client.ts |     fetch: guardSignedInRequests({ |     fetch: signOutAwareFetch, unused: ({
+ * @mutate src/lib/signedInRequestGuard.ts |           heldSinceRefresh = true; |
+ * @mutate src/lib/signedInRequestGuard.ts |   const base = normalisedBase(opts.supabaseUrl) ?? opts.supabaseUrl.replace(/\/+$/, ""); |   const base = opts.supabaseUrl.replace(/\/+$/, "");
+ * @mutate src/integrations/supabase/client.ts |   if (!takeHeldSinceRefresh()) return; |   if (takeHeldSinceRefresh() \|\| true) return;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -28,7 +31,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isPermissionDenied } from "@/lib/permissionDenied";
-import { GUARDED_SURFACES, HELD_MESSAGE, defaultAuthStorageKey, guardSignedInRequests } from "./signedInRequestGuard";
+import { GUARDED_SURFACES, HELD_MESSAGE, defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from "./signedInRequestGuard";
 
 const BASE = "https://proj.supabase.co";
 const KEY = "sb_publishable_testkey";
@@ -163,6 +166,31 @@ describe("a signed-in request is never sent as anon", () => {
     for (const surface of GUARDED_SURFACES) expect(built.some((u) => u.includes(`/${surface}/v1`)), surface).toBe(true);
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
     expect(src).toMatch(/global:\s*\{\s*fetch:\s*guardSignedInRequests\(\{/);
+    // Recovery (review of the hold): after a hold, the next refresh refetches the failed active queries.
+    expect(src).toMatch(/onAuthStateChange\(\(event\) => \{\s*if \(event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN'\) return;\s*if \(!takeHeldSinceRefresh\(\)\) return;/);
+    expect(src).toMatch(/refetchQueries\(\{ type: 'active', predicate: \(q\) => q\.state\.status === 'error' \}\)/);
     expect(src).toMatch(/storage:\s*authStorage,\s*storageKey:\s*defaultAuthStorageKey\(SUPABASE_URL\)/);
+  });
+
+  it("a hold raises the recovery flag once; a request that is not held leaves it down", async () => {
+    takeHeldSinceRefresh();
+    const sent = stubNetwork();
+    mem.set(STORAGE_KEY, JSON.stringify(sessionExpiringAt(nowS() + 3600)));
+    const guarded = guardSignedInRequests({ supabaseUrl: BASE, publishableKey: KEY, storage, storageKey: STORAGE_KEY, fetchImpl: (i, n) => fetch(i, n) });
+    await guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: "Bearer member-jwt" } });
+    expect(takeHeldSinceRefresh()).toBe(false);
+    await expect(guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: `Bearer ${KEY}` } })).rejects.toThrow(HELD_MESSAGE);
+    expect(takeHeldSinceRefresh()).toBe(true);
+    expect(takeHeldSinceRefresh()).toBe(false);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("the project URL is matched the way supabase-js builds it (host case, trailing slash), never by raw text", async () => {
+    stubNetwork();
+    mem.set(STORAGE_KEY, JSON.stringify(sessionExpiringAt(nowS() + 3600)));
+    for (const written of ["https://PROJ.supabase.co/", "https://proj.supabase.co//"]) {
+      const guarded = guardSignedInRequests({ supabaseUrl: written, publishableKey: KEY, storage, storageKey: STORAGE_KEY, fetchImpl: (i, n) => fetch(i, n) });
+      await expect(guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: `Bearer ${KEY}` } }), written).rejects.toThrow(HELD_MESSAGE);
+    }
   });
 });

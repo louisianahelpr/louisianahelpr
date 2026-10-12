@@ -94,6 +94,7 @@ const SKIP_LOGGING_FILES = [
   "auto-release-payment/index.ts",
   "auto-resolve-disputes/index.ts",
   "charge-recurring-visits/index.ts",
+  "execute-dispute-split/clearTestModeRecords.ts",
   "execute-dispute-split/index.ts",
   "money-reconciliation/index.ts",
   "process-scheduled-payouts/index.ts",
@@ -117,6 +118,9 @@ const CLASSIFIED = [
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",
   "create-payment/index.ts::stripe.paymentIntents.retrieve(cancelPaymentIntentId)",
+  // Q1732: the admin button's Stripe check; a test-mode id is the ONLY answer that lets the clear run.
+  "execute-dispute-split/clearTestModeRecords.ts::stripe.refunds.retrieve(id)",
+  "execute-dispute-split/clearTestModeRecords.ts::stripe.transfers.retrieve(id)",
   "execute-dispute-split/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "execute-dispute-split/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "execute-dispute-split/index.ts::stripe.transfers.retrieve(dispute.execution_transfer_id)",

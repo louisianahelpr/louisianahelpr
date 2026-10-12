@@ -24,7 +24,8 @@
 
 CREATE TABLE IF NOT EXISTS public.series_platform_ends (
   parent_job_id uuid PRIMARY KEY REFERENCES public.jobs(id) ON DELETE CASCADE,
-  kind          text NOT NULL CHECK (kind IN ('chargeback', 'admin')),
+  -- Only an ADMIN end buys the full refund (owner, Q1735); widen only by an owner decision.
+  end_kind      text NOT NULL CHECK (end_kind IN ('admin')),
   reason        text,
   admin_id      uuid,
   ended_at      timestamptz NOT NULL DEFAULT now()
@@ -111,7 +112,7 @@ BEGIN
   -- Only an ADMIN end: a chargeback end is the poster's own bank dispute
   -- (owner: "NOT the poster"), so it keeps Q808's rule (money review #4).
   IF p_kind = 'admin' THEN
-    INSERT INTO public.series_platform_ends (parent_job_id, kind, reason, admin_id)
+    INSERT INTO public.series_platform_ends (parent_job_id, end_kind, reason, admin_id)
     VALUES (v_job.id, p_kind, btrim(p_reason), p_admin)
     ON CONFLICT (parent_job_id) DO NOTHING;
   END IF;

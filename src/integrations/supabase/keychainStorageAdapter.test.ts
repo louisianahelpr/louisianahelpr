@@ -67,6 +67,7 @@ const NON_AUTH_KEY = "helpr_draft_job";
 const AFTER_FIRST_UNLOCK_THIS_DEVICE = 3;
 
 beforeEach(() => {
+  vi.useRealTimers(); // a timed-out fake-timer test cannot leak its clock into the next
   vi.resetModules();
   localStorage.clear();
   for (const m of [reportMock, isNativePlatformMock, kcKeysMock, kcGetItemMock, kcSetMock, kcRemoveMock, kcSyncMock, kcAccessMock, prefsKeysMock, prefsGetMock, prefsSetMock, prefsRemoveMock, installFlagMock]) m.mockReset();
@@ -430,6 +431,81 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
     }
   });
 
+  // Q1412. auth-js awaits setItem on every token refresh (_saveSession) and
+  // removeItem on every sign-out (_removeSession). A bridge call that never
+  // settles used to hold both for good: sign-out never returned, and a hung
+  // refresh blocked every later session read. Literal 1_500 mirrors
+  // KEYCHAIN_WRITE_CAP_MS in the source.
+  // @mutate src/integrations/supabase/keychainStorageAdapter.ts | new Promise<'capped'>((resolve) => { timer = setTimeout(() => resolve('capped'), KEYCHAIN_WRITE_CAP_MS); }), | new Promise<'capped'>(() => { /* no cap */ }),
+  it("setItem returns at the cap when the Keychain write NEVER settles, and REPORTS it (Q1412)", async () => {
+    vi.useFakeTimers();
+    try {
+      kcSetMock.mockImplementation(() => new Promise<never>(() => { /* bridge never answers */ }));
+      const { keychainStorageAdapter } = await loadAdapter();
+      let settled = false;
+      void keychainStorageAdapter.setItem(AUTH_KEY, "rotated-jwt").then(() => { settled = true; });
+      await vi.advanceTimersByTimeAsync(1_499);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(2);
+      expect(settled).toBe(true);
+      // This launch already has the new token; only the Keychain copy is late.
+      expect(keychainStorageAdapter.getItem(AUTH_KEY)).toBe("rotated-jwt");
+      expect(localStorage.getItem(AUTH_KEY)).toBe("rotated-jwt");
+      await vi.waitFor(() => expect(reportMock).toHaveBeenCalledTimes(1));
+      expect(String(reportMock.mock.calls[0][0])).toContain("cap");
+      expect(reportMock.mock.calls[0][1]).toMatchObject({ severity: "error", tags: { area: "keychain_session" }, context: { step: "setItem cap" } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("removeItem (sign-out) returns at the cap when the Keychain delete NEVER settles, and REPORTS it (Q1412)", async () => {
+    vi.useFakeTimers();
+    try {
+      kcRemoveMock.mockImplementation(() => new Promise<never>(() => { /* bridge never answers */ }));
+      localStorage.setItem(AUTH_KEY, "jwt");
+      const { keychainStorageAdapter } = await loadAdapter();
+      let settled = false;
+      void keychainStorageAdapter.removeItem(AUTH_KEY).then(() => { settled = true; });
+      await vi.advanceTimersByTimeAsync(1_499);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(2);
+      expect(settled).toBe(true);
+      expect(keychainStorageAdapter.getItem(AUTH_KEY)).toBeNull();
+      await vi.waitFor(() => expect(reportMock).toHaveBeenCalledTimes(1));
+      expect(reportMock.mock.calls[0][1]).toMatchObject({ context: { step: "removeItem cap" } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // A capped write is still running when the next starts. Were they issued
+  // side by side, a late refresh write could land AFTER the sign-out delete
+  // and the next launch would restore the session. They run in issue order.
+  // @mutate src/integrations/supabase/keychainStorageAdapter.ts |   const run = keychainQueue.then(op); |   const run = op();
+  it("a capped Keychain write that lands late still lands BEFORE the sign-out delete issued after it (Q1412)", async () => {
+    vi.useFakeTimers();
+    try {
+      const landed: string[] = [];
+      let landSet!: () => void;
+      kcSetMock.mockImplementation(() => new Promise<void>((resolve) => { landSet = () => { landed.push("set"); resolve(); }; }));
+      kcRemoveMock.mockImplementation(async () => { landed.push("remove"); });
+      const { keychainStorageAdapter } = await loadAdapter();
+      const write = keychainStorageAdapter.setItem(AUTH_KEY, "rotated-jwt");
+      await vi.advanceTimersByTimeAsync(1_501);
+      await write; // capped: auth-js moved on
+      const signOut = keychainStorageAdapter.removeItem(AUTH_KEY);
+      await vi.advanceTimersByTimeAsync(10);
+      expect(kcRemoveMock).not.toHaveBeenCalled(); // queued behind the hung write
+      landSet();
+      await vi.advanceTimersByTimeAsync(10);
+      await signOut;
+      expect(landed).toEqual(["set", "remove"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("isAuthTokenKey requires both prefix AND suffix — partial matches not mirrored", async () => {
     const { keychainStorageAdapter } = await loadAdapter();
     await keychainStorageAdapter.setItem("sb-something-else", "v");
@@ -473,4 +549,65 @@ describe("keychainStorageAdapter: no top-level await (2026-10-06)", () => {
     // After the restore it is synchronous again.
     expect(mod.keychainStorageAdapter.getItem(AUTH_KEY)).toBe("kc-session");
   });
+});
+
+// Q1412, through the real SDK: supabase.auth.signOut() awaits this adapter's
+// removeItem (_removeSession). With a Keychain delete that never settles it
+// used to never return, so no caller reached its cache wipe or navigation.
+// THE CLASS (Q1412): auth-js awaits every method of its storage adapter, so
+// no method may wait on the native bridge without a cap. The methods are read
+// from the adapter itself, so a method added later is covered too. Here EVERY
+// Keychain and Preferences call never settles; each method must still return
+// within the hydrate cap (2 s, reads) or the write cap (1.5 s, writes).
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | await underWriteCap(mirrored, 'setItem cap'); | await mirrored;
+// @mutate src/integrations/supabase/keychainStorageAdapter.ts | await underWriteCap(removed, 'removeItem cap'); | await removed;
+describe("keychainStorageAdapter: no method waits on the bridge without a cap (Q1412)", () => {
+  it("every adapter method returns when every native call hangs", async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    const hang = () => new Promise<never>(() => { /* bridge never answers */ });
+    for (const m of [kcKeysMock, kcGetItemMock, kcSetMock, kcRemoveMock, kcSyncMock, kcAccessMock, prefsKeysMock, prefsGetMock, prefsSetMock, prefsRemoveMock, installFlagMock]) m.mockImplementation(hang);
+    vi.useFakeTimers();
+    try {
+      const mod = await import("./keychainStorageAdapter");
+      const adapter = mod.keychainStorageAdapter as unknown as Record<string, (key: string, value?: string) => unknown>;
+      const methods = Object.keys(adapter).filter((k) => typeof adapter[k] === "function");
+      expect(methods.length).toBeGreaterThan(2); // getItem, setItem, removeItem at least
+      const settled = new Set<string>();
+      for (const name of methods) {
+        void Promise.resolve(adapter[name](AUTH_KEY, "jwt")).then(() => settled.add(name));
+      }
+      await vi.advanceTimersByTimeAsync(2_000 + 1_500 + 1);
+      expect([...settled].sort()).toEqual([...methods].sort());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("keychainStorageAdapter under the real auth-js sign-out (Q1412)", () => {
+  it("supabase.auth.signOut() returns, signed out, when the Keychain delete never settles", async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    kcRemoveMock.mockImplementation(() => new Promise<never>(() => { /* bridge never answers */ }));
+    const { keychainStorageAdapter } = await loadAdapter();
+    const { createClient } = await import("@supabase/supabase-js");
+    const now = Math.floor(Date.now() / 1000);
+    const session = {
+      access_token: "at", refresh_token: "rt", token_type: "bearer",
+      expires_in: 3600, expires_at: now + 3600,
+      user: { id: "00000000-0000-0000-0000-000000000001", aud: "authenticated", role: "authenticated", app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() },
+    };
+    await keychainStorageAdapter.setItem("sb-fncmgoasalhdgfwzhsqa-auth-token", JSON.stringify(session));
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    const client = createClient("https://fncmgoasalhdgfwzhsqa.supabase.co", "anon-key", {
+      auth: { storage: keychainStorageAdapter, autoRefreshToken: false, persistSession: true, detectSessionInUrl: false },
+      global: { fetch: fetchMock as unknown as typeof fetch },
+    });
+    const outcome = await Promise.race([
+      client.auth.signOut({ scope: "local" }).then((r) => ({ returned: true as const, error: r.error })),
+      new Promise<{ returned: false }>((resolve) => setTimeout(() => resolve({ returned: false }), 4_000)),
+    ]);
+    expect(outcome).toEqual({ returned: true, error: null });
+    expect(kcRemoveMock).toHaveBeenCalledWith("sb-fncmgoasalhdgfwzhsqa-auth-token");
+    expect(keychainStorageAdapter.getItem("sb-fncmgoasalhdgfwzhsqa-auth-token")).toBeNull();
+  }, 8_000);
 });

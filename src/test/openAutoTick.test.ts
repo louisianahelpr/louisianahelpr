@@ -17,6 +17,7 @@
 // @mutate scripts/open-done-when.mjs |     if (!existsSync(mk.path)) throw new Error | if (false) throw new Error
 // @mutate scripts/open-done-when.mjs |     const status = problems.length ? 1 : 0; |     const status = 0;
 // @mutate scripts/open-done-when.mjs |     out.set(rel, r.status === "passed"); |     out.set(rel, r.status !== "skipped");
+// @mutate scripts/open-done-when.mjs |     if (!READ_ONLY_SQL.test(mk.query)) throw new Error( |     if (false) throw new Error(
 import { describe, it, expect } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -152,6 +153,8 @@ describe("the scheduled open-done-when run ticks, test markers included", () => 
       // Names its guard, or heldForNoGuard (bot PR #2717) holds the tick.
       "- [~] **Q1 LOW holds.** Guard src/test/openAutoTick.test.ts. done-when: bus V-001 closed",
       "- [~] **Q2 LOW names a test that does not exist.** done-when: test src/test/__no_such_file__.test.ts",
+      // Q1694: a sql marker that is not one SELECT/WITH can never be read: a problem, even under --no-sql.
+      "- [~] **Q3 LOW writes instead of reads.** done-when: sql `DELETE FROM public.jobs WHERE false` => 0",
     ].join("\n"));
     const script = join(ROOT, "scripts/open-done-when.mjs");
     const r = spawnSync("node", [script, "--file", file, "--no-sql", "--tick", "--status-file", status], { cwd: ROOT, encoding: "utf8" });
@@ -161,6 +164,8 @@ describe("the scheduled open-done-when run ticks, test markers included", () => 
     expect(out[0]).toMatch(/^- \[x\] \*\*Q1 /);
     expect(out[1]).toMatch(/^- \[~\] \*\*Q2 /);
     expect(r.stdout).toMatch(/Q2 \(line 2\): test marker could not run: test marker names src\/test\/__no_such_file__\.test\.ts, which does not exist/);
+    expect(out[2]).toMatch(/^- \[~\] \*\*Q3 /);
+    expect(r.stdout).toMatch(/Q3 \(line 3\): sql marker could not run: only one SELECT\/WITH statement is allowed/);
     // Without --status-file the same problem is a non-zero exit (fail closed).
     const again = spawnSync("node", [script, "--file", file, "--no-sql", "--tick"], { cwd: ROOT, encoding: "utf8" });
     expect(again.status).toBe(1);

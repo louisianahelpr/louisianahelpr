@@ -319,6 +319,9 @@ export function ShareJobButton({
       disabled={sharing}
       onClick={handleShare}
       style={style}
+      // The stack layout is the job-card row chip; the 320px density gate
+      // measures every `[data-job-action-chip]` (Q1080).
+      data-job-action-chip={layout === "stack" ? "" : undefined}
       className={cn(
         "border-0",
         // Default tint: neutral parchment-green via the bark token. When

@@ -236,6 +236,8 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
           onClick={(e) => { e.stopPropagation(); setOpen(true); }}
           className={JOB_ACTION_CHIP_CLASS}
           style={jobActionChipStyle(hasPhotos ? "done" : "edit")}
+          // The 320px density gate measures every `[data-job-action-chip]` (Q1080).
+          data-job-action-chip=""
           aria-label={`${triggerText} — add the ${type} photo for this job`}
         >
           {hasPhotos ? <CheckCircle2 className="w-4 h-4" /> : <Camera className="w-4 h-4" />}

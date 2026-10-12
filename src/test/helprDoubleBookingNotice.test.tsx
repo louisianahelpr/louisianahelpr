@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 
 let rpcResult: { data: unknown; error: unknown } = { data: [], error: null };
 const report = vi.fn();
@@ -35,7 +36,9 @@ const job = (over: Record<string, unknown> = {}) => ({
   id: "j1",
   title: "Gutters",
   status: "accepted",
-  date_needed: "2026-11-03",
+  // A Central-time day three weeks out (jobDayFixtureTimezone): the card only
+  // renders the clash; the day itself is not asserted.
+  date_needed: jobLocalDateISO(21),
   start_time: "10:00:00",
   helper_id: "h1",
   customer_id: "p1",

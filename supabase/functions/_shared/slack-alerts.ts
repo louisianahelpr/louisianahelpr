@@ -70,6 +70,15 @@ export interface SlackAlertInput {
    * Pass it only from a fact about the subject, never as a volume control.
    */
   seed?: boolean
+  /**
+   * `false` when the caller has ALREADY recorded this occurrence as its own
+   * ledger item (Q1582/Q1583: contact-support records a guest's request as a
+   * user-report item, and a signed-in sender's through the reports trigger, so
+   * the Slack post's own edge_slack item made every request two open items).
+   * The post still goes out. Pass it only when that other item exists;
+   * src/test/oneLedgerItemPerSupportRequest.test.ts holds the callers to it.
+   */
+  ledger?: boolean
 }
 
 type ErrorLogRow = { id: string }
@@ -281,7 +290,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
     // Slack: those are still alerts, and the ledger is what stays open until
     // the condition is shown cleared. Awaited so it survives the isolate, but
     // it cannot throw.
-    await recordOpsAlertLedger({
+    if (input.ledger !== false) await recordOpsAlertLedger({
       sourceKind: 'edge_slack',
       source: `ops-alert:${input.kind}`,
       title: input.title,

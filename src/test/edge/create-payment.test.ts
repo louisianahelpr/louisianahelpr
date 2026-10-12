@@ -653,7 +653,12 @@ describe("create-payment edge function", () => {
       expect(setupItem).toBeDefined();
       expect(setupItem.price_data.unit_amount).toBe(200);
       expect(args.metadata.onboarding_fee_charged).toBe("true");
+      // Q1346: stripe-webhook stamps jobs.onboarding_fee_amount from this
+      // metadata, so it must be exactly the line item the card was billed.
+      expect(args.metadata.onboarding_fee_cents).toBe(String(setupItem.price_data.unit_amount));
+      expect(args.metadata.job_id).toBe("job-1");
     });
+    // @mutate supabase/functions/create-payment/index.ts | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) }, | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents + 1) },
 
     it("flags an assembly job as LA-taxable labor (tax_code txcd_20030000)", async () => {
       seedAuth(scenario, POSTER);

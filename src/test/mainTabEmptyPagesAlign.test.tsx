@@ -16,7 +16,10 @@
  *
  * @mutate src/components/job-card/ActivityEmptyState.tsx |         bodyLines={MAIN_TAB_EMPTY_BODY_LINES}\n |
  * @mutate src/components/messages/ConversationList.tsx |                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}\n |
- * @mutate src/components/ui/EmptyState.tsx |               ...(bodyLines ? { minHeight: `${(bodyLines * 1.625).toFixed(3)}em` } : {}), |
+ * @mutate src/components/ui/EmptyState.tsx |               bodyLines && EMPTY_BODY_RESERVE_CLASS, |
+ * @mutate src/components/ui/EmptyState.tsx | max-[359px]:min-h-[calc((var(--body-lines)_+_1)*1.625em)] | max-[359px]:min-h-[calc(var(--body-lines)*1.625em)]
+ * @mutate src/components/messages/ConversationList.tsx | ${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""} |
+ * @mutate src/components/messages/ConversationList.tsx | minHeight: embedded ? "52px" : isWebDesktop ? COMPACT_HEADER_ROW_MIN_HEIGHT : undefined, | minHeight: embedded ? "52px" : undefined,
  * @mutate src/components/messages/ConversationList.tsx |       aria-label="Search conversations"\n      className={isWebDesktop ? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS} |       aria-label="Search conversations"\n      className={HEADER_ICON_BUTTON_CLASS}
  * @mutate src/components/messages/ConversationList.tsx |               triggerWidth: isWebDesktop ? "28px" : "44px", |               triggerWidth: "44px",
  */
@@ -26,7 +29,7 @@ import { render } from "@testing-library/react";
 import { Inbox } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
+import { EMPTY_BODY_RESERVE_CLASS, EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 
 const code = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
 
@@ -41,14 +44,19 @@ describe("main-tab empty pages put their circle, title and button in one place",
     const { container } = render(<EmptyState icon={Inbox} title="t" body="short" bodyLines={MAIN_TAB_EMPTY_BODY_LINES} />);
     const p = container.querySelector("p[data-body-lines]") as HTMLElement;
     expect(p).not.toBeNull();
-    expect(p.style.minHeight).toBe(`${(MAIN_TAB_EMPTY_BODY_LINES * 1.625).toFixed(3)}em`);
+    expect(p.style.getPropertyValue("--body-lines")).toBe(String(MAIN_TAB_EMPTY_BODY_LINES));
+    for (const c of EMPTY_BODY_RESERVE_CLASS.split(" ")) expect(p.classList.contains(c), c).toBe(true);
+    // N lines everywhere, N+1 below 360px (My Posts' sentence is 4 lines at 320).
+    expect(EMPTY_BODY_RESERVE_CLASS).toBe(
+      "min-h-[calc(var(--body-lines)*1.625em)] max-[359px]:min-h-[calc((var(--body-lines)_+_1)*1.625em)]",
+    );
   });
 
   it("without bodyLines nothing is reserved (every other EmptyState is unchanged)", () => {
     const { container } = render(<EmptyState icon={Inbox} title="t" body="short" />);
     const ps = [...container.querySelectorAll("p")] as HTMLElement[];
     expect(ps.length).toBeGreaterThan(1);
-    expect(ps.every((p) => p.style.minHeight === "")).toBe(true);
+    expect(ps.every((p) => p.style.getPropertyValue("--body-lines") === "" && !p.className.includes("min-h-"))).toBe(true);
   });
 
   it("every main-tab empty page passes the shared line count", () => {
@@ -73,5 +81,9 @@ describe("main-tab empty pages put their circle, title and button in one place",
       );
     }
     expect(msgs).toMatch(/triggerWidth: isWebDesktop \? "28px" : "44px"/);
+    // The row itself: My Posts' compact geometry on the desktop website.
+    expect(posts).toContain('className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}');
+    expect(msgs).toContain('${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""}');
+    expect(msgs).toContain('minHeight: embedded ? "52px" : isWebDesktop ? COMPACT_HEADER_ROW_MIN_HEIGHT : undefined,');
   });
 });

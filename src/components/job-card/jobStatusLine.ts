@@ -623,6 +623,7 @@ export type HelperWait =
   | "offer"
   | "offer_expired"
   | "confirm_booking"
+  | "confirm_spot"
   | "confirmed"
   | "confirm_day"
   | "today"
@@ -663,6 +664,10 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Accept, not confirm (owner, 2026-10-07, Q1399): confirm is the later
      day-before step. */
   confirm_booking: { detail: "Accept or decline it" },
+  /* A crew member the poster hired, whose spot is not confirmed yet (Q1402):
+     the crew card's one button is "Confirm My Spot" (CrewMemberSection), so
+     "Accept or decline it" named a choice that card does not offer. */
+  confirm_spot: { detail: "Confirm your spot" },
   confirmed: { detail: "You're scheduled" },
   /* The day-before window is open and this Helpr has not confirmed (Q1574). */
   confirm_day: { detail: "Confirm you'll be at the job" },
@@ -759,7 +764,7 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
         return "offer";
       }
       if (app.status !== "accepted") return "applied";
-      if (!job.helper_confirmed_at) return "confirm_booking";
+      if (!job.helper_confirmed_at) return job.is_group_job ? "confirm_spot" : "confirm_booking";
       if (jobIsOverdue(job)) return helperOverdue(job);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       const stage = agreedJobStage(job, "helper");
@@ -797,7 +802,7 @@ export function helperStatusLine(
     eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
     detail: named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
-    owesConfirmation: id === "confirm_booking",
+    owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:
       id === "cancelled"
         ? sanitizeCancellationReason(app.job?.cancellation_reason)

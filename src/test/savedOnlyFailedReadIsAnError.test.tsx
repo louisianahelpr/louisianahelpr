@@ -113,7 +113,7 @@ function renderFeed(opts: {
         recommendedJobs={[]}
         recommendedLoading={false}
         savedOnly
-        savedRead={{ failed: opts.savedLoadFailed, retry: opts.retrySaved ?? noop, retrying: opts.savedRetrying ?? false }}
+        savedRead={{ failed: opts.savedLoadFailed, onRetry: opts.retrySaved ?? noop, retrying: opts.savedRetrying ?? false }}
         savedJobIds={opts.savedJobIds}
         effectiveFee={10}
         handleApplyRequest={noop}
@@ -141,7 +141,7 @@ describe("saved-only feed: a failed saved read is an error with a retry (Q1701)"
     const { result } = renderHook(() => useDashboardSideQueries({ userId: "viewer-1", allJobs: [] }));
     expect(result.current.savedRead.failed).toBe(true);
     expect(result.current.savedJobIds.size).toBe(0);
-    result.current.savedRead.retry();
+    result.current.savedRead.onRetry();
     expect(refetchSaved).toHaveBeenCalledTimes(1);
   });
 

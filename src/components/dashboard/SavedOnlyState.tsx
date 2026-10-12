@@ -6,7 +6,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 export interface SavedRead {
   /** The read failed and nothing was read, so "no saved ids" means nothing. */
   failed: boolean;
-  retry: () => void;
+  /** Re-reads the saved ids (not a React Query `retry` rule: queryRetryPolicy). */
+  onRetry: () => void;
   /** The re-read is in flight: the retry button is disabled meanwhile. */
   retrying: boolean;
 }
@@ -24,7 +25,7 @@ export function SavedOnlyState({ savedRead }: { savedRead?: SavedRead }) {
         <ErrorState
           title="We couldn't load your saved jobs."
           body="Tap Try again. If it sticks, our end is having a hiccup — not yours."
-          onRetry={savedRead.retry}
+          onRetry={savedRead.onRetry}
           retryDisabled={savedRead.retrying}
         />
       ) : (

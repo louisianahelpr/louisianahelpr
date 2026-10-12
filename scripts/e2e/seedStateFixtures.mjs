@@ -3,9 +3,9 @@
  * DURABLE SEED STATE FIXTURES (Q946, owner 2026-10-04 / 2026-10-07: test-only
  * jobs marked funded in the database only, no Stripe, test accounts only).
  *
- *   node scripts/e2e/seedStateFixtures.mjs --verify      read-only; prints every fixture's state, exit 1 on a gap
- *   node scripts/e2e/seedStateFixtures.mjs --apply       idempotent; keeps healthy fixtures, rebuilds the rest
- *   node scripts/e2e/seedStateFixtures.mjs --teardown    removes every row --apply created
+ *   node --env-file=.env scripts/e2e/seedStateFixtures.mjs --verify      read-only; prints every fixture's state, exit 1 on a gap
+ *   node --env-file=.env scripts/e2e/seedStateFixtures.mjs --apply       idempotent; keeps healthy fixtures, rebuilds the rest
+ *   node --env-file=.env scripts/e2e/seedStateFixtures.mjs --teardown    removes every row --apply created
  *   add --only=<key>[,<key>]                             limit any mode to some fixtures (keys below)
  *
  * WHAT IT HOLDS (poster-e2e posts, helper-e2e is the hired Helpr):
@@ -72,7 +72,7 @@
  */
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
+import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession } from "../lib/adminSession.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 
 export const POSTER = { email: "helpr-e2e-poster-0902@mailinator.com", userId: "951264df-1e7c-4b6f-912e-a1be37e0dbfb" };
@@ -279,7 +279,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {{ mode: "--apply"|"--verify"|"--teardown", only?: string[], supabaseUrl?: string, serviceKey: string, log?: (s: string) => void, now?: () => number, wait?: (ms: number) => Promise<void>, fetchImpl?: typeof fetch }} o
  */
 export async function runStateFixtures({ mode, only, supabaseUrl = DEFAULT_SUPABASE_URL, serviceKey, log = console.log, now = Date.now, wait = sleep, fetchImpl = fetch }) {
-  if (!serviceKey) throw new Error("seedStateFixtures: no service-role key (SUPABASE_SERVICE_ROLE_KEY or .env)");
+  if (!serviceKey) throw new Error("seedStateFixtures: no service-role key (export SUPABASE_SERVICE_ROLE_KEY, or run with node --env-file=.env)");
   if (!["--apply", "--verify", "--teardown"].includes(mode)) throw new Error(`seedStateFixtures: unknown mode ${mode}`);
   const { call } = client({ supabaseUrl, serviceKey, fetchImpl });
   const keys = only?.length ? only : ALL_KEYS;
@@ -514,12 +514,14 @@ export async function runStateFixtures({ mode, only, supabaseUrl = DEFAULT_SUPAB
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const mode = ["--apply", "--verify", "--teardown"].find((m) => process.argv.includes(m));
   if (!mode) {
-    console.error("Usage: node scripts/e2e/seedStateFixtures.mjs --apply | --verify | --teardown [--only=key,key]");
+    console.error("Usage: node --env-file=.env scripts/e2e/seedStateFixtures.mjs --apply | --verify | --teardown [--only=key,key]");
     process.exit(2);
   }
   const onlyArg = process.argv.find((a) => a.startsWith("--only="));
   const only = onlyArg ? onlyArg.slice("--only=".length).split(",").filter(Boolean) : undefined;
-  runStateFixtures({ mode, only, serviceKey: resolveServiceKey() })
+  // The key comes from the environment only (run with `node --env-file=.env ...`),
+  // never read from a file here: CodeQL js/file-access-to-http (alert 467).
+  runStateFixtures({ mode, only, serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? null })
     .then(({ report, gaps }) => {
       for (const r of report) console.log(JSON.stringify(r));
       console.log(`${mode}: ${report.length} fixture(s), ${gaps} gap(s)`);

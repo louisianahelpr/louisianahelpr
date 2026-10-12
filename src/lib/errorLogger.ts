@@ -128,10 +128,10 @@ async function postErrorLogs(batch: ErrorLogRow[]): Promise<boolean> {
 // of the entry chunk (main.tsx → errorLogger → sentry/posthog would defeat the
 // deferred init). Loaded SEPARATELY, so one failed chunk does not silence the
 // other too; each failure is counted and surfaced by backgroundImport (Q161).
-async function fanOutToObservability(err: unknown, extra: Record<string, unknown>) {
+async function fanOutToObservability(err: unknown, extra: Record<string, unknown>, severity: Severity) {
   await Promise.all([
     backgroundImport(() => import("@/lib/sentry"), "sentry")
-      .then(({ captureException }) => captureException(err, extra))
+      .then(({ captureException }) => captureException(err, extra, severity))
       .catch(() => {
         /* counted and reported once by backgroundImport; observability must never break the app */
       }),
@@ -413,7 +413,7 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   // Fan out to Sentry + PostHog Error Tracking. No-op until their init
   // runs in main.tsx (and the SDKs themselves are lazy-loaded here so
   // they don't bloat the initial bundle).
-  void fanOutToObservability(err, { ...context, ...opts.tags });
+  void fanOutToObservability(err, { ...context, ...opts.tags }, opts.severity ?? "error");
 
   scheduleFlush();
 }

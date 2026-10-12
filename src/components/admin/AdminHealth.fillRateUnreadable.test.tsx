@@ -62,7 +62,7 @@ function renderIt() {
 
 // @mutate src/components/admin/adminHealth/useFillRate.ts |   const fillNeverLoaded = fillIsError && !fillUpdatedAt; |   const fillNeverLoaded = false;
 // @mutate src/components/admin/adminHealth/useFillRate.ts |   const fillStale = fillIsError && !!fillUpdatedAt; |   const fillStale = false;
-// @mutate src/components/admin/AdminHealth.tsx |               onRetry={() => void refetchFill()} |               onRetry={() => undefined}
+// @mutate src/components/admin/AdminHealth.tsx | <FillRateReadFailed fetching={fillFetching} onRetry={() => void refetchFill()} /> | <FillRateReadFailed fetching={fillFetching} onRetry={() => undefined} />
 describe("Admin Health's fill rate when its read fails (Q1672)", () => {
   beforeEach(() => {
     fill.fail = true;

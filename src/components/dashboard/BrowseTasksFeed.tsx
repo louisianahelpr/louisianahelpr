@@ -2,10 +2,11 @@ import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "rea
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Search, Plus, Bell, Bookmark } from "lucide-react";
+import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { SavedOnlyState, type SavedRead } from "./SavedOnlyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
@@ -112,13 +113,8 @@ interface BrowseTasksFeedProps {
   recommendedLoading: boolean;
   /** Show ONLY saved jobs — see BrowseTasksActions' bookmark toggle. */
   savedOnly?: boolean;
-  /** The saved-ids read failed and nothing was read, so `savedJobIds` is
-   *  empty for a reason other than "nothing saved" (Q1701). */
-  savedLoadFailed?: boolean;
-  /** Re-reads the saved ids (ErrorState's retry on the saved-only feed). */
-  retrySaved?: () => void;
-  /** That re-read is in flight: the retry button is disabled meanwhile. */
-  savedRetrying?: boolean;
+  /** The saved-ids read (Q1701): whether it failed, its retry. */
+  savedRead?: SavedRead;
   /** Platform commission percentage, forwarded to each job card. */
   effectiveFee: number;
   handleApplyRequest: (jobId: string) => void;
@@ -181,9 +177,7 @@ export function BrowseTasksFeed({
   recommendedJobs,
   recommendedLoading,
   savedOnly = false,
-  savedLoadFailed = false,
-  retrySaved,
-  savedRetrying = false,
+  savedRead,
   effectiveFee,
   handleApplyRequest,
   handleDismissRequest,
@@ -474,28 +468,8 @@ export function BrowseTasksFeed({
           onRetry={refresh}
         />
       </div>
-      ) : savedOnly && savedLoadFailed ? (
-        /* Q1701: the saved ids were never read, so an empty list here is a
-           failure, not "Nothing saved yet". */
-        <div className="px-3 pt-4 flex-1 min-h-0 flex">
-          <ErrorState
-            title="We couldn't load your saved jobs."
-            body="Tap Try again. If it sticks, our end is having a hiccup — not yours."
-            onRetry={retrySaved ?? refresh}
-            retryDisabled={savedRetrying}
-          />
-        </div>
-      ) : savedOnly && visibleJobs.length === 0 ? (
-        /* Saved-only with nothing saved: before the generic empty state, whose
-           `filters.filteredJobs` is full (jobs exist, none saved). EmptyState,
-           never ErrorState (Q1644): ErrorState said "Hiccup on our end" and
-           reported each showing as an error screen for a correct empty list. */
-        <div className="px-3 pt-4 flex-1 min-h-0 flex">
-          <EmptyState icon={Bookmark}
-            title="Nothing saved yet"
-            body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
-          />
-        </div>
+      ) : savedOnly && (savedRead?.failed || visibleJobs.length === 0) ? (
+        <SavedOnlyState savedRead={savedRead} />
       ) : filters.filteredJobs.length === 0 ? (() => {
         // Geo-aware empty copy: when the "Near me" radius filter is
         // active and the user's coords resolved, suggest a concrete

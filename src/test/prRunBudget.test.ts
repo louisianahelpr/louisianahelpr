@@ -14,7 +14,7 @@
  * and a dispatcher that still reaches each one.
  */
 // @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: []
-// @mutate .github/workflows/secret-scan.yml | || toJSON(github.event.commits) != '[]' | 
+// @mutate .github/workflows/secret-scan.yml | \|\| toJSON(github.event.commits) != '[]' | 
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";

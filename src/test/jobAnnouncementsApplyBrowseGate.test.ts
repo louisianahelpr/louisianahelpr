@@ -34,9 +34,9 @@
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.customer_id IS NOT NULL\n |
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.parent_job_id IS NULL\n |
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1411 | OR true)\n    -- Q1411
+ * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.customer_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL\n |
+ * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
@@ -199,7 +199,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(all).not.toMatch(/GRANT [^;]*public\.job_announceable_to\b[^;]*\b(?:anon|authenticated)\b/i);
   });
 
-  it("open_jobs_browse's WHERE is exactly the nine conjuncts the gate mirrors", () => {
+  it("open_jobs_browse's WHERE is exactly the ten conjuncts the gate mirrors", () => {
     const view = migrations.filter((m) => /CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/.test(m.sql)).pop();
     expect(view, "no migration creates open_jobs_browse").toBeTruthy();
     const def = ws(view!.sql.slice(view!.sql.search(/CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/)));
@@ -224,6 +224,11 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
       // (20261006031016 counts the spots inline, the same rule as public.crew_spots_open.)
       ["open", /^\(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND \(CASE WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 .* ELSE 0 END\) > 0\)\)$/],
       ["series", /^parent_job_id IS NULL$/],
+      // Q1401 (20261012185633): a listing closes at its start. job_announceable_to
+      // carries it (src/test/listingClosesAtStart.test.ts). Not a PIECE: the
+      // saved-search and instant-match queues that spell the pieces out drain
+      // every minute, and a job needs at least 2 h notice (lh-authz-rls review).
+      ["started", /^\(date_needed IS NULL OR \(CASE WHEN start_time IS NULL THEN .* END\) > now\(\)\)$/],
       ["ownerless", /^customer_id IS NOT NULL$/],
       ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]\)/],
       ["offer", /offered_to_helper_id IS NULL OR \(direct_offer_status = ANY \(ARRAY\['declined'::text, 'expired'::text\]\)\)/],

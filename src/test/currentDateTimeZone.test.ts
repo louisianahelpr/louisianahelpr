@@ -19,7 +19,9 @@
  * and nightly (scripts/ci/current-date-time-zone.sql via
  * scripts/check-live-privileges.mjs), where a dashboard edit would show.
  */
-// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |  SET "TimeZone" TO 'America/Chicago'\nAS $fn$\nDECLARE\n  v_job record; | AS $fn$\nDECLARE\n  v_job record;
+// Q1401 (20261012185633) took CURRENT_DATE out of direct_accept_block_reason (the listing closes at
+// the start instant), so the pin registration moved to a reader that still reads the date.
+// @mutate supabase/migrations/20261002191601_credential_tier_drop_identity.sql |  SET "TimeZone" TO 'America/Chicago'\nAS $function$\n  WITH src AS ( | AS $function$\n  WITH src AS (
 // @mutate scripts/check-live-privileges.mjs | coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders, | '[]'::json AS current_date_offenders,
 // @mutate .github/workflows/db-smoke.yml | -f scripts/ci/current-date-time-zone.sql) | -f /dev/null)
 import { describe, it, expect } from "vitest";
@@ -66,8 +68,10 @@ function readers(): { fn: string; file: string; pinned: boolean }[] {
 describe("every function that reads CURRENT_DATE judges the date in Louisiana (Q1185 final review #1)", () => {
   it("each one pins TimeZone to America/Chicago, in its CREATE or by a later ALTER FUNCTION", () => {
     const found = readers();
-    // seven today (six live + direct_accept_block_reason, 2026-10-03): the inventory must be real
-    expect(found.length).toBeGreaterThanOrEqual(7);
+    // seven on 2026-10-03; two on 2026-10-12 (review_credential, get_user_credential_tier) after
+    // Q1401 moved the apply gate, the direct-offer accept and the three browse RPCs from the
+    // day (CURRENT_DATE) to the start instant (job_offer_cutoff). The inventory must be real.
+    expect(found.length).toBeGreaterThanOrEqual(2);
     expect(found.filter((r) => !r.pinned).map((r) => `${r.fn} (${r.file})`), "reads CURRENT_DATE in the session's time zone").toEqual([]);
   });
 

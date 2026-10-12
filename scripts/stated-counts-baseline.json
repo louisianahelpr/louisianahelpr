@@ -228,7 +228,6 @@
     "src/hooks/useDashboardJobsCount.test.tsx :: // \"map shows 7 jobs",
     "src/hooks/useDashboardJobsCount.test.tsx :: isagreement (\"map shows 7 jobs",
     "src/hooks/useDashboardJobsCount.test.tsx :: ts lying in the header: 3 jobs",
-    "src/hooks/useInstantQuery.test.tsx :: empty-array clause and 15 admin surfaces",
     "src/lib/avatarStorage.test.ts :: ...the full-page guard: 100 entries",
     "src/lib/avatarStorage.test.ts :: // 100 entries",
     "src/lib/earlyAccess.parity.test.ts :: th guest surfaces. ELSE 0 covers a row",

@@ -234,7 +234,7 @@ describe("useInstantQuery", () => {
   });
 });
 
-// `fallback: []` is not a shell — it renders as the EMPTY STATE. Drop the
-// empty-array clause and 15 admin surfaces open on "No unresolved fraud
-// flags" while the read is still in flight.
-// @mutate src/hooks/useInstantQuery.ts | (fallback === undefined \|\| (Array.isArray(fallback) && fallback.length === 0)) | (fallback === undefined)
+// `fallback: []` is not a shell — it renders as the EMPTY STATE. Let a
+// fallback count as data again and the admin surfaces open on "No unresolved
+// fraud flags" while the read is still in flight (no fallback is data, Q1287).
+// @mutate src/hooks/useInstantQuery.ts |       query.data === undefined, |       query.data === undefined && fallback === undefined,

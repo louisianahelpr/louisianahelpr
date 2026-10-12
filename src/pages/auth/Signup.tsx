@@ -34,7 +34,7 @@ import { SignupStep2 } from "./signup/SignupStep2";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
-import { completeSignupErrorCopy } from "./signup/completeSignupError";
+import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 
@@ -386,9 +386,9 @@ const Signup = () => {
       try {
         result = await withTimeout(completeProfile(userId), "Finishing your account");
       } catch (completionErr) {
-        hapticError();
-        report(completionErr, { tags: { source: "Signup.completeProfile" } });
-        toast.error(
+        const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
+        if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }
+        toast[finished ? "info" : "error"](finished ? SIGNUP_ALREADY_FINISHED_COPY :
           `${userFacingError(completionErr, "We couldn't finish setting up your profile.")} Your account is created: confirm your email, then sign in to finish.`,
         );
         navigate("/signup-pending", { state: { email } });

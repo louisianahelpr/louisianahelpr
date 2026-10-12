@@ -10,7 +10,7 @@
     "get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric)": "reviewed 2026-10-05 (Q14): public ranked browse data (masked, seed-gated, src/config/showSeedJobs.ts); no app caller since /jobs was deleted, scripts/launch-go.mjs calls it as anon at launch.",
     "get_safe_profiles(uuid[])": "client",
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",
-    "seed_jobs_hidden_publicly()": "client",
+    "seed_jobs_hidden_publicly()": "reviewed 2026-10-12 (Q14): the global launch switch, one public boolean. No app code calls it (the old client match was the feature-flag KEY constant in src/config/showSeedJobs.ts, and live 2026-10-12 only definer functions call it, no view or policy); scripts/check-launch-flags.sh reads it as anon with the publishable key.",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE (a view's function EXECUTE is checked against the caller); answers only whether the launch switch hides test rows from the CALLER."
   },
   "authenticated": {
@@ -138,7 +138,7 @@
     "rpc_withdraw_dispute(uuid)": "client",
     "search_profiles_by_name(text)": "client",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE; answers only whether the launch switch hides test rows from the CALLER.",
-    "seed_jobs_hidden_publicly()": "client",
+    "seed_jobs_hidden_publicly()": "reviewed 2026-10-12 (Q14): the global launch switch, one public boolean that anon may already read (scripts/check-launch-flags.sh); no app code calls it (the old client match was the feature-flag KEY constant in src/config/showSeedJobs.ts), so a signed-in caller learns nothing anon cannot.",
     "seed_review_hidden(uuid, uuid, uuid)": "reviewed 2026-10-07 (Q552): called by the reviews SELECT policy, which runs as the reader; returns only whether a review involves a test account or test job while the switch hides them from the caller (accepted LOW: reveals fixture status of a known uuid).",
     "send_team_reply(text, uuid)": "client",
     "session_email_unconfirmed()": "policy",

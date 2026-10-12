@@ -17,7 +17,7 @@
  *
  * @mutate e2e/calendarPicker.ts |   ).toBe(CALENDAR_ZONE); |   ).toBeDefined();
  * @mutate e2e/prod-audit/interruptions.spec.ts | newUserContext(browser, poster, { timezoneId: "America/Chicago" }) | newUserContext(browser, poster)
- * @mutate e2e/slow-network/slow-network.spec.ts | newUserContext(browser, poster, { timezoneId: ZONE }); | newUserContext(browser, poster);
+ * @mutate e2e/slow-network/slow-network.spec.ts | (e2e/calendarPicker.ts).\n  const ctx = await newUserContext(browser, poster, { timezoneId: ZONE }); | (e2e/calendarPicker.ts).\n  const ctx = await newUserContext(browser, poster);
  */
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";

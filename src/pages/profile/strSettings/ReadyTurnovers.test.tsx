@@ -101,7 +101,8 @@ describe("Ready to post on /str-settings (Q1521)", () => {
   it("a failed read says so, with a retry", async () => {
     state.error = { message: "permission denied", code: "42501" };
     renderList();
-    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't load the checkouts waiting to be posted.");
+    expect(await screen.findByText("We couldn't load the checkouts waiting to be posted.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
   });
 
   it("nothing to post draws nothing", async () => {

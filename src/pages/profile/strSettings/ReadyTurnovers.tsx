@@ -4,6 +4,7 @@ import { CalendarCheck, ChevronRight } from "lucide-react";
 import { fetchReadyTurnovers } from "@/pages/post-job/turnoverPrefill";
 import { todayYmd } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { cardStyle } from "./strSettingsHelpers";
 
 /**
@@ -22,12 +23,11 @@ export function ReadyTurnovers() {
 
   if (isError) {
     return (
-      <div className="rounded-ds-md p-4 text-ds-13" style={cardStyle} role="alert">
-        <span style={{ color: "hsl(var(--ink-deep))" }}>We couldn't load the checkouts waiting to be posted. </span>
-        <button className="font-semibold underline" style={{ color: "hsl(var(--bark))" }} onClick={() => refetch()}>
-          Try again
-        </button>
-      </div>
+      <ErrorState
+        variant="inline"
+        title="We couldn't load the checkouts waiting to be posted."
+        onRetry={() => refetch()}
+      />
     );
   }
   if (!data || data.length === 0) return null;

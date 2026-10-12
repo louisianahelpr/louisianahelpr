@@ -3072,7 +3072,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 436,
+      "line": 430,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4976,7 +4976,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 338,
+      "line": 337,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4986,7 +4986,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 761,
+      "line": 757,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

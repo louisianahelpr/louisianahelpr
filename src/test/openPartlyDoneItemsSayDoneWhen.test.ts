@@ -96,6 +96,9 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q1286: "owner1012 screens lane: built and guarded; waits on a look at the wipe notice on /complete-profile at 375 and 1440 and a live function check after deploy",
   Q1288: "owner1012 screens lane: built and guarded; waits on a look at the empty/error title gap at 375 and 1440",
   Q1326: "owner1012 double-booking lane: built and guarded; waits on a live grant check after deploy and a look at the card notice at 375 and 1440",
+  Q1554: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a prod look at a Helpr's scheduled card; no test Helpr holds a booked job and My Jobs needs a POST read the harness blocks",
+  Q1561: "reopened 2026-10-12 after the auto-tick closed it on its unit test: the Helpr card's look on prod; no test Helpr holds a booked job and My Jobs needs a POST read the harness blocks",
+  Q1562: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a prod look at an arrived Helpr on a photo-required job; no test Helpr holds a booked job",
 };
 
 describe("[~] items say when they are done", () => {

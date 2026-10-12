@@ -56,6 +56,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { loadPayoutHolds } from "../_shared/payoutHold.ts";
 
@@ -439,7 +440,7 @@ serve(async (req) => {
       stripeUnderRefunded: new Check(
         "stripe_charge_not_refunded_on_cancelled_job",
         "critical",
-        "A cancelled, undisputed job's charge is captured at Stripe and the platform kept more than the cancellation fee plus the non-refundable service fee (floored at Stripe's real processing cost) — the same ceiling void-cancelled-payments and cancel_escrow refund against. The poster was not given back money the DB says they were.",
+        "A cancelled, undisputed job's charge is captured at Stripe and the platform kept more than the cancellation fee plus the non-refundable service fee (floored at Stripe's real processing cost) plus a first job's kept $2 setup fee (Q1674) — the same ceiling void-cancelled-payments and cancel_escrow refund against. The poster was not given back money the DB says they were.",
       ),
       stripeRefundShort: new Check(
         "stripe_refund_recorded_not_at_stripe",
@@ -544,7 +545,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount, onboarding_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -1720,7 +1721,9 @@ serve(async (req) => {
             actualOrEstimatedFeeCents(pi, capturedCents),
           );
           // Q1390: a cancelled crew also keeps the block fees it paid out.
-          const maxRetainedCents = feeCents + nonRefundableCents + (blockFeeCentsByJob.get(job.id as string) ?? 0);
+          // Q1674 (owner, 2026-10-12): a first job keeps its $2 setup fee.
+          const maxRetainedCents = feeCents + nonRefundableCents + (blockFeeCentsByJob.get(job.id as string) ?? 0)
+            + setupFeeKeptCents(job as { onboarding_fee_amount?: number | string | null });
           const retainedCents = capturedCents - refundedCents;
           // One cent of slack for the two roundings above.
           if (retainedCents > maxRetainedCents + 1) {

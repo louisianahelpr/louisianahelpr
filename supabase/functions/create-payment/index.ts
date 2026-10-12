@@ -13,7 +13,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
-import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { posterFeePercentForTier, posterServiceFeeCents, setupFeeKeptCents, setupFeeKeptSentence } from "../_shared/posterFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
@@ -2039,7 +2039,10 @@ serve(async (req) => {
           // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
+          // cancel ("paid and done": never refunded, never charged again).
+          const setupFeeCents = setupFeeKeptCents(job);
+          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeCents;
           const refundAmount = capturedCents - nonRefundableCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
@@ -2073,7 +2076,9 @@ serve(async (req) => {
               paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
-              reason: "escrow cancellation refund (minus non-refundable service fee)",
+              reason: setupFeeCents > 0
+                ? "escrow cancellation refund (minus non-refundable service fee and the kept $2 setup fee)"
+                : "escrow cancellation refund (minus non-refundable service fee)",
               initiatedByUserId: user.id,
             });
           } else {
@@ -2683,7 +2688,8 @@ serve(async (req) => {
               );
             }
 
-            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            // Q1674: the first job's $2 setup fee is kept here too.
+            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job);
             const refundAmount = capturedCents - nonRefundableCents;
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
@@ -2799,7 +2805,9 @@ serve(async (req) => {
                 paymentIntentId,
                 source: "admin_refund_dispute",
                 isPartial: nonRefundableCents > 0,
-                reason: "dispute refund (minus non-refundable Stripe processing fee)",
+                reason: setupFeeKeptCents(job) > 0
+                    ? "dispute refund (minus non-refundable Stripe processing fee and the kept $2 setup fee)"
+                    : "dispute refund (minus non-refundable Stripe processing fee)",
                 initiatedByUserId: user.id,
               });
             } else {
@@ -2943,7 +2951,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
-        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.${disputeGift.posterSentence}`,
+        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.${disputeGift.posterSentence}${disputeRefundCents > 0 ? setupFeeKeptSentence(setupFeeKeptCents(job)) : ""}`,
         type: "payment", link: `/posts?job=${job.id}`,
       });
       if (job.helper_id) {

@@ -89,3 +89,27 @@ export function posterServiceFeeCents(
   }
   return Math.max(tierFeeCents, floorCents);
 }
+
+/**
+ * The one-time $2 account setup fee a first job's checkout KEPT (owner,
+ * 2026-10-12, Q1674: the fee is "paid and done": never refunded, never
+ * charged again). jobs.onboarding_fee_amount is stamped by stripe-webhook on
+ * the job whose checkout won the once-only claim (Q1346). Every path that
+ * refunds a job's charge to the poster takes this off what it returns
+ * (create-payment cancel_escrow and admin_refund_dispute,
+ * void-cancelled-payments, execute-dispute-split). 0 when the job carries none.
+ */
+export function setupFeeKeptCents(job: { onboarding_fee_amount?: number | string | null } | null | undefined): number {
+  const dollars = Number(job?.onboarding_fee_amount ?? 0);
+  return Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0;
+}
+
+/**
+ * The sentence every poster refund notice adds when a first job kept the setup
+ * fee (owner, 2026-10-12, Q1674: "the refund notice and receipt must say the
+ * $2 setup fee was kept"). Starts with a space; empty when nothing was kept.
+ */
+export function setupFeeKeptSentence(keptCents: number): string {
+  if (!(keptCents > 0)) return "";
+  return ` The one-time $${(keptCents / 100).toFixed(2)} account setup fee was kept: it is paid once and never refunded.`;
+}

@@ -101,8 +101,8 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       // Settle EXACTLY once, and settle no matter what.
       //
       // This is the bug behind "use my location doesn't work". reverseLookup
-      // is a callback API, and an unauthorized MapKit (expired
-      // VITE_APPLE_MAPKIT_TOKEN — and useMapKitJs reports "ready" without
+      // is a callback API, and an unauthorized MapKit (an expired or refused
+      // token — and useMapKitJs reports "ready" without
       // ever confirming the token was accepted) simply NEVER INVOKES THE
       // CALLBACK. No error, no rejection. So this promise never settled, the
       // await below it never returned, setLoading(false) never ran, and the
@@ -151,15 +151,13 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
     lng: number,
   ): Promise<ResolvedAddress | null> => {
     try {
-      // NOTE ON WHY THIS PATH CARRIES THE WHOLE FEATURE IN PRODUCTION:
-      // VITE_APPLE_MAPKIT_TOKEN ships EMPTY, so useMapKitJs returns
-      // "missing-token", MapKit is skipped entirely, and Nominatim is not a
-      // fallback at all — it is the only geocoder that ever runs. That is the
-      // real reason "use my location" is reported as not working: Nominatim is
-      // OSM's free service, rate-limited to ~1 req/sec and quick to block
-      // traffic it cannot identify. Setting VITE_APPLE_MAPKIT_TOKEN in the
-      // deploy environment is the actual fix; everything here is damage
-      // control until then.
+      // NOTE: whenever useMapKitJs reports "missing-token" (the mapkit-token
+      // edge function could not mint one), MapKit is skipped and Nominatim is
+      // the only geocoder that runs. Nominatim is OSM's free service,
+      // rate-limited to ~1 req/sec and quick to block traffic it cannot
+      // identify. Never fix that with a VITE_APPLE_MAPKIT_TOKEN: a VITE_ value
+      // is compiled into the public bundle, unrestricted (Q249; guard
+      // src/test/mapkitTokenNeverShipped.test.ts).
       const url = new URL("https://nominatim.openstreetmap.org/reverse");
       url.searchParams.set("lat", String(lat));
       url.searchParams.set("lon", String(lng));

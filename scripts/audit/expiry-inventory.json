@@ -30,15 +30,6 @@
       "ciReadable": true
     },
     {
-      "id": "mapkit-js-token",
-      "label": "MapKit JS static token (fallback)",
-      "env": ["VITE_APPLE_MAPKIT_TOKEN"],
-      "hosts": [],
-      "sourceOfTruth": "JWT exp claim of VITE_APPLE_MAPKIT_TOKEN (CI secret when set, else .env.example)",
-      "read": { "method": "jwt-exp", "env": "VITE_APPLE_MAPKIT_TOKEN", "file": ".env.example" },
-      "ciReadable": true
-    },
-    {
       "id": "supabase-legacy-anon-jwt",
       "label": "Supabase legacy anon (publishable) JWT",
       "env": ["VITE_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"],

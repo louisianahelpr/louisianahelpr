@@ -494,6 +494,35 @@ describe("stripe-webhook edge function", () => {
       );
     });
 
+    // Q1344: a manual tip's PaymentIntent is stamped when its checkout
+    // completes, so posterSpend can take a refund or chargeback of it off the
+    // poster's Spent total. Only an unstamped row of this session is written.
+    it("stamps the tip's PaymentIntent on its row when the checkout completes (Q1344)", async () => {
+      const fn = await loadConfigured();
+      scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tip_pi",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_tip",
+            mode: "payment",
+            payment_intent: "pi_tip_manual",
+            customer_email: "poster@test.com",
+            metadata: { type: "tip", job_id: "job-1", tipper_id: "poster-1" },
+          },
+        },
+      });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const stamp = scenario.writes.find(
+        (w) => w.table === "tips" && w.op === "update" &&
+          (w.payload as Record<string, unknown>).stripe_payment_intent_id === "pi_tip_manual",
+      );
+      expect(stamp, "no tips write carried the PaymentIntent").toBeDefined();
+      expect(JSON.stringify(stamp?.filters)).toContain("cs_tip");
+      expect(JSON.stringify(stamp?.filters)).toMatch(/stripe_payment_intent_id/);
+    });
+
     // Q1222: a tip Checkout opened before a payout hold and paid after it. The
     // tip is a destination charge, so it reached the held Helpr. Tips are final
     // (Q781): the poster is NOT refunded; the transfer is reversed back to the

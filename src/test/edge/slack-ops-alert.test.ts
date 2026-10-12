@@ -393,8 +393,8 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
     const escaped = "• *&lt;!channel&gt;* ×1 (error): pay here &lt;https://evil.test|Open in admin&gt; &amp; now";
     expect(slackPosts[0].blocks[1].text.text).toBe(escaped);
     expect(slackPosts[0].text).toContain(escaped);
-    // Our own admin link is still a link.
-    expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe("</admin?view=health|Open in admin →>");
+    // Our own admin link is still a link, absolute (Q1715: Slack cannot resolve a bare path).
+    expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe("<https://www.louisianahelpr.com/admin?view=health|Open in admin →>");
   });
 
   it("Q1466: a link that is not a site path or https URL is dropped, ours still renders", async () => {
@@ -413,10 +413,13 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
       expect(slackPosts, link).toHaveLength(1);
       expect(JSON.stringify(slackPosts[0]), link).not.toContain("Open in admin");
     }
-    for (const link of ["/admin?view=health", "https://dashboard.stripe.com/disputes/dp_1"]) {
+    for (const [link, url] of [
+      ["/admin?view=health", "https://www.louisianahelpr.com/admin?view=health"],
+      ["https://dashboard.stripe.com/disputes/dp_1", "https://dashboard.stripe.com/disputes/dp_1"],
+    ]) {
       slackPosts = [];
       await fn.fetch(call(fn, { ...watcherBody(), link }));
-      expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe(`<${link}|Open in admin →>`);
+      expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe(`<${url}|Open in admin →>`);
     }
   });
 
@@ -427,7 +430,8 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
   });
 });
 
-// @mutate supabase/functions/slack-ops-alert/index.ts | const link = safeSlackLink(body.link) | const link = body.link
+// @mutate supabase/functions/slack-ops-alert/index.ts | const link = safeSlackLink(body.link, getAppUrl()) | const link = body.link
+// @mutate supabase/functions/_shared/alertPolicy.ts |     return `${origin.replace(/\/$/, '')}${link}` |     return link
 // @mutate supabase/functions/_shared/alertPolicy.ts | if (/[\|<>\s]/.test(link)) return null |
 // @mutate supabase/functions/_shared/alertPolicy.ts | /^\/(?!\/)/.test(link) | /^\//.test(link)
 // @mutate supabase/functions/slack-ops-alert/index.ts | text: { type: 'mrkdwn', text: escapeSlackText(body.message) }, | text: { type: 'mrkdwn', text: body.message },

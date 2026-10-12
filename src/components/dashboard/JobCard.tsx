@@ -590,11 +590,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               The width the group-job chip needs is bought back below instead —
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
-          {/* `job-meta-row`: the one index.css rule that lets this row wrap in
-              Senior mode ONLY (the one-line rule holds at the default scale).
-              Without it the shrink-0 date and time ran off the card with no
-              ellipsis at 320 ("12:0", "6:0"; prod-audit senior-mode-no-silent-cut,
-              run 38181023758; src/test/locationRowsWrapInSeniorMode.test.ts). */}
           <div className="job-meta-row flex items-center gap-x-2 flex-nowrap overflow-hidden">
             {/* Place, date, time never hidden (owner, 2026-10-08); floor = pin + ~5 letters. */}
             <span className="flex items-center gap-1 min-w-[5.25rem] overflow-hidden">

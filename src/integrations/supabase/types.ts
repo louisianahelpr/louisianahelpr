@@ -8477,6 +8477,10 @@ export type Database = {
         }
         Returns: string
       }
+      settle_job_detail_change: {
+        Args: { p_request_id: string }
+        Returns: string
+      }
       settle_one_off_jobs_for_banned_account: {
         Args: { p_user: string }
         Returns: Json

@@ -26,7 +26,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
-import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
@@ -128,12 +128,15 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
       if (!userId) return [] as CompletedJobWithHelper[];
 
       // Fetch completed jobs where this user is the poster (customer)
-      const jobsRes = await supabase
-        .from("jobs")
-        .select(JOB_READABLE_COLUMNS)
-        .eq("customer_id", userId)
-        .eq("status", "completed")
-        .order("created_at", { ascending: false });
+      // onboarding_fee_amount (Q1346) is ahead of db-deploy: retried without it.
+      const jobsRes = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, onboarding_fee_amount`, (columns) =>
+        supabase
+          .from("jobs")
+          .select(columns)
+          .eq("customer_id", userId)
+          .eq("status", "completed")
+          .order("created_at", { ascending: false }),
+      );
       const jobs = readableJobRows<Job>(unwrap(jobsRes));
 
       if (jobs.length === 0) return [] as CompletedJobWithHelper[];

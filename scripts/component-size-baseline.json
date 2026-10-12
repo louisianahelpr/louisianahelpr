@@ -5,7 +5,7 @@
     "src/App.tsx": 712,
     "src/components/admin/AdminAnalytics.tsx": 628,
     "src/components/admin/AdminCredentialQueue.tsx": 601,
-    "src/components/admin/AdminDisputes.tsx": 809,
+    "src/components/admin/AdminDisputes.tsx": 802,
     "src/components/admin/AdminReports.tsx": 722,
     "src/components/admin/AdminSettings.tsx": 695,
     "src/components/BrowseMap.tsx": 1200,

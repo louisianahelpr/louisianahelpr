@@ -646,6 +646,12 @@
       "sha": "6424db0f81ba275e3e91c071d6cdb876a86e4971",
       "reason": "Same HEAD as branch worktree-agent-a633d4e0c096ec3a3: Q1170 landed, its lines left are superseded wording.",
       "checked": "2026-10-12 (hygiene-by-content lane: content-checked against origin/main, git log -p origin/main since 2026-09-01)"
+    },
+    {
+      "id": "pr:2752",
+      "sha": "fc8113a8806cd870b0e16bc41bc7a509afe77e8d",
+      "reason": "Q1502 + Q1504 re-cut onto main as #2791. Its Q1501 half (both change-request RPCs restated with a 5-a-day cap) is deliberately not landed: #2756 lands Q1501 as one BEFORE INSERT trigger on both request tables, and the two caps would have stacked.",
+      "checked": "2026-10-12 (lane 4, content-checked against #2791 and #2756)"
     }
   ]
 }

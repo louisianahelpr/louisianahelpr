@@ -89,8 +89,8 @@ const Signup = () => {
   // tap during validation got through the disabled check and fired a second
   // concurrent auth.signUp().
   const submittingRef = useRef(false);
-  const captureLead = useSignupLeadCapture();
   const captcha = useCaptcha();
+  const captureLead = useSignupLeadCapture(captcha.ref); // spends a token from the same widget (Q1589)
 
   // Step 1 fields
   const [firstName, setFirstName] = useState("");
@@ -578,8 +578,6 @@ const Signup = () => {
               }
             }}
           />
-          {/* Turnstile for signUp (Q1314), mounted with step 2. */}
-          <TurnstileField ref={captcha.ref} action="signup" className="mt-3" />
           </>
         )}
 
@@ -608,6 +606,8 @@ const Signup = () => {
             }}
           />
         )}
+        {/* Turnstile (Q1314) for BOTH steps: step 1's lead capture spends a token (Q1589), step 2's signUp the next. */}
+        <TurnstileField ref={captcha.ref} action="signup" className="mt-3" />
         {/* "Already have an account? Sign in" lives in SignupStep1's social
             column (as Login's "New to Helpr?"); a second copy here rendered it twice. */}
           </div>

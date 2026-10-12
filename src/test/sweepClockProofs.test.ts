@@ -19,9 +19,12 @@
  *   edge made inclusive: blackout 24 h 6 (it and dead_crons' raised window),
  *   startup 20 min 3 / re-page 3, http 60 min 3 / catch-up 2 h 3 / untagged
  *   UTC day 3, dead 1 h 3 / raised 24 h 3 / UTC day 3, silent 6 h 3 / 30 d 3)
+ *   node src/test/pglite/sweepNotifyQueueClock.pglite.mjs  (57 PASS; FAIL on: digest
+ *   24 h made inclusive 3 / 23 h re-send 3, early-access hold `<` in all three 9,
+ *   retry_after `<` 6, backoff 5 -> 6 min 9, dropped settled_at moved 3)
  *
  * @mutate src/test/sweepClockProofs.test.ts |   sweep_old_notifications: "sweepClockBoundaries.pglite.mjs", |   sweep_old_notification: "sweepClockBoundaries.pglite.mjs",
- * @mutate src/test/sweepClockProofs.test.ts |   "sweep_saved_search_alert_queue",\n |   "sweep_saved_search_alert_queue",\n  "sweep_old_error_logs",\n
+ * @mutate src/test/sweepClockProofs.test.ts |   "sweep_release_last_chance",\n |   "sweep_release_last_chance",\n  "sweep_old_error_logs",\n
  * @mutate src/test/sweepClockProofs.test.ts |   "sweep_no_show_alerts",\n | \n
  * @mutate src/test/pglite/sweepClockBoundaries.pglite.mjs | } from "./lib/fixedClock.mjs"; | } from "./lib/otherClock.mjs";
  */
@@ -40,14 +43,17 @@ const PROVEN: Record<string, string> = {
   sweep_cron_blackouts: "sweepCronMonitorClock.pglite.mjs",
   sweep_cron_http_failures: "sweepCronMonitorClock.pglite.mjs",
   sweep_cron_startup_failures: "sweepCronMonitorClock.pglite.mjs",
+  sweep_daily_job_digest: "sweepNotifyQueueClock.pglite.mjs",
   sweep_dead_crons: "sweepCronMonitorClock.pglite.mjs",
   sweep_expired_auto_bans: "sweepClockBoundaries.pglite.mjs",
+  sweep_job_match_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_job_start_reminders: "sweepClockBoundaries.pglite.mjs",
   sweep_old_email_send_log: "sweepClockBoundaries.pglite.mjs",
   sweep_old_error_logs: "sweepClockBoundaries.pglite.mjs",
   sweep_old_notifications: "sweepClockBoundaries.pglite.mjs",
   sweep_open_ban_settlement_reviews: "sweepClockBoundaries.pglite.mjs",
   sweep_payout_schedule_freezes: "sweepClockBoundaries.pglite.mjs",
+  sweep_saved_search_alert_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_signup_leads: "sweepClockBoundaries.pglite.mjs",
   sweep_silent_cron_failures: "sweepCronMonitorClock.pglite.mjs",
 };
@@ -57,12 +63,9 @@ const PROVEN: Record<string, string> = {
 const NOT_YET_PROVEN = [
   "sweep_backout_notice_reminders",
   "sweep_confirm_reminders_and_repost",
-  "sweep_daily_job_digest",
   "sweep_dayof_confirm_reminders",
-  "sweep_job_match_queue",
   "sweep_no_show_alerts",
   "sweep_release_last_chance",
-  "sweep_saved_search_alert_queue",
 ];
 
 const clockSweeps = (): string[] => {

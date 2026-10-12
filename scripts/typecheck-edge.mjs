@@ -42,11 +42,12 @@
  *
  * Usage: node scripts/typecheck-edge.mjs [--json]
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readdirSync, statSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { resolveDeno } from "./lib/resolveDeno.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const FUNCTIONS_DIR = path.join(ROOT, "supabase", "functions");
@@ -134,13 +135,15 @@ if (!existsSync(FUNCTIONS_DIR)) {
   process.exit(1);
 }
 
-try {
-  execFileSync("deno", ["--version"], { stdio: "ignore" });
-} catch {
+// PATH first, else the pinned `deno` npm package in a cache outside the repo
+// (Q1718: Claude Code cloud sessions have no Deno). Never a skip.
+const deno = resolveDeno();
+if (!deno) {
   console.error(
     [
       "",
-      "  Deno is not installed, so the edge functions cannot be type-checked.",
+      "  Deno is not installed and the pinned npm fallback could not be installed,",
+      "  so the edge functions cannot be type-checked.",
       "",
       "  This check does NOT silently skip: edge functions went unchecked for the",
       "  life of this project and that is how a RangeError shipped into every",
@@ -152,6 +155,8 @@ try {
   );
   process.exit(1);
 }
+const DENO = deno.bin;
+if (deno.source === "npm") console.error(`Using Deno from the pinned npm package: ${DENO}`);
 
 const files = walk(FUNCTIONS_DIR);
 if (files.length === 0) {
@@ -197,7 +202,7 @@ function assertStripeTypesAreLive() {
   ].join("\n");
   writeFileSync(canary, source);
   try {
-    const probe = spawnSync("deno", ["check", "--config", CONFIG, canary], {
+    const probe = spawnSync(DENO, ["check", "--config", CONFIG, canary], {
       cwd: ROOT,
       encoding: "utf8",
       maxBuffer: 16 * 1024 * 1024,
@@ -233,7 +238,7 @@ if (!canary.ok) {
 }
 
 // ── Run deno check ─────────────────────────────────────────────────────────
-const run = spawnSync("deno", ["check", "--config", CONFIG, ...files], {
+const run = spawnSync(DENO, ["check", "--config", CONFIG, ...files], {
   cwd: ROOT,
   encoding: "utf8",
   maxBuffer: 64 * 1024 * 1024,

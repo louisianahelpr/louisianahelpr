@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-12T04:17:54.715Z",
-  "guards": 1676,
-  "registered": 1676,
+  "generated": "2026-10-12T06:55:24.362Z",
+  "guards": 1678,
+  "registered": 1678,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -114,17 +114,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/BlockUserDialog.tsx",
-      "tests": [
-        "src/components/BlockUserDialog.feeQuote.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx",
-        "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
-        "src/pages/messages/Messages.tsx"
       ]
     },
     {
@@ -397,12 +386,12 @@
       ]
     },
     {
-      "module": "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx",
+      "module": "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
       "tests": [
-        "src/pages/posts/postedJobs/applicantsPanel/applicantsEmptyTop.test.tsx"
+        "src/test/posterMessagesApplicants.test.tsx"
       ],
       "parents": [
-        "src/pages/posts/postedJobs/ApplicantsPanel.tsx"
+        "src/pages/posts/PostedJobsTab.tsx"
       ]
     },
     {

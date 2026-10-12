@@ -16,6 +16,7 @@ import {
   AUTH_STORAGE_KEY,
 } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { PROFILE_NAME_HEADING_LEVEL, PROFILE_PAGE_TITLE } from "../../src/components/profile/profileLanding/headingContract";
 
 /**
  * Journeys 7 and 8 — the account itself.
@@ -505,12 +506,18 @@ test(j8, async ({ browser, request, journey }) => {
     // session: a typed "Hallie Helper" went stale when prod's helper-e2e row
     // came to say "E2E Helper" (e2e-journeys 37926437936, 2026-10-09). The
     // heading is profile.full_name trimmed (Profile.tsx `displayName`).
+    // Since 2026-10-09 (59f14c55a, owner) the page's h1 is "Profile" and the
+    // name is IdentityHeader's h2 beside the photo; this asserted the name as
+    // the h1 and failed every night after (38157785191, 38181872855) while the
+    // page showed heading "E2E Helper" [level=2]. The levels come from the
+    // app's own contract, pinned by profileLandingHeadingContract.test.tsx.
     const who = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${fresh.user.id}&select=full_name`, { headers: rest(fresh) });
     expect(who.ok(), `reading the helper's name: HTTP ${who.status()}`).toBe(true);
     const name = ((await who.json()) as Array<{ full_name: string | null }>)[0]?.full_name?.trim() ?? "";
     expect(name, "the helper's profile row has no full_name to sign back in as").not.toBe("");
     await page.goto("/profile");
-    await expect(page.getByRole("heading", { name, exact: true, level: 1 }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: PROFILE_PAGE_TITLE, exact: true, level: 1 }), "the signed-in /profile landing did not load").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name, exact: true, level: PROFILE_NAME_HEADING_LEVEL }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, "signed back in");
     await journey.milestone(page, "signed-back-in");
   });

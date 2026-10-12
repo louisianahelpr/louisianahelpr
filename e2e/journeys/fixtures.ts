@@ -18,6 +18,7 @@ import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 import { acceptCurrentTerms } from "../../scripts/lib/acceptCurrentTerms.mjs";
+import { ensureTestAccountsEnrolled, isSharedTestAccount } from "../../scripts/lib/testAccountEnrolment.mjs";
 
 /**
  * Shared plumbing for the USER JOURNEY suite (e2e/journeys/*).
@@ -162,6 +163,16 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
     // "Oct 2026". Accept the current Terms as the user, exactly as "I Agree"
     // would; the local path (scripts/test-signin-link.mjs) already does.
     await acceptCurrentTerms(SUPABASE_URL, ANON, session.access_token, session.user.id); // TERMS-CONSENT at mint
+    // Q552: with the launch switch on, a shared account that is not a row in
+    // public.test_accounts sees no is_seed job or profile. The rows cascade
+    // away when an account is deleted; after the 2026-10-09 re-creation none
+    // of the six were enrolled, and e2e-journeys 38181872855 failed on it
+    // twice (no Cleaning fixture on /home?cat=cleaning; "Profile not found"
+    // on helper-e2e). Enrol at mint, as the service role, only an address on
+    // SHARED_TEST_ACCOUNTS; the helper refuses any profile that is not is_seed.
+    if (isSharedTestAccount(creds.email)) {
+      await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: creds.serviceKey, userIds: [session.user.id], note: `e2e journeys mint (${role})` }); // TEST-ACCOUNT-ENROLMENT at mint
+    }
   } else {
     // GoTrue rate-limits magic links (429), so a minted session is reused from
     // disk while its access token has 20+ minutes left AND GoTrue still accepts

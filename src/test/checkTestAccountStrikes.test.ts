@@ -12,10 +12,10 @@
  * nightly.
  *
  * @mutate scripts/check-test-account-strikes.mjs | if (s.length \|\| v.length \|\| status !== "active") { | if (false) {
- * @mutate scripts/check-test-account-strikes.mjs |   "helpr-e2e-helper-0902@mailinator.com",\n |
+ * @mutate scripts/lib/testAccountEnrolment.mjs |   "helpr-e2e-helper-0902@mailinator.com",\n |
  * @mutate scripts/check-test-account-strikes.mjs | else if (live.user_id !== a.userId) | else if (false)
  * @mutate scripts/check-test-account-strikes.mjs | if (!live) drift.push | if (false) drift.push
- * @mutate scripts/check-test-account-strikes.mjs |   if (problems.length === 0 && drift.length === 0) { |   if (problems.length === 0) {
+ * @mutate scripts/check-test-account-strikes.mjs |   if (problems.length === 0 && drift.length === 0 && unenrolled.length === 0) { |   if (problems.length === 0 && unenrolled.length === 0) {
  */
 import { describe, expect, it } from "vitest";
 // @ts-expect-error - plain .mjs tool script, no types
@@ -90,7 +90,7 @@ describe("check-test-account-strikes", () => {
     it("a drift fails the run even when no account has a strike", () => {
       const src = readFileSync(resolve(__dirname, "../../scripts/check-test-account-strikes.mjs"), "utf8");
       expect(src).toMatch(/findPinnedIdDrift\(ACCOUNTS, profiles\)/);
-      expect(src).toMatch(/if \(problems\.length === 0 && drift\.length === 0\) \{/);
+      expect(src).toMatch(/if \(problems\.length === 0 && drift\.length === 0 && unenrolled\.length === 0\) \{/);
     });
   });
 });

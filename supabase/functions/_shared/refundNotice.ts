@@ -269,12 +269,14 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
 }
 
 /** Title and body. Exported so the guard and the tests read the words the poster reads. */
-function refundNoticeCopy(input: RefundNoticeInput, job: JobRow | null): { title: string; message: string } {
+function refundNoticeCopy(input: RefundNoticeInput, job: JobRow | null, jobOwnsCharge = true): { title: string; message: string } {
   const amount = refundDollars(input.amountCents);
   const what = job?.title ? ` for "${job.title}"` : "";
   const to = describePaymentMethod(input.method);
   const ref = input.key.slice(input.key.indexOf(":") + 1);
-  const kept = keptSentence(Number(input.keptCents ?? 0), input, job);
+  // A parent job found from a visit's parent_job_id names the payer, the title
+  // and the link, but its fees describe its own escrow charge, not the visit's.
+  const kept = keptSentence(Number(input.keptCents ?? 0), input, jobOwnsCharge ? job : null);
   const extra = input.extra ? ` ${input.extra.trim()}` : "";
   if (input.kind === "release") {
     return {
@@ -329,12 +331,18 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       job = r.job;
     }
     let md: Record<string, string> = { ...(input.metadata ?? {}) };
+    let jobOwnsCharge = true;
     if (!job && !input.recipientId && input.loadMetadata) {
       md = { ...((await input.loadMetadata()) ?? {}), ...md };
-      if (md.job_id) {
-        const r = await readJob("id", md.job_id);
+      // A recurring visit's PaymentIntent carries parent_job_id, never job_id
+      // (paymentIntentPaymentFailed reads job_id as the job's own escrow
+      // charge); its payer is the parent job's poster.
+      const jobId = md.job_id ?? md.parent_job_id;
+      if (jobId) {
+        const r = await readJob("id", jobId);
         if (r.error) return { status: "failed", error: `job read: ${r.error}` };
         job = r.job;
+        jobOwnsCharge = !!md.job_id;
       }
     }
     let recipient: string | null = input.recipientId ?? job?.customer_id ??
@@ -413,7 +421,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
 
     try {
       // 2. The in-app notice.
-      const { title, message } = refundNoticeCopy({ ...input, metadata: md }, job);
+      const { title, message } = refundNoticeCopy({ ...input, metadata: md }, job, jobOwnsCharge);
       const { data: rows, error: insErr } = await supabase.from("notifications").insert({
         user_id: recipient,
         job_id: job?.id ?? null,
@@ -472,10 +480,13 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
             fetchImpl: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15_000) }),
           });
           // A body that is not JSON reads as "not skipped": res.ok alone decides.
-          const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string };
-          emailed = res.ok && !body.skipped;
+          const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string; success?: boolean; error?: string };
+          // Both of the sender's delivery paths failing is a 200 with
+          // success: false, so the status alone does not mean it went out.
+          emailed = res.ok && !body.skipped && body.success !== false;
           if (!res.ok) emailError = `send-notification-email answered ${res.status}`;
           else if (body.skipped) { emailSkipped = true; emailError = `skipped: ${body.reason ?? "unknown"}`; }
+          else if (body.success === false) emailError = `send failed: ${body.error ?? body.reason ?? "unknown"}`;
         } catch (e) {
           emailError = caughtMessage(e);
         }

@@ -25,6 +25,9 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         typeof r.created === "number" && Math.abs(r.created - releaseTold.createdS) < 600 |         false
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!r.stripe_refund_id \|\| done.has(key) \|\| !(Number(r.amount_cents) > 0)) continue; |             if (!r.stripe_refund_id \|\| !(Number(r.amount_cents) > 0)) continue;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |       } else if ((ledger ?? []).length > 0) { |       } else if (false) {
+ * @mutate supabase/functions/_shared/refundNotice.ts |       const jobId = md.job_id ?? md.parent_job_id; |       const jobId = md.job_id;
+ * @mutate supabase/functions/_shared/refundNotice.ts |   const kept = keptSentence(Number(input.keptCents ?? 0), input, jobOwnsCharge ? job : null); |   const kept = keptSentence(Number(input.keptCents ?? 0), input, job);
+ * @mutate supabase/functions/_shared/refundNotice.ts |           emailed = res.ok && !body.skipped && body.success !== false; |           emailed = res.ok && !body.skipped;
  * @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -280,6 +283,30 @@ describe("Q1654: the charge.refunded webhook tells the poster about EVERY refund
     const stamp = scenario.writes.find((w) => w.table === "refund_notices" && w.op === "update" && "email_error" in (w.payload as object));
     expect(stamp?.payload).toMatchObject({ emailed: false, email_error: "send-notification-email answered 500" });
     expect(JSON.stringify(slackAlerts)).toContain("its email was not");
+  });
+
+  it("an email the sender answers 200 { success: false } for (both delivery paths failed) is recorded as not sent and paged", async () => {
+    notificationEmailAnswer.body = { success: false, reason: "send_failed", error: "resend down" };
+    const res = await deliverChargeRefunded();
+    expect(res.status).toBe(200);
+    expect(posterNotices()).toHaveLength(1);
+    const stamp = scenario.writes.find((w) => w.table === "refund_notices" && w.op === "update" && "email_error" in (w.payload as object));
+    expect(stamp?.payload).toMatchObject({ emailed: false, email_error: "send failed: resend down" });
+    expect(JSON.stringify(slackAlerts)).toContain("its email was not");
+  });
+
+  it("a recurring visit's refund is told to the parent job's poster (its PaymentIntent names only parent_job_id)", async () => {
+    // Not found by the visit's PaymentIntent (the parent job's escrow is a different one); found by its id.
+    scenario.reads.jobs = { rows: [], eqOverrides: [{ column: "id", value: OWNER_JOB.id, result: { rows: [OWNER_JOB] } }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_visit",
+      metadata: { type: "recurring_visit", parent_job_id: OWNER_JOB.id, visit_date: "2026-10-15", recurring_visit_payment_id: "rvp-1" },
+    });
+    await deliverChargeRefunded();
+    expect(posterNotices()).toHaveLength(1);
+    // The parent's own service fee is not what this visit's charge kept.
+    expect(String(posterNotices()[0].message)).not.toContain("service fee");
+    expect(JSON.stringify(slackAlerts)).not.toContain("not fully told");
   });
 
   it("an onboarding-fee correction keeps its own notice (no refund notice)", async () => {

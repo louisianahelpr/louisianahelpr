@@ -18,6 +18,16 @@
  * KNOWN_ROUTE_CLOSURE_VIOLATIONS went from 2 entries to 0 in the same commit (2026-10-05).
  * @mutate src/components/messages/SwipeableConversationRow.tsx | import { createPortal } from "react-dom"; | import { createPortal } from "react-dom";\nimport { motion } from "framer-motion";
  * @mutate src/components/postjob/detailsSection/PhotoUpload.tsx | import { useEffect } from "react"; | import { useEffect } from "react";\nimport { Reorder } from "framer-motion";
+ *
+ * Q1356 (owner, 2026-10-12: drop the page-change fade, keep the swipe-back):
+ * App.tsx loads PageTransition and ScrollToTop on every route once the page
+ * settles, so each made every visitor download framer-motion for a fade. Both
+ * are plain pointer events / CSS now; the built half is check-deferred-vendors.mjs's
+ * PageTransition and ScrollToTop roots.
+ * @mutate src/components/PageTransition.tsx | import { useLocation, useNavigate } from "react-router-dom"; | import { useLocation, useNavigate } from "react-router-dom";\nimport { motion } from "framer-motion";
+ * @mutate src/components/ScrollToTop.tsx | import { ChevronUp } from "lucide-react"; | import { ChevronUp } from "lucide-react";\nimport { AnimatePresence } from "framer-motion";
+ * SuccessMomentHost mounts on every route as well; it reaches SuccessMoment (framer) by import().
+ * @mutate src/components/feedback/SuccessMomentHost.tsx | const moment = createLazyModule(() => import("./SuccessMoment"), "SuccessMomentHost.load"); | import * as Eager from "./SuccessMoment";\nconst moment = createLazyModule(() => Promise.resolve(Eager), "SuccessMomentHost.load");
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -34,8 +44,11 @@ const FIRST_PAINT_FILES = [
   "src/lib/lazyModule.ts",
   "src/components/messages/SwipeableConversationRow.tsx",
   "src/components/postjob/detailsSection/PhotoUpload.tsx",
+  "src/components/PageTransition.tsx",
+  "src/components/ScrollToTop.tsx",
+  "src/components/feedback/SuccessMomentHost.tsx",
 ];
-const FORBIDDEN = /(?:^|\n)\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?from\s*)?["'](framer-motion|@\/components\/mobileNav\/NavQuickMenu|\.\/NavQuickMenu|@\/components\/ui\/SharedLayoutPill|\.\/SwipeMotionLayer|\.\/dockMotion|\.\/ConversationSwipeLayer|\.\/PhotoReorderGrid)["']/g;
+const FORBIDDEN = /(?:^|\n)\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?from\s*)?["'](framer-motion|\.\/SuccessMoment|@\/components\/mobileNav\/NavQuickMenu|\.\/NavQuickMenu|@\/components\/ui\/SharedLayoutPill|\.\/SwipeMotionLayer|\.\/dockMotion|\.\/ConversationSwipeLayer|\.\/PhotoReorderGrid)["']/g;
 
 describe("framer-motion stays off the dock's and /home's first paint (Q1172)", () => {
   it("scans the real files", () => {

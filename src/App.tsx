@@ -77,24 +77,15 @@ const Sonner = lazy(() =>
 // critical-path reason as the toasters above — framer-motion isn't on
 // the landing-page hot path.
 const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMomentHost"));
-// PageTransition and ScrollToTop both import framer-motion. Lazy-loading
-// them breaks the static App.tsx → framer-motion import chain so the
-// "motion" chunk stays off the synchronous critical path.
-//
-// Q178: but `lazy()` alone still left framer ON the path. A lazy wrapper
-// suspends its CHILDREN until its own chunk lands, so every route written
-// `<PageTransition><Page /></PageTransition>` could not even REQUEST its page
-// chunk until PageTransition + framer (~40 KB gzip) had downloaded. Measured on
-// `/` at 375 on a slow phone: framer landed at 3.9 s and only then was Index
-// requested — the landing's own chunk, last. So the wrapper below never
-// suspends: until the animated component has loaded it renders the same plain
-// keyed <div> PageTransition itself renders for a route mounted while hidden
-// (useHiddenAtMount). A cold-loaded first page needs no enter animation (it is
-// the owner's plain background, then the page) and has no history for the
-// edge-swipe to go back to. The animated component is loaded once the page
-// has finished loading, and every route mounted after that animates as
-// before. The choice is made ONCE per mount (useState), so a page never
-// swaps wrappers — which would remount it — mid-life.
+// PageTransition (the iPhone edge swipe-back) and ScrollToTop no longer use
+// framer-motion (Q1356; check-deferred-vendors.mjs holds them to it). Q178: a
+// lazy wrapper suspends its CHILDREN until its chunk lands, so no route could
+// REQUEST its page chunk before PageTransition arrived (Index at 3.9 s on a slow
+// phone). So the wrapper never suspends: until the gesture component has
+// loaded it renders a plain keyed <div> (a cold first page has no history to
+// swipe back to). It loads once the page has settled. The pick is made once
+// per navigation (keyed by location.key), so a page never swaps wrappers
+// (which would remount it) mid-life.
 let AnimatedPageTransition: ComponentType<{ children: ReactNode }> | null = null;
 const loadAnimatedPageTransition = () =>
   import("@/components/PageTransition").then((m) => {
@@ -102,14 +93,21 @@ const loadAnimatedPageTransition = () =>
   });
 whenPageSettled(() => {
   void loadAnimatedPageTransition().catch(() => {
-    /* transitions are decoration: without them pages still render, plainly */
+    /* the swipe-back is a convenience: without it pages still render, and the back button still works */
   });
 });
-const PageTransition = ({ children }: { children: ReactNode }) => {
+const PageTransitionPick = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const [Animated] = useState(() => AnimatedPageTransition);
   if (!Animated) return <div key={location.key}>{children}</div>;
   return <Animated>{children}</Animated>;
+};
+// Keyed so each navigation re-picks: React reuses this across same-shaped
+// routes, and a once-per-mount pick kept a cold start's plain div, without the
+// swipe-back, for the whole session (/login -> /signup, 2026-10-12).
+const PageTransition = ({ children }: { children: ReactNode }) => {
+  const location = useLocation();
+  return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>;
 };
 const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));

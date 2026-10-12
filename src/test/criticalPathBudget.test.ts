@@ -28,6 +28,8 @@
 // @mutate src/boot/routePreload.ts | guest: [() => import("@/pages/info/Index")], | guest: [],
 // @mutate src/App.tsx | const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/DashboardRouteSkeleton")); | import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
 // @mutate src/App.tsx | const [Animated] = useState(() => AnimatedPageTransition); | const Animated = lazy(() => import("@/components/PageTransition"));
+// Q1356: the pick is re-made per navigation, or a cold start's plain div (no swipe-back) sticks.
+// @mutate src/App.tsx | return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>; | return <PageTransitionPick>{children}</PageTransitionPick>;
 // @mutate src/entry.ts | .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(hasToken(), window.location.pathname)) | .then(() => undefined)
 // @mutate src/lib/routePrefetch.ts | if (isConstrainedNetwork()) return () => {}; | if (false) return () => {};
 // @mutate scripts/perf/critical-path.mjs | if (got !== want) | if (got > want)
@@ -192,6 +194,9 @@ describe("the page's own chunk is started by the entry, beside the app", () => {
     const app = code("src/App.tsx");
     expect(app).not.toMatch(/const PageTransition\s*=\s*lazy\(/);
     expect(app).toMatch(/const \[Animated\] = useState\(\(\) => AnimatedPageTransition\)/);
+    // Q1356: keyed by location.key, so a route mounted after the gesture chunk
+    // arrived gets the swipe-back even when React reuses the wrapper.
+    expect(app).toMatch(/<PageTransitionPick key=\{location\.key\}>/);
   });
 });
 

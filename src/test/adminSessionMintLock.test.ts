@@ -18,6 +18,11 @@
  * The released-locks check is only as good as its floor: locks taken anywhere
  * but lockDir must turn it red too.
  * @mutate scripts/lib/adminSession.mjs | withMintLock(email, once, { dir: lockDir, | withMintLock(email, once, { dir: undefined,
+ *
+ * Q1651: two RUNNERS (separate lock dirs, so the lock cannot order them) mint one
+ * account at once; the loser's otp_expired is re-minted once, and only that.
+ * @mutate scripts/lib/adminSession.mjs | !(RETRYABLE(r.status) \|\| LOST_TO_ANOTHER_MINT(r)) | !RETRYABLE(r.status)
+ * @mutate scripts/lib/adminSession.mjs | r.status === 403 && /^verify for / | r.status >= 400 && /./
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -149,5 +154,40 @@ describe("mintAdminSession: one mint per account at a time", () => {
     }, { dir: lockDir });
     await Promise.all([a, b]);
     expect(order).toEqual(["two", "one"]);
+  });
+});
+
+describe("mintAdminSession: a mint on ANOTHER runner (Q1651)", () => {
+  it("two runners minting one account at once both sign in; the loser re-mints once", async () => {
+    // A lock in another machine's $HOME cannot order these two: separate lockDirs.
+    const otherRunner = mkdtempSync(join(tmpdir(), "lh-mint-lock-other-"));
+    try {
+      const { fetchImpl, calls } = fakeGoTrue();
+      vi.stubGlobal("fetch", fetchImpl);
+      const mint = (dir: string) => mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir: dir, retryDelayMs: 1 });
+      const results = await Promise.allSettled([mint(lockDir), mint(otherRunner)]);
+      expect(results.map((r) => (r.status === "rejected" ? String(r.reason) : "ok"))).toEqual(["ok", "ok"]);
+      // The race happened (one token lost) and cost exactly one more pair.
+      expect(calls).toEqual({ generate: 3, verify: 3, expired: 1 });
+    } finally {
+      rmSync(otherRunner, { recursive: true, force: true });
+    }
+  });
+
+  it("any other 4xx from /verify or generate_link is not re-minted", async () => {
+    for (const [path, status, body] of [
+      ["/auth/v1/verify", 403, { error_code: "bad_jwt", msg: "nope" }],
+      ["/auth/v1/admin/generate_link", 403, { error_code: "otp_expired", msg: "not from verify" }],
+      ["/auth/v1/verify", 400, { error_code: "otp_expired", msg: "not a 403" }],
+    ] as const) {
+      let generates = 0;
+      vi.stubGlobal("fetch", async (url: string) => {
+        if (url.endsWith("/auth/v1/admin/generate_link")) generates++;
+        if (url.endsWith(path)) return new Response(JSON.stringify(body), { status });
+        return new Response(JSON.stringify({ hashed_token: "h" }), { status: 200 });
+      });
+      await expect(mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir, retryDelayMs: 1 })).rejects.toThrow(String(status));
+      expect(generates, `${path} ${status} must not be re-minted`).toBe(1);
+    }
   });
 });

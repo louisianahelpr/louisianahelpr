@@ -36,7 +36,9 @@
  * signed in again, and the job failed "signIns 5 is over its budget 4". So the
  * generate_link -> verify pair runs under a per-account lock FILE (workers are
  * separate processes; an in-memory mutex would not reach them).
- * Guard: src/test/adminSessionMintLock.test.ts.
+ * Guard: src/test/adminSessionMintLock.test.ts. ACROSS machines (Q1651) the lock
+ * cannot reach, so a lost token (403 otp_expired on /verify) is re-minted once
+ * (LOST_TO_ANOTHER_MINT); the same test drives two "runners" with separate lock dirs.
  *
  * TRANSPORT. Playwright callers pass `playwrightTransport(api)` so the two
  * requests go through the spec's metered APIRequestContext (e2e/requestMeter
@@ -167,6 +169,16 @@ export async function withMintLock(email, fn, { dir = defaultMintLockDir(), stal
 const RETRYABLE = (status) => status === 0 || status === 429 || status >= 500;
 
 /**
+ * Q1651: the one 4xx worth a re-mint. The lock above only reaches processes on
+ * ONE machine; a workflow on another runner (core-loop-canary's own group, or
+ * two e2e-real-backend runs on PLAYWRIGHT_TEST_USER_EMAIL) can generate_link the
+ * same address between our generate_link and /verify, and our /verify then
+ * answers 403 otp_expired. A fresh generate_link -> /verify pair recovers it, at
+ * the cost of one more metered /verify on the run that lost the race.
+ */
+const LOST_TO_ANOTHER_MINT = (r) => r.status === 403 && /^verify for /.test(r.error ?? "") && /otp_expired/.test(r.error ?? "");
+
+/**
  * Mint a session for `email` with the service role. Returns the GoTrue token
  * JSON (access_token, refresh_token, expires_at, expires_in, token_type, user).
  * Throws with GoTrue's own status and body on any refusal, after `retries`
@@ -226,7 +238,7 @@ export async function mintAdminSession({
     const r = await withMintLock(email, once, { dir: lockDir, staleMs: 2 * timeoutMs + 10_000, waitMs: 4 * timeoutMs + 30_000 });
     if (r.session) return r.session;
     errors.push(r.error);
-    if (attempt >= retries || !RETRYABLE(r.status)) throw new Error(errors.join(" | after: "));
+    if (attempt >= retries || !(RETRYABLE(r.status) || LOST_TO_ANOTHER_MINT(r))) throw new Error(errors.join(" | after: "));
     await new Promise((res) => setTimeout(res, retryDelayMs));
   }
 }

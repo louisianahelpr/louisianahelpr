@@ -51,6 +51,7 @@
  * widen the allowlist — add the account to the seed set instead.
  */
 import { acceptCurrentTerms } from "./lib/acceptCurrentTerms.mjs";
+import { ensureTestAccountsEnrolled, isSharedTestAccount } from "./lib/testAccountEnrolment.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -245,6 +246,11 @@ async function main() {
   const session = await mintAdminSession({ email: target.email, serviceKey, supabaseUrl, anonKey });
   if (!args.includes("--keep-consent")) {
     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id);
+  }
+  // Q552: a shared account missing from public.test_accounts sees no test job
+  // or profile while the launch switch is on (scripts/lib/testAccountEnrolment.mjs).
+  if (isSharedTestAccount(target.email)) {
+    await ensureTestAccountsEnrolled({ supabaseUrl, serviceKey, userIds: [session.user.id], note: "test-signin-link mint" }); // TEST-ACCOUNT-ENROLMENT at mint
   }
   const value = JSON.stringify(session);
 

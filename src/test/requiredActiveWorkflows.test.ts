@@ -22,7 +22,8 @@
  * reason); both lists name only files that exist.
  */
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";

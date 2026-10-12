@@ -161,43 +161,62 @@ describe("BanDialog", () => {
     expect(btn).not.toBeDisabled();
   });
 
-  it("submits warning with default category → user_violations insert + ban_status='final_warning'", async () => {
-    const onClose = vi.fn();
+  // Q1494: the standing, the ban row and the strike are ONE server call
+  // (apply_account_action -> admin_apply_account_action, one transaction); the
+  // dialog writes no table itself, so a review opened mid-way can no longer
+  // leave a ban row and a strike behind a refused status write.
+  // @mutate src/components/admin/BanDialog.tsx |         await applyAdminAccountAction({\n          userId: profile.user_id,\n          action: "warning", |         await supabase.from("user_violations").insert({ user_id: profile.user_id, violation_type: "admin_warning", action_taken: "warning", reported_by: user.id });\n        await applyAdminAccountAction({\n          userId: profile.user_id,\n          action: "warning",
+  it.each([
+    [null, /Issue Warning/, "warning"],
+    ["Temp Ban", /Ban for 7 days/, "temporary"],
+    ["Perm Ban", /Permanently Ban/, "permanent"],
+  ] as const)("%s is one apply_account_action call and no direct table write (Q1494)", async (tier, cta, kind) => {
     const onSuccess = vi.fn();
-    render(
-      <BanDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Issue Warning/ }));
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    if (tier) fireEvent.click(screen.getByText(new RegExp(tier)));
+    fireEvent.click(screen.getByRole("button", { name: cta }));
 
-    // Wait on the LAST step of the submit chain, not the first. Waiting for
-    // the insert and then asserting onSuccess synchronously assumes the whole
-    // promise chain flushes inside waitFor's first poll — true on an idle
-    // machine, and the reason this test went red under load while being
-    // perfectly correct in isolation.
+    // Wait on the LAST step of the submit chain, not the first (a waitFor on
+    // an early step went red under load while being correct in isolation).
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    // First insert: user_violations row
-    expect(insertMock).toHaveBeenCalled();
-    expect(fromMock).toHaveBeenCalledWith("user_violations");
-    // Then profiles.ban_status='final_warning' — through the admin-user-actions
-    // edge function (Q304: authenticated holds no UPDATE on the column), never
-    // a direct profiles write.
-    expect(invokeMock).toHaveBeenCalledWith("admin-user-actions", {
-      body: { action: "set_ban_status", userId: sampleProfile.user_id, banStatus: "final_warning" },
-    });
-    expect(fromMock).not.toHaveBeenCalledWith("profiles");
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(invokeMock.mock.calls[0][0]).toBe("admin-user-actions");
+    expect(invokeMock.mock.calls[0][1].body).toMatchObject({ action: "apply_account_action", userId: sampleProfile.user_id, kind });
+    // Only the review pre-check reads a table; nothing is inserted or updated.
+    expect(fromMock.mock.calls.map((c) => c[0])).toEqual(["ban_settlement_queue"]);
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
     expect(logAdminActionMock).toHaveBeenCalled();
   });
 
-  it("a temp ban sends the same end date to the profile as to the ban row", async () => {
+  it("a temp ban sends one end date, in the future, for the ban row and the profile alike", async () => {
     const onSuccess = vi.fn();
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
     fireEvent.click(screen.getByText(/Temp Ban/));
     fireEvent.click(screen.getByRole("button", { name: /Ban for 7 days/ }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    const banRow = insertMock.mock.calls.map((c) => c[0]).find((r) => r.ban_type === "temporary");
     const body = invokeMock.mock.calls[0][1].body;
-    expect(body).toMatchObject({ action: "set_ban_status", userId: sampleProfile.user_id, banStatus: "temp_banned" });
-    expect(body.suspendedUntil).toBe(banRow.expires_at);
+    expect(body).toMatchObject({ action: "apply_account_action", userId: sampleProfile.user_id, kind: "temporary" });
+    const ms = Date.parse(body.suspendedUntil);
+    expect(ms).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+    expect(ms).toBeLessThan(Date.now() + 8 * 86_400_000);
+  });
+
+  it("the server refusing an open review (opened after the pre-check) is reported, not closed on", async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: {
+        message: "non-2xx",
+        context: new Response(JSON.stringify({ error: "This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.", code: "ban_review_open" }), { status: 409 }),
+      },
+    });
+    const onSuccess = vi.fn();
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByText(/Perm Ban/));
+    fireEvent.click(screen.getByRole("button", { name: /Permanently Ban/ }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/ban settlement review/i)));
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(createNotificationMock).not.toHaveBeenCalled();
   });
 
   it("a ban the server matched no profile for is reported, not closed on", async () => {

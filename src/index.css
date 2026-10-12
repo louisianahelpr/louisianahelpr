@@ -1989,6 +1989,18 @@ html.no-bottom-nav {
 html.dock-yield .mobile-nav-frame {
   visibility: hidden;
 }
+/* Q1646 (WebKit): `visibility` is animatable, and an element whose transition
+   list covers it (the tab glyphs' `transition-all`) TRANSITIONS the inherited
+   visible -> hidden change, staying `visible` for the whole duration. The
+   e2e-journeys WebKit milestone showed exactly those glyphs (and not the pill
+   or the Post FAB, which transition other properties) painted over Save
+   Changes. No transition runs inside the dock while it yields, so the hide is
+   immediate for every descendant, whatever transition a later edit gives it.
+   Guard: src/test/fixedBottomBarsClearTheDock.test.ts. */
+html.dock-yield .mobile-nav-frame,
+html.dock-yield .mobile-nav-frame * {
+  transition: none !important;
+}
 
 /* Q303: StrikeBanner is z-[59] so it stays above the fixed page chrome, which
    also put it above every modal backdrop (dialog/sheet overlays are z-50): on

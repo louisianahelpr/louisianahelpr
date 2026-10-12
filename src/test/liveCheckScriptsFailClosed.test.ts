@@ -122,6 +122,10 @@ const NOT_HERMETIC: Record<string, { why: string; mustContain?: string[] }> = {
     why: "pre-push wrapper around a Playwright a11y-prod sweep (build + browser + prod sessions); it hard-fails with no session source and exits with Playwright's own status. 'No changed route' is a true zero, not an empty read",
     mustContain: ["process.exit(r.status ?? 1);"],
   },
+  "scripts/audit/press-every-control.mjs": {
+    why: "drives Playwright Chromium over a prod build with minted test-account sessions and routes its auth and edge-function requests (the Q1374 CAPTCHA backstop made the /auth/v1/ route visible to this inventory); no stub stands in for a browser plus GoTrue. Its verdict is the exit below: an empty inventory, any failed press, an undocumented skip, a session death, an uncovered persona or an unreached row exits 1, a crash exits 2",
+    mustContain: ["if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || totalFound === 0 || uncoveredPersonas.length > 0 || notReached.length > 0) {", "main().catch((e) => { console.error(e); process.exit(2); });"],
+  },
   "scripts/audit/pressProdSafety.mjs": {
     why: "a library imported by press-every-control.mjs — no CLI entrypoint and no verdict of its own; its caller's exit code is the check",
   },

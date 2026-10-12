@@ -30,6 +30,8 @@
 // @mutate src/components/profile/profileEditForm/SaveBar.tsx | useDockYield(shown); | void shown;
 // @mutate src/index.css | html.dock-yield .mobile-nav-frame {\n  visibility: hidden;\n} | html.dock-yield .mobile-nav-frame {\n  opacity: 1;\n}
 // @mutate src/pages/posts/BulkDismissBar.tsx | className="fixed inset-x-0 bottom-safe-nav z-40 px-4" | className="fixed inset-x-0 bottom-0 z-40 px-4"
+// @mutate src/index.css | html.dock-yield .mobile-nav-frame,\nhtml.dock-yield .mobile-nav-frame * { | html.dock-yield .mobile-nav-frame {
+// @mutate src/index.css |   transition: none !important;\n} |   transition-duration: 0.2s;\n}
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -37,7 +39,7 @@ import { resolve } from "node:path";
 import ts from "typescript";
 import { act, render } from "@testing-library/react";
 import { createElement } from "react";
-import { blankComments } from "@/test/helpers/blankNonCode";
+import { blankComments, blankCssComments } from "@/test/helpers/blankNonCode";
 import { DOCK_YIELD_CLASS, useDockYield } from "@/components/mobileNav/useDockYield";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -137,6 +139,48 @@ function cssHidesDockOnYield(css: string): boolean {
   return false;
 }
 
+/**
+ * WebKit half of Q1646 (looked at 2026-10-12, e2e-journeys 38181872855 webkit
+ * milestone `edit-profile-dirty`): with `html.dock-yield` set, the dock's pill
+ * and Post FAB were hidden but the five tab glyphs were still painted over
+ * Save Changes. `visibility` is animatable and inherited: an element whose
+ * transition list covers it (`transition-all`, an arbitrary
+ * `transition-[...visibility...]`, an inline `transition: all ...`) runs the
+ * inherited visible -> hidden change as a transition that stays `visible` for
+ * its whole duration. The glyphs are exactly the dock's `transition-all`
+ * elements; the pill (`transition-shadow`) and the FAB (`transition-transform`)
+ * are not, and were hidden. So while the dock yields, no transition may run
+ * inside it.
+ *
+ * INVENTORY: the dock's own source (MobileNav.tsx and src/components/mobileNav/),
+ * comments blanked; every class token or inline transition that covers
+ * `visibility`. It is non-empty today (the Icon and UserAvatar glyphs), which
+ * is why the stylesheet rule is load-bearing.
+ */
+const DOCK_FILES = [
+  "src/components/MobileNav.tsx",
+  ...FILES.filter((f) => f.startsWith("src/components/mobileNav/")),
+];
+function transitionsCoveringVisibility(src: string): string[] {
+  const code = blankComments(src);
+  const hits: string[] = [];
+  for (const m of code.matchAll(/(?<![\w-])transition-all(?![\w-])/g)) hits.push(m[0]);
+  for (const m of code.matchAll(/(?<![\w-])transition-\[([^\]]*)\]/g)) if (/\b(all|visibility)\b/.test(m[1])) hits.push(m[0]);
+  for (const m of code.matchAll(/\btransition(?:Property)?\s*:\s*["'`]([^"'`]*)["'`]/g)) if (/\b(all|visibility)\b/.test(m[1])) hits.push(m[0]);
+  return hits;
+}
+/** One rule covers `html.dock-yield .mobile-nav-frame` AND its `*` descendants with `transition: none`. */
+function cssStopsTransitionsOnYield(css: string): boolean {
+  const code = blankCssComments(css);
+  for (const m of code.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    const selectors = m[1].split(",").map((x) => x.trim().replace(/\s+/g, " "));
+    const frame = selectors.includes(`html.${DOCK_YIELD_CLASS} .mobile-nav-frame`);
+    const all = selectors.includes(`html.${DOCK_YIELD_CLASS} .mobile-nav-frame *`);
+    if (frame && all && /(^|;|\s)transition(-property)?\s*:\s*none\b/.test(m[2])) return true;
+  }
+  return false;
+}
+
 const ALL: BottomBar[] = FILES.flatMap((f) => inventory(f, readFileSync(resolve(ROOT, f), "utf8")));
 
 describe("no fixed bottom bar can render under the dock (Q1646)", () => {
@@ -150,6 +194,19 @@ describe("no fixed bottom bar can render under the dock (Q1646)", () => {
 
   it("the stylesheet makes the dock yield under html.dock-yield", () => {
     expect(cssHidesDockOnYield(CSS), `src/index.css has no \`html.${DOCK_YIELD_CLASS} .mobile-nav-frame { visibility: hidden }\``).toBe(true);
+  });
+
+  it("no transition inside the dock can delay its hide (WebKit glyphs over Save Changes)", () => {
+    expect(DOCK_FILES.length).toBeGreaterThan(5);
+    const hits = DOCK_FILES.flatMap((f) =>
+      transitionsCoveringVisibility(readFileSync(resolve(ROOT, f), "utf8")).map((h) => `${f}: ${h}`),
+    );
+    // The Icon and the UserAvatar glyphs carry `transition-all` today.
+    expect(hits.length, "inventory found no dock transition covering visibility: re-check the scanner").toBeGreaterThan(1);
+    expect(
+      cssStopsTransitionsOnYield(CSS),
+      `src/index.css must set \`transition: none\` on \`html.${DOCK_YIELD_CLASS} .mobile-nav-frame\` and its \`*\` descendants; these dock elements would otherwise stay painted while it yields:\n${hits.join("\n")}`,
+    ).toBe(true);
   });
 
   it("each fixed bottom bar clears the dock, makes it yield, is the dock, or is an exact exception", () => {

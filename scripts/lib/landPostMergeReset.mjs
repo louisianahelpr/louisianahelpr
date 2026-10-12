@@ -29,7 +29,7 @@
  * Guard: src/test/landPostMergeReset.test.ts.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { GENERATED } from "../check-generated-current.mjs";
@@ -87,7 +87,8 @@ export function reset({ cwd, base = "origin/main", outputs = postMergeOutputs() 
   const moved = [];
   for (const o of outputs) {
     const p = join(cwd, o);
-    const here = existsSync(p) ? readFileSync(p, "utf8") : null;
+    let here = null;
+    try { here = readFileSync(p, "utf8"); } catch (e) { if (e?.code !== "ENOENT") throw e; }
     const main = showAt(base, o, cwd);
     if (o === OPEN) {
       if (here === null || main === null) continue;
@@ -100,7 +101,7 @@ export function reset({ cwd, base = "origin/main", outputs = postMergeOutputs() 
       continue;
     }
     if (main === null) {
-      if (here !== null) { rmSync(p); moved.push(o); }
+      if (here !== null) { rmSync(p, { force: true }); moved.push(o); }
     } else if (here !== main) {
       writeFileSync(p, main);
       moved.push(o);

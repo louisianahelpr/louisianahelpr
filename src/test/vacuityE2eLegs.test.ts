@@ -31,9 +31,11 @@ const gateOf = (k: number) => (WF.jobs[legKey(k)]?.steps ?? []).map((s) => s.run
 
 /**
  * A leg's estimate may use at most this share of its timeout; the rest is
- * margin for runner and prod variance. Not lower: the full set's ~285 locked
- * minutes must fit the 359-min Sunday window prodWorkflowSpacing.test.ts rule 5
- * allows (8 legs x 43), so more margin needs a shorter set or a longer window.
+ * margin for runner and prod variance. Not lower: every leg is 43 locked
+ * minutes, and the run's worst case must end inside the Sunday window
+ * prodWorkflowSpacing.test.ts rule 5 allows (Sun 05:17 to db-drift-detect's
+ * 13:17 = 480 min since 2026-10-12, Q1721: 10 legs x 43 + 15 at most), so more
+ * margin needs a shorter set or a longer window.
  */
 const LEG_FILL = 0.87;
 /** Minutes kept between the end of --budget-minutes and the job timeout (the report and the .env removal). */

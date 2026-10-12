@@ -25,7 +25,7 @@ import { isFeedMirrored } from "../../scripts/lib/openFeeds.mjs";
 
 // @mutate scripts/lib/openFeeds.mjs | export const isFeedMirrored = (text) => tagsOf(text).length > 0; | export const isFeedMirrored = (text) => false;
 // @mutate scripts/lib/openQueue.mjs |   if (f) return `finding ${f[1].toLowerCase()}`; |   if (f) return null;
-// @mutate src/test/reviewFindingsCarryATag.test.ts | !TAGGED.test(l) && !isFeedMirror(l);\n} | !TAGGED.test(l);\n}
+// @mutate src/test/reviewFindingsCarryATag.test.ts | !TAGGED.test(l) && !isFeedMirror(l) && !isFeedMirrored(l);\n} | !TAGGED.test(l);\n}
 
 const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n");
 const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b/i;

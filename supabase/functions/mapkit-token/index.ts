@@ -30,8 +30,9 @@
 //   APPLE_MAPKIT_KEY_ID       the key's 10-char ID  (current key: 4QA8J9TA8K)
 //   APPLE_MAPKIT_TEAM_ID      the Apple team ID     (this account: P85MCK558V)
 //
-// Until those are set this function returns 503 and the client falls back to
-// the build-time token, so deploying it changes nothing until it is configured.
+// They are set (measured 2026-10-05 and 2026-10-12: the function mints), and
+// the client's build-time fallback token is gone (Q249): without these secrets
+// the function answers 503 and maps degrade to plain inputs.
 
 import { corsHeadersFull, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
@@ -81,23 +82,41 @@ async function importSigningKey(pem: string): Promise<CryptoKey> {
 }
 
 /**
- * The `origin` claim locks the token to one domain. MapKit rejects a token
- * whose origin does not match the page using it, which is the whole point —
- * but it also means a WRONG origin breaks maps entirely, so this is derived
- * from the caller rather than hardcoded, and simply omitted when the caller has
- * no web origin at all (the native iOS/Android WebView, where the request comes
- * from a capacitor:// or file:// context that Apple cannot match anyway).
+ * The `origin` claim locks the token to one domain: MapKit rejects a token
+ * whose origin does not match the page using it.
+ *
+ * WHICH ORIGINS GET ONE (Q249). This used to copy ANY http(s) Origin into the
+ * claim, so a page on any other site got a working token locked to itself,
+ * billed to this Apple account (measured 2026-10-12 against prod:
+ * Origin https://evil.example.com -> 200, origin claim https://evil.example.com).
+ * Now:
+ *   - our web origins (and the Android app's https://localhost, and local dev
+ *     on http://localhost / 127.0.0.1) get a token locked to that origin;
+ *   - the iOS app (capacitor://localhost) and a request with no Origin get one
+ *     with NO origin claim, as before: Apple cannot match a capacitor:// page,
+ *     and whether the WebView always sends an Origin has not been measured on
+ *     a device, so refusing either could take maps away from the app. That
+ *     carve-out still mints an unrestricted token for anyone who leaves the
+ *     header off (rate-limited below); closing it needs a native gate (the
+ *     open item filed with Q249);
+ *   - every other Origin (another site, a look-alike, a sandboxed "null"
+ *     document) is refused with 403.
  */
-function originClaimFor(req: Request): string | null {
-  const origin = req.headers.get("origin");
-  if (!origin) return null;
-  try {
-    const url = new URL(origin);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return url.origin;
-  } catch {
-    return null;
-  }
+const WEB_ORIGINS = new Set([
+  "https://www.louisianahelpr.com",
+  "https://louisianahelpr.com",
+  "https://localhost", // the Android app's WebView origin
+]);
+const DEV_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
+const NATIVE_ORIGINS = new Set(["capacitor://localhost"]);
+
+type OriginVerdict = { kind: "locked"; origin: string } | { kind: "unlocked" } | { kind: "refused" };
+
+function originVerdict(raw: string | null): OriginVerdict {
+  if (raw === null || raw === "") return { kind: "unlocked" };
+  if (NATIVE_ORIGINS.has(raw)) return { kind: "unlocked" };
+  if (WEB_ORIGINS.has(raw) || DEV_ORIGIN.test(raw)) return { kind: "locked", origin: raw };
+  return { kind: "refused" };
 }
 
 serve(async (req: Request) => {
@@ -124,14 +143,18 @@ serve(async (req: Request) => {
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeadersFull);
 
+  // Before the secrets are read: a refused origin learns nothing else.
+  const verdict = originVerdict(req.headers.get("origin"));
+  if (verdict.kind === "refused") {
+    return errorResponse("origin_not_allowed", 403, corsHeadersFull);
+  }
+
   const privateKey = Deno.env.get("APPLE_MAPKIT_PRIVATE_KEY");
   const keyId = Deno.env.get("APPLE_MAPKIT_KEY_ID");
   const teamId = Deno.env.get("APPLE_MAPKIT_TEAM_ID");
 
-  // Not configured yet. 503 rather than 500: this is "not available", and the
-  // client is expected to fall back to its build-time token on exactly this
-  // response. Deploying this function before setting the secrets is therefore
-  // a no-op rather than an outage.
+  // Not configured. 503 rather than 500: this is "not available"; the client
+  // settles "missing-token" and its pages fall back to plain inputs.
   if (!privateKey || !keyId || !teamId) {
     return jsonResponse(
       {
@@ -146,7 +169,7 @@ serve(async (req: Request) => {
 
   try {
     const now = Math.floor(Date.now() / 1000);
-    const origin = originClaimFor(req);
+    const origin = verdict.kind === "locked" ? verdict.origin : null;
 
     const header = { alg: "ES256", kid: keyId, typ: "JWT" };
     const payload: Record<string, unknown> = {

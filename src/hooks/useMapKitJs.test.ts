@@ -16,15 +16,15 @@ import { renderHook, waitFor } from "@testing-library/react";
  * authorization test beside it does not cover:
  *
  *   1. server token wins, and is what MapKit is actually HANDED;
- *   2. on ANY server failure — 503 not_configured, 404 not deployed, a
- *      network abort, or a 200 carrying an empty token — MapKit is handed the
- *      build-time token instead, because the owner's sequencing is "Apple
- *      secrets first, THEN remove the fallback";
- *   3. that fallback is never silent: `useMapKitTokenSource()` reports
- *      "build-time" and `report()` writes an error-severity line, because the
- *      degraded state looked exactly like success for months;
- *   4. with neither credential, the honest answer is "missing-token" and an
- *      empty string is never handed to MapKit.
+ *   2. on ANY server failure — 503 not_configured, 403 origin refused, 404 not
+ *      deployed, a network abort, or a 200 carrying an empty token — the
+ *      honest answer is "missing-token": MapKit is handed nothing, never an
+ *      empty string and never the old build-time token (removed, Q249: it was
+ *      an unrestricted credential compiled into the bundle; the owner's order
+ *      was "Apple secrets first, THEN remove the fallback", and the secrets
+ *      are set);
+ *   3. a failure is never silent: `useMapKitTokenSource()` reports "none" and
+ *      `report()` writes an error-severity line.
  */
 
 const reportMock = vi.fn();
@@ -118,62 +118,44 @@ describe("MapKit token resolution — the real hook", () => {
     expect(reportMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to the build-time token on 503 (deployed but not configured)", async () => {
-    // The state verified against prod 2026-08-25 and still live: the Apple
-    // secrets were never set, so this is what every real map runs on.
-    const { stub, status, source } = await drive(
-      async () => jsonRes(503, { error: "not_configured" }),
-      BUILD_TOKEN,
-    );
-    await waitFor(() => expect(stub.tokensReceived).toEqual([BUILD_TOKEN]));
-    await waitFor(() => expect(status.result.current).toBe("ready"));
-    expect(source.result.current).toBe("build-time");
-  });
+  // Q249: there is no fallback token. Even when a build still carries
+  // VITE_APPLE_MAPKIT_TOKEN in its environment (the iOS workflows did, from
+  // the GitHub secret), MapKit is never handed it: that token is unrestricted
+  // and was compiled into the bundle for anyone to lift out.
+  it.each([
+    ["503 (not configured)", async () => jsonRes(503, { error: "not_configured" })],
+    ["403 (origin refused)", async () => jsonRes(403, { error: "origin_not_allowed" })],
+    ["404 (not deployed)", async () => jsonRes(404, { code: "NOT_FOUND" })],
+    ["a network failure or timeout", async () => { throw new Error("AbortError"); }],
+    ["200 with an empty token", async () => jsonRes(200, { token: "" })],
+  ] as Array<[string, () => Promise<Response>]>)(
+    "on %s: no token at all, never the build-time one (Q249)",
+    async (_label, answer) => {
+      const { stub, status, source } = await drive(answer, BUILD_TOKEN);
+      await waitFor(() => expect(status.result.current).toBe("missing-token"));
+      expect(source.result.current).toBe("none");
+      // Never the build-time token, and never an empty string (MapKit accepts
+      // one and fails asynchronously: the silent hang).
+      expect(stub.tokensReceived).toEqual([]);
+    },
+  );
 
-  it("falls back to the build-time token on 404 (function not deployed)", async () => {
-    const { stub } = await drive(async () => jsonRes(404, { code: "NOT_FOUND" }), BUILD_TOKEN);
-    await waitFor(() => expect(stub.tokensReceived).toEqual([BUILD_TOKEN]));
-  });
-
-  it("falls back to the build-time token when the network fails or times out", async () => {
-    const { stub } = await drive(async () => { throw new Error("AbortError"); }, BUILD_TOKEN);
-    await waitFor(() => expect(stub.tokensReceived).toEqual([BUILD_TOKEN]));
-  });
-
-  it("falls back when the server answers 200 with an empty token", async () => {
-    // A malformed success must not be handed to MapKit: it accepts an empty
-    // string and then fails asynchronously, which is the silent hang.
-    const { stub } = await drive(async () => jsonRes(200, { token: "" }), BUILD_TOKEN);
-    await waitFor(() => expect(stub.tokensReceived).toEqual([BUILD_TOKEN]));
-    // And it is recorded as a server FAILURE, not waved through. Without the
-    // truthiness half of the check the empty string is "returned" and merely
-    // discarded downstream by `if (served)`, so the malformed response never
-    // reaches error_logs and the misconfiguration stays invisible.
-    expect(reportMock).toHaveBeenCalled();
+  it("a malformed success is recorded as a FAILURE, not waved through", async () => {
+    // Without the truthiness half of the check the empty string is "returned"
+    // and merely discarded downstream, so it never reaches error_logs.
+    await drive(async () => jsonRes(200, { token: "" }), BUILD_TOKEN);
+    await waitFor(() => expect(reportMock).toHaveBeenCalled());
     expect((reportMock.mock.calls[0][0] as Error).message).toMatch(/returned no token/);
   });
 
-  it("reports the unrestricted fallback at error severity rather than passing silently", async () => {
-    // Silent degradation is the whole reason a permanent misconfiguration
-    // looked like a working feature for months.
-    await drive(async () => jsonRes(503, { error: "not_configured" }), BUILD_TOKEN);
+  it("reports a failed mint at error severity rather than passing silently", async () => {
+    await drive(async () => jsonRes(503, { error: "not_configured" }), undefined);
     await waitFor(() => expect(reportMock).toHaveBeenCalled());
     const [err, opts] = reportMock.mock.calls[0] as [Error, { severity?: string; tags?: Record<string, string> }];
-    expect(err.message).toMatch(/unrestricted build-time token/);
+    expect(err.message).toMatch(/MapKit has no token/);
     expect(err.message).toMatch(/503/);
     expect(opts.severity).toBe("error");
-    expect(opts.tags?.mapkit_token_source).toBe("build-time-unrestricted");
-  });
-
-  it("reports no token, and hands MapKit nothing, only when BOTH sources are empty", async () => {
-    const { stub, status, source } = await drive(
-      async () => jsonRes(503, { error: "not_configured" }),
-      undefined,
-    );
-    await waitFor(() => expect(status.result.current).toBe("missing-token"));
-    expect(source.result.current).toBe("none");
-    // Never an empty string: MapKit accepts one and fails asynchronously.
-    expect(stub.tokensReceived).toEqual([]);
+    expect(opts.tags?.mapkit_token_source).toBe("none");
   });
 });
 
@@ -202,11 +184,9 @@ describe("the minted token the edge function produces", () => {
 });
 
 // Shown able to fail:
-// Deleting the build-time fallback — the "simplification" this file's header
-// has warned about since it was written, and which the OLD version of this
-// file could not see because it tested its own copy of the logic.
-// @mutate src/hooks/useMapKitJs.ts | const built = getBuildTimeToken(); | const built = undefined;
-// The server token must WIN over the build-time one, not the other way round.
+// Bringing the build-time fallback back (Q249): the unrestricted bundle token.
+// @mutate src/hooks/useMapKitJs.ts |   setTokenSource("none");\n  return undefined; |   setTokenSource("none");\n  return import.meta.env.VITE_APPLE_MAPKIT_TOKEN \|\| undefined;
+// The server token must be used when it is there.
 // @mutate src/hooks/useMapKitJs.ts | if (served) {\n    setTokenSource("server");\n    return served;\n  } | if (false) {\n    setTokenSource("server");\n    return served;\n  }
 // An empty token is never handed to MapKit — it accepts one and then hangs.
 // @mutate src/hooks/useMapKitJs.ts | if (typeof body.token === "string" && body.token) return body.token; | if (typeof body.token === "string") return body.token;

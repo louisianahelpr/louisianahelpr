@@ -232,8 +232,11 @@ describe("(c) the inventory is exact two-way against the repo", () => {
     }
   });
 
-  it("the MapKit token in .env.example is read from its JWT exp (2027-02-14)", () => {
-    const tok = /^VITE_APPLE_MAPKIT_TOKEN="([^"]+)"/m.exec(readFileSync(join(ROOT, ".env.example"), "utf8"))?.[1];
+  // Was pinned on the MapKit token in .env.example; that token is gone (Q249),
+  // and the jwt-exp read method still serves the other JWT items.
+  it("jwtExp reads a JWT's exp claim as a date", () => {
+    const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    const tok = `${b64({ alg: "HS256" })}.${b64({ exp: Date.UTC(2027, 1, 14) / 1000 })}.sig`;
     expect(jwtExp(tok)?.slice(0, 10)).toBe("2027-02-14");
   });
 });

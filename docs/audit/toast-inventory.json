@@ -3590,7 +3590,7 @@
     },
     {
       "file": "src/components/postjob/CurrentLocationPill.tsx",
-      "line": 223,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3600,7 +3600,7 @@
     },
     {
       "file": "src/components/postjob/CurrentLocationPill.tsx",
-      "line": 255,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3620,7 +3620,7 @@
     },
     {
       "file": "src/components/postjob/CurrentLocationPill.tsx",
-      "line": 273,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3630,7 +3630,7 @@
     },
     {
       "file": "src/components/postjob/CurrentLocationPill.tsx",
-      "line": 281,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "literal",

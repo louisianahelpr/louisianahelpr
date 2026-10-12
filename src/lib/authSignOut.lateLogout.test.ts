@@ -124,7 +124,8 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
     await signOutAwareFetch(`${BASE}/auth/v1/logout`, init);
     expect(seen[seen.length - 1]).toBeUndefined();
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
-    expect(src).toMatch(/global:\s*\{\s*fetch:\s*signOutAwareFetch\s*\}/);
+    // signOutAwareFetch sits under the signed-in request guard (signedInRequestGuard.ts).
+    expect(src).toMatch(/global:\s*\{\s*fetch:\s*guardSignedInRequests\(\{[^}]*fetchImpl:\s*signOutAwareFetch,/);
   });
 
   it("keeps the caller's own signal when AbortSignal.any is missing (older WebKit): either one aborts", async () => {
@@ -153,5 +154,5 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
 
 // @mutate src/lib/signOutAbort.ts |   if (!own) return scope; |   return scope;
 // @mutate src/lib/authSignOut.ts |     scope.abort(); |
-// @mutate src/integrations/supabase/client.ts |   global: { fetch: signOutAwareFetch }, |
+// @mutate src/integrations/supabase/client.ts |       fetchImpl: signOutAwareFetch, |       fetchImpl: fetch,
 // @mutate src/lib/signOutAbort.ts |   if (!scope \|\| !urlOf(input).includes("/auth/v1/")) return fetch(input, init); |   return fetch(input, init);

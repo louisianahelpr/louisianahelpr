@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 609,
-    "files": 155,
+    "files": 156,
     "rendering": 581,
     "suppressedByPolicy": 28,
     "byKind": {
@@ -3519,22 +3519,22 @@
       "renders": true
     },
     {
-      "file": "src/components/messages/ConversationList.tsx",
-      "line": 1606,
-      "kind": "toast",
-      "title": {
-        "form": "template",
-        "text": "Restored conversation with ${c.otherUserName ?? \"this person\"}"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/messages/MessageActionSheet.tsx",
       "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "Couldn't copy that message."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/RestoreConversationButton.tsx",
+      "line": 26,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Restored conversation with ${c.otherUserName ?? \"this person\"}"
       },
       "renders": true
     },

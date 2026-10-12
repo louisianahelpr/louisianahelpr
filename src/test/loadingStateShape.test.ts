@@ -144,14 +144,14 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
   const FALLBACK = resolve(REPO, "src/components/profile/ProfileTabFallback.tsx");
   const PROFILE = resolve(REPO, "src/pages/profile/Profile.tsx");
 
-  // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> | <span />
+  // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={profileTabTitle(tab, currentSearch())} onBack={onBack} /> | <span />
   it("paints the tab's REAL header, so the h1 does not arrive late", () => {
     // Measured at 375 on prod with each tab's module held back: no <h1> in the
     // loading frame, an <h1> at y=26 once loaded - every tab's whole body slid
     // down by a header's height on arrival.
     const src = strip(readFileSync(FALLBACK, "utf8"));
     expect(src, "the placeholder must render the header component itself").toContain("<ProfileTabHeader");
-    expect(src, "and take its title from the registry, never invent one").toContain("TAB_TITLES[tab]");
+    expect(src, "and take its title from the registry, never invent one").toContain("profileTabTitle(tab, currentSearch())");
   });
 
   // @mutate src/components/profile/ProfileTabFallback.tsx | window.innerHeight - top | 118

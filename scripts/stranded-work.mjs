@@ -148,13 +148,15 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
  * Q1376, measured 2026-10-12). The REST list is the repository's own record.
  * Shaped like `gh pr list --json` so the judging below is unchanged.
  */
-export function closedPullRequests(gh) {
-  const pages = gh(["api", "--paginate", "--slurp", "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100"]);
-  if (!Array.isArray(pages)) throw new Error("stranded-work: the closed-PR list did not come back as pages");
-  return pages.flat().map((p) => ({
-    number: p.number, headRefOid: p.head?.sha, headRefName: p.head?.ref, mergedAt: p.merged_at,
-    closedAt: p.closed_at, title: p.title, author: { login: p.user?.login ?? "" },
-  }));
+export function closedPullRequests(gh, since = SINCE) {
+  // gh's own jq trims each page to the fields used here and drops PRs merged
+  // or closed before `since`, so the buffer holds a few KB per PR judged, not
+  // the ~20 KB per PR the raw list carries (1959 closed PRs were 39.7 MB on
+  // 2026-10-12; sentry review on #2813). One compact object per line.
+  const jq = `.[] | select(.merged_at == null and .closed_at >= "${since}") | {number, headRefOid: .head.sha, headRefName: .head.ref, mergedAt: .merged_at, closedAt: .closed_at, title, author: {login: (.user.login // "")}}`;
+  const out = gh(["api", "--paginate", "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100", "--jq", jq], { raw: true });
+  if (typeof out !== "string") throw new Error("stranded-work: the closed-PR list did not come back as text");
+  return out.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
 }
 
 /** A closed PR whose comments say its work landed on main another way. */
@@ -224,8 +226,9 @@ function defaultCwds() {
     return [];
   }
 }
-function defaultGh(argv) {
-  return JSON.parse(execFileSync("gh", argv, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "pipe"] }));
+function defaultGh(argv, { raw = false } = {}) {
+  const out = execFileSync("gh", argv, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "pipe"] });
+  return raw ? out : JSON.parse(out);
 }
 let mainRefOverride = null;
 const MAIN_REF = () => mainRefOverride ?? MAIN;

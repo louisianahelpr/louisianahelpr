@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { report } from "@/lib/errorLogger";
+import { definitelyGuest } from "@/lib/persistedAuthToken";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -368,16 +369,11 @@ const DashboardGuest = () => {
   // supabase-js always writes a key matching /^sb-.+-auth-token$/ on sign-in,
   // so an absent key is a reliable "no session" signal and avoids a hang when
   // getSession() stalls during internal initialisation.
-  const [sessionChecked, setSessionChecked] = useState(() => {
-    try {
-      const hasStoredSession = Object.keys(localStorage).some(
-        (k) => /^sb-.+-auth-token$/.test(k),
-      );
-      return !hasStoredSession;
-    } catch {
-      return false; // storage unavailable — fall through to async check
-    }
-  });
+  // In the app, an evicted localStorage reads empty until the Keychain
+  // restore lands, so the fast path waits for that (Q1463): definitelyGuest()
+  // is false until then, and the async check below (getSession() waits for
+  // the restore) decides.
+  const [sessionChecked, setSessionChecked] = useState(definitelyGuest);
   useEffect(() => {
     if (sessionChecked) return; // already resolved via the synchronous pre-check
     let cancelled = false;

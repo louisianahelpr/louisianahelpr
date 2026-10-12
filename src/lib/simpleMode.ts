@@ -1,4 +1,5 @@
 import { safeStorage } from "@/lib/safeStorage";
+import { sessionKnown, whenSessionKnown } from "@/lib/sessionKnown";
 
 /**
  * Simple Mode — a larger, calmer rendering of the whole app.
@@ -220,6 +221,13 @@ function cachedProfileFlag(): boolean {
   }
 }
 let profileSeniorMode = cachedProfileFlag();
+
+/** The live profile wins once seen; until then the restored session's flag does. */
+function reapplyAfterRestore(): void {
+  if (profileSeen) return;
+  profileSeniorMode = cachedProfileFlag();
+  applyClass(isSimpleMode());
+}
 /** True once the live profile has been seen: the session hint no longer applies. */
 let profileSeen = false;
 
@@ -323,6 +331,10 @@ export function setSimpleMode(on: boolean): void {
  */
 export function initSimpleMode(): void {
   applyClass(isSimpleMode());
+  // In the app, before the Keychain restore lands, an evicted localStorage
+  // holds no session, so the account's flag read as off (Q1463). Read it
+  // again once the session is readable.
+  if (!sessionKnown()) void whenSessionKnown().then(reapplyAfterRestore);
 
   // Dynamic Type can change while the app is merely backgrounded — the user
   // goes to Settings, drags the slider, comes back. Without this the app would

@@ -6,6 +6,7 @@
  *
  * @mutate scripts/ci/disabled-workflows.mjs |     if (src !== null && hasSchedule(src)) continue; // the WATCHED loop reports it |     continue;
  * @mutate scripts/ci/disabled-workflows.mjs |     if (w.state === "active") { |     if (w.state !== "nope") {
+ * @mutate scripts/ci/disabled-workflows.mjs |     if (w.state === "deleted") continue; |     if (false) continue;
  * @mutate .github/workflows/schedule-heartbeat.yml | STALE_COUNT=$((STALE_COUNT + DISABLED)) | STALE_COUNT=$((STALE_COUNT + 0))
  * @mutate .github/workflows/schedule-heartbeat.yml | node scripts/ci/disabled-workflows.mjs > /tmp/disabled.txt | echo disabled=0 > /tmp/disabled.txt
  */
@@ -41,6 +42,11 @@ describe("a disabled workflow is red, scheduled or not (Q1652)", () => {
     const unscheduled = files.filter((f) => !/^\s*schedule:\s*$/m.test(readFileSync(`${DIR}/${f}`, "utf8")));
     expect(unscheduled.length).toBeGreaterThan(10);
     expect(off.count).toBe(unscheduled.length);
+  });
+
+  it("a deleted workflow the API still lists (it has run history) is not a row", () => {
+    const api = [...asApi(() => "active"), { path: `${DIR}/retired-old.yml`, state: "deleted" }];
+    expect(judgeWorkflows(api, readFile).count).toBe(0);
   });
 
   it("INTENTIONALLY_OFF is exact both ways", () => {

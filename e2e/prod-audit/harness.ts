@@ -88,7 +88,14 @@ export const TEXTLIKE =
  * email" — so the refusal has to be stated where the presser can read it, not
  * only in a comment.
  */
-export const NEVER_PRESS = /sign ?out|log ?out|delete (my )?account|switch account|remove app|close account|edit email/i;
+//
+// "Connect Apple" / "Connect Google" (Profile > Security, SignInMethodsCard)
+// hand the tab to the provider's OAuth page to LINK a sign-in to the shared
+// test account: a sign-in change, like "edit email", and a press that leaves
+// the app. explore: profile-security pressed it and judged the provider's page
+// "blank page (0 chars of text)" (prod-audit run 38181023758).
+// src/test/messyInputNeverLinksASignIn.test.ts.
+export const NEVER_PRESS = /sign ?out|log ?out|delete (my )?account|switch account|remove app|close account|edit email|connect (apple|google)/i;
 /** Chrome that is not a form: theme, menus, back, dismiss. */
 export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|toggle theme|dark mode|light mode|^menu$|open menu|notifications?$|^home$|^browse$|^messages$|^activity$|^profile$/i;
 

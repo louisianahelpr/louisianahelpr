@@ -14,12 +14,13 @@
  * @mutate src/components/profile/ProfileOfflineGate.tsx | title={profileTabTitle(tab, currentSearch())} | title={TAB_TITLES[tab]}
  * @mutate src/components/profile/SupportInline.tsx | title={profileTabTitle("support", searchParams.toString())} | title="Help & Support"
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, profile: null, loading: false }) }));
 

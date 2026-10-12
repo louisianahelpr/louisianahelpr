@@ -167,6 +167,7 @@
     "get_user_last_active(uuid[])": "reviewed 2026-10-05 (Q1284): the public 'Active now / active N ago' line on profiles and cards (newest login only).",
     "get_user_repeat_hire_percent(uuid)": "reviewed 2026-10-05 (Q1284): public profile stat (repeat-hire percent) shown on the Helpr's profile.",
     "job_is_funded(uuid)": "reviewed 2026-10-05 (Q1284): policy helper; whether a job's payment is funded, which browse already implies (only funded jobs are listed).",
+    "require_feature(text)": "reviewed 2026-10-12 (Q1284): hidden feature switches (db-deploy run 38297929970 went red without this entry). It raises feature_disabled unless feature_enabled_for(p_key), which reads auth.uid() itself; it returns nothing and decides only about the caller, so it needs no caller check of its own.",
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-05 (Q1284): the global launch switch (one boolean flag), read by every browse surface.",
     "seed_review_hidden(uuid, uuid, uuid)": "reviewed 2026-10-07 (Q552): reads the caller through seed_hidden_from_caller(), a definer it calls; itself takes no person-scoped action and returns a boolean about fixture status only."
   }

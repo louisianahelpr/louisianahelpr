@@ -137,6 +137,7 @@ function livePolicyTexts(): Map<string, string> {
 const CROSS_USER: Record<string, string> = {
   "fn enforce_block_on_message_insert: has_role(NEW.receiver_id)": "trigger body: pg_trigger_depth() > 0",
   "fn enforce_block_on_message_insert: has_role(NEW.sender_id)": "trigger body; also the caller (the bypass requires NEW.sender_id = auth.uid())",
+  "fn feature_enabled_for_user: has_role(p_user_id)": "EXECUTE is service_role only (edge functions pass their verified caller): is_server_context(); feature_enabled_for passes auth.uid(): the caller arm",
   "fn export_my_data: user_may_see_job_address(v_uid)": "EXECUTE is service_role only (v_uid := p_user_id): is_server_context()",
   "fn lift_ban_settlement_review: has_role(p_admin_id)": "EXECUTE is service_role only: is_server_context()",
   "fn rpc_poster_confirm_member_arrival: group_member_slot(_helper_id)": "the caller is the job's poster (checked first in the RPC): the poster arm",

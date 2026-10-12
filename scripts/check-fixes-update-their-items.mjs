@@ -13,7 +13,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
-import { parseCommits, unrecordedItems } from "./lib/fixUpdatesItem.mjs";
+import { filedIn, parseCommits, unrecordedItems } from "./lib/fixUpdatesItem.mjs";
 
 const OPEN = "docs/OPEN.md";
 const args = process.argv.slice(2);
@@ -30,7 +30,9 @@ const git = (a) => execFileSync("git", a, { encoding: "utf8", maxBuffer: 1 << 28
 const openAt = (ref) => { try { return git(["show", `${ref}:${OPEN}`]); } catch { return ""; } };
 
 const base = git(["merge-base", from, to]).trim();
-const commits = parseCommits(git(["log", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e", `${from}..${to}`]));
+const commits = parseCommits(git(["log", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e", `${from}..${to}`]))
+  // What each commit filed (its own new item head lines): naming it is not a claim.
+  .map((c) => ({ ...c, filed: filedIn(git(["show", "--format=", "-U0", c.sha, "--", OPEN, "docs/archive"])) }));
 const rows = unrecordedItems(commits, openAt(base), openAt(to), openAt(from));
 
 const lines = [`### Open items named by this work (Q1150)`, ""];

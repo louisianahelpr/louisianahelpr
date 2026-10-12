@@ -84,6 +84,10 @@ export function unrecordedItems(commits, before, after, tip = before) {
   const rows = [];
   for (const c of commits) {
     for (const id of claimedItems(c)) {
+      // The commit FILED this number (its own patch adds the item's head
+      // line): naming it is filing, not a claim of work. After land.sh moves a
+      // colliding new item, the old number belongs to main's different item.
+      if (c.filed?.has(id)) continue;
       const item = now.get(id);
       if (!item?.open) continue;
       if (was.get(id)?.text !== item.text && onTip.get(id)?.text !== item.text) continue;
@@ -91,6 +95,25 @@ export function unrecordedItems(commits, before, after, tip = before) {
     }
   }
   return rows;
+}
+
+const ADDED_HEAD = /^\+- \[[ ~x.]\] \*\*(Q\d+)\b/;
+const REMOVED_HEAD = /^-- \[[ ~x.]\] \*\*(Q\d+)\b/;
+
+/**
+ * Item numbers a commit files: head lines its queue-file patch (`git show
+ * -U0 <sha> -- docs/OPEN.md docs/archive`) adds and does not also remove (a
+ * moved or edited item shows on both sides).
+ */
+export function filedIn(patch) {
+  const added = new Set(), removed = new Set();
+  for (const l of (patch ?? "").split("\n")) {
+    const a = ADDED_HEAD.exec(l);
+    if (a) added.add(a[1]);
+    const r = REMOVED_HEAD.exec(l);
+    if (r) removed.add(r[1]);
+  }
+  return new Set([...added].filter((q) => !removed.has(q)));
 }
 
 /** Parse `git log --format=%H%x1f%s%x1f%b%x1f%P%x1f%ct%x1e` output (the last two fields are optional). */

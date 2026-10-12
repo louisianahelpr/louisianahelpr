@@ -111,7 +111,13 @@ says more.
   finding; never file a review point you fixed in the same branch (note it on the fixed item instead).
   Every item filed from a review ends with `finding: <reviewer>@<reviewed-sha>#<n>`; two numbers with one
   tag fail openNoDuplicateItems, and an untagged review item fails src/test/reviewFindingsCarryATag.test.ts.
-- A new queue item takes the number `node scripts/queue-count.mjs` prints as
+- **File a new item with a placeholder, not a number (2026-10-12):**
+  `- [ ] **Q?<tag> LOW title.**`, citing it elsewhere as `Q?<tag>`. land.sh
+  gives it the next free number at landing (`scripts/open-assign-numbers.mjs`).
+  Never put a new item's number in a commit subject: numbers move at landing.
+  Run `node scripts/open-assign-numbers.mjs --dry-run` to preview; the queue
+  guards read a placeholder line as unnumbered until it is assigned.
+- Otherwise, a new queue item takes the number `node scripts/queue-count.mjs` prints as
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.
   It reads origin/main (fetch first) and every archive, so a number another

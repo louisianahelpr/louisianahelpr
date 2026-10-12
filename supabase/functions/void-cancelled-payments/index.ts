@@ -1924,16 +1924,26 @@ serve(async (req) => {
       } else if ((ledger ?? []).length > 0) {
         const rows = (ledger ?? []) as Array<{ stripe_refund_id: string | null; stripe_payment_intent_id: string | null; job_id: string | null; customer_id: string | null; amount_cents: number | null }>;
         const keys = rows.filter((r) => r.stripe_refund_id).map((r) => `refund:${r.stripe_refund_id}`);
+        // Q1726: a released hold's notice (`release:<pi>`) already told them about
+        // money Stripe may also list as a Refund of the same amount. The webhook
+        // skips that refund only if the release claim existed when it ran; this
+        // sweep runs 15+ minutes later, so it reads the release notices too.
+        const releaseKeys = [...new Set(rows.filter((r) => r.stripe_payment_intent_id).map((r) => `release:${r.stripe_payment_intent_id}`))];
         const { data: told, error: toldErr } = await supabaseAdmin
-          .from("refund_notices").select("notice_key").in("notice_key", keys).not("notification_id", "is", null);
+          .from("refund_notices").select("notice_key, amount_cents").in("notice_key", [...keys, ...releaseKeys]).not("notification_id", "is", null);
         const toldMissing = !!toldErr && (toldErr.code === "42P01" || toldErr.code === "PGRST205");
         if (toldErr && !toldMissing) {
           defects.record(`untold refund sweep claim read: ${toldErr.message}`);
         } else if (!toldMissing) {
-          const done = new Set(((told ?? []) as Array<{ notice_key: string }>).map((t) => t.notice_key));
+          const toldRows = (told ?? []) as Array<{ notice_key: string; amount_cents: number | null }>;
+          const done = new Set(toldRows.map((t) => t.notice_key));
+          const releasedCents = new Map(
+            toldRows.filter((t) => t.notice_key.startsWith("release:")).map((t) => [t.notice_key.slice("release:".length), Number(t.amount_cents)]),
+          );
           for (const r of rows) {
             const key = `refund:${r.stripe_refund_id}`;
             if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
+            if (r.stripe_payment_intent_id && releasedCents.get(r.stripe_payment_intent_id) === Number(r.amount_cents)) continue;
             const result = await sendRefundNotice(supabaseAdmin, {
               key,
               kind: "refund",

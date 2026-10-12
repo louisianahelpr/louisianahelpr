@@ -123,7 +123,7 @@ describe("a booked job's place and details change only by a request every booked
     // never forces a change through by removing the one Helpr who had not
     // answered (and the settle's write would hit the poster's own lock).
     const posterLapse = departure.search(
-      /SELECT j\.customer_id INTO v_poster FROM public\.jobs j WHERE j\.id = OLD\.job_id FOR UPDATE;\s+IF auth\.uid\(\) IS NOT NULL AND auth\.uid\(\) = v_poster THEN\s+UPDATE public\.job_detail_change_requests\s+SET status = 'expired', decided_at = now\(\)\s+WHERE job_id = OLD\.job_id AND status = 'pending';\s+RETURN OLD;/,
+      /SELECT j\.customer_id INTO v_poster FROM public\.jobs j WHERE j\.id = OLD\.job_id FOR UPDATE;\s+IF auth\.uid\(\) = v_poster THEN\s+UPDATE public\.job_detail_change_requests\s+SET status = 'expired', decided_at = now\(\)\s+WHERE job_id = OLD\.job_id AND status = 'pending';\s+RETURN OLD;/,
     );
     expect(posterLapse).toBeGreaterThan(0);
     expect(posterLapse).toBeLessThan(departure.indexOf("PERFORM public.settle_job_detail_change(v_id);"));

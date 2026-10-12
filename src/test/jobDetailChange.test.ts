@@ -16,14 +16,14 @@
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     CHECK (cardinality(changed_fields) > 0 AND changed_fields <@ ARRAY['title', 'description', 'location', 'materials_note']::text[]), |     CHECK (cardinality(changed_fields) > 0 AND changed_fields <@ ARRAY['title', 'description', 'location', 'materials_note', 'photos']::text[]),
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       IF changed_col IN ('title', 'description', 'location', 'latitude', 'longitude', 'materials_note')\n | IF changed_col IN ('title', 'description', 'location', 'latitude', 'longitude', 'materials_note', 'budget')\n
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   PERFORM set_config('app.detail_change_rpc', '0', true); | PERFORM 1;
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |      v_starts_at)\n  RETURNING id INTO v_id; |      v_starts_at + interval '30 days')\n  RETURNING id INTO v_id;
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     INSERT INTO public.job_detail_change_answers (request_id, helper_id) VALUES (v_id, v_helper); |     NULL;
+ * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |      v_job.materials_note, CASE WHEN 'materials_note' = ANY (v_fields) THEN v_materials END,\n     v_starts_at)\n  RETURNING id INTO v_id; |      v_job.materials_note, CASE WHEN 'materials_note' = ANY (v_fields) THEN v_materials END,\n     v_starts_at + interval '30 days')\n  RETURNING id INTO v_id;
+ * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |     INSERT INTO public.job_detail_change_answers (request_id, helper_id) VALUES (v_id, v_helper); |     NULL;
  * Q1499: a changed address never keeps the old pin, and booked jobs are re-geocoded.
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     NEW.latitude := NULL;\n    NEW.longitude := NULL; |     NULL;
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | CREATE TRIGGER zzzzzz_jobs_location_clears_coords | CREATE TRIGGER aa_jobs_location_clears_coords
  * @mutate supabase/functions/backfill-job-geocode/index.ts | const GEOCODE_STATUSES = ["open", "accepted", "in_progress"]; | const GEOCODE_STATUSES = ["open"];
  * G1: an agreed new address must carry its own map point (a pinless booked job verifies any arrival).
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 | IF false AND v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90
+ * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |     IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 | IF false AND v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END, |          latitude = latitude,
  * H1: an agreed address that geocodes to the same point keeps it (the clear stands aside for the agreed write).
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF current_setting('app.detail_change_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n  IF NEW.location |   IF NEW.location

@@ -138,6 +138,7 @@ export type Database = {
           job_id: string
           job_latitude: number | null
           job_longitude: number | null
+          job_point_void: boolean
           message: string | null
           message_withheld: string | null
           offer_message: string | null
@@ -161,6 +162,7 @@ export type Database = {
           job_id: string
           job_latitude?: number | null
           job_longitude?: number | null
+          job_point_void?: boolean
           message?: string | null
           message_withheld?: string | null
           offer_message?: string | null
@@ -184,6 +186,7 @@ export type Database = {
           job_id?: string
           job_latitude?: number | null
           job_longitude?: number | null
+          job_point_void?: boolean
           message?: string | null
           message_withheld?: string | null
           offer_message?: string | null

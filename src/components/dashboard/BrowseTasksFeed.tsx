@@ -112,6 +112,13 @@ interface BrowseTasksFeedProps {
   recommendedLoading: boolean;
   /** Show ONLY saved jobs — see BrowseTasksActions' bookmark toggle. */
   savedOnly?: boolean;
+  /** The saved-ids read failed and nothing was read, so `savedJobIds` is
+   *  empty for a reason other than "nothing saved" (Q1701). */
+  savedLoadFailed?: boolean;
+  /** Re-reads the saved ids (ErrorState's retry on the saved-only feed). */
+  retrySaved?: () => void;
+  /** That re-read is in flight: the retry button is disabled meanwhile. */
+  savedRetrying?: boolean;
   /** Platform commission percentage, forwarded to each job card. */
   effectiveFee: number;
   handleApplyRequest: (jobId: string) => void;
@@ -174,6 +181,9 @@ export function BrowseTasksFeed({
   recommendedJobs,
   recommendedLoading,
   savedOnly = false,
+  savedLoadFailed = false,
+  retrySaved,
+  savedRetrying = false,
   effectiveFee,
   handleApplyRequest,
   handleDismissRequest,
@@ -464,6 +474,17 @@ export function BrowseTasksFeed({
           onRetry={refresh}
         />
       </div>
+      ) : savedOnly && savedLoadFailed ? (
+        /* Q1701: the saved ids were never read, so an empty list here is a
+           failure, not "Nothing saved yet". */
+        <div className="px-3 pt-4 flex-1 min-h-0 flex">
+          <ErrorState
+            title="We couldn't load your saved jobs."
+            body="Tap Try again. If it sticks, our end is having a hiccup — not yours."
+            onRetry={retrySaved ?? refresh}
+            retryDisabled={savedRetrying}
+          />
+        </div>
       ) : savedOnly && visibleJobs.length === 0 ? (
         /* Saved-only with nothing saved: before the generic empty state, whose
            `filters.filteredJobs` is full (jobs exist, none saved). EmptyState,

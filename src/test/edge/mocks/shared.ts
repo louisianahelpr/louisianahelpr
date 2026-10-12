@@ -86,7 +86,7 @@ export function resetSharedMocks() {
 }
 
 /**
- * Q1654: every POST to `/functions/v1/send-notification-email` an edge
+ * Q1714: every POST to `/functions/v1/send-notification-email` an edge
  * function under test makes through the global `fetch` (the refund notice's
  * email), recorded and answered here instead of reaching the network. The
  * harness installs the interceptor (`installNotificationEmailFetch`) when it

@@ -567,7 +567,7 @@ describe("charge-recurring-visits edge function", () => {
       .map((w) => w.payload as { user_id: string; message: string })
       .find((p) => p.user_id === POSTER_ID);
     expect(notice?.message).toContain("We refunded $96.80");
-    // Q1654: THE refund notice: amount, reference, and the card fee kept.
+    // Q1714: THE refund notice: amount, reference, and the card fee kept.
     expect(notice?.message).toContain("We kept $3.20: the card processor's fee, which can't be returned.");
     expect(notice?.message).toContain("the date changed hands");
   });

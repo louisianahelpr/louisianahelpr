@@ -814,7 +814,7 @@ describe("Q454: a full refund gives the job's gift card back", () => {
       type: "charge.refunded",
       data: { object: { id: `ch_${id}`, payment_intent: "pi_short", amount: 4000, amount_refunded: 4000, currency: "usd", refunds: null } },
     });
-    // Q1654: the refund Stripe lists for the charge; the notice is claimed on it.
+    // Q1714: the refund Stripe lists for the charge; the notice is claimed on it.
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: `re_${id}`, amount: 4000, status: "succeeded", metadata: {} }] });
   }
   const job = { id: "job-g", customer_id: "p", helper_id: "h", title: "Gift job", payment_status: "escrow" };

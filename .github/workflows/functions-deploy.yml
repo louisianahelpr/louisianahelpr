@@ -109,10 +109,14 @@ jobs:
       - name: Determine functions to deploy
         id: targets
         if: steps.precheck.outputs.skip != 'true'
+        # Read through env, not interpolated into the script body: the script
+        # is then the same text on every event, so
+        # src/test/functionsDeployTargets.test.ts can run it for each one.
+        env:
+          MANUAL_INPUT: ${{ github.event.inputs.function_name }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -eo pipefail
-
-          MANUAL_INPUT="${{ github.event.inputs.function_name }}"
 
           # DIFF BASE — this is the whole ballgame.
           #
@@ -135,7 +139,6 @@ jobs:
           # or the ref was force-pushed/reset) and a SHA no longer reachable
           # after a force-push. Both mean "we cannot know what changed", and
           # the only safe answer to that is deploy-all — never "nothing".
-          BEFORE_SHA="${{ github.event.before }}"
           DIFF_BASE=""
           if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
              && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
@@ -157,6 +160,15 @@ jobs:
             fi
             FUNCTIONS="$MANUAL_INPUT"
             echo "Manual deploy: $FUNCTIONS"
+          elif [ "${FORCE_DEPLOY_ALL:-0}" = "1" ]; then
+            # No diff base, so nothing to diff: deploy-all is decided below.
+            # This branch used to fall through to `git diff "" HEAD`, which
+            # exits 128 before the deploy-all fallback is reached, so every
+            # workflow_dispatch without a function name failed here (run
+            # 38285548214, 2026-10-12), as would any push with no usable
+            # before-SHA.
+            CHANGED=""
+            FUNCTIONS=""
           else
             # Auto-detect: which function dirs had file changes in this push?
             # No `|| true` (Q52): a failed diff must not read as "nothing changed".
@@ -381,7 +393,11 @@ jobs:
       # It must never be `continue-on-error` — that would re-create the defect
       # it exists to close (src/test/functionsDeployLanded.test.ts asserts this).
       - name: Verify every deploy actually landed
-        if: always() && steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        # steps.targets.outcome: when choosing the targets itself failed,
+        # nothing was snapshotted or deployed, and this step only added a
+        # second, misleading "cannot read functions-before.json" error to the
+        # red run (38285548214). The job is red either way.
+        if: always() && steps.precheck.outputs.skip != 'true' && steps.targets.outcome == 'success' && steps.targets.outputs.skip_deploy != 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}

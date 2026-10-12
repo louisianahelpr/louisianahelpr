@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-12T18:50Z",
+  "measured_at": "2026-10-12T18:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -37,11 +37,6 @@
       {
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2615,
-        "title": "nightly-red: open-done-when",
         "label": "nightly-red"
       },
       {

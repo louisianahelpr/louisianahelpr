@@ -24,7 +24,7 @@ import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
 // @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
-// @mutate src/pages/post-job/turnoverPrefill.ts |     alreadyPosted: row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""), |     alreadyPosted: row.job_id != null,
+// @mutate src/pages/post-job/turnoverPrefill.ts |   return row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""); |   return row.job_id != null;
 // @mutate supabase/migrations/20261007145950_str_turnover_link_job.sql |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id) ON DELETE SET NULL; |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id);
 
 const ROOT = resolve(__dirname, "../..");

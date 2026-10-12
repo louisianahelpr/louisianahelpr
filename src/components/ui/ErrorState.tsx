@@ -6,8 +6,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
 interface ErrorStateProps {
-  /** Small uppercase serif eyebrow above the title. */
-  eyebrow?: string;
   /** Bold display-italic headline. */
   title?: string;
   /** Supporting sentence under the title. */
@@ -42,7 +40,6 @@ interface ErrorStateProps {
  * Like EmptyState, the caller supplies the flex wrapper that sizes it.
  */
 export function ErrorState({
-  eyebrow = "Hiccup on our end",
   title = "We couldn't load this.",
   // Default body avoids blaming the user's connection — many of the
   // failures we see in error_logs are server-side (RLS regressions, RPC
@@ -76,7 +73,6 @@ export function ErrorState({
       icon={AlertTriangle}
       variant={variant}
       surfaceStyle={surfaceStyle}
-      eyebrow={eyebrow}
       title={title}
       body={body}
       action={

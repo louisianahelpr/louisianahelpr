@@ -135,8 +135,9 @@ const HowItWorksSection = () => {
             right half of the screen empty, which reads as off-centre rather than
             deliberate. */}
         <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-3 text-center sm:text-left">
-          {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
-              since the eyebrow-removal decision, so the "How it works" label
+          {/* No eyebrow. `.text-display-eyebrow` was `display:none` app-wide
+              after the eyebrow-removal decision (rule deleted 2026-10-12,
+              Q1288), so the "How it works" label
               that used to sit here was rendering as nothing — leaving the
               section headed only "Three steps.", which never says what the
               three steps are FOR. The heading below carries it instead, which

@@ -334,7 +334,6 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
           <EmptyState
             variant="inline"
             icon={Home}
-            eyebrow="Nothing on record yet"
             title="No finished jobs yet"
             body="When a job is done it lands here for good — who came out, what it cost, and when. It's your home's permanent service history."
             action={

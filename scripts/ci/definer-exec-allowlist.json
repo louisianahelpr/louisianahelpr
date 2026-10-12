@@ -91,6 +91,7 @@
     "get_user_repeat_hire_percent(uuid)": "client",
     "give_up_series_dates(uuid, date[])": "client",
     "group_member_slot(uuid, uuid)": "policy",
+    "has_pre_verification_wipe()": "client",
     "has_role(uuid, app_role)": "policy",
     "helper_abort_job(uuid, text)": "client",
     "helper_cancel_booking(uuid)": "client",

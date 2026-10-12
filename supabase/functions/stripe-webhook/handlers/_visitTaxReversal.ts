@@ -108,3 +108,48 @@ export async function reverseVisitTaxForRefund(args: {
     return "failed_paged";
   }
 }
+
+/**
+ * Q1730: the refund that drove a recurring visit's tax reversal (above, on
+ * charge.refunded) later FAILED or was canceled. The money stayed with the
+ * platform, but a full reversal may already have taken the tax off Stripe
+ * Tax's filing reports (a partial one was paged for a person to make). Undoing
+ * a reversal is not automatic here: which share was reversed is a person's
+ * call, so ops is paged with the transaction to fix. Never throws.
+ */
+export async function pageVisitTaxForFailedRefund(args: {
+  stripe: Stripe;
+  piId: string | null | undefined;
+  chargeId: string | null | undefined;
+  refundId: string;
+  refundStatus: string;
+  amountCents: number;
+}): Promise<"none" | "paged"> {
+  const { stripe, piId, chargeId, refundId, refundStatus, amountCents } = args;
+  if (!piId) return "none";
+  let txId: string | undefined;
+  try {
+    const pi = await stripe.paymentIntents.retrieve(piId);
+    txId = (pi?.metadata as Record<string, string> | null)?.tax_transaction_id || undefined;
+  } catch (e) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Failed refund: could not check for a recurring-visit tax reversal",
+      message: `Refund ${refundId} turned '${refundStatus}', but its PaymentIntent ${piId} could not be read to see whether it carries a Stripe Tax transaction (${caughtMessage(e)}). If metadata.tax_transaction_id is set, check Stripe Tax for a reversal made for this refund.`,
+      fields: { Refund: refundId, "Payment Intent": piId, Charge: chargeId ?? "—" },
+      oncePerDayKey: `visit-tax-refund-failed-lookup:${refundId}`,
+    });
+    return "paged";
+  }
+  if (!txId) return "none";
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "warning",
+    title: "Failed refund on a taxed recurring visit: its sales tax may be reversed",
+    message: `Refund ${refundId} (${formatExactDollars(amountCents)}) on ${chargeId ?? piId} turned '${refundStatus}': the money stayed with the platform. If Stripe Tax transaction ${txId} was reversed for this refund (reference refund:${chargeId ?? "?"}, or a partial reversal made by hand), the tax is no longer reported as collected: record it again (Stripe Tax > Transactions) or void that reversal.`,
+    fields: { "Tax transaction": txId, Refund: refundId, Charge: chargeId ?? "—", "Payment Intent": piId },
+    oncePerDayKey: `visit-tax-refund-failed:${refundId}`,
+  });
+  return "paged";
+}

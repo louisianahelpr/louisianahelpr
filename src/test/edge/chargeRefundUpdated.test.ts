@@ -10,6 +10,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| removedNow \|\| !!visitNotRepaid; |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| !!visitNotRepaid;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (notRepaid && payerToTell) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (delErr) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   await pageVisitTaxForFailedRefund({ |   void pageVisitTaxForFailedRefund; ({
+ * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!txId) return "none";\n  await postSlackOpsAlert({\n    kind: "money_at_risk",\n    severity: "warning",\n    title: "Failed refund | return "none";\n  await postSlackOpsAlert({\n    kind: "money_at_risk",\n    severity: "warning",\n    title: "Failed refund
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -129,6 +131,31 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     const f = (slackAlerts as Array<{ fields?: Record<string, string> }>)[0]?.fields ?? {};
     expect(f["Ledger row"]).toMatch(/removed by an earlier delivery/);
     expect(JSON.stringify(f)).not.toMatch(/"Ledger row removed":"false"/);
+  });
+
+  // Q1730 (finding lh-money-escrow@dcbbd8299#7): charge.refunded reversed a
+  // taxed recurring visit's Stripe Tax transaction; the refund then failed, so
+  // the money stayed but the tax would no longer be reported. Ops is paged.
+  it("a failed refund on a taxed recurring visit pages ops to undo its tax reversal", async () => {
+    const fn = await load();
+    refundEvent("failed");
+    scenario.reads.jobs = { rows: [] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: { tax_transaction_id: "tax_1" } });
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+    const page = alerts().find((a) => /taxed recurring visit/.test(a.title));
+    expect(page?.message).toContain("tax_1");
+    expect(page?.message).toContain("re_1");
+  });
+
+  it("control: a failed refund with no tax transaction pages nothing about tax", async () => {
+    const fn = await load();
+    refundEvent("failed");
+    scenario.reads.jobs = { rows: [] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: {} });
+    await post(fn);
+    expect(alerts().some((a) => /tax/i.test(a.title))).toBe(false);
   });
 
   it("a refund that SUCCEEDED (or is pending) changes nothing", async () => {

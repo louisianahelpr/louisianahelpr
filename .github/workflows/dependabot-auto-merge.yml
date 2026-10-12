@@ -29,6 +29,11 @@ on:
   workflow_run:
     workflows: ["Test"]
     types: [completed]
+    # Only dependabot's own PR branches (Q1686). Without this filter every
+    # completed Test run on every PR queued a runner job that only exited:
+    # 34 of 298 queued runs on 2026-10-12 10:25Z, ahead of real checks.
+    # The author check below still decides; this only stops the empty runs.
+    branches: ["dependabot/**"]
 
 permissions:
   contents: read

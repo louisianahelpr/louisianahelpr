@@ -462,7 +462,12 @@ test.describe("send message", () => {
 
 test.describe("post a job", () => {
   async function posterPage(browser: import("@playwright/test").Browser) {
-    const ctx = await newUserContext(browser, poster);
+    // Louisiana time, like the slot below (and the J2 journey's contexts). The
+    // form's earliest day is the DEVICE's today (todayLocalISO); on a UTC
+    // runner after 7 PM CT that is already tomorrow, so the CT day slotAhead
+    // picked was disabled ("2026-10-11 is present but not selectable",
+    // prod-audit run 38181023758, 22:35Z start).
+    const ctx = await newUserContext(browser, poster, { timezoneId: "America/Chicago" });
     return { ctx, page: await ctx.newPage() };
   }
 

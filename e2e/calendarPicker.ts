@@ -45,8 +45,11 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+/** The zone every caller's day is computed in, and the one its browser context must run in. */
+export const CALENDAR_ZONE = "America/Chicago";
+
 /** `YYYY-MM-DD` for a Date, in a named time zone (the app stores local dates). */
-export function isoDayIn(at: Date, timeZone = "America/Chicago"): string {
+export function isoDayIn(at: Date, timeZone = CALENDAR_ZONE): string {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" })
       .formatToParts(at)
@@ -64,6 +67,16 @@ export function isoDayIn(at: Date, timeZone = "America/Chicago"): string {
  * skipped.
  */
 export async function pickCalendarDay(page: Page, isoDay: string, opts: { inline?: RegExp } = {}): Promise<void> {
+  // Every caller computes `isoDay` in Louisiana time (isoDayIn), but the app's
+  // calendar disables days before the DEVICE's today. A context left on the
+  // runner's UTC clock disagrees with the caller from 7 PM CT to midnight, and
+  // the day it asks for is disabled (prod-audit run 38181023758). Fail on the
+  // cause, not on the disabled cell. src/test/calendarPickerPinsTheZone.test.ts.
+  const deviceZone = await page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  expect(
+    deviceZone,
+    "pickCalendarDay needs a browser context in America/Chicago (newUserContext(..., { timezoneId: \"America/Chicago\" }))",
+  ).toBe(CALENDAR_ZONE);
   // `inline`: an always-open calendar (Post a Job since 2026-10-08), found by
   // the label that names its group; nothing to open and nothing to close.
   const popover = opts.inline

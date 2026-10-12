@@ -2416,7 +2416,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     scenario.reads.recurring_visit_payments = { rows: [ROW] };
     scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: "2026-09-30", status: "in_progress" }] };
     scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
-    const kick = vi.fn(async () => new Response("{}"));
+    const kick = vi.fn(async (_url: unknown, _init?: unknown) => new Response("{}"));
     vi.stubGlobal("fetch", kick);
     try {
       const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });

@@ -16,6 +16,13 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+
+/**
+ * Q1654: the untold-refund sweep (Part G) looks at refunds made from here on.
+ * Older ones went out before refunds were announced at all; telling those
+ * people now is the owner's call, not this cron's.
+ */
+const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
 
@@ -1864,6 +1871,70 @@ serve(async (req) => {
       }
     }
 
+    // ── Part G: refunds nobody has told the person about (Q1654) ───────────
+    // Every path that makes a refund tells the person itself, right after its
+    // ledger row; the charge.refunded webhook tells them about a Dashboard
+    // refund. A path that stopped between the refund and its notice (a cron
+    // killed at the gateway limit, a worker lost) would leave them untold, so
+    // every hour a refund on the ledger that is 15 minutes old with no
+    // finished notice is sent here (the claim dedupes it against any other
+    // sender). Only refunds made after this sweep shipped: older ones are an
+    // owner decision, not a backfill this cron makes on its own.
+    let untoldRefundsSent = 0;
+    {
+      const from = new Date(Math.max(Date.now() - 7 * 86_400_000, Date.parse(UNTOLD_REFUND_SWEEP_FROM))).toISOString();
+      const until = new Date(Date.now() - 15 * 60_000).toISOString();
+      const { data: ledger, error: ledgerErr } = await supabaseAdmin
+        .from("payment_refunds")
+        .select("stripe_refund_id, stripe_payment_intent_id, job_id, customer_id, amount_cents")
+        .gte("created_at", from)
+        .lte("created_at", until)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (ledgerErr) {
+        defects.record(`untold refund sweep read: ${ledgerErr.message}`);
+      } else if ((ledger ?? []).length > 0) {
+        const rows = (ledger ?? []) as Array<{ stripe_refund_id: string | null; stripe_payment_intent_id: string | null; job_id: string | null; customer_id: string | null; amount_cents: number | null }>;
+        const keys = rows.filter((r) => r.stripe_refund_id).map((r) => `refund:${r.stripe_refund_id}`);
+        const { data: told, error: toldErr } = await supabaseAdmin
+          .from("refund_notices").select("notice_key").in("notice_key", keys).not("notification_id", "is", null);
+        const toldMissing = !!toldErr && (toldErr.code === "42P01" || toldErr.code === "PGRST205");
+        if (toldErr && !toldMissing) {
+          defects.record(`untold refund sweep claim read: ${toldErr.message}`);
+        } else if (!toldMissing) {
+          const done = new Set(((told ?? []) as Array<{ notice_key: string }>).map((t) => t.notice_key));
+          for (const r of rows) {
+            const key = `refund:${r.stripe_refund_id}`;
+            if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
+            const result = await sendRefundNotice(supabaseAdmin, {
+              key,
+              kind: "refund",
+              paymentIntentId: r.stripe_payment_intent_id,
+              amountCents: Number(r.amount_cents),
+              // What was kept is the path's to say; the safety net says only
+              // what came back, to which payment method, and when.
+              keptCents: 0,
+              recipientId: r.customer_id,
+              jobId: r.job_id,
+            });
+            if (result.status === "sent") untoldRefundsSent++;
+            const problem = refundNoticeProblem(result);
+            if (problem) {
+              defects.record(`untold refund ${r.stripe_refund_id}: ${problem}`);
+              await postSlackOpsAlert({
+                kind: "custom",
+                severity: "warning",
+                title: "Money went back to a poster who was not fully told",
+                message: `Refund ${r.stripe_refund_id} (${refundDollars(Number(r.amount_cents))}) for job ${r.job_id ?? "—"}: ${problem}. Tell them by hand.`,
+                fields: { refund_id: r.stripe_refund_id, job_id: r.job_id ?? "—", status: result.status },
+                oncePerDayKey: `refund-notice:${key}`,
+              });
+            }
+          }
+        }
+      }
+    }
+
     return cronResult(
       "void-cancelled-payments",
       {
@@ -1874,6 +1945,7 @@ serve(async (req) => {
         gifts_unfrozen: giftsUnfrozen,
         crew_shares_retried: crewSharesRetried,
         block_fees_retried: blockFeesRetried,
+        untold_refunds_sent: untoldRefundsSent,
         fee_transfers_retried: feeTransfersRetried,
         total: jobs?.length || 0,
         results,

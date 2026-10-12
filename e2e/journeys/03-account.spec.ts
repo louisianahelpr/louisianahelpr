@@ -269,11 +269,12 @@ test(j7, async ({ browser, request, journey }) => {
     await openFromProfile(hp, /^Notifications/, "Notifications");
 
     /**
-     * ESTABLISH THE PRECONDITION. "Daily match digest" is a CHILD switch:
-     * NotificationPreferences.tsx:815 renders it
-     * `disabled={!loaded || !prefs.push_enabled || !prefs.job_matches}`.
-     * With either parent off it is correctly `disabled`, and clicking it can
-     * only ever time out.
+     * ESTABLISH THE PRECONDITION. "Saved Helpr availability nudges" is a
+     * CHILD switch: NotificationPreferences.tsx renders it
+     * `disabled={!loaded || !prefs.push_enabled}`. With the master off it is
+     * correctly `disabled`, and clicking it can only ever time out. (This step
+     * toggled "Daily match digest" until Q1585 removed that choice, owner
+     * 2026-10-12.)
      *
      * This step assumed both parents were on, and that assumption is what kept
      * #1595 red for 221 hours — self-perpetuatingly. `keyboard-focus.spec.ts`
@@ -290,7 +291,7 @@ test(j7, async ({ browser, request, journey }) => {
      * inherit it from whatever ran before. That holds however the account got
      * into this state.
      */
-    for (const parent of ["Push notifications master toggle", "Job Matches push"]) {
+    for (const parent of ["Push notifications master toggle"]) {
       const sw = hp.getByRole("switch", { name: parent });
       await expect(sw, `${parent} never became interactive`).toBeEnabled({ timeout: 30_000 });
       if ((await sw.getAttribute("aria-checked")) !== "true") {
@@ -304,9 +305,10 @@ test(j7, async ({ browser, request, journey }) => {
       }
     }
 
-    const digest = hp.getByRole("switch", { name: "Daily match digest" });
-    await expect(digest, "the digest switch is still disabled — a parent is off").toBeEnabled({ timeout: 30_000 });
-    const was = await digest.getAttribute("aria-checked");
+    const NUDGES = "Saved Helpr availability nudges";
+    const child = hp.getByRole("switch", { name: NUDGES });
+    await expect(child, "the nudges switch is still disabled — its parent is off").toBeEnabled({ timeout: 30_000 });
+    const was = await child.getAttribute("aria-checked");
     /**
      * Wait for the WRITE, never a fixed timeout.
      *
@@ -329,18 +331,18 @@ test(j7, async ({ browser, request, journey }) => {
         { timeout: 60_000 },
       );
     let wrote = savedPref();
-    await digest.click();
-    await expect(digest).not.toHaveAttribute("aria-checked", String(was));
+    await child.click();
+    await expect(child).not.toHaveAttribute("aria-checked", String(was));
     await assertHealthy(hp, "toggle flipped");
     await wrote;
     await hp.reload();
-    await expect(hp.getByRole("switch", { name: "Daily match digest" }), "the toggle did not persist").not.toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
+    await expect(hp.getByRole("switch", { name: NUDGES }), "the toggle did not persist").not.toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
     await journey.milestone(hp, "notification-toggled");
     wrote = savedPref();
-    await hp.getByRole("switch", { name: "Daily match digest" }).click();
+    await hp.getByRole("switch", { name: NUDGES }).click();
     await wrote;
     await hp.reload();
-    await expect(hp.getByRole("switch", { name: "Daily match digest" }), "the toggle was not restored").toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
+    await expect(hp.getByRole("switch", { name: NUDGES }), "the toggle was not restored").toHaveAttribute("aria-checked", String(was), { timeout: 30_000 });
   });
 
   await test.step("poster saves the Helpr, finds them in Saved Helprs, removes them", async () => {
@@ -352,7 +354,7 @@ test(j7, async ({ browser, request, journey }) => {
      * page.goto inside openFromProfile tore the page down first: in e2e-journeys
      * run 35905284660 (WebKit) the trace shows the POST with status -1, the
      * API gateway logged no POST from that browser at all, and Saved Helprs
-     * rendered "1 saved" without Hallie. Same class as the digest toggle above.
+     * rendered "1 saved" without Hallie. Same class as the notification toggle above.
      * Listener registered BEFORE the click, or a fast response lands first.
      */
     const favoriteWrite = (method: "POST" | "DELETE") =>

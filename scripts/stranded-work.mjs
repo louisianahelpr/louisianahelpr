@@ -103,7 +103,7 @@ export function localInventory(git, mainIndex, { cwdOf = defaultCwds } = {}) {
  */
 export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now() } = {}) {
   const out = [];
-  const open = gh(["pr", "list", "--state", "open", "--limit", "200", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
+  const open = gh(["pr", "list", "--state", "open", "--limit", "1000", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
   // A branch an open PR carries is tracked by that PR (and by the stale-PR check below).
   const openHeads = new Set(open.map((p) => `origin/${p.headRefName}`));
   for (const name of git(["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]).split("\n").filter(Boolean)) {

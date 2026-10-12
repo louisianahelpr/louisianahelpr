@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-12T17:39:58.703Z",
-  "guards": 1696,
-  "registered": 1696,
+  "generated": "2026-10-12T18:30:46.504Z",
+  "guards": 1709,
+  "registered": 1709,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/openAssignNumbers.test.ts",
     "src/test/restoreChipInRowFlow.test.tsx"
   ],
   "classD_selfReferential": [
@@ -149,6 +150,15 @@
       "module": "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx",
       "tests": [
         "src/components/dashboard/jobDetailDialog/JobStatTiles.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/JobDetailDialog.tsx"
+      ]
+    },
+    {
+      "module": "src/components/dashboard/JobPosterCard.tsx",
+      "tests": [
+        "src/components/dashboard/JobPosterCard.test.tsx"
       ],
       "parents": [
         "src/components/dashboard/JobDetailDialog.tsx"

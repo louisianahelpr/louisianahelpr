@@ -218,6 +218,18 @@ jargon. The lead reads `node scripts/owner-needed.mjs list` for the morning
 pop-up; `answer <issue> <choice>` closes one. Mention the issue number in your
 report.
 
+## GitHub API budget (owner, 2026-10-12)
+Every agent, the lead and the land queue share ONE GitHub REST limit (5000
+calls an hour). On 2026-10-12 at 23:37Z it ran out and land.sh could not open
+a PR for several minutes, after a `stranded-work.mjs --remote` scan made a
+call for each branch and each PR.
+- No `stranded-work.mjs --remote` scans, and no loops of gh API calls per
+  branch or per PR, from agents. For branch state, use `git ls-remote` or
+  `git fetch`: the git protocol does not count against the REST limit.
+- Before any gh work that makes more than one call, run
+  `~/.lh-tools/gh-budget.sh || exit 0`. It exits 1 when fewer than 800 calls
+  are left; stop then, and say so in your report.
+
 ## Waiting (no orphan shells)
 Never run `scripts/vacuity/index.mjs` in the SHARED main checkout at all (lead included), only inside your own worktree: `--only` does NOT limit what it mutates (it still runs every registration touching changed files; a Q194 `--only` run mutated 61 in ~25 min). A run MUTATES source files for many minutes, and if it is killed mid-run the mutation stays (2026-09-23: `/terms` became a redirect and `/settings` pointed at /jobs in the main tree). After killing any process, confirm with `ps` that it is gone and `git status` that nothing it touched is left modified.
 Wait with ONE `run_in_background` command and let its notification wake you.

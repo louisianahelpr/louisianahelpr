@@ -742,6 +742,36 @@
       "sha": "98ed9d382e64a268143c594f42a94efbb5ae0315",
       "reason": "Bot refresh (loading-states-refresh) that cannot land: its re-measure on prod reports 20 loading-state jumps that src/test/loadingStateShape.test.ts refuses (Vitest shard 1/6 on 98ed9d382). Q1654 decides it; the bot moves this sha on its next run, which re-flags it here until then.",
       "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2875",
+      "sha": "1250cd9c4f1566fa33e931f3855a7b900990f7f4",
+      "reason": "Q1590 team-thread spec: both leftover lines are on main in e2e/prod-audit/team-thread.spec.ts in a newer form (the scrollWidth fit check at :60, and the service-role DELETE at :123, which now adds &select=id).",
+      "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
+    },
+    {
+      "id": "pr:2874",
+      "sha": "2060009de0b0d8855c9811a750ed074c804bdd66",
+      "reason": "gh list whole-set (Q1693): main replaced the gh pr list calls this raised to --limit 1000 with REST paging (scripts/stranded-work.mjs reads every closed PR from the REST pulls list; land.sh no longer calls gh pr list), so its 4 leftover lines and their guard target code that is gone.",
+      "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
+    },
+    {
+      "id": "pr:2869",
+      "sha": "a7b835696cc3af362e422e0b85f8e4f869e49737",
+      "reason": "lane5 alerts (Q1604/Q1634/Q1643/Q1645): the Signup.completeProfile change (Q1643) is on main verbatim; the Sentry host-script drop is on main as the broader SHIPPED_SCRIPT_SCHEME rule (src/lib/sentry.ts); the saved-only empty state moved to SavedOnlyState in the small3 train, so its BrowseTasksFeed comment and @mutate target text that is gone.",
+      "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
+    },
+    {
+      "id": "pr:2868",
+      "sha": "404c89edcece43a5283927607bf123259c362f41",
+      "reason": "Q1634 iabjs filter: main drops ANY stack whose frames are all on a non-shipped scheme (src/lib/sentry.ts SHIPPED_SCRIPT_SCHEME, whose comment names iabjs://navigation_performance_logger_android), a superset of this PR's iabjs-only regex.",
+      "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
+    },
+    {
+      "id": "pr:2725",
+      "sha": "12b49c19903f82a8ec966d35291cc9659bd70870",
+      "reason": "land-fast: main's scripts/lib/landGh.mjs is a later rewrite (head-filtered open-PR lookup, mergeable_state verdicts); the 3 leftover lines are this branch's older listing loop, CLI entry and a @mutate on code main no longer has.",
+      "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
     }
   ]
 }

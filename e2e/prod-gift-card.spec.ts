@@ -311,7 +311,7 @@ test.describe.serial("gift card journey against production", () => {
       expect(Number(meta.amount_cents), "Stripe carried a different face value than the gift row").toBe(faceCents);
       expect(donation.payment_intent, "the gift row names a different PaymentIntent than Stripe").toBe(minted.stripe_payment_intent_id);
       const fee = Number(donation.amount_subtotal) - faceCents;
-      // The donor pays face + the processing floor (posterServiceFeeCents at 0%).
+      // The donor pays face + the processing floor (posterCardCostFeeCents).
       expect(fee, `the donor was charged ${donation.amount_subtotal}¢ for a ${faceCents}¢ gift`).toBeGreaterThan(0);
       expect(fee, "the donor's fee is more than a processing floor").toBeLessThan(Math.ceil(faceCents * 0.1));
     } else {

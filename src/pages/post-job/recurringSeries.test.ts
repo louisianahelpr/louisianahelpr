@@ -16,7 +16,7 @@ const base: BuildJobInsertPayloadInput = {
   estimatedHours: "2", budget: "50", materialsNote: null,
   isRecurring: false, recurrenceInterval: "weekly", recurrenceEndDate: "",
   isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",
-  platformFee: 15, salesTaxRate: 0, offerToHelperId: null,
+  salesTaxRate: 0, offerToHelperId: null,
 };
 
 describe("buildJobInsertPayload — recurring series", () => {

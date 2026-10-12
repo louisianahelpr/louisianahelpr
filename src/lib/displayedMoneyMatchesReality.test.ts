@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { formatPrice, formatPriceExact, formatPriceFloor } from "./format";
-import { posterServiceFeeCents } from "./posterFees";
+import { posterCardCostFeeCents } from "./posterFees";
 import { helperTakeHomeDollars } from "./helperEarnings";
 
 /**
@@ -24,29 +24,29 @@ import { helperTakeHomeDollars } from "./helperEarnings";
  *   GROSS BUDGET     → `formatPrice`. Nobody is owed it; it rounds.
  *
  * Every assertion below is computed through the same authority that charges the
- * money (`posterServiceFeeCents`, `helperTakeHomeDollars`) rather than against a
+ * money (`posterCardCostFeeCents`, `helperTakeHomeDollars`) rather than against a
  * transcribed constant, so the test cannot agree with a formatter that has
  * drifted away from the ledger.
  */
 
 describe("a quoted charge equals the charge", () => {
   it("shows the cents the poster is actually billed", () => {
-    // The live case QA hit. $120 budget, free tier (12%), no urgent bonus, no
-    // first-post onboarding fee:
+    // The live case QA hit was a $120 budget. Since 2026-10-11 (owner) the
+    // poster's service fee is Stripe's card cost only, no tier percent:
     //   budget            $120.00
-    //   + service fee     $ 14.40   (12% of $120, floored at Stripe's cost)
-    //   = total charge    $134.40
+    //   + service fee     $  3.90   (covers card processing on $123.90)
+    //   = total charge    $123.90
     const budgetCents = 12_000;
-    const feeCents = posterServiceFeeCents(budgetCents, 12, 0);
-    expect(feeCents).toBe(1_440); // the tier percent wins over the Stripe floor
+    const feeCents = posterCardCostFeeCents(budgetCents, 0);
+    expect(feeCents).toBe(390);
     const totalCharge = (budgetCents + feeCents) / 100;
-    expect(totalCharge).toBeCloseTo(134.4, 10);
+    expect(totalCharge).toBeCloseTo(123.9, 10);
 
-    expect(formatPrice(totalCharge)).toBe("134"); // the shipped bug: 40c short
-    expect(formatPriceExact(totalCharge)).toBe("134.40");
+    expect(formatPrice(totalCharge)).not.toBe("123.90"); // the shipped bug: a rounded total
+    expect(formatPriceExact(totalCharge)).toBe("123.90");
   });
 
-  it("round-trips to the exact cents Stripe moves, across the whole fee ladder", () => {
+  it("round-trips to the exact cents Stripe moves, across a sweep of budgets", () => {
     // The real guard: reconstruct cents FROM THE RENDERED STRING and require it
     // to equal what create-payment charges. A formatter that drops, pads or
     // rounds a cent fails here for some budget in this sweep.
@@ -59,9 +59,9 @@ describe("a quoted charge equals the charge", () => {
     let casesChecked = 0;
 
     for (let budgetCents = 2_500; budgetCents <= 60_000; budgetCents += 137) {
-      for (const feePercent of [12, 11, 10, 8]) {
+      {
         for (const urgentCents of [0, 500, 1_250]) {
-          const feeCents = posterServiceFeeCents(budgetCents, feePercent, urgentCents);
+          const feeCents = posterCardCostFeeCents(budgetCents, urgentCents);
           const chargedCents = budgetCents + feeCents + urgentCents;
           const totalCharge = chargedCents / 100;
 

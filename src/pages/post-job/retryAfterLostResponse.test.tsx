@@ -178,7 +178,6 @@ function params(overrides: Partial<UseJobSubmitParams> = {}): UseJobSubmitParams
     helpersNeeded: "1",
     isUrgent: false,
     urgentFee: "",
-    platformFee: 10,
     salesTaxRate: 0,
     offerToHelperId: null,
     offerResponseHours: 24,

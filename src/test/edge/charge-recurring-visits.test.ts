@@ -79,7 +79,7 @@
 //   ME-014: tax charged on a visit never reaches Stripe Tax's filing reports.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
 //   ME-014: the fee floor ignores the tax on the same charge.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | posterCardCostFeeCents(budgetCents, taxCents); | posterCardCostFeeCents(budgetCents, 0);
 // Ended series: dropping the ended check funds a gap (or any date) after the series ended.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.series_ended_on) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
@@ -130,6 +130,15 @@ import { scenario, resetSupabaseMock, type TableResult } from "./mocks/supabase"
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
+import { posterCardCostFeeCents } from "../../../supabase/functions/_shared/posterFees";
+import { TIER_FEE_PERCENT } from "../../../supabase/functions/_shared/helperFees";
+
+/**
+ * What the default $100 visit charges: the budget plus the poster's service
+ * fee, which is Stripe's card cost only since 2026-10-11 (owner; it was the
+ * poster's tier percent, 12% = $112.00, before). Derived, never typed.
+ */
+const VISIT_TOTAL_CENTS = 10_000 + posterCardCostFeeCents(10_000);
 
 const CRON_SECRET = "cron-secret";
 
@@ -267,7 +276,7 @@ function seedHappyPath() {
   wireJobsReads({ series: { rows: [seriesParent()] } });
   wireHolds([{ id: HOLD_ID, visit_date: VISIT_DATE, helper_id: HELPER_ID }]);
   scenario.reads.profiles = {
-    rows: [{ email: "poster@example.com", subscription_tier: null, subscription_expires_at: null }],
+    rows: [{ email: "poster@example.com" }],
   };
   // The booking notification inserts TWO rows and now checks that two came
   // back; the mock's default single-row answer would read as a half-delivery.
@@ -400,7 +409,7 @@ describe("charge-recurring-visits edge function", () => {
     wireJobsReads({ series: { rows: [seriesParent({ recurrence_days: [3] })] } });
     wireHolds([{ id: "hold-wed", visit_date: "2026-09-02", helper_id: HELPER_ID }]);
     scenario.reads.profiles = {
-      rows: [{ email: "poster@example.com", subscription_tier: null, subscription_expires_at: null }],
+      rows: [{ email: "poster@example.com" }],
     };
     scenario.writeSelectRows.notifications = [{ id: "n1" }, { id: "n2" }];
     scenario.rpc.are_users_blocked = false;
@@ -970,7 +979,7 @@ describe("charge-recurring-visits edge function", () => {
     ) as { fields?: Record<string, string> } | undefined;
     expect(critical).toBeDefined();
     expect(critical?.fields?.visitDate).toBe(VISIT_DATE);
-    expect(critical?.fields?.amountCents).toBe("11200");
+    expect(critical?.fields?.amountCents).toBe(String(VISIT_TOTAL_CENTS));
     // The helper is still told not to head out — that fact is true either way.
     const notified = scenario.writes
       .filter((w) => w.table === "notifications" && w.op === "insert")
@@ -992,7 +1001,7 @@ describe("charge-recurring-visits edge function", () => {
     // A Stripe PaymentIntent, not a recurring_visit_payments row: its status is
     // built by a call so the fixture-schema scan (which grades row literals by
     // their distinctive columns) does not read it as that table's status.
-    id: "pi_day1_unbooked", status: String("succeeded"), amount: 11200, currency: "usd", metadata: visitMeta(),
+    id: "pi_day1_unbooked", status: String("succeeded"), amount: VISIT_TOTAL_CENTS, currency: "usd", metadata: visitMeta(),
     latest_charge: { id: "ch_day1", amount_refunded: 0 }, ...over,
   });
 
@@ -1022,7 +1031,7 @@ describe("charge-recurring-visits edge function", () => {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "adopted_amount_mismatch", "held")) |             ([] as string[])
   // @mutate supabase/functions/charge-recurring-visits/index.ts |     message: cause === "held"\n      ? |     message: false\n      ?
   it("Q1337: an adopted earlier charge whose amount or currency differs from this visit is neither booked nor charged again; it pages", async () => {
-    for (const over of [{ amount: 10900 }, { amount: 11200, currency: "cad" }]) {
+    for (const over of [{ amount: 10900 }, { amount: VISIT_TOTAL_CENTS, currency: "cad" }]) {
       resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
       const fn = await loadConfigured();
       seedHappyPath();
@@ -1037,7 +1046,7 @@ describe("charge-recurring-visits edge function", () => {
         (a) => (a as { title?: string }).title === "Recurring visit: earlier charge does not match this visit",
       ) as { severity?: string; fields?: Record<string, string> } | undefined;
       expect(page?.severity).toBe("critical");
-      expect(page?.fields?.expectedAmountCents).toBe("11200");
+      expect(page?.fields?.expectedAmountCents).toBe(String(VISIT_TOTAL_CENTS));
       expect(page?.fields?.paymentIntent).toBe("pi_day1_unbooked");
       // Both sides are told the date is not booked; the poster is not told
       // their card failed (it did not).
@@ -1062,7 +1071,7 @@ describe("charge-recurring-visits edge function", () => {
       seedHappyPath();
       stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent()], has_more: false });
       if (refundRead === "throws") stripeMock.refunds.list.mockRejectedValue(new Error("timed out"));
-      else stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_x", status: refundRead, amount: 11200 }] });
+      else stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_x", status: refundRead, amount: VISIT_TOTAL_CENTS }] });
       const res = await runOn(fn, "2026-09-02");
       const b = await body(res);
       expect(insertedVisits(), refundRead).toHaveLength(0);
@@ -1094,8 +1103,8 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     stripeMock.paymentIntents.list.mockResolvedValue({ data: [
-      priorIntent({ id: "pi_refunded_old", created: 100, latest_charge: { id: "ch_o", amount_refunded: 11200 } }),
-      priorIntent({ id: "pi_refunded_new", created: 200, latest_charge: { id: "ch_n", amount_refunded: 11200 } }),
+      priorIntent({ id: "pi_refunded_old", created: 100, latest_charge: { id: "ch_o", amount_refunded: VISIT_TOTAL_CENTS } }),
+      priorIntent({ id: "pi_refunded_new", created: 200, latest_charge: { id: "ch_n", amount_refunded: VISIT_TOTAL_CENTS } }),
     ], has_more: false });
     await runOn(fn, "2026-09-02");
     expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
@@ -1109,7 +1118,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     stripeMock.paymentIntents.list.mockResolvedValue({ data: [
-      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: 11200 } }),
+      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: VISIT_TOTAL_CENTS } }),
     ], has_more: false });
     // Stripe replays the refunded intent (still `succeeded`).
     stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_refunded", status: "succeeded" });
@@ -1141,7 +1150,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     stripeMock.paymentIntents.list.mockResolvedValue({ data: [
-      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: 11200 } }),
+      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: VISIT_TOTAL_CENTS } }),
       priorIntent({ id: "pi_old_claim", metadata: visitMeta({ hold_id: "hold-old" }) }),
     ], has_more: false });
     await runOn(fn, "2026-09-02");
@@ -1536,6 +1545,48 @@ describe("charge-recurring-visits edge function", () => {
     expect(insertedVisits()).toHaveLength(0);
   });
 
+  // CLASS (owner, 2026-10-11): every NEW recurring visit charges the poster
+  // Stripe's card cost and nothing more, whatever their tier; it was their
+  // tier percent of the budget before. Twin of create-payment's "poster
+  // checkout charges the card cost only, on every tier" (the inventory in
+  // src/test/posterCheckoutChargesCardCostOnly.test.ts requires both).
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const feePercent = paidRow ? Number(paidRow.fee_percent) : POSTER_SERVICE_FEE_PERCENT; | const feePercent = paidRow ? Number(paidRow.fee_percent) : 12;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const computedFeeCents = posterCardCostFeeCents(budgetCents, taxCents); | const computedFeeCents = Math.max(posterCardCostFeeCents(budgetCents, taxCents), Math.round(budgetCents * 0.12));
+  it("a recurring visit charges the poster the card cost only, on every tier (owner, 2026-10-11)", async () => {
+    let checked = 0;
+    // Derived from the ladder (never hand-listed), plus a row with no tier.
+    for (const tier of [...Object.keys(TIER_FEE_PERCENT), null]) {
+      // Off-session ($100 visit) and parked on-session ($300 visit) both.
+      for (const budget of [100, 300]) {
+        resetSupabaseMock();
+        resetStripeMock();
+        const fn = await loadConfigured();
+        seedHappyPath();
+        wireJobsReads({ series: { rows: [seriesParent({ budget })] } });
+        scenario.reads.profiles = {
+          rows: [{ email: "poster@example.com", subscription_tier: tier, subscription_expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }],
+        };
+        if (budget >= 300) wireVisitPayments({});
+        await runOn(fn, "2026-09-01");
+        const want = posterCardCostFeeCents(budget * 100, 0);
+        if (budget < 300) {
+          const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
+          expect(charge.amount, `tier ${tier}`).toBe(budget * 100 + want);
+          const visit = insertedVisits()[0].payload as Record<string, unknown>;
+          expect(visit.customer_fee_amount, `tier ${tier}`).toBe(want / 100);
+          expect(visit.platform_fee_percent, `tier ${tier}`).toBe(0);
+        } else {
+          const row = visitPaymentWrites("insert")[0].payload as Record<string, unknown>;
+          expect(row.fee_cents, `tier ${tier} parked`).toBe(want);
+          expect(row.fee_percent, `tier ${tier} parked`).toBe(0);
+        }
+        checked++;
+      }
+    }
+    expect(checked).toBe((Object.keys(TIER_FEE_PERCENT).length + 1) * 2);
+    expect(checked, "floor: no tiers derived").toBeGreaterThanOrEqual(12);
+  });
+
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,
   it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
     const fn = await loadConfigured();
@@ -1551,12 +1602,11 @@ describe("charge-recurring-visits edge function", () => {
     expect(args).toEqual({ calculation: "taxcalc_1", reference: "pi_day1" });
     expect(opts.idempotencyKey).toBe("recurring-visit-tax:pi_day1");
 
-    // $2 labor + $0.20 tax: the Stripe-cost floor binds, and is computed on $2.20.
-    const { posterServiceFeeCents, posterFeePercentForTier } = await import("../../../supabase/functions/_shared/posterFees.ts");
-    const pct = posterFeePercentForTier(null, null);
+    // $2 labor + $0.20 tax: the card-cost fee is computed on $2.20.
+    const { posterCardCostFeeCents } = await import("../../../supabase/functions/_shared/posterFees.ts");
     const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
-    expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
-    expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
+    expect(posterCardCostFeeCents(200, 20)).not.toBe(posterCardCostFeeCents(200, 0));
+    expect(charge.amount).toBe(200 + 20 + posterCardCostFeeCents(200, 20));
     // The visit row's rate is a FRACTION (20 / 200 = 0.1): the CHECK
     // ck_jobs_sales_tax_rate_range admits 0..1, and the percent (10) it wrote
     // would have failed this insert after the charge.

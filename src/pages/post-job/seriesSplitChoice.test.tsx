@@ -34,7 +34,7 @@ const base: BuildJobInsertPayloadInput = {
   isRecurring: true, recurrenceInterval: "weekly", recurrenceEndDate: "",
   recurrenceDays: [1, 3], recurrenceWeeks: 4,
   isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",
-  platformFee: 15, salesTaxRate: 0, offerToHelperId: null,
+  salesTaxRate: 0, offerToHelperId: null,
 };
 
 const wrap = (ui: React.ReactNode) =>

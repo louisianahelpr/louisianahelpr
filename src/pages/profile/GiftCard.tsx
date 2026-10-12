@@ -46,7 +46,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
-import { posterServiceFeeCents } from "@/lib/posterFees";
+import { posterCardCostFeeCents } from "@/lib/posterFees";
 import { formatPrice } from "@/lib/format";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
@@ -135,11 +135,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     rawAmount == null || !Number.isFinite(rawAmount) ? rawAmount : Math.round(rawAmount * 100) / 100;
   // What the donor is ACTUALLY charged, derived from the same function the
   // server bills with — `create-gift-card-checkout` does
-  // `posterServiceFeeCents(amountCents, 0)` and charges face + fee as one line.
+  // `posterCardCostFeeCents(amountCents)` and charges face + fee as one line.
   //
   // The screen used to show the face value only, under a hand-typed sentence
   // that read "a card-processing fee (2.9% + 30c) is added at checkout". That
-  // formula is WRONG: with feePercent 0 the fee is Stripe's cost GROSSED UP by
+  // formula is WRONG: the fee is Stripe's cost GROSSED UP by
   // /(1 - 2.9%), because the fee is itself part of the charge Stripe takes its
   // cut of. On a $50 gift the copy implied $51.75 and the real charge was
   // $51.81; at the $10 minimum the surcharge is 6.10%, not 3.2%. Deriving it
@@ -150,7 +150,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     effectiveAmount != null && Number.isFinite(effectiveAmount) && effectiveAmount > 0
       ? Math.round(effectiveAmount * 100)
       : null;
-  const giftFeeCents = giftAmountCents == null ? null : posterServiceFeeCents(giftAmountCents, 0);
+  const giftFeeCents = giftAmountCents == null ? null : posterCardCostFeeCents(giftAmountCents);
   const giftTotalCents =
     giftAmountCents == null || giftFeeCents == null ? null : giftAmountCents + giftFeeCents;
 

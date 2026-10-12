@@ -174,8 +174,6 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
-  const [platformFee, setPlatformFee] = useState<number | null>(null);
-  const [customerFee, setCustomerFee] = useState<number | null>(null);
   // One-time account-setup fee — mirrors the edge function (create-payment
   // action=escrow), which adds a "One-time Account Setup" line item of
   // onboarding_fee_cents the FIRST time a poster funds a job. We must show
@@ -270,8 +268,6 @@ export function usePostJobForm() {
     profile,
     saveDraft,
     flushDraft,
-    setPlatformFee,
-    setCustomerFee,
     setOnboardingFeeCents,
     setOpenJobCount,
     setOnboardingFeePaid,
@@ -398,7 +394,6 @@ export function usePostJobForm() {
     helpersNeeded,
     isUrgent,
     urgentFee,
-    platformFee,
     salesTaxRate,
     offerToHelperId,
     offerResponseHours,
@@ -436,7 +431,6 @@ export function usePostJobForm() {
     budget,
     isUrgent,
     urgentFee,
-    customerFee,
     onboardingFeePaid,
     onboardingFeeCents,
     category,
@@ -604,7 +598,6 @@ export function usePostJobForm() {
     // derived values
     budgetNum,
     urgentFeeNum,
-    customerFee,
     customerFeeAmount,
     urgentCardFeeAmount,
     onboardingFeeAmount,

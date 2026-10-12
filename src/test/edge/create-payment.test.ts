@@ -29,6 +29,8 @@ import {
 } from "./mocks/supabase";
 import { rateLimitState, resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { urgentBonusCardFeeCents } from "../../../supabase/functions/_shared/stripeFees";
+import { posterCardCostFeeCents } from "../../../supabase/functions/_shared/posterFees";
+import { TIER_FEE_PERCENT } from "../../../supabase/functions/_shared/helperFees";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -470,8 +472,7 @@ describe("create-payment edge function", () => {
       scenario.reads.platform_settings = {
         rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 200 }],
       };
-      // Poster fee now derives from the poster's OWN tier, not the global fallback.
-      // Pro tier = 10%, so the $10 service-fee assertion below still holds.
+      // A Pro poster: the tier no longer prices posting (owner, 2026-10-11).
       scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }] };
       stripeMock.checkout.sessions.create.mockResolvedValue({
         id: "cs_new",
@@ -492,12 +493,13 @@ describe("create-payment edge function", () => {
       expect(args.automatic_tax).toEqual({ enabled: true });
       // job budget line item is $100 → 10000 cents
       expect(args.line_items[0].price_data.unit_amount).toBe(10000);
-      // Pro-tier 10% customer fee → a $10 service-fee line item (1000 cents)
+      // Service fee = Stripe's card cost on $100 + the fee = $3.30 (was the
+      // Pro tier's 10% = $10.00 before 2026-10-11).
       const feeItem = args.line_items.find(
         (li: { price_data: { product_data: { name: string } } }) =>
           li.price_data.product_data.name === "Service fee",
       );
-      expect(feeItem.price_data.unit_amount).toBe(1000);
+      expect(feeItem.price_data.unit_amount).toBe(330);
       // poster already paid onboarding fee → no setup line item
       expect(
         args.line_items.some(
@@ -808,7 +810,7 @@ describe("create-payment edge function", () => {
           (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Service fee",
         );
         const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
-        // The whole Service fee line (12% + the 45c card fee) is what customer_fee_amount records.
+        // The whole Service fee line (card cost + the 45c bonus card fee) is what customer_fee_amount records.
         expect(stamp.customer_fee_amount).toBe(service.price_data.unit_amount / 100);
         const total = args.line_items.reduce((s: number, li: { price_data: { unit_amount: number } }) => s + li.price_data.unit_amount, 0);
         const budgetCents = args.line_items[0].price_data.unit_amount;
@@ -830,9 +832,13 @@ describe("create-payment edge function", () => {
         // Covered...
         expect(collected).toBeGreaterThanOrEqual(stripeCost);
         // ...and not twice: the old double-count overshot by the whole card fee ($7.47).
-        // Pro tier 10% of $20 = 200 (the floor no longer wins), plus the bonus's
-        // own card fee folded into the same line (owner, 2026-10-09) — once.
-        expect(amount("Service fee")).toBe(200 + urgentBonusCardFeeCents(25000));
+        // The card-cost fee is lowered by the bonus card fee it already
+        // carries, then the bonus card fee is folded into the same line
+        // (owner, 2026-10-09) — once.
+        const card = urgentBonusCardFeeCents(25000);
+        expect(amount("Service fee")).toBe(posterCardCostFeeCents(2000, 25000 + card, card) + card);
+        // No more than rounding slack above Stripe's real cost on the charge.
+        expect(collected - stripeCost).toBeLessThanOrEqual(1);
         expect(amount("Urgent bonus card fee")).toBe(0);
       });
 
@@ -871,133 +877,105 @@ describe("create-payment edge function", () => {
       });
     });
 
-    // ── Poster fee fallback when the poster's PROFILE READ FAILS ──────────
+    // ── CLASS: a poster checkout charges Stripe's card cost and nothing more ─
     //
-    // The charge-side twin of release-payout's "fee fallback on a failed tier
-    // read". `create-payment` resolves the poster's service fee from their own
-    // tier; when that profile read errors it has to fall back to SOMETHING, and
-    // the number it picks is the number a real card is charged — there is no
-    // later re-resolution to correct it the way there is on the payout side.
+    // Owner, 2026-10-11 (pop-up): "remove the service fee for posters bc right
+    // now I'm worried no one will post when they can easily post for free on
+    // Facebook." The poster pays Stripe's real card cost on the charge, on
+    // EVERY tier (and when the tier cannot be read at all); the Helpr's tier
+    // commission is unchanged. Before this, the Service fee line was the
+    // poster's tier percent (12/11/10/9/8) of the budget.
     //
-    // It must be `DEFAULT_TIER_FEE_PERCENT` (the advertised free rate, 12), not
-    // `platform_settings.customer_fee_percent`. The stored global is 10, so the
-    // old fallback under-charged every free-tier poster by two points of budget
-    // and the shortfall is not clawable after the fact — whereas over-charging
-    // a discounted poster is refundable. Same principle the helper side now
-    // follows: an unexpected value must never under-charge the platform.
-    describe("poster fee fallback on a failed tier read", () => {
-      /** Error ONLY the tier read; leave any other `profiles` read healthy. */
-      function failPosterTierRead() {
-        const healthy = scenario.reads.profiles;
-        scenario.reads.profiles = {
-          ...healthy,
-          selectOverrides: [
-            {
-              includes: "subscription_tier",
-              result: { error: { message: "poster tier read boom" } },
-            },
-          ],
-        };
-      }
+    // src/test/posterCheckoutChargesCardCostOnly.test.ts inventories every
+    // Stripe charge site in supabase/functions and requires this describe (and
+    // its recurring-visit twin) to exist for the poster-job ones.
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = 12;
+    // @mutate supabase/functions/_shared/posterFees.ts |   return feeCents;\n} |   return Math.max(feeCents, Math.round(budgetCents * 0.12));\n}
+    describe("poster checkout charges the card cost only, on every tier (owner, 2026-10-11)", () => {
+      const FUTURE = new Date(Date.now() + 30 * 864e5).toISOString();
+      const PAST = new Date(Date.now() - 864e5).toISOString();
 
-      function seedEscrowJob() {
+      function seedEscrowJob(budget: number, profileRow: Record<string, unknown> | null) {
+        resetSupabaseMock();
+        stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [
-            {
-              id: "job-fb",
-              customer_id: POSTER.id,
-              budget: 200,
-              category: "cleaning",
-              title: "Fallback job",
-              payment_status: "unpaid",
-            },
-          ],
+          rows: [{ id: "job-cc", customer_id: POSTER.id, budget, category: "cleaning", title: "Card cost job", payment_status: "unpaid" }],
         };
-        // The global is deliberately left at the legacy 10 so this test keeps
-        // proving the code no longer reads it, even if platform_settings is
-        // later retuned to 12 in prod.
+        // The global is deliberately left at the legacy 10: nothing may read it.
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }],
         };
-        scenario.reads.profiles = {
-          rows: [{ onboarding_fee_paid: true, subscription_tier: "free", subscription_expires_at: null }],
-        };
-        stripeMock.checkout.sessions.create.mockResolvedValue({
-          id: "cs_fb",
-          url: "https://checkout.stripe.test/cs_fb",
-        });
+        scenario.reads.profiles = profileRow
+          ? { rows: [profileRow] }
+          : { rows: [], selectOverrides: [{ includes: "onboarding_fee_paid", result: { error: { message: "poster profile read boom" } } }] };
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_cc", url: "https://checkout.stripe.test/cs_cc" });
       }
 
-      /** The "Service fee" line item's unit_amount, in cents. */
-      function serviceFeeCents(): number {
-        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        const item = args.line_items.find(
-          (li: { price_data: { product_data: { name: string } } }) =>
-            li.price_data.product_data.name === "Service fee",
-        );
-        return item.price_data.unit_amount;
-      }
-
-      it("charges the FREE rate (12), not the global 10, when the poster profile read fails", async () => {
-        seedEscrowJob();
-        failPosterTierRead();
-
+      async function escrow(): Promise<{ items: Array<{ price_data: { unit_amount: number; product_data: { name: string; description?: string } } }>; stamp: Record<string, unknown>; meta: Record<string, string> }> {
         const fn = await load();
-        const res = await fn.fetch(
-          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
-        );
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc" } }));
         expect(res.status).toBe(200);
-        // $200 budget: 12% = $24.00. At the old global-10 fallback it was $20.00.
-        expect(serviceFeeCents()).toBe(2400);
-        // …and the percent STAMPED on the job matches what was charged, so the
-        // admin console and every downstream display agree with the card.
-        const jobWrite = scenario.writes.find(
-          (w) => w.table === "jobs" && w.op === "update",
-        );
-        const payload = jobWrite?.payload as Record<string, unknown>;
-        expect(payload.customer_fee_amount).toBe(24);
-        expect(payload.platform_fee_percent).toBe(12);
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+        return { items: args.line_items, stamp, meta: args.payment_intent_data.metadata };
+      }
+
+      // Every tier the ladder knows (derived, never hand-listed), each active
+      // and lapsed, plus values a real row can hold that are not tiers.
+      const PROFILES: Array<[label: string, row: Record<string, unknown> | null]> = [
+        ...Object.keys(TIER_FEE_PERCENT).flatMap((tier): Array<[string, Record<string, unknown>]> => [
+          [`${tier} (active)`, { onboarding_fee_paid: true, subscription_tier: tier, subscription_expires_at: FUTURE }],
+          [`${tier} (lapsed)`, { onboarding_fee_paid: true, subscription_tier: tier, subscription_expires_at: PAST }],
+        ]),
+        ["null tier", { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }],
+        ["junk tier", { onboarding_fee_paid: true, subscription_tier: "premium", subscription_expires_at: null }],
+        ["profile read fails", null],
+      ];
+
+      it("the Service fee line equals Stripe's card cost for every tier and budget, and is stamped as charged", async () => {
+        // FLOOR: a derivation that produced nothing would pass vacuously.
+        expect(Object.keys(TIER_FEE_PERCENT).length).toBeGreaterThanOrEqual(5);
+        let checked = 0;
+        for (const budget of [30, 100, 200, 1000]) {
+          for (const [label, row] of PROFILES) {
+            seedEscrowJob(budget, row);
+            const { items, stamp, meta } = await escrow();
+            const fee = items.find((li) => li.price_data.product_data.name === "Service fee");
+            const want = posterCardCostFeeCents(budget * 100);
+            expect(fee?.price_data.unit_amount, `$${budget} ${label}`).toBe(want);
+            // Covers Stripe's cost on the whole charge (fee included), by no
+            // more than the closed form's 1c rounding slack.
+            const total = items.reduce((t, li) => t + li.price_data.unit_amount, 0);
+            const stripeCost = Math.round(total * 0.029) + 30;
+            expect(want - stripeCost, `$${budget} ${label}`).toBeGreaterThanOrEqual(0);
+            expect(want - stripeCost, `$${budget} ${label}`).toBeLessThanOrEqual(1);
+            // Never a percentage on the poster's receipt.
+            expect(fee?.price_data.product_data.description ?? "").not.toMatch(/%/);
+            expect(fee?.price_data.product_data.description).toBe("Covers card processing");
+            // The row and the PaymentIntent record the pricing it was charged under.
+            expect(stamp.customer_fee_amount).toBe(want / 100);
+            expect(stamp.platform_fee_percent).toBe(0);
+            expect(meta.customer_fee_percent).toBe("0");
+            checked++;
+          }
+        }
+        expect(checked).toBeGreaterThan(40);
       });
 
-      it("still bills a readable Elite poster their own 8%, not the free rate", async () => {
-        // The fix is error-path only: the happy path must keep honouring a
-        // paid tier's discount.
-        seedEscrowJob();
-        scenario.reads.profiles = {
-          rows: [{
-            onboarding_fee_paid: true,
-            subscription_tier: "elite",
-            subscription_expires_at: new Date(Date.now() + 30 * 864e5).toISOString(),
-          }],
-        };
-
-        const fn = await load();
-        const res = await fn.fetch(
-          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
-        );
-        expect(res.status).toBe(200);
-        expect(serviceFeeCents()).toBe(1600);
+      it("the Helpr commission stamped at escrow is unchanged (platform_settings.helper_fee_percent)", async () => {
+        seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: "elite", subscription_expires_at: FUTURE });
+        const { stamp } = await escrow();
+        expect(stamp.helper_fee_percent).toBe(12);
+        expect(stamp.platform_fee_amount).toBe(12);
       });
 
       it("never bills the one-time onboarding fee when the profile read failed", async () => {
-        // Unchanged guard, pinned here because the fallback edit sits on top of
-        // it: a read failure leaves `posterProfile` null, and we must not
-        // re-charge $2 to somebody who already paid it.
-        seedEscrowJob();
-        failPosterTierRead();
-
-        const fn = await load();
-        await fn.fetch(
-          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
-        );
-        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        expect(
-          args.line_items.some(
-            (li: { price_data: { product_data: { name: string } } }) =>
-              li.price_data.product_data.name === "One-time account setup",
-          ),
-        ).toBe(false);
+        // A read failure leaves `posterProfile` null, and we must not re-charge
+        // $2 to somebody who already paid it.
+        seedEscrowJob(200, null);
+        const { items } = await escrow();
+        expect(items.some((li) => li.price_data.product_data.name === "One-time account setup")).toBe(false);
       });
     });
   });
@@ -1640,6 +1618,47 @@ describe("create-payment edge function", () => {
         expect.objectContaining({ column: "stripe_refund_id", value: "re_1" }),
         expect.objectContaining({ column: "source", value: "stripe_dashboard" }),
       ]));
+    });
+
+    // Owner, 2026-10-11: new checkouts charge the card cost only, and a job
+    // already paid keeps what it was charged. The refund reads the STORED
+    // jobs.customer_fee_amount, never a fee recomputed from today's rule, so an
+    // old job's tier fee is withheld exactly as charged and a new job withholds
+    // its card-cost fee (floored at Stripe's actual fee on that charge).
+    // @mutate supabase/functions/create-payment/index.ts |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100); |           const serviceFeeCents = posterCardCostFeeCents(Math.round(Number(job.budget ?? 0) * 100));
+    it("a job charged before 2026-10-11 keeps its stored fee at cancellation; a new job withholds its card-cost fee", async () => {
+      const cases = [
+        // Old: $100 at the free tier's 12% → $12.00 fee, $112.00 captured.
+        { label: "old tier-fee job", fee: 12, captured: 11_200, actualStripeFee: null as number | null, refund: 10_000 },
+        // New: $100 + $3.30 card-cost fee, $103.30 captured.
+        { label: "new card-cost job", fee: posterCardCostFeeCents(10_000) / 100, captured: 10_000 + posterCardCostFeeCents(10_000), actualStripeFee: null, refund: 10_000 },
+        // New, paid by a dearer method (Stripe kept $6.49): the actual fee wins.
+        { label: "new job, dearer method", fee: posterCardCostFeeCents(10_000) / 100, captured: 10_000 + posterCardCostFeeCents(10_000), actualStripeFee: 649, refund: 10_000 + posterCardCostFeeCents(10_000) - 649 },
+      ];
+      for (const c of cases) {
+        resetSupabaseMock();
+        resetStripeMock();
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: c.fee }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_live",
+          status: "succeeded",
+          amount: c.captured,
+          amount_received: c.captured,
+          ...(c.actualStripeFee == null ? {} : { latest_charge: { id: "ch_1", amount_refunded: 0, balance_transaction: { fee: c.actualStripeFee } } }),
+        });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+        expect(res.status, c.label).toBe(200);
+        expect(stripeMock.refunds.create, c.label).toHaveBeenCalledWith(
+          { payment_intent: "pi_live", amount: c.refund },
+          { idempotencyKey: "cancel-escrow-job-1" },
+        );
+      }
     });
 
     // @mutate supabase/functions/create-payment/index.ts | return await refuseTestModeCancel(cancelPaymentIntentId); | throw piErr;

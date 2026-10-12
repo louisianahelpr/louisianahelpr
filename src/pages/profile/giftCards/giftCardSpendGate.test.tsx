@@ -29,7 +29,7 @@ import { render, screen } from "@testing-library/react";
 import { CreditCard } from "./CreditCard";
 import { StatusPill } from "./StatusPill";
 import type { GiftCardRow } from "./types";
-import { posterServiceFeeCents } from "@/lib/posterFees";
+import { posterCardCostFeeCents } from "@/lib/posterFees";
 import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 
 const ME = "user-me";
@@ -144,7 +144,7 @@ describe("the donor total is the grossed-up charge, not the hand-typed formula",
   it("charges more than the old copy promised, at every offered amount", () => {
     for (const dollars of [10, 25, 50, 75, 100, 500]) {
       const cents = dollars * 100;
-      const real = posterServiceFeeCents(cents, 0);
+      const real = posterCardCostFeeCents(cents);
       expect(real).toBeGreaterThan(naiveFee(cents));
     }
   });
@@ -154,16 +154,16 @@ describe("the donor total is the grossed-up charge, not the hand-typed formula",
     // A plain `2.9% + 30c` fee fails this and the platform eats the difference.
     for (const dollars of [10, 25, 50, 75, 100, 500]) {
       const cents = dollars * 100;
-      const fee = posterServiceFeeCents(cents, 0);
+      const fee = posterCardCostFeeCents(cents);
       const stripeTakes = Math.round((cents + fee) * STRIPE_PCT) + STRIPE_FLAT_CENTS;
       expect(fee).toBeGreaterThanOrEqual(stripeTakes);
     }
   });
 
   it("pins the published figures the audit reported", () => {
-    expect(posterServiceFeeCents(1000, 0)).toBe(61); // $10 gift -> $10.61
-    expect(posterServiceFeeCents(5000, 0)).toBe(181); // $50 gift -> $51.81
-    expect(posterServiceFeeCents(50000, 0)).toBe(1525); // $500 gift -> $515.25
+    expect(posterCardCostFeeCents(1000)).toBe(61); // $10 gift -> $10.61
+    expect(posterCardCostFeeCents(5000)).toBe(181); // $50 gift -> $51.81
+    expect(posterCardCostFeeCents(50000)).toBe(1525); // $500 gift -> $515.25
   });
 });
 

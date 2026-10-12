@@ -1,91 +1,81 @@
-// posterFees — single source of truth for the tiered SERVICE FEE a poster pays
-// at checkout, for the Deno edge runtime.
+// posterFees — single source of truth for the SERVICE FEE a poster pays at
+// checkout, for the Deno edge runtime.
 //
-// The poster's own subscription tier sets the service-fee percentage, using the
-// SAME 12 / 11 / 10 / 9 / 8 ladder as the helper-side commission — one user, one
-// tier, one percent. We reuse `feePercentForTier` from `helperFees.ts` so there
-// is exactly one fee ladder in the edge runtime and one parity test
-// (`src/lib/helperFees.parity.test.ts`) guarding it against
-// `subscriptionTiers.ts`.
+// OWNER DECISION, 2026-10-11 (pop-up): "remove the service fee for posters bc
+// right now I'm worried no one will post when they can easily post for free on
+// Facebook." The poster pays NO platform percentage on any tier. What they do
+// pay is Stripe's real card-processing cost on the charge ("Poster pays
+// Stripe's fee"), so the platform never loses money to fees on a checkout.
+// New checkouts only: a job already paid keeps the fee stamped on it
+// (jobs.customer_fee_amount), and every refund path reads that stored amount,
+// never a recomputed one.
 //
-// Unlike the helper commission (resolved at PAYOUT because no helper is assigned
-// when escrow is funded), the poster IS known at checkout, so their tier is
-// resolved from their live profile at the moment they fund the job.
+// The Helpr-side commission (12/11/10/9/8 by tier, deducted from the payout)
+// is UNCHANGED and lives in `helperFees.ts`. The poster fee and the Helpr
+// commission are no longer the same number: this module imports nothing from
+// the tier ladder on purpose, and `src/test/posterCheckoutChargesCardCostOnly
+// .test.ts` fails if any poster checkout path prices a tier percent again.
 //
-// The floor: Stripe keeps 2.9% + $0.30 of every captured charge and never
-// returns it on a refund. On a very small job the raw tier percentage of the
-// budget can come out below what Stripe costs the platform on the whole
-// transaction — which would put us underwater on fees. `posterServiceFeeCents`
-// floors the collected fee at Stripe's real processing cost so the platform can
-// never lose money to fees, honoring the core money-safety rule for this app.
+// The fee: Stripe keeps 2.9% + $0.30 of every captured charge and never
+// returns it on a refund. The fee covers Stripe's cost on the ENTIRE
+// transaction, the fee included (a fixed point `fee >= stripeCost(base +
+// fee)`; the closed form can land 1¢ above the exact minimum), so the
+// platform nets >= 0 on fees.
+//
+// It is labelled "Service fee" with "covers card processing" wherever the
+// poster sees it. It is NOT a card surcharge: it is charged on every checkout,
+// whatever the payment method.
 //
 // This MUST stay in lock-step with the client mirror `src/lib/posterFees.ts`;
 // `src/lib/posterFees.parity.test.ts` fails the build if the two diverge.
 
-import { feePercentForTier } from "./helperFees.ts";
 import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stripeFees.ts";
 
 /**
- * Resolve the poster's service-fee percent from their raw `subscription_tier`
- * and `subscription_expires_at`.
- *
- * PRODUCT RULE: one user, one tier, one percent — the same person must be
- * charged the same percentage whether they are posting or helping. So this is a
- * pure alias for the shared resolver, not a second implementation: it used to
- * hold its own copy of the expiry comparison, which is exactly the kind of
- * duplicated input handling that lets the two roles drift apart even while they
- * share one fee table. `src/lib/roleFeeParity.test.ts` pins poster === helper
- * for every tier, expired and unexpired.
+ * The platform percentage a poster pays on top of the budget: none (owner,
+ * 2026-10-11). Stamped as `jobs.platform_fee_percent` (the poster-side column)
+ * and sent as the PaymentIntent's `customer_fee_percent` metadata, so a job's
+ * own row says which pricing it was charged under.
  */
-export function posterFeePercentForTier(
-  rawTier: string | null | undefined,
-  expiresAt?: string | null,
-): number {
-  return feePercentForTier(rawTier, expiresAt);
-}
+export const POSTER_SERVICE_FEE_PERCENT = 0;
+
+/** The one short description of the fee, on the Stripe line and in the app. */
+export const POSTER_SERVICE_FEE_DESCRIPTION = "Covers card processing";
 
 /**
- * The service fee to charge the poster, in CENTS. It is the poster's tier
- * percentage of the job budget, floored at Stripe's real processing cost on the
- * ENTIRE transaction (budget + this fee + any other charged line items such as
- * an urgent tip or the one-time onboarding fee), so the platform never nets a
- * loss on fees for a tiny job.
+ * The service fee to charge the poster, in CENTS: Stripe's real processing
+ * cost on the ENTIRE transaction (budget + this fee + every other charged line
+ * item, such as the urgent bonus, its card fee, the one-time setup fee or sales
+ * tax when it is known), and nothing more. No tier, no percentage.
  *
- * @param budgetCents        job budget in cents (the taxable/escrowed amount)
- * @param feePercent         the poster's resolved tier fee percent (12/11/10/9/8)
+ * @param budgetCents        job budget in cents
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
  * @param prepaidCostCents   card cost already collected by another line (Q362:
  *                           the urgent bonus's own card fee). Included in
  *                           `otherChargeCents` too; the floor is lowered by it
  *                           so the poster never pays the same card cost twice.
  */
-export function posterServiceFeeCents(
+export function posterCardCostFeeCents(
   budgetCents: number,
-  feePercent: number,
   otherChargeCents = 0,
   prepaidCostCents = 0,
 ): number {
-  const tierFeeCents = Math.round((budgetCents * feePercent) / 100);
-  // The floor must cover Stripe's cost on the WHOLE charge, and the fee itself
-  // is part of that charge — a fixed point `fee ≥ stripeCost(base + fee)`. The
-  // old code measured the floor against `base + tierFeeCents`, so when the floor
-  // wins (floor > tierFee) the real total is bigger than what was measured and
-  // the collected fee undershoots Stripe's cost by ~1¢ — exactly the "lose money
-  // to fees" case the floor exists to prevent. Invert the algebra for a starting
-  // guess, then verify against the real round-based cost and nudge up to absorb
-  // any integer-rounding slack, so the invariant holds exactly.
+  // The fee is part of the charge it pays for, so solve the fixed point
+  // `fee >= stripeCost(base + fee)`: invert the algebra for a starting guess,
+  // then verify against the real round-based cost and nudge up to absorb any
+  // integer-rounding slack, so the invariant holds exactly.
   const base = budgetCents + otherChargeCents;
-  let floorCents = base > 0 ? Math.ceil((base * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT)) : 0;
-  while (floorCents > 0 && floorCents < stripeProcessingCostCents(base + floorCents)) floorCents++;
+  let feeCents = base > 0 ? Math.ceil((base * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT)) : 0;
+  while (feeCents > 0 && feeCents < stripeProcessingCostCents(base + feeCents)) feeCents++;
   // Q362: a line that already pays its own card cost (the urgent bonus card
-  // fee) covers that part of the floor. The fixed point is re-solved with it:
-  // the smallest fee with `fee + prepaid >= stripeCost(base + fee)`, so the
-  // platform stays covered and the bonus's card cost is never charged twice.
+  // fee) covers that part. Re-solve with it: the smallest fee with
+  // `fee + prepaid >= stripeCost(base + fee)`, so the platform stays covered
+  // and the bonus's card cost is never charged twice.
   const prepaid = Math.max(0, prepaidCostCents);
-  if (prepaid > 0 && floorCents > 0) {
-    floorCents = Math.max(0, floorCents - prepaid);
-    while (floorCents > 0 && floorCents - 1 + prepaid >= stripeProcessingCostCents(base + floorCents - 1)) floorCents--;
-    while (floorCents + prepaid < stripeProcessingCostCents(base + floorCents)) floorCents++;
+  if (prepaid > 0 && feeCents > 0) {
+    feeCents = Math.max(0, feeCents - prepaid);
+    while (feeCents > 0 && feeCents - 1 + prepaid >= stripeProcessingCostCents(base + feeCents - 1)) feeCents--;
+    while (feeCents + prepaid < stripeProcessingCostCents(base + feeCents)) feeCents++;
   }
-  return Math.max(tierFeeCents, floorCents);
+  return feeCents;
 }

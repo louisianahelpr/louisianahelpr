@@ -249,7 +249,7 @@ async function driveJobPosted(): Promise<string> {
     parish: "Orleans", dateNeeded: "2099-01-01", startTime: "09:00", isFlexibleSchedule: false, estimatedHours: "1",
     budget: "60", specialRequirements: "", isRecurring: false, recurrenceInterval: "", recurrenceEndDate: "",
     recurrenceDays: [], recurrenceWeeks: 0, isGroupJob: false, helpersNeeded: "1", isUrgent: false, urgentFee: "",
-    platformFee: null, salesTaxRate: 0, offerToHelperId: null, offerResponseHours: 24, credentialTier: 0,
+    salesTaxRate: 0, offerToHelperId: null, offerResponseHours: 24, credentialTier: 0,
     requirePhotoProof: true, includeMaterials: false, materialsNote: "", saveCardForFuture: false, giftCardId: null,
     uploadAndAttachPhotos: vi.fn(async () => undefined), uploadAndAttachScopeVideo: vi.fn(async () => undefined),
   };

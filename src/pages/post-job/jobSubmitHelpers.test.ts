@@ -36,7 +36,6 @@ const base: BuildJobInsertPayloadInput = {
   helpersNeeded: "2",
   isUrgent: false,
   urgentFee: "5",
-  platformFee: 15,
   salesTaxRate: 10.45,
   offerToHelperId: null,
 };
@@ -62,10 +61,13 @@ describe("buildJobInsertPayload — sales tax", () => {
     expect(p.sales_tax_amount).toBe(0);
   });
 
-  it("still locks the platform fee against the full budget", () => {
+  // Owner, 2026-10-11: posters pay no platform percentage, so the poster
+  // column is 0 on every insert, and the Helpr commission amount is left for
+  // create-payment to stamp at escrow (a $0 stamp would read as a comped job).
+  it("stamps no poster percentage and leaves the commission amount to escrow", () => {
     const p = buildJobInsertPayload(base) as Record<string, unknown>;
-    expect(p.platform_fee_percent).toBe(15);
-    expect(p.platform_fee_amount).toBeCloseTo(15, 2);
+    expect(p.platform_fee_percent).toBe(0);
+    expect(p).not.toHaveProperty("platform_fee_amount");
   });
 });
 

@@ -416,10 +416,11 @@ const AdminSettings = () => {
       {/* ── Fee model — READ ONLY ──
           This was two number inputs and a "Total platform take: 20%" calculator
           with a Save button, and every part of it was wrong. The platform has
-          not charged one flat rate since the tier ladder shipped: a poster pays
-          their own tier's service fee and a Helpr pays their own tier's
-          commission, resolved per job by `tierFeePercent()` from the same
-          TIER_PERKS table read below. So the console let an admin type a number
+          not charged one flat rate since the tier ladder shipped: a Helpr pays
+          their own tier's commission, resolved per job by `tierFeePercent()`
+          from the same TIER_PERKS table read below, and (owner, 2026-10-11) a
+          poster pays no platform percentage at all, only a service fee equal
+          to Stripe's card cost (`posterCardCostFeeCents`). So the console let an admin type a number
           that would never be charged, then added two unrelated percentages
           together and called the sum the platform's take — arithmetic that has
           never described a single real job. Owner: "the 10% payout fee … also
@@ -433,7 +434,7 @@ const AdminSettings = () => {
           its live values, and no way to edit it by accident. */}
       <AdminCard
         title={<span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Fee Model</span>}
-        subtitle="Set by subscription tier, not by this screen."
+        subtitle="Helpr commission by tier, not by this screen."
         contentClassName="space-y-4"
       >
         {/* The ladder speaks for itself — the paragraph that used to sit above
@@ -453,15 +454,15 @@ const AdminSettings = () => {
             fee model, a page apart, is the duplication itself — not just the
             prose inside them. */}
         <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Poster pays: job budget + their tier service fee + sales tax, floored at Stripe's cost</li>
+          <li>Poster pays: job budget + a service fee equal to Stripe's card cost + sales tax (no platform %)</li>
           <li>Helpr receives: job budget − their tier commission + urgent bonus</li>
-          <li>Platform keeps both — each at that party's own tier rate, so the take differs job to job</li>
+          <li>Platform keeps the Helpr commission, at that Helpr's own tier rate, so the take differs job to job</li>
         </ul>
 
         <div className="space-y-1.5 border-t border-border/60 pt-3">
           <p className="text-ds-11 font-semibold text-foreground">Fallback rates</p>
           <p className="text-ds-11 text-muted-foreground">
-            Used only when a tier can't be read at payout time. Stored in{" "}
+            The Helpr rate is used only when a tier can't be read at payout time; the poster rate no longer prices anything. Stored in{" "}
             <code className="text-foreground">platform_settings</code>, where the payout edge functions read them.
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-ds-11">

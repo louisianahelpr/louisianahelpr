@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { categories } from "@/components/postjob/DetailsSection";
-import { posterServiceFeeCents } from "@/lib/posterFees";
+import { posterCardCostFeeCents } from "@/lib/posterFees";
 import { urgentBonusCardFeeCents } from "@/lib/stripeFees";
 import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
@@ -24,7 +24,6 @@ export interface UseJobDerivedParams {
   budget: string;
   isUrgent: boolean;
   urgentFee: string;
-  customerFee: number | null;
   onboardingFeePaid: boolean;
   onboardingFeeCents: number;
   category: string;
@@ -102,7 +101,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
     budget,
     isUrgent,
     urgentFee,
-    customerFee,
     onboardingFeePaid,
     onboardingFeeCents,
     category,
@@ -163,12 +161,12 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // Waived on a gift-funded post: create-payment returns before this line
   // item exists, so quoting it would overstate the charge.
   const onboardingFeeAmount = hasGift || onboardingFeePaid ? 0 : onboardingFeeCents / 100;
-  // The poster service fee is their OWN tier percent (12/11/10/9/8), floored at
-  // Stripe's real processing cost on the whole transaction so a tiny job can
-  // never lose the platform money to fees. Compute in cents via the same
-  // authority the create-payment edge function uses (posterFees), so the shown
-  // total equals the Stripe charge. Default 12 = free tier (never-undercharge).
-  // Also waived on a gift-funded post, for the same reason as above.
+  // The poster service fee is Stripe's real processing cost on the whole
+  // transaction and nothing more: posters pay no platform percentage on any
+  // tier (owner, 2026-10-11). Computed in cents via the same authority the
+  // create-payment edge function uses (posterFees), so the shown total equals
+  // the Stripe charge. Waived on a gift-funded post, for the same reason as
+  // above.
   const budgetCents = Math.round(budgetNum * 100);
   const urgentFeeCents = Math.round(urgentFeeNum * 100);
   const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
@@ -183,7 +181,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const urgentCardFeeAmount = urgentCardFeeCents / 100;
   const customerFeeAmount = hasGift
     ? 0
-    : posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + urgentCardFeeCents + onboardingCents, urgentCardFeeCents) / 100;
+    : posterCardCostFeeCents(budgetCents, urgentFeeCents + urgentCardFeeCents + onboardingCents, urgentCardFeeCents) / 100;
   // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
   // is where the parish rate resolves — and for the great majority of
   // categories it is $0, because create-payment marks every line but assembly

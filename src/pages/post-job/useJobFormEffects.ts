@@ -1,5 +1,5 @@
 import { fetchTurnoverPrefill } from "./turnoverPrefill";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
@@ -9,15 +9,13 @@ import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRow } from "@/lib/jobColumns";
 import { fetchJobAccessNote } from "@/hooks/useJobAccessNote";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
-import { posterFeePercentForTier } from "@/lib/posterFees";
-import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { checkDrift } from "@/lib/checkDrift";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
  * useJobFormEffects — owns the mount/reactive side effects that populate
- * and persist the Post-a-Task form: platform-fee RPC, open-job preflight,
+ * and persist the Post-a-Task form: setup-fee RPC, open-job preflight,
  * one-tap rebook prefill, LA smart defaults, direct-offer targeting, parish
  * lookup from zip, and the debounced draft autosave. Structural extraction
  * from usePostJobForm; every effect, dependency array, and Supabase call is
@@ -52,8 +50,6 @@ export interface UseJobFormEffectsParams {
     offerToHelperId: string | null;
   }) => void;
   // Setters
-  setPlatformFee: (v: number | null) => void;
-  setCustomerFee: (v: number | null) => void;
   setOnboardingFeeCents: (v: number) => void;
   setOpenJobCount: (v: number | null) => void;
   setOnboardingFeePaid: (v: boolean) => void;
@@ -110,8 +106,6 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     profile,
     saveDraft,
     flushDraft,
-    setPlatformFee,
-    setCustomerFee,
     setOnboardingFeeCents,
     setOpenJobCount,
     setOnboardingFeePaid,
@@ -159,20 +153,12 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     offerToHelperId,
   } = params;
 
-  // Once the poster's TIER fee has resolved it is the authority — it is the
-  // number create-payment actually charges (the global customer_fee_percent
-  // is that function's read-failure fallback, nothing more). Without this
-  // guard the two mount fetches raced and LAST WRITER WON: the same $12 job
-  // previewed $15.44 (tier 12%) on one visit and $15.20 (global 10%) on the
-  // next, while Stripe always charged 12%. Caught by the 2026-08-24 two-role
-  // E2E — the same order summary quoted two different totals minutes apart.
-  const tierFeeLocked = useRef(false);
-
   useEffect(() => {
-    // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC.
-    // Surface failures explicitly so a grant regression on this RPC (which
-    // bricked the dashboard in PR #355) doesn't silently default the poster's
-    // service-fee display to 10% with zero observability.
+    // Auth is already checked by ProtectedRoute — just fetch the one-time
+    // setup fee via the safe RPC. The poster's service fee needs no setting
+    // (it is Stripe's card cost, owner 2026-10-11). Surface failures
+    // explicitly so a grant regression on this RPC (which bricked the
+    // dashboard in PR #355) doesn't silently mis-quote the setup fee.
     supabase.rpc("get_public_platform_settings").then(({ data, error }) => {
       if (error) {
         report(error, {
@@ -183,15 +169,6 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       }
       const row = Array.isArray(data) ? data[0] : null;
       if (row) {
-        // Use customer_fee_percent as the poster-facing fee (service fee at
-        // checkout) — but ONLY as the provisional value while the tier fetch
-        // is in flight. If the tier answer already landed, it wins (see
-        // tierFeeLocked above).
-        const custFee = row.customer_fee_percent ?? CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT;
-        if (!tierFeeLocked.current) {
-          setPlatformFee(custFee);
-          setCustomerFee(custFee);
-        }
         const setupCents = (row as { onboarding_fee_cents?: number }).onboarding_fee_cents;
         if (typeof setupCents === "number") setOnboardingFeeCents(setupCents);
       }
@@ -234,13 +211,11 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .eq("status", "open")
         .not("payment_status", "in", `(${NEVER_PAID_STATUSES.join(",")})`)
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
-      // Whether this poster still owes the one-time setup fee, and their own
-      // subscription tier — so the shown service fee (12/11/10/9/8) and total match
-      // what the create-payment edge function will actually charge. The global
-      // customer_fee_percent fetched above stays as the fallback if no row.
+      // Whether this poster still owes the one-time setup fee, so the shown
+      // total matches what the create-payment edge function will charge.
       supabase
         .from("profiles")
-        .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
+        .select("onboarding_fee_paid")
         .eq("user_id", user.id)
         .single()
         .then(({ data, error }) => {
@@ -252,12 +227,6 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
             return;
           }
           setOnboardingFeePaid(data?.onboarding_fee_paid ?? true);
-          if (data) {
-            const tierFee = posterFeePercentForTier(data.subscription_tier, data.subscription_expires_at);
-            tierFeeLocked.current = true;
-            setPlatformFee(tierFee);
-            setCustomerFee(tierFee);
-          }
         });
     });
   }, [authReady, authUserId]);

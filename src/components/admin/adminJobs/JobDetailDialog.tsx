@@ -161,7 +161,11 @@ export const JobDetailDialog = ({
               {detailJob.platform_fee_amount && (
                 <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Platform Fee</p>
-                  <p className="font-semibold text-foreground">${detailJob.platform_fee_amount} ({detailJob.platform_fee_percent}%)</p>
+                  {/* platform_fee_amount is the Helpr commission; its rate is
+                      helper_fee_percent. platform_fee_percent is the POSTER
+                      column (0 since 2026-10-11, owner: no poster platform
+                      fee), so pairing it here printed "$3.60 (0%)". */}
+                  <p className="font-semibold text-foreground">${detailJob.platform_fee_amount}{detailJob.helper_fee_percent != null ? ` (${detailJob.helper_fee_percent}%)` : ""}</p>
                 </div>
               )}
             </div>

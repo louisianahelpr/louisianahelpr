@@ -35,8 +35,8 @@ import {
   stripePercentCostCents,
 } from "../../supabase/functions/_shared/stripeFees";
 import { netUrgentFeeDollars as clientNet, urgentBonusCardFeeCents as clientCardFee, stripeProcessingCostCents } from "@/lib/stripeFees";
-import { posterServiceFeeCents as edgePosterFee } from "../../supabase/functions/_shared/posterFees";
-import { posterServiceFeeCents as clientPosterFee } from "@/lib/posterFees";
+import { posterCardCostFeeCents as edgePosterFee } from "../../supabase/functions/_shared/posterFees";
+import { posterCardCostFeeCents as clientPosterFee } from "@/lib/posterFees";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -111,20 +111,19 @@ describe("Q362: the urgent bonus goes wholly to the Helpr; the poster pays its c
     let floorCases = 0;
     for (const budget of [300, 500, 700, 1000, 2000, 2500, 5000, 10_000, 40_000]) {
       for (const urgent of [0, 500, 2500, 10_000, 25_000]) {
-        for (const pct of [8, 10, 12]) {
+        // Since 2026-10-11 the fee IS the card-cost floor on every job (no
+        // tier percent), so every case is a floor case.
+        {
           const card = edgeCardFee(urgent);
           const other = urgent + card;
-          const fee = edgePosterFee(budget, pct, other, card);
-          expect(clientPosterFee(budget, pct, other, card)).toBe(fee);
+          const fee = edgePosterFee(budget, other, card);
+          expect(clientPosterFee(budget, other, card)).toBe(fee);
           const total = budget + fee + urgent + card;
           const cost = stripeProcessingCostCents(total);
-          expect(fee + card, `${budget}/${urgent}/${pct}`).toBeGreaterThanOrEqual(cost);
-          const tier = Math.round((budget * pct) / 100);
-          if (fee > tier) {
-            floorCases++;
-            // Floor-set: no more than rounding slack above Stripe's real cost.
-            expect(fee + card - cost, `${budget}/${urgent}/${pct}`).toBeLessThanOrEqual(1);
-          }
+          expect(fee + card, `${budget}/${urgent}`).toBeGreaterThanOrEqual(cost);
+          floorCases++;
+          // No more than rounding slack above Stripe's real cost.
+          expect(fee + card - cost, `${budget}/${urgent}`).toBeLessThanOrEqual(1);
         }
       }
     }

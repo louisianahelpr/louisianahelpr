@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
-import { posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 
 const corsHeaders = {
@@ -158,12 +158,12 @@ serve(async (req) => {
     }
 
     // ── Charge math ──
-    // The donor covers the face value PLUS the service fee at 0% tier profit —
-    // `posterServiceFeeCents(amountCents, 0)` returns just Stripe's processing-
-    // cost floor. The platform forgoes its tier margin on gift-card-funded jobs,
-    // but the donation still nets ~face value after Stripe, so a redeemed gift
-    // that funds a $0-to-recipient job never puts the platform underwater.
-    const feeCents = posterServiceFeeCents(amountCents, 0);
+    // The donor covers the face value PLUS Stripe's processing cost on the
+    // charge — `posterCardCostFeeCents(amountCents)`, the same card-cost fee a
+    // poster pays at checkout. The donation still nets ~face value after
+    // Stripe, so a redeemed gift that funds a $0-to-recipient job never puts
+    // the platform underwater.
+    const feeCents = posterCardCostFeeCents(amountCents);
     const chargeCents = amountCents + feeCents;
 
     const donorName =

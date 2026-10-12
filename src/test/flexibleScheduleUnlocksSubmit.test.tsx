@@ -84,7 +84,6 @@ const FILLED = {
   budget: "100",
   isUrgent: false,
   urgentFee: "0",
-  customerFee: 12,
   onboardingFeePaid: true,
   onboardingFeeCents: 0,
   category: "yard_work",
@@ -259,7 +258,6 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
       helpersNeeded: "1",
       isUrgent: false,
       urgentFee: "0",
-      platformFee: 12,
       salesTaxRate: 0,
       offerToHelperId: null,
     }) as Record<string, unknown>;

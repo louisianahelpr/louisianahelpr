@@ -4,15 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 258** (199 to do, 59 fixed with protection pending; 1078 done). Feeds mirrored in: 54 from the alert ledger, 12 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 291** (196 to do, 95 fixed with protection pending; 1028 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 290** (197 to do, 93 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 293** (198 to do, 95 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 292** (199 to do, 93 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 291** (198 to do, 93 fixed with protection pending; 1030 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 290** (197 to do, 93 fixed with protection pending; 1031 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 289** (196 to do, 93 fixed with protection pending; 1032 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 248** (190 to do, 58 fixed with protection pending; 1090 done). Feeds mirrored in: 54 from the alert ledger, 12 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 251** (186 to do, 65 fixed with protection pending; 1090 done). Feeds mirrored in: 54 from the alert ledger, 12 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-10T22:38Z)_
@@ -108,7 +100,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1336 items — 1078 done, 59 partly done (fixed, protection pending), 199 open.**
+**Queue: 1341 items — 1090 done, 65 partly done (fixed, protection pending), 186 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

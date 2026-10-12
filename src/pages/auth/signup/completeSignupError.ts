@@ -103,3 +103,28 @@ export async function completeSignupErrorCopy(err: unknown): Promise<string> {
       return SIGNUP_SAVED_ACCOUNT_ONLY;
   }
 }
+
+/**
+ * complete-signup's ONE answer that means "there is nothing left to finish":
+ * the unauthenticated path found the profile already holding a bio
+ * (supabase/functions/complete-signup/index.ts), and bio is written in the
+ * same UPDATE as the rest of the profile row. It comes from a second submit
+ * after the first one finished (Q1643: a guest in Facebook's in-app browser
+ * resubmitted two minutes after their account was made and finished; Sentry
+ * JAVASCRIPT-3J). That is not a failure to report or apologise for.
+ *
+ * NOT "Account already active": that fires whenever the account has signed in,
+ * before the profile is read, so it does not prove the profile was ever
+ * written (lh-silent-failure review). It stays a reported failure. Consent and
+ * referral writes after the UPDATE are best-effort; if an earlier attempt died
+ * between them, that attempt's own timeout or 5xx was already reported.
+ * src/test/signupAlreadyFinishedIsNotAnError.test.ts classifies every
+ * "already" sentence the function can send and fails on an unclassified one.
+ */
+export const SIGNUP_ALREADY_FINISHED = /^Profile already completed\b/;
+
+export const SIGNUP_ALREADY_FINISHED_COPY = "Your account is already set up: confirm your email, then sign in.";
+
+export function isSignupAlreadyFinished(err: unknown): boolean {
+  return err instanceof Error && SIGNUP_ALREADY_FINISHED.test(err.message);
+}

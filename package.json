@@ -58,7 +58,8 @@
     "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate",
     "check:generated": "node scripts/check-generated-current.mjs",
     "check:counts": "node scripts/check-stated-counts.mjs",
-    "inventories:refresh": "node scripts/check-generated-current.mjs --fix",
+    "inventories:refresh": "node scripts/check-generated-current.mjs --fix --skip-post-merge",
+    "inventories:refresh:all": "node scripts/check-generated-current.mjs --fix",
     "check:staleness": "node scripts/check-staleness.mjs"
   },
   "lint-staged": {

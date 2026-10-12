@@ -42,6 +42,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/notificationPanel/notificationFeed.ts:recoveryListeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/integrations/supabase/keychainStorageAdapter.ts:cache": { kind: "not-user-data", why: "mirror of the native Keychain session, which sign-out removes itself (removeItem)" },
   "src/components/ScrollToTop.tsx:scrollPositions": { kind: "not-user-data", why: "scroll offsets by route" },
+  "src/lib/visibleDeadline.ts:onShown": { kind: "not-user-data", why: "resume callbacks of pending read deadlines" },
   "src/pages/profile/Profile.tsx:profileScrollByKey": { kind: "not-user-data", why: "scroll offsets by tab" },
   "src/components/admin/AdminHelperTiers.tsx:reportedUnknownTiers": { kind: "not-user-data", why: "report-once dedupe of tier names" },
   "src/components/admin/adminBadgeStore.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks" },

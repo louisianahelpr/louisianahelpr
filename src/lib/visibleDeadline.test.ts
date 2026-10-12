@@ -8,9 +8,11 @@
  * @mutate src/lib/visibleDeadline.ts |       const frozen = now - dueAt > FROZEN_SLACK_MS; |       const frozen = false;
  * @mutate src/lib/visibleDeadline.ts |       const wentHidden = lastHiddenAt >= windowStart; |       const wentHidden = false;
  * @mutate src/lib/visibleDeadline.ts |       if (pageHidden()) { |       if (false) {
+ * @mutate src/lib/visibleDeadline.ts |       if ((frozen \|\| wentHidden) && restarts < MAX_RESTARTS) { |       if (frozen \|\| wentHidden) {
+ * @mutate src/lib/visibleDeadline.ts |         arm(ms);\n        return;\n      }\n      const frozen |         return;\n      }\n      const frozen
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FROZEN_SLACK_MS, __resetVisibleDeadlineForTests, raceVisibleDeadline } from "./visibleDeadline";
+import { FROZEN_SLACK_MS, MAX_RESTARTS, __resetVisibleDeadlineForTests, raceVisibleDeadline } from "./visibleDeadline";
 
 let visibility: DocumentVisibilityState = "visible";
 
@@ -122,5 +124,31 @@ describe("raceVisibleDeadline", () => {
   it("a read that fails passes its own error through", async () => {
     const raced = raceVisibleDeadline(Promise.reject(new Error("boom")), 6_000, "late");
     await expect(raced).rejects.toThrow("boom");
+  });
+
+  it("a page frozen at every due time still ends: at most MAX_RESTARTS restarts, then the timeout", async () => {
+    const read = deferred<string>();
+    const raced = raceVisibleDeadline(read.promise, 6_000, "Profile request timed out");
+    raced.catch(() => undefined);
+    for (let i = 0; i < MAX_RESTARTS; i += 1) {
+      vi.setSystemTime(Date.now() + 6_000 + FROZEN_SLACK_MS + 1_000);
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(await stateOf(raced), `restart ${i + 1}`).toBe("pending");
+    }
+    vi.setSystemTime(Date.now() + 6_000 + FROZEN_SLACK_MS + 1_000);
+    await vi.advanceTimersByTimeAsync(6_000);
+    await expect(raced).rejects.toThrow("Profile request timed out");
+  });
+
+  it("a WebView that never delivers the 'shown' event still settles once the page is visible again", async () => {
+    const read = deferred<string>();
+    const raced = raceVisibleDeadline(read.promise, 6_000, "Profile request timed out");
+    raced.catch(() => undefined);
+    visibility = "hidden"; // no visibilitychange event at all
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(await stateOf(raced)).toBe("pending");
+    visibility = "visible"; // and none on the way back either
+    await vi.advanceTimersByTimeAsync(6_000);
+    await expect(raced).rejects.toThrow("Profile request timed out");
   });
 });

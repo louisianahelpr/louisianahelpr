@@ -6,7 +6,7 @@ import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
-import { defaultAuthStorageKey, guardSignedInRequests } from '@/lib/signedInRequestGuard';
+import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -120,4 +120,23 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       onHeld: reportHeld,
     }),
   },
+});
+
+// Recovery after a hold (src/lib/signedInRequestGuard.ts): the held reads
+// failed as "connection trouble", postgrest-js's own retries mostly fall inside
+// auth-js's 60 s refresh cooldown, and RPCs are never retried. So once the
+// sign-in refreshes, the active queries that ended in an error are fetched
+// again. Only after a hold: a plain TOKEN_REFRESHED refetches nothing.
+supabase.auth.onAuthStateChange((event) => {
+  if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return;
+  if (!takeHeldSinceRefresh()) return;
+  void import('@/lib/queryClient')
+    .then(({ queryClient }) =>
+      queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
+    )
+    .catch((err: unknown) => {
+      // Not silent: the screens keep their own Try again; this logs why the
+      // automatic refetch did not run.
+      console.error('[supabase] refetch after a held sign-in failed', err);
+    });
 });

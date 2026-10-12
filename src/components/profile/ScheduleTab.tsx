@@ -270,7 +270,7 @@ const ScheduleCard = ({
           <div data-testid="schedule-card-meta-row" className="mt-1.5 flex items-center gap-3 min-w-0">
             <div
               aria-hidden
-              className="flex flex-1 items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground"
+              className="job-meta-row flex flex-1 items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground"
             >
               {/* A job whose poster deleted their account is anonymised rather
                   than removed (20260901033011), so it stands with no address.

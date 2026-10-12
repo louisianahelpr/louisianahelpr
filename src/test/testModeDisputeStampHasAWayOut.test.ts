@@ -20,7 +20,24 @@
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |   IF NOT public.has_role(_uid, 'admin') THEN |   IF false THEN
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |      OR _d.execution_status NOT IN ('failed', 'executing') THEN |      OR false THEN
  * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |   IF EXISTS (SELECT 1 FROM public.payout_transfers t |   IF false AND EXISTS (SELECT 1 FROM public.payout_transfers t
- * @mutate supabase/functions/execute-dispute-split/index.ts |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamp with rpc_clear_test_mode_dispute_stamp, then supersedes)" }, |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },
+ * @mutate supabase/functions/execute-dispute-split/index.ts |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes)" }, |             { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },
+ *
+ * Q1383 (lh-authz-rls review of Q1280): the REFUND-side twin,
+ * rpc_clear_test_mode_dispute_refund_stamp (20261012194318_clear_test_mode_dispute_refund_stamp.sql), because markFailed stamps
+ * both legs and supersede reads execution_refund_id as money moved too.
+ * Behaviour: src/test/pglite/testModeDisputeRefundStampClears.pglite.mjs (27
+ * PASS with the migration applied 3x; 21 FAIL without it, supersede refusing).
+ *
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |   IF _d.execution_refund_id IS DISTINCT FROM btrim(_refund_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |   IF NOT public.has_role(_uid, 'admin') THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |      OR _d.execution_status NOT IN ('failed', 'executing') THEN |      OR false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |   IF EXISTS (SELECT 1 FROM public.payment_refunds r WHERE r.job_id = _d.job_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |             OR c.money_step_at IS NOT NULL) |             )
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |      AND COALESCE(_d.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl() THEN |      AND false THEN
+ * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |             OR c.money_step_at IS NOT NULL) |             )
+ * @mutate supabase/migrations/20261005173719_clear_test_mode_dispute_transfer_stamp.sql |      AND COALESCE(_d.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl() THEN |      AND false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql |   IF _uid = _customer OR _uid = _helper THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql | REVOKE ALL ON FUNCTION public.rpc_clear_test_mode_dispute_refund_stamp(uuid, text, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_clear_test_mode_dispute_refund_stamp(uuid, text, text) FROM anon;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -56,12 +73,39 @@ describe("Q1280: a test-mode dispute stamp has a hand path out", () => {
     expect(c).toMatch(/IF _d\.execution_transfer_id IS DISTINCT FROM btrim\(_transfer_id\) THEN RAISE/);
     expect(c).toMatch(/IF EXISTS \(SELECT 1 FROM public\.payout_transfers t WHERE t\.job_id = _d\.job_id AND t\.stripe_transfer_id = _d\.execution_transfer_id\) THEN RAISE/);
     expect(c).toMatch(/dispute_settlement_claims/);
+    // Both settlement-claim gates, not only the table name (money review of Q1383, note C).
+    expect(c).toMatch(/OR c\.money_step_at IS NOT NULL\)/);
+    expect(c).toMatch(/AND COALESCE\(_d\.execution_started_at, now\(\)\) >= now\(\) - public\.dispute_settlement_claim_ttl\(\) THEN RAISE EXCEPTION 'dispute_settlement_in_progress'/);
     // Only a resume re-reads Stripe before paying (lh-authz-rls review, LOW 3).
     expect(c).toMatch(/OR _d\.execution_status NOT IN \('failed', 'executing'\) THEN RAISE/);
     expect(c).toMatch(/NOT IN \('escrow', 'payout_pending'\) THEN RAISE/);
     // The audit row is written before the stamp is cleared.
     expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeGreaterThan(0);
     expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeLessThan(c.indexOf("SET execution_transfer_id = NULL"));
+  });
+
+  it("Q1383: the refund-stamp clear keeps every money gate, and the edge refusal names it", () => {
+    const c = code("rpc_clear_test_mode_dispute_refund_stamp");
+    expect(c).toMatch(/SECURITY DEFINER/i);
+    expect(c).toMatch(/IF NOT public\.has_role\(_uid, 'admin'\) THEN RAISE/);
+    expect(c).toMatch(/IF _uid = _customer OR _uid = _helper THEN RAISE/);
+    expect(c).toMatch(/IF _d\.execution_refund_id IS DISTINCT FROM btrim\(_refund_id\) THEN RAISE/);
+    expect(c).toMatch(/IF EXISTS \(SELECT 1 FROM public\.payment_refunds r WHERE r\.job_id = _d\.job_id\) THEN RAISE/);
+    expect(c).toMatch(/dispute_settlement_claims/);
+    expect(c).toMatch(/OR c\.money_step_at IS NOT NULL\)/);
+    expect(c).toMatch(/AND COALESCE\(_d\.execution_started_at, now\(\)\) >= now\(\) - public\.dispute_settlement_claim_ttl\(\) THEN RAISE EXCEPTION 'dispute_settlement_in_progress'/);
+    expect(c).toMatch(/OR _d\.execution_status NOT IN \('failed', 'executing'\) THEN RAISE/);
+    expect(c).toMatch(/NOT IN \('escrow', 'payout_pending'\) THEN RAISE/);
+    expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeGreaterThan(0);
+    expect(c.indexOf("INSERT INTO public.admin_audit_log")).toBeLessThan(c.indexOf("SET execution_refund_id = NULL"));
+    // It clears the refund stamp only; the transfer stamp keeps its own path.
+    expect(c).not.toMatch(/execution_transfer_id = NULL/);
+    const edge = blankComments(readFileSync(resolve(ROOT, "supabase/functions/execute-dispute-split/index.ts"), "utf8"));
+    expect(edge).toMatch(/rpc_clear_test_mode_dispute_refund_stamp/);
+    // supersede reads the refund stamp as money moved: that is why this path exists.
+    expect(code("rpc_supersede_dispute_decision")).toMatch(/OR _d\.execution_refund_id IS NOT NULL/);
+    const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations/20261012194318_clear_test_mode_dispute_refund_stamp.sql"), "utf8"));
+    expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.rpc_clear_test_mode_dispute_refund_stamp\(uuid, text, text\) FROM PUBLIC, anon;/);
   });
 
   it("supersede still reads a stamp as money moved", () => {

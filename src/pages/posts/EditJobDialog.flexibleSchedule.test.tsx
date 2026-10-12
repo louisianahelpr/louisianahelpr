@@ -98,7 +98,6 @@ const NOT_EDITABLE: Record<string, string> = {
   is_urgent: "paid add-on (urgent_fee)",
   urgent_fee: "fee; not re-priced from this dialog",
   platform_fee_percent: "fee; not re-priced from this dialog",
-  platform_fee_amount: "fee; not re-priced from this dialog",
   sales_tax_rate: "tax; not re-priced from this dialog",
   sales_tax_amount: "tax; not re-priced from this dialog",
   requires_w9: "derived from price at post time",
@@ -128,7 +127,7 @@ describe("every field the post wizard writes is editable or excused (class)", ()
   );
 
   it("reads the whole wizard payload (inventory floor)", () => {
-    expect(wizard.length).toBeGreaterThanOrEqual(35); // 35 on 2026-10-02
+    expect(wizard.length).toBeGreaterThanOrEqual(34); // 35 on 2026-10-02; 34 on 2026-10-12 (no-poster-fee: the wizard stopped writing platform_fee_amount)
     expect(edit).toContain("title");
   });
 

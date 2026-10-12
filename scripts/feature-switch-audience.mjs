@@ -22,7 +22,8 @@
  * PROBE_EMAIL below: created on first run with the service role (email
  * confirmed, profile marked is_seed), its password reset to a fresh random one
  * each run (never stored), and asserted NOT admin and NOT a test account before
- * anything is judged (else the check would be vacuous).
+ * anything is judged (else the check would be vacuous). On the company domain,
+ * not mailinator: a public inbox would let anyone reset its password.
  *
  * Fails closed: any read that errors, an empty registry, a missing secret, or
  * a non-boolean answer exits 1. Read-only apart from the probe account itself.
@@ -36,7 +37,7 @@
 import { randomBytes } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
-export const PROBE_EMAIL = "helpr-switch-probe-1012@mailinator.com";
+export const PROBE_EMAIL = "helpr-switch-probe-1012@louisianahelpr.com";
 
 /**
  * @param {{

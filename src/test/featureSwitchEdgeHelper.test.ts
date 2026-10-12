@@ -17,7 +17,7 @@ const client = (impl: () => Promise<{ data: unknown; error: { message: string } 
 describe("featureSwitch edge helper", () => {
   it("allows only an exact true for the named user", async () => {
     const { rpc, c } = client(async () => ({ data: true, error: null }));
-    expect(await requireFeature(c, "switch_canary", "u1")).toBeNull();
+    expect(await requireFeature(c, "switch_canary", { id: "u1" })).toBeNull();
     expect(rpc).toHaveBeenCalledWith("feature_enabled_for_user", { p_key: "switch_canary", p_user_id: "u1" });
   });
 
@@ -30,7 +30,7 @@ describe("featureSwitch edge helper", () => {
   ])("refuses on %s", async (_label, impl) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const { c } = client(impl as () => Promise<{ data: unknown; error: { message: string } | null }>);
-    const res = await requireFeature(c, "switch_canary", "u1", { "Access-Control-Allow-Origin": "*" });
+    const res = await requireFeature(c, "switch_canary", { id: "u1" }, { "Access-Control-Allow-Origin": "*" });
     expect(res?.status).toBe(403);
     expect(await res?.json()).toEqual({ error: "feature_disabled" });
     expect(res?.headers.get("Access-Control-Allow-Origin")).toBe("*");
@@ -40,6 +40,7 @@ describe("featureSwitch edge helper", () => {
     const { rpc, c } = client(async () => ({ data: true, error: null }));
     expect(await featureEnabledForUser(c, "switch_canary", null)).toBe(false);
     expect(await featureEnabledForUser(c, "switch_canary", undefined)).toBe(false);
+    expect(await featureEnabledForUser(c, "switch_canary", { id: "" })).toBe(false);
     expect(rpc).not.toHaveBeenCalled();
   });
 });

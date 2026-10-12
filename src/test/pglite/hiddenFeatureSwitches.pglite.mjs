@@ -7,6 +7,12 @@
  *   NEW_MIGRATION=skip node src/test/pglite/hiddenFeatureSwitches.pglite.mjs   # RED
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/hiddenFeatureSwitches.pglite.mjs
  *
+ * Measured 2026-10-12: 50 PASS on the migration; NEW_MIGRATION=skip 49 FAIL;
+ * planted defects each caught: testers/off branch `ELSE true` (6 FAIL), anon
+ * left out of feature_enabled_for's REVOKE (4), the RPC's no-double-audit
+ * marker removed (3), the audit trigger moved off UPDATE (2), authenticated
+ * granted feature_enabled_for_user (1).
+ *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  * Prod-shaped stubs: auth.uid() from request.jwt.claim.sub, app_role,
  * user_roles + has_role (prod body), test_accounts, admin_audit_log.
@@ -16,13 +22,14 @@
  *     signed-in true, signed-out false; missing key -> false; an unknown
  *     audience smuggled past the CHECK -> false;
  *   - require_feature raises feature_disabled (42501) exactly when off;
+ *   - every audience change is audited (trigger), a server-side one included;
  *   - admin_set_feature_switch: non-admin refused (not_authorized), invalid
  *     audience refused, unknown key refused (cannot create), a change writes
  *     ONE admin_audit_log row {from,to}, a no-op change writes none;
  *   - admin_list_feature_switches refuses a non-admin;
  *   - INSERT as 'everyone' refused by the trigger; a replay keeps an audience
  *     an admin chose (ON CONFLICT DO NOTHING);
- *   - grants: anon executes nothing; authenticated cannot execute
+ *   - grants (with prod's default ACL that grants anon EXECUTE): anon executes nothing; authenticated cannot execute
  *     feature_enabled_for_user; no client role has any table privilege.
  */
 import { readFileSync } from "node:fs";
@@ -44,6 +51,9 @@ DO $$ BEGIN
 END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
 GRANT USAGE ON SCHEMA auth, public TO anon, authenticated, service_role;
+-- Prod's default ACL: functions created in public are executable by anon
+-- (authz review note 5), so a REVOKE that forgets anon is caught here.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
 CREATE TYPE public.app_role AS ENUM ('admin', 'customer', 'helper');
@@ -128,6 +138,9 @@ await db.exec(`UPDATE public.feature_switches SET audience = 'testers' WHERE key
 
 // --- admin_set_feature_switch
 const auditCount = async () => (await db.query(`SELECT count(*)::int AS n FROM public.admin_audit_log WHERE action = 'set_feature_switch'`).catch(() => ({ rows: [{ n: -1 }] }))).rows[0].n;
+// The matrix above changed audiences directly (a server context): audited.
+ok((await auditCount()) >= 5, "direct (server-context) audience changes in the matrix were audited");
+await db.exec(`DELETE FROM public.admin_audit_log`);
 const r1 = await as("authenticated", ORDINARY, `SELECT public.admin_set_feature_switch('switch_canary', 'everyone')`);
 ok(!Array.isArray(r1) && /not_authorized/.test(r1.error), "non-admin cannot set a switch");
 const r1b = await as("authenticated", TESTER, `SELECT public.admin_set_feature_switch('switch_canary', 'everyone')`);
@@ -145,6 +158,11 @@ ok(row?.admin_id === ADMIN && row?.target_type === "feature_switch" && row?.targ
   && row?.details?.from === "testers" && row?.details?.to === "off", "audit row names admin, switch, from and to");
 await as("authenticated", ADMIN, `SELECT public.admin_set_feature_switch('switch_canary', 'off')`);
 ok((await auditCount()) === 1, "a no-op set writes no audit row");
+// A server-side change (service_role / a migration) is audited too, with no admin id.
+await db.exec(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'switch_canary'`).catch(() => {});
+const srv = (await db.query(`SELECT admin_id, details FROM public.admin_audit_log WHERE action = 'set_feature_switch' ORDER BY created_at DESC, id LIMIT 5`).catch(() => ({ rows: [] }))).rows;
+ok((await auditCount()) === 2 && srv.some((r) => r.admin_id === null && r.details?.to === "everyone"), "a server-side UPDATE to everyone is audited too (admin_id null)");
+await db.exec(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'switch_canary'`).catch(() => {});
 const upd = (await db.query(`SELECT updated_by FROM public.feature_switches WHERE key = 'switch_canary'`).catch(() => ({ rows: [] }))).rows[0];
 ok(upd?.updated_by === ADMIN, "updated_by records the admin");
 

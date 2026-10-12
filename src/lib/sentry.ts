@@ -146,11 +146,20 @@ const EXTENSION_URL_PATTERNS: RegExp[] = [
   /moz-extension:\/\//i,
   /safari-extension:\/\//i,
   /safari-web-extension:\/\//i,
-  // A host app's in-app browser injecting its own script (Facebook/Instagram
-  // on Android: iabjs://navigation_performance_logger_android, "Java object
-  // is gone", Q1634, 2026-10-09). Not our code, not actionable.
-  /^iabjs:\/\//i,
 ];
+
+/**
+ * The schemes our own code is ever served from: the web (https, http for a
+ * local build) and the native shells (iOS capacitor://localhost, Android
+ * https://localhost; capacitor.config.ts sets neither scheme, so both are the
+ * defaults). A stack whose EVERY url-bearing frame is on some other scheme ran
+ * no line of ours: it is a script a host app injected into the page. Q1604/
+ * Q1634: Facebook's Android in-app browser threw "Error invoking postMessage:
+ * Java object is gone" from iabjs://navigation_performance_logger_android, all
+ * three frames, on our home page (Sentry JAVASCRIPT-3B, 2026-10-09).
+ */
+const SHIPPED_SCRIPT_SCHEME = /^(?:https?|capacitor):\/\//i;
+const ANY_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 
 interface MinimalStackFrame {
   filename?: string;
@@ -183,6 +192,10 @@ function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
 
   // Browser-extension stack frames — not our code, not actionable.
   const frames = firstException?.stacktrace?.frames ?? [];
+  const frameUrls = frames
+    .map((f) => f.filename ?? f.abs_path ?? "")
+    .filter((u) => ANY_SCHEME.test(u));
+  if (frameUrls.length > 0 && frameUrls.every((u) => !SHIPPED_SCRIPT_SCHEME.test(u))) return true;
   for (const frame of frames) {
     const url = frame.filename ?? frame.abs_path ?? "";
     if (!url) continue;

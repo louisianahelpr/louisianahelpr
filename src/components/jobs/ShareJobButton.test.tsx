@@ -124,7 +124,29 @@ function setNavigator(overrides: Partial<Navigator>) {
 describe("ShareJobButton", () => {
   it("renders a Share button labelled for accessibility", () => {
     render(<ShareJobButton job={job} />);
-    expect(screen.getByRole("button", { name: "Share this job" })).toBeInTheDocument();
+    // jsdom has no navigator.share: the button reads "Copy link".
+    expect(screen.getByRole("button", { name: "Copy link to this job" })).toBeInTheDocument();
+  });
+
+  // Label in name (WCAG 2.5.3, seen 2026-10-12 in the /posts More menu): the
+  // accessible name of every labelled variant CONTAINS the words it shows, in
+  // both modes, so a voice-control user can say what they see.
+  // @mutate src/components/jobs/ShareJobButton.tsx |   const restAria = canNativeShare ? "Share this job" : "Copy link to this job"; |   const restAria = "Share this job";
+  it.each([
+    ["web with no share sheet", false, undefined],
+    ["native app", true, undefined],
+    ["browser with Web Share", false, vi.fn()],
+  ] as const)("every labelled variant's name contains its visible label (%s)", (_mode, native, share) => {
+    isNativePlatformMock.mockReturnValue(native);
+    setNavigator({ share: share as unknown as Navigator["share"] });
+    for (const props of [{}, { variant: "primary" as const }, { layout: "stack" as const }]) {
+      const { unmount } = render(<ShareJobButton job={job} {...props} />);
+      const btn = screen.getByRole("button");
+      const visible = (btn.textContent ?? "").trim();
+      expect(visible.length).toBeGreaterThan(0);
+      expect((btn.getAttribute("aria-label") ?? "").toLowerCase()).toContain(visible.toLowerCase());
+      unmount();
+    }
   });
 
   it("uses the Capacitor Share plugin on native platforms", async () => {
@@ -200,7 +222,7 @@ describe("ShareJobButton", () => {
     });
 
     render(<ShareJobButton job={job} />);
-    fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy link to this job" }));
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(EXPECTED_CLIP);
@@ -278,7 +300,7 @@ describe("ShareJobButton", () => {
     });
 
     render(<ShareJobButton job={job} />);
-    fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy link to this job" }));
 
     await waitFor(() => {
       expect(toastFnMock).toHaveBeenCalledWith(

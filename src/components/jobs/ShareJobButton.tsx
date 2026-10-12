@@ -160,6 +160,12 @@ export function ShareJobButton({
       (typeof navigator !== "undefined" && typeof navigator.share === "function"),
   );
   const restLabel = canNativeShare ? "Share" : "Copy link";
+  // The accessible name CONTAINS the visible label (WCAG 2.5.3, label in
+  // name): on a browser with no share sheet the button reads "Copy link", so
+  // "Share this job" left voice control users unable to say what they see
+  // (seen 2026-10-12 in the /posts More menu at 375 and 1440, proving Q1084).
+  // src/components/jobs/ShareJobButton.test.tsx.
+  const restAria = canNativeShare ? "Share this job" : "Copy link to this job";
 
   const confirmCopied = () => {
     setCopied(true);
@@ -289,7 +295,7 @@ export function ShareJobButton({
     return (
       <BarkPillButton
         type="button"
-        aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
+        aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? restAria)}
         disabled={sharing}
         onClick={handleShare}
         className={cn("w-full max-w-xs", className)}
@@ -315,7 +321,7 @@ export function ShareJobButton({
       // recolors via `style`, drop to the ghost variant (no forced text) so
       // the override actually renders; the no-style mount keeps `default`.
       variant={style ? "ghost" : "default"}
-      aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
+      aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? restAria)}
       disabled={sharing}
       onClick={handleShare}
       style={style}

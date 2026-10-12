@@ -9,8 +9,9 @@
  * needed, and the two cannot differ in anything but the names).
  *
  * The server mirrors vercel.json where it matters here: a path with no file
- * falls through the `/((?!api/|_vercel/).*)` rewrite to index.html, so a
- * deleted chunk answers 200 text/html (a MIME error in the browser), not 404.
+ * falls through the `/((?!api/|_vercel/|assets/|fonts/).*)` rewrite to
+ * index.html, EXCEPT under /assets/ and /fonts/, where a deleted file answers
+ * 404 (Q1663: it used to be index.html with the one-year immutable header).
  *
  * `deploy()` swaps A for B. `htmlLag` models the propagation window Q199 was
  * seen in: for that many document requests after the swap, the HTML still
@@ -109,8 +110,14 @@ export async function startDeployServer(dirA: string, dirB: string): Promise<Dep
       body = await readOrNull(file);
     }
     const found = body !== null;
-    if (body === null) {
+    if (body === null && /^\/(?:assets|fonts)\//.test(p)) {
       if (/^\/assets\/.+\.js$/.test(p)) missing.push(p);
+      // vercel.json's catch-all rewrite skips assets/ and fonts/ (Q1663): 404.
+      res.writeHead(404, { "content-type": "text/plain", "cache-control": "no-store" });
+      res.end("Not Found");
+      return;
+    }
+    if (body === null) {
       // vercel.json's catch-all rewrite: no file → index.html, 200.
       file = path.join(root, "index.html");
       body = await fs.readFile(file);

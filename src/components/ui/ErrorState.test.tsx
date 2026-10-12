@@ -18,15 +18,13 @@ beforeEach(() => {
 describe("ErrorState", () => {
   it("renders the default error copy", () => {
     render(<ErrorState />);
-    expect(screen.getByText("Hiccup on our end")).toBeInTheDocument();
     expect(screen.getByText("We couldn't load this.")).toBeInTheDocument();
   });
 
-  it("renders custom eyebrow / title / body when supplied", () => {
+  it("renders custom title / body when supplied", () => {
     render(
-      <ErrorState eyebrow="Feed offline" title="No jobs loaded" body="Tap to retry." />,
+      <ErrorState title="No jobs loaded" body="Tap to retry." />,
     );
-    expect(screen.getByText("Feed offline")).toBeInTheDocument();
     expect(screen.getByText("No jobs loaded")).toBeInTheDocument();
     expect(screen.getByText("Tap to retry.")).toBeInTheDocument();
   });

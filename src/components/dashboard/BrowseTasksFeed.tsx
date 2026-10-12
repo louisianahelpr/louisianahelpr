@@ -490,7 +490,6 @@ export function BrowseTasksFeed({
       <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <EmptyState
           icon={Search}
-          eyebrow={filters.hasFilters ? (nearbyActive ? "Nothing within range" : "No matches") : "All quiet — for now"}
           title={
             filters.hasFilters
               ? (nearbyActive

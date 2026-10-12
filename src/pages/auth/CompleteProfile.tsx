@@ -28,6 +28,7 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
 import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
+import { CompleteProfileIntro } from "./completeProfile/CompleteProfileIntro";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
@@ -577,9 +578,7 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              We need a few details before you can use Helpr. This keeps the community safe.
-            </p>
+            <CompleteProfileIntro />
           </div>
 
           <form
@@ -864,9 +863,9 @@ const CompleteProfile = () => {
                   background: "hsl(var(--burnt-sienna) / 0.06)",
                 }}
               >
-                {/* NOT `text-display-eyebrow` — that utility is `display: none`
-                    app-wide (index.css, the 2026-07-25 "all eyebrows gone"
-                    decision), so a label written with it renders nothing.
+                {/* NOT `text-display-eyebrow` — that utility was `display: none`
+                    app-wide ("all eyebrows gone", 2026-07-25; rule deleted
+                    2026-10-12, Q1288), so a label written with it rendered nothing.
                     Caught here by reading the computed page text, not the
                     class name — same trap as asserting gloss by class. */}
                 <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>

@@ -92,7 +92,6 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
     return (
       <div className="min-h-screen flex bg-premium-page">
         <ErrorState
-          eyebrow="Hiccup on our end"
           title="We couldn't verify your access."
           body="Your admin role didn't come back this time — you're still signed in. Tap Try again."
           retryDisabled={retrying}

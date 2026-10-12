@@ -289,7 +289,6 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
               <EmptyState
                 variant="inline"
                 icon={CalendarDays}
-                eyebrow="No calendars connected yet"
                 title="Never scramble for a cleaner again"
                 body="Connect your Airbnb or VRBO calendar. When a guest checks out, Helpr automatically posts a cleaning job — so you always have someone lined up before the next guest arrives."
                 action={

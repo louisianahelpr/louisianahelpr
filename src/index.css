@@ -2732,25 +2732,6 @@ button,
 }
 
 
-/* "Blueprint label" — tiny small-caps in Burnt Sienna for step
-   numbers and category eyebrows. Reads like an architect's drawing label or
-   the date line in a journal rather than a web tagline. */
-.text-display-eyebrow {
-  /* Eyebrow kickers removed app-wide (2026-07-25 decision: "all eyebrows
-     gone"). This utility was used exclusively for the small burnt-sienna
-     uppercase kicker above titles on the marketing/status pages, in
-     EmptyState, and in ErrorState — hiding it here retires every one of those
-     in a single place. The type rules are kept (commented) so the label is a
-     one-line restore if ever wanted. */
-  display: none;
-  font-family: Montserrat, "Montserrat Fallback", system-ui, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: hsl(var(--burnt-sienna));
-}
-
 /* Hide scrollbars on horizontal carousels (jobs preview, etc.). */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

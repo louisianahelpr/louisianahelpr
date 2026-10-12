@@ -1,5 +1,5 @@
 /**
- * Q1129 — no page emits `.text-display-eyebrow`, a class that is
+ * Q1129 — no page emits `.text-display-eyebrow`, a class that was
  * `display: none` app-wide (the 2026-07-25 "all eyebrows gone" decision).
  *
  * WHAT WAS WRONG (grep of src/, 2026-10-04): seven page call sites still wrote
@@ -9,9 +9,11 @@
  * for the `~` sibling selector, so it silently gave the next element its top
  * margin. Each removal keeps that margin as an explicit class so nothing moves.
  *
- * The one emitter left is EmptyState's `eyebrow` prop (and ErrorState, which
- * forwards a default): removing it changes the title's top gap by 0.5rem on
- * every empty/error state that passes one, which is its own decision (Q1288).
+ * The last emitter was EmptyState's `eyebrow` prop (and ErrorState, which
+ * forwarded a default). The owner chose to drop it (2026-10-12, Q1288): the
+ * prop, its callers and the CSS rule are gone, so NO file emits the class and
+ * the rule no longer exists. The title gap it caused is guarded by
+ * src/test/emptyStateTitleGap.test.tsx.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,11 +23,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "..", "..");
 const SRC = join(REPO, "src");
-/** Exact: the only file allowed to emit the class (Q1288). */
-// @two-way src/test/noHiddenEyebrowMarkup.test.ts:stale allowlist entry ${f} no longer emits the class
-const ALLOWED = ["src/components/ui/EmptyState.tsx"];
 
-describe("Q1129: no page emits the display:none eyebrow class", () => {
+describe("Q1129: no page emits the dead eyebrow class", () => {
   const files = walkSource([SRC]).filter(
     (f) => /\.tsx?$/.test(f) && !f.startsWith(join(SRC, "test") + "/") && !/\.test\.tsx?$/.test(f),
   );
@@ -34,21 +33,21 @@ describe("Q1129: no page emits the display:none eyebrow class", () => {
     expect(files.length).toBeGreaterThan(800);
   });
 
-  it("only EmptyState still emits it", () => {
+  it("no file emits it (EmptyState's eyebrow was the last, removed 2026-10-12, Q1288)", () => {
     const emitters = files
       .filter((f) => blankComments(readFileSync(f, "utf8")).includes("text-display-eyebrow"))
       .map((f) => relative(REPO, f))
       .sort();
-    for (const f of ALLOWED)
-      expect(emitters, `stale allowlist entry ${f} no longer emits the class: remove it (lower ALLOWED, Q1288)`).toContain(f);
-    expect(emitters).toEqual(ALLOWED);
+    expect(emitters).toEqual([]);
   });
 
-  it("the class is still display:none, so emitting it is still dead", () => {
-    const css = readFileSync(join(SRC, "index.css"), "utf8");
-    const rule = css.slice(css.indexOf(".text-display-eyebrow {"), css.indexOf("}", css.indexOf(".text-display-eyebrow {")));
-    expect(rule).toContain("display: none;");
+  it("the dead rule is gone too (Q1288), so the class styles nothing anywhere", () => {
+    const css = blankComments(readFileSync(join(SRC, "index.css"), "utf8"));
+    expect(css.length).toBeGreaterThan(10_000);
+    expect(css).not.toContain(".text-display-eyebrow");
   });
 });
 
 // @mutate src/pages/info/NotFound.tsx |           <div className="space-y-3"> |           <div className="space-y-3"><span className="text-display-eyebrow">x</span>
+// @mutate src/components/ui/EmptyState.tsx |           {title && ( |           <span className="text-display-eyebrow">x</span>{title && (
+// @mutate src/index.css | .scrollbar-hide::-webkit-scrollbar { | .text-display-eyebrow { display: none; } .scrollbar-hide::-webkit-scrollbar {

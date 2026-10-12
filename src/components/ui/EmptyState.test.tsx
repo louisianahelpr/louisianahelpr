@@ -4,23 +4,21 @@ import { Inbox } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 
 describe("EmptyState", () => {
-  it("renders the eyebrow, title, and body copy", () => {
+  it("renders the title and body copy", () => {
     render(
       <EmptyState
         icon={Inbox}
-        eyebrow="No messages"
         title="Inbox zero"
         body="You're all caught up."
       />,
     );
-    expect(screen.getByText("No messages")).toBeInTheDocument();
     expect(screen.getByText("Inbox zero")).toBeInTheDocument();
     expect(screen.getByText("You're all caught up.")).toBeInTheDocument();
   });
 
   it("renders the supplied icon", () => {
     const { container } = render(
-      <EmptyState icon={Inbox} eyebrow="e" title="t" body="b" />,
+      <EmptyState icon={Inbox} title="t" body="b" />,
     );
     expect(container.querySelector("svg")).toBeInTheDocument();
   });
@@ -29,7 +27,6 @@ describe("EmptyState", () => {
     render(
       <EmptyState
         icon={Inbox}
-        eyebrow="e"
         title="t"
         body="b"
         action={<button>Browse jobs</button>}
@@ -39,7 +36,7 @@ describe("EmptyState", () => {
   });
 
   it("renders no action element when none is supplied", () => {
-    render(<EmptyState icon={Inbox} eyebrow="e" title="t" body="b" />);
+    render(<EmptyState icon={Inbox} title="t" body="b" />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -47,7 +44,6 @@ describe("EmptyState", () => {
     render(
       <EmptyState
         icon={Inbox}
-        eyebrow="e"
         title="t"
         body="b"
         footnote={<span>Syncs every 6 hours</span>}
@@ -61,7 +57,6 @@ describe("EmptyState", () => {
       <EmptyState
         icon={Inbox}
         illustration={<svg data-testid="line-art" />}
-        eyebrow="e"
         title="t"
         body="b"
       />,
@@ -90,7 +85,7 @@ describe("EmptyState", () => {
    */
   const rootOf = (variant?: "dock" | "inline" | "bare") =>
     render(
-      <EmptyState icon={Inbox} eyebrow="e" title="t" body="b" variant={variant} />,
+      <EmptyState icon={Inbox} title="t" body="b" variant={variant} />,
     ).container.firstElementChild as HTMLElement;
 
   it("dock (the default) paints no surface of its own — no second box", () => {

@@ -27,8 +27,6 @@ interface EmptyStateProps {
    * states a warmer, hand-drawn feel.
    */
   illustration?: ReactNode;
-  /** Small uppercase serif eyebrow above the title. Optional. */
-  eyebrow?: string;
   /** Bold display-italic headline. Optional. */
   title?: string;
   /** Supporting sentence under the title. */
@@ -102,7 +100,6 @@ export const EMPTY_BODY_RESERVE_CLASS =
 export function EmptyState({
   icon: Icon,
   illustration,
-  eyebrow,
   title,
   body,
   action,
@@ -249,13 +246,13 @@ export function EmptyState({
             available width at 320w so long titles wrap instead of
             forcing the column wider than the viewport. Without these,
             flex-col + items-center keeps children at their natural
-            inline width and they overflow off the right edge. */}
+            inline width and they overflow off the right edge.
+            The title is this stack's FIRST child on every empty and error
+            screen (owner, 2026-10-12, Q1288): the old `eyebrow` prop put a
+            display:none span ahead of it, and `space-y-2` still counted that
+            span, so screens that passed one got an extra 8px above the title
+            that the rest did not. Guard: src/test/emptyStateTitleGap.test.tsx. */}
         <div className="w-full min-w-0 space-y-2">
-          {eyebrow && (
-            <span className="text-display-eyebrow tracking-widest">
-              {eyebrow}
-            </span>
-          )}
           {title && (
             <p
               className="font-display italic font-bold leading-tight break-words"

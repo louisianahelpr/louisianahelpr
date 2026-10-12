@@ -560,7 +560,6 @@ const DashboardGuest = () => {
         <div className={emptyWrapperClass}>
           <EmptyState
             icon={WifiOff}
-            eyebrow="Offline"
             title="You're offline."
             body="Open jobs will load here as soon as you're back online."
             action={
@@ -610,13 +609,6 @@ const DashboardGuest = () => {
           ) : (
           <EmptyState
             icon={Search}
-            eyebrow={
-              filters.hasFilters
-                ? nearbyActive
-                  ? "Nothing within range"
-                  : "No matches"
-                : "All quiet — for now"
-            }
             title={
               filters.hasFilters
                 ? nearbyActive

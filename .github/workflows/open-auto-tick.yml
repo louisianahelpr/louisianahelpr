@@ -8,7 +8,8 @@ name: Auto-tick items verified live
 # line), refreshes the generated inventories (the ticked lines move to the
 # archive), and lands that through a refresh PR (auto-merge through the
 # required checks; it never pushes to main). `test` markers are skipped here
-# (--no-test): an item with one is ticked by a person or by the nightly run.
+# (--no-test, a deploy should not wait on ~60 vitest files): the scheduled
+# open-done-when.yml ticks those, through its own refresh PR (2026-10-12).
 
 on:
   workflow_run:

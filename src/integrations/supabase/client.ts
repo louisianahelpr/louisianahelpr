@@ -6,6 +6,7 @@ import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
+import { defaultAuthStorageKey, guardSignedInRequests } from '@/lib/signedInRequestGuard';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -71,17 +72,52 @@ function getWebAuthStorage(): Storage {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Q995: a fast device clock read every fresh token as expired (~7 refreshes a
+// minute measured at +2 h); stored sessions carry a device-clock expires_at.
+// Q1170 (web): the first session read waits for the entry's token refresh.
+const authStorage = withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage()));
+
+// Once a minute at most: how often a member's request was held back because
+// their sign-in was refreshing (src/lib/signedInRequestGuard.ts). Lazy import:
+// keeps errorLogger out of this module's import graph.
+let lastHeldReportAt = -Infinity;
+const reportHeld = (info: { surface: string; method: string }) => {
+  const now = Date.now();
+  if (now - lastHeldReportAt < 60_000) return;
+  lastHeldReportAt = now;
+  void import('@/lib/errorLogger')
+    .then(({ report }) =>
+      report(new Error('Held a signed-in request while the sign-in refreshed'), {
+        severity: 'warning',
+        tags: { source: 'signedInRequestGuard.held', surface: info.surface, method: info.method },
+      }),
+    )
+    .catch(() => {
+      // Diagnostics only: the request was already held, which is what matters.
+    });
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Q995: a fast device clock read every fresh token as expired (~7 refreshes a
-    // minute measured at +2 h); stored sessions carry a device-clock expires_at.
-    // Q1170 (web): the first session read waits for the entry's token refresh.
-    storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())),
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
   },
-  // A pass-through to fetch, except that during a sign-out its /auth/v1/
-  // requests can be aborted, so the 3 s sign-out cap cancels /logout instead
-  // of abandoning it (src/lib/signOutAbort.ts).
-  global: { fetch: signOutAwareFetch },
+  // signOutAwareFetch: a pass-through to fetch, except that during a sign-out
+  // its /auth/v1/ requests can be aborted, so the 3 s sign-out cap cancels
+  // /logout instead of abandoning it (src/lib/signOutAbort.ts).
+  // guardSignedInRequests: a data request that would go out with the
+  // publishable key while a session is still stored (a refresh failed on the
+  // network) is held instead of being sent as anon (2026-10-09: "permission
+  // denied" on signed-in screens; src/lib/signedInRequestGuard.ts).
+  global: {
+    fetch: guardSignedInRequests({
+      supabaseUrl: SUPABASE_URL,
+      publishableKey: SUPABASE_PUBLISHABLE_KEY,
+      storage: authStorage,
+      storageKey: defaultAuthStorageKey(SUPABASE_URL),
+      fetchImpl: signOutAwareFetch,
+      onHeld: reportHeld,
+    }),
+  },
 });

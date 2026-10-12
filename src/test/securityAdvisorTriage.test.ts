@@ -75,6 +75,17 @@ describe("security advisor triage (#2685): accepted findings are never re-filed,
     expect({ unaccepted: r.unaccepted, stale: r.stale }).toEqual({ unaccepted: [], stale: [] });
   });
 
+  it("reads the flat API shape (one row per finding, metadata on the row) the same as the grouped one", async () => {
+    const m = await load();
+    const acc = m.loadAcceptances();
+    const grouped = runFromAcceptances(m, acc);
+    const flat = grouped.flatMap((l) => l.findings.map((f) => ({ name: l.name, level: l.level, metadata: f.metadata })));
+    const r = m.triage(flat as unknown as Lint[], acc);
+    expect(r.total).toBe(m.triage(grouped, acc).total);
+    expect(r.total).toBeGreaterThan(150);
+    expect({ unaccepted: r.unaccepted, stale: r.stale }).toEqual({ unaccepted: [], stale: [] });
+  });
+
   it("open_jobs_browse is the accepted definer view (Q182)", async () => {
     const m = await load();
     expect(Object.keys(m.loadAcceptances().accepted.security_definer_view)).toEqual(["public.open_jobs_browse"]);

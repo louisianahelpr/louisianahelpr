@@ -5,6 +5,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -53,12 +54,10 @@ const DEBUG_AUTH = import.meta.env.DEV;
 
 const PROFILE_TIMEOUT_MESSAGE = "Profile request timed out";
 
-const withTimeout = async <T,>(promise: Promise<T>, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error(PROFILE_TIMEOUT_MESSAGE)), ms)),
-  ]);
-};
+// Visible time only: a phone put away mid-read is not a slow read
+// (src/lib/visibleDeadline.ts; "Profile request timed out", 2026-10-09).
+const withTimeout = <T,>(promise: Promise<T>, ms = PROFILE_QUERY_TIMEOUT_MS): Promise<T> =>
+  raceVisibleDeadline(promise, ms, PROFILE_TIMEOUT_MESSAGE);
 
 /**
  * A PROFILE READ THAT MISSED ITS ATTEMPT'S DEADLINE IS NOT THROWN AWAY.

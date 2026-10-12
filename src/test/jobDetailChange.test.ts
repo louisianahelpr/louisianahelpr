@@ -153,7 +153,11 @@ describe("a booked job's place and details change only by a request every booked
     expect(names.length).toBeGreaterThan(10);
     const mine = "zzzzzz_jobs_location_clears_coords";
     expect(names).toContain(mine);
-    expect(names.filter((n) => n !== mine && n > mine)).toEqual([]);
+    // Q1503's parish/ZIP derivation is the one sibling allowed after it: it is
+    // a place column too, not a lock (jobAddressRederivesPlace.test.ts holds
+    // both after every other BEFORE trigger on jobs).
+    const placeSiblings = ["zzzzzz_jobs_location_rederives_place"];
+    expect(names.filter((n) => n !== mine && n > mine && !placeSiblings.includes(n))).toEqual([]);
     const geocoder = readFileSync("supabase/functions/backfill-job-geocode/index.ts", "utf8");
     expect(geocoder).toContain('const GEOCODE_STATUSES = ["open", "accepted", "in_progress"];');
     expect(geocoder.match(/\.in\("status", GEOCODE_STATUSES\)/g)?.length).toBe(2);

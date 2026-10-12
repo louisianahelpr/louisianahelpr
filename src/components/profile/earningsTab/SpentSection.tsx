@@ -9,7 +9,7 @@ import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob, type PosterTipRow, type SpentRow } from "@/lib/posterSpend";
+import { setupFeeReceiptNote, spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob, type PosterTipRow, type SpentRow } from "@/lib/posterSpend";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
 import { formatCents } from "./earningsTabHelpers";
 
@@ -17,6 +17,7 @@ import { formatCents } from "./earningsTabHelpers";
 interface SpentJobRow extends PosterSpendJob {
   title: string | null;
   status: string;
+  dispute_status: string | null;
   cancelled_at: string | null;
   poster_completed_at: string | null;
   helper_completed_at: string | null;
@@ -78,7 +79,7 @@ export function SpentSection() {
         // them cost anything. onboarding_fee_amount is ahead of db-deploy
         // (JOB_COLUMNS_AHEAD_OF_DB), so the read retries once without it.
         readJobsAheadOfDb(
-          "id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
+          "id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
           (columns) => supabase.from("jobs").select(columns).eq("customer_id", posterId),
         ),
         supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id").eq("customer_id", user!.id),
@@ -193,6 +194,7 @@ export function SpentSection() {
                   {formatShortDate(new Date(rowMs(r)))}
                   {r.job?.status === "cancelled" ? " · Cancelled" : ""}
                   {r.job && r.tipCents > 0 ? ` · includes ${formatCents(r.tipCents)} tip` : ""}
+                  {r.job ? setupFeeReceiptNote(r.job, r.refundedCents) : ""}
                 </p>
               </div>
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>

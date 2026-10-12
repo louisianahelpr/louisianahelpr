@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-12T18:56Z",
+  "measured_at": "2026-10-12T19:08Z",
   "issues": {
     "readable": true,
     "open": [
@@ -165,14 +165,6 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
-      },
-      {
-        "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/app-shared-BltHQJ6d)",
-        "status": "open",
-        "title": "error: usesearchparammirror runaway writes",
-        "issue": null
       },
       {
         "fingerprint": "764a6f7344b7ccc14d11519a279d69d4",

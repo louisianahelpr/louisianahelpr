@@ -248,6 +248,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // A service_role sweep that tells a series POSTER their own funded visit is
+    // still empty tomorrow (20261012195747); it shows no job to anyone else.
+    ["public.sweep_unfilled_series_visit_reminders", "service_role sweep notifying the poster of their own series visit; not a feed"],
     // Owner 2026-10-08: reminds or reposts the CALLER-less sweep's own booked
     // jobs; the reposted job reaches browse through the gated surfaces.
     ["public.sweep_confirm_reminders_and_repost", "cron over booked jobs; writes, never lists them to anyone"],

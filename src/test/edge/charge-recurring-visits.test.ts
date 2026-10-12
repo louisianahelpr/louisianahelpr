@@ -287,6 +287,9 @@ function seedHappyPath() {
   seriesPiRetrieve.mockReset();
   otherPiRetrieve.mockReset();
   seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent());
+  // Q1493: a paid visit row's own intent is read before it is booked on;
+  // by default it is a clean succeeded charge with nothing refunded.
+  otherPiRetrieve.mockResolvedValue({ status: "succeeded", latest_charge: { id: "ch_paid", amount_refunded: 0 } });
   stripeMock.paymentIntents.retrieve.mockImplementation((id: string, ...rest: unknown[]) =>
     id === SERIES_PI ? seriesPiRetrieve(id, ...rest) : otherPiRetrieve(id, ...rest),
   );
@@ -1666,7 +1669,8 @@ describe("charge-recurring-visits edge function", () => {
     // Q415 (e): the fee read fails, so the card-rate estimate on the intent in
     // hand is withheld (2.9% + 30c of $100 = $3.20), never a full refund.
     stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
-    otherPiRetrieve.mockRejectedValue(new Error("network"));
+    // Q1493: the pre-booking read of the paid intent succeeds; the later fee read fails.
+    otherPiRetrieve.mockResolvedValueOnce({ status: "succeeded", latest_charge: { amount_refunded: 0 } }).mockRejectedValue(new Error("network"));
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
@@ -1945,6 +1949,71 @@ describe("charge-recurring-visits edge function", () => {
     const visits = insertedVisits();
     expect(visits).toHaveLength(1);
     expect((visits[0].payload as Record<string, unknown>).stripe_payment_intent_id).toBe("pi_late");
+  });
+
+  // Q1493 (lh-money-escrow review of Q809): a paid row whose payment was
+  // refunded by hand (the row still reads 'paid') is never booked on.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidStatus !== "succeeded" \|\| !chargeRead \|\| refundedCents > 0 \|\| disputed) { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidStatus !== "succeeded" \|\| !chargeRead \|\| refundedCents > 0 \|\| disputed) { |           if (!chargeRead \|\| refundedCents > 0 \|\| disputed) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidStatus !== "succeeded" \|\| !chargeRead \|\| refundedCents > 0 \|\| disputed) { |           if (paidStatus !== "succeeded" \|\| !chargeRead \|\| refundedCents > 0) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidStatus !== "succeeded" \|\| !chargeRead \|\| refundedCents > 0 \|\| disputed) { |           if (paidStatus !== "succeeded" \|\| refundedCents > 0 \|\| disputed) {
+  it.each([
+    ["refunded in part", { status: "succeeded", latest_charge: { id: "ch_paid", amount_refunded: 100 } }, "refunded 100 cents"],
+    ["not succeeded", { status: "requires_payment_method", latest_charge: { id: "ch_paid", amount_refunded: 0 } }, "is requires_payment_method"],
+    ["disputed", { status: "succeeded", latest_charge: { id: "ch_paid", amount_refunded: 0, disputed: true } }, "disputed"],
+    ["with no readable charge", { status: "succeeded", latest_charge: "ch_paid" }, "could not be read"],
+  ] as const)("Q1493: a PAID row whose payment is %s is not booked, and is paged", async (_label, intent, says) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    otherPiRetrieve.mockResolvedValue(intent);
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(reasons(b)).toContain(says);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |              logTestObjectUnderLiveKey("charge-recurring-visits", { series_id: parent.id, visit_date: visitDate, object: "payment_intent", id: paidRow.stripe_payment_intent_id });\n              continue; |              fail("test object");\n              continue;
+  it("Q1493: a paid row whose payment is a test-mode object under the live key is skipped, not paged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    otherPiRetrieve.mockRejectedValue(Object.assign(new Error("No such payment_intent: 'pi_late'; a similar object exists in test mode, but a live mode key was used to make this request."), { statusCode: 404, code: "resource_missing" }));
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1493: a PAID row whose payment was refunded is not booked, and is paged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    otherPiRetrieve.mockResolvedValue({ status: "succeeded", latest_charge: { id: "ch_paid", amount_refunded: 31500 } });
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(reasons(b)).toContain("NOT booked on it");
+  });
+
+  it("Q1493: a paid row whose payment cannot be read is not booked this run", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    otherPiRetrieve.mockRejectedValue(new Error("Stripe is down"));
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(reasons(b)).toContain("could not read the paid visit's payment");
   });
 
   it("Q1266 (1) control: the narrowed run never CHARGES for today (a pending row is left alone)", async () => {
@@ -2445,7 +2514,8 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     paidOnSession();
-    otherPiRetrieve.mockRejectedValue(new Error("network"));
+    // Q1493: the pre-booking read of the paid intent succeeds; the later fee read fails.
+    otherPiRetrieve.mockResolvedValueOnce({ status: "succeeded", latest_charge: { amount_refunded: 0 } }).mockRejectedValue(new Error("network"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
@@ -2470,7 +2540,8 @@ describe("charge-recurring-visits edge function", () => {
         }],
       },
     });
-    otherPiRetrieve.mockRejectedValue(new Error("network"));
+    // Q1493: the pre-booking read of the paid intent succeeds; the later fee read fails.
+    otherPiRetrieve.mockResolvedValueOnce({ status: "succeeded", latest_charge: { amount_refunded: 0 } }).mockRejectedValue(new Error("network"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
@@ -2484,7 +2555,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     paidOnSession();
     otherPiRetrieve.mockResolvedValue({
-      id: "pi_onsession", amount: 31500, amount_received: 31500,
+      id: "pi_onsession", status: "succeeded", amount: 31500, amount_received: 31500,
       latest_charge: { balance_transaction: { fee: 944 } },
     });
 
@@ -2501,7 +2572,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     paidOnSession();
-    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
+    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", status: "succeeded", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
     stripeMock.refunds.create.mockRejectedValue(
       Object.assign(new Error("Charge ch_1 has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded" }),
     );
@@ -2518,7 +2589,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     paidOnSession();
-    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
+    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", status: "succeeded", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
     stripeMock.refunds.create.mockRejectedValue(
       Object.assign(new Error("Charge ch_1 has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded" }),
     );

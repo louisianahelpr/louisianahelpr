@@ -28,6 +28,14 @@ export function isUnusableConnectAccountError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const e = err as { statusCode?: unknown; message?: unknown; code?: unknown };
   const message = typeof e.message === "string" ? e.message : "";
+  // Q1489 (lh-money-escrow review of Q1251): a LIVE object asked for under a
+  // TEST key ("a similar object exists in live mode, but a test mode key was
+  // used") is a key misconfiguration, not a dead account: it is a 404
+  // resource_missing like a gone account, so without this the arms below
+  // would tell live Helprs to set their payout account up again and clear the
+  // stored link. The stored-id classifier (isTestObjectUnderLiveKey) refuses
+  // this direction too. Any live-mode-object answer is never "unusable".
+  if (/exists in live mode, but a test mode key was used|livemode key, and therefore can only be used with livemode keys/.test(message)) return false;
   return (
     e.statusCode === 404 ||
     message.includes("No such account") ||

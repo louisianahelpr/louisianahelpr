@@ -1549,6 +1549,50 @@ serve(async (req) => {
           ? `recurring-visit:${parent.id}:${visitDate}:${hold.id}:after-${refundedOfClaim[0]}`
           : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`;
 
+        // Q1493 (lh-money-escrow review of Q809): a paid row is booked on ITS
+        // PaymentIntent, so read that intent first. A mid-run refund that
+        // failed and was then refunded by hand (as the Q809 page asks) leaves
+        // the row 'paid'; booking on it would pay the Helpr from the platform
+        // balance. Any refund on the charge, or an intent not 'succeeded',
+        // books nothing and is paged for a person to reconcile the row.
+        if (paidRow) {
+          let paidStatus = "";
+          let refundedCents = 0;
+          let disputed = false;
+          let chargeRead = false;
+          try {
+            const paidIntent = await stripe.paymentIntents.retrieve(paidRow.stripe_payment_intent_id, { expand: ["latest_charge"] });
+            paidStatus = paidIntent.status;
+            const ch = paidIntent.latest_charge;
+            // Fail closed: an unexpanded or missing charge proves nothing
+            // (lh-money-escrow review). A disputed charge is no better than a
+            // refunded one: a chargeback on an unbooked visit finds no job.
+            if (ch && typeof ch === "object") {
+              chargeRead = true;
+              refundedCents = Number((ch as { amount_refunded?: number }).amount_refunded ?? 0);
+              disputed = (ch as { disputed?: boolean }).disputed === true;
+            }
+          } catch (e) {
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("charge-recurring-visits", { series_id: parent.id, visit_date: visitDate, object: "payment_intent", id: paidRow.stripe_payment_intent_id });
+              continue;
+            }
+            fail(`series ${parent.id} ${visitDate}: could not read the paid visit's payment ${paidRow.stripe_payment_intent_id} (${((e as Error)?.message ?? String(e)).slice(0, 160)}); not booked this run`);
+            continue;
+          }
+          if (paidStatus !== "succeeded" || !chargeRead || refundedCents > 0 || disputed) {
+            const why = paidStatus !== "succeeded"
+              ? paidStatus
+              : !chargeRead
+              ? "succeeded but its charge could not be read"
+              : disputed
+              ? "disputed (a chargeback is open on it)"
+              : `refunded ${refundedCents} cents`;
+            fail(`series ${parent.id} ${visitDate}: the paid visit's payment ${paidRow.stripe_payment_intent_id} is ${why}; NOT booked on it. Reconcile the recurring_visit_payments row ${paidRow.id} by hand.`);
+            continue;
+          }
+        }
+
         // ONE call site, but up to TWO attempts on the SAME key — see
         // `attemptVisitCharge`. A network fault here is not a decline.
         // Q210(b): a visit the payer paid on-session books on that intent.

@@ -426,14 +426,14 @@ export async function handleChargeDisputeClosed(
           supabase,
           "stripe-webhook.chargeDisputeClosed.won",
         );
-        // Q449: a restored decided split is the admin's to run now. The split
-        // pays the Helpr's share BEFORE it refunds the poster, and whether a
-        // charge whose card dispute was won can still be refunded is not yet
-        // verified in Stripe test mode, so the notice says to check first.
+        // Q449: a restored decided split is the admin's to run now. A charge
+        // whose card dispute was WON can still be refunded (measured in Stripe
+        // test mode: re_3UNeuOKp2H4b7tEC0AswEqN4 succeeded after du_1UNeuSKp2H4b7tECYODoXm9E
+        // was won), so the notice asks for no Stripe check first (Q1425).
         // Keyed on what actually happened (review LOW-a): a held job that was
         // not 'chargeback', or whose restore matched no row, is neither.
         const settleNow = wonRestoredTo
-          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute. If the decision refunds the person who posted the job anything, first check in Stripe that this charge can still be refunded (its card dispute was won), because the split pays the Helpr's share before it refunds.`
+          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute.`
           : wonNeedsHuman
           ? " It stays blocked as 'chargeback', and no admin action can settle a 'chargeback' job: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold;"
           : " Settle that first;";

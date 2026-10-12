@@ -1,9 +1,9 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 610,
+    "calls": 611,
     "files": 158,
-    "rendering": 581,
+    "rendering": 582,
     "suppressedByPolicy": 29,
     "byKind": {
       "confirmConsequential": 25,
@@ -13,11 +13,11 @@
       "toast.error": 479,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 34,
+      "toast.success": 35,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 324,
+      "literal": 325,
       "template": 79,
       "dynamic": 248,
       "jsx": 0
@@ -3440,7 +3440,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 585,
+      "line": 586,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3450,7 +3450,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 589,
+      "line": 590,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3460,7 +3460,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 602,
+      "line": 603,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3470,7 +3470,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 617,
+      "line": 618,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3480,7 +3480,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 625,
+      "line": 626,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3490,7 +3490,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 649,
+      "line": 650,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5090,7 +5090,7 @@
     },
     {
       "file": "src/pages/home/useBoostReturn.ts",
-      "line": 48,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5100,7 +5100,7 @@
     },
     {
       "file": "src/pages/home/useBoostReturn.ts",
-      "line": 50,
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5110,7 +5110,17 @@
     },
     {
       "file": "src/pages/home/useBoostReturn.ts",
-      "line": 56,
+      "line": 66,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Payment received — your boost is being switched on and will show on the job in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 74,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5120,7 +5130,7 @@
     },
     {
       "file": "src/pages/home/useBoostReturn.ts",
-      "line": 60,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "literal",

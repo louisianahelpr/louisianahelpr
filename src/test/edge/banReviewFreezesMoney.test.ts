@@ -199,7 +199,7 @@ describe("admin-user-actions: an admin unban lifts the review, attributably", ()
 // are now ONE transaction (admin_apply_account_action), which refuses an open
 // review before writing anything; the function writes neither table itself.
 // Transaction behaviour: src/test/pglite/banActionsAtomic.pglite.mjs.
-// @mutate supabase/functions/admin-user-actions/index.ts |         if (applyErr) {\n          if (/ban_review_open/.test(applyErr.message)) {\n            return new Response(JSON.stringify({ |         if (applyErr) {\n          if (false) {\n            return new Response(JSON.stringify({
+// @mutate supabase/functions/admin-user-actions/index.ts |           if (/ban_review_open/.test(applyErr.message)) {\n            return new Response(JSON.stringify({ |           if (false) {\n            return new Response(JSON.stringify({
 describe("admin-user-actions: confirm_message_ban on an account under an open ban review (Q1414, Q1494)", () => {
   async function confirm(applyError?: { message: string; code?: string }, applied: unknown = { ban_row_written: true }) {
     setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", SUPABASE_ANON_KEY: "anon" });
@@ -374,7 +374,7 @@ describe("create-payment: a payment touching an account under review is refused,
 // Q1494: BanDialog's ban and the formal-warning strikes are ONE transaction
 // (admin_apply_account_action); the function writes no ban row, strike or
 // standing itself, and an open review comes back as 409 with nothing written.
-// @mutate supabase/functions/admin-user-actions/index.ts |       if (applyErr) {\n        if (/ban_review_open/.test(applyErr.message)) {\n          return json(409, { |       if (applyErr) {\n        if (false) {\n          return json(409, {
+// @mutate supabase/functions/admin-user-actions/index.ts |         if (/ban_review_open/.test(applyErr.message)) {\n          return json(409, { |         if (false) {\n          return json(409, {
 describe("admin-user-actions: apply_account_action and formal_warning are one transaction (Q1494)", () => {
   async function call(body: Record<string, unknown>, applyError?: { message: string; code?: string }) {
     setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", SUPABASE_ANON_KEY: "anon" });
@@ -402,7 +402,7 @@ describe("admin-user-actions: apply_account_action and formal_warning are one tr
     expect(directStandingWrites()).toEqual([]);
   });
 
-  // @mutate supabase/functions/admin-user-actions/index.ts |       if (applyErr) {\n        if (applyErr.code === 'PGRST202') { |       if (applyErr) {\n        if (false) {
+  // @mutate supabase/functions/admin-user-actions/index.ts |         p_suspended_until: until,\n        p_record_strike: true,\n      })\n      if (applyErr) {\n        if (applyErr.code === 'PGRST202') { |         p_suspended_until: until,\n        p_record_strike: true,\n      })\n      if (applyErr) {\n        if (false) {
   it("before the migration deploys (PGRST202): 503, nothing written", async () => {
     const res = await call({ action: "apply_account_action", kind: "permanent", reason: "Spam" }, { message: "Could not find the function", code: "PGRST202" });
     expect(res.status).toBe(503);

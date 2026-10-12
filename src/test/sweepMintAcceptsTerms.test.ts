@@ -52,6 +52,9 @@ describe("sweep session mint accepts the current Terms", () => {
 const NO_ACCEPT: Record<string, string> = {
   // The mint itself.
   "scripts/lib/adminSession.mjs": "defines mintAdminSession",
+  // REST/RPC calls as the test accounts to build state fixtures; it renders no
+  // page, so no Terms dialog can stand in its way.
+  "scripts/e2e/seedStateFixtures.mjs": "builds seed state fixtures over REST/RPC; renders no page",
   // Answers a typed login's password grant from a route handler; the specs
   // using it (auth, slow-network, payment-lifecycle) assert the login itself.
   "e2e/helpers/mintedPasswordGrant.ts": "login-form specs, not a page sweep; not audited for the dialog (2026-10-07)",

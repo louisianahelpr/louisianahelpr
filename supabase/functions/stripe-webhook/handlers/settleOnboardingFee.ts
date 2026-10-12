@@ -25,6 +25,59 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
  * ledger row carries `job_id: null` — a per-job reconciliation must not
  * attribute a profile fee to that job.
  */
+/**
+ * Q1346 (owner, 2026-10-12: the poster's Spent total and receipts count the
+ * $2): record on the JOB the setup fee its checkout kept, so posterSpend /
+ * posterJobCost can add it. Called only by the WINNER of the claim above (a
+ * losing checkout's fee is refunded, so stamping it would count money that
+ * came back). The standalone pay-onboarding-fee checkout carries no job_id and
+ * stamps nothing.
+ *
+ * Never throws: the fee is already collected and the claim already won, so a
+ * failed stamp under-counts one figure on the poster's Money tab, nothing more.
+ * It is logged and sent to ops so the row can be fixed by hand.
+ */
+async function stampJobSetupFee(
+  session: Stripe.Checkout.Session,
+  posterId: string,
+  { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">,
+): Promise<void> {
+  const meta = (session.metadata ?? {}) as { job_id?: string; onboarding_fee_cents?: string };
+  const jobId = meta.job_id;
+  if (!jobId) return;
+  // No guessed figure: create-payment writes onboarding_fee_cents on every
+  // session it bills the fee on (from the same variable as the line item). A
+  // session without a readable amount is not stamped, and ops is told.
+  const feeCents = Number.parseInt(meta.onboarding_fee_cents ?? "", 10);
+  if (!Number.isFinite(feeCents) || feeCents <= 0) {
+    logStep("WARNING: onboarding fee session with an unreadable fee amount; job not stamped", { sessionId: session.id, jobId });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Setup fee not recorded on its job",
+      message: "A first-post setup fee was collected but its session carried no readable onboarding_fee_cents, so jobs.onboarding_fee_amount was not written. Set it by hand from the Stripe line item.",
+      fields: { job_id: jobId, session_id: session.id, onboarding_fee_cents: String(meta.onboarding_fee_cents ?? "") },
+    });
+    return;
+  }
+  const { data: stamped, error: stampErr } = await supabase
+    .from("jobs")
+    .update({ onboarding_fee_amount: feeCents / 100 })
+    .eq("id", jobId)
+    .eq("customer_id", posterId)
+    .select("id");
+  if (stampErr || !stamped || stamped.length === 0) {
+    logStep("ERROR stamping the setup fee on the job", { jobId, sessionId: session.id, error: stampErr?.message ?? "matched 0 rows" });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Setup fee not recorded on its job",
+      message: "A first-post setup fee was collected but jobs.onboarding_fee_amount was not written, so the poster's Spent total is short by it. Set it by hand.",
+      fields: { job_id: jobId, session_id: session.id, fee_cents: String(feeCents), db_error: stampErr?.message ?? "matched 0 rows" },
+    });
+  }
+}
+
 export async function settleOnboardingFee(
   session: Stripe.Checkout.Session,
   paymentIntentId: string,
@@ -47,6 +100,7 @@ export async function settleOnboardingFee(
       logStep("ERROR atomic flip onboarding fee", { error: feeErr.message });
     } else if (flipped && flipped.length > 0) {
       logStep("Onboarding fee marked paid for poster", { posterId });
+      await stampJobSetupFee(session, posterId, { supabase, logStep });
     } else {
       // Flag was already true — duplicate fee charged. Auto-refund $2.
       // Stripe idempotency key keyed on session.id so webhook

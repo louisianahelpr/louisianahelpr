@@ -17,8 +17,9 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *
  * Read from the columns and ledgers the money path writes, never re-derived:
  *  - The job charge: posterPaidDollars() (posterJobCost.ts — budget +
- *    customer_fee_amount + urgent_fee + sales_tax_amount, the line items
- *    create-payment bills), counted only when a card was actually charged:
+ *    customer_fee_amount + urgent_fee + sales_tax_amount +
+ *    onboarding_fee_amount, the line items create-payment bills), counted
+ *    only when a card was actually charged:
  *    a Stripe PaymentIntent on the job AND a payment_status that means the
  *    money was collected. A job closed with no payment (payment_status
  *    'cancelled'/'unpaid'/'abandoned'/'failed', no PI) cost nothing.
@@ -59,9 +60,12 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *    a refund or chargeback of a manual tip cannot be matched yet (Q1328).
  *
  * Recurring visits are job rows of their own, so they count like any job.
- * STILL OUT (not job spend, owner not asked): the one-time account setup fee
- * (charged once per account, never stamped on a job), boosts, subscriptions
- * and gift-card purchases.
+ * The one-time account setup fee COUNTS (owner, 2026-10-12, Q1346), on the job
+ * whose checkout kept it (jobs.onboarding_fee_amount, stamped by
+ * stripe-webhook). A cancel refunds the capture less the service fee, so the
+ * $2 comes back with it and charged - refunded stays right.
+ * STILL OUT (not job spend, owner not asked): boosts, subscriptions and
+ * gift-card purchases.
  */
 
 /** payment_status values under which the job's charge was collected. */

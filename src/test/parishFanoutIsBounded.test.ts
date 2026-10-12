@@ -13,11 +13,17 @@
  * src/test/pglite/parishMatchAlertsWaitForEarlyAccess.pglite.mjs (GREEN 21/21
  * applied 3x; NEW_MIGRATION=skip -> 15 FAIL on the previous fan-out).
  *
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
+ * Q1585 (owner, 2026-10-12): the hourly cap still binds, but at SEND time
+ * only, and an alert over it is re-queued for when a slot opens instead of
+ * dropped. The trigger no longer filters an over-cap member out (that dropped
+ * their alert for good) and is one set-based INSERT. Behaviour:
+ * src/test/pglite/jobMatchEmailsFollowups.pglite.mjs.
+ *
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_recent >= 10 THEN  -- N-007 hourly cap\n    INSERT | IF v_recent >= 1000 THEN  -- N-007 hourly cap\n    INSERT
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at, retry_after) |     PERFORM 1; INSERT INTO public.parish_match_alert_queue_gone (user_id, job_id, notify_at, retry_after)
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates |   PERFORM public.deliver_parish_match_alert(NULL, NEW.id);\n  INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -46,8 +52,12 @@ describe("the parish job-match fan-out is bounded (N-007)", () => {
     expect(newest).toMatch(/AND NOT EXISTS \(\s*SELECT 1 FROM public\.notifications n\s+WHERE n\.user_id = c\.user_id AND n\.job_id = NEW\.id AND n\.type = 'job_match'\s*\) {2}-- N-007 once per job/);
   });
 
-  it("caps job_match notifications per Helpr per hour", () => {
-    expect(newest).toMatch(/n\.created_at > now\(\) - interval '1 hour'\s*\) < 10 {2}-- N-007 hourly cap/);
+  it("caps job_match notifications per Helpr per hour, at send time (Q1585)", () => {
+    // The sender holds the cap; the trigger must not, or an over-cap member's
+    // alert is never queued at all.
+    const d = body("deliver_parish_match_alert");
+    expect(d).toMatch(/n\.created_at > now\(\) - interval '1 hour'; IF v_recent >= 10 THEN INSERT/);
+    expect(body("notify_helpers_on_job_post")).not.toMatch(/interval '1 hour'/);
   });
 });
 
@@ -57,9 +67,11 @@ describe("the parish fan-out waits for early access (Q225 / V-008)", () => {
     expect(b).not.toMatch(/INSERT INTO public\.notifications/i);
     expect(b).not.toMatch(/net\.http_post/i);
     expect(b).not.toMatch(/deliver_parish_match_alert/i);
-    expect(b).toContain(
-      "INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) VALUES (helper_record.helper_id, NEW.id, public.early_access_visible_at(helper_record.helper_id, NEW.created_at)) ON CONFLICT (user_id, job_id) DO NOTHING;",
-    );
+    // Q1585 (c): one set-based INSERT ... SELECT, no per-profile loop.
+    expect(b).toContain("INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) WITH candidates AS (");
+    expect(b).toContain("SELECT DISTINCT c.user_id, NEW.id, public.early_access_visible_at(c.user_id, NEW.created_at) FROM candidates c");
+    expect(b).toMatch(/ON CONFLICT \(user_id, job_id\) DO NOTHING; RETURN NEW; END;/);
+    expect(b).not.toMatch(/\bLOOP\b/);
   });
 
   it("deliver refuses a job not yet visible, and re-applies N-007, before any write", () => {
@@ -68,7 +80,12 @@ describe("the parish fan-out waits for early access (Q225 / V-008)", () => {
     expect(refuse).toBeGreaterThan(0);
     const n007 = b.indexOf("n.user_id = p_user_id AND n.job_id = p_job_id AND n.type = 'job_match'");
     expect(n007).toBeGreaterThan(refuse);
-    expect(b).toMatch(/n\.created_at > now\(\) - interval '1 hour' \) >= 10 THEN RETURN false;/);
+    // Q1585 (a): over the cap the alert is queued again for when a slot
+    // opens, never just dropped (the sweep deleted its row already).
+    expect(b).toContain(
+      "IF v_recent >= 10 THEN INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at, retry_after) VALUES (p_user_id, p_job_id, public.early_access_visible_at(p_user_id, v_job.created_at), GREATEST(v_oldest + interval '1 hour', now() + interval '1 minute')) ON CONFLICT (user_id, job_id) DO UPDATE SET retry_after = EXCLUDED.retry_after; RETURN false; END IF;",
+    );
+    expect(b).not.toMatch(/\) >= 10 THEN RETURN false;/);
     for (const write of ["INSERT INTO public.notifications", "net.http_post"]) {
       expect(b.indexOf(write), write).toBeGreaterThan(n007);
     }

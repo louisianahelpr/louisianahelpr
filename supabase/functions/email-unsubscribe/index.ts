@@ -1,4 +1,6 @@
-// The opt-out. Every commercial email in the product points here.
+// The opt-out. Every commercial email in the product points here, and so does
+// the "new job posted" email's List-Unsubscribe (`list=job_matches`, Q1585),
+// which turns off only that email; see setJobMatchEmails below.
 //
 // ═════════════════════════════════════════════════════════════════════════
 // THE PATH, HOP BY HOP
@@ -71,7 +73,7 @@ import { htmlEscape } from '../_shared/safe-strings.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { LOGO_URL } from '../_shared/email-templates/styles.ts'
 import { SUPPORT_EMAIL } from '../_shared/resend.ts'
-import { unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
+import { unsubscribeListFrom, unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
 /**
@@ -153,6 +155,31 @@ async function setCommercialConsent(
     .from('notification_preferences')
     .upsert({ user_id: userId, email_promotions: !optOut }, { onConflict: 'user_id' })
   if (prefsError) throw new Error(`email_promotions write failed: ${prefsError.message}`)
+}
+
+/**
+ * Q1585: the job-match list. `send-notification-email` puts a one-click
+ * List-Unsubscribe on the "new job posted" email (owner, 2026-10-12: every
+ * member gets it unless they turn it off), signed for `list=job_matches`. That
+ * link turns off exactly that email: notification_preferences.email_job_matches,
+ * the switch on the Notifications screen. It never touches the commercial
+ * consent flags or signup_leads, and the in-app alert (job_matches) stays on.
+ *
+ * Upsert for the same reason as setCommercialConsent (the row is created
+ * lazily), with `.select('user_id')` so a write that landed nowhere throws.
+ */
+async function setJobMatchEmails(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  userId: string,
+  optOut: boolean,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .upsert({ user_id: userId, email_job_matches: !optOut }, { onConflict: 'user_id' })
+    .select('user_id')
+  if (error) throw new Error(`email_job_matches write failed: ${error.message}`)
+  if (!data || data.length === 0) throw new Error('email_job_matches write matched no row')
 }
 
 const PAGE_CSS = `
@@ -255,7 +282,10 @@ serve(async (req) => {
         )
   }
 
-  const email = await verifyUnsubscribeToken(url.searchParams.get('e'), url.searchParams.get('sig'))
+  // The list is part of what was signed: a promotions link verifies only as
+  // promotions, a job-match link only as job matches.
+  const list = unsubscribeListFrom(url.searchParams.get('list'))
+  const email = await verifyUnsubscribeToken(url.searchParams.get('e'), url.searchParams.get('sig'), list)
   if (!email) {
     return req.method === 'POST'
       ? text('Invalid or expired unsubscribe link', 400)
@@ -309,7 +339,11 @@ serve(async (req) => {
     console.warn('[email-unsubscribe] no profile for a validly signed address; only signup_leads is stamped')
   } else {
     try {
-      await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
+      if (list === 'job_matches') {
+        await setJobMatchEmails(supabase, profile.user_id, action !== 'resubscribe')
+      } else {
+        await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[email-unsubscribe]', message)
@@ -333,7 +367,8 @@ serve(async (req) => {
   // the opt-out that matters already committed, so it is logged, not undone
   // into an error page. A missing table (the function deployed before its
   // migration) means no reminder can exist yet, so it is nothing to write.
-  const { error: leadError } = await supabase
+  // A job-match link is never a lead's: leads get no job emails.
+  const { error: leadError } = list === 'job_matches' ? { error: null } : await supabase
     .from('signup_leads')
     .update({ unsubscribed_at: action === 'resubscribe' ? null : new Date().toISOString() })
     .eq('email', email)
@@ -354,7 +389,7 @@ serve(async (req) => {
     }
   }
 
-  console.log(`[email-unsubscribe] ${action} recorded`, { hasProfile: !!profile, method: req.method })
+  console.log(`[email-unsubscribe] ${action} recorded`, { list, hasProfile: !!profile, method: req.method })
 
   // RFC 8058: the one-click POST answers 200 with no body the client shows.
   if (req.method === 'POST') {
@@ -363,6 +398,34 @@ serve(async (req) => {
 
   const safeEmail = htmlEscape(email)
   const tokenQuery = `e=${encodeURIComponent(url.searchParams.get('e') ?? '')}&sig=${encodeURIComponent(url.searchParams.get('sig') ?? '')}`
+    + (list === 'job_matches' ? '&list=job_matches' : '')
+
+  if (list === 'job_matches') {
+    if (action === 'resubscribe') {
+      return page(
+        "New-job emails are back on",
+        `<h1>New-job emails are back on</h1>
+         <p><span class="addr">${safeEmail}</span> will get an email again whenever a new job is
+         posted on Louisiana Helpr.</p>
+         <p class="fine">Manage this any time under Notifications in your
+         <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>`,
+      )
+    }
+    return page(
+      "New-job emails turned off",
+      `<h1>New-job emails are off</h1>
+       <p>We won't email <span class="addr">${safeEmail}</span> about new jobs any more. New jobs
+       still show in the app, and you'll still get email about your own jobs, messages and
+       payments.</p>
+       <p>You can turn this back on under Notifications in your
+       <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>
+       <form method="post" action="?${tokenQuery}">
+         <input type="hidden" name="action" value="resubscribe">
+         <button type="submit">Turn new-job emails back on</button>
+       </form>
+       <p class="fine">Questions? <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a></p>`,
+    )
+  }
 
   if (action === 'resubscribe') {
     return page(

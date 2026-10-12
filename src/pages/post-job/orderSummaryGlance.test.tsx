@@ -46,7 +46,6 @@ function makeForm(): ReturnType<typeof usePostJobForm> {
     urgentFeeNum: 0,
     budgetNum: 30,
     helprActivity: null,
-    customerFee: null,
     customerFeeAmount: 2,
     onboardingFeeAmount: 0,
     totalCharge: 32,
@@ -136,7 +135,7 @@ describe("urgent bonus card fee (Q362, folded 2026-10-09)", () => {
     const form = { ...base, isUrgent: true, urgentFeeNum: 15, urgentCardFeeAmount: 0.45, totalCharge: 47.45 };
     render(<CheckoutStepView form={form as unknown as ReturnType<typeof usePostJobForm>} />);
     expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
-    const label = screen.getByText("Service Fee");
+    const label = screen.getByText("Service Fee (covers card processing)");
     const expected = (Number(base.customerFeeAmount) + 0.45).toFixed(2);
     expect(label.parentElement?.textContent).toContain(`$${expected}`);
     expect(screen.queryByText(/Goes to Helpr/)).toBeNull();

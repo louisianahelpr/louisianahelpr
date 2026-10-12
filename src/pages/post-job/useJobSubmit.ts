@@ -145,7 +145,6 @@ export interface UseJobSubmitParams {
   helpersNeeded: string;
   isUrgent: boolean;
   urgentFee: string;
-  platformFee: number | null;
   salesTaxRate: number;
   offerToHelperId: string | null;
   offerResponseHours: number;
@@ -201,7 +200,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     helpersNeeded,
     isUrgent,
     urgentFee,
-    platformFee,
     salesTaxRate,
     offerToHelperId,
     offerResponseHours,
@@ -431,7 +429,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         helpersNeeded,
         isUrgent,
         urgentFee,
-        platformFee,
         salesTaxRate,
         offerToHelperId,
         offerResponseHours,

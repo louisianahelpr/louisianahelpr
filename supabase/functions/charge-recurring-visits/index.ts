@@ -73,7 +73,7 @@ import {
   getHelperFeePercent,
   helperCommissionDollars,
 } from "../_shared/helperFees.ts";
-import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { effectiveSalesTaxRate, isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
@@ -1216,7 +1216,7 @@ serve(async (req) => {
 
         const { data: posterProfile, error: posterErr } = await supabase
           .from("profiles")
-          .select("email, subscription_tier, subscription_expires_at")
+          .select("email")
           .eq("user_id", parent.customer_id)
           .maybeSingle();
         if (posterErr || !posterProfile?.email) {
@@ -1225,10 +1225,11 @@ serve(async (req) => {
           continue;
         }
 
-        const feePercent = paidRow ? Number(paidRow.fee_percent) : posterFeePercentForTier(
-          posterProfile.subscription_tier as string | null,
-          posterProfile.subscription_expires_at as string | null,
-        );
+        // A paid row keeps the percent it was charged under (a row parked
+        // before 2026-10-11 may carry a tier percent). Every NEW visit is
+        // priced at no platform percentage: the poster pays Stripe's card
+        // cost only (owner, 2026-10-11).
+        const feePercent = paidRow ? Number(paidRow.fee_percent) : POSTER_SERVICE_FEE_PERCENT;
         // No urgent tip and no onboarding fee on a recurring visit: urgency is a
         // property of a one-off post, and onboarding is charged once per account
         // and was already paid on the first visit.
@@ -1293,7 +1294,7 @@ serve(async (req) => {
 
         // ME-014: the fee's Stripe-cost floor must cover the WHOLE charge,
         // tax included (posterFees.ts), so it is computed after the tax.
-        const computedFeeCents = posterServiceFeeCents(budgetCents, feePercent, taxCents);
+        const computedFeeCents = posterCardCostFeeCents(budgetCents, taxCents);
         const feeCents = paidRow ? paidRow.fee_cents : computedFeeCents;
         const totalCents = budgetCents + feeCents + taxCents;
 
@@ -1354,7 +1355,7 @@ serve(async (req) => {
         // The HELPER's commission, which is a different number in a different
         // column from the poster's service fee above. `create-payment` sets the
         // convention (index.ts:350-356) and the two are easy to transpose:
-        //   platform_fee_percent -> the POSTER's tier percentage
+        //   platform_fee_percent -> the POSTER's service-fee percentage (0 since 2026-10-11)
         //   platform_fee_amount  -> the HELPER's commission, in dollars
         //   customer_fee_amount  -> the POSTER's service fee, in dollars
         //   helper_fee_percent   -> the HELPER's tier percentage

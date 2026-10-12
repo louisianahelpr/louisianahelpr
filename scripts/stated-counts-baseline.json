@@ -268,7 +268,6 @@
     "src/test/disputeClosedWithoutPaymentIsWatched.test.ts :: a looping alert costs: 616 rows",
     "src/test/disputeClosedWithoutPaymentIsWatched.test.ts :: olding the newest body: 20260922224023 replaced the function",
     "src/test/edge/charge-recurring-visits.test.ts :: // 750 rows",
-    "src/test/edge/create-payment.test.ts :: tely left at the legacy 10 so this test",
     "src/test/edge/escrowSweepCoverage.test.ts :: ` onward, because since 20260915044137 a job",
     "src/test/edge/escrowSweepCoverage.test.ts :: net.http_post`. The * ~25 pure-SQL crons",
     "src/test/edge/exhaustivenessRegistry.test.ts :: tion that INSERT raises 23514 and the notification",

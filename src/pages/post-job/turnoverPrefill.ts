@@ -82,10 +82,14 @@ export async function fetchReadyTurnovers(todayYmd: string): Promise<ReadyTurnov
   const rows = (unwrap(
     await supabase
       .from("str_processed_events")
-      .select("id, checkout_date, job_id, jobs(status, payment_status), str_calendar_connections(property_name, is_active)")
+      // Inactive calendars are left out in the query (inner join), and there is
+      // no row cap: a cap before the client-side "already posted" filter could
+      // drop a pending checkout behind posted ones (Sentry review of Q1521).
+      // RLS and the date already bound it to this host's upcoming checkouts.
+      .select("id, checkout_date, job_id, jobs(status, payment_status), str_calendar_connections!inner(property_name, is_active)")
+      .eq("str_calendar_connections.is_active", true)
       .gte("checkout_date", todayYmd)
-      .order("checkout_date", { ascending: true })
-      .limit(50),
+      .order("checkout_date", { ascending: true }),
   ) ?? []) as Array<
     Pick<TurnoverRow, "id" | "checkout_date" | "job_id" | "jobs"> & {
       str_calendar_connections: { property_name: string | null; is_active: boolean | null } | null;

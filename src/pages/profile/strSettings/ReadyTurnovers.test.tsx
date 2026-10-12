@@ -16,6 +16,7 @@ import { todayYmd } from "@/lib/jobDate";
  *
  * @mutate src/pages/post-job/turnoverPrefill.ts |     .filter((r) => r.str_calendar_connections?.is_active !== false && !isTurnoverPosted(r)) |     .filter((r) => r.str_calendar_connections?.is_active !== false)
  * @mutate src/pages/post-job/turnoverPrefill.ts |       .gte("checkout_date", todayYmd) |       .gte("checkout_date", "1970-01-01")
+ * @mutate src/pages/post-job/turnoverPrefill.ts |       .order("checkout_date", { ascending: true }), |       .order("checkout_date", { ascending: true }).limit(50),
  * @mutate src/pages/profile/StrSettings.tsx |                 {connections.length > 0 && <ReadyTurnovers />}\n | \n
  * @mutate src/pages/profile/strSettings/ReadyTurnovers.tsx |   if (isError) { |   if (false) {
  */
@@ -24,6 +25,8 @@ const state = vi.hoisted(() => ({
   rows: [] as unknown[],
   error: null as unknown,
   gte: [] as Array<[string, string]>,
+  eq: [] as Array<[string, unknown]>,
+  limited: false,
 }));
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -34,8 +37,15 @@ vi.mock("@/integrations/supabase/client", () => {
         state.gte.push([col, v]);
         return b;
       },
+      eq: (col: string, v: unknown) => {
+        state.eq.push([col, v]);
+        return b;
+      },
       order: () => b,
-      limit: () => b,
+      limit: () => {
+        state.limited = true;
+        return b;
+      },
       then: (resolve: (v: unknown) => unknown) => resolve({ data: state.error ? null : state.rows, error: state.error }),
     };
     return b;
@@ -61,6 +71,8 @@ describe("Ready to post on /str-settings (Q1521)", () => {
     state.rows = [];
     state.error = null;
     state.gte = [];
+    state.eq = [];
+    state.limited = false;
   });
 
   it("lists checkouts not yet posted, each opening Post a Job pre-filled; a funded one is left out", async () => {
@@ -79,6 +91,11 @@ describe("Ready to post on /str-settings (Q1521)", () => {
     expect(screen.queryByText("Removed Calendar")).not.toBeInTheDocument();
     // Only checkouts from today (Louisiana) on.
     expect(state.gte).toEqual([["checkout_date", todayYmd()]]);
+    // Inactive calendars are filtered in the query, and nothing caps the rows
+    // before the client-side "already posted" filter (a cap could hide a
+    // pending checkout behind posted ones).
+    expect(state.eq).toEqual([["str_calendar_connections.is_active", true]]);
+    expect(state.limited).toBe(false);
   });
 
   it("a failed read says so, with a retry", async () => {

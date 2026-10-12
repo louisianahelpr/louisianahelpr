@@ -129,6 +129,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: ios-metadata
+          hold-for-trains: "true"
           title: "chore(ios): sync Xcode metadata from fastlane/ios_app_metadata.yml"
           paths: |
             ios/App/App.xcodeproj/project.pbxproj

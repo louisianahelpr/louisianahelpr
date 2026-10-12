@@ -51,6 +51,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: ios-icons
+          hold-for-trains: "true"
           title: "chore(ios): sync AppIcon set from branding/app-icon-1024.png"
           paths: ios/App/App/Assets.xcassets/AppIcon.appiconset/
           regenerate: bundle exec fastlane ios sync_app_icon

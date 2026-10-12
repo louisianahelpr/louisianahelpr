@@ -22,7 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 const mode = vi.hoisted(() => ({ answer: false }));
 
 // Every builder call returns the same chain; awaiting it either never settles
-// (cold load held open) or answers with a count of 3 and no rows.
+// (cold load held open) or answers with the ANSWER fixture below (no rows).
 vi.mock("@/integrations/supabase/client", () => {
   const ANSWER = { data: [], count: 3, error: null, status: 200 };
   const chain: unknown = new Proxy(function () {}, {

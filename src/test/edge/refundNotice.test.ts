@@ -227,6 +227,18 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     }
   });
 
+  // Q1674 with Q1714: the webhook's own wording (charge.refunded first) names a
+  // first job's kept $2 setup fee instead of folding it into "card fees".
+  // @mutate supabase/functions/_shared/refundNotice.ts |     const setupCents = Math.min(keptCents - feeCents, setupFeeKeptCents(job)); |     const setupCents = 0;
+  it("a first job's kept $2 setup fee is named on its own in the webhook's notice (Q1674)", async () => {
+    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, onboarding_fee_amount: "2" }] };
+    const res = await deliverChargeRefunded({ amount: 11400 });
+    expect(res.status).toBe(200);
+    const msg = String(posterNotices()[0]?.message);
+    expect(msg).toContain("We kept $14: $12 service fee, which isn't refunded when a job is cancelled and $2 one-time account setup fee, which is paid once and never refunded.");
+    expect(msg).not.toContain("card processing");
+  });
+
   it("a refund a path wrote to the ledger (void-cancelled-payments, cancel_escrow, crew) is left to that path", async () => {
     scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: OWNER_REFUND.id, source: "void_cancelled_payments" }] };
     const res = await deliverChargeRefunded();

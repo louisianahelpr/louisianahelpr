@@ -23,7 +23,7 @@ import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents } from "../_shared/money.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const CREW_BLOCK_FEE_TRANSFER_TYPE = "crew_block_fee";
@@ -196,7 +196,8 @@ export async function payCrewBlockFees(
       };
       if (chargeId) params.source_transaction = chargeId;
       const transfer = await stripe.transfers.create(params as unknown as Stripe.TransferCreateParams, {
-        idempotencyKey: `crew-block-fee-${row.id}`,
+        // Q1381: a retry of a failed row is a new attempt, not Stripe's replay of the failure.
+        idempotencyKey: feeTransferIdempotencyKey(`crew-block-fee-${row.id}`, row.status === "failed"),
       });
       const ok = await mark(row, { status: "paid", stripe_transfer_id: transfer.id, paid_at: new Date().toISOString(), failure_reason: null }, `was paid (${transfer.id})`);
       if (!ok) allPaid = false;
@@ -211,6 +212,13 @@ export async function payCrewBlockFees(
     } catch (e) {
       allPaid = false;
       const msg = caughtMessage(e).slice(0, 200);
+      if (!isDefiniteStripeRefusal(e)) {
+        // Q1381 review: the transfer may exist. The row keeps its status, so
+        // the next attempt (Part F later in this run included) reuses this
+        // same key and Stripe dedupes it.
+        problems.push(`crew block fee transfer ${row.id}: outcome unknown (${msg.slice(0, 160)}); retried under the same key`);
+        continue;
+      }
       if (row.status === "failed") continue;
       problems.push(`crew block fee transfer ${row.id}: ${msg}`);
       await mark(row, { status: "failed", failure_reason: msg }, `transfer failed (${msg.slice(0, 80)})`);

@@ -66,3 +66,49 @@ export function roundPayoutDownCents(cents: number): number {
   if (whole <= 0) return whole;
   return Math.floor(whole / 100) * 100;
 }
+
+/** One hour: the bucket a retried transfer's idempotency key is salted with. */
+const RETRY_KEY_BUCKET_MS = 60 * 60 * 1000;
+
+/**
+ * The Stripe idempotency key for a fee transfer, salted on a RETRY (Q1381).
+ *
+ * Stripe keeps a request's result for about 24 h and replays it for the same
+ * key, failures included. A transfer that failed once (no payout account yet,
+ * a restricted account) and is retried under its fixed key gets the saved
+ * failure back, so the member cannot be paid until the key expires.
+ * process-scheduled-payouts salts its key with the failure count for this
+ * reason. The fee ledgers have no attempt counter, so a retry (a row already
+ * marked 'failed') is salted with the UTC hour instead: every hourly retry is
+ * a real new attempt, while two RETRIES inside the same hour share one key
+ * (Stripe dedupes them). A first attempt keeps the unsalted key.
+ *
+ * A row is marked 'failed' (and so salted next time) ONLY after a definite
+ * refusal (isDefiniteStripeRefusal): Stripe answered and no transfer exists.
+ * A timeout, a dropped connection or a 5xx may have created the transfer, so
+ * such a row keeps its status and the next attempt, even later in the same
+ * run, reuses the SAME key and Stripe dedupes it (lh-money-escrow review of
+ * Q1381: a Part A first attempt that timed out was retried by Part F seconds
+ * later under the salted key). Beyond that, double pay is stopped where it
+ * always was: the row is skipped once 'paid', and the job's transfer group is
+ * listed (fail closed) before paying.
+ */
+export function feeTransferIdempotencyKey(base: string, isRetry: boolean, nowMs: number = Date.now()): string {
+  return isRetry ? `${base}-h${Math.floor(nowMs / RETRY_KEY_BUCKET_MS)}` : base;
+}
+
+/**
+ * Did Stripe DEFINITELY refuse the request (it answered, and nothing was
+ * created)? Same list as create-payment's transferToHelper. A timeout, a
+ * dropped connection, a 5xx or an idempotency error may have created the
+ * object, so they are not definite (Q1381 review).
+ */
+export function isDefiniteStripeRefusal(err: unknown): boolean {
+  const type = String((err as { type?: unknown } | null)?.type ?? "");
+  return [
+    "StripeInvalidRequestError",
+    "StripeCardError",
+    "StripePermissionError",
+    "StripeAuthenticationError",
+  ].includes(type);
+}

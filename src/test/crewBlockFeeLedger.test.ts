@@ -103,6 +103,6 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     // The ghost-transfer guard knows a block fee is this loop's own (HIGH, lh-money-escrow review).
     expect(vcp).toMatch(/t\.metadata\?\.type !== "cancellation_fee" && t\.metadata\?\.type !== "crew_block_fee"/);
     const shared = readFileSync(resolve(root, "supabase/functions/_shared/crewBlockFees.ts"), "utf8");
-    expect(shared).toMatch(/idempotencyKey: `crew-block-fee-\$\{row\.id\}`/);
+    expect(shared).toMatch(/idempotencyKey: feeTransferIdempotencyKey\(`crew-block-fee-\$\{row\.id\}`, row\.status === "failed"\)/);
   });
 });

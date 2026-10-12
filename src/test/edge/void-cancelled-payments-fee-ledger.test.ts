@@ -142,7 +142,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     resetSharedMocks();
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | idempotencyKey: `cancel-fee-${feeRow.id}`, | idempotencyKey: `cancel-fee-${job.id}`,
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | feeTransferIdempotencyKey(`cancel-fee-${feeRow.id}`, wasFailed), | feeTransferIdempotencyKey(`cancel-fee-${job.id}`, wasFailed),
   // @mutate supabase/functions/void-cancelled-payments/index.ts | fee_transfer_id: String(feeRow.id), | job_ref: job.id,
   it("claims the row before the transfer, keys the transfer to it, and marks it paid by compare-and-swap", async () => {
     seed();
@@ -221,12 +221,24 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
   // @mutate supabase/functions/void-cancelled-payments/index.ts | { status: "failed", failure_reason: reason } | { failure_reason: reason }
   it("a transfer Stripe refuses marks the row failed with the reason", async () => {
     seed();
-    stripeMock.transfers.create.mockRejectedValue(new Error("insufficient platform balance"));
+    stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient platform balance"), { type: "StripeInvalidRequestError" }));
     const h = await load();
     await h.fetch(cronReq());
     const marks = feeWrites("update");
     expect(marks).toHaveLength(1);
     expect(marks[0].payload).toMatchObject({ status: "failed", failure_reason: "insufficient platform balance" });
+  });
+
+  // Q1381 review (lh-money-escrow, MEDIUM): a timeout / dropped connection / 5xx
+  // may have created the transfer. The row is NOT marked failed, so the next
+  // attempt reuses the same (unsalted) key and Stripe dedupes it.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!isDefiniteStripeRefusal(transferErr)) {\n          // Q1381 review: the transfer may exist. The row keeps its status, so | if (false) {\n          // Q1381 review: the transfer may exist. The row keeps its status, so
+  it("an ambiguous transfer error (connection dropped) leaves the row as it was: the next try reuses the same key", async () => {
+    seed();
+    stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeWrites("update").filter((w) => (w.payload as Record<string, unknown>).status === "failed")).toHaveLength(0);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | if (!error && (!data \|\| data.length === 0)) { | if (false) {
@@ -259,7 +271,10 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     await h.fetch(cronReq());
     const calls = feeTransferCalls();
     expect(calls).toHaveLength(1);
-    expect((calls[0][1] as { idempotencyKey: string }).idempotencyKey).toBe("cancel-fee-fee-1");
+    // Keyed to the row; a retry of a FAILED row is salted with the hour (Q1381),
+    // so Stripe makes a new attempt instead of replaying the saved failure.
+    // @mutate supabase/functions/void-cancelled-payments/index.ts | feeTransferIdempotencyKey(`cancel-fee-${feeRow.id}`, wasFailed), | `cancel-fee-${feeRow.id}`,
+    expect((calls[0][1] as { idempotencyKey: string }).idempotencyKey).toMatch(/^cancel-fee-fee-1-h\d+$/);
     expect((calls[0][0] as { amount: number }).amount).toBe(13200);
     // Resumed at the price it was claimed at; nothing new claimed.
     expect(feeWrites("insert")).toHaveLength(0);

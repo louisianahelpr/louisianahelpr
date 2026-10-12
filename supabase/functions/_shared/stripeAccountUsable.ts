@@ -24,10 +24,19 @@
  * the 227 press failures in press-every-control run 36697559350 (#1582,
  * function_logs 2026-09-30 10:00-12:30Z).
  */
+/** Stripe's 404 for a LIVE object requested with a TEST key. */
+const LIVE_OBJECT_UNDER_TEST_KEY = /a similar object exists in live mode, but a test mode key was used/;
+
 export function isUnusableConnectAccountError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const e = err as { statusCode?: unknown; message?: unknown; code?: unknown };
   const message = typeof e.message === "string" ? e.message : "";
+  // A LIVE object seen through a test key is a key misconfiguration, never an
+  // unusable account, even though Stripe answers it as 404 resource_missing
+  // ("No such account: 'acct_...'; a similar object exists in live mode, but a
+  // test mode key was used to make this request"). The same one-direction rule
+  // as the livemode-account sentence above and isTestObjectUnderLiveKey (Q1489).
+  if (LIVE_OBJECT_UNDER_TEST_KEY.test(message)) return false;
   return (
     e.statusCode === 404 ||
     message.includes("No such account") ||

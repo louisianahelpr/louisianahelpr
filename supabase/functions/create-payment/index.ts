@@ -2517,7 +2517,7 @@ serve(async (req) => {
       if (!releaseUpdateErr && releaseUpdated && releaseUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "completed", "released");
         if (settled) return settled;
-        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer", {
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer", !!(job.helper_id && helperPayout > 0), {
           stripe,
           paymentIntentId: captureResult.paymentIntentId ?? null,
           title: job.title ?? null,
@@ -2892,7 +2892,7 @@ serve(async (req) => {
           await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);
           return settled;
         }
-        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund");
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund", disputeRefundCents > 0);
         if (raced) return raced;
       }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
@@ -4275,15 +4275,20 @@ async function claimPutBackMissed(
 /**
  * Zero rows matched the Quick Release / Quick Refund flip: did a chargeback
  * block land during the Stripe call? Re-reads the job; when it reads
- * 'chargeback' the money already left, so the claim is KEPT (never handed back
- * over moved money), ops is paged and the caller answers 409. Returns null
- * when no chargeback is there (or the read failed: the caller's existing
- * fail-loud path then runs).
+ * 'chargeback' the claim is KEPT, ops is paged and the caller answers 409.
+ * Returns null when no chargeback is there (or the read failed: the caller's
+ * existing fail-loud path then runs).
+ *
+ * `moneyMoved` says whether this call actually sent the transfer / refund.
+ * With no Helpr on the job or nothing owed (a 0 payout, a 0 refund) no Stripe
+ * call happened, and the answer and the page say so instead of claiming the
+ * money "went out" (Q1303).
  */
 async function chargebackLandedDuringSettlement(
   supabaseAdmin: any,
   jobId: string,
   moved: "transfer" | "refund",
+  moneyMoved: boolean,
   release?: { stripe: any; paymentIntentId: string | null; title: string | null },
 ): Promise<Response | null> {
   const { data: current, error } = await supabaseAdmin
@@ -4295,9 +4300,26 @@ async function chargebackLandedDuringSettlement(
   // both may have been processed BEFORE this transfer existed, so nothing
   // would ever reverse it. Run the same idempotent clawback here, against the
   // charge's own Stripe dispute (an inquiry withdraws nothing: left alone).
-  const clawbackOutcome = moved === "transfer" && release
+  const clawbackOutcome = moved === "transfer" && moneyMoved && release
     ? await clawBackRacedRelease(release.stripe, supabaseAdmin, jobId, release.title, release.paymentIntentId)
     : null;
+  const action = moved === "transfer" ? "Release" : "Refund";
+  if (!moneyMoved) {
+    // Nothing was sent (no Helpr, or nothing owed): no money to reconcile, so
+    // no money_at_risk page; the block stands and the job stays disputed.
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "warning",
+      title: `Quick ${action} raced a chargeback — block kept, nothing was sent`,
+      message: `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick ${action} was settling it. This Quick ${action} sent no ${moved} (nothing was owed), so no money moved; the job was NOT flipped and stays 'disputed' under the chargeback's block. Answer the chargeback in Stripe. This Quick ${action}'s settlement claim was never stamped (nothing moved), so it expires on its own and the dispute can be settled again after that.`,
+      fields: { job_id: jobId, job_status: String(current.status ?? "—") },
+      oncePerDayKey: `quick-settle-raced-chargeback:${jobId}:nothing-sent`,
+    });
+    return new Response(JSON.stringify({
+      error: `A card chargeback landed on this job while it was being settled. No ${moved} was sent (nothing was owed); the chargeback's block was left in place. Ops has been told.`,
+      chargebackRaced: true,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+  }
   await postSlackOpsAlert({
     kind: "money_at_risk",
     severity: "critical",

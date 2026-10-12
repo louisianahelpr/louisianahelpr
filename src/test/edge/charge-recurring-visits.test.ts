@@ -1086,7 +1086,7 @@ describe("charge-recurring-visits edge function", () => {
   // Q750 review (lh-money-escrow 2026-10-05, finding 2): an overlapping run can
   // refund the intent this run is about to book; Stripe is asked right before
   // the insert, and a refund (pending included) or an unreadable answer books nothing.
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (liveRefunds.some((r) => r.status !== "failed" && r.status !== "canceled")) { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (liveNow.length > 0) { |           if (false) {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (liveRefunds === null) { |           if (false) {
   it("Q750 review: an intent refunded (even pending) between the lookup and the insert is never booked; an unreadable refund state books nothing", async () => {
     for (const refundRead of ["pending", "succeeded", "throws"] as const) {
@@ -1975,6 +1975,71 @@ describe("charge-recurring-visits edge function", () => {
     expect((visits[0].payload as Record<string, unknown>).stripe_payment_intent_id).toBe("pi_late");
   });
 
+  // Q1493 (lh-money-escrow review of Q809): a paid row whose intent was
+  // refunded by hand (the row still reads 'paid') is NOT booked on that money;
+  // an unreadable refund state books nothing either.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         // would pay the Helpr from the platform balance.\n        { |         // would pay the Helpr from the platform balance.\n        if (!paidRow) {
+  it("Q1493: a PAID row whose intent carries a live refund is not booked, and ops is paged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    // A PARTIAL hand refund: not the whole payment, so nobody can settle it but a person.
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_hand", status: "succeeded", amount: 10000 }] });
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(stripeMock.refunds.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_late" }));
+    expect(insertedVisits()).toHaveLength(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(reasons(b)).toMatch(/pi_late carries a refund; nothing booked/);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidRow && (liveNow.some((r) => r.metadata?.fee_withheld === "true") \|\| refundedInFull)) { |           if (false) {
+  it("Q1493: a PAID row our own earlier run already refunded (fee withheld) is settled refunded, not booked, not paged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_ours", status: "succeeded", amount: 30556, metadata: { fee_withheld: "true" } }] });
+
+    await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
+    const settled = scenario.writes.filter((w) => w.table === "recurring_visit_payments" && w.op === "update");
+    expect(settled.map((w) => (w.payload as Record<string, unknown>).status)).toContain("refunded");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (paidRow && (liveNow.some((r) => r.metadata?.fee_withheld === "true") \|\| refundedInFull)) { | if (paidRow && liveNow.some((r) => r.metadata?.fee_withheld === "true")) {
+  it("Q1493 review: a PAID row refunded in full by hand is settled refunded, not booked, not paged", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_hand_full", status: "succeeded", amount: 31500 }] });
+
+    await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
+    const settled = scenario.writes.filter((w) => w.table === "recurring_visit_payments" && w.op === "update");
+    expect(settled.map((w) => (w.payload as Record<string, unknown>).status)).toContain("refunded");
+  });
+
+  it("Q1493: a PAID row whose refund state cannot be read is not booked", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(reasons(b)).toMatch(/could not confirm pi_late carries no refund/);
+  });
+
   it("Q1266 (1) control: the narrowed run never CHARGES for today (a pending row is left alone)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -2534,9 +2599,13 @@ describe("charge-recurring-visits edge function", () => {
       Object.assign(new Error("Charge ch_1 has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded" }),
     );
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", status: "succeeded", amount: 30556, metadata: { fee_withheld: "true" } }] });
+    // The pre-booking check (Q1493) still saw no refund: an overlapping run's
+    // refund landed between it and this run's own refund.
+    stripeMock.refunds.list.mockResolvedValueOnce({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
+    expect(stripeMock.refunds.create).toHaveBeenCalled();
     expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toContain("refunded");
     expect(b.errors).toBe(0);

@@ -1,0 +1,51 @@
+name: Action pins match tags
+
+# Every pinned Action SHA is the commit its `# vX.Y.Z` comment names
+# (docs/OPEN.md Q1354). src/test/actionsPinnedToSha.test.ts proves each
+# `uses:` is pinned to a 40-hex SHA; this proves the SHA is that tag's commit
+# and the tag still exists, via `git ls-remote` against each action's public
+# repo. Script: scripts/ci/action-pins-match-tags.mjs.
+# Guard: src/test/actionPinsMatchTags.test.ts.
+
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: action-pins
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every pinned SHA is its tag's commit
+        run: node scripts/ci/action-pins-match-tags.mjs
+
+  # A red scheduled run files/updates one nightly-red issue (closed on the next
+  # green run of this workflow, never by hand).
+  notify:
+    name: Report nightly result
+    needs: [check]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: action-pins
+          status: ${{ needs.check.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

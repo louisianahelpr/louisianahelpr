@@ -25,6 +25,8 @@
 // @mutate scripts/ci/wait-prod-load.mjs | if (process.env.GITHUB_EVENT_NAME !== "schedule" && | if (false &&
 // @mutate scripts/ci/wait-prod-load.mjs | export const WAIT_BUDGET_MS = 340 * 60_000; | export const WAIT_BUDGET_MS = 340 * 60_000_000;
 // @mutate scripts/ci/wait-prod-load.mjs | gh(`/repos/${repo}/actions/runs?event=schedule&status=${status} | gh(`/repos/${repo}/actions/runs?status=${status}
+// @mutate scripts/ci/wait-prod-load.mjs | if (run.status !== "completed") out.push( | if (false) out.push(
+// @mutate scripts/ci/wait-prod-load.mjs | if (d.go && seenAhead.size > 0) { | if (false) {
 // @mutate .github/workflows/db-backup.yml |   backup:\n    needs: prod-load-turn\n |   backup:\n
 // @mutate .github/workflows/db-backup.yml |     timeout-minutes: 350\n    permissions:\n      actions: read |     timeout-minutes: 350\n    permissions:\n      actions: none
 // @mutate .github/workflows/db-backup.yml | group: ${{ format('db-backup-{0}', github.run_id) }} | group: ${{ github.event_name == 'schedule' && 'prod-load' \|\| format('db-backup-{0}', github.run_id) }}
@@ -36,6 +38,7 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as queue from "../../scripts/ci/wait-prod-load.mjs";
+import { blankComments } from "./helpers/blankNonCode";
 import { STALE_RUN_MS } from "../../scripts/e2e/wait-shared-accounts.mjs";
 
 type Run = { id: number; created_at: string; name?: string; html_url?: string };
@@ -43,6 +46,7 @@ const decide = queue.decide as (me: { id: number; created_at: string }, runs: Ru
 const queuedWorkflows = queue.queuedWorkflows as (dir?: string) => string[];
 const snapshot = queue.snapshot as (repo: string, token: string, members: Set<string>) => Promise<Run[]>;
 const WAITER_COMMAND = queue.WAITER_COMMAND as string;
+const stillInFlight = queue.stillInFlight as (repo: string, token: string, seen: Run[]) => Promise<Run[]>;
 
 const ROOT = resolve(__dirname, "../..");
 const WF_DIR = resolve(ROOT, ".github/workflows");
@@ -179,6 +183,44 @@ describe("Q1161: scheduled prod-load runs wait in a FIFO queue", () => {
       for (const u of urls) expect(u).toContain("event=schedule");
       expect(urls.map((u) => /status=(\w+)/.exec(u)![1]).sort()).toEqual(["in_progress", "pending", "queued", "requested", "waiting"]);
       expect(got.map((r) => r.id).sort()).toEqual([1, 3]); // ci.yml is not a member; run 1 is listed once
+    });
+  });
+
+  describe("a GO is re-checked by id (Q1688)", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("a run seen ahead that the status lists dropped, but is in flight by id, is still ahead", async () => {
+      // open-done-when 37773901853: told `wait` behind prod-audit 37742958956,
+      // then GO at 14:02:34Z while that run was between legs and still running.
+      const runs: Record<number, { status: string; created_at: string }> = {
+        37742958956: { status: "in_progress", created_at: "2026-10-08T07:21:47Z" },
+        37700000000: { status: "completed", created_at: "2026-10-08T06:00:00Z" },
+      };
+      const fetchMock = vi.fn(async (url: string) => {
+        const id = Number(/\/actions\/runs\/(\d+)$/.exec(url)![1]);
+        return { ok: true, json: async () => ({ id, name: `run ${id}`, html_url: `u${id}`, ...runs[id] }) };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const seen = [37742958956, 37700000000].map((id) => ({ id, created_at: runs[id].created_at }));
+      const left = await stillInFlight("o/r", "t", seen);
+      expect(fetchMock.mock.calls.map((c) => String(c[0]))).toEqual([
+        "https://api.github.com/repos/o/r/actions/runs/37742958956",
+        "https://api.github.com/repos/o/r/actions/runs/37700000000",
+      ]);
+      expect(left.map((r) => r.id)).toEqual([37742958956]);
+      expect(decide({ id: 37773901853, created_at: "2026-10-08T12:00:51Z" }, left).go).toBe(false);
+    });
+
+    it("the waiter consults the by-id re-check before it returns on a GO", () => {
+      const src = blankComments(readFileSync(resolve(ROOT, "scripts/ci/wait-prod-load.mjs"), "utf8"));
+      const loop = src.slice(src.indexOf("for (;;)"));
+      const recheck = loop.indexOf("stillInFlight(");
+      const goReturn = loop.indexOf("if (d.go) return;");
+      expect(recheck, "main() never re-reads the runs it saw ahead").toBeGreaterThan(-1);
+      expect(goReturn).toBeGreaterThan(recheck);
+      expect(loop).toMatch(/for \(const r of d\.ahead\) seenAhead\.set\(/);
+      // The re-check runs exactly when the lists said GO.
+      expect(loop).toMatch(/if \(d\.go\b[^)]*\)\s*\{[^}]*stillInFlight\(/);
     });
   });
 

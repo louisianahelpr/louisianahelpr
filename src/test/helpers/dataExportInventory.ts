@@ -204,7 +204,7 @@ export const ROLE_SCOPING_LOOPS: Record<string, { to: string; admits: (table: st
 };
 
 /** The roles a CREATE POLICY's text (after `ON table`) names: `TO a, b`, else public. */
-export function policyRoles(text: string): string[] {
+function policyRoles(text: string): string[] {
   const head = text.split(/\busing\b|\bwith\s+check\b/i)[0];
   const to = /\bto\s+([\w\s,"]+?)\s*$/i.exec(head)?.[1] ?? "public";
   return to.split(",").map((r) => r.trim().replace(/"/g, "").toLowerCase()).sort();

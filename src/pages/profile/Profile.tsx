@@ -524,16 +524,9 @@ const ProfilePage = () => {
 
     const avatarUrl = replaced.publicUrl;
     setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
-    // Every other avatar on screen (the dock's Profile tab, the desktop rail)
-    // reads useCurrentUser's cache, not this page's local state. Without this
-    // the dock kept the old initials after "Use Photo" until the page was left
-    // (Q1001, seen on prod 2026-10-12 at 375). PhotoPrompt does the same.
-    // src/test/avatarUploadRefreshesCurrentUser.test.ts.
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(userId) });
 
-    // The new photo is live but the OLD one survived the sweep, so it is still
-    // being served publicly. Say so — this is the case where staying quiet
-    // means telling someone their document is gone when it is not.
+    // Q1001: the line above refreshes the dock's avatar. Below: the OLD photo survived the sweep and is still public, so say so.
     if (replaced.staleRemaining.length > 0) {
       toast.error(
         "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",

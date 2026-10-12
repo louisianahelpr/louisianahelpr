@@ -45,6 +45,10 @@ async function stampJobSetupFee(
   const meta = (session.metadata ?? {}) as { job_id?: string; onboarding_fee_cents?: string };
   const jobId = meta.job_id;
   if (!jobId) return;
+  // seed-policy: seed and real jobs page alike here. Both alerts below fire
+  // only on a defect in the fee path itself (a session without its amount, or
+  // a stamp write that failed or matched no row), and that defect is the same
+  // code bug whether the job is a test job or a real one.
   // No guessed figure: create-payment writes onboarding_fee_cents on every
   // session it bills the fee on (from the same variable as the line item). A
   // session without a readable amount is not stamped, and ops is told.

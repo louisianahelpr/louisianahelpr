@@ -2,9 +2,9 @@
 // @mutate scripts/land.sh |   npm run -s check:counts\n | 
 // @mutate scripts/land.sh |     src/test/deadcodeRatchet.test.ts \ |     \
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
-// @mutate scripts/land.sh |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus); [ "$INFO" ]; then
+// @mutate scripts/land.sh |         UNANSWERED=$((UNANSWERED + 1)) |         true
 // @mutate scripts/land.sh |     git reset -q --hard "$START_HEAD" |     true
-// @mutate scripts/land.sh | if [ "$MSS" = DIRTY ]; then | if [ "$MSS" = DIRTYX ]; then
+// @mutate scripts/land.sh |       rebase)\n        echo "land: $BR $DETAIL; rebasing it here (the queue skips it until then)."\n        break |       rebase)\n        echo "land: $BR $DETAIL; rebasing it here (the queue skips it until then)."\n        true
 // @mutate scripts/land.sh |   if [ "$N_REFRESH" -gt 0 ]; then |   if false; then
 // @mutate scripts/land.sh |   SUBJECTS=$(git log --format=%s origin/main..HEAD) |   SUBJECTS=$(git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT")
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
@@ -87,7 +87,7 @@ describe("landing path (Q44)", () => {
     // `git rebase --skip` of its refresh commit and a re-run.
     // Since the land queue (2026-10-05) BEHIND is the queue's (scripts/land-queue.mjs
     // rebases only the head); DIRTY still loops back to the local rebase.
-    expect(code).toMatch(/if \[ "\$MSS" = DIRTY \]; then/);
+    expect(code).toMatch(/\n\s*rebase\)\n\s*echo "land: \$BR \$DETAIL; rebasing it here[^"]*"\n\s*break\n/);
     expect(code).toMatch(/SUBJECTS=\$\(git log --format=%s origin\/main\.\.HEAD\)\n\s*N_REFRESH=\$\(grep -cxF "\$REFRESH_SUBJECT" <<<"\$SUBJECTS" \|\| true\)\n\s*N_ALL=\$\(grep -c \. <<<"\$SUBJECTS" \|\| true\)\n\s*if \[ "\$N_REFRESH" -gt 0 \]; then/);
     // never `cmd | grep -q` under pipefail: SIGPIPE makes the test random
     // (it skipped the migration twins, or re-opened an open PR, at random)
@@ -101,7 +101,10 @@ describe("landing path (Q44)", () => {
   it("land.sh survives a GitHub hiccup and never restarts the checks for nothing", () => {
     // 2026-10-03: an HTTP 503 from gh pr view ended a wait under set -e while
     // the PR was fine; a re-run then minted a new SHA for an identical tree.
-    expect(code).toMatch(/if ! INFO=\$\(gh pr view "\$BR" --json state,mergeStateStatus 2>\/dev\/null\); then\n[^\n]*\n\s*continue\n\s*fi/);
+    // A failed read is an "unanswered" minute, counted (landGh.test.ts holds
+    // the limit), never a set -e exit.
+    expect(code).toMatch(/POLL=\$\(node "\$LAND_FROZEN_DIR\/landGh\.mjs" poll [^\n]* 2>\/dev\/null\) \|\| POLL=/);
+    expect(code).toMatch(/\n\s*unanswered\)\n\s*UNANSWERED=\$\(\(UNANSWERED \+ 1\)\)\n/);
     expect(code).toMatch(/START_HEAD=\$\(git rev-parse HEAD\)/);
     expect(code).toMatch(/git merge-base --is-ancestor origin\/main "\$START_HEAD"; then\n\s*git reset -q --hard "\$START_HEAD"/);
     // the reuse runs before the push
@@ -112,6 +115,7 @@ describe("landing path (Q44)", () => {
     // 2026-10-02: #2063 and #2070 carried the same commits from two worktrees.
     expect(code).toMatch(/merge-base --is-ancestor "\$oid" HEAD/);
     expect(code).toMatch(/gh pr close "\$num" --delete-branch/);
+    expect(code).toMatch(/landGh\.mjs" close-superseded "\$num" "\$ref" "\$BR"/);
   });
 
   it("land.sh runs every exact-count guard before pushing", () => {

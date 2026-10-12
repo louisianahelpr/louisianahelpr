@@ -9,7 +9,6 @@
  * @mutate scripts/land-queue.mjs | if (pr.mergeStateStatus === "DIRTY") { | if (pr.mergeStateStatus === "DIRTYX") {
  * @mutate scripts/land-queue.mjs | const again = cancelled.filter((c) => (c.attempt ?? 1) > 1); | const again = cancelled;
  * @mutate scripts/land.sh | --add-label land-queue >/dev/null 2>&1 \|\| | --add-label other >/dev/null 2>&1 \|\|
- * @mutate scripts/land.sh | if [ "$MSS" = DIRTY ]; then | if [ "$MSS" = DIRTY ] \|\| [ "$MSS" = BEHIND ]; then
  * @mutate scripts/land-queue.mjs |     if (/no (?:required )?checks reported on the '[^']*' branch/.test(err)) return []; |     if (false) return [];
  */
 import { describe, expect, it } from "vitest";
@@ -78,9 +77,10 @@ describe("the queue is wired", () => {
   it("land.sh labels every landing and leaves BEHIND to the queue", () => {
     const land = read("scripts/land.sh");
     expect(QUEUE_LABEL).toBe("land-queue");
-    expect(land).toMatch(/gh pr edit "\$BR" --remove-label land-queue-failed --add-label land-queue >\/dev\/null 2>&1 \|\|/);
-    expect(land).toMatch(/if \[ "\$MSS" = DIRTY \]; then/);
-    expect(land).not.toMatch(/"\$MSS" = BEHIND \]/);
+    expect(land).toMatch(/gh pr edit "\$BR" --remove-label land-queue-failed --add-label land-queue >\/dev\/null 2>&1 \|\|\n\s*node "\$LAND_FROZEN_DIR\/landGh\.mjs" queue "\$PR_NUM"/);
+    // DIRTY rebases here, BEHIND is left to the queue (decidePoll, landGh.test.ts)
+    expect(land).toMatch(/\n\s*rebase\)\n/);
+    expect(land).not.toMatch(/behind\)|"\$MSS" = BEHIND \]/);
     // The queue has no pull_request trigger: land.sh wakes it on joining and while it waits.
     expect(land.match(/gh workflow run land-queue\.yml --ref main/g)?.length).toBeGreaterThanOrEqual(2);
   });

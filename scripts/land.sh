@@ -55,7 +55,7 @@ set -euo pipefail
 if [ -z "${LAND_FROZEN_DIR:-}" ]; then
   LAND_FROZEN_DIR=$(mktemp -d "${TMPDIR:-/tmp}/land-frozen.XXXXXX")
   cp "$0" "$LAND_FROZEN_DIR/land.sh"
-  for t in landRebaseResolve.mjs openItemMerge.mjs landRecount.mjs; do
+  for t in landRebaseResolve.mjs openItemMerge.mjs landRecount.mjs landGh.mjs; do
     cp "$(dirname "$0")/lib/$t" "$LAND_FROZEN_DIR/$t"
   done
   export LAND_FROZEN_DIR
@@ -89,6 +89,12 @@ fi
 
 # Untracked files present before the refresh are someone else's; never staged.
 UNTRACKED_BEFORE=$(git ls-files --others --exclude-standard | sort)
+
+# Where a landing's minutes go (owner, 2026-10-12: "fix the bottleneck
+# before"): each phase prints its own seconds, so a slow landing names its
+# slow step instead of being guessed at.
+phase_t=$SECONDS
+phase() { echo "land: [$((SECONDS - phase_t))s] $1"; phase_t=$SECONDS; }
 
 attempt=0
 while :; do
@@ -158,6 +164,8 @@ while :; do
     done
   fi
 
+  phase "fetched and rebased onto origin/main (attempt $attempt)"
+
   # An exact-count constant the rebase settled with main's value gets the
   # value measured on the rebased tree (its own guard prints it).
   node "$LAND_FROZEN_DIR/landRecount.mjs"
@@ -183,6 +191,14 @@ while :; do
   # Guard: src/test/openItemsKept.test.ts.
   node scripts/check-open-items-kept.mjs --base origin/main
 
+  # The whole-tree totals (postMerge generators: scoreboard, burn-down, vacuity
+  # report, queue score, audit surface/coverage/rollup) go back to main's
+  # bytes, whatever the branch's own commits did to them: they are what every
+  # landing touched and what sent 27 of 60 land PRs (2026-10-09..12) back
+  # DIRTY. staleness-watch.yml regenerates them on main after the merge.
+  # Guard: src/test/landPostMergeReset.test.ts.
+  node scripts/lib/landPostMergeReset.mjs --base origin/main
+
   node scripts/check-generated-current.mjs --fix --skip-post-merge
 
   CHANGED=$( { git diff --name-only; comm -13 <(printf '%s\n' "$UNTRACKED_BEFORE") <(git ls-files --others --exclude-standard | sort); } | sed '/^$/d' | sort -u)
@@ -201,6 +217,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
   # The same check CI runs; red here stops the push.
   node scripts/check-generated-current.mjs --skip-post-merge
+
+  phase "bookkeeping and generated inventories"
 
   # A money/authz/data-model commit with no recorded review turns main red on
   # the "Sensitive review record" workflow (15921ea17, 2026-09-27). Check only
@@ -236,6 +254,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     src/test/requestBudget.test.ts \
     src/test/expiryMonitor.test.ts \
     src/test/componentSizeRatchet.test.ts
+
+  phase "commit-range and exact-count guards"
 
   # FIRST-TRY PASS (owner, 2026-10-05: "how can we make this go faster"). On
   # 2026-10-05 most landings took 2-4 GitHub rounds (~20 min each), and every
@@ -288,6 +308,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # NULL argument"; newest 36361411866 / 36360932660 from the Q807 migration)
   # each have a repo-only vitest twin that was already red on that commit.
   # Run the twins here whenever the push touches migrations or their inputs.
+  phase "eslint, check:counts and related vitest"
   PUSHED_FILES=$(git diff --name-only origin/main..HEAD)
   if grep -qE '^(supabase/migrations/|scripts/ci/|src/integrations/supabase/types\.ts$)' <<<"$PUSHED_FILES"; then
     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
@@ -309,6 +330,14 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       ln -s "$MAIN_TREE/.env" .env
       echo "land: linked $MAIN_TREE/.env for the build."
     fi
+    # No .env anywhere (a cloud session): build with the values CI's own
+    # budget run uses (bundle-size.yml), so the measurement is the same one.
+    if [ ! -e .env ] && [ -z "${VITE_SUPABASE_URL:-}" ]; then
+      export VITE_SUPABASE_PROJECT_ID=fncmgoasalhdgfwzhsqa
+      export VITE_SUPABASE_URL=https://fncmgoasalhdgfwzhsqa.supabase.co
+      export VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test_key_for_e2e_only
+      echo "land: no .env; building with bundle-size.yml's env for the budget."
+    fi
     echo "land: building the bundle for the critical-path budget (Q178)."
     BUILD_LOG=$(mktemp "${TMPDIR:-/tmp}/land-vite-build.XXXXXX")
     if ! npx vite build >"$BUILD_LOG" 2>&1; then
@@ -324,6 +353,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   else
     echo "land: nothing the bundle is built from changed (src/, public/, index.html, vite.config.*, package*.json, scripts/perf/critical-path*); skipping the build and the critical-path budget (Q178)."
   fi
+
+  phase "bundle build and critical-path budget"
 
   if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$START_HEAD^{tree}")" ] &&
      git merge-base --is-ancestor origin/main "$START_HEAD"; then
@@ -341,21 +372,24 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   WT_HASH=$(printf '%s' "$PWD" | shasum | cut -c1-8)
   BR="land/$(git rev-parse --abbrev-ref HEAD | tr '/' '-')-$WT_HASH"
   git push --no-verify --force origin "HEAD:refs/heads/$BR"
-  PR_STATE=$(gh pr view "$BR" --json state --jq .state 2>/dev/null || true)
-  if [ "$PR_STATE" != OPEN ]; then
-    # Title/body given explicitly: --fill needs a local branch ref, and a
-    # detached HEAD has none (first run, 2026-09-30).
-    gh pr create --base main --head "$BR" \
-      --title "$(git log -1 --format=%s)" \
-      --body "$(printf 'Landed by scripts/land.sh (Q44).\n\n%s\n' "$(git log --format='- %h %s' origin/main..HEAD)")"
-  fi
-  gh pr merge "$BR" --rebase --auto
+  # Every GitHub call from here on reads REST through scripts/lib/landGh.mjs
+  # (or tries gh first and falls back to it): `gh pr view/create/edit/list/
+  # checks` are GraphQL, which Claude Code cloud sessions are refused (HTTP
+  # 403), and a refused `gh pr view` once kept a wait asking "again in a
+  # minute" for 19 h while PR #2672 sat DIRTY (2026-10-09..11).
+  # Title/body given explicitly: a detached HEAD has no branch to --fill from.
+  BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/land-body.XXXXXX")
+  printf 'Landed by scripts/land.sh (Q44).\n\n%s\n' "$(git log --format='- %h %s' origin/main..HEAD)" >"$BODY_FILE"
+  PR_NUM=$(node "$LAND_FROZEN_DIR/landGh.mjs" ensure-pr "$BR" "$(git log -1 --format=%s)" "$BODY_FILE")
+  rm -f "$BODY_FILE"
+  echo "land: PR #$PR_NUM is $BR."
+  gh pr merge "$BR" --rebase --auto 2>/dev/null || node "$LAND_FROZEN_DIR/landGh.mjs" auto-merge "$PR_NUM"
   # The land queue (owner, 2026-10-05; scripts/land-queue.mjs): the label puts
   # this PR in line. Only the head of the queue is rebased onto main and
   # re-checked, so a merge no longer sends every open PR back for a re-run; a
   # head whose required check fails leaves the queue and the next moves up.
   gh pr edit "$BR" --remove-label land-queue-failed --add-label land-queue >/dev/null 2>&1 ||
-    gh pr edit "$BR" --add-label land-queue >/dev/null
+    node "$LAND_FROZEN_DIR/landGh.mjs" queue "$PR_NUM"
   echo "land: $BR is in the land queue (label land-queue)."
   # Wake the queue now (it has no pull_request trigger); the wait below nudges
   # it again every 10 minutes. A failed dispatch only delays: the next merge or
@@ -366,73 +400,85 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # set. Any other open land/** PR whose head is already inside this HEAD is
   # superseded: close it and delete its branch so its checks stop queueing.
   # Guard: src/test/landingPath.test.ts.
-  gh pr list --state open --limit 1000 --json number,headRefName,headRefOid \
-    --jq '.[] | select(.headRefName | startswith("land/")) | "\(.number) \(.headRefName) \(.headRefOid)"' |
+  OPEN_LAND=$(node "$LAND_FROZEN_DIR/landGh.mjs" open-land-prs || true)
   while read -r num ref oid; do
+    [ -z "$num" ] && continue
     [ "$ref" = "$BR" ] && continue
     git cat-file -e "$oid" 2>/dev/null || git fetch -q origin "$ref" 2>/dev/null || continue
     if git merge-base --is-ancestor "$oid" HEAD 2>/dev/null; then
-      gh pr close "$num" --delete-branch --comment "Superseded by $BR (its commits are already in that head)." &&
+      { gh pr close "$num" --delete-branch --comment "Superseded by $BR (its commits are already in that head)." 2>/dev/null ||
+        node "$LAND_FROZEN_DIR/landGh.mjs" close-superseded "$num" "$ref" "$BR"; } &&
         echo "land: closed superseded PR #$num ($ref)."
     fi
-  done
+  done <<<"$OPEN_LAND"
   echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on."
+  phase "pushed; PR #$PR_NUM open with auto-merge and in the land queue"
   if [ "$WAIT" = 0 ]; then
-    echo "land: --no-wait; not landed until gh pr view $BR --json state says MERGED."
+    echo "land: --no-wait; not landed until PR #$PR_NUM ($BR) shows merged."
     exit 0
   fi
 
-  # Wait for the merge (checks take ~20 min). Loop back to the rebase when
-  # main moved; stop red on a failed check.
+  # Wait for the merge (required checks take ~7 min, a queue wait several PRs'
+  # worth). One REST read a minute; scripts/lib/landGh.mjs decidePoll says
+  # what it means. DIRTY (a conflict, usually a file another landing changed)
+  # the queue cannot resolve: it passes this PR over, so it loops back to the
+  # local rebase at once. BEHIND is the land queue's job (it rebases only the
+  # head of the queue), so it waits. A GitHub that does not answer (HTTP 503,
+  # 2026-10-03; GraphQL refused, #2672) is asked again next minute, but only
+  # for UNANSWERED_LIMIT_MIN minutes in a row, and the 180-minute limit holds
+  # through it. Only REQUIRED checks decide (an optional one failing does not
+  # block the merge). Guard: src/test/landGh.test.ts.
   waited=0
+  UNANSWERED=0
   while :; do
     sleep 60
     waited=$((waited + 1))
-    # A GitHub hiccup (HTTP 503, 2026-10-03) is not a verdict: ask again next
-    # minute instead of letting set -e end the wait.
-    if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then
-      echo "land: GitHub did not answer; asking again in a minute."
-      continue
-    fi
-    STATE=$(echo "$INFO" | jq -r .state)
-    if [ "$STATE" = MERGED ]; then
-      echo "land: $BR merged into main."
-      # The recount record (landRecount.mjs) lives until the landing merges.
-      rm -f "$(git rev-parse --git-path land-recount.json)"
-      exit 0
-    fi
-    if [ "$STATE" = CLOSED ]; then
-      echo "land: $BR was closed without merging." >&2
-      exit 1
-    fi
-    # Only the REQUIRED checks decide; an optional one (Lighthouse, Analyze)
-    # failing does not block the merge, so it does not stop the wait.
-    FAILED=$(gh pr checks "$BR" --required --json name,bucket --jq '[.[] | select(.bucket == "fail") | .name] | unique | join(", ")' 2>/dev/null || true)
-    if [ -n "$FAILED" ]; then
-      echo "land: checks failed on $BR: $FAILED" >&2
-      echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
-      exit 1
-    fi
-    # Strict is on (2026-10-05), so main moving shows as BEHIND or DIRTY.
-    # BEHIND is the land queue's job: it rebases the head of the queue when its
-    # turn comes (scripts/land-queue.mjs), so waiting here keeps this PR from
-    # re-running its checks after every other merge. DIRTY (a conflict, usually
-    # generated files another landing refreshed) the queue cannot resolve: it
-    # passes this PR over, and the local rebase below fixes it.
-    MSS=$(echo "$INFO" | jq -r .mergeStateStatus)
-    if [ "$MSS" = DIRTY ]; then
-      echo "land: $BR conflicts with main; rebasing it here (the queue skips it until then)."
-      break
-    fi
+    POLL=$(node "$LAND_FROZEN_DIR/landGh.mjs" poll "$PR_NUM" "$waited" "$UNANSWERED" 2>/dev/null) || POLL=$(printf 'unanswered\t-\tlandGh.mjs exited non-zero')
+    VERDICT=$(cut -f1 <<<"$POLL")
+    MSS=$(cut -f2 <<<"$POLL")
+    DETAIL=$(cut -f3- <<<"$POLL")
+    if [ "$UNANSWERED" -gt 0 ] && [ "$VERDICT" != unanswered ]; then UNANSWERED=0; fi
+    case "$VERDICT" in
+      merged)
+        echo "land: $BR merged into main."
+        # The recount record (landRecount.mjs) lives until the landing merges.
+        rm -f "$(git rev-parse --git-path land-recount.json)"
+        exit 0
+        ;;
+      closed)
+        echo "land: $BR was closed without merging." >&2
+        exit 1
+        ;;
+      failed)
+        echo "land: checks failed on $BR: $DETAIL" >&2
+        echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
+        exit 1
+        ;;
+      rebase)
+        echo "land: $BR $DETAIL; rebasing it here (the queue skips it until then)."
+        break
+        ;;
+      timeout)
+        echo "land: $BR: $DETAIL (PR #$PR_NUM, last state $MSS); stopping. Look at the PR, then re-run bash scripts/land.sh." >&2
+        exit 1
+        ;;
+      unanswered)
+        UNANSWERED=$((UNANSWERED + 1))
+        echo "land: GitHub did not answer ($DETAIL); $UNANSWERED min in a row, asking again in a minute."
+        ;;
+      wait)
+        [ $((waited % 5)) -eq 0 ] && echo "land: waiting on PR #$PR_NUM ($MSS), $waited min."
+        ;;
+      *)
+        echo "land: unexpected answer from landGh.mjs poll: $POLL" >&2
+        exit 1
+        ;;
+    esac
     if [ $((waited % 10)) -eq 0 ]; then
       gh workflow run land-queue.yml --ref main >/dev/null 2>&1 || true
     fi
-    # A queue wait is several PRs' worth of checks, not one.
-    if [ "$waited" -ge 180 ]; then
-      echo "land: $BR not merged after 180 min; re-run bash scripts/land.sh." >&2
-      exit 1
-    fi
   done
+  phase "PR went DIRTY; back to the rebase"
   if [ "$attempt" -ge 8 ]; then
     echo "land: main moved $attempt times while $BR waited; re-run." >&2
     exit 1

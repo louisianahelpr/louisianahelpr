@@ -102,6 +102,15 @@ jobs:
           # script refuses to report fresh in CI.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run check:staleness
+      # Owner, 2026-10-12: open-auto-tick.yml sat disabled_manually for five
+      # days and nothing said so (a disabled workflow has no red run). Every
+      # workflow on REQUIRED_ACTIVE must read `active`; branch-prune.yml runs
+      # the same check, so disabling one watcher is caught by the other.
+      - name: No required workflow is disabled (REST)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-workflows-active.mjs
       - name: The schedule heartbeat itself is still firing (CJ-009)
         # schedule-heartbeat.yml watches every other cron; nothing watched it.
         # If GitHub disables it (60 days idle) every workflow it guards goes

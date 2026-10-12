@@ -83,9 +83,27 @@ export function decide(me, runs) {
   const ahead = runs
     .filter((r) => r.id !== me.id && older(r, me) && Date.parse(me.created_at) - Date.parse(r.created_at) <= STALE_RUN_MS)
     .sort((a, b) => (older(a, b) ? -1 : 1));
-  if (ahead.length === 0) return { go: true, why: "no older scheduled prod-load run is in flight" };
+  if (ahead.length === 0) return { go: true, why: "no older scheduled prod-load run is in flight", ahead };
   const first = ahead[0];
-  return { go: false, why: `${ahead.length} older scheduled run(s) ahead (first in, first served); the oldest is ${first.name} ${first.html_url}` };
+  return { go: false, why: `${ahead.length} older scheduled run(s) ahead (first in, first served); the oldest is ${first.name} ${first.html_url}`, ahead };
+}
+
+/**
+ * Q1688: the status-filtered lists are not the whole truth. open-done-when
+ * 37773901853 was told `wait` behind prod-audit 37742958956 on 2026-10-08 at 12:01Z, then
+ * `GO` at 14:02:34Z while that run was still in flight (its second leg had sat
+ * queued for a runner since 13:15Z and started one second later): the run was
+ * in none of the five status lists at that moment. So before a GO, every run
+ * this waiter ever saw ahead of it is re-read BY ID, and any that is not
+ * `completed` is still ahead. Returns those runs (same shape as `snapshot`).
+ */
+export async function stillInFlight(repo, token, seen) {
+  const out = [];
+  for (const r of seen) {
+    const run = await gh(`/repos/${repo}/actions/runs/${r.id}`, token);
+    if (run.status !== "completed") out.push({ id: r.id, created_at: run.created_at ?? r.created_at, name: run.name ?? r.name, html_url: run.html_url ?? r.html_url });
+  }
+  return out;
 }
 
 // `fetch` is read at call time (not captured) so src/test/prodLoadQueue.test.ts can stub it.
@@ -149,6 +167,7 @@ async function main() {
   }
   let failures = 0;
   let last = "";
+  const seenAhead = new Map();
   const startedAt = Date.now();
   for (;;) {
     if (budgetSpent(startedAt)) {
@@ -156,7 +175,14 @@ async function main() {
       return;
     }
     try {
-      const d = decide(me, await snapshot(repo, token, members));
+      let d = decide(me, await snapshot(repo, token, members));
+      for (const r of d.ahead) seenAhead.set(r.id, r);
+      if (d.go && seenAhead.size > 0) {
+        const missed = await stillInFlight(repo, token, [...seenAhead.values()]);
+        for (const id of [...seenAhead.keys()]) if (!missed.some((r) => r.id === id)) seenAhead.delete(id);
+        const byId = decide(me, missed);
+        if (!byId.go) d = { ...byId, why: `${byId.why} (missing from the status lists, still in flight by id: Q1688)` };
+      }
       failures = 0;
       if (d.why !== last) console.log(`${new Date().toISOString()} ${d.go ? "GO" : "wait"}: ${d.why}`);
       last = d.why;

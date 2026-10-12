@@ -1,0 +1,75 @@
+name: Feature switch audience
+
+# Hidden feature switches (migration 20261012031120, owner decision
+# 2026-10-11): a switch not set to 'everyone' must never reach an ordinary
+# account. scripts/feature-switch-audience.mjs signs in to prod as a dedicated
+# ORDINARY probe account (not admin, not in test_accounts) and asserts
+# feature_enabled_for(key) is false for every such switch, with a test account
+# as the positive control (it must see every 'testers' switch). Verdict logic is
+# unit-tested in src/test/featureSwitchAudience.test.ts.
+#
+# A monitor, not a suite (exempt from the 90-min spacing by name in
+# src/test/prodWorkflowSpacing.test.ts): one service-role read of
+# feature_switches, one user lookup + password reset, three reads of the probe's
+# role/test-account/profile rows, two sign-ins, and one feature_enabled_for call
+# per switch for each of three callers, once a day.
+
+on:
+  schedule:
+    - cron: "33 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feature-switch-audience
+  cancel-in-progress: false
+
+jobs:
+  audience:
+    name: Hidden switches stay hidden from an ordinary account
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Check every switch's audience on prod
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: node scripts/feature-switch-audience.mjs
+
+  # A red run lands in a `nightly-red` issue (closed by the next green run).
+  # Same shape as every other scheduled workflow
+  # (src/test/everyScheduledWorkflowReportsItsResult.test.ts).
+  notify:
+    name: Report nightly result
+    needs: [audience]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: feature-switch-audience
+          status: ${{ needs.audience.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -68,6 +68,35 @@ says more.
   already landed without the trailer. sensitive-review.yml turns main red on
   an unrecorded one (Q9).
 
+## How to ship a hidden feature
+New features ship to the real app behind a hidden switch: on only for testers
+(admin role + `public.test_accounts`), then an admin flips it to everyone
+(owner, 2026-10-11). Not a staging copy. Infrastructure: migration
+20261012031120.
+- Create the switch in your feature's migration, never on:
+  `INSERT INTO public.feature_switches (key, audience, description) VALUES
+  ('<key>', 'testers', '<what it gates>') ON CONFLICT (key) DO NOTHING;`
+  (`'off'` also allowed; `'everyone'` is refused by a trigger and by
+  src/test/featureSwitchRegistry.test.ts). Add `<key>` to
+  `FEATURE_SWITCH_KEYS` in src/config/featureSwitches.ts.
+- Client: `const on = useFeature("<key>")` (src/hooks/useFeature.ts), string
+  literal only; false while loading, on error and signed out. The registry,
+  `FEATURE_SWITCH_KEYS` and the `useFeature` keys must match exactly both ways.
+- Server, ALWAYS (hiding a button is never the protection): every RPC the
+  feature adds starts `PERFORM public.require_feature('<key>');` (raises
+  `feature_disabled`, 42501); every edge function calls `requireFeature(
+  serviceClient, "<key>", verifiedUserId, corsHeaders)` from
+  supabase/functions/_shared/featureSwitch.ts and returns its 403 when non-null.
+  Use the user id from the verified JWT, never the request body. Prove the
+  refusal for an ordinary account in your PGlite proof.
+- Going live is the owner's flip in Admin -> Settings -> Hidden Feature
+  Switches (confirmation + admin_audit_log row), never a migration. The nightly
+  feature-switch-audience workflow checks as an ordinary account that no
+  switch not set to everyone is on for it.
+- Retiring a switch after go-live: remove the `useFeature`/`require_feature`
+  calls and `DELETE FROM public.feature_switches WHERE key = '<key>';` in one
+  change (the registry guard stays exact).
+
 ## Landing
 - **Agents do not land.** Commit in your worktree, `git push -u origin HEAD`
   to your own branch, and end your report with the branch name and the head

@@ -14,6 +14,7 @@ import { Gauge, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, 
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { AdminUserSearchField } from "./settings/AdminUserSearchField";
+import { FeatureSwitchesCard } from "./settings/FeatureSwitchesCard";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -625,6 +626,9 @@ const AdminSettings = () => {
           </Button>
         </div>
       </AdminCard>
+
+      {/* Hidden feature switches (owner decision 2026-10-11) */}
+      <FeatureSwitchesCard />
 
       {/* Admin Management */}
       {/* surface="none": each admin below is its own `liquid-glass` row, so the

@@ -13,6 +13,7 @@ import { isUnsettled, unsettledReason } from "./unsettled";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
+import { EarlierDisputes } from "./EarlierDisputes";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -41,6 +42,8 @@ interface DisputeCardProps {
   job: DisputedJob;
   filter: FilterTab;
   disputeRecords: Record<string, DisputeRecord>;
+  /** Q1327: the job's earlier disputes, newest first (undefined when none). */
+  earlierDisputes?: DisputeRecord[];
   profiles: Record<string, string>;
   tiers: Record<string, string | null>;
   activePanelJobId: string | null;
@@ -68,6 +71,7 @@ export const DisputeCard = ({
   job,
   filter,
   disputeRecords,
+  earlierDisputes,
   profiles,
   tiers,
   activePanelJobId,
@@ -169,6 +173,13 @@ export const DisputeCard = ({
           )}
         </div>
 
+        {job.dispute_helper_response && (
+          <div className="p-3 rounded-ds-sm bg-muted/40 border border-border">
+            <p className="text-ds-13 text-foreground font-medium">Helpr's answer</p>
+            <p className="text-ds-11 text-muted-foreground mt-1 break-words">"{job.dispute_helper_response}"</p>
+          </div>
+        )}
+
         {evidence.trusted.length + evidence.withheld > 0 && (
           <div className="space-y-1">
             <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
@@ -233,6 +244,8 @@ export const DisputeCard = ({
             )}
           </div>
         )}
+
+        <EarlierDisputes records={earlierDisputes} />
       </div>
 
           {/* Every unsettled state, named — with the ids an admin needs to

@@ -136,7 +136,7 @@ BEGIN
     -- Never refuse a hire because its heads-up could not be written; the
     -- in-app notice on the card (my_schedule_clashes) still shows the clash.
     -- Recorded where ops reads (error_logs), best effort.
-    RAISE WARNING 'notify_helpr_of_booking_clash: % (job %, helper %)', SQLERRM, v_job, v_helper;
+    RAISE WARNING 'notify_helpr_of_booking_clash: % (job %, helper_id %)', SQLERRM, v_job, v_helper;
     BEGIN
       INSERT INTO public.error_logs (severity, message, url, tags, context)
       VALUES ('error', 'Double-booking notice not sent: ' || SQLERRM,

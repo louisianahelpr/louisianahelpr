@@ -159,6 +159,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: inventories
+          hold-for-trains: "true"
           title: "chore(refresh): generated inventories regenerated"
           paths: ${{ steps.outs.outputs.paths }}
           regenerate: npm run inventories:refresh:all

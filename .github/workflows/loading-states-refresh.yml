@@ -256,6 +256,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: loading-states
+          hold-for-trains: "true"
           title: "chore(refresh): loading-state measurements re-measured on prod"
           paths: docs/audit/loading-states/measurements.json
           measured-dir: ${{ runner.temp }}/measured

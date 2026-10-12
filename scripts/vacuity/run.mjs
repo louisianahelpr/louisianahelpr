@@ -533,7 +533,9 @@ export function selectKind(mutations, kind) {
  * lower leg, so the same set always lands the same way and scope.mjs and the
  * gate agree.
  */
-export const E2E_LEGS = 8;
+// 9 on 2026-10-12: the batch trains' new e2e registrations put leg 5 at ~38.6 min
+// against a 37.4 limit (vacuityE2eLegs.test.ts); a ninth leg job was added.
+export const E2E_LEGS = 9;
 
 /**
  * Measured minutes (Q1426, vacuity run 38145674494, 2026-10-11, legs 1-3 job

@@ -50,6 +50,12 @@ export interface VirtualListProps<T> {
   itemClassName?: string;
   /** Optional className for the outer container. */
   className?: string;
+  /**
+   * Names the list for assistive tech: the container becomes role="list" with
+   * this aria-label and each row wrapper role="listitem". Also the stable name
+   * e2e/happy-path/buttonGeometry.ts's EXEMPT_PARENTS matches on.
+   */
+  listAriaLabel?: string;
   /** Optional inline style for the outer container. */
   style?: CSSProperties;
   /**
@@ -95,6 +101,7 @@ function WindowVirtualList<T>({
   className,
   style,
   virtualizerRef,
+  listAriaLabel,
 }: VirtualListProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -133,6 +140,8 @@ function WindowVirtualList<T>({
     <div
       ref={parentRef}
       className={className}
+      role={listAriaLabel ? "list" : undefined}
+      aria-label={listAriaLabel}
       style={{ position: "relative", height: totalSize, width: "100%", ...style }}
     >
       {virtualItems.map((virtualRow) => {
@@ -143,6 +152,7 @@ function WindowVirtualList<T>({
             data-index={virtualRow.index}
             ref={virtualizer.measureElement}
             className={itemClassName}
+            role={listAriaLabel ? "listitem" : undefined}
             style={{
               position: "absolute",
               top: 0,
@@ -174,6 +184,7 @@ function ElementVirtualList<T>({
   style,
   scrollElementRef,
   virtualizerRef,
+  listAriaLabel,
 }: VirtualListProps<T> & { scrollElementRef: RefObject<HTMLElement | null> }) {
   const parentRef = useRef<HTMLDivElement>(null);
   // Distance from the scroll element's CONTENT origin to this list's top —
@@ -234,6 +245,8 @@ function ElementVirtualList<T>({
     <div
       ref={parentRef}
       className={className}
+      role={listAriaLabel ? "list" : undefined}
+      aria-label={listAriaLabel}
       style={{
         position: "relative",
         height: virtualizer.getTotalSize(),
@@ -250,6 +263,7 @@ function ElementVirtualList<T>({
             data-index={virtualRow.index}
             ref={virtualizer.measureElement}
             className={itemClassName}
+            role={listAriaLabel ? "listitem" : undefined}
             style={{
               position: "absolute",
               top: 0,

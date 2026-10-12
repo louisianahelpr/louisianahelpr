@@ -484,6 +484,7 @@ const AdminUsers = () => {
         <div aria-busy={!summariesSettled}>
         <VirtualList
           items={filtered}
+          listAriaLabel="People"
           getKey={(p) => p.id}
           estimateSize={100}
           overscan={8}

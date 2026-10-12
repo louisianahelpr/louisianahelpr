@@ -115,6 +115,14 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
       sel: 'ul[aria-label="Upcoming 7 days"]',
       why: "schedule day cards are sized by their job count",
     },
+    {
+      // /admin?view=people: one card per account. A verified account carries
+      // a line of standing / rating / parish / last-seen chips, an account
+      // still awaiting its email does not, so the cards are 74 vs 66px
+      // (a11y-webkit-prod run 38181875379, 2026-10-12). The height is the data.
+      sel: '[role="list"][aria-label="People"]',
+      why: "admin people cards carry a chip line only for verified accounts",
+    },
   ];
   walk("*").forEach((parent) => {
     if (parent.children.length < 2 || parent.children.length > 12) return;

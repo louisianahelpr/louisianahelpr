@@ -74,7 +74,7 @@ describe("AdminHealth on a cold load (Q1287)", () => {
   beforeEach(() => { mode.answer = false; });
 
   // @mutate src/components/admin/AdminHealth.tsx | {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && ( | {!healthNeverLoaded && adminPushTokenCount === 0 && (
-  // @mutate src/components/admin/AdminHealth.tsx |   pending ? <Skeleton data-pending-reading="" aria-hidden="true" className={bone} /> : <>{children}</>; |   <>{children}</>;
+  // @mutate src/components/admin/adminHealth/HealthReading.tsx |   pending ? <Skeleton data-pending-reading="" aria-hidden="true" className={bone} /> : <>{children}</>; |   <>{children}</>;
   // @mutate src/components/admin/adminHealth/useFillRate.ts | fillData, fillFetching, fillLoading, sortedParishes | fillData, fillFetching, fillLoading: false, sortedParishes
   it("before any read answers: placeholders, and none of the fallback's zeros or alarms", async () => {
     const { container } = renderIt();

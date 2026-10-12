@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ActivityCount, PushTile, Reading } from "./adminHealth/HealthReading";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
@@ -69,16 +70,6 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
     </li>
   );
 };
-
-/**
- * A reading whose read has not answered yet (Q1287). useInstantQuery hands
- * back its fallback's zeros until then, and those painted as real numbers:
- * "0 sent", "0 unresolved", Job Activity all 0, on every cold load. A pending
- * reading is a placeholder bone, never the fallback. Guard:
- * src/components/admin/AdminHealth.coldLoad.test.tsx.
- */
-const Reading = ({ pending, bone, children }: { pending: boolean; bone: string; children: ReactNode }) =>
-  pending ? <Skeleton data-pending-reading="" aria-hidden="true" className={bone} /> : <>{children}</>;
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -377,30 +368,10 @@ const AdminHealth = () => {
         subtitle="Last 7 days."
         contentClassName="grid grid-cols-2 sm:grid-cols-4 gap-3"
       >
-          <div className="text-center">
-            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
-              <p className="text-ds-24 font-bold text-foreground">{recentJobs.open}</p>
-            </Reading>
-            <p className="text-ds-11 text-muted-foreground">New Jobs</p>
-          </div>
-          <div className="text-center">
-            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
-              <p className={cn("text-ds-24 font-bold", toneTextClasses.success)}>{recentJobs.completed}</p>
-            </Reading>
-            <p className="text-ds-11 text-muted-foreground">Completed</p>
-          </div>
-          <div className="text-center">
-            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
-              <p className={cn("text-ds-24 font-bold", toneTextClasses.danger)}>{recentJobs.disputed}</p>
-            </Reading>
-            <p className="text-ds-11 text-muted-foreground">Disputed</p>
-          </div>
-          <div className="text-center">
-            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
-              <p className={cn("text-ds-24 font-bold", toneTextClasses.notice)}>{recentJobs.cancelled}</p>
-            </Reading>
-            <p className="text-ds-11 text-muted-foreground">Cancelled</p>
-          </div>
+          <ActivityCount pending={healthLoading} value={recentJobs.open} label="New Jobs" tone="text-foreground" />
+          <ActivityCount pending={healthLoading} value={recentJobs.completed} label="Completed" tone={toneTextClasses.success} />
+          <ActivityCount pending={healthLoading} value={recentJobs.disputed} label="Disputed" tone={toneTextClasses.danger} />
+          <ActivityCount pending={healthLoading} value={recentJobs.cancelled} label="Cancelled" tone={toneTextClasses.notice} />
       </AdminCard>
 
       {/* Marketplace pulse: parish-level supply/demand + responsiveness */}
@@ -574,24 +545,9 @@ const AdminHealth = () => {
       >
         {/* Token stats */}
         <div className="grid grid-cols-3 gap-2 text-ds-13">
-          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
-            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Total tokens</div>
-            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
-              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
-            </Reading>
-          </div>
-          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
-            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">iOS</div>
-            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
-              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
-            </Reading>
-          </div>
-          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
-            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Android</div>
-            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
-              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
-            </Reading>
-          </div>
+          <PushTile pending={healthLoading} label="Total tokens" value={pushStats.total} />
+          <PushTile pending={healthLoading} label="iOS" value={pushStats.ios} />
+          <PushTile pending={healthLoading} label="Android" value={pushStats.android} />
         </div>
         {pushStats.latestAt && (
           <p className="text-ds-11 text-muted-foreground">

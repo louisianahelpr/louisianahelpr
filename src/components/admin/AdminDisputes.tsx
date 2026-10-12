@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
@@ -82,17 +83,11 @@ const AdminDisputes = () => {
     // admin session that is ~500 ms of pure latency for no reason. It is a
     // sibling here, not a successor.
     const [openRes, decidedRes, unsettledRes] = await Promise.all([
-      supabase
-        .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response")
-        .eq("status", "disputed")
-        .order("disputed_at", { ascending: false }),
-      supabase
-        .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response")
-        .not("dispute_resolved_at", "is", null)
-        .order("dispute_resolved_at", { ascending: false })
-        .limit(50),
+      // onboarding_fee_amount (Q1346) is ahead of db-deploy: retried without it.
+      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
+        supabase.from("jobs").select(columns).eq("status", "disputed").order("disputed_at", { ascending: false })),
+      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
+        supabase.from("jobs").select(columns).not("dispute_resolved_at", "is", null).order("dispute_resolved_at", { ascending: false }).limit(50)),
       // Decided disputes whose settlement has NOT executed. `.or` admits NULL
       // as well as 'pending' — see the comment on `unsettledJobIds` below.
       supabase.from("disputes")
@@ -151,12 +146,10 @@ const AdminDisputes = () => {
     const alreadyOpen = new Set(openJobs.map((j) => j.id));
     const strandedIds = [...unsettledJobIds].filter((id) => !alreadyOpen.has(id));
     if (strandedIds.length > 0) {
-      const { data: strandedJobs, error: strandedErr } = await supabase
-        .from("jobs")
-        .select(
-          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",
-        )
-        .in("id", strandedIds);
+      const { data: strandedJobs, error: strandedErr } = await readJobsAheadOfDb(
+        "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",
+        (columns) => supabase.from("jobs").select(columns).in("id", strandedIds),
+      );
       if (strandedErr) {
         report(strandedErr, { tags: { source: "AdminDisputes.loadStranded" } });
         toast.error("Couldn't load the unsettled disputes — money may be stuck without appearing here.");

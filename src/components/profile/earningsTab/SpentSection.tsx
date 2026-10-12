@@ -5,6 +5,7 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { supabase } from "@/integrations/supabase/client";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
@@ -70,22 +71,23 @@ export function SpentSection() {
     queryFn: async () => {
       const posterId = user!.id;
       const [jobs, refunds, gifts, tips] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select("id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at")
-          // EVERY job this person posted, whatever its status: money held in
-          // escrow on an open or in-progress job has left the card too, and a
-          // cancellation can keep a fee (owner, 2026-10-05: "everything that
-          // actually left the poster's card"). posterSpend decides which of
-          // them cost anything.
-          .eq("customer_id", posterId),
+        // EVERY job this person posted, whatever its status: money held in
+        // escrow on an open or in-progress job has left the card too, and a
+        // cancellation can keep a fee (owner, 2026-10-05: "everything that
+        // actually left the poster's card"). posterSpend decides which of
+        // them cost anything. onboarding_fee_amount is ahead of db-deploy
+        // (JOB_COLUMNS_AHEAD_OF_DB), so the read retries once without it.
+        readJobsAheadOfDb(
+          "id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
+          (columns) => supabase.from("jobs").select(columns).eq("customer_id", posterId),
+        ),
         supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id").eq("customer_id", user!.id),
         supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", user!.id).eq("status", "redeemed"),
         // Tips this person PAID (tips RLS also shows tips they received).
         supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, created_at").eq("tipper_id", user!.id),
       ]);
       return {
-        jobs: (unwrap(jobs) ?? []) as SpentJobRow[],
+        jobs: (unwrap(jobs) ?? []) as unknown as SpentJobRow[],
         refunds: (unwrap(refunds) ?? []) as PosterRefundRow[],
         gifts: (unwrap(gifts) ?? []) as PosterGiftRow[],
         tips: (unwrap(tips) ?? []) as PosterTipRow[],

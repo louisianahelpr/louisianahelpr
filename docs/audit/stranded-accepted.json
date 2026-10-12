@@ -650,7 +650,7 @@
     {
       "id": "pr:2752",
       "sha": "fc8113a8806cd870b0e16bc41bc7a509afe77e8d",
-      "reason": "Q1502 + Q1504 re-cut onto main as #2791. Its Q1501 half (both change-request RPCs restated with a 5-a-day cap) is deliberately not landed: #2756 lands Q1501 as one BEFORE INSERT trigger on both request tables, and the two caps would have stacked.",
+      "reason": "Q1502 + Q1504 re-cut onto main as #2791, then into the lane-4 batch PR (branch land/lane4-batch-1012) when #2791 went DIRTY. Its Q1501 half (both change-request RPCs restated with a 5-a-day cap) is deliberately not landed: #2756 lands Q1501 as one BEFORE INSERT trigger on both request tables, and the two caps would have stacked.",
       "checked": "2026-10-12 (lane 4, content-checked against #2791 and #2756)"
     }
   ]

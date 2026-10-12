@@ -58,6 +58,7 @@ export const NOT_MATCHED = {
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",
   "recurring_visit_payments.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through recurring_visit_payments.stripe_payment_intent_id",
+  "refund_notices.payment_intent_id": "the PaymentIntent a refund notice is about (Q1654), a dedupe record, not a record of that PaymentIntent",
   "payment_refunds.stripe_payment_intent_id": "the PaymentIntent a refund came from, not a record of that PaymentIntent",
   "payout_transfers.stripe_account_id": "the destination connected account, not a money movement",
   "chargeback_clawbacks.stripe_account_id": "the connected account, not a money movement",

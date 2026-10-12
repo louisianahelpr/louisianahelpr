@@ -516,7 +516,7 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     // served the close above (no second Stripe call).
     expect(scenario.writes.find((w) => w.table === "payment_refunds")?.payload).toMatchObject({ stripe_refund_id: "re_dash", source: "stripe_dashboard" });
     expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
-    expect(notes().some((n) => n.user_id === "p" && n.title === "Refund processed")).toBe(true);
+    expect(notes().some((n) => n.user_id === "p" && String(n.title).startsWith("Refund issued:"))).toBe(true);
   });
 
   it("a CREW decision on the refunded job is handed to a person (the fan-out never runs on a refunded job), with no refund read for the close", async () => {
@@ -578,7 +578,7 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     scenario.rpc.settle_dispute_by_external_refund = { outcome: "busy", dispute_id: "d-1" };
     const res = await post(fn);
     expect(res.status).toBeGreaterThanOrEqual(500);
-    expect(notes().some((n) => n.title === "Refund processed")).toBe(false);
+    expect(notes().some((n) => String(n.title).startsWith("Refund issued:"))).toBe(false);
   });
 
   it("needs_human pages critical with the reason (200: nothing to retry)", async () => {
@@ -814,13 +814,15 @@ describe("Q454: a full refund gives the job's gift card back", () => {
       type: "charge.refunded",
       data: { object: { id: `ch_${id}`, payment_intent: "pi_short", amount: 4000, amount_refunded: 4000, currency: "usd", refunds: null } },
     });
+    // Q1654: the refund Stripe lists for the charge; the notice is claimed on it.
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: `re_${id}`, amount: 4000, status: "succeeded", metadata: {} }] });
   }
   const job = { id: "job-g", customer_id: "p", helper_id: "h", title: "Gift job", payment_status: "escrow" };
   const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
   const refundNote = () => scenario.writes
     .filter((w) => w.table === "notifications" && w.op === "insert")
     .map((w) => w.payload as Record<string, unknown>)
-    .find((n) => n.title === "Refund processed");
+    .find((n) => String(n.title).startsWith("Refund issued:"));
   // A gift redeemed on the job and not yet given back.
   const giftAtStake = {
     rows: [{ id: "gc-1" }],

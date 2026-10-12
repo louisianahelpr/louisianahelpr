@@ -64,6 +64,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
 /**
  * The client type these helpers accept.
@@ -1790,22 +1791,60 @@ serve(async (req) => {
       : restoredGiftCents > 0
       ? `$${formatExactDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
       : `$${formatExactDollars(refundDollars)} has been refunded to your original payment method.`;
-    const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
-      user_id: job.customer_id,
-      title: restoredGiftCents > 0 && refundCents === 0
-        ? "Dispute settled — your gift is back"
-        : "Dispute settled — refund issued",
-      message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. ${posterHow}`,
-      type: "payment",
-      // The settled job. A resolved dispute leaves the job completed or
-      // cancelled — either way not in the "Needs you" bucket /posts opens on.
-      link: `/posts?job=${job.id}`,
-    });
-    if (posterNoteErr) {
-      console.error(
-        `[execute-dispute-split] poster notification insert failed for dispute ${disputeId}:`,
-        posterNoteErr,
-      );
+    const settled = `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
+    if (refundId && refundCents > 0) {
+      // Q1654: THE refund notice (in the app and by email: amount, card,
+      // reference, 5-10 business days), claimed on the refund's id. The
+      // charge.refunded webhook leaves a refund carrying metadata.dispute_id
+      // to this path, so the decision and the gift always reach the poster.
+      const result = await sendRefundNotice(supabaseAdmin, {
+        key: `refund:${refundId}`,
+        kind: "refund",
+        paymentIntentId: paymentIntentId ?? null,
+        amountCents: refundCents,
+        // What the CARD charge kept (second review of Q1654, N1): the Helpr's
+        // share of it and the card processing fee, so refunded + kept is the
+        // receipt's total. A gift's share is not on the card at all.
+        keptCents: Math.max(0, capturedCents - refundCents),
+        // The Helpr is named only when the decision gave them a share.
+        keptReason: movedHelperCents > 0
+          ? "the Helpr's share under the dispute decision and the card processing fee"
+          : "the card processing fee, which can't be returned",
+        recipientId: job.customer_id,
+        jobId: job.id,
+        extra: restoredGiftCents > 0
+          ? `${settled} $${formatExactDollars(restoredGiftCents / 100)} is also back as a gift you can use on another job.`
+          : settled,
+      });
+      const problem = refundNoticeProblem(result);
+      if (problem) {
+        console.error(`[execute-dispute-split] refund notice for dispute ${disputeId}: ${problem}`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Money went back to a poster who was not fully told",
+          message: `Dispute ${disputeId} refund ${refundId} (job ${job.id}): ${problem}. Tell them by hand.`,
+          fields: { dispute_id: disputeId, refund_id: refundId, status: result.status },
+          oncePerDayKey: `refund-notice:refund:${refundId}`,
+        });
+      }
+    } else {
+      // Gift only: no card refund, so no refund notice; the gift is the news.
+      const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
+        user_id: job.customer_id,
+        title: "Dispute settled — your gift is back",
+        message: `${settled} ${posterHow}`,
+        type: "payment",
+        // The settled job. A resolved dispute leaves the job completed or
+        // cancelled — either way not in the "Needs you" bucket /posts opens on.
+        link: `/posts?job=${job.id}`,
+      });
+      if (posterNoteErr) {
+        console.error(
+          `[execute-dispute-split] poster notification insert failed for dispute ${disputeId}:`,
+          posterNoteErr,
+        );
+      }
     }
   }
 

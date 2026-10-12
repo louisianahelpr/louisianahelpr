@@ -720,6 +720,37 @@ describe("create-payment edge function", () => {
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
     });
 
+    // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
+    // tax, so a taxable checkout just under $300 before tax asks for 3DS and
+    // an exempt one at the same price does not.
+    // @mutate supabase/functions/create-payment/index.ts |             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category), |             + 0,
+    it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
+      const optionsFor = async (category: string) => {
+        resetSupabaseMock();
+        stripeMock.checkout.sessions.create.mockClear();
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-3ds", customer_id: POSTER.id, budget: 260, category, title: "T", payment_status: "unpaid" }],
+        };
+        scenario.reads.platform_settings = {
+          rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
+        };
+        scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_3ds", url: "u" });
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-3ds" } }));
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        const preTax = args.line_items.reduce((n: number, li: any) => n + li.price_data.unit_amount * li.quantity, 0);
+        return { preTax, options: args.payment_method_options };
+      };
+      const exempt = await optionsFor("yard_work");
+      expect(exempt.preTax).toBeLessThan(30000);
+      expect(exempt.options).toBeUndefined();
+      const taxable = await optionsFor("assembly");
+      expect(taxable.preTax).toBe(exempt.preTax);
+      expect(taxable.options).toEqual({ card: { request_three_d_secure: "any" } });
+    });
+
     // ── Server-authoritative urgent fee (silent-client H-001) ─────────────
     //
     // is_urgent / urgent_fee are client-set at INSERT and the jobs INSERT

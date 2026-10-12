@@ -27,6 +27,9 @@
 /** A timer this late means the page was frozen, not that the read was slow. */
 export const FROZEN_SLACK_MS = 1_000;
 
+/** At most this many restarts per wait: a page frozen again and again still ends. */
+export const MAX_RESTARTS = 3;
+
 let lastHiddenAt = Number.NEGATIVE_INFINITY;
 let lastShownAt = Number.NEGATIVE_INFINITY;
 let listening = false;
@@ -60,6 +63,7 @@ export function raceVisibleDeadline<T>(pending: PromiseLike<T>, ms: number, mess
     let windowStart = Date.now();
     let dueAt = windowStart + ms;
     let waitForShow: (() => void) | null = null;
+    let restarts = 0;
 
     const stop = () => {
       settled = true;
@@ -76,21 +80,30 @@ export function raceVisibleDeadline<T>(pending: PromiseLike<T>, ms: number, mess
       if (settled) return;
       const now = Date.now();
       if (pageHidden()) {
-        // Put away right now: wait for the page to come back, then start over.
-        waitForShow = () => {
-          if (waitForShow) onShown.delete(waitForShow);
-          waitForShow = null;
-          windowStart = Date.now();
-          arm(ms);
-        };
-        onShown.add(waitForShow);
+        // Put away right now: start over when the page comes back. The timer
+        // is re-armed too (free while hidden: frozen or throttled), so the
+        // wait still settles if a WebView never delivers the "shown" event.
+        if (!waitForShow) {
+          waitForShow = () => {
+            if (waitForShow) onShown.delete(waitForShow);
+            waitForShow = null;
+            if (settled) return;
+            if (timer !== undefined) clearTimeout(timer);
+            windowStart = Date.now();
+            arm(ms);
+          };
+          onShown.add(waitForShow);
+        }
+        arm(ms);
         return;
       }
       const frozen = now - dueAt > FROZEN_SLACK_MS;
       const wentHidden = lastHiddenAt >= windowStart;
-      if (frozen || wentHidden) {
+      if ((frozen || wentHidden) && restarts < MAX_RESTARTS) {
         // The page was away for part of this window: the clock starts again
         // from when it came back (now, if no "shown" event has arrived yet).
+        // Capped, so long tasks at every due time cannot restart it forever.
+        restarts += 1;
         windowStart = !frozen && lastShownAt > lastHiddenAt ? lastShownAt : now;
         const left = ms - (now - windowStart);
         if (left > 0) {

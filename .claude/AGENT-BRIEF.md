@@ -102,6 +102,14 @@ says more.
   recurring named in its text (else `[~]`), then run
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
   becomes a new queue item — nothing lives outside `docs/OPEN.md`.
+- **Batch trains are tested once, on GitHub (owner 2026-10-12).** A train
+  (cherry-picked keepers in one branch) gets NO full local vitest run; the
+  8 GB Mac ran out of memory doing it. Locally: `npm run inventories:refresh`,
+  one `npm run typecheck`, `npx eslint --quiet` on the changed files,
+  `node scripts/parsecheck.mjs`, and land.sh's own steps (its --changed set in
+  chunks of 60, its named tests). GitHub CI runs the full suite once, on the
+  train's PR. This replaces "a batch passes the full local vitest before
+  land.sh".
 - **Fix follow-ups in place (owner 2026-10-12).** A small follow-up your work
   turns up in the same area (a review note, a guard the change trips, a stale
   comment, a ratchet the change moves, a train conflict) is fixed in the same

@@ -85,7 +85,6 @@ export const JOB_READABLE_COLUMN_LIST = [
   "location",
   "longitude",
   "no_show_alert_sent_at",
-  "onboarding_fee_amount",
   "parent_job_id",
   "parish",
   "payment_confirm_notif_sent",
@@ -160,7 +159,8 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
  * Read that way, the note is simply absent until db-deploy lands.
  * src/test/offeredHelperPrivacy.test.ts counts these as covered.
  */
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
+// onboarding_fee_amount: the setup fee a first job kept (Q1346, 20261012171259).
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

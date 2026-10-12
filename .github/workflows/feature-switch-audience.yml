@@ -27,8 +27,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  wait-accounts:
+    # Q743: the job-level lock on `audience` is NOT a queue. GitHub keeps ONE
+    # pending job per concurrency group and CANCELS it when a third arrives.
+    # This lock-free job waits its turn first and joins the group only when that
+    # bumps nobody (scripts/e2e/wait-shared-accounts.mjs;
+    # src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   audience:
     name: Hidden switches stay hidden from an ordinary account
+    needs: wait-accounts
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # It mints a session for the shared poster account (the positive control),

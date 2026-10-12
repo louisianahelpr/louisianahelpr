@@ -9,6 +9,7 @@
  * @mutate scripts/audit/pressProdSafety.mjs |   await acceptCurrentTerms(supabaseUrl(), anonKey(), session.access_token, session.user.id); // TERMS-CONSENT at mint |   // removed
  * @mutate scripts/test-signin-link.mjs |     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id); |     // removed
  * @mutate e2e/journeys/fixtures.ts |     await acceptCurrentTerms(SUPABASE_URL, ANON, session.access_token, session.user.id); // TERMS-CONSENT at mint |     // removed
+ * @mutate scripts/feature-switch-audience.mjs |     return createClient(url, anonKey, { ...opts, global: |     await acceptCurrentTerms(url, anonKey, session.access_token, session.user.id);\n    return createClient(url, anonKey, { ...opts, global:
  * @mutate scripts/lib/acceptCurrentTerms.mjs |   const terms = src.match(/export const LATEST_TERMS_VERSION = "([^"]+)"/)?.[1]; |   const terms = "Jun 2026";
  */
 import { describe, it, expect } from "vitest";
@@ -57,6 +58,12 @@ const NO_ACCEPT: Record<string, string> = {
   // Create their own accounts with terms_version_accepted = LATEST_TERMS_VERSION.
   "e2e/journeys/throwaway.ts": "creates throwaway accounts already on the current Terms",
   "e2e/privacy/privacy-requests.spec.ts": "creates its accounts already on the current Terms",
+  // Calls one RPC per switch over PostgREST and renders no page, so the
+  // re-consent dialog cannot cover anything it measures; feature_enabled_for
+  // (migration 20261012031120) reads no consent column. Its header promises it
+  // is read-only apart from the probe account, so it writes no consent rows to
+  // the shared poster account either.
+  "scripts/feature-switch-audience.mjs": "RPC-only monitor (feature_enabled_for), renders no page; read-only on the shared poster account",
   // Stripe TEST-mode money loops (skipped under live Stripe); not audited for the dialog.
   "e2e/prod-gift-card.spec.ts": "Stripe test-mode money loop; not audited for the dialog (2026-10-07)",
   "e2e/prod-lifecycle.spec.ts": "Stripe test-mode money loop; not audited for the dialog (2026-10-07)",

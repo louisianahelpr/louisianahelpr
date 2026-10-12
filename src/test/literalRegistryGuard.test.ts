@@ -5,6 +5,7 @@ import { join, relative, sep } from "node:path";
 // hand-typed copy of all eight job_status values — the very drift this guard
 // was written for — turns it red.
 // @mutate src/lib/statusLabels.test.ts | const required = Constants.public.Enums.job_status; | const required = ["open", "accepted", "in_progress", "completed", "cancelled", "revision_requested", "disputed", "pending_approval"];
+// @mutate src/components/admin/settings/FeeModelCard.tsx | = TIER_ORDER.map((id) => ({ | = (["free", "basic", "pro", "plus", "elite"] as SubscriptionTier[]).map((id) => ({
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -158,14 +159,6 @@ const LEDGER: Array<{ file: string; vocabulary: string; reason: string }> = [
       "PAYMENT_STATUSES (SI-013) is the union types.ts cannot generate: payment_status is text with a " +
       "CHECK, so Constants has no enum for it. It is not checked against itself: " +
       "paymentStatusExhaustive.test.ts parses the newest jobs_payment_status_check and requires equality.",
-  },
-  {
-    file: "src/components/admin/AdminSettings.tsx",
-    vocabulary: "tier",
-    reason:
-      "FEE_LADDER types the five tier ids to order the read-only fee table. The VALUES it shows are " +
-      "already derived from TIER_PERKS; only the order is hand-held. Deriving from TIER_ORDER would " +
-      "close it.",
   },
   {
     file: "src/lib/iap.ts",

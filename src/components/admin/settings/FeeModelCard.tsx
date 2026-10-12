@@ -1,5 +1,5 @@
 import { Percent } from "lucide-react";
-import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { TIER_ORDER, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminCard } from "../AdminViewShell";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
@@ -7,9 +7,13 @@ import { AdminCard } from "../AdminViewShell";
 // live payout against and the same one /subscription advertises, so the console
 // can no longer quote a ladder the platform does not charge — which is exactly
 // what the deleted editable inputs did (see the read-only card below).
-const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
-  ["free", "basic", "pro", "plus", "elite"] as SubscriptionTier[]
-).map((id) => ({ id, name: TIER_PERKS[id].name, percent: TIER_PERKS[id].platformFeePercent }));
+// The rung ORDER comes from TIER_ORDER (the commission ladder) too, so a tier
+// added there appears here without an edit.
+const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = TIER_ORDER.map((id) => ({
+  id,
+  name: TIER_PERKS[id].name,
+  percent: TIER_PERKS[id].platformFeePercent,
+}));
 
 /** Admin -> Settings: the read-only Fee Model card (moved verbatim out of AdminSettings.tsx). */
 export function FeeModelCard({ customerFee, helperFee }: { customerFee: string; helperFee: string }) {

@@ -567,7 +567,7 @@ describe("refund notice emails that failed are retried, bounded (void-cancelled-
     id: FAILED.notification_id, title: "Refund issued: $100", link: `/posts?job=${OWNER_JOB.id}&refund=re_3UOcZ8Kp2H4b7tEC1cVCF92O`, job_id: OWNER_JOB.id,
     message: "We refunded $100 for \"Mow & Weed Eat Yard\" to your Link account (refund reference re_3UOcZ8Kp2H4b7tEC1cVCF92O).",
   };
-  const failedRows = (rows: unknown[]) => {
+  const failedRows = (rows: Array<Record<string, unknown>>) => {
     scenario.reads.refund_notices = { rows: [], selectOverrides: [{ includes: "email_attempts", result: { rows } }] };
     scenario.reads.notifications = { rows: [NOTICE] };
   };

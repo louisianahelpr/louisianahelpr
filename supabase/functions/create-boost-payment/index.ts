@@ -9,6 +9,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
 import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -351,7 +352,9 @@ serve(async (req) => {
           : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${tierDisplayName(subTier)})`)
       : "Job Boost — 24-hour featured placement";
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account pays on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -422,6 +425,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     console.error("[create-boost-payment] error:", error);
     return fail(500, "Something went wrong starting your boost. Please try again.");
   }

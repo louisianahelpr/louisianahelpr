@@ -2113,7 +2113,12 @@ describe("create-payment edge function", () => {
       scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
       scenario.reads.group_job_helpers = {
         rows: [],
-        selectOverrides: [{ includes: "helper_id", result: { error: { message: "read blew up" } } }],
+        // The Stripe-mode read (job_id, helper_id; owner 2026-10-12) succeeds; the
+        // action's own post-claim roster read is the one that fails.
+        selectOverrides: [
+          { includes: "job_id, helper_id", result: { rows: [] } },
+          { includes: "helper_id", result: { error: { message: "read blew up" } } },
+        ],
       };
       scenario.writeSelectRows.jobs = [{ id: "job-1" }];
       const fn = await load();
@@ -2607,7 +2612,11 @@ describe("create-payment edge function", () => {
             },
           ],
         };
-        scenario.reads.group_job_helpers = Array.isArray(roster) ? { rows: roster } : roster;
+        // The Stripe-mode read (job_id, helper_id; owner 2026-10-12) sees the
+        // roster too; a failing roster here is the ACTION's own read.
+        scenario.reads.group_job_helpers = Array.isArray(roster)
+          ? { rows: roster }
+          : { ...roster, selectOverrides: [{ includes: "job_id, helper_id", result: { rows: [{ helper_id: "helper-1" }] } }] };
       }
 
       it("REFUSES a multi-member group roster and moves no money", async () => {

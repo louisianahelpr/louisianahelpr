@@ -3,7 +3,7 @@
   "_threshold": 600,
   "files": {
     "src/App.tsx": 712,
-    "src/components/admin/AdminAnalytics.tsx": 628,
+    "src/components/admin/AdminAnalytics.tsx": 625,
     "src/components/admin/AdminCredentialQueue.tsx": 601,
     "src/components/admin/AdminDisputes.tsx": 802,
     "src/components/admin/AdminReports.tsx": 722,

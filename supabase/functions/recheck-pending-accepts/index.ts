@@ -23,6 +23,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { recheckPendingAccepts } from "../_shared/connectGateSync.ts";
+import { createStripeModeResolver } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,8 +40,13 @@ serve(async (req) => {
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
       { global: { fetch: boundedFetch() } },
     );
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
-    const { defects, ...counts } = await recheckPendingAccepts(stripe, supabase);
+    // Stripe mode (owner 2026-10-12): each Helpr's Connect account is read with
+    // the key of that Helpr's own mode (a test account: the test key).
+    const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
+    const { defects, ...counts } = await recheckPendingAccepts(
+      async (helperId) => (await stripes.clientForParties([helperId])).stripe,
+      supabase,
+    );
     return cronResult("recheck-pending-accepts", counts, { count: defects.length, reasons: defects }, corsHeaders);
   } catch (e) {
     return cronError("recheck-pending-accepts", caughtMessage(e), corsHeaders);

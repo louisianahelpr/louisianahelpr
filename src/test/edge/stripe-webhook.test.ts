@@ -2815,7 +2815,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
  *
  * @mutate supabase/functions/stripe-webhook/index.ts | keyMode !== "UNKNOWN" && eventMode !== "UNKNOWN" && keyMode !== eventMode | false
  * @mutate supabase/functions/stripe-webhook/index.ts | if (keyMode === "LIVE") { | if (keyMode !== "LIVE") {
- * @mutate supabase/functions/stripe-webhook/index.ts | return webhookRejectResponse("livemode_mismatch"); | return new Response(JSON.stringify({ received: true }), { status: 200 });
+ * @mutate supabase/functions/stripe-webhook/index.ts |     });\n    return webhookRejectResponse("livemode_mismatch"); |     });\n    return new Response(JSON.stringify({ received: true }), { status: 200 });
  * @mutate supabase/functions/stripe-webhook/index.ts | oncePerDayKey: "stripe-webhook-live-event-test-key", | oncePerDayKey: undefined,
  * @mutate supabase/functions/_shared/stripeWebhookReject.ts | livemode_mismatch: 400, | livemode_mismatch: 200,
  */

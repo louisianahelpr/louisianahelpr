@@ -25,6 +25,7 @@ import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefund
 const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
+import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -66,9 +67,10 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Stripe mode (owner 2026-10-12): every job is settled on the key of its own
+    // mode (test accounts on the test key); a job mixing test and real
+    // accounts, or one whose mode cannot be read, is skipped as a defect.
+    const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
     /**
      * Give back the gift card that funded a job we are about to
@@ -408,7 +410,9 @@ serve(async (req) => {
       pi: Stripe.PaymentIntent,
       // Q1358: Part A resolves the rate BEFORE any money moves (a failed read
       // there leaves the job in escrow for the next run) and hands it in here.
-      preResolvedPercent?: number,
+      preResolvedPercent: number | undefined,
+      /** The client of this job's Stripe mode (owner 2026-10-12). */
+      stripe: Stripe,
     ) => {
       if (!(cancellationFee > 0) || !job.helper_id) return;
       const helperId = job.helper_id;
@@ -703,6 +707,8 @@ serve(async (req) => {
       job: { id: string; title: string; helper_fee_percent?: number | string | null },
       shares: CrewShare[],
       pi: Stripe.PaymentIntent,
+      /** The client of this job's Stripe mode (owner 2026-10-12). */
+      stripe: Stripe,
     ) => {
       const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid");
       if (owed.length === 0) return;
@@ -960,6 +966,15 @@ serve(async (req) => {
     // Clean up abandoned jobs — mark payment_status as "abandoned"
     let abandonedCount = 0;
     for (const job of (abandonedJobs || [])) {
+      // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(job.id, "read"));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        defects.record(`stripe mode ${job.id}: ${modeErr.reason}: ${modeErr.message}`);
+        continue;
+      }
       if (!job.stripe_session_id) {
         if (reservedGiftJobIds === null) {
           console.warn(`[void-cancelled-payments] job ${job.id}: sessionless, but the reserved-gift check failed — leaving it for the next run.`);
@@ -1035,6 +1050,15 @@ serve(async (req) => {
     }
     let expiredSessions = 0;
     for (const job of (cancelledUnpaid || [])) {
+      // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(job.id, "read"));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        defects.record(`stripe mode ${job.id}: ${modeErr.reason}: ${modeErr.message}`);
+        continue;
+      }
       try {
         let session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
         if (session.status === "open") {
@@ -1172,6 +1196,30 @@ serve(async (req) => {
     }
 
     for (const job of [...(jobs || []), ...crewRetryJobs, ...feeRetryJobs] as any[]) {
+      // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(job.id, "refund"));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        defects.record(`stripe mode ${job.id}: ${modeErr.reason}: ${modeErr.message}`);
+        continue;
+      }
+      /**
+       * A cancellation fee is a PAYOUT: the loop's client was chosen for the
+       * refund (the payer alone), so before any fee transfer its payees must
+       * be of the escrow's own mode too (lh-money-escrow re-review 2026-10-12,
+       * finding 1). False on a mix; a failed read throws to the run's catch.
+       */
+      const feePayeesShareMode = async (payees: ReadonlyArray<string | null | undefined>): Promise<boolean> => {
+        try {
+          await jobMoneyMode(supabaseAdmin, job.id, { kind: "payout", extraParties: payees });
+          return true;
+        } catch (e) {
+          if (e instanceof StripeModeRefused && e.reason === "mixed_parties") return false;
+          throw e;
+        }
+      };
       // ── Not a job whose escrow an admin's dispute decision owns ──────────
       // rpc_decide_dispute moves a poster-wins decision to status 'cancelled'
       // with the escrow still held for execute-dispute-split — exactly the
@@ -1200,9 +1248,13 @@ serve(async (req) => {
           defects.record(`crew share retry ${job.id}: no payment intent to draw the fee from`);
           continue;
         }
+        if (!(await feePayeesShareMode(shares.map((s) => s.helper_id)))) {
+          defects.record(`crew share retry ${job.id}: owed to a payee in the other Stripe mode (a test account on a real job, or the reverse): no fee can be paid; refund the fee to the person who paid it, from Admin`);
+          continue;
+        }
         try {
           const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
-          await payCrewCancellationFees(job, shares, retryPi);
+          await payCrewCancellationFees(job, shares, retryPi, stripe);
           crewSharesRetried += shares.length;
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
         } catch (retryErr) {
@@ -1223,12 +1275,18 @@ serve(async (req) => {
           defects.record(`cancellation fee retry ${job.id}: no payment intent to draw the fee from`);
           continue;
         }
+        if (!(await feePayeesShareMode([owed.helper_id]))) {
+          defects.record(`cancellation fee retry ${job.id}: owed to a payee in the other Stripe mode (a test account on a real job, or the reverse): no fee can be paid; refund the fee to the person who paid it, from Admin`);
+          continue;
+        }
         try {
           const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
           await payHelperCancellationFee(
             { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent },
             Number(owed.fee_amount),
             retryPi,
+            undefined,
+            stripe,
           );
           feeTransfersRetried++;
           results.push({ job_id: job.id, title: job.title, status: "fee_transfer_retried" });
@@ -1449,8 +1507,28 @@ serve(async (req) => {
         }
         singleFeePercent = feeRead.percent;
       }
+      // A fee owed to a Helpr of the other Stripe mode cannot be paid from this
+      // escrow, so it is NOT withheld: the poster gets it back with the refund,
+      // and admins are told (once a day per job).
+      if (jobCancellationFee > 0 || blockFeeRows.length > 0) {
+        const feePayees = [job.helper_id, ...(crewShares ?? []).map((s) => s.helper_id), ...blockFeeRows.map((r) => r.helper_id)];
+        if (!(await feePayeesShareMode(feePayees))) {
+          console.warn(`[void-cancelled-payments] job ${job.id}: the cancellation fee is owed to a payee in the other Stripe mode; refunding it to the person who paid it`);
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Cancellation fee refunded: its payee is in the other Stripe mode",
+            message: "A test account and a real account are on this cancelled job, so its cancellation fee cannot be paid from the escrow. The cancellation fee was refunded to the person who paid it; decide by hand whether anyone on the job is owed anything.",
+            fields: { job_id: job.id, fee: jobCancellationFee },
+            oncePerDayKey: `cross-mode-fee:${job.id}`,
+          });
+          jobCancellationFee = 0;
+          if (crewShares) crewShares = [];
+          blockFeeRows = [];
+        }
+      }
       const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
-        crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi, singleFeePercent);
+        crewShares ? payCrewCancellationFees(job, crewShares, pi, stripe) : payHelperCancellationFee(job, fee, pi, singleFeePercent, stripe);
       /**
        * Q1390: try every unpaid block fee. Its cents are withheld from the
        * refund either way; one that cannot go now (a payout hold, no payout
@@ -1859,6 +1937,15 @@ serve(async (req) => {
             const feeSettlement = await checkUnsettledDispute(supabaseAdmin, fj.id);
             if (feeSettlement.blocked) {
               if (feeSettlement.readError) defects.record(`crew block fee sweep dispute check ${fj.id}: ${feeSettlement.readError}`);
+              continue;
+            }
+            // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
+            let stripe: Stripe;
+            try {
+              ({ stripe } = await stripes.clientForJob(fj.id, "payout"));
+            } catch (modeErr) {
+              if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+              defects.record(`stripe mode ${fj.id}: ${modeErr.reason}: ${modeErr.message}`);
               continue;
             }
             let chargeId: string | null = null;

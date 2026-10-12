@@ -8,6 +8,7 @@ import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,9 +107,10 @@ serve(async (req) => {
     // error. Matches auto-release-payment's upfront config check.
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) throw new Error("Missing required env var: STRIPE_SECRET_KEY");
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Stripe mode (owner 2026-10-12): each dispute settles in its job's own mode
+    // (test accounts on the test key); a job mixing test and real accounts is
+    // skipped and counted as a defect.
+    const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
@@ -427,6 +429,15 @@ serve(async (req) => {
         continue;
       }
 
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(job.id, "read"));
+      } catch (e) {
+        if (!(e instanceof StripeModeRefused)) throw e;
+        claimSkipped.push({ job_id: job.id, verdict: "stripe_mode_refused" });
+        defects.record(`stripe mode ${job.id}: ${e.reason}: ${e.message}`);
+        continue;
+      }
       // ── Fail closed: verify the escrow charge actually succeeded before
       // promising the helper a payout. Auto-resolving a dispute flips the job
       // to payout_pending, which process-scheduled-payouts / auto-release-payment

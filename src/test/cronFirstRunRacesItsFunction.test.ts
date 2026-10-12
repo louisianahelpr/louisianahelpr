@@ -1,6 +1,6 @@
 /**
  * Q1690: a migration that schedules a cron against a NEW edge function got one
- * 404 alert on the cron's first run, because db-deploy schedules the cron
+ * 404 alert on the cron's first run (2026-10-11, 16:23Z), because db-deploy schedules the cron
  * before functions-deploy uploads the function (functions-deploy waits for
  * db-deploy, functionsDeployWaitsForDbDeploy.test.ts). 20261012202854 makes
  * sweep_cron_http_failures remember each cron job's FIRST run and skip a 404

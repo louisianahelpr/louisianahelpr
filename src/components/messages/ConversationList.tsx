@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -28,6 +28,7 @@ import { ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeader
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
+import { RestoreConversationButton } from "./RestoreConversationButton";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { HiddenUnreadBar, useHiddenUnreadBarMarks } from "./HiddenUnreadBar";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
@@ -35,7 +36,6 @@ import {
   ARCHIVE_CHANGED_EVENT,
   isArchived as isConvoArchived,
   loadArchives,
-  unarchiveConversation,
 } from "@/lib/archivedConversations";
 import type { Conversation } from "./types";
 import { serverNow } from "@/lib/messagingLockout";
@@ -1584,49 +1584,20 @@ export function ConversationList({
                       // selection. No-op on mobile (activeKey stays null).
                       const isActive = !!activeKey && activeKey === key;
                       const selected = selectedKeys.has(key);
+                      // Recently Deleted: Restore rides the row's `trailing` slot, in flow (Q1465).
+                      const restore = isRecentlyDeletedView && userId ? <RestoreConversationButton convo={c} userId={userId} /> : undefined;
                       const row = (
-                        <div className="relative">
-                          {/* Recently Deleted view: a real "un-hide" control,
-                              not just a re-visit. Swiping isn't available
-                              here (that's the archive gesture itself, and
-                              re-archiving an already-archived thread is a
-                              dead end), so restore needs its own button. */}
-                          {isRecentlyDeletedView && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!userId) return;
-                                unarchiveConversation(userId, c.jobId, c.otherUserId);
-                                // Archive has an explicit confirm dialog ("Hide 1 conversation?"); Restore was the
-                                // only one-tap action here with no feedback beyond the row silently vanishing from
-                                // THIS list — a toast closes that gap without adding a confirm step Restore doesn't
-                                // need (it's the non-destructive direction).
-                                hapticLight();
-                                toast(`Restored conversation with ${c.otherUserName ?? "this person"}`);
-                              }}
-                              aria-label={`Restore conversation with ${c.otherUserName ?? "this person"}`}
-                              className="absolute top-1/2 -translate-y-1/2 right-2 z-10 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-ds-sm text-ds-11 font-sans font-semibold btn-press transition-colors"
-                              style={{
-                                background: "hsl(var(--bark) / 0.10)",
-                                color: "hsl(var(--bark))",
-                              }}
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              Restore
-                            </button>
-                          )}
-                          <ConversationRow
-                            convo={c}
-                            currentUserId={userId}
-                            openConvo={openConvo}
-                            isActive={isActive}
-                            selectMode={selectMode}
-                            selected={selected}
-                            onToggleSelect={() => toggleSelect(c)}
-                            pinned={pinned}
-                          />
-                        </div>
+                        <ConversationRow
+                          convo={c}
+                          currentUserId={userId}
+                          openConvo={openConvo}
+                          isActive={isActive}
+                          selectMode={selectMode}
+                          selected={selected}
+                          onToggleSelect={() => toggleSelect(c)}
+                          pinned={pinned}
+                          trailing={restore}
+                        />
                       );
                       // Swipe gestures (archive / pin) are inert in select mode, and meaningless in the Recently
                       // Deleted view (Restore replaces them there) — render the bare row so a drag can't fire an

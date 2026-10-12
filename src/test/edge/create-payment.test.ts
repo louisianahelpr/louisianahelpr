@@ -653,7 +653,7 @@ describe("create-payment edge function", () => {
       expect(args.metadata.onboarding_fee_charged).toBe("true");
     });
 
-    it("flags an assembly job as LA-taxable labor (tax_code txcd_20030000)", async () => {
+    it("flags an assembly job as LA-taxable labor (tax_code txcd_20080005, Repair of Tangible Personal Property)", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
         rows: [
@@ -681,7 +681,7 @@ describe("create-payment edge function", () => {
       );
       const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
       expect(args.line_items[0].price_data.product_data.tax_code).toBe(
-        "txcd_20030000",
+        "txcd_20080005",
       );
     });
 
@@ -716,7 +716,7 @@ describe("create-payment edge function", () => {
         }
         return args.line_items[0].price_data.product_data.tax_code;
       };
-      expect(await codeFor("handyman")).toBe("txcd_20030000");
+      expect(await codeFor("handyman")).toBe("txcd_20080005");
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
     });
 

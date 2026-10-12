@@ -374,14 +374,6 @@
         "issue": null
       },
       {
-        "fingerprint": "6927babb2c1aa0eb8238dd39dab9ff62",
-        "source_kind": "sentry",
-        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
-        "status": "open",
-        "title": "error: permission denied for table recurring_visit_payments",
-        "issue": null
-      },
-      {
         "fingerprint": "99390a68ded71e6b94ed26b0ccc27b60",
         "source_kind": "sentry",
         "source": "sentry:?(assets/supabase-B9flpjD6)",
@@ -427,14 +419,6 @@
         "source": "sentry:du(assets/app-shared-CaUCxfK9)",
         "status": "open",
         "title": "error: missing authorization header",
-        "issue": null
-      },
-      {
-        "fingerprint": "c47e76e53f84c16be4ea3d7be6b8a925",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/ErrorState-X239NUZX)",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your payout data.",
         "issue": null
       },
       {

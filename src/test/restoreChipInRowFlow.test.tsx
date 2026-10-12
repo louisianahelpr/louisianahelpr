@@ -48,7 +48,10 @@ describe("Q1465: Recently Deleted's Restore sits in the row's flow, never over t
     const slot = restore.closest("[data-row-trailing]") as HTMLElement;
     expect(slot).not.toBeNull();
     const frame = slot.parentElement as HTMLElement;
-    for (const c of CONVERSATION_ROW_FRAME.split(" ").filter((x) => /flex|items-center/.test(x))) expect(frame.className).toContain(c);
+    const layoutClasses = CONVERSATION_ROW_FRAME.split(" ").filter((x) => /flex|items-center/.test(x));
+    // Floor: the frame's own layout classes (flex + items-center); none found would pass the loop vacuously.
+    expect(layoutClasses.length).toBeGreaterThan(1);
+    for (const c of layoutClasses) expect(frame.className).toContain(c);
     expect(slot.className).toContain("shrink-0");
     expect(slot.className).not.toMatch(/\babsolute\b/);
     const open = screen.getByText(convo.jobTitle).closest("button") as HTMLElement;

@@ -80,6 +80,8 @@ describe("queue numbers are assigned at landing (Q?<tag> placeholders)", () => {
 
   it("land.sh assigns the numbers after the rebase, before the renumber, and check-fixes passes what each commit filed", () => {
     const land = readFileSync(join(ROOT, "scripts", "land.sh"), "utf8");
+    // Floor: an empty or truncated read would make the order check below meaningless.
+    expect(land.length).toBeGreaterThan(5000);
     const assign = land.indexOf("\n  node scripts/open-assign-numbers.mjs --base origin/main");
     const renumber = land.indexOf("\n  node scripts/open-renumber.mjs --base origin/main");
     expect(assign).toBeGreaterThan(-1);

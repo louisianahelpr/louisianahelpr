@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticLight } from "@/lib/haptics";
+import { optimisticSavedIds } from "./optimisticSavedIds";
 
 type UseSaveJobArgs = {
   user: SupaUser | null;
@@ -48,11 +49,8 @@ export function useSaveJob({ user, savedJobIds, setSavedJobIds }: UseSaveJobArgs
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.savedJobs(userId) });
       const previousSavedJobs = queryClient.getQueryData<string[]>(queryKeys.dashboard.savedJobs(userId));
       const previousLocal = savedJobIds;
-      queryClient.setQueryData<string[]>(queryKeys.dashboard.savedJobs(userId), (prev) => {
-        const current = prev ?? [];
-        if (saved) return current.includes(jobId) ? current : [...current, jobId];
-        return current.filter((id) => id !== jobId);
-      });
+      queryClient.setQueryData<string[] | undefined>(queryKeys.dashboard.savedJobs(userId), (prev) =>
+        optimisticSavedIds(prev, jobId, saved));
       setSavedJobIds((prev) => {
         const next = new Set(prev);
         if (saved) next.add(jobId); else next.delete(jobId);

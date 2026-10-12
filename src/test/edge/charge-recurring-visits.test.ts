@@ -2058,6 +2058,32 @@ describe("charge-recurring-visits edge function", () => {
     expect(reasons(b)).toMatch(/pi_late carries a refund; nothing booked/);
   });
 
+  // Q1735 (money review of 389a4d210, #2): a PAID row refused mid-run as
+  // series_ended while the platform-end record cannot be read is refunded less
+  // the fee but NOT settled: it stays 'paid', so the stale-visit sweep reads the
+  // record again and either settles it or pages until the fee is refunded.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidRow && !platformEndUnknown) { |           if (paidRow) {
+  for (const unread of [true, false]) {
+    it(`Q1735: a paid row refused mid-run is ${unread ? "left 'paid' when the platform-end record is unreadable" : "settled refunded when the record reads (control)"}`, async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({ preflight: { rows: [paidToday] } });
+      scenario.writeErrors.jobs = {
+        message: `series_ended: the series ended on 2026-09-03; no new visit (${VISIT_DATE})`,
+        code: "23514",
+      };
+      scenario.reads.series_platform_ends = unread ? { rows: [], error: { message: "boom" } } : { rows: [] };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1", status: "succeeded", amount: 30000 });
+
+      await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      const settled = visitPaymentWrites("update").filter((w) => (w.payload as { status?: string }).status === "refunded");
+      expect(settled).toHaveLength(unread ? 0 : 1);
+    });
+  }
+
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidRow && (liveNow.some((r) => r.metadata?.fee_withheld === "true") \|\| refundedInFull)) { |           if (false) {
   it("Q1493: a PAID row our own earlier run already refunded (fee withheld) is settled refunded, not booked, not paged", async () => {
     const fn = await loadConfigured();

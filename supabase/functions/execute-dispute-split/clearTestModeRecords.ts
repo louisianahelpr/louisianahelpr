@@ -79,11 +79,44 @@ export async function clearTestModeRecords(args: {
   // vouch for (a gift card only), is never un-stuck from here.
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
-    .select("stripe_payment_intent_id, stripe_session_id")
+    .select("stripe_payment_intent_id, stripe_session_id, customer_id, helper_id")
     .eq("id", dispute.job_id)
-    .maybeSingle<{ stripe_payment_intent_id: string | null; stripe_session_id: string | null }>();
+    .maybeSingle<{
+      stripe_payment_intent_id: string | null;
+      stripe_session_id: string | null;
+      customer_id: string | null;
+      helper_id: string | null;
+    }>();
   if (jobErr) return { status: 500, body: { error: "job lookup failed — retry" } };
   if (!job) return { status: 404, body: { error: "job not found for this dispute" } };
+
+  // A job whose EVERY party is an enrolled test account pays in Stripe TEST
+  // mode on purpose (owner 2026-10-12, test mode for test accounts): its
+  // test-mode refunds and transfers ARE its books, and clearing them would let
+  // a re-decided split move that escrow twice. Refused; such a decision settles
+  // in test mode instead (money review of 389a4d210, #3b; docs/OPEN.md Q1762).
+  // Any enrolled test account counts here (a superset of the payment rule),
+  // so the doubt always refuses. A failed read refuses (fail closed).
+  const crewRes = await supabaseAdmin.from("group_job_helpers").select("helper_id").eq("job_id", dispute.job_id);
+  if (crewRes.error) return { status: 500, body: { error: "could not read this job's crew — nothing was changed; retry" } };
+  const parties = [...new Set([
+    job.customer_id,
+    job.helper_id,
+    ...((crewRes.data ?? []) as { helper_id: string | null }[]).map((r) => r.helper_id),
+  ].filter((id): id is string => typeof id === "string" && id.length > 0))];
+  if (parties.length > 0) {
+    const enrolledRes = await supabaseAdmin.from("test_accounts").select("user_id").in("user_id", parties);
+    if (enrolledRes.error || !Array.isArray(enrolledRes.data)) {
+      return { status: 500, body: { error: "could not read whether this job's parties are test accounts — nothing was changed; retry" } };
+    }
+    const enrolled = new Set((enrolledRes.data as { user_id: string }[]).map((r) => r.user_id));
+    if (parties.every((id) => enrolled.has(id))) {
+      return {
+        status: 409,
+        body: { error: "everyone on this job is a test account, so its Stripe test-mode records are its real books — nothing was changed; settle it in test mode instead" },
+      };
+    }
+  }
   const escrowKind = job.stripe_payment_intent_id ? "payment_intent" : job.stripe_session_id ? "checkout.session" : null;
   const escrowId = job.stripe_payment_intent_id ?? job.stripe_session_id;
   if (!escrowKind || !escrowId) {

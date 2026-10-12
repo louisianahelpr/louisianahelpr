@@ -311,7 +311,7 @@ export const DisputeCard = ({
               {ranInTestMode && clearTestModeRecords && (
                 <div className="space-y-1.5 border-t border-destructive/20 pt-2">
                   <Label htmlFor={`test-mode-note-${job.id}`} className="text-ds-11">
-                    This ran in Stripe test mode, so no real money moved. Clear its test-mode refund and transfer records and re-open the dispute. Say how you checked:
+                    The split says this ran in Stripe test mode. Every record is checked at Stripe first: only test-mode records are cleared, then the dispute re-opens. Say how you checked:
                   </Label>
                   <Textarea
                     id={`test-mode-note-${job.id}`}

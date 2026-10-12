@@ -28,6 +28,10 @@
  * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |     return { status: 409, body: { error: `this job's payment ${escrowId} is LIVE money | return { status: 200, body: { error: `this job's payment ${escrowId} is LIVE money
  * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (!escrowKind \|\| !escrowId) { |   if (false) {
  * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (refundIds.length === 0 && transferIds.length === 0 && !alreadyCleared) { |   if (false) {
+ * Money review of 389a4d210, #3b: a job whose every party is a test account
+ * pays in test mode on purpose, so its test records are its books.
+ * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |     if (parties.every((id) => enrolled.has(id))) { |     if (false) {
+ * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |     if (enrolledRes.error \|\| !Array.isArray(enrolledRes.data)) { |     if (false) {
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
@@ -236,6 +240,40 @@ describe("execute-dispute-split: clear_test_mode_records (Q1732)", () => {
     scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: null, stripe_session_id: null }] };
     const r = await press(h);
     expect(r.status).toBe(409);
+    // Refused for having nothing to check, before ANY Stripe call (vacuity:
+    // without this the refusal came from retrieving a null id instead).
+    expect(r.body.error).toMatch(/no Stripe payment to check/);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.retrieve).not.toHaveBeenCalled();
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
+  });
+
+  it("review of 389a4d210 #3b: a job whose EVERY party is a test account is refused before any Stripe call", async () => {
+    seedStuck();
+    scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: "pi_test_old", stripe_session_id: null, customer_id: "poster-t", helper_id: "helpr-t" }] };
+    scenario.reads.test_accounts = { rows: [{ user_id: "poster-t" }, { user_id: "helpr-t" }] };
+    const r = await press(h);
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/everyone on this job is a test account/);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
+  });
+
+  it("review of 389a4d210 #3b control: one REAL party on the job and the clear runs", async () => {
+    seedStuck();
+    scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: "pi_test_old", stripe_session_id: null, customer_id: "poster-real", helper_id: "helpr-t" }] };
+    scenario.reads.test_accounts = { rows: [{ user_id: "helpr-t" }] };
+    const r = await press(h);
+    expect(r.status).toBe(200);
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(1);
+  });
+
+  it("review of 389a4d210 #3b: an unreadable test-account list refuses (fail closed), nothing cleared", async () => {
+    seedStuck();
+    scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: "pi_test_old", stripe_session_id: null, customer_id: "poster-real", helper_id: "helpr-t" }] };
+    scenario.reads.test_accounts = { rows: [], error: { message: "boom" } };
+    const r = await press(h);
+    expect(r.status).toBe(500);
     expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
   });
 

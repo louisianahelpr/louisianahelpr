@@ -2059,7 +2059,11 @@ serve(async (req) => {
             continue;
           }
           // Q210(b): the on-session payment was given back; its row says so.
-          if (paidRow) {
+          // Q1735 (money review of 389a4d210, #2): with the platform-end record
+          // unread, the card fee may still be owed, so the row stays 'paid': the
+          // stale-visit sweep reads the record again and settles it, or pages
+          // until the rest is refunded (owesTheFee). Settled here, nothing would.
+          if (paidRow && !platformEndUnknown) {
             (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
           }
           // Q1735: the platform ended the series after this run charged; the

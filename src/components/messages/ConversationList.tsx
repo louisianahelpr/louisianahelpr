@@ -513,11 +513,6 @@ export function ConversationList({
      since removed; Active reproduces it exactly) — and the list column rendered as a
      blank white panel with no message at all. A caught-up inbox is a good
      outcome; it should say so rather than look broken. */
-  // Pinned / Recently Deleted read their own source, so they need their own
-  // empty sentence even when the default inbox is empty too: gated on
-  // `conversations.length > 0` alone, an account with no threads opened
-  // Recently Deleted onto a blank white panel (seen on prod 2026-10-12, 375).
-  // src/test/specialInboxViewsNeverBlank.test.tsx.
   const noTabMatches =
     !searchQuery.trim() && filteredConversations.length === 0 && (conversations.length > 0 || isSpecialFilterView);
 

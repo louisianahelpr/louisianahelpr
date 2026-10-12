@@ -48,6 +48,7 @@ describe("queue numbers are assigned at landing (Q?<tag> placeholders)", () => {
     expect(files[0].text).toContain("- [ ] **Q1701 LOW The Fill Rate card");
     expect(files[0].text).toContain("- [ ] **Q1702 MEDIUM Two side effects.** also Q1701");
     expect(files[1].text).toBe("- [x] **Q1703 LOW filed and ticked in one branch.** done\n");
+    expect(files.length).toBeGreaterThan(1);
     expect(files.every((f) => f.changed)).toBe(true);
   });
 

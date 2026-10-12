@@ -82,7 +82,7 @@ export function SpentSection() {
           "id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at",
           (columns) => supabase.from("jobs").select(columns).eq("customer_id", posterId),
         ),
-        supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id").eq("customer_id", user!.id),
+        supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id, source").eq("customer_id", user!.id),
         supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", user!.id).eq("status", "redeemed"),
         // Tips this person PAID (tips RLS also shows tips they received).
         supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, created_at").eq("tipper_id", user!.id),
@@ -194,7 +194,7 @@ export function SpentSection() {
                   {formatShortDate(new Date(rowMs(r)))}
                   {r.job?.status === "cancelled" ? " · Cancelled" : ""}
                   {r.job && r.tipCents > 0 ? ` · includes ${formatCents(r.tipCents)} tip` : ""}
-                  {r.job ? setupFeeReceiptNote(r.job, r.refundedCents) : ""}
+                  {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""}
                 </p>
               </div>
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>

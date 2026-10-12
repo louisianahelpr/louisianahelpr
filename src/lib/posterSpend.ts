@@ -88,6 +88,8 @@ export interface PosterRefundRow {
   job_id: string | null;
   amount_cents: number;
   stripe_payment_intent_id?: string | null;
+  /** Which path wrote the refund (payment_refunds.source). */
+  source?: string | null;
 }
 
 export interface PosterGiftRow {
@@ -146,6 +148,8 @@ export interface SpentRow<J> {
   tipCents: number;
   /** Refunds ledgered against the job's own charge (0 for a tip row). */
   refundedCents: number;
+  /** True when an admin refund (admin_refund_general) is among them. */
+  adminRefunded: boolean;
 }
 
 /**
@@ -166,6 +170,7 @@ export function spentRows<J extends PosterSpendJob>(
   }
   const jobPi = new Map(jobs.map((j) => [j.id, j.stripe_payment_intent_id]));
   const refundedByJob = new Map<string, number>();
+  const adminRefundedJobs = new Set<string>();
   for (const r of refunds) {
     if (!r.job_id) continue;
     const pi = r.stripe_payment_intent_id ?? null;
@@ -173,6 +178,7 @@ export function spentRows<J extends PosterSpendJob>(
     // this charge; the tip's refunds come off the tip below.
     if (pi && jobPi.get(r.job_id) && pi !== jobPi.get(r.job_id)) continue;
     refundedByJob.set(r.job_id, (refundedByJob.get(r.job_id) ?? 0) + (r.amount_cents ?? 0));
+    if (r.source === "admin_refund_general") adminRefundedJobs.add(r.job_id);
   }
   const giftByJob = new Map<string, number>();
   for (const g of gifts) if (g.job_id) giftByJob.set(g.job_id, (giftByJob.get(g.job_id) ?? 0) + (g.amount ?? 0));
@@ -189,9 +195,9 @@ export function spentRows<J extends PosterSpendJob>(
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
     const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0) + tipCents;
-    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0 });
+    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
   }
-  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0 });
+  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false });
   return rows;
 }
 
@@ -209,6 +215,7 @@ export const spentTotalCents = (rows: readonly { cents: number }[]) => rows.redu
 export function setupFeeReceiptNote(
   job: PosterChargedJob & { onboarding_fee_amount?: number | null; dispute_status?: string | null },
   refundedCents: number,
+  adminRefunded = false,
 ): string {
   const feeCents = cents(Number(job.onboarding_fee_amount ?? 0));
   if (!Number.isFinite(feeCents) || feeCents <= 0) return "";
@@ -221,6 +228,8 @@ export function setupFeeReceiptNote(
   // get no line (lh-money-escrow review).
   const chargedCents = cents(posterPaidDollars(job));
   const stripeCents = stripeProcessingCostCents(chargedCents);
-  const otherKeptCents = job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
+  // An admin's full refund keeps ONLY the fee (owner, 2026-10-12, second
+  // pop-up; lh-money-escrow review N2).
+  const otherKeptCents = adminRefunded ? 0 : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
   return chargedCents - refundedCents + 1 >= feeCents + otherKeptCents ? ` · ${amount} one-time setup fee kept (not refundable)` : "";
 }

@@ -256,6 +256,12 @@ function wireJobsReads(opts: {
       { includes: "stripe_payment_intent_id", result: opts.winner ?? { rows: [] } },
       // The chargeback check on the series' visits.
       { includes: "dispute_status", result: opts.chargeback ?? { rows: [] } },
+      // The series' parties, read to pick its Stripe mode (owner 2026-10-12,
+      // _shared/stripeMode.ts jobPartyIds). Real accounts: the live key.
+      {
+        includes: "customer_id, helper_id",
+        result: { rows: firstSeries ? [{ customer_id: firstSeries.customer_id ?? null, helper_id: firstSeries.helper_id ?? null }] : [] },
+      },
       // The pre-charge re-read of the parent (money audit LOW-10).
       {
         includes: "id, series_ended_on",

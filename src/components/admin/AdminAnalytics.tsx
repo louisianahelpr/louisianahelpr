@@ -87,7 +87,10 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
     // with a fee fallback, which overstated it — see computeMetrics.
     // `job_id` so the Payout Pipeline's Released rung can be attributed to
     // the jobs it settled rather than quoting a budget as a settlement.
-    supabase.from("payout_transfers").select("amount_cents, status, job_id"),
+    // Seed-filtered like the tips above (owner 2026-10-12: test accounts now pay
+    // out on the Stripe TEST key, and those transfers sit on is_seed jobs). A
+    // LEFT embed, filtered below, so a transfer whose job row is gone still counts.
+    supabase.from("payout_transfers").select("amount_cents, status, job_id, jobs(is_seed)"),
     loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
   ]);
   if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
@@ -103,7 +106,9 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
     report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
     transfers = null;
   } else {
-    transfers = (transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || [];
+    transfers = ((transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null; jobs?: { is_seed?: boolean | null } | null }[] | null) || [])
+      .filter((t) => t.jobs?.is_seed !== true)
+      .map(({ amount_cents, status, job_id }) => ({ amount_cents, status, job_id }));
   }
   return {
     profiles: profilesRes.rows,

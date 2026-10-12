@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 interface PayoutSummary {
   connected: boolean;
@@ -91,7 +92,9 @@ serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -145,6 +148,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (err) {
+    if (err instanceof StripeModeRefused) return stripeModeRefusedResponse(err, corsHeaders);
     // Log the detail; never echo it. The raw Stripe / PostgREST message carries
     // integration and schema detail the caller has no use for (EF-5 class, Q859 (4)).
     console.error("[stripe-payouts] error:", err instanceof Error ? err.message : err);

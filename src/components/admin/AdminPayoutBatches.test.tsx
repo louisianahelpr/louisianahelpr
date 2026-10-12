@@ -42,6 +42,8 @@ const batch = {
 const invokeMock = vi.fn();
 const rpcMock = vi.fn();
 let holdsResult: { data: unknown; error: unknown } = { data: [], error: null };
+/** Rows the Q233 seed read returns (`profiles ... .eq("is_seed", true)`). */
+let seedProfiles: Array<{ user_id: string }> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -63,7 +65,7 @@ vi.mock("@/integrations/supabase/client", () => ({
         // Thenable for the name read; `.eq("is_seed", true)` for the Q233 seed read.
         return {
           select: () => ({
-            in: () => Object.assign(Promise.resolve({ data: [], error: null }), { eq: async () => ({ data: [], error: null }) }),
+            in: () => Object.assign(Promise.resolve({ data: [], error: null }), { eq: async () => ({ data: seedProfiles, error: null }) }),
           }),
         };
       }
@@ -369,3 +371,32 @@ describe("AdminPayoutBatches — the bulk payout run", () => {
 // @mutate src/components/admin/AdminPayoutBatches.tsx | if (!ok) return;\n    setBulkPaying(true); | setBulkPaying(true);
 // Q758: the bulk run must pay through release-payout, not the stripe-payouts balance read.
 // @mutate src/components/admin/AdminPayoutBatches.tsx | const { jobIds, failures } = await releaseBatchJobs(batch.helper_id);\n        const paid | await supabase.functions.invoke("stripe-payouts", { body: { helper_id: batch.helper_id } });\n        const jobIds = [batch.helper_id]; const failures: string[] = [];\n        const paid
+
+/**
+ * Owner 2026-10-12, "Test mode for test accounts": a test account's batch pays
+ * out on the Stripe TEST key, so it stays listed but never adds to the queued
+ * dollars (an admin money total).
+ *
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const grandTotal = readyBatches.filter((b) => !b.is_seed).reduce( | const grandTotal = readyBatches.reduce(
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const totalJobs = readyBatches.filter((b) => !b.is_seed).reduce( | const totalJobs = readyBatches.reduce(
+ */
+describe("AdminPayoutBatches: a test account's batch is not real money", () => {
+  beforeEach(() => {
+    seedProfiles = [];
+  });
+
+  it("Total queued counts the real batch only", async () => {
+    seedProfiles = [{ user_id: "helper-seed" }];
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch, { ...batch, helper_id: "helper-seed", helper_name: "Test Helpr", total_payout: 999 }], error: null }
+        : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    renderScreen();
+    const label = await screen.findByText("Total queued");
+    // Both batches are listed (the seed read lands with them); only one is money.
+    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
+    expect(label.nextElementSibling?.textContent).toBe("$310.50");
+    expect(screen.getByText("Total jobs").nextElementSibling?.textContent).toBe("2");
+  });
+});

@@ -29,6 +29,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
 
 const FN = "stuck-payment-check";
 
@@ -80,7 +81,9 @@ serve(async (req) => {
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
       { global: { fetch: boundedFetch() } },
     );
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
+    // Stripe mode (owner 2026-10-12): each job's session is read with the key of
+    // the job's own mode (test accounts: the test key), never one key for all.
+    const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const defects = defectTracker();
 
     const now = Date.now();
@@ -124,6 +127,15 @@ serve(async (req) => {
     /** One job: read Stripe, record its answer on its own row. */
     const checkOne = async (job: Candidate): Promise<void> => {
       let row: Check;
+      let mode: StripeMode;
+      let stripe: Stripe;
+      try {
+        ({ mode, stripe } = await stripes.clientForJob(job.id, "read"));
+      } catch (e) {
+        if (!(e instanceof StripeModeRefused)) throw e;
+        defects.record(`job ${job.id}: no Stripe mode (${e.reason}): ${e.message}`);
+        return;
+      }
       try {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id);
         const moved = checkoutTookMoney(session);
@@ -147,7 +159,7 @@ serve(async (req) => {
           return;
         }
         // A test-mode session under the live key can never take live money.
-        logTestObjectUnderLiveKey(FN, { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+        logTestObjectUnderLiveKey(FN, { job_id: job.id, object: "checkout.session", id: job.stripe_session_id, key_mode: mode });
         row = {
           job_id: job.id,
           stripe_session_id: job.stripe_session_id,

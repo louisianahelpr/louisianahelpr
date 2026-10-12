@@ -144,7 +144,7 @@ const FRESH = "an object this run created under this key moments earlier, not a 
 const ABSENT =
   "swallow-to-absent by design: an unreadable prior object is replaced by a fresh one; no money moves on it";
 const EVENT =
-  "an id taken from a Stripe webhook event, and stripe-webhook/index.ts refuses an event whose livemode differs from the key's mode, so it is of this key's mode";
+  "an id taken from a Stripe webhook event, and stripe-webhook/index.ts hands each handler the client of the event's own mode (a live-endpoint event of the other mode is refused; a test-endpoint event runs on the test key, 2026-10-12), so it is of this key's mode";
 const PLATFORM = "reads the platform's own account/balance, not a stored id";
 
 /**

@@ -16,6 +16,8 @@ import { vi } from "vitest";
 export interface StripeMock {
   /** The key the function constructed Stripe with — lets tests assert key mode. */
   __key: string;
+  /** EVERY key a client was constructed with, in order (a function may build one per Stripe mode). */
+  __keys: string[];
   __opts: unknown;
   customers: {
     list: ReturnType<typeof vi.fn>;
@@ -143,6 +145,7 @@ export interface StripeMock {
  */
 export const stripeMock: StripeMock = {
   __key: "",
+  __keys: [],
   __opts: undefined,
   customers: {
     list: vi.fn(),
@@ -235,6 +238,7 @@ export const stripeMock: StripeMock = {
 /** Clears all call history + implementations on the shared Stripe mock. */
 export function resetStripeMock() {
   stripeMock.__key = "";
+  stripeMock.__keys = [];
   stripeMock.__opts = undefined;
   for (const group of [
     stripeMock.customers,
@@ -295,6 +299,7 @@ export function resetStripeMock() {
 export default class Stripe {
   constructor(key: string, opts?: unknown) {
     stripeMock.__key = key;
+    stripeMock.__keys.push(key);
     stripeMock.__opts = opts;
     return stripeMock as unknown as Stripe;
   }

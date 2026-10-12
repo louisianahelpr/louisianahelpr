@@ -64,13 +64,18 @@ export async function handleTransferReversed(
     throw new Error(`payout_transfers read failed for reversed transfer ${transfer.id}: ${currentErr.message}`);
   }
   const priorMetadata = ((currentRow as { metadata?: unknown } | null)?.metadata ?? {}) as Record<string, unknown>;
+  // Q1340: amount_reversed is cumulative, so it only grows. A late, older
+  // delivery carries a smaller figure and must not lower what is recorded.
+  const priorReversedCents = Math.max(0, Math.round(Number(priorMetadata.amount_reversed_cents) || 0));
+  const recordedReversedCents = Math.max(priorReversedCents, amountReversedCents);
+  const recordedFullyReversed = fullyReversed || priorMetadata.fully_reversed === true;
 
   const { data: reversedLedger, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
     .update({
       status: "reversed",
       reversed_at: new Date().toISOString(),
-      metadata: { ...priorMetadata, amount_reversed_cents: amountReversedCents, fully_reversed: fullyReversed },
+      metadata: { ...priorMetadata, amount_reversed_cents: recordedReversedCents, fully_reversed: recordedFullyReversed },
     })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id")

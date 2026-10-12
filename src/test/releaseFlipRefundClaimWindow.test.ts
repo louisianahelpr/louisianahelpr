@@ -10,6 +10,7 @@ import { flipJobToReleased } from "../../supabase/functions/_shared/releaseFlip"
  * every other state still fails at once.
  *
  * @mutate supabase/functions/_shared/releaseFlip.ts |       if ((now as { payment_status?: string } \| null)?.payment_status === "cancelling") { |       if (false) {
+ * @mutate supabase/functions/_shared/releaseFlip.ts |       if (nowErr) { |       if (false) {
  */
 
 /** A fake client: each update answers the next `flips` entry; each re-read the next `reads` entry. */
@@ -34,7 +35,9 @@ function fakeClient(flips: number[], reads: string[]) {
         eq: () => ({
           maybeSingle: async () => {
             calls.reads++;
-            return { data: { payment_status: reads[Math.min(r++, reads.length - 1)] }, error: null };
+            const status = reads[Math.min(r++, reads.length - 1)];
+            if (status === "READ_ERROR") return { data: null, error: { message: "statement timeout" } };
+            return { data: { payment_status: status }, error: null };
           },
         }),
       }),
@@ -74,5 +77,21 @@ describe("Q1324: the release flip waits out a refund claim's put-back", () => {
     expect(out).toMatchObject({ ok: false, zeroRow: true });
     expect((out as { message: string }).message).toMatch(/cancelling/);
     expect(calls.updates).toBe(4);
+  });
+
+  // Q1341: a failed re-read is not "not cancelling". It still fails at once,
+  // but the error is named instead of dropped.
+  it("a re-read that errors fails at once and names the read error", async () => {
+    vi.useFakeTimers();
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client, calls } = fakeClient([0, 1], ["READ_ERROR"]);
+    const p = flipJobToReleased(client, "job-1");
+    await vi.runAllTimersAsync();
+    const out = await p;
+    expect(out).toMatchObject({ ok: false, zeroRow: true });
+    expect((out as { message: string }).message).toMatch(/re-read failed: statement timeout/);
+    expect(calls.updates).toBe(1);
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining("statement timeout"));
+    errSpy.mockRestore();
   });
 });

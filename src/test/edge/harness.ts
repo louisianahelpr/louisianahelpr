@@ -225,7 +225,7 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/insertNotifications.ts";`,
   );
 
-  // Refund notice (Q1654): `_shared/refundNotice.ts` imports only zero-import
+  // Refund notice (Q1714): `_shared/refundNotice.ts` imports only zero-import
   // modules (caughtMessage, functionFetch; the email goes through the global
   // `fetch` at call time), so
   // the REAL module runs: its claim, notification and email are the behaviour
@@ -935,7 +935,7 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
   // nothing that worked before changes behaviour.
   (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
 
-  // Q1654: the refund notice's email (a fetch to send-notification-email) is
+  // Q1714: the refund notice's email (a fetch to send-notification-email) is
   // recorded in mocks/shared.ts `notificationEmails`, never sent.
   (await import("./mocks/shared.ts")).installNotificationEmailFetch();
 

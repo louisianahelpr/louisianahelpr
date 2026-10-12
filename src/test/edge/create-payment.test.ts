@@ -3542,11 +3542,11 @@ describe("create-payment edge function", () => {
       ).toBe(true);
     });
 
-    // Q1654: the admin's refund sends THE refund notice (in the app and by
+    // Q1714: the admin's refund sends THE refund notice (in the app and by
     // email), claimed on the refund's id, so the charge.refunded webhook does
     // not add a second one. Its old in-app-only "Partial refund issued" row is gone.
     // @mutate supabase/functions/create-payment/index.ts |       if (generalRefundForNotice) { |       if (false) {
-    it("Q1654: admin_refund_general tells the poster once, claimed on the refund (no second notice from the webhook)", async () => {
+    it("Q1714: admin_refund_general tells the poster once, claimed on the refund (no second notice from the webhook)", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;
       scenario.reads.jobs = {

@@ -18,7 +18,7 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
 /**
- * Q1654: the untold-refund sweep (Part G) looks at refunds made from here on.
+ * Q1714: the untold-refund sweep (Part G) looks at refunds made from here on.
  * Older ones went out before refunds were announced at all; telling those
  * people now is the owner's call, not this cron's.
  */
@@ -235,13 +235,13 @@ serve(async (req) => {
      * for "the money already moved, so this write is not allowed to be quiet".
      */
     /**
-     * Q1654: the poster is told, once, in the app and by email, whenever this
+     * Q1714: the poster is told, once, in the app and by email, whenever this
      * function sends money back: a released card hold (which raises no
      * charge.refunded) or a cancellation refund (told here with the amounts
      * computed here; the webhook's notice for the same refund is the safety
      * net and loses the claim). A released hold is told AFTER the job's state
      * writes, so a slow email never widens the window a cron timeout could
-     * leave a job unsettled in (review of Q1654 #12); a refund is told right
+     * leave a job unsettled in (review of Q1714 #12); a refund is told right
      * after its ledger row, so this path wins the claim with its own amounts.
      */
     const tellPosterMoneyBack = async (
@@ -1507,7 +1507,7 @@ serve(async (req) => {
             // crew's block fees.
             const feeCents = Math.round(cancellationFee * 100) + blockCents;
             await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
-            // Q1654: the rest of the hold goes back; the poster is told what and
+            // Q1714: the rest of the hold goes back; the poster is told what and
             // why once the job is settled below.
             const both = cancellationFee > 0 && blockCents > 0;
             const keptParts = [
@@ -1540,7 +1540,7 @@ serve(async (req) => {
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
             const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
-            // Q1654: the whole hold went back; tell the poster.
+            // Q1714: the whole hold went back; tell the poster.
             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null });
             if (settledVoid) voided++;
             results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });
@@ -1626,9 +1626,9 @@ serve(async (req) => {
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
             );
-            // Q1654: announced at once (so this path, not the webhook's safety
+            // Q1714: announced at once (so this path, not the webhook's safety
             // net, wins the claim), with what was kept and why in the amounts
-            // computed HERE (review of Q1654 #3), not rebuilt from job columns.
+            // computed HERE (review of Q1714 #3), not rebuilt from job columns.
             if (refund?.id) {
               const serviceKeptCents = fullSeriesRefund ? 0 : Math.min(serviceFeeCents, nonRefundableCents);
               const processingKeptCents = nonRefundableCents - serviceKeptCents;
@@ -1876,7 +1876,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Part G: refunds nobody has told the person about (Q1654) ───────────
+    // ── Part G: refunds nobody has told the person about (Q1714) ───────────
     // Every path that makes a refund tells the person itself, right after its
     // ledger row; the charge.refunded webhook tells them about a Dashboard
     // refund. A path that stopped between the refund and its notice (a cron

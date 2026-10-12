@@ -46,8 +46,7 @@ type PhotoProofProps = {
    * also be on the same lines as the other buttons").
    *
    * Same `JOB_ACTION_CHIP_CLASS` / `JOB_ROW_LABEL_CLASS` every other control in
-   * that row wears, so the capture control cannot become a fourth kind of
-   * button. The DIALOG is unchanged — this is only where the tap comes from.
+   * that row wears, so it cannot become a fourth kind of button; the dialog is unchanged.
    */
   chip?: boolean;
   /** With `chip`: the trigger is the row's PRIMARY until a photo is taken (owner, 2026-10-08). */
@@ -227,16 +226,15 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
         <JobStepPrimaryButton icon={Camera} label={`Take ${triggerText}`} onClick={() => setOpen(true)} />
       ) : chip ? (
         /* THE ROW CONTROL, `edit` tone (distinct from the gallery `Photos` chip
-           and the primary). `done` tone is reachable (owner, 2026-09-19): the
-           REVISION step keeps offering the After chip once one exists, so the
-           tick and the "After (1)" count are what that state draws. */
+           and the primary); `data-job-action-chip` lets the 320px density gate
+           measure it (Q1080). `done` tone is reachable (owner, 2026-09-19): the
+           REVISION step keeps the After chip once one exists, with its tick. */
         <Button
           size="sm"
           variant="outline"
           onClick={(e) => { e.stopPropagation(); setOpen(true); }}
           className={JOB_ACTION_CHIP_CLASS}
           style={jobActionChipStyle(hasPhotos ? "done" : "edit")}
-          // The 320px density gate measures every `[data-job-action-chip]` (Q1080).
           data-job-action-chip=""
           aria-label={`${triggerText} — add the ${type} photo for this job`}
         >

@@ -44,6 +44,9 @@ export function queueItems(md) {
 
 export const tagsOf = (text) => [...text.matchAll(TAG)].map((m) => m[1]);
 
+/** Does this item carry a `feed:` tag, i.e. was it mirrored from an alert feed (its origin key)? */
+export const isFeedMirrored = (text) => tagsOf(text).length > 0;
+
 /** feed key -> ids of NOT-done items carrying its tag. */
 export function mirrored(md) {
   const by = new Map();

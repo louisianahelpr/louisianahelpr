@@ -284,6 +284,49 @@ function batchTests(paths) {
   return testFileResults(JSON.parse(readFileSync(outFile, "utf8")), process.cwd());
 }
 
+/**
+ * The READY items that must NOT be ticked: an item whose ticked text would name
+ * no guard (src/test/queueItemsNameTheirGuard.test.ts fails every `[x]` that
+ * names no existing test/script/workflow/migration and says no `NO-GUARD:`).
+ * Bot PR #2717 (2026-10-12) ticked Q1536 and Q1540 on `pr #N merged` markers,
+ * whose evidence names nothing, and went red on that guard. Such an
+ * item waits for a person to name its guard. Same rules as that test: a path
+ * that exists, or a bare test/check name tracked under the dirs it searches.
+ * @param {string} md
+ * @param {Iterable<string>} readyIds
+ * @param {Map<string, string>} notes  item id -> what its markers read (the tick's evidence)
+ * @param {string} [root]
+ */
+export function heldForNoGuard(md, readyIds, notes, root = process.cwd()) {
+  const GUARD_PATH = /(?:src\/test\/|src\/[\w/.-]+\.test\.tsx?|scripts\/[\w/.-]+\.m?js|\.github\/workflows\/[\w.-]+\.yml|supabase\/migrations\/\d+_[\w-]+\.sql|e2e\/[\w/.-]+\.spec\.ts)[\w/.-]*/g;
+  const BARE = /\b([\w-]+\.(?:test|spec)\.tsx?|check-[\w-]+\.mjs|[\w-]+\.tz\.test\.tsx?)\b/g;
+  let bases = null;
+  const tracked = () => {
+    if (!bases) {
+      bases = new Set();
+      try {
+        const out = execFileSync("git", ["ls-files", "src/test", "scripts", "src/lib", "src/components", "src/pages", "e2e"], { cwd: root, encoding: "utf8", maxBuffer: 1 << 26 });
+        for (const f of out.split("\n")) if (f) bases.add(f.slice(f.lastIndexOf("/") + 1));
+      } catch {
+        // No git here: a bare name cannot be confirmed, so it does not count (holding is the safe side).
+      }
+    }
+    return bases;
+  };
+  const namesAGuard = (text) => {
+    if (/NO-GUARD:\s*\S/.test(text)) return true;
+    for (const p of text.match(GUARD_PATH) ?? []) if (existsSync(join(root, p.replace(/[.,;:)]+$/, "")))) return true;
+    for (const m of text.matchAll(BARE)) if (tracked().has(m[1])) return true;
+    return false;
+  };
+  const want = new Set(readyIds);
+  const held = [];
+  for (const it of queueItems(md)) {
+    if (want.has(it.id) && !namesAGuard(`${it.text} ${notes.get(it.id) ?? ""}`)) held.push(it.id);
+  }
+  return held;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
@@ -325,6 +368,10 @@ async function main() {
     const snapshot = existsSync(SNAPSHOT) ? JSON.parse(readFileSync(SNAPSHOT, "utf8")) : {};
     for (const [id, keys] of heldBySnapshot(md, readyIds.keys(), snapshot)) {
       console.log(`held   ${id}: READY, but ${SNAPSHOT} still lists ${keys.join(", ")} open; not ticked`);
+      readyIds.delete(id);
+    }
+    for (const id of heldForNoGuard(md, readyIds.keys(), readyIds)) {
+      console.log(`held   ${id}: READY, but its text names no guard (or NO-GUARD: <why>); a person ticks it with one`);
       readyIds.delete(id);
     }
     if (readyIds.size) writeFileSync(file, tickReady(readFileSync(file, "utf8"), readyIds, new Date().toISOString().slice(0, 10)));

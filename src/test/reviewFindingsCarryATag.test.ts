@@ -21,13 +21,20 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { itemOriginKey } from "../../scripts/lib/openQueue.mjs";
+import { isFeedMirrored } from "../../scripts/lib/openFeeds.mjs";
 
+// @mutate scripts/lib/openFeeds.mjs | export const isFeedMirrored = (text) => tagsOf(text).length > 0; | export const isFeedMirrored = (text) => false;
 // @mutate scripts/lib/openQueue.mjs |   if (f) return `finding ${f[1].toLowerCase()}`; |   if (f) return null;
 // @mutate src/test/reviewFindingsCarryATag.test.ts | !TAGGED.test(l) && !isFeedMirror(l);\n} | !TAGGED.test(l);\n}
 
 const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n");
 const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b/i;
 const TAGGED = /\bfinding: [a-z0-9-]+@[0-9a-f]{7,40}#\d+/i;
+// An item mirrored from an alert feed already carries ONE stable origin tag,
+// its `feed:` key (scripts/lib/openFeeds.mjs; open-sync-trackers.mjs files one
+// item per source). Its title is the alert's, so "nightly-red: main: sensitive
+// review record" (Q1654, bot PR #2717, 2026-10-12) says "review" without being
+// a reviewer's finding.
 
 // The highest item number when the rule landed (2026-10-05). Items above it
 // are filed under the rule and must carry a tag.
@@ -57,7 +64,7 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
  */
 const isFeedMirror = (l: string) => String(itemOriginKey(l) ?? "").startsWith("origin ");
 function isUntaggedReviewItem(l: string): boolean {
-  return REVIEW.test(l) && !TAGGED.test(l) && !isFeedMirror(l);
+  return REVIEW.test(l) && !TAGGED.test(l) && !isFeedMirror(l) && !isFeedMirrored(l);
 }
 function untaggedNewAll(): string[] {
   return ITEMS.filter((l) => num(l) > LAST_UNTAGGED && isUntaggedReviewItem(l)).map((l) => `Q${num(l)}`);
@@ -86,6 +93,12 @@ describe("review findings carry one stable tag, so a finding cannot be filed twi
     expect(isUntaggedReviewItem("- [ ] **Q9998 LOW review: mirrored the copy fix to Android.**")).toBe(true);
   });
 
+  it("a feed-mirrored item is tagged by its feed key; a plain review-worded one is not", () => {
+    const mirrored = "- [ ] **Q1654 MEDIUM nightly-red: main: sensitive review record.** Mirrored 2026-10-12 from alert-ledger row e41c806b9175 by `scripts/open-sync-trackers.mjs`. feed: ledger e41c806b9175. done-when: x";
+    expect(isFeedMirrored(mirrored)).toBe(true);
+    expect(isFeedMirrored("- [ ] **Q1700 LOW a reviewer said fix it.**")).toBe(false);
+    expect(isFeedMirrored("- [ ] **Q1701 LOW x.** feed: issue #2615.")).toBe(true);
+  });
   it("two numbers with one finding tag share one origin key", () => {
     const a = "- [ ] **Q1 LOW A thing (x) finding: lh-money-escrow@abc1234#3**";
     const b = "- [x] **Q2 MEDIUM Different words entirely, finding: lh-money-escrow@abc1234#3**";

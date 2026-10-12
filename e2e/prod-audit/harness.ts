@@ -687,7 +687,7 @@ export const runtime: {
  * by nothing else. Null when there is no key: then nothing is created that
  * could not be removed.
  */
-function serviceRoleKey(): string | null {
+export function serviceRoleKey(): string | null {
   try {
     const m = /^SUPABASE_SERVICE_ROLE_KEY=(.*)$/m.exec(readFileSync(join(process.cwd(), ".env"), "utf8"));
     return m ? m[1].trim().replace(/^["']|["']$/g, "") : null;

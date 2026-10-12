@@ -68,7 +68,19 @@ interface EmptyStateProps {
    * a tall desktop card left a big empty band under its content).
    */
   align?: "center" | "top" | "top-phone";
+  /**
+   * Reserve this many lines for `body`, so a page whose sentence is shorter
+   * still puts its circle, title and button where its siblings do. The content
+   * is centred, so a 2-line body sat its circle 11px lower at 375 than a 3-line
+   * one (Messages vs My Posts / My Jobs, measured on prod 2026-10-12; owner
+   * 2026-10-08, Q1558: "same positioning, box sizes"). The main-tab empty pages
+   * pass MAIN_TAB_EMPTY_BODY_LINES; everything else omits it.
+   */
+  bodyLines?: number;
 }
+
+/** The body lines every main-tab empty page (Home, My Posts, My Jobs, Messages) reserves. */
+export const MAIN_TAB_EMPTY_BODY_LINES = 3;
 
 /**
  * EmptyState — the shared "nothing here yet" card used across the
@@ -93,6 +105,7 @@ export function EmptyState({
   variant = "dock",
   surfaceStyle,
   align = "center",
+  bodyLines,
 }: EmptyStateProps) {
   const isDock = variant === "dock";
   const justify =
@@ -252,7 +265,12 @@ export function EmptyState({
           )}
           <p
             className="font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            data-body-lines={bodyLines}
+            style={{
+              color: "hsl(var(--olivewood) / 0.8)",
+              // leading-relaxed is 1.625: N lines of this paragraph.
+              ...(bodyLines ? { minHeight: `${(bodyLines * 1.625).toFixed(3)}em` } : {}),
+            }}
           >
             {body}
           </p>

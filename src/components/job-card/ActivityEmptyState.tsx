@@ -1,5 +1,5 @@
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import type { Tab } from "@/components/job-card/activityConstants";
@@ -169,6 +169,7 @@ export function ActivityEmptyState({
         icon={Icon}
         title={title}
         body={body}
+        bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
         action={
           /* WHEN WE KNOW WHERE THE ITEMS ARE, GO THERE.
              The body line has named them since this component was written

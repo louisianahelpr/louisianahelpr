@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
@@ -189,6 +189,16 @@ const HEADER_ICON_BUTTON_BASE_CLASS =
 const HEADER_ICON_BUTTON_INK_CLASS = "text-muted-foreground hover:text-foreground";
 const HEADER_ICON_BUTTON_CLASS =
   `${HEADER_ICON_BUTTON_BASE_CLASS} ${HEADER_ICON_BUTTON_INK_CLASS}`;
+/**
+ * The desktop website's row, copied from PostsHeader's `inlineFilters` buttons
+ * (`h-7 w-7 !min-h-0 !min-w-0`, a 3.5 glyph). Q1558 (owner 2026-10-08: "same
+ * positioning, box sizes"): looked at on prod 2026-10-12 at 1440, the Messages
+ * tab row was 53px tall around 44px buttons while My Posts / My Jobs' was 43px
+ * around 28px ones, so the Messages panel and its empty state sat 5-10px lower.
+ */
+const HEADER_ICON_BUTTON_DESKTOP_CLASS =
+  "rounded-ds-md flex items-center justify-center btn-press transition " +
+  `hover:bg-secondary/60 h-7 w-7 !min-h-0 !min-w-0 ${HEADER_ICON_BUTTON_INK_CLASS}`;
 
 /** `aria-controls` target for the phone disclosure chevron — restored with the
  *  chevron on 2026-09-22. Only ONE of the two placements (desktop header-row
@@ -907,7 +917,7 @@ export function ConversationList({
            to the pre-open state, same focus hand-back. */
         onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
         spellCheck={false}
-        className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+        className={`w-full pl-9 pr-10 ${isWebDesktop ? "h-[34px]" : "h-9"} text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
       />
       {/* `.ctl-exit` is the app's one exit shape and `.ctl-tint` its sanctioned
           hover tone — both kept from the control-sameness pass that put them
@@ -974,9 +984,9 @@ export function ConversationList({
       data-search-trigger
       onClick={() => { hapticLight(); setSearchOpen(true); }}
       aria-label="Search conversations"
-      className={HEADER_ICON_BUTTON_CLASS}
+      className={isWebDesktop ? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS}
     >
-      <Search className="w-4 h-4" />
+      <Search className={isWebDesktop ? "w-3.5 h-3.5" : "w-4 h-4"} />
     </button>
   );
 
@@ -999,9 +1009,9 @@ export function ConversationList({
         <DropdownMenuTrigger asChild>
           <button
             aria-label="Conversation list options"
-            className={HEADER_ICON_BUTTON_CLASS}
+            className={isWebDesktop ? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS}
           >
-            <Menu className="w-4 h-4" />
+            <Menu className={isWebDesktop ? "w-3.5 h-3.5" : "w-4 h-4"} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -1226,7 +1236,7 @@ export function ConversationList({
               field: searchField,
               /* HEADER_ICON_BUTTON_CLASS is `h-11 w-11`. The slot reserves the
                  magnifier's real box, not a guess — see SearchTriggerSlot. */
-              triggerWidth: "44px",
+              triggerWidth: isWebDesktop ? "28px" : "44px",
               /* THE FIELD TAKES ITS OWN LINE UNDER THE NAME BELOW 500px,
                  exactly as on My Posts / My Jobs — same row component, same
                  arithmetic. Measured with the title beside it:
@@ -1319,6 +1329,7 @@ export function ConversationList({
                 icon={navIconFor("/messages")}
                 title="No messages yet"
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
+                bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
                   <BarkPillButton onClick={() => navigate("/home")}>
                     Browse Jobs

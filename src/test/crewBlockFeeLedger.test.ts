@@ -14,7 +14,7 @@
  *
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                               - (SELECT count(*)::int FROM public.crew_block_fees b WHERE b.job_id = j.id)) |                               )
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
- * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
+ * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  */
@@ -54,7 +54,8 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
   });
 
   it("block_user_and_settle writes the fee to the ledger (never twice), not the by-hand alert", () => {
-    expect(EFFECTIVE.get("block_user_and_settle")?.file).toBe(THIS);
+    // Q1380 (20261012124103) restated it once more: the slotless hire-order fallback.
+    expect(EFFECTIVE.get("block_user_and_settle")?.file).toBe("20261012124103_crew_block_slotless_share_by_hire_order.sql");
     const b = body("block_user_and_settle");
     expect(b).toMatch(/IF v_member_fee > 0 AND v_crew\.slot_no IS NOT NULL THEN\s+INSERT INTO public\.crew_block_fees \(job_id, helper_id, slot_no, share_basis_cents, fee_percent, fee_cents\)[\s\S]{0,300}ON CONFLICT \(job_id, slot_no\) DO NOTHING;/);
     // The by-hand alert is left only for a slotless legacy row (Q1380).

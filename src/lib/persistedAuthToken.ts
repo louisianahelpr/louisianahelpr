@@ -29,21 +29,30 @@ import { sessionKnown } from "@/lib/sessionKnown";
  * shape rather than hardcoding the project ref, matching the existing readers
  * in src/lib/errorLogger.ts and src/lib/analytics.ts.
  */
-export const hasPersistedAuthToken = (): boolean => {
+export const hasPersistedAuthToken = (): boolean => readPersistedAuthToken() === true;
+
+/**
+ * The probe itself, with an unreadable store kept apart: true / false when the
+ * store answered, null when reading it threw (private mode, hardened
+ * browsers). hasPersistedAuthToken() treats null as "no token": the cost of
+ * guessing wrong there is that a signed-in visitor sees the landing page
+ * (annoying), whereas guessing "maybe" for everyone would put the Supabase
+ * chunk back on every guest's LCP path (the regression this file exists to
+ * avoid). definitelyGuest() does not: an unreadable store is not proof of a
+ * guest (Q1673).
+ */
+export const readPersistedAuthToken = (): boolean | null => {
   try {
     if (typeof localStorage === "undefined") return false;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return true;
     }
+    return false;
   } catch {
-    // Storage can throw outright in private mode / hardened browsers. Treat an
-    // unreadable store as "no token": the cost of guessing wrong is that a
-    // signed-in visitor sees the landing page (annoying), whereas guessing
-    // "maybe" for everyone would put the Supabase chunk back on every guest's
-    // LCP path (the regression this whole file exists to avoid).
+    // Unreadable: say so, and let each caller decide what that means.
+    return null;
   }
-  return false;
 };
 
 /**
@@ -74,10 +83,12 @@ export const clearPersistedAuthToken = (): void => {
 };
 
 /**
- * "No session, for certain" — the guest fast path. hasPersistedAuthToken()'s
- * false is trustworthy only once the stored session is readable: in the app,
- * before the Keychain restore lands, an evicted localStorage reads empty for a
- * signed-in person (Q1463), so until then this says "not certain" and the
- * caller takes its async path (getSession() waits for the restore).
+ * "No session, for certain" — the guest fast path. The probe's false is
+ * trustworthy only once the stored session is readable: in the app, before the
+ * Keychain restore lands, an evicted localStorage reads empty for a signed-in
+ * person (Q1463), and a store that throws says nothing at all (Q1673; before
+ * Q1463 DashboardGuest took its async path then). Either way this says "not
+ * certain" and the caller takes its async path (getSession() waits for the
+ * restore and reads the session supabase-js holds).
  */
-export const definitelyGuest = (): boolean => sessionKnown() && !hasPersistedAuthToken();
+export const definitelyGuest = (): boolean => sessionKnown() && readPersistedAuthToken() === false;

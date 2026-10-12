@@ -68,7 +68,7 @@ describe("readers of the stored session wait for the native restore (Q1463)", ()
     document.documentElement.classList.remove("senior-mode");
   });
 
-  // @mutate src/lib/restInsert.ts |   if (!sessionKnown()) await whenSessionKnown(); |
+  // @mutate src/lib/restInsert.ts |   if (waitForSession && !sessionKnown()) await whenSessionKnown(); |
   it("restInsert: a row posted before the restore goes out with the restored session's token, not as anon", async () => {
     await nativeBeforeRestore();
     const { postRows } = await import("@/lib/restInsert");
@@ -93,7 +93,7 @@ describe("readers of the stored session wait for the native restore (Q1463)", ()
     expect(calls[0].body).toEqual([expect.objectContaining({ event: "app_open_probe", user_id: USER_ID })]);
   });
 
-  // @mutate src/lib/persistedAuthToken.ts | export const definitelyGuest = (): boolean => sessionKnown() && !hasPersistedAuthToken(); | export const definitelyGuest = (): boolean => !hasPersistedAuthToken();
+  // @mutate src/lib/persistedAuthToken.ts | export const definitelyGuest = (): boolean => sessionKnown() && readPersistedAuthToken() === false; | export const definitelyGuest = (): boolean => readPersistedAuthToken() === false;
   it("the guest fast path (DashboardGuest) never decides 'guest' before the restore", async () => {
     await nativeBeforeRestore();
     const { definitelyGuest } = await import("@/lib/persistedAuthToken");
@@ -102,6 +102,44 @@ describe("readers of the stored session wait for the native restore (Q1463)", ()
     expect(definitelyGuest()).toBe(false); // signed in after all
     localStorage.clear();
     expect(definitelyGuest()).toBe(true); // a real guest, once the store is readable
+  });
+
+  // Q1673(a): before Q1463, DashboardGuest took its async getSession() path when
+  // localStorage threw; definitelyGuest() then read an unreadable store as
+  // "guest", so a signed-in web visitor with blocked storage got the guest page.
+  // @mutate src/lib/persistedAuthToken.ts |     return null;\n  } | return false;\n  }
+  it("a store that throws is not proof of a guest (the async path decides)", async () => {
+    vi.resetModules();
+    const blocked = {} as Storage;
+    Object.defineProperty(blocked, "length", { get: () => { throw new DOMException("denied", "SecurityError"); } });
+    vi.stubGlobal("localStorage", blocked);
+    const { definitelyGuest, hasPersistedAuthToken, readPersistedAuthToken } = await import("@/lib/persistedAuthToken");
+    expect(readPersistedAuthToken()).toBeNull();
+    expect(definitelyGuest()).toBe(false);
+    // The landing-page hint keeps its documented answer: no token, no chunk.
+    expect(hasPersistedAuthToken()).toBe(false);
+  });
+
+  // Q1673(b): a batch tracked before the restore waited for it even when the
+  // page was going away, so a flush on hide could outlast the page and the
+  // batch was lost. On hide it goes out at once, anonymous if it must.
+  // @mutate src/lib/analytics.ts |     if (document.visibilityState === "hidden") void flush({ leaving: true }); |     if (document.visibilityState === "hidden") void flush();
+  // @mutate src/lib/analytics.ts |     { waitForSession: !leaving }, |     {},
+  it("analytics: a batch flushed as the page hides before the restore is sent at once, not held", async () => {
+    vi.useFakeTimers();
+    await nativeBeforeRestore();
+    const { track } = await import("@/lib/analytics");
+    track("hidden_before_restore_probe");
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    try {
+      document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
+      await settle();
+      expect(calls).toHaveLength(1);
+      expect(calls[0].auth).not.toBe("Bearer restored-jwt");
+      expect(calls[0].body).toEqual([expect.objectContaining({ event: "hidden_before_restore_probe", user_id: null })]);
+    } finally {
+      delete (document as unknown as { visibilityState?: unknown }).visibilityState;
+    }
   });
 
   it("control: on the web the fast path answers at once", async () => {

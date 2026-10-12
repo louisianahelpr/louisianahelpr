@@ -48,14 +48,17 @@ export async function postRows<T>(
   table: string,
   columns: readonly string[],
   rowsFor: (asUser: boolean) => T[],
+  { waitForSession = true }: { waitForSession?: boolean } = {},
 ): Promise<number> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!supabaseUrl || !key || typeof fetch !== "function") return 0;
   // In the app, before the Keychain restore lands, an evicted localStorage
   // holds no token and the row went out as anon (Q1463). Wait for it (capped
-  // at SESSION_KNOWN_CAP_MS); on the web this is already resolved.
-  if (!sessionKnown()) await whenSessionKnown();
+  // at SESSION_KNOWN_CAP_MS); on the web this is already resolved. A caller
+  // flushing as the page goes away passes waitForSession: false (Q1673): a
+  // wait could outlast the page, and an anonymous row beats a lost one.
+  if (waitForSession && !sessionKnown()) await whenSessionKnown();
   const cols = columns.map((c) => `"${c}"`).join(",");
   const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/${table}?columns=${encodeURIComponent(cols)}`;
   const send = (bearer: string, asUser: boolean) => {

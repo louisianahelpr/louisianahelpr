@@ -23,23 +23,9 @@
 //
 // Never calls markFailed: this branch settles nothing, so it must not rewrite
 // the dispute's execution record.
+import type Stripe from "https://esm.sh/stripe@18.5.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
-
-type DbResult<T> = { data: T | null; error: { message: string } | null };
-interface Query<T> extends PromiseLike<DbResult<T>> {
-  select(cols: string): Query<T>;
-  eq(col: string, v: unknown): Query<T>;
-  in(col: string, v: unknown[]): Query<T>;
-  maybeSingle(): PromiseLike<DbResult<T>>;
-}
-interface Db {
-  from(table: string): Query<unknown>;
-  rpc(fn: string, args: Record<string, unknown>): PromiseLike<DbResult<unknown>>;
-}
-interface StripeLike {
-  refunds: { retrieve(id: string): Promise<{ id?: string } | null> };
-  transfers: { retrieve(id: string): Promise<{ id?: string } | null> };
-}
 
 export const CLEAR_TEST_MODE_ACTION = "clear_test_mode_records";
 
@@ -47,10 +33,10 @@ export const CLEAR_TEST_MODE_ACTION = "clear_test_mode_records";
 const MONEY_TRANSFER_STATES = ["pending", "paid", "reversed"];
 
 export async function clearTestModeRecords(args: {
-  supabaseAdmin: Db;
+  supabaseAdmin: SupabaseClient;
   /** A client carrying the ADMIN's own Authorization header. */
-  adminClient: Db;
-  stripe: StripeLike;
+  adminClient: SupabaseClient;
+  stripe: Stripe;
   adminUserId: string;
   disputeId: string;
   reason: unknown;
@@ -61,17 +47,17 @@ export async function clearTestModeRecords(args: {
     return { status: 400, body: { error: "Say how you know these are Stripe test-mode records (10 characters or more); it goes in the audit log." } };
   }
 
-  const { data: dispute, error: dErr } = (await supabaseAdmin
+  const { data: dispute, error: dErr } = await supabaseAdmin
     .from("disputes")
     .select("id, job_id, status, execution_refund_id, execution_transfer_id")
     .eq("id", disputeId)
-    .maybeSingle()) as DbResult<{
+    .maybeSingle<{
       id: string;
       job_id: string;
       status: string;
       execution_refund_id: string | null;
       execution_transfer_id: string | null;
-    }>;
+    }>();
   if (dErr) return { status: 500, body: { error: "dispute lookup failed — retry" } };
   if (!dispute) return { status: 404, body: { error: "dispute not found" } };
   if (dispute.status === "superseded") {
@@ -79,13 +65,18 @@ export async function clearTestModeRecords(args: {
   }
 
   const [refundsRes, transfersRes] = await Promise.all([
-    supabaseAdmin.from("payment_refunds").select("stripe_refund_id").eq("job_id", dispute.job_id),
+    supabaseAdmin
+      .from("payment_refunds")
+      .select("stripe_refund_id")
+      .eq("job_id", dispute.job_id)
+      .returns<{ stripe_refund_id: string }[]>(),
     supabaseAdmin
       .from("payout_transfers")
       .select("stripe_transfer_id, status")
       .eq("job_id", dispute.job_id)
-      .in("status", MONEY_TRANSFER_STATES),
-  ]) as [DbResult<{ stripe_refund_id: string }[]>, DbResult<{ stripe_transfer_id: string | null; status: string }[]>];
+      .in("status", MONEY_TRANSFER_STATES)
+      .returns<{ stripe_transfer_id: string | null; status: string }[]>(),
+  ]);
   if (refundsRes.error || transfersRes.error) {
     return { status: 500, body: { error: "could not read this job's refund and transfer records — retry" } };
   }
@@ -108,7 +99,7 @@ export async function clearTestModeRecords(args: {
     ...transferIds.map((id) => ["transfer", id] as ["transfer", string]),
   ];
   for (const [kind, id] of checks) {
-    let found: { id?: string } | null = null;
+    let found: { id?: string } | null;
     try {
       found = kind === "refund" ? await stripe.refunds.retrieve(id) : await stripe.transfers.retrieve(id);
     } catch (e) {

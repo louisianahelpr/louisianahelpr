@@ -126,6 +126,7 @@
     "rpc_add_dispute_evidence(uuid, text[])": "client",
     "rpc_check_application_rate(uuid)": "client",
     "rpc_clear_test_mode_dispute_stamp(uuid, text, text)": "reviewed 2026-10-05 (Q1280): admin-only (has_role check inside, not a party), compare-and-set on the named stamp, audit-logged; the hand path out of a test-mode dispute stamp; no client caller yet.",
+    "rpc_clear_test_mode_dispute_refund_stamp(uuid, text, text)": "reviewed 2026-10-12 (Q1383): the refund-side twin of rpc_clear_test_mode_dispute_stamp; admin-only (has_role check inside, not a party), compare-and-set on the named refund stamp, refuses while payment_refunds records it, audit-logged; no client caller yet.",
     "rpc_decide_crew_dispute(uuid, text, uuid[])": "reviewed 2026-10-05 (Q14): admin-only (has_role check inside); no admin UI calls it yet (crew disputes, group jobs blocked at launch).",
     "rpc_decide_dispute(uuid, text, jsonb)": "client",
     "rpc_escalate_dispute(uuid)": "client",

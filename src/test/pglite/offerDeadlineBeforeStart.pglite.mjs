@@ -168,6 +168,89 @@ check("both expired offers reopened", reopened === 2, String(reopened));
 check("window ended by the job's start: no strike", (await struck(10)) === 0, `${await struck(10)} strikes`);
 check("  an ordinary expired window still strikes (can fail)", (await struck(11)) === 1, `${await struck(11)} strikes`);
 
+// 8. Q1404 (lh-money-escrow review of Q1398): the clamp runs inside the LIVE
+// jobs trigger chain, driven by respond_job_schedule_change as the Helpr.
+// The chain is the 2026-09-14 live fixture (scripts/probes/fixtures/
+// dispute-table-door.live.sql) with the trigger functions this path touches
+// brought to their newest migration (Helpr column whitelist, hired-job
+// schedule lock). zzzz_ sorts after every one of them; measured on prod
+// 2026-10-12 (pg_trigger on public.jobs, BEFORE UPDATE): the only later ones
+// are zzzzz_jobs_route_notes and zzzzzz_jobs_location_clears_coords, which
+// fire on notes and location only.
+{
+  const LIVE = read("../../../scripts/probes/fixtures/dispute-table-door.live.sql");
+  const live = new PGlite();
+  await live.exec(LIVE);
+  await live.exec(`
+CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
+GRANT EXECUTE ON FUNCTION auth.role() TO anon, authenticated, service_role;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS series_ended_on date,
+  ADD COLUMN IF NOT EXISTS series_split_ok boolean,
+  ADD COLUMN IF NOT EXISTS helper_arrival_near_miss_at timestamptz,
+  ADD COLUMN IF NOT EXISTS helper_arrival_near_miss_ft numeric,
+  ADD COLUMN IF NOT EXISTS materials_note text,
+  ADD COLUMN IF NOT EXISTS access_notes text;
+CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, status text);
+CREATE TABLE public.job_schedule_change_requests (
+  id uuid PRIMARY KEY, job_id uuid, requested_by uuid, responder_id uuid, status text,
+  old_date date, old_start_time time, new_date date, new_start_time time,
+  expires_at timestamptz, decided_at timestamptz
+);
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE FUNCTION public.notify_schedule_change_expired(uuid, text) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+`);
+  await live.exec(cut("20260915101102_null_uid_is_not_server.sql", "is_server_context") + ";");
+  await live.exec(cut("20261007113957_booked_job_detail_change_request.sql", "enforce_helper_jobs_column_whitelist"));
+  await live.exec(cut("20260927012805_hired_job_schedule_lock.sql", "enforce_series_columns_client_lock"));
+  await live.exec(`CREATE TRIGGER trg_enforce_series_columns_client_lock BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days, recurrence_weeks, date_needed, start_time, recurrence_end_date, series_ended_on, series_split_ok ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.enforce_series_columns_client_lock();`);
+  await live.exec(cut("20261005184940_offer_deadline_before_start.sql", "job_offer_cutoff"));
+  await live.exec(cut("20261005184940_offer_deadline_before_start.sql", "offer_deadline_follows_start"));
+  if (MODE !== "skip") {
+    // The CREATE TRIGGER statement itself, cut from the migration that defines
+    // it (review of this section: a later rename must turn this red).
+    const migSql = read(`${MIGDIR}20261005184940_offer_deadline_before_start.sql`);
+    const trig = /CREATE TRIGGER\s+(\w+)\s+BEFORE UPDATE OF date_needed, start_time ON public\.jobs\s+FOR EACH ROW EXECUTE FUNCTION public\.offer_deadline_follows_start\(\);/.exec(migSql);
+    check("live chain: the migration still defines the clamp trigger", Boolean(trig));
+    if (trig) await live.exec(trig[0]);
+  }
+  await live.exec(cut("20261008183640_schedule_change_lead_time_and_expiry_notice.sql", "respond_job_schedule_change"));
+  await live.exec(`GRANT EXECUTE ON FUNCTION public.respond_job_schedule_change(uuid, boolean) TO authenticated;`);
+
+  const JOB = id(40);
+  const REQ = id(41);
+  // Hired, offer not answered yet (helper_confirmed_at NULL), answer-by in 40 h,
+  // job in 3 days; the POSTER asked to move it to 3 h from now and the Helpr accepts.
+  await live.exec(`
+INSERT INTO public.jobs (id, customer_id, helper_id, title, status, payment_status, budget, date_needed, start_time, response_deadline, helper_confirmed_at)
+VALUES ('${JOB}', '${POSTER}', '${HELPER}', 'live chain', 'accepted', 'escrow', 100,
+        ((now() + interval '3 days') AT TIME ZONE 'America/Chicago')::date, '09:00', now() + interval '40 hours', NULL);
+INSERT INTO public.job_schedule_change_requests (id, job_id, requested_by, responder_id, status, old_date, old_start_time, new_date, new_start_time, expires_at)
+SELECT '${REQ}', id, '${POSTER}', '${HELPER}', 'pending', date_needed, start_time,
+       ((now() + interval '3 hours') AT TIME ZONE 'America/Chicago')::date,
+       date_trunc('minute', ((now() + interval '3 hours') AT TIME ZONE 'America/Chicago')::time),
+       now() + interval '2 days'
+  FROM public.jobs WHERE id = '${JOB}';
+`);
+  await live.exec(`SELECT set_config('request.uid', '${HELPER}', false); SELECT set_config('request.jwt.claim.role', 'authenticated', false); SET ROLE authenticated;`);
+  let res;
+  try {
+    res = { ok: true, row: (await live.query(`SELECT public.respond_job_schedule_change('${REQ}', true) AS r`)).rows[0].r };
+  } catch (e) {
+    res = { ok: false, err: e.message };
+  } finally {
+    await live.exec("RESET ROLE");
+  }
+  check("live chain: the Helpr's accept of the poster's new time passes every trigger before the clamp", res.ok && res.row?.status === "accepted", res.ok ? JSON.stringify(res.row) : res.err);
+  const after = (await live.query(`SELECT response_deadline, ((date_needed + start_time)::timestamp AT TIME ZONE 'America/Chicago') AS start FROM public.jobs WHERE id = '${JOB}'`)).rows[0];
+  check("live chain: the answer-by follows the new, earlier start", new Date(after.response_deadline) <= new Date(after.start), `${after.response_deadline} vs start ${after.start}`);
+  const order = (await live.query(`SELECT tgname FROM pg_trigger WHERE tgrelid = 'public.jobs'::regclass AND NOT tgisinternal ORDER BY tgname`)).rows.map((r) => r.tgname);
+  if (MODE !== "skip") {
+    const clamp = order.find((n) => /offer_deadline_follows_start$/.test(n));
+    check("live chain: the clamp trigger fires after every column check in the chain (sorts after the Helpr whitelist)",
+      order.at(-1) === clamp && clamp > "trg_helper_jobs_column_whitelist", order.join(", "));
+  }
+}
+
 // 7. Grants: never anon.
 if (!MODE) {
   const acl = (await db.query(`SELECT proname, proacl::text AS acl FROM pg_proc WHERE proname IN ('accept_application', 'job_offer_cutoff', 'offer_deadline_follows_start', 'expire_unanswered_offers')`)).rows;

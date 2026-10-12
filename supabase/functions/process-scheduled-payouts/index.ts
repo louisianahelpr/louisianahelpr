@@ -8,7 +8,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -1532,7 +1532,11 @@ serve(async (req) => {
         platformFeeCents: Math.round(helperCommission * 100),
         stripeAccountId: helperProfile.stripe_account_id,
         initiatedBy: "system",
-        metadata: { source: "scheduled_payout" },
+        // Q1520: what this payout withholds (onboarding fee, round-down remainder).
+        metadata: {
+          source: "scheduled_payout",
+          ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, claimAmountCents),
+        },
         // NO ledgerRows: it must READ FRESH (lh-money-escrow review, HIGH-1).
         // The `ledgerRows` above were read at the top of this iteration, before
         // the Stripe round-trips and the unrecorded-transfer check. A claim
@@ -1678,7 +1682,7 @@ serve(async (req) => {
           stripeAccountId: helperProfile.stripe_account_id,
           metadata: {
             source: "scheduled_payout",
-            onboarding_fee_cents: owesOnboardingFee ? onboardingFeeCents : 0,
+            ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, Math.round(helperPayout * 100)),
           },
         });
         if (!settled.ok) {

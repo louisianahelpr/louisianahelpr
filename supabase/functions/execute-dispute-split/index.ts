@@ -62,7 +62,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
-import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
@@ -1434,6 +1434,8 @@ serve(async (req) => {
         source: "execute_dispute_split",
         dispute_id: disputeId,
         helper_share: helperShare,
+        // Q1520: the cents rounded off (no onboarding fee on this path).
+        ...payoutWithheldMetadata(Math.max(0, Math.round(helperPayoutDollars * 100)), 0, helperCents),
         transfer_group: transfer.transfer_group ?? null,
       },
     });

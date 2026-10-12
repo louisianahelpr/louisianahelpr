@@ -1461,9 +1461,14 @@ serve(async (req) => {
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
             await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
+            // Q1345: the fee this capture charged is stamped in the same write,
+            // so the job row says what left the poster's card (Spent, the
+            // fee pill) instead of the client-written figure. The crew block
+            // fees are on crew_block_fees.
             const settledFee = await settleCancelledJob(job, {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
+              cancellation_fee: cancellationFee,
             }, "fee capture");
             if (settledFee) refunded++;
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });

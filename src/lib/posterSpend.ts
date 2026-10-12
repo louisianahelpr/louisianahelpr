@@ -42,8 +42,10 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *    the hold) has no refund row and no charged fee, and counts $0. On the old
  *    uncaptured-hold path void-cancelled-payments captured ONLY the fee (no
  *    refund row, cancellation_fee_status 'charged'): that job counts its
- *    cancellation_fee, capped at the charge (Q1329: that column is
- *    client-written; the server should stamp the amount it captured).
+ *    cancellation_fee, capped at the charge (since Q1345 the cron stamps
+ *    the cancellation fee it captured there; older rows carry the
+ *    client-written figure; a crew's block fees captured with it are not
+ *    counted yet, Q1663).
  *  - A 'refunded' status with no ledger rows and no charged cancellation fee
  *    counts $0: the status is the stronger claim that the money went back.
  *  - A card chargeback: payment_status 'chargeback' counts $0 — the poster's

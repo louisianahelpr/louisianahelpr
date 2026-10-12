@@ -231,6 +231,6 @@ describe("branch-prune opens no auto-land PR for a branch whose content is on ma
 
   it("the script's main() goes through findStranded", () => {
     const src = readFileSync(resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
-    expect(src).toMatch(/const \{ stranded, contentOnMain \} = findStranded\(git, branches, openHeads, readAcceptedTips\(\), contentStrandedOf\);/);
+    expect(src).toMatch(/const \{ stranded, contentOnMain, inOpenPr \} = findStranded\(git, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\);/);
   });
 });

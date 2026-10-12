@@ -20,3 +20,5 @@ export function contentLanded(r: ContentResult): boolean;
 export function contentNote(r: ContentResult): string;
 export function gitRunner(cwd: string): Git;
 export function makeContentJudge(repo: string, mainRef: string): (ref: string) => ContentResult;
+export function buildRefsContentIndex(git: Git, mainRef: string, refs: string[]): { added: Set<string>; removed: Set<string> };
+export function contentCoveredBy(r: ContentResult, idx: { added: Set<string>; removed: Set<string> }): boolean;

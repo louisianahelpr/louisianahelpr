@@ -165,3 +165,7 @@ docs/audit/morning/*.md
 
 # Vitest dep-optimizer cache, per checkout (vitest.config.ts cacheDir)
 /.vitest-cache
+# Loading-state captures (Q1306): measure-loading-states.mjs writes PNGs beside
+# measurements.json; they are evidence for a CI artifact or ~/.lh-shots, never
+# the repo (src/test/auditBinariesFrozen.test.ts fails on a new one).
+docs/audit/loading-states/**/*.png

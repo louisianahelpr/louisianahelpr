@@ -131,6 +131,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
     authenticated: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
     unscoped: "scripts/check-live-privileges.mjs:const unscopedStale = [...allowedUnscoped]",
   },
+  "src/test/auditBinaries.allowlist.json": {
+    "[]": "src/test/auditBinariesFrozen.test.ts:expect(allowed.filter((f) => !present.has(f))).toEqual([]);",
+  },
   "e2e/happy-path/axe-known-violations.json": {
     "[]": "e2e/happy-path/knownAxeViolations.ts:out.stale.push(",
   },

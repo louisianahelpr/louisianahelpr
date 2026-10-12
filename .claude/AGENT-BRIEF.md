@@ -102,6 +102,10 @@ says more.
   recurring named in its text (else `[~]`), then run
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
   becomes a new queue item — nothing lives outside `docs/OPEN.md`.
+- **Fix follow-ups in place (owner 2026-10-12).** A small follow-up your work
+  turns up in the same area (a review note, a guard the change trips, a stale
+  comment, a ratchet the change moves, a train conflict) is fixed in the same
+  branch, not filed as a new OPEN item. File only a separate, real defect.
 - Every new OPEN.md item carries HIGH/MEDIUM/LOW (src/test/openItemsHaveTier.test.ts).
 - **No duplicate items (owner 2026-10-05).** Before filing, search OPEN.md AND docs/archive for the
   finding; never file a review point you fixed in the same branch (note it on the fixed item instead).

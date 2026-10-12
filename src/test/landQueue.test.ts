@@ -151,7 +151,10 @@ describe("migration gate checks count in the queue", () => {
 
 // Q1487: Land queue run 37606345222 crashed when its own `gh pr merge` was
 // refused as "not mergeable" (the PR's state moved after readQueue).
-// @mutate scripts/land-queue.mjs |     if (/not mergeable/i.test(text)) { |     if (false) {
+// Q1482: run 37866324211 (2026-10-09) crashed the same way on "Base branch was
+// modified" (main moved between readQueue and the merge).
+// @mutate scripts/land-queue.mjs |     if (/not mergeable\|base branch was modified/i.test(text)) { |     if (false) {
+// @mutate scripts/land-queue.mjs |     if (/not mergeable\|base branch was modified/i.test(text)) { |     if (/not mergeable/i.test(text)) {
 // @mutate scripts/land-queue.mjs |       mergeOrWait(() => gh(["pr", "merge", n, "--rebase"])); |       gh(["pr", "merge", n, "--rebase"]);
 describe("the queue's own merge refused as not mergeable is a wait, not a crash (Q1487)", () => {
   const refused = () => {
@@ -164,6 +167,16 @@ describe("the queue's own merge refused as not mergeable is a wait, not a crash 
     const logs: string[] = [];
     expect(mergeOrWait(refused, (l: string) => logs.push(l))).toBe("wait");
     expect(logs.join("\n")).toMatch(/not mergeable/);
+  });
+  it("answers wait when main moved under the merge (Base branch was modified, Q1482)", () => {
+    const moved = () => {
+      throw Object.assign(new Error("Command failed: gh pr merge 2628 --rebase"), {
+        stderr: "GraphQL: Base branch was modified. Review and try the merge again. (mergePullRequest)\n",
+      });
+    };
+    const logs: string[] = [];
+    expect(mergeOrWait(moved, (l: string) => logs.push(l))).toBe("wait");
+    expect(logs.join("\n")).toMatch(/Base branch was modified/);
   });
   it("still throws on any other gh failure", () => {
     expect(() => mergeOrWait(() => { throw Object.assign(new Error("boom"), { stderr: "HTTP 502" }); }, () => {})).toThrow("boom");

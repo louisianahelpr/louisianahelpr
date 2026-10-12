@@ -134,7 +134,10 @@ export function checksFromGh(run) {
  * state can change (a check re-ran, main moved), and GitHub then answers
  * "Pull Request is not mergeable": that is WAIT, not a crash (Land queue run
  * 37606345222, 2026-10-07, Q1487, failed the run on exactly that). The next
- * event re-reads the real state. Every other gh failure still throws.
+ * event re-reads the real state. "Base branch was modified" is the same race
+ * from the other side (main moved between the read and the merge; Land queue
+ * run 37866324211, 2026-10-09, Q1482) and is a wait too. Every other gh
+ * failure still throws.
  */
 export function mergeOrWait(run, log = console.log) {
   try {
@@ -142,7 +145,7 @@ export function mergeOrWait(run, log = console.log) {
     return "merged";
   } catch (e) {
     const text = [e && typeof e === "object" && "stderr" in e ? String(e.stderr ?? "") : "", e instanceof Error ? e.message : String(e)].join("\n");
-    if (/not mergeable/i.test(text)) {
+    if (/not mergeable|base branch was modified/i.test(text)) {
       log(`land-queue: merge refused as not mergeable; waiting for the next event (${text.trim().split("\n")[0].slice(0, 160)})`);
       return "wait";
     }

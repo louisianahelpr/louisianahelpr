@@ -222,7 +222,6 @@
     "GEMINI_API_KEY": "Google AI API key; no expiry date",
     "HELPR_POSTAL_ADDRESS": "config, not a credential",
     "KEYCHAIN_PASSWORD": "self-generated passphrase for a throwaway CI keychain",
-    "LOVABLE_API_KEY": "API key; no expiry date",
     "MARKETING_CLAIM_LIMIT": "config number",
     "META_APP_ID": "identifier, not a credential",
     "META_IG_USER_ID": "identifier, not a credential",

@@ -52,8 +52,7 @@ const NOT_PROCESSORS = [
   "supabase.co", "instagram.com", "slack.com", "googleusercontent.com", "airbnb.com", "booking.com",
   "deno.land", "esm.sh", "x.dev", "vrbo.com", "github.com", "w3.org", "googleapis.com/auth",
   "hooks.slack.com", "ipify.org", "irs.gov", "haveibeenpwned.com", "invalid",
-  // Our own ops alerts to our own Slack, relayed by Lovable's connector gateway.
-  "connector-gateway.lovable.dev", "vercel-insights.com", "jsdelivr.net", "unpkg.com", "npmjs.com",
+  "vercel-insights.com", "jsdelivr.net", "unpkg.com", "npmjs.com",
   // Never called: csp-report/report.ts names the Vercel Toolbar's script URL
   // only to drop the browser's report that our CSP BLOCKED it (no data sent).
   "vercel.live",

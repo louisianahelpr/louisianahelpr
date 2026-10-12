@@ -95,9 +95,21 @@ export function busStatus(text) {
   return new Map(foldFindings(parseFindingsLog(text)).map((f) => [`bus ${f.id}`, CLOSED_STATUSES.has(f.status) ? "closed" : "open"]));
 }
 
+/**
+ * Open ledger rows that are WORK. An informational admin notice ("New member
+ * joined", "Dispute auto-resolved": public.admin_alert_close_rule(title) =
+ * 'notice') is recorded on every post and closes on the next verify; it has
+ * nothing to fix, so it is never mirrored into docs/OPEN.md. The real signups
+ * re-opened "new member joined" 9 times and the mirror filed it as Q1580.
+ * The rule table is the database's own, so a new notice title is excluded
+ * without a second list here. Guard: src/test/openFeedsSkipNotices.test.ts.
+ */
 export const LEDGER_SQL = `SELECT fingerprint, source_kind, source, status, sample_ref,
        CASE WHEN source_kind = 'user-report' THEN 'a user report (read it on /admin?view=health)' ELSE title END AS title
-  FROM public.ops_alert_ledger WHERE status <> 'closed' ORDER BY first_seen`;
+  FROM public.ops_alert_ledger
+ WHERE status <> 'closed'
+   AND public.admin_alert_close_rule(title) IS DISTINCT FROM 'notice'
+ ORDER BY first_seen`;
 
 export const ledgerMarker = (fp) => `done-when: sql \`SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '${fp}'\` => closed`;
 

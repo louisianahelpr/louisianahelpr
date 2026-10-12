@@ -65,7 +65,7 @@ import {
   remintSession, restorePlan, restoreSource, rowNamesTestOwner, sessionStillAlive, snapshotAccounts, urlOwnership,
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
-import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
+import { isCaptchaGatedAuthRequest, isStripeWriteRequest, SKIP_CAPTCHA_GATED, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
 import { LOADING_SEL, LOADING_TEXT_RX_SOURCE, SELF_HEAL_MS, SELF_HEAL_SEL, awaitLoadingQuiet, awaitSelfHeal, classifyBoot, countLoadingMarkers, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
@@ -1122,6 +1122,23 @@ async function main() {
         }
         return route.fallback();
       });
+      /**
+       * CAPTCHA BACKSTOP (Q1374). Supabase Auth CAPTCHA (Q1314) refuses a
+       * sign-up / password grant / OTP / resend / password-reset call that has
+       * no Turnstile token, and this build cannot get one (no
+       * VITE_TURNSTILE_ENABLED; 127.0.0.1 is not a widget hostname). Runs
+       * 38042662790 and 38238345303 failed every "Email me a password reset
+       * link" on that 400, which says nothing about the app. Such a request is
+       * aborted here and the press reported SKIP_CAPTCHA_GATED below.
+       */
+      const captchaBlocked = [];
+      await ctx.route("**/auth/v1/**", async (route, req) => {
+        if (isCaptchaGatedAuthRequest(req.url(), req.method(), req.postData())) {
+          captchaBlocked.push(`${req.method()} ${new URL(req.url()).pathname.split("/").pop()}`);
+          return route.abort("blockedbyclient");
+        }
+        return route.fallback();
+      });
 
       const page = await ctx.newPage();
       const consoleErrors = [];
@@ -1679,7 +1696,7 @@ async function main() {
               return submits && !form.checkValidity();
             })
             .catch(() => false);
-          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length;
+          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length, captcha0 = captchaBlocked.length;
           // See paymentPaceMs: never outrun create-payment's own limiter.
           if (PAYMENT_RX.test(label) && paymentClock.last) {
             const wait = paymentClock.last + PAYMENT_PACE_MS - Date.now();
@@ -1785,6 +1802,16 @@ async function main() {
             skip(SKIP_STRIPE_WRITE_BLOCKED);
             entry.stripeBlocked = stripeBlocked.slice(stripe0);
             rec.notes.push(`"${label}": Stripe write blocked on live — ${entry.stripeBlocked[0]}`);
+            pageDirty = true;
+            continue;
+          }
+          // The press called a CAPTCHA-guarded auth endpoint with no token and
+          // the backstop aborted it: a documented skip, never PASS or FAIL.
+          if (captchaBlocked.length > captcha0) {
+            rec.pressed--; totalPressed--;
+            skip(SKIP_CAPTCHA_GATED);
+            entry.captchaBlocked = captchaBlocked.slice(captcha0);
+            rec.notes.push(`"${label}": CAPTCHA-guarded auth call blocked (no Turnstile token in this build) — ${entry.captchaBlocked[0]}`);
             pageDirty = true;
             continue;
           }

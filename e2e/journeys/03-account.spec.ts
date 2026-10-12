@@ -121,6 +121,24 @@ test(j7, async ({ browser, request, journey }) => {
     await about.fill(`${seedBio ?? ""} ${journeyMarker(RUN)}`.trim());
     const save = hp.getByRole("button", { name: "Save Changes" });
     await expect(save, "the save bar never offered Save Changes after an edit").toBeEnabled({ timeout: 15_000 });
+    // Q1646 (WebKit): the dock was hidden for the pointer but its tab glyphs
+    // were still PAINTED over Save Changes, because their `transition-all`
+    // turned the inherited visibility change into a transition that stays
+    // `visible` while it runs. Read every dock element's computed visibility
+    // two frames after the bar showed (inside any 200ms transition, outside
+    // React's commit): each must already be hidden. Deliberately not polled:
+    // a poll would wait the transition out and hide the defect.
+    const paintedDock = await hp.evaluate(async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const nav = document.querySelector('nav[aria-label="Bottom navigation"]');
+      if (!nav) return { yielding: document.documentElement.classList.contains("dock-yield"), visible: [] as string[] };
+      const visible = [nav, ...Array.from(nav.querySelectorAll("*"))]
+        .filter((el) => getComputedStyle(el).visibility !== "hidden")
+        .map((el) => `${el.tagName.toLowerCase()}${el.getAttribute("aria-label") ? `[${el.getAttribute("aria-label")}]` : ""}`);
+      return { yielding: document.documentElement.classList.contains("dock-yield"), visible };
+    });
+    expect(paintedDock.yielding, "the save bar showed but <html> has no dock-yield class (Q1646)").toBe(true);
+    expect(paintedDock.visible, "dock elements still painted over the save bar (Q1646)").toEqual([]);
     await journey.milestone(hp, "edit-profile-dirty");
     // Q1646: the save bar was `fixed bottom-0` under the dock (z-50), so the
     // dock's Profile tab took this click for 20s at tablet-768 on both engines

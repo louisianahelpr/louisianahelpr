@@ -413,6 +413,18 @@ export const SKIP_STRIPE = "payment control — Stripe is not in TEST mode";
  * PASS, never dropped), whatever its label said.
  */
 export const SKIP_STRIPE_WRITE_BLOCKED = "writes to Stripe — Stripe is not in TEST mode (request aborted in the browser; control not counted as pressed)";
+/**
+ * The CAPTCHA backstop's reason (Q1374): the press made the app call a GoTrue
+ * endpoint that Supabase Auth CAPTCHA guards (Q1314) with no Turnstile token.
+ * The press build has no VITE_TURNSTILE_ENABLED and its 127.0.0.1 origin is not
+ * a Turnstile widget hostname, so prod GoTrue refuses the call with a 400
+ * whatever the app does (press runs 38042662790 and 38238345303: "Email me a
+ * password reset link" -> 400 POST v1/recover, "The security check didn't
+ * finish"). The request is aborted before it leaves the browser and the control
+ * is reported SKIPPED, never PASS. That every auth call carries the token is
+ * src/test/emailAuthCaptchaToken.test.ts; the live bundle ships the widget on.
+ */
+export const SKIP_CAPTCHA_GATED = "calls a CAPTCHA-guarded auth endpoint with no Turnstile token (this CI origin cannot get one; request aborted in the browser; control not counted as pressed)";
 export const SKIP_ADMIN ="admin action without a seed test target";
 export const SKIP_ACCOUNT_SETTING = "flips a setting on a SHARED test account (every other sweep renders with it)";
 export const SKIP_SHARED_SEED = "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)";
@@ -868,4 +880,31 @@ export function isStripeWriteRequest(url, body) {
   let action = null;
   try { action = JSON.parse(body ?? "{}")?.action ?? null; } catch { action = null; }
   return !STRIPE_CONNECT_READ_ACTIONS.has(action);
+}
+
+/**
+ * GoTrue endpoints Supabase Auth CAPTCHA guards (Q1314): sign-up, the password
+ * grant, OTP / magic link, resend, and the password-reset email (/recover).
+ * A refresh-token grant and every read are not guarded.
+ */
+export const CAPTCHA_GATED_AUTH_PATHS = new Set(["signup", "recover", "otp", "magiclink", "resend"]);
+
+/**
+ * Does this browser request reach a CAPTCHA-guarded GoTrue endpoint WITHOUT a
+ * Turnstile token (`gotrue_meta_security.captcha_token`)? Such a request is
+ * refused by prod GoTrue no matter what the app did. A request that carries a
+ * token is let through (a build that can get one is pressed for real). An
+ * unparseable body counts as tokenless (fail closed: it is refused anyway).
+ */
+export function isCaptchaGatedAuthRequest(url, method, body) {
+  if (String(method ?? "").toUpperCase() !== "POST") return false;
+  let u;
+  try { u = new URL(String(url ?? "")); } catch { return false; }
+  const m = /\/auth\/v1\/([a-z]+)$/.exec(u.pathname);
+  if (!m) return false;
+  const gated = CAPTCHA_GATED_AUTH_PATHS.has(m[1]) || (m[1] === "token" && u.searchParams.get("grant_type") === "password");
+  if (!gated) return false;
+  let token = null;
+  try { token = JSON.parse(body ?? "{}")?.gotrue_meta_security?.captcha_token ?? null; } catch { token = null; }
+  return !(typeof token === "string" && token.length > 0);
 }

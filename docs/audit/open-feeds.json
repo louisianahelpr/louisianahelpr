@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-12T18:56Z",
+  "measured_at": "2026-10-12T19:21Z",
   "issues": {
     "readable": true,
     "open": [
@@ -165,14 +165,6 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
-      },
-      {
-        "fingerprint": "ef92a9f31bedd8f0eed57d5f01788aaa",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/app-shared-BltHQJ6d)",
-        "status": "open",
-        "title": "error: usesearchparammirror runaway writes",
-        "issue": null
       },
       {
         "fingerprint": "764a6f7344b7ccc14d11519a279d69d4",
@@ -593,7 +585,6 @@
     "ledger 311dfd492bc2": "Q1604",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3a3460b71be7": "Q1428",
-    "ledger 3a801ee231b0": "Q1580",
     "ledger 40a33605c7c3": "Q1603",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
@@ -646,7 +637,6 @@
     "ledger ed333dc86f47": "Q1644",
     "ledger ed3f34acc0e1": "Q1598",
     "ledger ed4c78a49f57": "Q1618",
-    "ledger ef92a9f31bed": "Q1476",
     "ledger f3c752b3230f": "Q1609"
   }
 }

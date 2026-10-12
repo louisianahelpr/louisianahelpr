@@ -17,6 +17,7 @@ import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -73,15 +74,10 @@ export function splitFeedPage<T>(
 // so React Query surfaces the existing ErrorState (with its manual retry).
 const JOBS_QUERY_TIMEOUT_MS = 12_000;
 
-const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
-  let timer: ReturnType<typeof setTimeout>;
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise<T>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(label)), ms);
-    }),
-  ]).finally(() => clearTimeout(timer));
-};
+// Visible time only: a phone put away mid-load is not a stall
+// (src/lib/visibleDeadline.ts).
+const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> =>
+  raceVisibleDeadline(promise, ms, label);
 
 const NO_IDS: Set<string> = new Set<string>();
 

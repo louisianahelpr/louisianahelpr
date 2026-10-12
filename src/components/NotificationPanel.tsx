@@ -46,6 +46,7 @@ import {
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
 import { useFramerMotion, type FramerMotion } from "@/components/notificationPanel/useFramerMotion";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 /* One day group. When the LAST row of a day leaves (mark read on the Unread
    tab), the whole section unmounts, not just the row — so the section needs
@@ -88,14 +89,9 @@ const CANCELLED_BY_POSTER_NEEDLES = [
 ] as const;
 
 const LOAD_TIMEOUT_MS = 15_000;
+// Visible time only (src/lib/visibleDeadline.ts).
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
-  new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Loading notifications timed out")), LOAD_TIMEOUT_MS);
-    Promise.resolve(pending).then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (err) => { clearTimeout(timer); reject(err); },
-    );
-  });
+  raceVisibleDeadline(pending, LOAD_TIMEOUT_MS, "Loading notifications timed out");
 
 const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } = {}) => { // sizes the bell (Home: 44px)
   const navigate = useNavigate();

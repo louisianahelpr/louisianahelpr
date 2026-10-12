@@ -1,20 +1,22 @@
 /**
  * A signed-in member's request never leaves the device signed OUT.
  *
- * What happened, measured on prod (error_logs + Sentry, 2026-10-09): a member's
- * token refresh failed on the network (the owner's Mac at 21:45Z: "Failed to
- * fetch", status 0). auth-js keeps that session in storage, but while the
+ * What happened, measured on prod (error_logs + edge logs, 2026-10-09 21:45Z,
+ * one desktop session): a member's token refresh failed on the network
+ * ("Failed to fetch", status 0); reads then went out with the publishable
+ * bearer and got 401, and the next refresh succeeded under a second later.
+ * (The phone sign-up bursts the same day are a different path: the stored
+ * session itself went away, see "Not covered here" below.) auth-js keeps the
+ * session in storage, but while the
  * stored access token is expired and the refresh has failed, `getSession()`
  * answers `session: null` (auth-js 2.116.0 `__loadSession`), and for the next
  * ~60 s its refresh cooldown hands every caller the same cached failure.
  * supabase-js then builds each request with the PUBLISHABLE key as its bearer
  * (`fetchWithAuth` falls back to `supabaseKey` when there is no session token;
  * edge-function calls go out with no Authorization at all). PostgREST runs
- * those as `anon`, so a signed-in screen got:
- *   - "permission denied for table backout_notices / job_schedule_change_requests /
- *     referral_codes / login_history / payout_transfers / jobs / applications",
- *     "permission denied for function get_job_offer_targets / get_my_saved_helpers"
- *     (no anon grant), each reported to Sentry and shown as "We couldn't load this";
+ * those as `anon`, so a signed-in screen gets:
+ *   - "permission denied for table ..." / "for function ..." wherever anon has
+ *     no grant, reported to Sentry and shown as "We couldn't load this";
  *   - worse, a quietly WRONG answer wherever anon may read (an anon read of a
  *     signed-in member's data is an empty list, not an error).
  *
@@ -57,7 +59,7 @@ export interface SignedInRequestGuardOptions {
 
 /** The data surfaces whose requests run as the bearer's database role. */
 export const GUARDED_SURFACES = ["rest", "functions", "storage"] as const;
-export type GuardedSurface = (typeof GUARDED_SURFACES)[number];
+type GuardedSurface = (typeof GUARDED_SURFACES)[number];
 
 /** The message prefix of a held request ("Failed to fetch" = transport family). */
 export const HELD_MESSAGE =

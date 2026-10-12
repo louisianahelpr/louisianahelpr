@@ -3,8 +3,9 @@
  * first turning those parents on.
  *
  * `NotificationPreferences` renders CHILD switches disabled when a parent is
- * off — e.g. "Daily match digest" is
- * `disabled={!loaded || !prefs.push_enabled || !prefs.job_matches}`. That is
+ * off — e.g. "Saved Helpr availability nudges" is
+ * `disabled={!loaded || !prefs.push_enabled}` ("Daily match digest" was the
+ * example until Q1585 removed it, owner 2026-10-12). That is
  * correct product behaviour. A test that clicks such a child while a parent is
  * off can only ever time out, and the message it prints
  * ("locator.click: Timeout 20000ms exceeded") says nothing about the cause.
@@ -58,7 +59,8 @@ describe("journeys establish a gated switch's preconditions", () => {
         "scan broke — a guard that silently finds nothing is the failure mode this " +
         "repo keeps hitting, so fix the scan rather than deleting the test.",
     ).toBeGreaterThan(0);
-    expect(gated).toContain("Daily match digest");
+    expect(gated).toContain("Saved Helpr availability nudges");
+    expect(gated).toContain("Quiet hours");
   });
 
   it("no journey clicks a gated child without enabling its parents first", () => {
@@ -90,15 +92,15 @@ describe("journeys establish a gated switch's preconditions", () => {
     ).toEqual([]);
   });
 
-  it("03-account turns BOTH of the digest's parents on", () => {
+  it("03-account turns the toggled child's parent on", () => {
     // Named explicitly because this is the one that cost 221 hours.
     const code = blankComments(readFileSync(join(JOURNEYS, "03-account.spec.ts"), "utf8"));
     expect(code).toContain("Push notifications master toggle");
-    expect(code).toContain("Job Matches push");
+    expect(code).toContain("Saved Helpr availability nudges");
     expect(code).toMatch(/toBeEnabled\(/);
   });
 });
 
 // Proof this is able to fail: remove the precondition loop and the step goes
 // back to assuming a state another spec is free to destroy.
-// @mutate e2e/journeys/03-account.spec.ts | for (const parent of ["Push notifications master toggle", "Job Matches push"]) { | for (const parent of []) {
+// @mutate e2e/journeys/03-account.spec.ts | for (const parent of ["Push notifications master toggle"]) { | for (const parent of []) {

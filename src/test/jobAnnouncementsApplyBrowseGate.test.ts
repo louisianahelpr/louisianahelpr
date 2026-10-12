@@ -32,21 +32,21 @@
  * (RED on the previous definitions with NEW_MIGRATION=skip).
  *
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.customer_id IS NOT NULL\n |
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.parent_job_id IS NULL\n |
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1411 | OR true)\n    -- Q1411
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
+ * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
  */

@@ -96,6 +96,29 @@ function fromBase64Url(value: string): Uint8Array {
  */
 const TOKEN_VERSION = 'unsub.v1'
 
+/**
+ * Which mail a one-click link opts out of.
+ *
+ *   'promotions'   commercial mail: marketing_consent + email_promotions
+ *                  (the original link; its signed payload is unchanged, so every
+ *                  link already in an inbox keeps verifying)
+ *   'job_matches'  the "new job posted" email every member gets (Q1585, owner
+ *                  2026-10-12): notification_preferences.email_job_matches only
+ *
+ * The list is INSIDE the signature (`unsub.v1.job_matches:<address>`), so a
+ * promotions link cannot be edited into a job-match opt-out or the reverse.
+ */
+export type UnsubscribeList = 'promotions' | 'job_matches'
+
+function signedPayload(normalized: string, list: UnsubscribeList): string {
+  return list === 'promotions' ? `${TOKEN_VERSION}:${normalized}` : `${TOKEN_VERSION}.${list}:${normalized}`
+}
+
+/** The `list` query value, read strictly: anything unknown is the promotions list. */
+export function unsubscribeListFrom(value: string | null): UnsubscribeList {
+  return value === 'job_matches' ? 'job_matches' : 'promotions'
+}
+
 async function hmac(secret: string, message: string): Promise<string> {
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(
@@ -129,7 +152,10 @@ function normalizeEmail(email: string): string {
  * back to the preferences page rather than mailing a link that cannot verify.
  * `MarketingFooter` and `unsubscribeHeaders()` both handle the null.
  */
-export async function buildUnsubscribeUrl(email: string): Promise<string | null> {
+export async function buildUnsubscribeUrl(
+  email: string,
+  list: UnsubscribeList = 'promotions',
+): Promise<string | null> {
   const secret = signingSecret()
   if (!secret) {
     console.error(
@@ -141,8 +167,9 @@ export async function buildUnsubscribeUrl(email: string): Promise<string | null>
   if (!normalized.includes('@')) return null
 
   const e = toBase64Url(new TextEncoder().encode(normalized))
-  const sig = await hmac(secret, `${TOKEN_VERSION}:${normalized}`)
-  return `${functionsBase()}/email-unsubscribe?e=${e}&sig=${sig}`
+  const sig = await hmac(secret, signedPayload(normalized, list))
+  const listParam = list === 'promotions' ? '' : `&list=${list}`
+  return `${functionsBase()}/email-unsubscribe?e=${e}&sig=${sig}${listParam}`
 }
 
 /**
@@ -156,6 +183,7 @@ export async function buildUnsubscribeUrl(email: string): Promise<string | null>
 export async function verifyUnsubscribeToken(
   e: string | null,
   sig: string | null,
+  list: UnsubscribeList = 'promotions',
 ): Promise<string | null> {
   const secret = signingSecret()
   if (!secret || !e || !sig) return null
@@ -168,7 +196,7 @@ export async function verifyUnsubscribeToken(
   }
   if (!normalized.includes('@')) return null
 
-  const expected = await hmac(secret, `${TOKEN_VERSION}:${normalized}`)
+  const expected = await hmac(secret, signedPayload(normalized, list))
   return timingSafeEqual(sig, expected) ? normalized : null
 }
 
@@ -193,9 +221,16 @@ export function unsubscribeSigningConfigured(): boolean {
  * exactly the defect described at the top of this file.
  *
  * NEVER set these on transactional mail: a mail client that sees them may
- * offer to unsubscribe from a receipt or a security notice.
+ * offer to unsubscribe from a receipt or a security notice. The one exception
+ * is `list = 'job_matches'`: the "new job posted" email goes to every member
+ * about every new job (Q1585), which is bulk mail in a mailbox provider's eyes,
+ * so it carries a one-click control that turns off exactly that email
+ * (email_job_matches) and nothing else.
  */
-export async function unsubscribeHeaders(recipientEmail?: string): Promise<Record<string, string>> {
+export async function unsubscribeHeaders(
+  recipientEmail?: string,
+  list: UnsubscribeList = 'promotions',
+): Promise<Record<string, string>> {
   // NO mailto. CAN-SPAM permits a manual opt-out mechanism only if a human
   // honours it within 10 business days, and nothing in this repo reads that
   // mailbox — so advertising it promised a channel nobody was listening on,
@@ -203,7 +238,7 @@ export async function unsubscribeHeaders(recipientEmail?: string): Promise<Recor
   // verified working end to end (GET and POST both flip the flags, a forged
   // signature 400s, an unknown address writes nothing), so the opt-out half of
   // CAN-SPAM is satisfied without it. Owner's call, 2026-08-31.
-  const oneClick = recipientEmail ? await buildUnsubscribeUrl(recipientEmail) : null
+  const oneClick = recipientEmail ? await buildUnsubscribeUrl(recipientEmail, list) : null
 
   if (!oneClick) {
     return {

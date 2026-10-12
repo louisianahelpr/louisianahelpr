@@ -23,6 +23,7 @@ import { posterPaidDollars } from "@/lib/posterJobCost";
 import { posterSpentCents, spentRows, spentTotalCents, type PosterSpendJob } from "@/lib/posterSpend";
 import { JOB_COLUMNS_AHEAD_OF_DB, JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
+import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
@@ -56,12 +57,16 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
     expect(posterSpentCents(job({ onboarding_fee_amount: 2, payment_status: "refunded" }), 11400, 0)).toBe(0);
   });
 
-  it("the admin dispute preview splits the same capture the executor does (pi.amount_received includes the fee)", () => {
+  it("the admin dispute preview splits what the executor splits (the capture includes the fee; the fee is kept)", () => {
     const base = { budget: 10, customer_fee_amount: 1.2, urgent_fee: 0, sales_tax_amount: 0, helper_fee_percent: 12 };
     const without = previewDisputeSplit(base as never, 0, "free");
     const withFee = previewDisputeSplit({ ...base, onboarding_fee_amount: 2 } as never, 0, "free");
     expect(without.posterGross).toBe(11.2);
-    expect(withFee.posterGross).toBe(13.2);
+    // Q1674: the $2 is kept, never split back: the poster's gross is the same,
+    // and their refund is drawn from the capture less Stripe's cost on the
+    // WHOLE charge (fee included) and less the kept fee.
+    expect(withFee.posterGross).toBe(11.2);
+    expect(withFee.posterNet).toBe((1320 - stripeProcessingCostCents(1320) - 200) / 100);
     const admin = blankComments(readFileSync(join(ROOT, "src/components/admin/AdminDisputes.tsx"), "utf8"));
     expect(admin.match(/readJobsAheadOfDb\(\s*"[^"]*sales_tax_amount, onboarding_fee_amount, is_seed/g)?.length).toBe(3);
   });
@@ -94,6 +99,6 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
 // @mutate src/lib/posterJobCost.ts |     num(job.sales_tax_amount) +\n    num(job.onboarding_fee_amount) |     num(job.sales_tax_amount)
 // @mutate src/lib/jobColumns.ts | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const; | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
 // @mutate src/pages/profile/HomeHistory.tsx | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, onboarding_fee_amount`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | sales_tax_amount, onboarding_fee_amount, payment_status | sales_tax_amount, payment_status
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status | sales_tax_amount, dispute_status, payment_status
 // @mutate supabase/migrations/20261012171259_job_setup_fee_stamped.sql |     NEW.onboarding_fee_amount := NULL; |     NULL;
 // @mutate src/lib/disputeSplitPreview.ts |     (job.onboarding_fee_amount ?? 0); |     0;

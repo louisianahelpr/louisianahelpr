@@ -13,7 +13,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
-import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
+import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
@@ -2025,7 +2025,10 @@ serve(async (req) => {
           // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
+          // cancel ("paid and done": never refunded, never charged again).
+          const setupFeeCents = setupFeeKeptCents(job);
+          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeCents;
           const refundAmount = capturedCents - nonRefundableCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
@@ -2059,7 +2062,9 @@ serve(async (req) => {
               paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
-              reason: "escrow cancellation refund (minus non-refundable service fee)",
+              reason: setupFeeCents > 0
+                ? "escrow cancellation refund (minus non-refundable service fee and the kept $2 setup fee)"
+                : "escrow cancellation refund (minus non-refundable service fee)",
               initiatedByUserId: user.id,
             });
             // Q1714: the poster is told at once, with what was kept and why
@@ -2073,11 +2078,20 @@ serve(async (req) => {
                 paymentIntentId: cancelPaymentIntentId,
                 amountCents: refundedCents,
                 keptCents,
-                keptReason: keptCents > 0 && keptCents === serviceFeeCents
-                  ? "the service fee, which isn't refunded when a job is cancelled"
-                  : keptCents > 0 && serviceFeeCents > 0
-                  ? "the service fee and card processing fee, which aren't refunded when a job is cancelled"
-                  : keptCents > 0 ? "the card processing fee, which can't be returned" : null,
+                // Q1674: what a first job keeps besides the fees is its one-time
+                // $2 setup fee; the notice names it after the fee reason.
+                keptReason: keptCents > 0
+                  ? setupFeeKeptReason(
+                    keptCents - setupFeeCents <= 0
+                      ? null
+                      : keptCents - setupFeeCents === serviceFeeCents
+                      ? "the service fee, which isn't refunded when a job is cancelled"
+                      : serviceFeeCents > 0
+                      ? "the service fee and card processing fee, which aren't refunded when a job is cancelled"
+                      : "the card processing fee, which can't be returned",
+                    setupFeeCents,
+                  )
+                  : null,
                 recipientId: job.customer_id ?? null,
                 jobId,
                 method: paymentMethodFromCharge(typeof pi.latest_charge === "object" ? pi.latest_charge : null),
@@ -2692,7 +2706,8 @@ serve(async (req) => {
               );
             }
 
-            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            // Q1674: the first job's $2 setup fee is kept here too.
+            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job);
             const refundAmount = capturedCents - nonRefundableCents;
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
@@ -2809,7 +2824,9 @@ serve(async (req) => {
                 paymentIntentId,
                 source: "admin_refund_dispute",
                 isPartial: nonRefundableCents > 0,
-                reason: "dispute refund (minus non-refundable Stripe processing fee)",
+                reason: setupFeeKeptCents(job) > 0
+                    ? "dispute refund (minus non-refundable Stripe processing fee and the kept $2 setup fee)"
+                    : "dispute refund (minus non-refundable Stripe processing fee)",
                 initiatedByUserId: user.id,
               });
             } else {
@@ -2953,13 +2970,17 @@ serve(async (req) => {
       // app and by email); the webhook leaves an admin_refund_dispute refund
       // to this path. A $0 card refund (all gift) keeps the plain notice.
       if (disputeRefundId && disputeRefundCents > 0) {
+        const disputeSetupKeptCents = setupFeeKeptCents(job);
         await announceRefund(supabaseAdmin, "admin_refund_dispute", {
           key: `refund:${disputeRefundId}`,
           kind: "refund",
           paymentIntentId: paymentIntentId ?? null,
           amountCents: disputeRefundCents,
           keptCents: disputeKeptCents,
-          keptReason: disputeKeptCents > 0 ? "the card processing fee, which can't be returned" : null,
+          // Q1674: a first job also keeps its one-time $2 setup fee; the notice says so.
+          keptReason: disputeKeptCents > 0
+            ? setupFeeKeptReason(disputeKeptCents > disputeSetupKeptCents ? "the card processing fee, which can't be returned" : null, disputeSetupKeptCents)
+            : null,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
           extra: `The dispute on "${job.title}" was resolved in your favor.${disputeGift.posterSentence}`,

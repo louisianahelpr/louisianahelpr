@@ -25,7 +25,7 @@
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return false;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return !!job.parent_job_id && !job.helper_id;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (!!job.series_ban_cancelled_at) return true;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = (fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = (false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             ? actualOrEstimatedFeeCents(pi, capturedCents)\n            : Math.max | ? 0\n            : Math.max
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = now(), | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = NULL,
@@ -126,6 +126,33 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
     const cents = await refundedCents();
     expect(cents).not.toBeNull();
     expect(cents!).toBeLessThan(11000 - 1000 + 1);
+  });
+
+  // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a cancel.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents))) + setupFeeKeptCents(job); | : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)));
+  it("a cancelled FIRST job (no Helpr yet) keeps the service fee and the $2 setup fee; the rest comes back (Q1674)", async () => {
+    seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
+    expect(await refundedCents()).toBe(11000 - 1000 - 200);
+  });
+
+  // The refund notice names the kept $2 as the setup fee, never as part of
+  // the "card processing fee" (the setup-fee train's merge with the Q1714
+  // refund notice, 2026-10-12).
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               const setupKeptCents = Math.min(setupFeeKeptCents(job), nonRefundableCents); |               const setupKeptCents = 0;
+  it("the first job's refund notice says the $2 was the one-time setup fee (Q1674)", async () => {
+    seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
+    stripeMock.refunds.create.mockImplementation(async (p: { amount?: number }) => ({ id: "re_visit", amount: p.amount }));
+    expect(await refundedCents()).toBe(11000 - 1000 - 200);
+    const notes = scenario.writes
+      .filter((w) => w.table === "notifications")
+      .map((w) => String((w.payload as Record<string, unknown>)?.message ?? ""));
+    expect(notes.some((m) => m.includes("one-time account setup fee, which is paid once and never refunded")), notes.join(" | ")).toBe(true);
+    expect(notes.some((m) => /\$2\.00 card processing fee/.test(m)), notes.join(" | ")).toBe(false);
+  });
+
+  it("control for Q1674: the same job with no setup fee keeps only the service fee", async () => {
+    seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: null });
+    expect(await refundedCents()).toBe(11000 - 1000);
   });
 
   it("an UNFILLED series visit (no Helpr on it) gets everything back but Stripe's fee (Q407 12)", async () => {

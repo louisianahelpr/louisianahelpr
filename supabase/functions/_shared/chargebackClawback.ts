@@ -109,6 +109,15 @@ function isTransientStripeError(err: unknown): boolean {
   return t === "StripeConnectionError" || t === "StripeAPIError" || t === "StripeRateLimitError";
 }
 
+/**
+ * Q1291: the platform balance cannot fund the re-pay right now (a re-drive
+ * after a long hold has no source charge to draw on). Like heldTipRepay's
+ * short balance: the debt waits and is retried, never a final refusal.
+ */
+function isBalanceShort(err: unknown): boolean {
+  return (err as { code?: string } | null)?.code === "balance_insufficient";
+}
+
 function errMessage(err: unknown): string {
   return String((err as { message?: string })?.message ?? err).slice(0, 500);
 }
@@ -701,7 +710,7 @@ export async function redriveHeldClawbackRepays(ctx: ClawbackContext): Promise<H
       for (const f of res.holdErrors) out.defects.push(`clawback re-pay ${disputeId}/${f.transferId}: ${f.error}`);
       // Every row of the dispute, not just the ones this run owned: a refused
       // or in-flight sibling keeps the job in 'chargeback'.
-      if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0) {
+      if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.balanceShort.length === 0 && res.othersOpen === 0) {
         const { error: backErr } = await ctx.supabase
           .from("jobs")
           .update({ payment_status: "released" })
@@ -726,6 +735,8 @@ export type RepayResult = {
   held: string[];
   /** Q1223: the hold could not be read; marked owed, re-paid automatically once it can. */
   holdErrors: Array<{ transferId: string; error: string }>;
+  /** Q1291: the platform balance was short; kept owed, re-paid automatically once it is topped up. */
+  balanceShort: string[];
   /** Clawback rows this dispute has (any status). */
   rows: number;
   /** Sweep mode: rows still unpaid that this run did not own (a refused or in-flight sibling). */
@@ -741,7 +752,7 @@ export async function repayClawback(
   job: { id: string; title?: string | null },
   opts: { fromSweep?: boolean; owned?: Map<string, SweepRow> } = {},
 ): Promise<RepayResult> {
-  const out: RepayResult = { repaidNowCents: 0, failed: [], held: [], holdErrors: [], rows: 0, neverTaken: 0, othersOpen: 0 };
+  const out: RepayResult = { repaidNowCents: 0, failed: [], held: [], holdErrors: [], balanceShort: [], rows: 0, neverTaken: 0, othersOpen: 0 };
   const { rows, error } = await readClawbackRows(supabase, dispute.id);
   if (error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${error}`);
   out.rows = rows.length;
@@ -749,6 +760,19 @@ export async function repayClawback(
 
   for (let row of rows) {
     if (row.status === "reversing" || row.status === "reverse_failed") {
+      // Q1296: the sweep acts only on the owed rows it read. Reconciling a
+      // sibling it does not own could promote it to 'reversed' with no
+      // held_repay_owed_at, which nothing re-pays. An in-flight reversal is
+      // someone else's open work while fresh (the job stays in chargeback);
+      // a stale one is a reversal the webhook already found never happened,
+      // and a failed one took no money: as when its reconcile finds nothing.
+      if (opts.owned && !opts.owned.has(row.id)) {
+        const inFlight = row.status === "reversing" && !!row.updated_at &&
+          Date.now() - Date.parse(row.updated_at) <= STALE_REPAYING_MS;
+        if (inFlight) out.othersOpen++;
+        else out.neverTaken += 1;
+        continue;
+      }
       const reconciled = await reconcileUnrecorded(stripe, supabase, row, dispute.id);
       if (!reconciled) {
         out.neverTaken++;
@@ -811,7 +835,13 @@ export async function repayClawback(
     if (row.updated_at) claimQ = claimQ.eq("updated_at", row.updated_at);
     const { data: claimed, error: claimErr } = await claimQ.select("id");
     if (claimErr) throw new Error(`chargeback_clawbacks repay claim failed for ${row.id}: ${claimErr.message}`);
-    if (!claimed || claimed.length === 0) continue; // another delivery took it
+    if (!claimed || claimed.length === 0) {
+      // Another delivery took it. Q1295: in sweep mode that copy may still be
+      // refused, so the row is still open and the job must not go back to
+      // 'released' on this run.
+      if (opts.owned) out.othersOpen++;
+      continue;
+    }
 
     try {
       // A resumed row may already have been paid back (a lost response, or a
@@ -918,6 +948,30 @@ export async function repayClawback(
         await setRow(supabase, row.id, { status: "repay_failed", failure_reason: message }, { status: ["repaying"] });
         throw new Error(`Clawback repay for ${row.original_transfer_id} (dispute ${dispute.id}) failed transiently: ${message}`);
       }
+      if (isBalanceShort(err)) {
+        // Q1291: the platform balance is short right now. The row stays OWED
+        // (held_repay_owed_at, which process-scheduled-payouts' re-drive reads)
+        // in the same write that records why, so it is retried there; a person
+        // tops up the balance, never pays it by hand (the re-drive would pay it
+        // again). The sweep only reads rows already owed, so it keeps their
+        // first owed time; the webhook starts the clock.
+        const { data: waiting, error: waitErr } = await setRow(
+          supabase,
+          row.id,
+          {
+            status: "repay_failed",
+            failure_reason: `balance_insufficient: ${message}`.slice(0, 500),
+            ...(sweepRow ? {} : { held_repay_owed_at: new Date().toISOString() }),
+          },
+          { status: ["repaying"] },
+        );
+        if (waitErr || !waiting || waiting.length === 0) {
+          // Left 'repaying' with no debt recorded: neither path would retry it.
+          throw new Error(`clawback ${row.id} re-pay refused for a short balance, but its row was not kept owed: ${waitErr?.message ?? "matched 0 rows"}`);
+        }
+        out.balanceShort.push(row.original_transfer_id);
+        continue;
+      }
       // Stripe refused: a person pays it (the page below); the re-drive stops.
       // Q1292: ONE write takes the row out of the re-drive AND records the
       // refusal. Two writes (status, then a best-effort clear of
@@ -975,6 +1029,16 @@ export async function repayClawback(
       message: `Dispute ${dispute.id} was won. ${out.held.length} clawed-back amount(s) belong to a Helpr on a payout hold; they are re-paid automatically by process-scheduled-payouts once the hold is released. Do NOT pay it by hand (it would be paid twice).`,
       fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": out.held.join(", ").slice(0, 900) },
       oncePerDayKey: `clawback-repay-held:${dispute.id}`,
+    });
+  }
+  if (out.balanceShort.length > 0) {
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "warning",
+      title: "Card dispute WON — Helpr re-pay waits on the platform balance",
+      message: `Dispute ${dispute.id} was won, but Stripe refused re-paying ${out.balanceShort.length} clawed-back amount(s) because the platform balance is too low (balance_insufficient). Top up the platform balance; process-scheduled-payouts re-pays them automatically. Do NOT pay it by hand (it would be paid twice).`,
+      fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": out.balanceShort.join(", ").slice(0, 900) },
+      oncePerDayKey: `clawback-repay-balance:${dispute.id}`,
     });
   }
   if (out.failed.length > 0) {

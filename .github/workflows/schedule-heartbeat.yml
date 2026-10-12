@@ -240,6 +240,19 @@ jobs:
           sed -n '/^|/p' /tmp/cancelled.txt >> /tmp/rows.md
           STALE_COUNT=$((STALE_COUNT + CANCELLED))
 
+          # Q1652: a workflow with NO cron (open-auto-tick.yml runs on
+          # workflow_run) sat disabled_manually for five days and nothing
+          # alerted. Every non-active workflow the loop above does not watch
+          # is a red row too. Exit 2 (list unread) fails this step.
+          node scripts/ci/disabled-workflows.mjs > /tmp/disabled.txt
+          DISABLED=$(sed -n 's/^disabled=//p' /tmp/disabled.txt)
+          if [ -z "$DISABLED" ]; then
+            echo "::error::disabled-workflows.mjs printed no count"
+            exit 1
+          fi
+          sed -n '/^|/p' /tmp/disabled.txt >> /tmp/rows.md
+          STALE_COUNT=$((STALE_COUNT + DISABLED))
+
           echo "stale=$STALE_COUNT" >> $GITHUB_OUTPUT
 
           {

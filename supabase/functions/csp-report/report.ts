@@ -169,7 +169,7 @@ function noisyHost(u: string): boolean {
     return false; // not a URL: the scheme checks above decide it
   }
   // Default port only, the same as isOurDocument below.
-  return parsed.protocol === "https:" && parsed.port === "" && NOISE_HOSTS.has(parsed.hostname);
+  return parsed.protocol === "https:" && !parsed.port && NOISE_HOSTS.has(parsed.hostname);
 }
 
 function noisy(u: string): boolean {

@@ -149,6 +149,17 @@ says more.
   cite its Q (`openWorkSectionsCiteQueue.test.ts`). To clear an UNTRACKED
   entry there, file the Q item, cite it in the section, and delete the entry.
 
+## Owner decisions (one inbox)
+Never leave "OWNER NEEDED" only in your report. File it:
+`node scripts/owner-needed.mjs file --q Q123 --title "<one plain question ending in ?>" --option "<recommended>" --option "<other>"`
+(2-3 options, recommended first; the same Q is never filed twice). PLAIN WORDS:
+the owner does not know jargon like digest, RLS, RPC, migration, webhook or
+idempotent. Say what happens to a customer or to money, or put a short
+explanation in brackets right after the word; the script refuses unexplained
+jargon. The lead reads `node scripts/owner-needed.mjs list` for the morning
+pop-up; `answer <issue> <choice>` closes one. Mention the issue number in your
+report.
+
 ## Waiting (no orphan shells)
 Never run `scripts/vacuity/index.mjs` in the SHARED main checkout at all (lead included), only inside your own worktree: `--only` does NOT limit what it mutates (it still runs every registration touching changed files; a Q194 `--only` run mutated 61 in ~25 min). A run MUTATES source files for many minutes, and if it is killed mid-run the mutation stays (2026-09-23: `/terms` became a redirect and `/settings` pointed at /jobs in the main tree). After killing any process, confirm with `ps` that it is gone and `git status` that nothing it touched is left modified.
 Wait with ONE `run_in_background` command and let its notification wake you.

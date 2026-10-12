@@ -13,6 +13,8 @@ export type MintedSession = {
 };
 
 export const PUBLIC_ANON_KEY: string;
+export const SHARED_TEST_EMAILS: readonly string[];
+export function mintRefusal(email: string | null | undefined): string | null;
 export const DEFAULT_SUPABASE_URL: string;
 export function resolveServiceKey(opts?: { env?: Record<string, string | undefined>; cwd?: string }): string | null;
 export function fetchTransport(...args: Parameters<MintTransport>): ReturnType<MintTransport>;

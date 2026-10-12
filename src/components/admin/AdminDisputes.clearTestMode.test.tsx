@@ -1,8 +1,8 @@
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const ranInTestMode = unsettled && /Stripe test mode\|test-mode records cleared by an admin/i.test(record?.execution_error ?? ""); | const ranInTestMode = unsettled;
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const ranInTestMode = unsettled && /Stripe test mode\|test-mode records cleared by an admin/i.test(record?.execution_error ?? ""); | const ranInTestMode = false;
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | disabled={retrying === job.id \|\| testModeNote.trim().length < 10} | disabled={retrying === job.id}
-// @mutate src/components/admin/AdminDisputes.tsx | const ok = await requireBiometric("Confirm clearing this dispute's test-mode records");\n    if (!ok) return; | const ok = true;
-// @mutate src/components/admin/AdminDisputes.tsx |       const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);\n      if (invokeError) {\n        report(invokeError, { tags: { source: "AdminDisputes.clearTestModeRecords" } }); |       const invokeError = error;\n      if (invokeError) {\n        report(invokeError, { tags: { source: "AdminDisputes.clearTestModeRecords" } });
+// @mutate src/components/admin/adminDisputes/settlementEscapes.ts | const ok = await requireBiometric("Confirm clearing this dispute's test-mode records");\n    if (!ok) return; | const ok = true;
+// @mutate src/components/admin/adminDisputes/settlementEscapes.ts |       const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);\n      if (invokeError) {\n        report(invokeError, { tags: { source: "AdminDisputes.clearTestModeRecords" } }); |       const invokeError = error;\n      if (invokeError) {\n        report(invokeError, { tags: { source: "AdminDisputes.clearTestModeRecords" } });
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import AdminDisputes from "./AdminDisputes";

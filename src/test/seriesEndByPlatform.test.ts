@@ -12,17 +12,17 @@
  * @mutate supabase/migrations/20261012194707_series_end_by_platform.sql |   IF NOT public.has_role(v_uid, 'admin') THEN |   IF false THEN
  * @mutate supabase/migrations/20261012194707_series_end_by_platform.sql |   IF public.is_series_party(v_parent_id)\n | IF false\n
  * @mutate supabase/migrations/20261012194707_series_end_by_platform.sql |                    AND (c.helper_id = v_uid OR c.recurring_helper_id = v_uid)) |                    AND false)
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql |          format('Louisiana Helpr ended the recurring series "%s". No new visits will be booked or charged.%s', |          format('The recurring series "%s" has ended: a charge on it is being disputed with the bank.%s',
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql |          format('Louisiana Helpr ended the recurring series "%s". No new visits will be booked or charged.%s', |          format('The recurring series "%s" has ended: a charge on it is being disputed with the bank.%s',
  * @mutate supabase/migrations/20261012194707_series_end_by_platform.sql |   IF length(btrim(COALESCE(p_reason, ''))) < 10 THEN | IF false THEN
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql |   IF v_job.customer_id IS NOT NULL THEN\n    INSERT INTO public.notifications | IF false THEN\n    INSERT INTO public.notifications
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql |   IF v_job.status = 'cancelled' OR v_job.series_ended_on IS NOT NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql |   IF v_job.customer_id IS NOT NULL THEN\n    INSERT INTO public.notifications | IF false THEN\n    INSERT INTO public.notifications
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql |   IF v_job.status = 'cancelled' OR v_job.series_ended_on IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261012194707_series_end_by_platform.sql | REVOKE ALL ON FUNCTION public.end_recurring_series_by_platform(uuid, text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_recurring_series_by_platform(uuid, text, text, uuid) FROM PUBLIC, anon;
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql |     INSERT INTO public.series_platform_ends (parent_job_id, end_kind, reason, admin_id) |     PERFORM 1; -- (parent_job_id, end_kind, reason, admin_id)
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql |   IF p_kind = 'admin' THEN
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql |     INSERT INTO public.series_platform_ends (parent_job_id, end_kind, reason, admin_id) |     PERFORM 1; -- (parent_job_id, end_kind, reason, admin_id)
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql |   IF p_kind = 'admin' THEN
  | IF true THEN
 
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon, authenticated; | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon;
- * @mutate supabase/migrations/20261012205559_platform_series_end_refunds_in_full.sql | Any visit you already paid for that nobody is booked on is refunded in full. Questions | Any visit you already paid for that nobody is booked on is refunded, less the card processing fee. Questions
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon, authenticated; | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql | Any visit you already paid for that nobody is booked on is refunded in full. Questions | Any visit you already paid for that nobody is booked on is refunded, less the card processing fee. Questions
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -62,7 +62,7 @@ describe("the platform can end a recurring series (Q417 c, d)", () => {
     expect(p).toMatch(/SET series_ended_on = v_end/);
     expect(p).toMatch(/set_config\('app\.series_end_rpc', '1', true\)/);
     // The poster's bank dispute is private: a Helpr never reads it (money review #3).
-    // The newest body (the restatement by 20261012205559 carries the same copy).
+    // The newest body (the restatement by 20261012233226 carries the same copy).
     const sql = blankSqlComments(defs.get("end_recurring_series_by_platform")!.stmt);
     const helprBlock = sql.slice(sql.indexOf("'Recurring series ended',"), sql.indexOf("FROM ( SELECT h.helper_id") > 0 ? sql.indexOf("FROM ( SELECT h.helper_id") : sql.indexOf("FROM (\n      SELECT h.helper_id"));
     expect(helprBlock).not.toMatch(/disputed/);
@@ -81,7 +81,7 @@ describe("the platform can end a recurring series (Q417 c, d)", () => {
     expect(mig).not.toMatch(/GRANT [^;]*end_recurring_series_by_platform[^;]*\b(?:anon|authenticated)\b/);
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.rpc_admin_end_recurring_series\(uuid, text\) FROM PUBLIC, anon;/);
     // Q1735: no client can write the record that buys a full refund.
-    const m2 = blankSqlComments(readFileSync(join(MIG, "20261012205559_platform_series_end_refunds_in_full.sql"), "utf8"));
+    const m2 = blankSqlComments(readFileSync(join(MIG, "20261012233226_platform_series_end_refunds_in_full.sql"), "utf8"));
     expect(m2).toMatch(/REVOKE ALL ON public\.series_platform_ends FROM PUBLIC, anon, authenticated;/);
     expect(m2).toMatch(/ALTER TABLE public\.series_platform_ends ENABLE ROW LEVEL SECURITY;/);
   });

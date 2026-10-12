@@ -92,15 +92,15 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
 // Q750 (3): Stripe's "charge_already_refunded" (past the 24h key) is a failed refund again.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  && code !== "charge_already_refunded") throw e; | ) throw e;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { | if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !platformEndUnknown && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { | if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | let capturedCents = paidRow ? paidRow.amount_cents : totalCents; | let capturedCents = NaN;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!(Number.isFinite(captured) && captured > 0 && Number.isFinite(refundCents))) { |   if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               refundParams.metadata = { fee_withheld: "true" }; |               refundParams.metadata = undefined;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               keptCents: Math.max(0, capturedCents - refundMade.cents), |               keptCents: 0,
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); |             if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | } after it was charged.`,\n            });\n            if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); | } after it was charged.`,\n            });\n            if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (live.length > 0) { |         if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| true) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| refunded >= owedCents) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| true)) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| refunded >= owedCents)) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };\n        }\n        const prior |         }\n        const prior
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | const withholdFee = false;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee = !platformEnded && (

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261012205559_platform_series_end_refunds_in_full (Q1735,
+ * PGlite proof for 20261012233226_platform_series_end_refunds_in_full (Q1735,
  * owner decision 2026-10-12): a series the PLATFORM ends is recorded in the
  * server-only series_platform_ends, which charge-recurring-visits reads to
  * refund paid, unbooked visits in full (the refund half is proven in
@@ -22,7 +22,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const BASE = readFileSync(`${MIG}20261012194707_series_end_by_platform.sql`, "utf8");
-const NEW = readFileSync(`${MIG}20261012205559_platform_series_end_refunds_in_full.sql`, "utf8");
+const NEW = readFileSync(`${MIG}20261012233226_platform_series_end_refunds_in_full.sql`, "utf8");
 /** A function as the newest migration defines it (prod's body, md5-checked 2026-10-12). */
 function newestFn(name) {
   let out = null;

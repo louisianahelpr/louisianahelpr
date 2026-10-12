@@ -131,7 +131,7 @@ export async function clearTestModeRecords(args: {
 
   // Nothing recorded and never cleared: re-opening would only loop, because a
   // decision on a Stripe test-mode payment can never execute (money review of
-  // 6b2434f20, #3; docs/OPEN.md Q1736).
+  // 6b2434f20, #3; docs/OPEN.md Q1762).
   if (refundIds.length === 0 && transferIds.length === 0 && !alreadyCleared) {
     return {
       status: 409,

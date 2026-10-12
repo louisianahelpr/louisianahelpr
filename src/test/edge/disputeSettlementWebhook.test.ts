@@ -326,6 +326,10 @@ describe("Q449: a WON chargeback lets a decided split run", () => {
     // mode), so the notice sends the admin straight to Retry settlement.
     // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | so the decided split can run now: Retry settlement on the dispute.` | so the decided split can run now: Retry settlement on the dispute. First check in Stripe that this charge can still be refunded.`
     expect(String(note?.message)).not.toMatch(/check in Stripe|can still be refunded/i);
+    // ...and so does the Slack page about the same outcome.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | so an admin can Retry settlement. Do not release | so an admin can Retry settlement (check first that the charge can still be refunded). Do not release
+    expect(alerts().length).toBeGreaterThan(0);
+    for (const a of alerts()) expect(JSON.stringify(a)).not.toMatch(/check in Stripe|can still be refunded|check first/i);
     expect(alerts().some((a) => a.severity === "critical")).toBe(false);
   });
 

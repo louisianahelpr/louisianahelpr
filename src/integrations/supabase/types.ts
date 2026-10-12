@@ -5023,6 +5023,7 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          email_attempts: number
           email_error: string | null
           emailed: boolean
           job_id: string | null
@@ -5034,6 +5035,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           created_at?: string
+          email_attempts?: number
           email_error?: string | null
           emailed?: boolean
           job_id?: string | null
@@ -5045,6 +5047,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           created_at?: string
+          email_attempts?: number
           email_error?: string | null
           emailed?: boolean
           job_id?: string | null

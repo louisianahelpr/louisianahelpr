@@ -315,7 +315,7 @@ describe("card-dispute clawback (Q202)", () => {
     // that says not to pay by hand (review of Q1223: a manual payment would be
     // paid twice), and the job stays 'chargeback' until the re-pay.
     // @mutate supabase/functions/_shared/chargebackClawback.ts |         .update({ held_repay_owed_at: new Date().toISOString(), failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() }) |         .update({ failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() })
-    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | && repaid.held.length === 0 && repaid.holdErrors.length === 0) { | ) {
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | && repaid.held.length === 0 && repaid.holdErrors.length === 0 && repaid.balanceShort.length === 0) { | ) {
     it("WON for a HELD Helpr: nothing paid now, the row is marked owed, a do-not-pay-by-hand warning, job stays chargeback", async () => {
       const fn = await load();
       event("evt_w_held", "charge.dispute.closed", dispute("won"));
@@ -380,6 +380,31 @@ describe("card-dispute clawback (Q202)", () => {
       // No second, separate clear: the one write is the whole record.
       const clears = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).held_repay_owed_at === null && payload(w).status === undefined);
       expect(clears).toHaveLength(0);
+    });
+
+    // Q1291: a short platform balance is not a final refusal. The row stays
+    // owed (re-driven by process-scheduled-payouts) in the write that records
+    // why; the page says top up, never "pay it by hand"; the job stays in
+    // 'chargeback' until the re-pay lands.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (isBalanceShort(err)) {\n        // Q1291 |       if (false) {\n        // Q1291
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |             ...(sweepRow ? {} : { held_repay_owed_at: new Date().toISOString() }), |             ...{},
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | repaid.holdErrors.length === 0 && repaid.balanceShort.length === 0) { | repaid.holdErrors.length === 0) {
+    it("Q1291: a re-pay refused for a short platform balance stays owed and is retried, paged as a top-up", async () => {
+      const fn = await load();
+      event("evt_w_short", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Your platform balance is too low"), { type: "StripeInvalidRequestError", code: "balance_insufficient" }));
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      const waits = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).status === "repay_failed");
+      expect(waits).toHaveLength(1);
+      expect(payload(waits[0]).failure_reason).toMatch(/^balance_insufficient: /);
+      expect(typeof payload(waits[0]).held_repay_owed_at).toBe("string");
+      expect(waits[0].filters).toContainEqual({ op: "in", column: "status", value: ["repaying"] });
+      expect(alerts().some((a) => a.severity === "critical" && /FAILED/.test(a.title))).toBe(false);
+      expect(alerts().some((a) => a.severity === "warning" && /platform balance/.test(a.title) && /NOT pay it by hand/.test(a.message))).toBe(true);
+      expect(writesTo("jobs", "update").some((w) => payload(w).payment_status === "released")).toBe(false);
     });
 
     // Q1322: a refused re-pay whose 'repay_failed' write matched no row is

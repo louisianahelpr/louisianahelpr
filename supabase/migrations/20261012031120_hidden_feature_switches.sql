@@ -20,11 +20,15 @@
 --                                hidden feature calls PERFORM
 --                                public.require_feature('<key>') first, and a
 --                                caller the switch is off for gets
---                                'feature_disabled' (42501).
+--                                'feature_disabled' (42501). Called with the
+--                                service role (no auth.uid()) it always refuses:
+--                                server paths use feature_enabled_for_user().
 --   admin_list_feature_switches()  admin-only read for the Settings card.
 --   admin_set_feature_switch()   admin-only audience change; writes its own
 --                                admin_audit_log row in the same transaction
---                                (Q76), only when the audience actually changed.
+--                                (Q76). Any OTHER audience change (service_role,
+--                                a later migration) is audited by an AFTER
+--                                UPDATE trigger.
 --
 -- TESTERS = users holding the 'admin' app_role (user_roles: only an admin can
 -- insert a row, nobody can update one) + public.test_accounts (no client
@@ -88,6 +92,35 @@ DROP TRIGGER IF EXISTS feature_switches_never_created_on ON public.feature_switc
 CREATE TRIGGER feature_switches_never_created_on
   BEFORE INSERT ON public.feature_switches
   FOR EACH ROW EXECUTE FUNCTION public.feature_switches_never_created_on();
+
+-- EVERY audience change is audited, whoever makes it. The admin RPC below
+-- writes its own row (and marks the change so this trigger skips it); any
+-- other change -- a service_role call, a later migration's UPDATE or INSERT ...
+-- ON CONFLICT DO UPDATE -- is audited here, admin_id = auth.uid() (NULL from a
+-- server context, which enforce_audit_log_self_attribution allows).
+CREATE OR REPLACE FUNCTION public.feature_switches_audit_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.audience IS DISTINCT FROM OLD.audience
+     AND COALESCE(current_setting('lh.feature_switch_audited', true), '') IS DISTINCT FROM NEW.key THEN
+    INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+    VALUES ((SELECT auth.uid()), 'set_feature_switch', 'feature_switch', NEW.key,
+            jsonb_build_object('from', OLD.audience, 'to', NEW.audience));
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.feature_switches_audit_change() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS feature_switches_audit_change ON public.feature_switches;
+CREATE TRIGGER feature_switches_audit_change
+  AFTER UPDATE OF audience ON public.feature_switches
+  FOR EACH ROW EXECUTE FUNCTION public.feature_switches_audit_change();
 
 -- The decision for a named user. service_role only.
 CREATE OR REPLACE FUNCTION public.feature_enabled_for_user(p_key text, p_user_id uuid)
@@ -215,9 +248,13 @@ BEGIN
     RETURN v_from;
   END IF;
 
+  -- Tell the audit trigger this change is audited here (transaction-local),
+  -- so it writes no second row.
+  PERFORM set_config('lh.feature_switch_audited', p_key, true);
   UPDATE public.feature_switches
      SET audience = p_audience, updated_at = now(), updated_by = v_uid
    WHERE key = p_key;
+  PERFORM set_config('lh.feature_switch_audited', '', true);
 
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, 'set_feature_switch', 'feature_switch', p_key,

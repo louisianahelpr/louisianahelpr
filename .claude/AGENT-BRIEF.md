@@ -85,9 +85,9 @@ New features ship to the real app behind a hidden switch: on only for testers
 - Server, ALWAYS (hiding a button is never the protection): every RPC the
   feature adds starts `PERFORM public.require_feature('<key>');` (raises
   `feature_disabled`, 42501); every edge function calls `requireFeature(
-  serviceClient, "<key>", verifiedUserId, corsHeaders)` from
+  serviceClient, "<key>", user, corsHeaders)` (`user` from `auth.getUser(jwt)`) from
   supabase/functions/_shared/featureSwitch.ts and returns its 403 when non-null.
-  Use the user id from the verified JWT, never the request body. Prove the
+  Never pass an id from the request body. Prove the
   refusal for an ordinary account in your PGlite proof.
 - Going live is the owner's flip in Admin -> Settings -> Hidden Feature
   Switches (confirmation + admin_audit_log row), never a migration. The nightly

@@ -33,6 +33,9 @@ vi.mock("@/components/dashboard/PhotoLightbox", () => ({ PhotoLightbox: () => nu
 vi.mock("@/components/ui/BrandConfirmDialog", () => ({ BrandConfirmDialog: () => null }));
 // The off-the-job read is a server RPC; a layout test has no thread state.
 vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
+// The poster's application-note card reads applications; its own spec is
+// src/test/chatShowsApplicationNote.test.tsx.
+vi.mock("./chatView/ApplicationNoteCard", () => ({ ApplicationNoteCard: () => null }));
 vi.mock("./useMessageReactions", () => ({
   useMessageReactions: () => ({ reactions: new Map(), react: vi.fn() }),
 }));

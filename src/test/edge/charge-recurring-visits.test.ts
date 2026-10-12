@@ -1537,6 +1537,7 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             await stripe.paymentIntents.update(intent.id, { metadata: { tax_transaction_id: taxTx.id } }); |             void taxTx;
   it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -1550,6 +1551,9 @@ describe("charge-recurring-visits edge function", () => {
     const [args, opts] = stripeMock.tax.transactions.createFromCalculation.mock.calls[0];
     expect(args).toEqual({ calculation: "taxcalc_1", reference: "pi_day1" });
     expect(opts.idempotencyKey).toBe("recurring-visit-tax:pi_day1");
+    // Q1655: the transaction id rides on the PaymentIntent, where the refund
+    // webhook finds it to reverse.
+    expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_day1", { metadata: { tax_transaction_id: "tax_txn_1" } });
 
     // $2 labor + $0.20 tax: the Stripe-cost floor binds, and is computed on $2.20.
     const { posterServiceFeeCents, posterFeePercentForTier } = await import("../../../supabase/functions/_shared/posterFees.ts");

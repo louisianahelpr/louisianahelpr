@@ -914,6 +914,56 @@ describe("stripe-webhook edge function", () => {
       expect(refundedFlip).toBeUndefined();
     });
 
+    // Q1655: a refunded recurring visit's Stripe Tax transaction (stamped on
+    // its PaymentIntent by charge-recurring-visits) is reversed in full on a
+    // full refund, once per charge; a partial refund is paged, never guessed.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefundCount: ordinaryRefunds.length, logStep }); |     void reverseVisitTaxForRefund;
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!isFullRefund) { |   if (false) {
+    it("reverses a refunded visit's Stripe Tax transaction: full refund in full, partial not at all (Q1655)", async () => {
+      const refundEvent = (amountRefunded: number) => ({
+        id: `evt_visit_tax_${amountRefunded}`,
+        type: "charge.refunded",
+        data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 5000, amount_refunded: amountRefunded } },
+      });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9" } });
+      stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "tax_txn_rev" });
+      scenario.reads.jobs = { rows: [{ id: "job-v", customer_id: "poster-1", title: "Visit", payment_status: "escrow" }] };
+
+      let fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).toHaveBeenCalledTimes(1);
+      const [args, opts] = stripeMock.tax.transactions.createReversal.mock.calls[0];
+      expect(args).toEqual({ mode: "full", original_transaction: "tax_txn_9", reference: "refund:ch_visit" });
+      expect(opts).toEqual({ idempotencyKey: "visit-tax-reversal:ch_visit" });
+
+      stripeMock.tax.transactions.createReversal.mockClear();
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(300));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+
+      // Full, but across two refunds: an earlier partial was paged for a hand
+      // reversal, and a full reversal would not net it, so this pages too.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (ordinaryRefundCount > 1) { |   if (false) {
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_2", amount: 4700, status: "succeeded", metadata: {} },
+        { id: "re_1", amount: 300, status: "succeeded", metadata: {} },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: false });
+
+      // An ordinary job's PaymentIntent carries no tax transaction: nothing to reverse.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: {} });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+    });
+
     it("leaves the job status unchanged on a PARTIAL refund (funds still in escrow)", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

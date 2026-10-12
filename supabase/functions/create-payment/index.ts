@@ -14,7 +14,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
+import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -851,10 +851,14 @@ serve(async (req) => {
         line_items: lineItems,
         mode: "payment",
         automatic_tax: { enabled: true },
-        // 3D Secure from $300 (Q202), on the pre-tax total of the line items
+        // 3D Secure from $300 (Q202), on the line items plus a CEILING on the
+        // labor's sales tax (Q1658: since Q1578 a taxable $270-$299 checkout
+        // can pass $300 once Checkout adds the real tax; a ceiling only errs
+        // toward asking for 3DS)
         // (tax is only known once Checkout has the address; it can only add).
         payment_method_options: threeDSecureOptions(
-          lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0),
+          lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0)
+            + salesTaxCeilingCents(Math.round(job.budget * 100), job.category),
         ),
         payment_intent_data: paymentIntentExtras,
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),

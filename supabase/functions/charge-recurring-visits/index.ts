@@ -2014,10 +2014,20 @@ serve(async (req) => {
         // the intent; a failure is a defect (calculations expire ~90 days).
         if (taxCalculationId && taxCents > 0) {
           try {
-            await stripe.tax.transactions.createFromCalculation(
+            const taxTx = await stripe.tax.transactions.createFromCalculation(
               { calculation: taxCalculationId, reference: intent.id },
               { idempotencyKey: `recurring-visit-tax:${intent.id}` },
             );
+            // Q1655: the refund webhook reverses this transaction, and finds
+            // it on the PaymentIntent (nothing else stores its id, and Stripe
+            // cannot look a transaction up by reference).
+            try {
+              await stripe.paymentIntents.update(intent.id, { metadata: { tax_transaction_id: taxTx.id } });
+            } catch (e) {
+              fail(
+                `series ${parent.id} ${visitDate}: tax transaction ${taxTx.id} recorded for ${intent.id} but NOT stamped on it (a refund will not reverse it; set metadata.tax_transaction_id=${taxTx.id} by hand): ${caughtMessage(e)}`,
+              );
+            }
           } catch (e) {
             fail(
               `series ${parent.id} ${visitDate}: tax transaction not recorded for ${intent.id} (calculation ${taxCalculationId}): ${e instanceof Error ? e.message : String(e)}`,

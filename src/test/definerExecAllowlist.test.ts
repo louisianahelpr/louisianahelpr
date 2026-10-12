@@ -33,6 +33,7 @@
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",
+// @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "get_category_price_stats(text, text)": "reviewed 2026-10-08 (Q1579): no longer called by the app; aggregates per category/parish, no person.",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -100,8 +101,8 @@ describe("Q14: every client-executable SECURITY DEFINER function says why", () =
     expect(wrong.map(([sig]) => sig)).toEqual([]);
   });
 
-  it("the six functions revoked by 20261005054927 stay out", () => {
-    const revoked = ["resolve_auto_tip", "is_thread_muted", "user_has_pending_application", "helper_award_block_reason", "application_cap", "marketing_published_today"];
+  it("the functions revoked by 20261005054927 and 20261012042809 (Q1579) stay out", () => {
+    const revoked = ["resolve_auto_tip", "is_thread_muted", "user_has_pending_application", "helper_award_block_reason", "application_cap", "marketing_published_today", "get_category_price_stats"];
     const back = entries.filter((e) => revoked.includes(nameOf(e.sig)));
     expect(back.map((e) => `${e.role} ${e.sig}`)).toEqual([]);
     for (const name of revoked) expect(calledByClient(name), `${name} is called from src/ again`).toBe(false);

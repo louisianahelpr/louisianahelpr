@@ -10490,16 +10490,32 @@
    "kind": "table",
    "policies": [
     {
-     "cmd": "SELECT",
-     "name": "Assigned helper reads the pets on their job",
+     "cmd": "INSERT",
+     "name": "Poster attaches pets to their job",
      "permissive": "PERMISSIVE",
      "roles": [
       "public"
      ]
     },
     {
-     "cmd": "ALL",
-     "name": "Poster manages the pets on their job",
+     "cmd": "DELETE",
+     "name": "Poster detaches pets from their job",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "public"
+     ]
+    },
+    {
+     "cmd": "SELECT",
+     "name": "Poster or assigned helper reads the pets on a job",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "public"
+     ]
+    },
+    {
+     "cmd": "UPDATE",
+     "name": "Poster updates the pets on their job",
      "permissive": "PERMISSIVE",
      "roles": [
       "public"
@@ -20357,14 +20373,6 @@
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"
-     ]
-    },
-    {
-     "cmd": "ALL",
-     "name": "Admins manage exceptions",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
      ]
     },
     {

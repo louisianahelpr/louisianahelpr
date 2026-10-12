@@ -129,7 +129,7 @@ async function applyCardDispute(
   if (disputePiId) {
     const { data: chargebackJob, error: chargebackJobErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status, status, dispute_status, disputed_at")
+      .select("id, customer_id, helper_id, title, payment_status, status, dispute_status, disputed_at, parent_job_id, recurrence_days")
       .eq("stripe_payment_intent_id", disputePiId)
       .maybeSingle();
 
@@ -379,6 +379,45 @@ async function applyCardDispute(
 
       if (!markersPlaced) {
         keptHold = `dispute_status=${chargebackJob.dispute_status ?? "null"}, disputed_at=${chargebackJob.disputed_at ?? "null"}`;
+      }
+
+      // Q417 (d): a chargeback on a recurring series' charge ENDS the series
+      // and tells both sides (end_recurring_series_by_platform, 20261012194707).
+      // charge-recurring-visits used to only skip a charged-back series on each
+      // run, so it looked live to both parties. Never on an inquiry (nothing
+      // withdrawn). Idempotent (an ended series answers already_ended), so a
+      // redelivery or the funds_withdrawn twin is a no-op. Best-effort: the
+      // payout block above already landed, so a failure is paged, never thrown.
+      if (!isInquiry && (chargebackJob.parent_job_id || chargebackJob.recurrence_days)) {
+        const { error: endErr } = await supabase.rpc("end_recurring_series_by_platform", {
+          p_job_id: chargebackJob.id,
+          p_kind: "chargeback",
+          p_reason: `Stripe dispute ${dispute.id}`,
+        });
+        if (endErr) {
+          // PGRST202: the migration merged but db-deploy has not finished. The
+          // funds_withdrawn twin usually lands in the same window, so this is
+          // paged too (money review of 60cd5ff79, #5); money is safe either
+          // way (the cron still skips the series).
+          const notDeployed = endErr.code === "PGRST202";
+          logStep(notDeployed ? "Series end RPC not deployed yet" : "Series end failed", { jobId: chargebackJob.id, code: endErr.code });
+          await postSlackOpsAlert({
+            kind: "dispute_filed",
+            severity: "warning",
+            title: "Chargeback on a recurring series: series NOT ended",
+            message: notDeployed
+              ? "A chargeback landed on a recurring series charge before the series-end function was deployed. charge-recurring-visits still skips it, so nothing more is charged; after db-deploy, end it with rpc_admin_end_recurring_series so both sides are told."
+              : "A chargeback landed on a recurring series charge, but ending the series failed. charge-recurring-visits still skips it, so nothing more is charged; end it by hand (rpc_admin_end_recurring_series) so both sides are told.",
+            fields: {
+              "Dispute ID": dispute.id,
+              "Job ID": String(chargebackJob.id),
+              "DB error": endErr.message.slice(0, 200),
+            },
+            link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+            // A redelivery (or the funds_withdrawn twin) pages once a day (review #4).
+            oncePerDayKey: `chargeback-series-end-failed:${dispute.id}`,
+          });
+        }
       }
 
       // Notify all admins — chargebacks require a Stripe Dashboard response

@@ -137,7 +137,8 @@ function main(argv) {
       queue(a[0]);
       return;
     case "open-land-prs":
-      for (const p of api("pulls?state=open&per_page=100")) if (p.head.ref.startsWith("land/")) console.log(`${p.number} ${p.head.ref} ${p.head.sha}`);
+      // Every page (Q1693: a set read is read whole; one page is the newest 100).
+      for (const p of api("pulls?state=open&per_page=100", "--paginate", "--slurp").flat()) if (p.head.ref.startsWith("land/")) console.log(`${p.number} ${p.head.ref} ${p.head.sha}`);
       return;
     case "close-superseded": {
       const [n, ref, by] = a;

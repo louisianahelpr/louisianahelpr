@@ -14,7 +14,7 @@
  * where one match is the whole answer.
  *
  * @mutate scripts/land-queue.mjs | export const GH_LIST_LIMIT = 1000; | export const GH_LIST_LIMIT = 50;
- * @mutate scripts/land.sh | gh pr list --state open --limit 1000 --json | gh pr list --state open --json
+ * @mutate scripts/lib/landGh.mjs | api("pulls?state=open&per_page=100", "--paginate", "--slurp").flat() | api("pulls?state=open&per_page=100")
  * @mutate scripts/stranded-work.mjs | "pr", "list", "--state", "open", "--limit", "1000" | "pr", "list", "--state", "open", "--limit", "200"
  * @mutate .github/workflows/nightly-red-age.yml | --limit 1000 \ | --limit 100 \
  */
@@ -81,7 +81,16 @@ describe("pr/issue list reads are whole (Q1693)", () => {
   it("finds the list calls it guards", () => {
     expect(calls.length).toBeGreaterThan(10);
     expect(calls.some((c) => c.file === "scripts/land-queue.mjs")).toBe(true);
-    expect(calls.some((c) => c.file === "scripts/land.sh")).toBe(true);
+    expect(calls.some((c) => c.file === "scripts/land-queue.mjs")).toBe(true);
+  });
+
+  // land.sh reads its open land/** PRs through scripts/lib/landGh.mjs (REST,
+  // so it also runs in a cloud session): that read takes every page.
+  it("land.sh's open-PR read through landGh.mjs takes every page", () => {
+    const land = blankHashComments(readFileSync(join(ROOT, "scripts/land.sh"), "utf8"));
+    expect(land).toContain('node "$LAND_FROZEN_DIR/landGh.mjs" open-land-prs');
+    const gh = blankComments(readFileSync(join(ROOT, "scripts/lib/landGh.mjs"), "utf8"));
+    expect(gh).toMatch(/api\("pulls\?state=open&per_page=100", "--paginate", "--slurp"\)\.flat\(\)/);
   });
 
   it("every set read passes --limit >= 1000 (exact-title lookups excepted)", () => {

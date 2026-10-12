@@ -31,9 +31,10 @@ const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m
 // They were merged behind an in-page segmented Calendar|Hours control, which
 // meant one Profile row opened a screen that immediately asked you to choose
 // again — and swapped its own title under a back button that didn't move.
-// Deep links to /schedule and /availability keep resolving via the App.tsx
-// redirects → /profile?tab=schedule|availability; each now lands on its own
-// tab rather than on a shared screen with a pre-selected segment.
+// The old /schedule and /availability routes were removed 2026-09-23 (Q194)
+// and render NotFound (measured on prod 2026-10-12); notification links were
+// rewritten to /profile?tab=schedule|availability by migration
+// 20260923152630, and each tab is its own screen, not a pre-selected segment.
 const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
 const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab").then(m => ({ default: m.AvailabilityTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));

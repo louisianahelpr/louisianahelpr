@@ -49,6 +49,7 @@ import { ProfileTabPanels } from "./ProfileTabPanels";
 import { TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { queryKeys } from "@/lib/queryKeys";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 /**
@@ -523,6 +524,12 @@ const ProfilePage = () => {
 
     const avatarUrl = replaced.publicUrl;
     setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+    // Every other avatar on screen (the dock's Profile tab, the desktop rail)
+    // reads useCurrentUser's cache, not this page's local state. Without this
+    // the dock kept the old initials after "Use Photo" until the page was left
+    // (Q1001, seen on prod 2026-10-12 at 375). PhotoPrompt does the same.
+    // src/test/avatarUploadRefreshesCurrentUser.test.ts.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(userId) });
 
     // The new photo is live but the OLD one survived the sweep, so it is still
     // being served publicly. Say so — this is the case where staying quiet

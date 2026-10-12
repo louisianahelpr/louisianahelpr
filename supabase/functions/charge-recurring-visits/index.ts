@@ -852,9 +852,10 @@ serve(async (req) => {
           .eq("parent_job_id", row.parent_job_id)
           .eq("visit_date", row.visit_date)
           .limit(1),
-        // Q1733 (owner, 2026-10-12): a series the PLATFORM ended (admin,
-        // service or chargeback path) refunds its paid, unbooked visits IN
-        // FULL. Server-only row (series_platform_ends).
+        // Q1735 (owner, 2026-10-12): a series an ADMIN ended (not the poster,
+        // and not a chargeback, which is the poster's own bank dispute)
+        // refunds its paid, unbooked visits IN FULL. Server-only row
+        // (series_platform_ends), written only by end_recurring_series_by_platform.
         supabase.from("series_platform_ends").select("parent_job_id").eq("parent_job_id", row.parent_job_id).limit(1),
       ]);
       if (causeParent.error || causeHold.error || causePlatform.error) {
@@ -898,7 +899,7 @@ serve(async (req) => {
           fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
           continue;
         }
-        // Q1733: an end by the platform (an admin) is not the parties' doing:
+        // Q1735: an end by the platform (an admin) is not the parties' doing:
         // nothing is withheld, even when a Helpr later gave the date up or an
         // earlier refusal tagged the intent (money review of 32f9e7f41, #1).
         const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause);
@@ -1963,7 +1964,7 @@ serve(async (req) => {
           // below goes through that is the designed outcome, not a defect.
           const seriesEndedMidRun = String(childErr?.message ?? "").startsWith("series_ended:");
           let platformEndedMidRun = false;
-          // Q1733 (owner, 2026-10-12): the PLATFORM ending it is not the
+          // Q1735 (owner, 2026-10-12): the PLATFORM ending it is not the
           // parties' doing: refunded in full. Unread, today's rule stands
           // (the fee is withheld) and the run says so.
           if (seriesEndedMidRun) {
@@ -1981,7 +1982,7 @@ serve(async (req) => {
           // trg_series_visit_within_end: the date changed hands (given up or
           // taken over) after this run read it. Refunded below, then a skip.
           const holderChangedMidRun = String(childErr?.message ?? "").startsWith("series_date_unheld:");
-          // Q1733: whether the card fee is withheld on this refund.
+          // Q1735: whether the card fee is withheld on this refund.
           const withholdMidRun = (seriesEndedMidRun && !platformEndedMidRun) || holderChangedMidRun;
           // Q415 (e) (owner, 2026-09-27): a charge the PLATFORM got wrong (an
           // insert that simply failed) comes back in full. A series that
@@ -2050,7 +2051,7 @@ serve(async (req) => {
           if (paidRow) {
             (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
           }
-          // Q1733: the platform ended the series after this run charged; the
+          // Q1735: the platform ended the series after this run charged; the
           // poster sees a charge and a refund, so they are told (review #3).
           if (platformEndedMidRun && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) {
             const problem = await tellVisitRefund(supabase, {

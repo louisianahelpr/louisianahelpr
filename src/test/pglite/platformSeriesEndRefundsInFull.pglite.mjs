@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261012205559_platform_series_end_refunds_in_full (Q1733,
+ * PGlite proof for 20261012205559_platform_series_end_refunds_in_full (Q1735,
  * owner decision 2026-10-12): a series the PLATFORM ends is recorded in the
  * server-only series_platform_ends, which charge-recurring-visits reads to
  * refund paid, unbooked visits in full (the refund half is proven in

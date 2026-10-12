@@ -1,4 +1,4 @@
--- Q1733 (OWNER DECISION 2026-10-12, pop-up): when Louisiana Helpr (an admin,
+-- Q1735 (OWNER DECISION 2026-10-12, pop-up): when Louisiana Helpr (an admin,
 -- through rpc_admin_end_recurring_series -> end_recurring_series_by_platform;
 -- NOT the poster) ends a recurring series, a visit the poster already paid for that nobody is
 -- booked on is refunded IN FULL, card fee included. A poster ending it
@@ -20,7 +20,7 @@
 -- Replay-safe: CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE. Grants as before
 -- (service_role only on the function).
 -- Proof: src/test/pglite/platformSeriesEndRefundsInFull.pglite.mjs (DB half);
--- src/test/edge/charge-recurring-visits.test.ts, the Q1733 cases (the refund half).
+-- src/test/edge/charge-recurring-visits.test.ts, the Q1735 cases (the refund half).
 
 CREATE TABLE IF NOT EXISTS public.series_platform_ends (
   parent_job_id uuid PRIMARY KEY REFERENCES public.jobs(id) ON DELETE CASCADE,
@@ -105,7 +105,7 @@ BEGIN
   UPDATE public.jobs SET series_ended_on = v_end WHERE id = v_job.id;
   PERFORM set_config('app.series_end_rpc', COALESCE(v_flag, ''), true);
 
-  -- Q1733 (owner, 2026-10-12): the PLATFORM ended it, so a paid visit nobody
+  -- Q1735 (owner, 2026-10-12): the PLATFORM ended it, so a paid visit nobody
   -- is booked on is refunded IN FULL, card fee included. charge-recurring-
   -- visits reads this server-only row; no client can write it.
   -- Only an ADMIN end: a chargeback end is the poster's own bank dispute
@@ -150,7 +150,7 @@ BEGIN
       CASE p_kind
         -- charge-recurring-visits refunds a paid visit nobody is booked on IN
         -- FULL when an ADMIN ended the series (series_platform_ends; owner
-        -- decision Q1733, 2026-10-12); a chargeback (the poster's own dispute)
+        -- decision Q1735, 2026-10-12); a chargeback (the poster's own dispute)
         -- and a poster's own end keep Q808's rule (the card fee is withheld).
         WHEN 'chargeback' THEN format('Your recurring series "%s" has ended because a charge on it is being disputed with your bank. No new visits will be booked or charged.%s Any visit you already paid for that nobody is booked on is refunded, less the card processing fee.',
                                       COALESCE(v_job.title, 'your job'), v_still)

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 293** (200 to do, 93 fixed with protection pending; 1028 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 294** (201 to do, 93 fixed with protection pending; 1028 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-10T22:38Z)_
@@ -63,7 +63,7 @@ Every request the owner sent on 2026-10-08, one line each. [~] = built and landi
 - [~] **Q1574 HIGH Tab rule per side (owner 2026-10-08): accepted -> Scheduled; the 24-hour confirm window opens and THIS side has not confirmed -> Needs You; this side confirmed -> Scheduled; the job starts (start time, or the Helpr heads out) -> Needs You. Today Scheduled runs from the accept until the job's DAY. In docs/JOB-LIFECYCLE.md.** Built 2026-10-08 (agreedJobStage in activityFilters; sentences "Confirm the job is still on" / "Confirm you'll be at the job"), landing; tick once live and LOOKED at. done-when: test src/test/agreedJobTabRule.test.ts
 - [~] **Q1575 HIGH A decline or a cancel must be impossible to miss for the other person (owner 2026-10-08): push + in-app + email at once; their card moves to Needs You with a red banner naming who backed out and stays until they tap Got It; inside 24 h of the start the push repeats until Got It. In docs/JOB-LIFECYCLE.md.** Built 2026-10-08 (backout_notices + email + 2-hourly push inside 24 h + red banner until Got It; card in Needs You), landing; tick once live and LOOKED at. done-when: test src/test/backoutBannerUntilGotIt.test.tsx
 - [ ] **Q1654 HIGH Every refund tells the poster: ONE in-app notice and ONE email naming the amount, the card (last 4 / wallet), the refund reference, 5-10 business days, and what was kept and why (owner report 2026-10-12: "was i refunded for mow and weed eat yard? i dont think i got an email that i was refunded").** Measured: job 5d43debf auto-cancelled 2026-10-11 15:00Z, void-cancelled-payments refunded $100.00 of $112.00 at 15:10:03Z (re_3UOcZ8Kp2H4b7tEC1cVCF92O, $12 service fee kept); no notification and no email; same for job 1e16c281 ($37, 18:10Z). Root cause: the charge.refunded webhook told the poster only on a FULL refund, in-app only; a partial refund and a released hold told no one, and no refund path sent an email. Fix: _shared/refundNotice.ts (claimed once per refund in refund_notices), sent from charge.refunded for every live refund and from every hold release.
-- [ ] **Q1653 MEDIUM "Job auto-cancelled" is in-app and push only: no email reaches the poster (found fixing Q1654, 2026-10-12).** Measured on prod for job 5d43debf (auto-expire-jobs, 2026-10-11 15:00:01Z): notification_logs holds one push row (skipped) and no email row, and email_send_log has 0 rows for that poster between 14:55 and 19:00Z (last email 13:46Z). auto-expire-jobs writes the row with insertNotifications and never calls send-notification-email, and no notifications trigger sends email. Fix when built: send the cancel notice by email the way stalled-completion-reminder does, with a guard that every poster-facing cancel notice in supabase/functions is emailed.
+- [ ] **Q1655 MEDIUM "Job auto-cancelled" is in-app and push only: no email reaches the poster (found fixing Q1654, 2026-10-12).** Measured on prod for job 5d43debf (auto-expire-jobs, 2026-10-11 15:00:01Z): notification_logs holds one push row (skipped) and no email row, and email_send_log has 0 rows for that poster between 14:55 and 19:00Z (last email 13:46Z). auto-expire-jobs writes the row with insertNotifications and never calls send-notification-email, and no notifications trigger sends email. Fix when built: send the cancel notice by email the way stalled-completion-reminder does, with a guard that every poster-facing cancel notice in supabase/functions is emailed.
 
 ## LAUNCH LIST (owner-approved 2026-10-05 ~20:00 CT)
 
@@ -136,7 +136,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1321 items — 1028 done, 93 partly done (fixed, protection pending), 200 open.**
+**Queue: 1322 items — 1028 done, 93 partly done (fixed, protection pending), 201 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

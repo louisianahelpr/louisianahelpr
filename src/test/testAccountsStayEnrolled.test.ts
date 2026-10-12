@@ -39,12 +39,14 @@ import {
   isSharedTestAccount,
 } from "../../scripts/lib/testAccountEnrolment.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+// The pinned ids live only in ACCOUNTS (Q1650, testAccountIdsLiveInOnePlace).
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const HELPER = ACCOUNTS["helper-e2e"].userId;
 
 type Call = { method: string; path: string; body: unknown };
 function fakeRest(state: { profiles: { user_id: string; is_seed: boolean }[]; enrolled: string[]; insertSticks?: boolean }) {

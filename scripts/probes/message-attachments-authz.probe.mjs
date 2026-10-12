@@ -26,9 +26,10 @@ try {
   process.exit(2);
 }
 import fs from "node:fs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260914200051_message_attachments_path_scoped_read_and_voice_notes.sql", import.meta.url), "utf8");
 
-const A = "951264df-1e7c-4b6f-912e-a1be37e0dbfb", B = "7b923b19-aba5-44cb-8730-8c33ba2b9321", ADM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const A = ACCOUNTS["poster-e2e"].userId, B = ACCOUNTS["helper-e2e"].userId, ADM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const J1 = "e8cabaca-87ac-4fa0-95e4-b33179e05d6e", J2 = "63bf6243-b1a6-55b9-ad4e-d6cae05df6bc";
 const H1 = "11111111-1111-4111-8111-111111111111"; // helper on J1
 const SCHEMA = `

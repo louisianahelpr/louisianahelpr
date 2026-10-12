@@ -47,9 +47,10 @@
  */
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { rest } from "./lib/prodEnv.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb"; // poster-e2e ("Perry Poster")
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321"; // helper-e2e
+const POSTER = ACCOUNTS["poster-e2e"].userId; // poster-e2e ("Perry Poster")
+const HELPER = ACCOUNTS["helper-e2e"].userId; // helper-e2e
 
 /** Newest inbound message of three LIVE threads — flipped to unread for (a). */
 const UNREAD_MESSAGE_IDS = [

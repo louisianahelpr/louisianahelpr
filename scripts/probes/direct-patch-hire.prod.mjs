@@ -23,10 +23,11 @@
 //   E  accept_application RPC on a real application.
 //   F  respond_to_direct_offer(accept) RPC by the offer target.
 import { rest, session, URL_, ANON } from "./lib/prodEnv.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb"; // poster-e2e
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321"; // helper-e2e
-const OTHER = "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607"; // helper (seed)
+const POSTER = ACCOUNTS["poster-e2e"].userId; // poster-e2e
+const HELPER = ACCOUNTS["helper-e2e"].userId; // helper-e2e
+const OTHER = ACCOUNTS.helper.userId; // helper (seed)
 
 async function asUser(token, path, { method = "GET", body } = {}) {
   // RETURNING * is refused for `authenticated` (offered_to_helper_id is withheld).

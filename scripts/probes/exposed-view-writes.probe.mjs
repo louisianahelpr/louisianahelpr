@@ -29,14 +29,15 @@ try {
   process.exit(2);
 }
 import fs from "node:fs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const MIG_A = read("../../supabase/migrations/20260915041247_revoke_open_jobs_browse_writes.sql");
 const MIG_B = read("../../supabase/migrations/20260915043245_revoke_writes_on_exposed_views.sql");
 const CHECK = read("../ci/client-writable-views.sql");
 
 const OWNER = "vbypass"; // stands in for postgres: BYPASSRLS, not a superuser
-const STRANGER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
+const STRANGER = ACCOUNTS["helper-e2e"].userId;
+const POSTER = ACCOUNTS["poster-e2e"].userId;
 const JOB = "e6979a12-ee25-46c9-98f5-c088189849e5";
 
 const VIEWS = `

@@ -23,10 +23,11 @@
 //   4. A plants into voice-notes/J2/B/. EXPECT: refused.
 import crypto from "node:crypto";
 import { URL_, ANON, readEnv, session } from "./lib/prodEnv.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const SR = readEnv().SUPABASE_SERVICE_ROLE_KEY;
-const A_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const B_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const A_ID = ACCOUNTS["poster-e2e"].userId;
+const B_ID = ACCOUNTS["helper-e2e"].userId;
 // J1 (A posts) and J2 (B posts) are seeded per run and deleted in `finally`.
 // They used to be hard-coded ids; both jobs were later deleted, which turned
 // every positive check RED and made B's refusals pass for the wrong reason

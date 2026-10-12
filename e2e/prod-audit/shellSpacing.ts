@@ -23,6 +23,7 @@
  * border, shadow). Layout-only wrappers are invisible and do not count.
  */
 import { ANON_SCREENS, AUTHED_SCREENS, distinctScreens, type ScreenSpec } from "../happy-path/auditRoutes";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 export interface SpacingRow {
   headerToTitle: number | null;
@@ -219,7 +220,7 @@ export function readShellSpacing(): SpacingRow {
 }
 
 /** Real ids for the catalog's `/user/:id` rows (the catalog's fakes are mock-only). */
-const REAL_USER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const REAL_USER = ACCOUNTS["helper-e2e"].userId;
 
 export interface SpacingScreen {
   name: string;

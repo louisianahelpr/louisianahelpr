@@ -21,10 +21,11 @@
 // so there is nothing to clean up beyond notifications + the job row.
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
 import { fitJobTitle } from "../lib/jobTextBounds.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const HELPER = ACCOUNTS["helper-e2e"].userId;
 
 const posterTok = session("poster-e2e").access_token;
 const helperTok = session("helper-e2e").access_token;

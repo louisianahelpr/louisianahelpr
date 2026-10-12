@@ -20,7 +20,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error - plain .mjs tool script, no types
 import { findStrikes, findPinnedIdDrift, SHARED_TEST_ACCOUNTS } from "../../scripts/check-test-account-strikes.mjs";
-// @ts-expect-error - plain .mjs tool script, no types
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

@@ -363,9 +363,14 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
     helper_confirmed_at: ago(20), helper_on_the_way_at: ago(1),
   }),
+  /* Arrived, no before photo yet: the card's primary is "Take Before Photo". */
+  before_photo: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, date_needed: TODAY,
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: [],
+  }),
   working: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
-    helper_confirmed_at: ago(20), helper_arrived_at: ago(1),
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: ["before.jpg"],
   }),
   submitted: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
@@ -385,6 +390,11 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   }),
   overdue_unfinished: makeApp({}, {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+    proof_before_urls: ["before.jpg"],
+  }),
+  overdue_before_photo: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+    proof_before_urls: [],
   }),
   dispute: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "open" }),
   dispute_escalated: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "escalated" }),
@@ -607,10 +617,17 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
 
     const theirs = helperStatusLine(makeApp({}, {
       status: "in_progress", helper_id: HELPER, date_needed: jobLocalDateISO(2),
-      helper_confirmed_at: ago(20), helper_arrived_at: ago(1),
+      helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: ["before.jpg"],
     }));
     expect(theirs.id).toBe("working");
     expect(theirs.eyebrow, `the Helpr mid-job reads "${theirs.eyebrow} · ${theirs.detail}"`).toBe("Needs You");
+    // Arrived early with the before photo still owed: the same Needs You over the photo step.
+    const photo = helperStatusLine(makeApp({}, {
+      status: "in_progress", helper_id: HELPER, date_needed: jobLocalDateISO(2),
+      helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: [],
+    }));
+    expect(photo.id).toBe("before_photo");
+    expect(photo.eyebrow).toBe("Needs You");
   });
 
   it("the owed CONFIRMATION is flagged, on both sides", () => {

@@ -43,15 +43,22 @@ export const unsubscribeHeaders = vi.fn(async (recipientEmail?: string, list: "p
  * a test can hand the handler a link signed for one list and present it as
  * another. The real HMAC and its list scoping are tested directly against
  * `_shared/unsubscribe.ts` (src/test/edge/jobMatchListUnsubscribe.test.ts).
+ * The harness rewrites `_shared/email.ts` imports to this file at load time
+ * (harness.ts), which knip cannot follow.
+ * @public
  */
 export const verifyUnsubscribeToken = vi.fn(
   async (e: string | null, sig: string | null, list: "promotions" | "job_matches" = "promotions"): Promise<string | null> =>
     e && sig === `ok-${list}` ? e.toLowerCase() : null,
 );
+/** Harness-aliased (see verifyUnsubscribeToken). @public */
 export const unsubscribeSigningConfigured = vi.fn(() => true);
+/** Harness-aliased (see verifyUnsubscribeToken). @public */
 export const unsubscribeListFrom = (value: string | null): "promotions" | "job_matches" =>
   value === "job_matches" ? "job_matches" : "promotions";
+/** Harness-aliased (see verifyUnsubscribeToken). @public */
 export const SUPPORT_EMAIL = "admin@louisianahelpr.test";
+/** Harness-aliased (see verifyUnsubscribeToken). @public */
 export const LOGO_URL = "https://app.test/logo.png";
 
 export const renderEmail = vi.fn(async (element: unknown) => {

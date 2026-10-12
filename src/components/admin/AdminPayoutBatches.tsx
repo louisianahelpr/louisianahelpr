@@ -198,8 +198,11 @@ const AdminPayoutBatches = () => {
   const heldBatches = holdsKnown ? batches.filter((b) => holds[b.helper_id]) : [];
   const visibleBatches = tab === "ready" ? readyBatches : heldBatches;
 
-  const grandTotal = readyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
-  const totalJobs = readyBatches.reduce((s, b) => s + b.job_count, 0);
+  // Real money only (owner 2026-10-12): a test account's batch pays out on the
+  // Stripe TEST key, so it stays listed (with its Test tag) but never adds to
+  // the queued dollars or the job count beside them.
+  const grandTotal = readyBatches.filter((b) => !b.is_seed).reduce((s, b) => s + Number(b.total_payout || 0), 0);
+  const totalJobs = readyBatches.filter((b) => !b.is_seed).reduce((s, b) => s + b.job_count, 0);
 
   // Bulk amounts — recomputed off the live selection.
   const selectedBatches = readyBatches.filter((b) => selected.has(b.helper_id) && b.stripe_account_id);

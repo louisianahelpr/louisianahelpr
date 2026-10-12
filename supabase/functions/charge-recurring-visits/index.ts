@@ -83,6 +83,7 @@ import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 /**
  * The client type these helpers accept.
@@ -502,9 +503,10 @@ serve(async (req) => {
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
     { global: { fetch: boundedFetch() } },
   );
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-    apiVersion: "2025-08-27.basil",
-  });
+  // Stripe mode (owner 2026-10-12): every series and visit row is charged,
+  // expired and refunded on the key of its series' own mode (test accounts on
+  // the test key); one mixing test and real accounts is skipped as a defect.
+  const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
   const today = louisianaToday();
   const horizon = addDays(today, FUND_LEAD_DAYS);
@@ -730,6 +732,14 @@ serve(async (req) => {
     }
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
     for (const row of [...(stale ?? []), ...seriesOverRows]) {
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(String(row.parent_job_id), "new", [row.payer_id, row.helper_id]));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        fail(`visit payment ${row.id}: stripe mode ${modeErr.reason}: ${modeErr.message}`);
+        continue;
+      }
       if (row.status === "pending") {
         // Q1247 (c): close its Checkout BEFORE the row is expired, so the
         // payer is never told "you weren't charged" about a Checkout that was
@@ -1010,6 +1020,14 @@ serve(async (req) => {
     // already recorded (once), so there is nothing left to learn from them.
     if (results.capped) break;
     results.seriesConsidered++;
+    let stripe: Stripe;
+    try {
+      ({ stripe } = await stripes.clientForJob(String(parent.id), "new"));
+    } catch (modeErr) {
+      if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+      fail(`series ${parent.id}: stripe mode ${modeErr.reason}: ${modeErr.message}`);
+      continue;
+    }
     try {
       const dates = recurringVisitDates(
         parent.date_needed as string,

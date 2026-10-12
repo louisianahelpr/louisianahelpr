@@ -565,7 +565,9 @@ serve(async (_req) => {
       supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
       supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', yesterday),
       supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').gte('updated_at', yesterday),
+      // Real money only: a test job's fee was paid on the Stripe TEST key
+      // (owner 2026-10-12, test mode for test accounts) and is not revenue.
+      supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
       supabase.from('user_roles').select('user_id').eq('role', 'admin'),
     ])
 

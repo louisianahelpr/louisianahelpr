@@ -34,6 +34,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -97,7 +98,9 @@ serve(async (req) => {
       auth: { persistSession: false },
       global: { fetch: boundedFetch() },
     });
-    const stripe = new Stripe(stripeSecretKey!, { apiVersion: "2025-08-27.basil" });
+    // Stripe mode (owner 2026-10-12): each tip runs in its job's own mode (test
+    // accounts on the test key); a job mixing test and real accounts is skipped.
+    const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
     // No window argument: the function's own default (14 days, anchored on
     // completed_at and on the poster's auto_tip_enabled_at) is the policy, so
@@ -141,6 +144,16 @@ serve(async (req) => {
         // Stays a candidate: charged after a lift, inside the candidate window.
         log("Ban review open on the poster or Helpr — tip not charged", { jobId });
         results.held++;
+        continue;
+      }
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(jobId, "new", [c.customer_id as string | null, c.helper_id as string | null]));
+      } catch (e) {
+        if (!(e instanceof StripeModeRefused)) throw e;
+        log("No Stripe mode for this job — tip not charged", { jobId, reason: e.reason });
+        results.failed++;
+        defects.record(`stripe mode ${jobId}: ${e.reason}: ${e.message}`);
         continue;
       }
       const rawTipDollars = Number(c.tip_amount);

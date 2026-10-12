@@ -53,6 +53,7 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { jobMoneyMode, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -465,7 +466,20 @@ serve(async (req) => {
     );
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+  // Stripe mode (owner 2026-10-12): decided from the job's rows, never the body.
+  // The payout runs where the escrow sits (the stored session's mode); a Helpr
+  // of the other mode, or a test-account admin on live money, moves nothing.
+  let stripeMode: StripeMode;
+  let stripeKey: string;
+  try {
+    stripeMode = await jobMoneyMode(supabaseAdmin, job.id, { kind: "payout", actorId: initiatedByUserId });
+    stripeKey = stripeSecretKeyFor(stripeMode);
+  } catch (modeErr) {
+    if (modeErr instanceof StripeModeRefused) return stripeModeRefusedResponse(modeErr, corsHeaders);
+    throw modeErr;
+  }
+  if (stripeMode === "test") console.log(JSON.stringify({ event: "stripe_test_mode", fn: "release-payout", job_id: job.id }));
+  const stripe = new Stripe(stripeKey, {
     apiVersion: "2025-08-27.basil",
   });
 

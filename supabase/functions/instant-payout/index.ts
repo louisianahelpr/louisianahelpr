@@ -16,6 +16,7 @@ import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -151,7 +152,9 @@ serve(async (req) => {
       );
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -534,6 +537,7 @@ serve(async (req) => {
       throw payoutErr;
     }
   } catch (err) {
+    if (err instanceof StripeModeRefused) return stripeModeRefusedResponse(err, corsHeaders);
     console.error("[instant-payout] error:", err instanceof Error ? err.message : String(err));
     return new Response(JSON.stringify({ error: publicErrorMessage(err, "We couldn't complete the instant payout. Please try again later.") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

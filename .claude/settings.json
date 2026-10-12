@@ -34,10 +34,12 @@
       "Bash(git push:*)"
     ],
     "ask": [
-      "Bash(git push* -f*)",
-      "Bash(git push* :*)",
-      "Bash(git push*--delete*)",
-      "Bash(git push*--force*)",
+      "Bash(git push *--delete*)",
+      "Bash(git push -d *)",
+      "Bash(git push * -d *)",
+      "Bash(git push *--force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
       "mcp__github__delete_file",
       "mcp__plugin_github_github__delete_file"
     ]

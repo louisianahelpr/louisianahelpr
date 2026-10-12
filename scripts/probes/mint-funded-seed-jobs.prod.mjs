@@ -70,12 +70,13 @@ import { appendFileSync, writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
 import { fitJobTitle } from "../lib/jobTextBounds.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const argv = process.argv.slice(2);
 const LISTING_MODE = argv[0] === "--listings";
 const [nArg, out] = LISTING_MODE ? [null, argv[1]] : argv;
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const SEED_HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const SEED_HELPER = ACCOUNTS["helper-e2e"].userId;
 
 /**
  * The guest marketplace, as a guest should find it.
@@ -154,8 +155,8 @@ function tokenFor(account) {
   return tokens.get(account);
 }
 const ACCOUNT_IDS = {
-  poster: "83e390e0-da42-4324-bae3-fb947ba2b439",
-  helper: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607",
+  poster: ACCOUNTS.poster.userId,
+  helper: ACCOUNTS.helper.userId,
   "poster-e2e": POSTER,
   "helper-e2e": SEED_HELPER,
 };

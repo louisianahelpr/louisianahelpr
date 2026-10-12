@@ -17,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const BASE = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:4173";
 const OUT = process.env.SWEEP_OUTPUT_DIR || resolve(process.cwd(), "test-results/messages-lane");
@@ -183,7 +184,7 @@ if (stage === "cancelled") {
   await shot("cancelled-existing-thread-375");
 
   // 2. THE RACE: a live thread, text in the box, job cancelled underneath.
-  await goto(`/messages?jobId=${ledger.cancelJobId}&userId=7b923b19-aba5-44cb-8730-8c33ba2b9321`);
+  await goto(`/messages?jobId=${ledger.cancelJobId}&userId=${ACCOUNTS["helper-e2e"].userId}`);
   await sleep(1500);
   const ta = await page.$('input[placeholder="Type a message…"]');
   if (!ta) { say("[cancelled] NO COMPOSER on the live thread — cannot run the race"); }

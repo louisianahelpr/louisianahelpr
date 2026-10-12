@@ -67,6 +67,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 /** Bracket-free: see "WHY THE TITLE FILTER HAS NO BRACKETS" above. */
 export const JOB_TITLE_MARKER = "E2E-PRODAUDIT";
@@ -87,8 +88,8 @@ export const PRESS_TITLE_MARKER = "PRESS DO NOT ACCEPT";
 /** Every marker this sweeper owns. main() runs one pass per marker. */
 export const JOB_TITLE_MARKERS = [JOB_TITLE_MARKER, PRESS_TITLE_MARKER];
 /** e2e/prod-audit/harness.ts POSTER_ID / HELPER_ID — the only two accounts that suite signs in as. */
-export const POSTER_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-export const HELPER_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+export const POSTER_ID = ACCOUNTS["poster-e2e"].userId;
+export const HELPER_ID = ACCOUNTS["helper-e2e"].userId;
 /**
  * "customer_id is one of the shared test poster accounts": today only
  * POSTER_ID ever posts a job in this suite (interruptions.spec.ts's

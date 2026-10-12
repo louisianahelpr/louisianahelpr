@@ -28,10 +28,11 @@
 // round's notifications, any strike or violation it filed, and the job.
 import { rest, session, rpcSr, URL_, ANON } from "./lib/prodEnv.mjs";
 import { fitJobTitle } from "../lib/jobTextBounds.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const HELPER = ACCOUNTS["helper-e2e"].userId;
 const posterSess = session("poster-e2e");
 const posterTok = posterSess.access_token;
 const adminSess = session("admin-e2e");

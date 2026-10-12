@@ -8412,6 +8412,10 @@ export type Database = {
           retry_after_seconds: number
         }[]
       }
+      rpc_clear_test_mode_dispute_refund_stamp: {
+        Args: { _dispute_id: string; _reason: string; _refund_id: string }
+        Returns: undefined
+      }
       rpc_clear_test_mode_dispute_stamp: {
         Args: { _dispute_id: string; _reason: string; _transfer_id: string }
         Returns: undefined

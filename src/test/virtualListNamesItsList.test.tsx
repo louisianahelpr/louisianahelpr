@@ -6,7 +6,7 @@
  * 38181875379, 2026-10-12: its cards are 74 vs 66px by design; see
  * e2e/happy-path/buttonGeometry.ts).
  *
- * @mutate src/components/VirtualList.tsx |       role={listAriaLabel ? "list" : undefined} |       role={undefined}
+ * @mutate src/components/VirtualList.tsx |   return label ? { role: "list", "aria-label": label } : {}; |   return {};
  * @mutate src/components/admin/AdminUsers.tsx |           listAriaLabel="People" |           listAriaLabel={undefined}
  */
 import { readFileSync } from "node:fs";

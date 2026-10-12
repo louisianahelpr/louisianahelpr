@@ -9,6 +9,7 @@
  * @mutate scripts/land-queue.mjs | if (pr.mergeStateStatus === "DIRTY") { | if (pr.mergeStateStatus === "DIRTYX") {
  * @mutate scripts/land-queue.mjs | const again = cancelled.filter((c) => (c.attempt ?? 1) > 1); | const again = cancelled;
  * @mutate scripts/land.sh | --add-label land-queue >/dev/null 2>&1 \|\| | --add-label other >/dev/null 2>&1 \|\|
+ * @mutate scripts/land.sh |       if ADV=$(node scripts/land-queue.mjs 2>/dev/null); then |       if false; then
  * @mutate scripts/land-queue.mjs |     if (/no (?:required )?checks reported on the '[^']*' branch/.test(err)) return []; |     if (false) return [];
  */
 import { describe, expect, it } from "vitest";
@@ -83,6 +84,9 @@ describe("the queue is wired", () => {
     expect(land).not.toMatch(/behind\)|"\$MSS" = BEHIND \]/);
     // The queue has no pull_request trigger: land.sh wakes it on joining and while it waits.
     expect(land.match(/gh workflow run land-queue\.yml --ref main/g)?.length).toBeGreaterThanOrEqual(2);
+    // ...and runs the same advancer itself while it waits: the workflow's job
+    // starves for a runner when the queue is long (2026-10-12: ~60 min per step).
+    expect(land).toMatch(/if \[ \$\(\(waited % 10\)\) -eq 0 \]; then\n\s*if ADV=\$\(node scripts\/land-queue\.mjs 2>\/dev\/null\); then/);
   });
 
   it("the workflow wakes when any required check from this repo finishes", () => {

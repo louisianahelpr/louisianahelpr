@@ -212,6 +212,25 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
   });
 
+  // Q1674 (owner, 2026-10-12): a first job keeps its $2 setup fee on a cancel,
+  // so the ceiling allows it (lh-money-escrow review: without this every
+  // first-job cancel paged CRITICAL and invited ops to refund the $2).
+  // @mutate supabase/functions/money-reconciliation/index.ts |             + setupFeeKeptCents(job as { onboarding_fee_amount?: number \| string \| null }); |             + 0;
+  it("a cancelled first job may keep the service fee AND the $2 setup fee, and not a cent more (Q1674)", async () => {
+    // $25 job + $3 fee + $2 setup = 3000 captured; refunded 2500 → 500 kept.
+    const job = cancelledJob({ payment_status: "refunded", onboarding_fee_amount: 2 });
+    let fn = await load();
+    seed(job, 2500);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ captured: 3000, refunded: 2500 }));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
+
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    seed(job, 2498);
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ captured: 3000, refunded: 2498 }));
+    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
+  });
+
   it("does not grade a job whose refund an executed dispute split decided", async () => {
     // Prod job e7e09075 (2026-09-23): dispute decided {poster:1,helper:0},
     // execution_status 'executed', $26.89 of $28 refunded. A split decision

@@ -52,7 +52,7 @@
  * @mutate src/components/ui/ScreenHeaderRow.tsx | className="shrink-0 pointer-events-none" | className="shrink-0"
  * @mutate src/pages/posts/PostsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
  * @mutate src/pages/jobs/JobsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
- * @mutate src/components/messages/ConversationList.tsx | triggerWidth: "44px", | 
+ * @mutate src/components/messages/ConversationList.tsx | triggerWidth: isWebDesktop ? "28px" : "44px", | 
  * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
  * NO @mutate FOR pages/info/Legal.tsx. There was one — deleting the page's
  * `{searchOpen && <SearchTriggerSlot width="40px" />}` — and it had always

@@ -103,6 +103,24 @@ New features ship to the real app behind a hidden switch: on only for testers
   calls and `DELETE FROM public.feature_switches WHERE key = '<key>';` in one
   change (the registry guard stays exact).
 
+## How work lands (2026-10-12)
+- **Branch:** push a `ready/<topic>` branch cut from fresh `origin/main`, then
+  append its name to `~/.lh-landq/queue.txt`. Agents never run land.sh and
+  never open PRs.
+- **Subjects:** a commit subject carries no Q number. Put Q numbers in the
+  body. Numbers move at landing; a subject that names one goes stale.
+- **Local checks are light:** `npm run inventories:refresh`, one
+  `npm run typecheck`, eslint on the changed files, and the tests you touched.
+  GitHub CI runs the full suite once per train.
+- **Money:** a money branch carries its `Sensitive-Review:` trailer and lands
+  in a money train, never in the big train.
+- **Follow-ups:** a small follow-up in the same area is fixed in the same
+  branch, not filed as a new item.
+- **Trains:** one train builder lands everything, with one big train and one
+  money train in flight (`LAND_TRAIN=1 bash scripts/land.sh`).
+
+Guard: src/test/agentBriefHowWorkLands.test.ts.
+
 ## Landing
 - **Agents do not land.** Commit in your worktree, `git push -u origin HEAD`
   to your own branch, and end your report with the branch name and the head

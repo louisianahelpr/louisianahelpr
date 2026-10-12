@@ -168,7 +168,6 @@ jobs:
         env:
           VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
         run: npm run build
 
       - name: Guard against console.log in built bundle
@@ -346,7 +345,6 @@ jobs:
         env:
           VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
           # Bake the commit SHA in as the Sentry release tag so the runtime
           # `release` the shipped app reports matches the release the
           # sourcemap upload creates. Without it the app reports the "1.0.0"

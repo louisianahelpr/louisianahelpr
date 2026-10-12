@@ -61,8 +61,8 @@ function stubSilentMapKit() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default to the config actually shipping today: VITE_APPLE_MAPKIT_TOKEN is
-  // an empty string, so MapKit is skipped and only Nominatim runs. Tests that
+  // Default to MapKit having no token, so MapKit is skipped and only
+  // Nominatim runs. Tests that
   // exercise the MapKit hang opt into "ready" explicitly — they pay a real 8s
   // timeout, so only the one that must have it does.
   mapKitStatus.mockReturnValue("missing-token");

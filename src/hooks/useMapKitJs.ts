@@ -5,11 +5,12 @@ import { report } from "@/lib/errorLogger";
  * Loads Apple's MapKit JS (the same SDK that powers maps.apple.com)
  * on demand and exposes a load-status hook.
  *
- * - Token comes from `VITE_APPLE_MAPKIT_TOKEN`. When missing, the hook
- *   returns `status: "missing-token"` and callers fall back to plain
- *   inputs. This is the explicit "graceful degrade" path called out in
- *   the handoff — the build still ships, the page still works, the
- *   poster just doesn't get autocomplete.
+ * - Token comes ONLY from the `mapkit-token` edge function (one hour,
+ *   origin-locked on the web). There is no build-time token any more
+ *   (Q249): it was an unrestricted credential compiled into the bundle.
+ *   When the server cannot mint one, the hook returns
+ *   `status: "missing-token"` and callers fall back to plain inputs —
+ *   the page still works, the poster just doesn't get autocomplete.
  *
  * - The mapkit.js script is loaded from Apple's CDN
  *   (https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js — the version
@@ -90,15 +91,12 @@ const SERVER_TOKEN_TIMEOUT_MS = 8_000;
 const reportedTokenFailures = new Set<string>();
 
 /**
- * Whether the map currently on screen is being served by the UNRESTRICTED
- * build-time token. True means: the origin-locked server path failed and we
- * fell back to a credential that is compiled into the public JS bundle and can
- * be lifted out of it by any visitor.
- *
- * Exposed so the UI can say so calmly instead of rendering a map that looks
- * exactly like a correctly-configured one. See `useMapKitTokenSource`.
+ * Where the map's token came from: the server, or nowhere. ("build-time" is
+ * gone with the unrestricted bundle token, Q249.) Exposed so the UI can say a
+ * map is unavailable instead of drawing one that never loads tiles. See
+ * `useMapKitTokenSource`.
  */
-type MapKitTokenSource = "unknown" | "server" | "build-time" | "none";
+type MapKitTokenSource = "unknown" | "server" | "none";
 
 let tokenSource: MapKitTokenSource = "unknown";
 const tokenSourceListeners = new Set<(s: MapKitTokenSource) => void>();
@@ -139,22 +137,6 @@ function setCachedStatus(next: MapKitStatus) {
   statusListeners.forEach((fn) => fn(next));
 }
 
-function getBuildTimeToken(): string | undefined {
-  // Named property access, NOT `(import.meta as {...}).env` — that cast
-  // defeats Vite's per-key static replacement (it can only inline
-  // `import.meta.env.VITE_X` as a literal string when it can see the exact
-  // key at the reference site), so Vite fell back to embedding the WHOLE
-  // runtime `import.meta.env` object verbatim. That object reflects every
-  // env var present in whichever machine ran the build — not just the ones
-  // this app declares — so this chunk's content, and therefore its hashed
-  // filename, differed between a GitHub Actions build and a Vercel build
-  // even with identical source and identical VITE_* secrets, which is
-  // exactly the class of bug that leaves Sentry unable to symbolicate a
-  // production stack trace (see .github/workflows/sentry-release.yml).
-  // Direct property access lets Vite inline just this one string.
-  return import.meta.env.VITE_APPLE_MAPKIT_TOKEN;
-}
-
 /**
  * Ask the server to mint a short-lived, origin-locked token.
  *
@@ -164,10 +146,9 @@ function getBuildTimeToken(): string | undefined {
  * `mapkit-token` edge function mints one-hour tokens locked to the requesting
  * origin, and keeps the signing key server-side.
  *
- * Returns null on ANY failure — not configured (503), offline, a cold start
- * that outruns the timeout — so the caller falls back to the build-time token
- * and maps keep working exactly as they do today. That fallback is what makes
- * this safe to deploy before the Apple secrets are set.
+ * Returns null on ANY failure — not configured (503), a refused origin (403),
+ * offline, a cold start that outruns the timeout — and the caller settles
+ * "missing-token" (plain inputs, no map). There is no fallback token (Q249).
  *
  * VERIFIED 2026-08-25, production: this endpoint answers
  * `503 {"error":"not_configured"}` — APPLE_MAPKIT_PRIVATE_KEY / _KEY_ID /
@@ -179,8 +160,10 @@ function getBuildTimeToken(): string | undefined {
  * a console warning MapKit happens to print.
  */
 async function fetchServerToken(): Promise<string | null> {
-  // Named access — see getBuildTimeToken's comment above for why the
-  // bracket-cast form this replaced is a real bug, not just style.
+  // Named property access, NOT `(import.meta as {...}).env`: that cast defeats
+  // Vite's per-key static replacement and embeds the whole runtime env object,
+  // which made chunk hashes differ between a GitHub Actions and a Vercel build
+  // (see .github/workflows/sentry-release.yml).
   const base = import.meta.env.VITE_SUPABASE_URL;
   const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!base || !apikey) return null;
@@ -218,25 +201,22 @@ async function fetchServerToken(): Promise<string | null> {
 }
 
 /**
- * Surface the fallback-to-unrestricted-token condition exactly once. Silent
- * degradation is the whole reason a permanent misconfiguration looked like a
- * working feature for months.
+ * Surface a failed mint once per distinct reason. Silent degradation is the
+ * whole reason a permanent misconfiguration looked like a working feature for
+ * months; with no fallback token (Q249) a failure here means no map at all.
  */
 function reportServerTokenFailure(reason: string) {
   if (reportedTokenFailures.has(reason)) return;
   reportedTokenFailures.add(reason);
-  // `severity: "error"`, explicitly. This is not a degraded nicety: while it
-  // is true, every map in production is authorized by a credential sitting in
-  // the public bundle with no origin claim, and the daily checks must keep
-  // tripping over it until APPLE_MAPKIT_PRIVATE_KEY / _KEY_ID / _TEAM_ID are
-  // set. Measured 2026-08-27: 101x 503 against 96x 200 in 24h.
+  // `severity: "error"`: no token means no map, autocomplete or "use my
+  // location" for this visitor.
   report(
-    new Error(`MapKit falling back to the unrestricted build-time token: ${reason}`),
+    new Error(`MapKit has no token: ${reason}`),
     {
       severity: "error",
       tags: {
         source: "useMapKitJs.fetchServerToken",
-        mapkit_token_source: "build-time-unrestricted",
+        mapkit_token_source: "none",
       },
     },
   );
@@ -274,7 +254,7 @@ function primeToken(): void {
   if (primedToken) return;
   // Swallow here only to keep an unhandled rejection off the console — the
   // consumer below re-enters `resolveToken`'s normal path, which does its own
-  // reporting and falls back to the build-time token.
+  // reporting and settles "missing-token" when nothing comes back.
   primedToken = resolveTokenUncached().catch(() => undefined);
 }
 
@@ -297,24 +277,20 @@ async function resolveTokenUncached(): Promise<string | undefined> {
     setTokenSource("server");
     return served;
   }
-  const built = getBuildTimeToken();
-  // The fallback STAYS — deleting it today would break every map instantly
-  // rather than gracefully, and the owner's sequencing is "secrets first, then
-  // remove". What changes is that it is no longer silent: the session is
-  // marked degraded, so the surfaces that draw a map can say the map is not
-  // trustworthy instead of drawing one that looks fine.
-  setTokenSource(built ? "build-time" : "none");
-  return built;
+  // No fallback (Q249). The build-time token was an unrestricted credential
+  // compiled into the bundle; the owner's order was "secrets first, then
+  // remove", and the secrets are set (measured 2026-10-05 and 2026-10-12:
+  // the function mints). The caller settles "missing-token".
+  setTokenSource("none");
+  return undefined;
 }
 
 function loadScript(): Promise<MapKitStatus> {
   if (pending) return pending;
   if (cachedStatus === "ready") return Promise.resolve("ready");
 
-  // NOTE: no longer short-circuits on a missing build-time token. The server
-  // can mint one, so "no VITE_APPLE_MAPKIT_TOKEN" is no longer the same thing
-  // as "no MapKit" — that is resolved inside the authorization callback below,
-  // which reports "missing-token" only when BOTH sources come up empty.
+  // "No token" is resolved inside the authorization callback below, which
+  // reports "missing-token" when the server cannot mint one.
 
   pending = new Promise<MapKitStatus>((resolve) => {
     setCachedStatus("loading");
@@ -338,7 +314,7 @@ function loadScript(): Promise<MapKitStatus> {
         // `init()` is ASYNCHRONOUS authorization. It returns immediately and
         // tells us nothing about whether Apple accepted the token — which is
         // why this used to call finish("ready") on the next line and be wrong
-        // whenever VITE_APPLE_MAPKIT_TOKEN had expired. A stale token then
+        // whenever the (since removed) build-time token had expired. A stale token then
         // produced a "ready" MapKit whose Geocoder never invokes its
         // callback, hanging every caller that awaited one (see
         // CurrentLocationPill: the "use my location" button stuck on
@@ -421,7 +397,7 @@ function loadScript(): Promise<MapKitStatus> {
                 done(t);
                 return;
               }
-              // Neither source produced a token. Settle honestly instead of
+              // The server produced no token. Settle honestly instead of
               // handing MapKit an empty string, which it accepts and then
               // fails on asynchronously — the exact silent-hang this hook
               // exists to prevent.

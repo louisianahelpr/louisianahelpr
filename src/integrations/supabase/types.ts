@@ -7045,6 +7045,15 @@ export type Database = {
       check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       client_compat_floor: { Args: never; Returns: number }
+      end_recurring_series_by_platform: {
+        Args: {
+          p_admin?: string
+          p_job_id: string
+          p_kind: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       job_offer_cutoff: {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
@@ -8404,6 +8413,10 @@ export type Database = {
         Args: { _dispute_id: string; _evidence_urls: string[] }
         Returns: string[]
       }
+      rpc_admin_end_recurring_series: {
+        Args: { p_job_id: string; p_reason: string }
+        Returns: Json
+      }
       rpc_check_application_rate: {
         Args: { _applicant_id: string }
         Returns: {
@@ -8639,6 +8652,7 @@ export type Database = {
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_signup_leads: { Args: never; Returns: Json }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
+      sweep_unfilled_series_visit_reminders: { Args: never; Returns: number }
       sync_jobs_select_grants: { Args: never; Returns: Json }
       sync_profiles_update_grants: { Args: never; Returns: Json }
       toggle_thread_mute: {

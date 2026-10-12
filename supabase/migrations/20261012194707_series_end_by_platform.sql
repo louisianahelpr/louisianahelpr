@@ -41,7 +41,6 @@ CREATE OR REPLACE FUNCTION public.end_recurring_series_by_platform(
  SET search_path TO 'public'
 AS $function$
 DECLARE
-  v_parent uuid;
   v_job record;
   v_today date := (now() AT TIME ZONE 'America/Chicago')::date;
   v_last_created date;
@@ -58,18 +57,18 @@ BEGIN
     RAISE EXCEPTION 'end_series_needs_reason';
   END IF;
 
-  SELECT COALESCE(j.parent_job_id, j.id) INTO v_parent FROM public.jobs j WHERE j.id = p_job_id;
-  IF v_parent IS NULL THEN
-    RAISE EXCEPTION 'job_not_found';
-  END IF;
-
-  -- Lock order: the parent first, then its visits (end_recurring_series's order).
+  -- Lock order: the parent first, then its visits (end_recurring_series's
+  -- order). The parent is resolved and locked in ONE statement; the visit row
+  -- is only read for its parent_job_id, which never changes (series_locked).
   SELECT j.id, j.title, j.customer_id, j.recurring_helper_id, j.helper_id, j.recurrence_days,
          j.parent_job_id, j.date_needed, j.series_ended_on, j.status::text AS status
     INTO v_job
     FROM public.jobs j
-   WHERE j.id = v_parent
-   FOR UPDATE;
+   WHERE j.id = (SELECT COALESCE(c.parent_job_id, c.id) FROM public.jobs c WHERE c.id = p_job_id)
+   FOR UPDATE OF j;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'job_not_found';
+  END IF;
   IF v_job.recurrence_days IS NULL OR v_job.parent_job_id IS NOT NULL THEN
     RAISE EXCEPTION 'not_a_series';
   END IF;

@@ -31,11 +31,6 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!rel \|\| r.source !== "stripe_dashboard" \|\| rel.cents !== Number(r.amount_cents)) return false; |             if (!rel \|\| rel.cents !== Number(r.amount_cents)) return false;
  * @mutate supabase/functions/_shared/refundNotice.ts |     const emailed = res.ok && !body.skipped && body.success !== false; |     const emailed = res.ok && !body.skipped;
  * @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |       const r = await retryFailedRefundEmails(supabaseAdmin); |       const r = { retried: 0, emailed: 0, problems: [] as string[], gaveUp: [] as string[], skipped: undefined as string \| undefined };
- * @mutate supabase/functions/_shared/refundNotice.ts |       if ((row.email_error ?? "").startsWith("skipped:")) continue; |       if (false) continue;
- * @mutate supabase/functions/_shared/refundNotice.ts |       if (!row.notification_id \|\| row.notification_id === ZERO_UUID \|\| !(tried < REFUND_EMAIL_MAX_ATTEMPTS)) continue; |       if (!row.notification_id) continue;
- * @mutate supabase/functions/_shared/refundNotice.ts |       if ((claimedRows ?? []).length === 0) continue; |       if (false) continue;
- * @mutate supabase/functions/_shared/refundNotice.ts |       if (tried + 1 >= REFUND_EMAIL_MAX_ATTEMPTS) out.gaveUp.push(row.notice_key); |       void 0;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -544,6 +539,11 @@ describe("Q1714: the hourly untold-refund sweep (void-cancelled-payments Part G)
 // and nothing ever retried them. void-cancelled-payments Part H re-sends a
 // failed email, bounded: 3 sends in all, notices under 7 days old, never one
 // the person's own switches held back.
+// @mutate supabase/functions/void-cancelled-payments/index.ts |       const r = await retryFailedRefundEmails(supabaseAdmin); |       const r = { retried: 0, emailed: 0, problems: [] as string[], gaveUp: [] as string[], skipped: undefined as string \| undefined };
+// @mutate supabase/functions/_shared/refundNotice.ts |       if ((row.email_error ?? "").startsWith("skipped:")) continue; |       if (false) continue;
+// @mutate supabase/functions/_shared/refundNotice.ts |       if (!row.notification_id \|\| row.notification_id === ZERO_UUID \|\| !(tried < REFUND_EMAIL_MAX_ATTEMPTS)) continue; |       if (!row.notification_id) continue;
+// @mutate supabase/functions/_shared/refundNotice.ts |       if ((claimedRows ?? []).length === 0 \|\| !note) continue; |       if (!note) continue;
+// @mutate supabase/functions/_shared/refundNotice.ts |       if (tried + 1 >= REFUND_EMAIL_MAX_ATTEMPTS) out.gaveUp.push(row.notice_key); |       void 0;
 describe("refund notice emails that failed are retried, bounded (void-cancelled-payments Part H)", () => {
   const CRON_SECRET = "cron-secret-void";
   beforeEach(() => {

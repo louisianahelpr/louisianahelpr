@@ -53,6 +53,7 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q1496: "seen by the money-b lane while fixing Q1413, not a reviewer's finding",
   Q1401: "found by the lane doing Q1398 (live bodies read), not a reviewer's finding; its BUILT note cites the lh-authz-rls review of the fix",
   Q1520: "found by the lane building Q1379 (its 'money review required' is the fix's future review), not a reviewer's finding",
+  Q1690: "found by the lane closing Q1511, not a reviewer's finding; its text says the lh-silent-failure review narrowed the fix",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

@@ -58,7 +58,9 @@ export const RefundJobDialog = ({
               Issues a Stripe refund for the captured payment. Leave the
               amount field blank for a full refund (cancels the job +
               notifies both parties); enter a smaller dollar amount to issue
-              a partial refund (job state stays intact). Logged to admin_audit_log.
+              a partial refund (job state stays intact). A full refund of a
+              poster&apos;s first job keeps its one-time $2 setup fee (never
+              refunded). Logged to admin_audit_log.
             </p>
           </DialogBody>
           {detailJob && (

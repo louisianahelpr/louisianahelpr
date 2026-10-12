@@ -199,6 +199,44 @@ function readSync(key: string): string | null {
   try { return localStorage.getItem(key); } catch { /* Silent by design: WebKit storage blocked; no stored session is the honest answer and the caller signs in again. */ return null; }
 }
 
+// ── THE WRITE CAP (Q1412) ───────────────────────────────────────────────
+// setItem runs on every token refresh and removeItem on every sign-out, both
+// inside auth-js (_saveSession / _removeSession), which awaits them. A
+// Capacitor bridge call that never settles (the failure the hydrate cap above
+// exists for) used to stall those awaits for good: sign-out never returned
+// (no cache wipe, no navigation) and a hung refresh held every later session
+// read behind it (auth-js refreshes single-flight). So the Keychain half is
+// capped. Past the cap the caller goes on; the in-memory cache and WebKit
+// storage were already written synchronously, so THIS launch is right, and
+// only the next cold launch's restore can be stale. That is REPORTED.
+// THE RACE above still holds whenever the Keychain answers within the cap.
+//
+// ORDER. A capped write is still running when the next one starts, so the
+// Keychain could see them out of order (a late refresh write landing after a
+// sign-out's delete restores the session on the next launch). Every Keychain
+// write therefore runs in one queue, in the order the app issued it: a hung
+// call delays the ones behind it, never reorders them.
+export const KEYCHAIN_WRITE_CAP_MS = 1_500;
+
+let keychainQueue: Promise<void> = Promise.resolve();
+function inKeychainOrder(op: () => Promise<void>): Promise<void> {
+  const run = keychainQueue.then(op);
+  keychainQueue = run.catch((err: unknown) => reportKeychain(err, 'queued write'));
+  return run;
+}
+
+async function underWriteCap(work: Promise<void>, step: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    work.then(() => 'done' as const, () => 'done' as const),
+    new Promise<'capped'>((resolve) => { timer = setTimeout(() => resolve('capped'), KEYCHAIN_WRITE_CAP_MS); }),
+  ]);
+  clearTimeout(timer);
+  if (outcome === 'capped') {
+    reportKeychain(new Error(`Keychain write exceeded its ${KEYCHAIN_WRITE_CAP_MS}ms cap`), step);
+  }
+}
+
 export const keychainStorageAdapter = {
   getItem(key: string): string | null | Promise<string | null> {
     if (!hydrated && Capacitor.isNativePlatform()) return hydratePromise.then(() => readSync(key), () => readSync(key));
@@ -208,36 +246,42 @@ export const keychainStorageAdapter = {
     cache.set(key, value);
     try { localStorage.setItem(key, value); } catch { /* Silent by design: WebKit storage blocked or evicted; the in-memory cache and the Keychain still hold the value. */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
-      try {
-        await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
-      } catch (err) {
-        // This launch works from memory and WebKit storage, but the Keychain may
-        // now hold a rotated-out token the next cold launch cannot use.
-        reportKeychain(err, 'setItem');
-      }
+      const mirrored = inKeychainOrder(async () => {
+        try {
+          await SecureStorage.set(key, value, false, false, KEYCHAIN_ACCESS); // awaited: THE RACE above
+        } catch (err) {
+          // This launch works from memory and WebKit storage, but the Keychain may
+          // now hold a rotated-out token the next cold launch cannot use.
+          reportKeychain(err, 'setItem');
+        }
+      });
+      await underWriteCap(mirrored, 'setItem cap');
     }
   },
   async removeItem(key: string): Promise<void> {
     cache.delete(key);
     try { localStorage.removeItem(key); } catch { /* Silent by design: WebKit storage blocked, so there is nothing readable to remove; the Keychain delete below is what keeps the sign-out. */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
-      // A sign-out whose Keychain delete fails would be undone on the next
-      // launch (hydrate restores the token), so this one is retried once and
-      // then REPORTED.
-      let failure: { err: unknown } | null = null;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          await SecureStorage.remove(key);
-          failure = null;
-          break;
-        } catch (err) {
-          // Kept, not dropped: retried once, then reported below.
-          failure = { err };
+      const removed = inKeychainOrder(async () => {
+        // A sign-out whose Keychain delete fails would be undone on the next
+        // launch (hydrate restores the token), so this one is retried once and
+        // then REPORTED.
+        let failure: { err: unknown } | null = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            await SecureStorage.remove(key);
+            failure = null;
+            break;
+          } catch (err) {
+            // Kept, not dropped: retried once, then reported below.
+            failure = { err };
+          }
         }
-      }
-      if (failure) reportKeychain(failure.err, 'sign-out remove');
-      // An older build's plaintext copy, if a capped first launch left one.
-      try { await Preferences.remove({ key }); } catch (err) { /* Reported (reportKeychain): only a leftover plaintext copy is at stake. */ reportKeychain(err, 'sign-out legacy remove'); }
+        if (failure) reportKeychain(failure.err, 'sign-out remove');
+        // An older build's plaintext copy, if a capped first launch left one.
+        try { await Preferences.remove({ key }); } catch (err) { /* Reported (reportKeychain): only a leftover plaintext copy is at stake. */ reportKeychain(err, 'sign-out legacy remove'); }
+      });
+      await underWriteCap(removed, 'removeItem cap');
     }
   },
 };
@@ -252,16 +296,21 @@ export async function clearNativeSessionMirror(): Promise<void> {
   const known = [...cache.keys()].filter(isAuthTokenKey);
   for (const key of known) cache.delete(key);
   if (!Capacitor.isNativePlatform()) return;
-  try {
-    // By name first: the Keychain's key listing reads an OS error as "no
-    // keys", while a named remove reports a real failure.
-    const listed = (await SecureStorage.keys()).filter(isAuthTokenKey);
-    for (const key of new Set([...known, ...listed])) {
-      await SecureStorage.remove(key);
-      await Preferences.remove({ key }); // any plaintext copy a capped launch left
+  // In Keychain order: a capped token write still queued must land BEFORE
+  // this delete, never after it (it would restore the session next launch).
+  // The caller (authSignOut.ts) caps the wait.
+  await inKeychainOrder(async () => {
+    try {
+      // By name first: the Keychain's key listing reads an OS error as "no
+      // keys", while a named remove reports a real failure.
+      const listed = (await SecureStorage.keys()).filter(isAuthTokenKey);
+      for (const key of new Set([...known, ...listed])) {
+        await SecureStorage.remove(key);
+        await Preferences.remove({ key }); // any plaintext copy a capped launch left
+      }
+    } catch (err) {
+      // Reported (reportKeychain): the cache is already empty, so this launch is signed out.
+      reportKeychain(err, 'sign-out fallback');
     }
-  } catch (err) {
-    // Reported (reportKeychain): the cache is already empty, so this launch is signed out.
-    reportKeychain(err, 'sign-out fallback');
-  }
+  });
 }

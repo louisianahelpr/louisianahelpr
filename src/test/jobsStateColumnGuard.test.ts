@@ -166,6 +166,12 @@ const TRANSITION_GUARDS: { fn: string; seats: Seat[]; columns: string[]; why: st
     columns: ["status", "helper_completed_at"],
     why: "completion is server-owned: the assigned Helpr's Done runs through rpc_helper_mark_done (postgres), and NO direct client write of helper_completed_at is honoured; a status change INTO 'completed' is refused for every seat — H-001/H-002 (20260915073143)",
   },
+  {
+    fn: "enforce_onboarding_fee_server_owned",
+    seats: ["helper", "poster", "offered"],
+    columns: ["onboarding_fee_amount"],
+    why: "the setup fee a checkout kept is stamped only by stripe-webhook: any client (anon/authenticated) INSERT value is cleared and any client UPDATE of it is refused (Q1346, 20261012171259)",
+  },
 ];
 
 function lockLists() {

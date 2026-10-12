@@ -98,7 +98,10 @@ export function triage(lints, { definerAllow, accepted, snapshot }) {
   const views = accepted.security_definer_view ?? {};
 
   for (const lint of lints) {
-    for (const f of lint.findings ?? []) {
+    // The Management API / MCP get_advisors body is flat (one row per finding,
+    // metadata on the row); a grouped { name, findings: [...] } shape is read too.
+    const findings = Array.isArray(lint.findings) ? lint.findings : lint.metadata ? [lint] : [];
+    for (const f of findings) {
       out.total += 1;
       const m = f.metadata ?? {};
       const label = `${lint.name} ${m.schema ?? "?"}.${m.name ?? "?"}`;

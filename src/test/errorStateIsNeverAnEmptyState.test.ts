@@ -16,7 +16,8 @@
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |           <EmptyState\n            icon={Bookmark}\n            title="Nothing saved yet" |           <ErrorState\n            title="Nothing saved yet"
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

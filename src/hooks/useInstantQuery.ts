@@ -18,8 +18,10 @@ import { useQuery, type QueryKey, type UseQueryOptions } from "@tanstack/react-q
  *     fallback: { jobs: [], tips: [] }, // shape rendered before first fetch
  *   });
  *
- * The `fallback` lets you skip the "loading…" spinner entirely — render the
- * UI shell with empty defaults and let the real data slot in.
+ * The `fallback` gives `data` its shape before the first fetch, so the
+ * component can render unconditionally. It is NOT a reading: anything that
+ * would state a number, an empty state or an alarm from it waits on
+ * `isInitialLoading` (Q1287).
  */
 export function useInstantQuery<T>({
   key,
@@ -69,8 +71,17 @@ export function useInstantQuery<T>({
      * is no fraud because the query hasn't finished is the worst version of
      * this bug.
      *
-     * So: a fallback still suppresses the skeleton, but an empty one doesn't
-     * count as having something to show.
+     * The same was true of an OBJECT fallback (Q1287): it is a shell of
+     * zeros, and it rendered as a reading. The admin health screen opened on
+     * "0 sent", "0 unresolved" and the red "No admin has registered a push
+     * token" banner (measured on prod 2026-10-12 with the reads held: the
+     * loaded values were 8 sent, 87 suppressed, 5 unresolved), and the
+     * spinner/skeleton branches of AdminStalledJobs and AdminReferrals, whose
+     * fallbacks are objects, could never render. No fallback is data.
+     *
+     * So: until the first answer, isInitialLoading is true whatever the
+     * fallback. The fallback still gives `data` its shape, so a caller that
+     * never reads isInitialLoading renders exactly as before.
      *
      * `query.isLoading` is `isPending && isFetching` in TanStack v5, so a
      * DISABLED query reports false here — this cannot produce a permanent
@@ -84,7 +95,6 @@ export function useInstantQuery<T>({
      */
     isInitialLoading:
       (query.isLoading || query.fetchStatus === "paused") &&
-      query.data === undefined &&
-      (fallback === undefined || (Array.isArray(fallback) && fallback.length === 0)),
+      query.data === undefined,
   };
 }

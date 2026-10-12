@@ -7897,6 +7897,13 @@ export type Database = {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
       }
+      helpr_booking_clashes: {
+        Args: { p_helper_id: string }
+        Returns: {
+          job_id: string
+          other_job_id: string
+        }[]
+      }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
       identity_fingerprint: {
         Args: {

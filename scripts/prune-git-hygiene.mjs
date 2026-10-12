@@ -31,11 +31,16 @@
  *
  * A local BRANCH is deleted only if it is LANDED — its tip is an ancestor of
  * origin/main, OR `git cherry origin/main <branch>` shows no `+` line (land.sh
- * rebases every PR, so landed work sits on main under new SHAs) — is not main, is
- * not checked out in ANY worktree, and was created/moved more than 2h ago. An
- * ancestor goes through `git branch -d` (never -D); a patch-landed one through a
- * compare-and-delete `git update-ref -d` that refuses if the branch moved. Rule in
- * scripts/lib/branchHygiene.mjs (tested by src/test/pruneLandedBranches.test.ts).
+ * rebases every PR, so landed work sits on main under new SHAs), OR its CONTENT is
+ * on main (scripts/lib/strandedContent.mjs, the test `npm run stranded` uses, in
+ * its strict form: every added line on main, every deletion landed) — is not
+ * main, not a claim/* branch, not checked out in ANY worktree, and was
+ * created/moved more than 2h ago. An ancestor goes through `git branch -d` (never
+ * -D); a patch- or content-landed one through a compare-and-delete
+ * `git update-ref -d` that refuses if the branch moved; its sha is logged, and the
+ * weekly ~/.lh-backups bundle (git-hygiene.sh) still holds it. Rule in
+ * scripts/lib/branchHygiene.mjs (tested by src/test/pruneLandedBranches.test.ts
+ * and src/test/pruneByContent.test.ts). The same content test decides worktrees.
  *
  * Never touches remote branches, never stashes, never resets, never --force.
  */
@@ -49,6 +54,7 @@ import { homedir } from "node:os";
 import { staleUntracked } from "./lib/staleUntracked.mjs";
 import { planWorktreeCleanup, applyWorktreePlan, parseWorktrees } from "./lib/worktreeHygiene.mjs";
 import { planBranchCleanup, applyBranchPlan } from "./lib/branchHygiene.mjs";
+import { makeContentJudge } from "./lib/strandedContent.mjs";
 
 const args = process.argv.slice(2);
 const AUTO = args.includes("--auto");
@@ -180,7 +186,9 @@ function main() {
     }
   }
 
-  const plan = planWorktreeCleanup(process.cwd(), { cwds, minAgeMs: MIN_AGE_MS, base: BASE, outOfTime });
+  // One content judge for worktrees and branches: main's line index is built once.
+  const contentOf = makeContentJudge(process.cwd(), BASE);
+  const plan = planWorktreeCleanup(process.cwd(), { cwds, minAgeMs: MIN_AGE_MS, base: BASE, outOfTime, contentOf });
   const entries = plan.entries;
   const skipped = plan.skip.map((s) => [s.path, s.reason]);
   let removed = plan.remove.map((r) => r.path);
@@ -196,8 +204,12 @@ function main() {
     ? parseWorktrees(git(["worktree", "list", "--porcelain"]))
     : entries.filter((e) => !removed.includes(e.path));
   const checkedOut = new Set(afterEntries.map((e) => e.branch).filter(Boolean));
-  const bplan = planBranchCleanup(process.cwd(), { checkedOut, base: BASE, minAgeMs: MIN_AGE_MS, outOfTime });
-  const label = (b, how) => (how === "patch" ? `${b} (patch-equivalent to ${BASE})` : b);
+  const bplan = planBranchCleanup(process.cwd(), { checkedOut, base: BASE, minAgeMs: MIN_AGE_MS, outOfTime, contentOf });
+  const shaOf = new Map(bplan.delete.map((d) => [d.branch, d.sha.slice(0, 12)]));
+  const label = (b, how) =>
+    how === "patch" ? `${b} @ ${shaOf.get(b)} (patch-equivalent to ${BASE})`
+      : how === "content" ? `${b} @ ${shaOf.get(b)} (content on ${BASE})`
+        : b;
   let deleted = bplan.delete.map((d) => label(d.branch, d.how));
   const branchSkipped = bplan.skip.map((s) => [s.branch, s.reason]);
   if (APPLY) {

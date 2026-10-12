@@ -416,11 +416,10 @@ const AdminSettings = () => {
       {/* ── Fee model — READ ONLY ──
           This was two number inputs and a "Total platform take: 20%" calculator
           with a Save button, and every part of it was wrong. The platform has
-          not charged one flat rate since the tier ladder shipped: a Helpr pays
-          their own tier's commission, resolved per job by `tierFeePercent()`
-          from the same TIER_PERKS table read below, and (owner, 2026-10-11) a
-          poster pays no platform percentage at all, only a service fee equal
-          to Stripe's card cost (`posterCardCostFeeCents`). So the console let an admin type a number
+          not charged one flat rate since the tier ladder shipped: a Helpr pays their own
+          tier's commission, resolved per job by `tierFeePercent()` from the same TIER_PERKS
+          table read below, and (owner, 2026-10-11) a poster pays no platform percentage at
+          all, only a service fee equal to Stripe's card cost (`posterCardCostFeeCents`). So the console let an admin type a number
           that would never be charged, then added two unrelated percentages
           together and called the sum the platform's take — arithmetic that has
           never described a single real job. Owner: "the 10% payout fee … also

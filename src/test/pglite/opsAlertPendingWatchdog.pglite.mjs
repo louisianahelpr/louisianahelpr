@@ -93,7 +93,9 @@ CREATE TABLE public.jobs (id uuid DEFAULT gen_random_uuid(), stripe_session_id t
   cancelled_at timestamptz, updated_at timestamptz, created_at timestamptz DEFAULT now(), is_seed boolean, customer_id uuid);
 CREATE TABLE public.cron_work_expectations (jobname text PRIMARY KEY, candidate_key text,
   disposition_keys text[] DEFAULT ARRAY[]::text[], min_streak int NOT NULL DEFAULT 2,
-  note text NOT NULL DEFAULT '', expected_max_gap interval, registered_at timestamptz NOT NULL DEFAULT now());
+  note text NOT NULL DEFAULT '', expected_max_gap interval, registered_at timestamptz NOT NULL DEFAULT now(),
+  -- 20260925231818_cron_work_visibility added these; the watchdog migration's expectation row writes both.
+  work_visibility text NULL, work_exempt_reason text NULL);
 CREATE TABLE public.push_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, token text NOT NULL,
   platform text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE (user_id, token));
 CREATE TABLE public.analytics_events (id uuid DEFAULT gen_random_uuid(), user_id uuid, event text, platform text, created_at timestamptz DEFAULT now());

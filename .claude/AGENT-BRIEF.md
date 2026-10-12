@@ -30,9 +30,15 @@ says more.
   push. The CI lint job (Test workflow) is required on main; on 2026-09-23 a
   catch with no comment (local/no-silent-catch) turned it red because the push
   gate ran typecheck and vitest but not ESLint.
-- Before pushing: `npm run inventories:refresh`, then `npm run check:generated`
-  and `npm run check:counts` (a new test moves the generated burn-down score;
-  skipping this turned main red on 2026-09-23).
+- Before pushing: `npm run inventories:refresh`, then
+  `node scripts/check-generated-current.mjs --skip-post-merge` and
+  `npm run check:counts` (skipping this turned main red on 2026-09-23).
+  Never commit the whole-tree totals (docs/SCOREBOARD.md, GUARD-BURNDOWN.md,
+  vacuity-report.json, launch-2026-09 SURFACE/COVERAGE/ROLLUP, OPEN.md's
+  everything-open and queue-count blocks): only main regenerates them
+  (`inventories:refresh:all`, staleness-watch.yml), and land.sh puts any
+  branch copy back to main's bytes (they sent 27 of 60 landings DIRTY,
+  2026-10-09..12).
 - Browser work: one agent at a time; record every screenshot you judge with
   `cd /Users/lexilombas/louisianahelpr && npm run review:record -- <png> <screen> <checked> <ok|defect> [note]`.
 
@@ -114,15 +120,20 @@ New features ship to the real app behind a hidden switch: on only for testers
   both Playwright checks, plus CodeQL (code scanning default setup: a PR that
   adds a code-scanning alert cannot merge), with enforce_admins, so a direct push is refused
   (ruleset "main", strict up-to-date ON since 2026-10-05: a PR behind main must be rebased before it merges, which land.sh does); vacuity runs on every push to main (not required on PRs).
-  land.sh fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
-  commits what that regenerated, proves `check:generated` and the exact-count
+  land.sh fetches, rebases onto origin/main, resets the whole-tree totals to
+  main's copy, regenerates the per-branch inventories (`--skip-post-merge`),
+  commits what that changed, proves `check:generated` and the exact-count
   guards green, builds the bundle (`npx vite build`) and runs the critical-path
   budget (`node scripts/perf/critical-path.mjs --check`, Q178; the CI "Bundle
   Size Check" is not required, so land.sh is where it stops a regression;
   skipped when the push touches no src/, public/, index.html, vite.config.*,
   package*.json), pushes `land/<branch>-<worktree hash>`, opens a PR with rebase
-  auto-merge, and waits. Work is not landed until
-  `gh pr view <branch> --json state` says MERGED.
+  auto-merge, and waits. After the push it speaks REST only
+  (scripts/lib/landGh.mjs; GraphQL `gh pr ...` is refused in cloud sessions),
+  re-rebases at once when the PR goes DIRTY, and stops red after 10 minutes
+  of GitHub not answering or 180 in all. Each phase prints its seconds.
+  Work is not landed until the PR shows merged
+  (`gh api repos/louisianahelpr/louisianahelpr/pulls/<n> --jq .merged`).
 - End commits with the Co-Authored-By line from CLAUDE.md.
 - If a rebase stops on a conflict, resolve it (for generated files: take
   origin's version, then regenerate) and `git rebase --continue`. Never

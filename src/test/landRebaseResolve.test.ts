@@ -177,14 +177,14 @@ describe("land.sh wiring", () => {
     expect(exec).toBeGreaterThan(-1);
     expect(exec).toBeLessThan(land.indexOf("git fetch -q origin main"));
     for (const t of ["landRebaseResolve.mjs", "openItemMerge.mjs", "landRecount.mjs"]) expect(land).toContain(t);
-    expect(land).toMatch(/for t in landRebaseResolve\.mjs openItemMerge\.mjs landRecount\.mjs; do/);
+    expect(land).toMatch(/for t in landRebaseResolve\.mjs openItemMerge\.mjs landRecount\.mjs landGh\.mjs; do/);
   });
   it("the rebase loop calls the resolver for any conflict and skips a commit resolved to nothing", () => {
     expect(land).toMatch(/if node "\$LAND_FROZEN_DIR\/landRebaseResolve\.mjs"; then\n\s+# [^\n]*\n\s+GIT_EDITOR=true git rebase --continue/);
     expect(land).toMatch(/if git diff --cached --quiet; then\n\s+git rebase --skip/);
   });
   it("the recount record is removed only once the landing has merged", () => {
-    expect(land).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s+echo "land: \$BR merged into main\."\n\s+# [^\n]*\n\s+rm -f "\$\(git rev-parse --git-path land-recount\.json\)"/);
+    expect(land).toMatch(/\n\s+merged\)\n\s+echo "land: \$BR merged into main\."\n\s+# [^\n]*\n\s+rm -f "\$\(git rev-parse --git-path land-recount\.json\)"/);
   });
   it("the recount runs after the rebase, before the refresh", () => {
     const at = land.indexOf('\n  node "$LAND_FROZEN_DIR/landRecount.mjs"\n');

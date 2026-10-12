@@ -182,13 +182,46 @@ export const POSTER_SIDE_EXEMPT: Record<string, string> = {
  * is left out: its poster column is its own customer_id.
  */
 /**
- * Every public-table policy as the migrations leave it: CREATE/DROP POLICY and
- * ALTER POLICY (RENAME TO, USING) replayed in file order, comments blanked.
- * Keyed "table:name" (a quoted name keeps its case, a bare one is folded).
+ * Q1329: the two migrations that re-scope policies' roles in a DO loop
+ * (`EXECUTE format('ALTER POLICY %I ON %I.%I TO <role>')`), which no static
+ * parse can see. Each names the role it sets and the pg_policies filter its
+ * loop runs, applied to the replay at that point. Two-way: every migration with
+ * such a format string must be here (dataExportCoversEveryUserTable).
  */
-export function replayedPolicies(): Map<string, { table: string; text: string }> {
+// @two-way src/test/dataExportCoversEveryUserTable.test.ts:a migration re-scopes policy roles in a loop the replay does not model
+export const ROLE_SCOPING_LOOPS: Record<string, { to: string; admits: (table: string, name: string, text: string) => boolean }> = {
+  "20260505235500_scope_uid_policies_to_authenticated.sql": {
+    to: "authenticated",
+    admits: (table, name, text) =>
+      /auth\.uid\(\)/i.test(text) &&
+      !(table === "analytics_events" && name === "anyone_can_insert_analytics") &&
+      !(table === "error_logs" && name === "anyone_can_insert_errors"),
+  },
+  "20260506000000_scope_service_role_policies_to_service_role.sql": {
+    to: "service_role",
+    admits: (_table, _name, text) => /service_role/i.test(text),
+  },
+};
+
+/** The roles a CREATE POLICY's text (after `ON table`) names: `TO a, b`, else public. */
+export function policyRoles(text: string): string[] {
+  const head = text.split(/\busing\b|\bwith\s+check\b/i)[0];
+  const to = /\bto\s+([\w\s,"]+?)\s*$/i.exec(head)?.[1] ?? "public";
+  return to.split(",").map((r) => r.trim().replace(/"/g, "").toLowerCase()).sort();
+}
+
+export type ReplayedPolicy = { table: string; text: string; roles: string[]; permissive: "PERMISSIVE" | "RESTRICTIVE" };
+
+/**
+ * Every public-table policy as the migrations leave it: CREATE/DROP POLICY and
+ * ALTER POLICY (RENAME TO, TO roles, USING) replayed in file order, comments
+ * blanked, plus the ROLE_SCOPING_LOOPS. Keyed "table:name" (a quoted name
+ * keeps its case, a bare one is folded). roles/permissive as pg_policies
+ * prints them (Q1329).
+ */
+export function replayedPolicies(): Map<string, ReplayedPolicy> {
   const dir = join(REPO, "supabase/migrations");
-  const live = new Map<string, { table: string; text: string }>();
+  const live = new Map<string, ReplayedPolicy>();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
     const events: { at: number; apply: () => void }[] = [];
@@ -203,7 +236,16 @@ export function replayedPolicies(): Map<string, { table: string; text: string }>
     }
     for (const m of sql.matchAll(new RegExp(String.raw`create\s+policy\s+${NAME}${ON}([^;]*);`, "gi"))) {
       if (m[3] && m[3].toLowerCase() !== "public") continue;
-      events.push({ at: m.index!, apply: () => live.set(key(m[4], m[1], m[2]), { table: m[4].toLowerCase(), text: m[5] }) });
+      events.push({
+        at: m.index!,
+        apply: () =>
+          live.set(key(m[4], m[1], m[2]), {
+            table: m[4].toLowerCase(),
+            text: m[5],
+            roles: policyRoles(m[5]),
+            permissive: /^\s*as\s+restrictive\b/i.test(m[5]) ? "RESTRICTIVE" : "PERMISSIVE",
+          }),
+      });
     }
     // ALTER POLICY ... RENAME TO ..., and ALTER POLICY ... [TO ...] USING (...) [WITH CHECK (...)].
     for (const m of sql.matchAll(new RegExp(String.raw`alter\s+policy\s+${NAME}${ON}([^;]*);`, "gi"))) {
@@ -219,8 +261,25 @@ export function replayedPolicies(): Map<string, { table: string; text: string }>
           if (rename) {
             live.delete(from);
             live.set(key(m[4], rename[1], rename[2]), cur);
-          } else if (/\busing\b/i.test(rest)) {
-            live.set(from, { table: cur.table, text: cur.text.replace(/\busing\b[\s\S]*$/i, "") + " " + rest.slice(rest.search(/\busing\b/i)) });
+            return;
+          }
+          const roles = /^\s*to\s/i.test(rest) ? policyRoles(rest) : cur.roles;
+          if (/\busing\b/i.test(rest)) {
+            live.set(from, { ...cur, roles, text: cur.text.replace(/\busing\b[\s\S]*$/i, "") + " " + rest.slice(rest.search(/\busing\b/i)) });
+          } else {
+            live.set(from, { ...cur, roles });
+          }
+        },
+      });
+    }
+    const loop = ROLE_SCOPING_LOOPS[f];
+    if (loop) {
+      const at = sql.search(/execute\s+format\s*\(\s*'alter\s+policy/i);
+      events.push({
+        at: at < 0 ? sql.length : at,
+        apply: () => {
+          for (const [k, v] of live) {
+            if (v.roles.includes("public") && loop.admits(v.table, k.slice(k.indexOf(":") + 1), v.text)) live.set(k, { ...v, roles: [loop.to] });
           }
         },
       });

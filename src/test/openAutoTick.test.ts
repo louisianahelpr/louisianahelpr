@@ -7,6 +7,8 @@
 // @mutate scripts/open-done-when.mjs |       if (!id \|\| !ready.has(id)) return line; |       if (!id) return line;
 // @mutate scripts/open-done-when.mjs |       const id = /^- \[~\] \*\*(Q\d+)\b/.exec(line)?.[1]; |       const id = /^- \[.\] \*\*(Q\d+)\b/.exec(line)?.[1];
 // @mutate scripts/open-done-when.mjs |     if (stillOpen.length) held.set(it.id, stillOpen); |     if (false) held.set(it.id, stillOpen);
+// @mutate scripts/open-done-when.mjs |     if (want.has(it.id) && !namesAGuard(`${it.text} ${notes.get(it.id) ?? ""}`)) held.push(it.id); |     if (false) held.push(it.id);
+// @mutate scripts/open-done-when.mjs |     for (const id of heldForNoGuard(md, readyIds.keys(), readyIds)) { |     for (const id of []) {
 // @mutate .github/workflows/open-auto-tick.yml | regenerate: node scripts/open-sync-trackers.mjs && node | regenerate: node
 // @mutate .github/workflows/open-auto-tick.yml |     workflows: ["Supabase DB Deploy", "Supabase Edge Functions Deploy", "Prod deploy"] |     workflows: ["Prod deploy"]
 import { describe, it, expect } from "vitest";
@@ -14,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 // @ts-expect-error — plain .mjs script, no declaration file for this export
-import { heldBySnapshot, tickReady } from "../../scripts/open-done-when.mjs";
+import { heldBySnapshot, heldForNoGuard, tickReady } from "../../scripts/open-done-when.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 
@@ -30,6 +32,24 @@ describe("auto-tick (open-done-when --tick)", () => {
     const out = tickReady(md, new Map([["Q1", "sql reads 1"]]), "2026-10-04").split("\n");
     expect(out[0]).toMatch(/^- \[x\] \*\*Q1 MEDIUM a\..*\*\*DONE 2026-10-04 \(auto-tick, verified live\): .*\(sql reads 1\)\.\*\*$/);
     expect(out.slice(1)).toEqual(md.split("\n").slice(1));
+  });
+
+  it("holds a READY item whose ticked text would name no guard (bot PR #2717: Q1536/Q1540 on pr markers)", () => {
+    const q = [
+      "- [~] **Q1536 LOW headline reads Payment Authorized.** tick once live. done-when: pr #2618 merged",
+      "- [~] **Q7 LOW named.** Guard src/test/openAutoTick.test.ts. done-when: pr #1 merged",
+      "- [~] **Q8 LOW bare.** Guard openAutoTick.test.ts. done-when: pr #2 merged",
+      "- [~] **Q9 LOW none needed.** NO-GUARD: a one-off data row. done-when: pr #3 merged",
+      "- [~] **Q10 LOW evidence names it.** done-when: test src/test/openAutoTick.test.ts",
+      "- [~] **Q11 LOW gone file.** Guard src/test/noSuchGuardFile.test.ts. done-when: pr #4 merged",
+    ].join("\n");
+    const notes = new Map([
+      ["Q1536", "pr #2618 is MERGED"], ["Q7", "pr #1 is MERGED"], ["Q8", "pr #2 is MERGED"],
+      ["Q9", "pr #3 is MERGED"], ["Q10", "src/test/openAutoTick.test.ts passes"], ["Q11", "pr #4 is MERGED"],
+    ]);
+    expect(heldForNoGuard(q, notes.keys(), notes, ROOT)).toEqual(["Q1536", "Q11"]);
+    const wf = readFileSync(join(ROOT, "scripts/open-done-when.mjs"), "utf8");
+    expect(wf).toContain("for (const id of heldForNoGuard(md, readyIds.keys(), readyIds)) {");
   });
 
   it("never ticks a to-do [ ] line, even if named", () => {

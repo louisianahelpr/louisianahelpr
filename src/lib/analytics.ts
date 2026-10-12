@@ -99,17 +99,24 @@ const ANALYTICS_COLUMNS = ["event", "user_id", "properties", "url", "referrer", 
 // rest of the session. The insert policy pins user_id to auth.uid(), so a batch
 // sent WITHOUT a session (no token, expired, or the anon retry) must carry
 // user_id null, or RLS refuses all of it (the Q110 class).
-async function flush() {
+async function flush({ leaving = false }: { leaving?: boolean } = {}) {
   if (queue.length === 0) return;
   const batch = queue.splice(0, queue.length);
   if (batch.some((r) => unattributed.has(r))) {
-    await whenSessionKnown();
+    // Leaving (the page went hidden): send now with whatever session can be
+    // read now. Waiting up to SESSION_KNOWN_CAP_MS for the app's Keychain
+    // restore could outlast the page (iOS freezes it), and an unsent batch is
+    // lost with it; an anonymous row beats no row (Q1673).
+    if (!leaving) await whenSessionKnown();
     const id = resolveUserId();
     for (const r of batch) if (unattributed.delete(r)) r.user_id = id;
   }
   // Never throws; a failed batch is dropped, not reported (no recursion).
-  await postRows("analytics_events", ANALYTICS_COLUMNS, (asUser) =>
-    asUser ? batch : batch.map((r) => ({ ...r, user_id: null })),
+  await postRows(
+    "analytics_events",
+    ANALYTICS_COLUMNS,
+    (asUser) => (asUser ? batch : batch.map((r) => ({ ...r, user_id: null }))),
+    { waitForSession: !leaving },
   );
 }
 
@@ -212,6 +219,6 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
 if (typeof window !== "undefined") {
   // Best-effort flush on page hide.
   window.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") void flush();
+    if (document.visibilityState === "hidden") void flush({ leaving: true });
   });
 }

@@ -275,6 +275,22 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
       expect(stripeMock.__keys).toEqual([LIVE_KEY]);
     });
 
+    // With NO stored session (a gift-funded job) the refund decides by the
+    // payer alone, so a test Helpr hired on a real poster's job never blocks
+    // the poster's refund (lh-money-escrow review of the rebuild, finding 1).
+    it("a refund to a real poster on a job with no stored session and a test Helpr is decided LIVE, not refused as mixed", async () => {
+      env();
+      scenario.authUser = { id: REAL_ADMIN, email: "owner@example.com" };
+      scenario.rpc.has_role = true;
+      scenario.reads.user_roles = { rows: [{ user_id: REAL_ADMIN }] };
+      enrol(TEST_HELPR);
+      unpaidJob(REAL_POSTER, TEST_HELPR, null);
+      const res = await createPayment({ action: "admin_refund_general", jobId: JOB, reason: "x", amountCents: 100 });
+      const body = await json(res);
+      expect(body.reason).not.toBe("mixed_parties");
+      expect(stripeMock.__keys).not.toContain(TEST_KEY);
+    });
+
     it("a real admin can refund that LIVE escrow to the poster", async () => {
       env();
       scenario.authUser = { id: REAL_ADMIN, email: "owner@example.com" };
@@ -486,6 +502,30 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
       // The live client verifies signatures; the handlers get the test client.
       expect(stripeMock.__keys).toEqual([LIVE_KEY, TEST_KEY]);
       expect(scenario.writes.some((w) => w.table === "stripe_webhook_events" && w.op === "insert")).toBe(true);
+    });
+
+    // The handlers' Stripe calls go through the TEST client: the live one only
+    // verified the signature. Without per-client tracking every client is the
+    // same mock object, so this is the only case that can see which one a
+    // handler used.
+    it("a TEST-endpoint event's handler makes its Stripe calls on the TEST client", async () => {
+      env();
+      enrol(TEST_POSTER, TEST_HELPR);
+      stripeMock.__trackClients = true;
+      scenario.reads.jobs = { rows: [{
+        id: JOB, customer_id: TEST_POSTER, helper_id: TEST_HELPR, title: "Clean my house",
+        status: "in_progress", payment_status: "escrow", dispute_status: null, disputed_at: null, payout_scheduled_at: null,
+      }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      const ev = {
+        id: "evt_dp", type: "charge.dispute.created", livemode: false,
+        data: { object: { id: "dp_t", status: "needs_response", amount: 10000, reason: "fraudulent", payment_intent: "pi_t", charge: "ch_t", metadata: {} } },
+      };
+      const res = await deliver(ev, "test");
+      expect(res.status).toBe(200);
+      const handlerCalls = stripeMock.__calls.filter((c) => !c.method.startsWith("webhooks."));
+      expect(handlerCalls.length).toBeGreaterThan(0);
+      expect(handlerCalls.every((c) => c.key === TEST_KEY)).toBe(true);
     });
 
     it("a TEST-endpoint event naming a REAL person's job is acknowledged and NOT applied", async () => {

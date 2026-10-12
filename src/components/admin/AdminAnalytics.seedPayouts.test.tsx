@@ -10,9 +10,7 @@ import AdminAnalytics from "./AdminAnalytics";
  * the platform paid out. "Helpr Payouts" summed EVERY settled payout_transfers
  * row, seed jobs included (every other source in this loader is seed-filtered).
  *
- * @mutate src/components/admin/adminAnalytics/realPayoutTransfers.ts |     .filter((t) => t.jobs?.is_seed !== true) |     .filter(() => true)
- * @mutate src/components/admin/adminAnalytics/realPayoutTransfers.ts | "amount_cents, status, job_id, jobs(is_seed)"; | "amount_cents, status, job_id";
- */
+ * @mutate src/components/admin/adminAnalytics/realPayoutTransfers.ts |     .filter((t) => t.jobs?.is_seed !== true) |     .filter(() => true) */
 
 const transfers = vi.hoisted(() => ({
   rows: [

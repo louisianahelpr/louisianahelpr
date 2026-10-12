@@ -19,6 +19,15 @@ export interface StripeMock {
   /** EVERY key a client was constructed with, in order (a function may build one per Stripe mode). */
   __keys: string[];
   __opts: unknown;
+  /**
+   * Opt-in (default false): when true, each `new Stripe(key)` returns a view of
+   * this mock that records `{ key, method }` in `__calls` for every mocked
+   * method called through it, so a test can tell WHICH client made a call (a
+   * function that builds a live and a test client). Off, every client is this
+   * one shared object, exactly as before.
+   */
+  __trackClients: boolean;
+  __calls: Array<{ key: string; method: string }>;
   customers: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -147,6 +156,8 @@ export const stripeMock: StripeMock = {
   __key: "",
   __keys: [],
   __opts: undefined,
+  __trackClients: false,
+  __calls: [],
   customers: {
     list: vi.fn(),
     create: vi.fn(),
@@ -240,6 +251,8 @@ export function resetStripeMock() {
   stripeMock.__key = "";
   stripeMock.__keys = [];
   stripeMock.__opts = undefined;
+  stripeMock.__trackClients = false;
+  stripeMock.__calls = [];
   for (const group of [
     stripeMock.customers,
     stripeMock.checkout.sessions,
@@ -301,6 +314,27 @@ export default class Stripe {
     stripeMock.__key = key;
     stripeMock.__keys.push(key);
     stripeMock.__opts = opts;
+    if (stripeMock.__trackClients) return trackedView(stripeMock, key, "") as unknown as Stripe;
     return stripeMock as unknown as Stripe;
   }
+}
+
+/** A view of `target` that records which client (key) called each mocked method. */
+function trackedView(target: object, key: string, path: string): object {
+  return new Proxy(target, {
+    get(t, prop, receiver) {
+      const value = Reflect.get(t, prop, receiver);
+      if (typeof prop !== "string" || prop.startsWith("__")) return value;
+      const at = path ? `${path}.${prop}` : prop;
+      // Only vi.fn() mocks are wrapped; classes and plain functions pass through.
+      if (typeof value === "function" && "mock" in value) {
+        return (...args: unknown[]) => {
+          stripeMock.__calls.push({ key, method: at });
+          return (value as (...a: unknown[]) => unknown).apply(t, args);
+        };
+      }
+      if (value && typeof value === "object") return trackedView(value as object, key, at);
+      return value;
+    },
+  });
 }

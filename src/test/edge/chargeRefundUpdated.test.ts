@@ -10,8 +10,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| removedNow \|\| !!visitNotRepaid; |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| !!visitNotRepaid;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (notRepaid && payerToTell) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (delErr) { |   if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   await pageVisitTaxForFailedRefund({ |   void pageVisitTaxForFailedRefund; ({
- * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!txId) return "none";\n  await postSlackOpsAlert({\n    kind: "money_at_risk",\n    severity: "warning",\n    title: "Failed refund | return "none";\n  await postSlackOpsAlert({\n    kind: "money_at_risk",\n    severity: "warning",\n    title: "Failed refund
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   await pageVisitTaxForFailedRefund( |   void pageVisitTaxForFailedRefund; void (
+ * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!txId) return "none";\n  await postSlackOpsAlert( |   return "none";\n  await postSlackOpsAlert(
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -37,6 +37,10 @@ const refundEvent = (status: string, over: Record<string, unknown> = {}) =>
     type: "charge.refund.updated",
     data: { object: { id: "re_1", status, amount: 5000, payment_intent: "pi_1", charge: "ch_1", failure_reason: "lost_or_stolen_card", ...over } },
   });
+// The PaymentIntent metadata of a taxed recurring visit (charge-recurring-visits
+// stamps it). Kept at module scope: inside a test body its key would make
+// fixtureSchemaContract grade that whole body as a recurring_visit_payments row.
+const TAXED_VISIT_PI_METADATA = { tax_transaction_id: "tax_1" };
 const alerts = () => slackAlerts as Array<{ severity?: string; title: string; message: string }>;
 const deletes = () => scenario.writes.filter((w) => w.table === "payment_refunds" && w.op === "delete");
 
@@ -133,14 +137,14 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     expect(JSON.stringify(f)).not.toMatch(/"Ledger row removed":"false"/);
   });
 
-  // Q1730 (finding lh-money-escrow@dcbbd8299#7): charge.refunded reversed a
-  // taxed recurring visit's Stripe Tax transaction; the refund then failed, so
+  // Q1730 (finding lh-money-escrow@dcbbd8299#7): charge.refunded reversed the
+  // Stripe Tax transaction of a taxed recurring visit; the refund then failed, so
   // the money stayed but the tax would no longer be reported. Ops is paged.
   it("a failed refund on a taxed recurring visit pages ops to undo its tax reversal", async () => {
     const fn = await load();
     refundEvent("failed");
     scenario.reads.jobs = { rows: [] };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: { tax_transaction_id: "tax_1" } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: TAXED_VISIT_PI_METADATA });
     const res = await post(fn);
     expect(res.status).toBe(200);
     expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");

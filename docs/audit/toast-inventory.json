@@ -2558,7 +2558,7 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 315,
+      "line": 268,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2568,7 +2568,7 @@
     },
     {
       "file": "src/components/admin/BanDialog.tsx",
-      "line": 319,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -103,6 +103,7 @@ jobs:
           edge-function-smoke.yml:14
           eslint.yml:8
           expiry-monitor.yml:2
+          feature-switch-audience.yml:2
           lighthouse.yml:14
           loading-states-refresh.yml:2
           main-batch.yml:1

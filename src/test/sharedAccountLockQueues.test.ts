@@ -26,6 +26,7 @@
 // @mutate scripts/e2e/wait-shared-accounts.mjs |       if (e?.waitMs != null) { |       if (false) {
 // @mutate scripts/e2e/wait-shared-accounts.mjs | (DRIVES_ACCOUNTS.has(run.event) \|\| pushDriver) | (DRIVES_ACCOUNTS.has(run.event))
 // @mutate scripts/e2e/wait-shared-accounts.mjs |   if (status !== 403 && status !== 429) return null; |   if (status !== 403) return null;
+// @mutate .github/workflows/feature-switch-audience.yml |     name: Hidden switches stay hidden from an ordinary account\n    needs: wait-accounts\n |     name: Hidden switches stay hidden from an ordinary account\n
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

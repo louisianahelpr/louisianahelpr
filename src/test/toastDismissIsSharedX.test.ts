@@ -6,7 +6,7 @@
  *
  * THE CLASS is every non-test .ts/.tsx file under src/.
  *
- * @mutate src/lib/pushPermissionNudge.ts | onDismiss: () => recordNudgeDismissal(), | cancel: { label: "Not now", onClick: () => recordNudgeDismissal() },
+ * @mutate src/lib/pushPermissionNudge.ts | onAutoClose: () => stopWatching(), | cancel: { label: "Not now", onClick: () => recordNudgeDismissal() }, onAutoClose: () => stopWatching(),
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

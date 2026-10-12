@@ -8,7 +8,8 @@
  * from it when a cancelled escrow job has none) or clear an open one (the money
  * lock and EditJobDialog read a non-null session as "checkout opened").
  * Only the service role writes it (create-payment stampSession, stripe-webhook
- * checkoutSessionExpired), which is_server_context() passes.
+ * checkoutSessionExpired, and redeem_gift_card clearing a dead one when a gift
+ * funds the job, Q1418), which is_server_context() passes.
  *
  * Pinned on the definition the database holds (newest migration); behaviour,
  * red then green: src/test/pglite/posterCannotRewriteCheckoutSession.pglite.mjs

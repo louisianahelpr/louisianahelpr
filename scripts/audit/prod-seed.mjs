@@ -58,6 +58,7 @@ import { latestConsentVersions } from "../lib/acceptCurrentTerms.mjs";
 import { seedPasswordFor } from "./seedPasswords.mjs";
 import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { SHARED_TEST_ACCOUNTS, ensureTestAccountsEnrolled, findUnenrolled } from "../lib/testAccountEnrolment.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -654,6 +655,30 @@ const SEED_JOB_ADDRESS = "2000 Johnston St, Lafayette, LA 70503";
 
 const jobBase = { description: "SEED audit fixture — not a real job.", location: SEED_JOB_ADDRESS, parish: null, date_needed: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10), pricing_mode: "set_price", payment_status: "unpaid", is_seed: true }; // explicit: enforce_jobs_insert_column_lock derives is_seed only for auth.uid() inserts, a service-role insert keeps the default false
 
+/**
+ * Q552: every account this script owns, plus the shared accounts every prod
+ * harness signs in as, is a row in public.test_accounts. With the launch
+ * switch on, an account missing there sees no is_seed job or profile. The rows
+ * cascade away when an account is deleted, and the 2026-10-09 re-creation of
+ * the shared accounts left ALL of them unenrolled (measured 2026-10-12: one
+ * row, f2098932): e2e-journeys 38181872855 then found no Cleaning fixture and
+ * "Profile not found" on helper-e2e. Shared accounts are resolved by email;
+ * one missing from this project is skipped (check-test-account-strikes.mjs
+ * fails on that separately). Non-is_seed accounts are refused by the helper.
+ */
+async function enrolTestAccounts(ownedIds) {
+  const shared = await select(`profiles?email=in.(${SHARED_TEST_ACCOUNTS.map((e) => `"${encodeURIComponent(e)}"`).join(",")})&select=user_id,is_seed`);
+  const sharedSeed = shared.filter((p) => p.is_seed === true).map((p) => p.user_id);
+  for (const p of shared.filter((r) => r.is_seed !== true)) console.warn(`enrol: skipped ${p.user_id} — a shared address whose profile is not is_seed`);
+  const { checked, added } = await ensureTestAccountsEnrolled({
+    supabaseUrl: BASE,
+    serviceKey: SR,
+    userIds: [...ownedIds, ...sharedSeed],
+    note: "prod-seed --apply (Q552 enrolment)",
+  });
+  console.log(`test_accounts: ${checked} enrolled${added.length ? ` (${added.length} added)` : ""}`);
+}
+
 async function apply() {
   const posterId = await requireSeed(POSTER.email);
   const helperId = await requireSeed(HELPER.email);
@@ -665,6 +690,7 @@ async function apply() {
     if (!p[0]?.is_seed) throw new Error(`REFUSED: created account ${key} is not is_seed`);
   }
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
+  await enrolTestAccounts([posterId, helperId, ...Object.values(ids)]);
   await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })), "id", { naturalKey: "user_id,role" });
 
   const posterJobs = [
@@ -1031,6 +1057,21 @@ async function verify() {
     ok: !stuckErr && stuckSplits === 0, source: "prod-seed --apply retires these", err: stuckErr,
   });
 
+  {
+    // Q552: the pair must be test accounts, or the launch switch hides every
+    // seed row below from the accounts that are meant to see it.
+    let n = 0;
+    let err = "";
+    try {
+      const enrolled = await select(`test_accounts?user_id=${inList([posterId, helperId])}&select=user_id`);
+      const missing = findUnenrolled([{ user_id: posterId }, { user_id: helperId }], enrolled);
+      n = 2 - missing.length;
+      if (missing.length) err = `not in test_accounts: ${missing.map((m) => m.user_id).join(", ")} — run --apply`;
+    } catch (e) {
+      err = `COULD NOT BE CHECKED: ${e.message.slice(0, 80)}`;
+    }
+    rows.push({ state: "poster + helper enrolled in test_accounts", n, min: 2, ok: n === 2 && !err, source: "prod-seed", err });
+  }
   await check("disputes row (open) on a seed job", `disputes?status=eq.open&select=id,jobs!inner(is_seed)&jobs.is_seed=eq.true`, 1, "rpc_open_dispute");
   await check("long thread (34 msgs)", `messages?id=${inList(THREAD.map((_, i) => sid(`msg:thread-${i}`)))}&select=id`, 34);
   await check("message reactions", `message_reactions?message_id=${inList(THREAD.map((_, i) => sid(`msg:thread-${i}`)))}&select=emoji`, 7);

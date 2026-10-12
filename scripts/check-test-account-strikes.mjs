@@ -8,8 +8,11 @@
  * suspended the account every prod workflow signs in as. This check makes
  * that state red the night it appears instead of the day a journey breaks.
  *
- * Load: 3 service-role REST reads (profiles, user_strikes, user_violations),
+ * Load: 4 service-role REST reads (profiles, user_strikes, user_violations, test_accounts),
  * each filtered to the six accounts below. No writes.
+ *
+ * Also exit 1 when a shared account has no public.test_accounts row (Q552
+ * enrolment, findUnenrolled in scripts/lib/testAccountEnrolment.mjs).
  *
  * Also exit 1 when a userId pinned in scripts/test-signin-link.mjs ACCOUNTS no
  * longer matches the live account for its email (Q905, findPinnedIdDrift).
@@ -29,15 +32,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ACCOUNTS } from "./test-signin-link.mjs";
 import { supabaseBase } from "./lib/apiBase.mjs";
+import { SHARED_TEST_ACCOUNTS, findUnenrolled } from "./lib/testAccountEnrolment.mjs";
 
-export const SHARED_TEST_ACCOUNTS = [
-  "helpr-e2e-poster-0902@mailinator.com",
-  "helpr-e2e-helper-0902@mailinator.com",
-  "helpr-audit-web-0824@mailinator.com",
-  "eli.test.helper@louisianahelpr.com",
-  "helpr-seed-incomplete-0912@mailinator.com",
-  "helpr-seed-admin-0912@louisianahelpr.com",
-];
+// The list lives in scripts/lib/testAccountEnrolment.mjs, so the strike check,
+// the enrolment check below and the journeys' mint read ONE set of accounts.
+export { SHARED_TEST_ACCOUNTS };
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -121,12 +120,21 @@ async function main() {
   for (const d of drift) {
     console.error(`\n✗ scripts/test-signin-link.mjs ACCOUNTS.${d.role} pins ${d.pinned} but ${d.email} is ${d.live ?? "not in profiles"} on prod — update the pin and every probe that hard-codes it.`);
   }
-  if (problems.length === 0 && drift.length === 0) {
-    console.log(`[test-account-strikes] OK: no strikes, no violations, every account active, ${Object.values(ACCOUNTS).filter((a) => a.userId).length} pinned ids match.`);
+  // Q552 enrolment: with the launch switch on, an account missing from
+  // public.test_accounts sees no is_seed job or profile. The 2026-10-09
+  // re-creation dropped all six (ON DELETE CASCADE) and e2e-journeys
+  // 38181872855 failed on it twice (browse Cleaning filter, Saved Helprs).
+  const enrolledRows = await get(`test_accounts?user_id=in.(${ids})&select=user_id`);
+  const unenrolled = findUnenrolled(profiles, enrolledRows);
+  for (const u of unenrolled) {
+    console.error(`\n✗ ${u.email} (${u.user_id}) is not in public.test_accounts — with the launch switch on it sees no test job or test profile. Run \`node scripts/audit/prod-seed.mjs --apply\` (it enrols every shared account).`);
+  }
+  if (problems.length === 0 && drift.length === 0 && unenrolled.length === 0) {
+    console.log(`[test-account-strikes] OK: no strikes, no violations, every account active and enrolled, ${Object.values(ACCOUNTS).filter((a) => a.userId).length} pinned ids match.`);
     return;
   }
   if (problems.length === 0) {
-    console.error("\n[test-account-strikes] FAIL: a pinned test-account id no longer matches prod.");
+    console.error(`\n[test-account-strikes] FAIL: ${drift.length ? "a pinned test-account id no longer matches prod" : ""}${drift.length && unenrolled.length ? "; " : ""}${unenrolled.length ? `${unenrolled.length} shared test account(s) not enrolled in test_accounts` : ""}.`);
     process.exit(1);
   }
   for (const p of problems) {

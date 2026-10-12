@@ -5,6 +5,7 @@ import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDeri
 import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
+import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 
 export function ProfileLanding({
   profile,
@@ -56,7 +57,7 @@ export function ProfileLanding({
           PageHeader's app-wide rule. */}
       <div className="-mb-3 lg:-mb-4">
         <PageHeader
-          title="Profile"
+          title={PROFILE_PAGE_TITLE}
           hideBack
           width="none"
           topInsetHandled

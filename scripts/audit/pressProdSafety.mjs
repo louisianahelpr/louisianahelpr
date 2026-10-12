@@ -27,6 +27,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
+import { ensureTestAccountsEnrolled, isSharedTestAccount } from "../lib/testAccountEnrolment.mjs";
 import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
@@ -77,6 +78,12 @@ export async function prodSession(role) {
   if (!session?.access_token || !session?.user?.id) throw new Error(`no usable session for the ${role}`);
   if (!(await sessionAlive(supabaseUrl(), anonKey(), session.access_token))) throw new Error(`a freshly obtained session for the ${role} is refused by /auth/v1/user`);
   await acceptCurrentTerms(supabaseUrl(), anonKey(), session.access_token, session.user.id); // TERMS-CONSENT at mint
+  // Q552: a shared account missing from public.test_accounts sees no test job
+  // or profile while the launch switch is on (scripts/lib/testAccountEnrolment.mjs).
+  // The local path above enrols inside test-signin-link.mjs.
+  if (serviceKey && isSharedTestAccount(email)) {
+    await ensureTestAccountsEnrolled({ supabaseUrl: supabaseUrl(), serviceKey, userIds: [session.user.id], note: `press sweep mint (${role})` }); // TEST-ACCOUNT-ENROLMENT at mint
+  }
   writeCache(file, session);
   return wrapSession(session);
 }

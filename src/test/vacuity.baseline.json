@@ -24,7 +24,6 @@
   ],
   "mountWiring": [
     "src/components/AppLockGate.tsx",
-    "src/components/BlockUserDialog.tsx",
     "src/components/ErrorBoundary.tsx",
     "src/components/ForceUpdateGate.tsx",
     "src/components/GuestBrowseSkeleton.tsx",
@@ -60,7 +59,6 @@
     "src/pages/post-job/EntryChoice.tsx",
     "src/pages/post-job/FormStep.tsx",
     "src/pages/posts/PostedJobCard.tsx",
-    "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx",
     "src/pages/profile/giftCards/CreditCard.tsx",
     "src/pages/profile/giftCards/RecipientPicker.tsx",
     "src/pages/user/AtAGlanceCard.tsx",

@@ -646,6 +646,96 @@
       "sha": "6424db0f81ba275e3e91c071d6cdb876a86e4971",
       "reason": "Same HEAD as branch worktree-agent-a633d4e0c096ec3a3: Q1170 landed, its lines left are superseded wording.",
       "checked": "2026-10-12 (hygiene-by-content lane: content-checked against origin/main, git log -p origin/main since 2026-09-01)"
+    },
+    {
+      "id": "pr:2595",
+      "sha": "7432ba11db4b6e067e86783cf31b45dea15e9b16",
+      "reason": "money-b batch 3 (rebased copy): its leftovers are superseded wording. The admin search clear-X className landed with ctl-tint instead of hover:bg-secondary/60 (AdminUsers.tsx etc.), userIdForeignKeys/MARKERLESS_PARTLY_DONE counts moved on, and crewBlockFeeLedger's export_my_data assertion follows a later migration.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2594",
+      "sha": "e5d762a5aa6baa2aa8d5091619bfe2a64d04d7f5",
+      "reason": "money-b batch 3: as pr:2595, plus the AdminSettings Add-admin search X, which landed as the AdminUserSearchField component (src/components/admin/settings/AdminUserSearchField.tsx), and SHARED_WALKED / the create-payment chargeback note, both on main in longer forms.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2593",
+      "sha": "226c85d1c08db3cb7f5840b5341930c4d4478037",
+      "reason": "money-b batch 12b: leftovers are the App.tsx PageTransition comment (rewritten when pages stopped animating, f8c70af3d), and the create-payment chargeback note (on main, extended with the clawback instructions).",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2585",
+      "sha": "a0f09493c140ffec5e2ea6b018ac4983235f3780",
+      "reason": "money-b batch 12: as pr:2593, plus chargeRefundUpdated's notRepaid mutations (main's notRepaid adds visitNotRepaid) and a migration comment line.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2584",
+      "sha": "4bfba546e5ca1f103229e771f28f450e66872983",
+      "reason": "money-b batch 1: the create-payment chargeback note is on main in a longer form; the only other line is a comment in 20261007032429_poster_cannot_rewrite_checkout_session.sql.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2583",
+      "sha": "5eaad17c5e672e7a452c14ddd9435546c2411218",
+      "reason": "lane-ci medium: the Terms acceptance for minted test accounts landed another way (scripts/lib/acceptCurrentTerms.mjs, used by e2e/journeys/fixtures.ts and the seeders, guard src/test/sweepMintAcceptsTerms.test.ts); prod-audit's timeout was split per leg (Q889); the Report-a-bug row uses REPORT_BUG_TITLE.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2527",
+      "sha": "5eaad17c5e672e7a452c14ddd9435546c2411218",
+      "reason": "Same head as pr:2583 (land/lane-ci-medium-abf165db); same verdict.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2557",
+      "sha": "912e25e3bc91791ad43c2de038ae668081c77f20",
+      "reason": "A count bump (MARKERLESS_PARTLY_DONE 23 -> 24) and the critical-path _measured note, both since re-measured on main (27 today).",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2508",
+      "sha": "846052f1d872a7729b6b27b639180e22a7392f58",
+      "reason": "Materials and access notes (Q1461) landed in the squashed #2523 (6cc7dc770); the browse-card MaterialsChip was then removed on purpose by f8c70af3d (browse cards keep place/date/time). Its other lines are migration-name mutations for a migration on main and EditJobDialog copy main rewrote.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2417",
+      "sha": "5545f3a5f70e6e8e92d9e55421cfb53704967f19",
+      "reason": "useNotifyWhenWorkLands toasts: on main as toast()/toast.warning() with the same words (toastPolicy suppresses .success/.message).",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2412",
+      "sha": "d65db380021441ea10cdc3b9adce7609036846f7",
+      "reason": "A request-budgets _calibrated note since re-calibrated on main, and one SETTLE_MS wait the press sweep kept.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2309",
+      "sha": "24a3626f94e67ae07a4e333ee1f3eb1b96c89fd1",
+      "reason": "A Q52 note branch that carried an old batch: Q1299 part 1 (lazy PhotoReorderGrid) landed as 1c5f11537 and part 2 is Q1356; pageLoadTiming loads through backgroundImport; csp-report uses caughtMessage; the CSP hashes and the MARKERLESS count are regenerated on main. Missed until now because GitHub search never listed it (Q1376).",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "remote:origin/feat/signup-leads",
+      "sha": "b163dbea06b1eb9697fa90ef20a2d209ae70e84c",
+      "reason": "Landed as #2688 (b536e9126 + the useSignupLeadCapture refactor 51061e9eb), with the migration restamped to 20261009223714_signup_leads.sql; every leftover line names the old 20261009173906 timestamp or the pre-refactor Signup.tsx call.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "remote:origin/fix/new-member-on-confirm-and-stuck-payment",
+      "sha": "7479d3b34ab8c0637594f0a161246de1e553c0be",
+      "reason": "Landed with its migrations restamped (20261009223353_new_member_notice_on_email_confirm.sql, 20261009223355_stuck_payment_needs_stripe_proof.sql); every leftover line names the old 20261009142753/4 timestamps or a FK count main has since moved on.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
+    },
+    {
+      "id": "pr:2627",
+      "sha": "98ed9d382e64a268143c594f42a94efbb5ae0315",
+      "reason": "Bot refresh (loading-states-refresh) that cannot land: its re-measure on prod reports 20 loading-state jumps that src/test/loadingStateShape.test.ts refuses (Vitest shard 1/6 on 98ed9d382). Q1654 decides it; the bot moves this sha on its next run, which re-flags it here until then.",
+      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
     }
   ]
 }

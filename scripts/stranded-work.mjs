@@ -115,8 +115,7 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
     const fresh = tipHours < STRANDED_AFTER_HOURS;
     out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), ...(fresh ? { fresh: true } : {}) });
   }
-  const closed = gh(["pr", "list", "--state", "closed", "--limit", "500", "--search", `closed:>=${SINCE.slice(0, 10)}`,
-    "--json", "number,headRefOid,mergedAt,closedAt,author,title,headRefName"]);
+  const closed = closedPullRequests(gh);
   for (const pr of closed.filter((p) => !p.mergedAt && p.closedAt >= SINCE && !/dependabot/i.test(p.author?.login ?? ""))) {
     const ref = `refs/stranded/pr/${pr.number}`;
     try { git(["fetch", "-q", "origin", `+refs/pull/${pr.number}/head:${ref}`]); } catch { /* deleted fork head: checked below */ }
@@ -139,6 +138,23 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
     }
   }
   return out;
+}
+
+/**
+ * Every closed PR, from the REST pulls list, never GitHub search: `gh pr list
+ * --search closed:>=...` reads the search index, which silently left out 14 of
+ * the 130 PRs closed unmerged since 2026-10-03 (#2444 and #2385 among them, so
+ * their acceptances read "stale" and branch-prune stayed red; nightly-red #2366,
+ * Q1376, measured 2026-10-12). The REST list is the repository's own record.
+ * Shaped like `gh pr list --json` so the judging below is unchanged.
+ */
+export function closedPullRequests(gh) {
+  const pages = gh(["api", "--paginate", "--slurp", "repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100"]);
+  if (!Array.isArray(pages)) throw new Error("stranded-work: the closed-PR list did not come back as pages");
+  return pages.flat().map((p) => ({
+    number: p.number, headRefOid: p.head?.sha, headRefName: p.head?.ref, mergedAt: p.merged_at,
+    closedAt: p.closed_at, title: p.title, author: { login: p.user?.login ?? "" },
+  }));
 }
 
 /** A closed PR whose comments say its work landed on main another way. */

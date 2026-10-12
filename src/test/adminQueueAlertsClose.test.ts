@@ -46,7 +46,7 @@
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
- * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
+ * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql |          'Low rating alert', |          'Low rating warning',
  * @mutate supabase/functions/_shared/alertPolicy.ts | return `admin-push:${ | return `admin-mirror:${

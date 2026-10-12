@@ -313,6 +313,10 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },
   // Q1575: a seen/unseen flag over a back-out the person was ALSO told by an
   // in-app notification and email (notifications are exported); no content of its own.
+  // Q1654: the dedupe claim behind a refund notice; the notice itself (amount,
+  // card, reference) is an exported notification, and the refund is exported
+  // through payment_refunds.
+  "refund_notices.user_id": { reason: "dedupe claim for a refund notice, service role only; the notice is in the exported notifications and the refund in payment_refunds" },
   "backout_notices.user_id": { reason: "UI state for the Needs You banner: whether a back-out notice was seen; the same news is in the exported notifications" },
   // 2026-10-09: the "Louisiana Helpr Team" thread key. Every such row has its
   // user as sender (their reply) or receiver (staff's message), so the

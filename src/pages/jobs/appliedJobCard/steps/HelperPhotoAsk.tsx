@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Job } from "../../../../components/job-card/activityConstants";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
+import { photoProofRequired, primaryPhotoAsk } from "@/components/job-card/primaryPhotoAsk";
 
 /**
  * ONE photo ask, belonging to the step the card is on — AS A CONTROL ON THE
@@ -89,7 +90,7 @@ export function HelperPhotoAsk({
   // today's behaviour — and the migration that adds the column patches the
   // completion trigger in the same file, so the ask can never be hidden on a
   // database whose gate would still refuse the completion.
-  const proofRequired = ((job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true) !== false;
+  const proofRequired = photoProofRequired(job);
 
   // READ THE JOB BACK AFTER AN UPLOAD — do not wait for realtime to do it.
   //
@@ -187,11 +188,9 @@ export function HelperPhotoAsk({
       />
     </JobStepRowSlot>
   );
-  const primaryAsk: "before" | "after" | null =
-    crew ? null
-      : step === "working" && afterUrls.length === 0 ? "after"
-        : step === "on_site" && beforeUrls.length === 0 ? "before"
-          : null;
+  // The same rule the collapsed line reads (primaryPhotoAsk.ts), so the two
+  // never name different steps.
+  const primaryAsk = primaryPhotoAsk({ crew, step, beforeCount: beforeUrls.length, afterCount: afterUrls.length });
   if (mode === "primary") return primaryAsk ? primary(primaryAsk) : null;
   if (primaryAsk) return null;
   if (step === "working") {

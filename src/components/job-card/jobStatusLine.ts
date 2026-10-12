@@ -11,6 +11,7 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
+import { beforePhotoIsThePrimary } from "./primaryPhotoAsk";
 import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
@@ -628,6 +629,7 @@ export type HelperWait =
   | "confirm_day"
   | "today"
   | "on_the_way"
+  | "before_photo"
   | "working"
   | "submitted"
   | "revision"
@@ -635,6 +637,7 @@ export type HelperWait =
   | "overdue_not_started"
   | "overdue_not_arrived"
   | "overdue_unfinished"
+  | "overdue_before_photo"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -680,6 +683,10 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      word over the two things a Helpr is mid-way through doing. Both are
      unambiguously theirs to finish whatever the calendar says. */
   on_the_way: { detail: "You're on the way", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  /* Arrived, and the owed before photo is the card's primary ("Take Before
+     Photo", primaryPhotoAsk.ts): the line names that step, not the finish
+     (seed job 90aa6c8b at 375, 2026-10-12, read "Finish and mark it done"). */
+  before_photo: { detail: "Take the before photo", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   working: { detail: "Finish and mark it done", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   submitted: { detail: "With them for approval" },
   /* The poster's note, when there is one, follows as the line's `suffix`. */
@@ -696,6 +703,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   overdue_not_started: { detail: "Day passed — On My Way or cancel" },
   overdue_not_arrived: { detail: "Day passed — tap I've Arrived" },
   overdue_unfinished: { detail: "Day passed — finish and mark it done" },
+  /* Past the day, at the job, and the before photo is still the primary. */
+  overdue_before_photo: { detail: "Day passed — take the before photo" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
   ...problemCopy(),
@@ -752,6 +761,8 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       if (job.helper_completed_at && !job.poster_completed_at) return "submitted";
       if (jobIsOverdue(job)) return helperOverdue(job);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
+      // The expanded card's primary is the before photo: say so (primaryPhotoAsk.ts).
+      if (beforePhotoIsThePrimary(job)) return "before_photo";
       return "working";
     case "open":
     case "accepted": {
@@ -784,7 +795,7 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
  * does), and the move owed is the same: finish and mark it done.
  */
 function helperOverdue(job: Job): HelperWait {
-  if (job.helper_arrived_at) return "overdue_unfinished";
+  if (job.helper_arrived_at) return beforePhotoIsThePrimary(job) ? "overdue_before_photo" : "overdue_unfinished";
   if (job.helper_on_the_way_at) return "overdue_not_arrived";
   return job.status === "in_progress" ? "overdue_unfinished" : "overdue_not_started";
 }

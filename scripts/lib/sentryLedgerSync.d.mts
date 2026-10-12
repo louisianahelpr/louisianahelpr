@@ -11,3 +11,8 @@ export function sentryIssueToAlert(i: SentryIssueLike): {
   sampleRef: { sentry_id?: string; short_id: string | null; url?: string; sentry_status: string; sentry_substatus: string | null };
   seenAt?: string;
 };
+export function sentryIssueTagUrl(org: string, issueId: string, key?: string, base?: string): string;
+export function realOccurrenceAt(
+  tag: { topValues?: Array<{ value?: string; lastSeen?: string }> } | null | undefined,
+  fallback: string | undefined,
+): string | null;

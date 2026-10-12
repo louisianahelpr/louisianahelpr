@@ -107,7 +107,6 @@
     "mark_applications_viewed(uuid)": "client",
     "mark_helper_arrival(uuid, numeric, numeric)": "client",
     "my_credential_tier()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view; answers for auth.uid() only.",
-    "my_schedule_clashes()": "client",
     "nudge_confirm(uuid)": "client",
     "offer_series_dates(uuid, uuid)": "client",
     "poster_cancel_job(uuid, text)": "client",

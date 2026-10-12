@@ -123,9 +123,6 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:mark_helper_arrival": { uncovered: GAP("the 02-marketplace day-of ladder and settleForward (mark_helper_arrival)") },
   "sql:notify_helper_application_viewed": { uncovered: GAP("02-marketplace J3 (the poster opens the applicant)") },
   "sql:notify_helper_on_direct_offer": { driven: { spec: NOTIF, evidence: "type=eq.new_offers" } },
-  "sql:notify_helpr_of_booking_clash": {
-    uncovered: "Q1326: fires when the test Helpr is hired for two funded journey jobs at overlapping times; no journey books two at once (asserted in src/test/pglite/helprDoubleBookingNotice.pglite.mjs). Not sent when a CREW job is moved (crew jobs leave jobs.helper_id NULL; the card notice still shows it) — GAP",
-  },
   "sql:notify_helper_on_tip": { driven: { spec: MONEY, evidence: "type=eq.financial_alerts" } },
   "sql:notify_message_recipient": { driven: { spec: NOTIF, evidence: "type=eq.message" } },
   "sql:notify_on_application": { driven: { spec: MARKET, evidence: "poster gets a notification for the application" } },

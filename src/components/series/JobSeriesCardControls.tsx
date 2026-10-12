@@ -3,7 +3,6 @@ import { RefreshCw } from "lucide-react";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
-import { ScheduleClashNotice } from "@/components/job-card/ScheduleClashNotice";
 import { formatRecurrenceInterval, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -118,19 +117,14 @@ export function ScheduleChangeForJob({
   hideAsk?: boolean;
 }) {
   if (!userId) return null;
-  // Q1326 (owner, 2026-10-12): the Helpr's double booking is said on the card,
-  // collapsed or not, whatever the date-change rule below allows.
-  const clash = viewer === "helper" ? <ScheduleClashNotice job={job} /> : null;
-  if (!expanded && !(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me) return clash;
+  if (!expanded && !(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me) return null;
   // The details-change request ("Ask to change the details") is gone (owner,
   // 2026-10-08: "delete ask to change the details"); only the date/time ask remains.
-  if (!scheduleChangeAllowed(job, userId, viewer)) return clash;
+  if (!scheduleChangeAllowed(job, userId, viewer)) return null;
   // COLLAPSED, only a request waiting on THIS person shows, with its Accept /
   // Decline (owner, 2026-10-08, Q1551: "if they didn't click into the job to
   // open it they have no way of knowing they asked for a different time").
   return (
-    <>
-      {clash}
         <ScheduleChangeControl
           jobId={job.id}
           jobTitle={job.title}
@@ -140,7 +134,6 @@ export function ScheduleChangeForJob({
           hideAsk={hideAsk || !expanded}
           askedOfMeOnly={!expanded}
         />
-    </>
   );
 }
 

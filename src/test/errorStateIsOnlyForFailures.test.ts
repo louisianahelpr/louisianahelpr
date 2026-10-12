@@ -14,7 +14,7 @@
  * must read as a failure, and an ErrorState with no title gets the default
  * "We couldn't load this." Inventory: every <ErrorState in tracked src/*.tsx.
  */
-// @mutate src/components/dashboard/BrowseTasksFeed.tsx | <EmptyState icon={Bookmark} | <ErrorState
+// @mutate src/components/dashboard/SavedOnlyState.tsx | <EmptyState icon={Bookmark} | <ErrorState
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

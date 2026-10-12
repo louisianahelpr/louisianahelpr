@@ -115,11 +115,13 @@ export function useDashboardSideQueries({ userId, allJobs }: UseDashboardSideQue
   return {
     upcomingJob,
     savedJobIds,
-    // Failed with nothing read yet. After one good read a later failed refetch
-    // keeps that data, which is still the viewer's real saved list.
-    savedJobsLoadFailed: savedJobsError && savedJobsData === undefined,
-    retrySavedJobs: () => { void refetchSavedJobs(); },
-    savedJobsRetrying: savedJobsFetching === true,
+    savedRead: {
+      // Failed with nothing read yet. After one good read a later failed
+      // refetch keeps that data, which is still the viewer's real saved list.
+      failed: savedJobsError && savedJobsData === undefined,
+      retry: () => { void refetchSavedJobs(); },
+      retrying: savedJobsFetching === true,
+    },
     setSavedJobIds,
     dismissedJobIds,
     setDismissedJobIds,

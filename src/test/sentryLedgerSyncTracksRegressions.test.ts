@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import {
   SENTRY_SYNC_QUERY,
+  realOccurrenceAt,
+  sentryIssueTagUrl,
   sentryIssueToAlert,
   sentryIssuesUrl,
   sentryReadToken,
@@ -31,6 +33,10 @@ import {
 // @mutate scripts/lib/sentryLedgerSync.mjs |   return env.SENTRY_READ_TOKEN \|\| env.SENTRY_AUTH_TOKEN \|\| ""; |   return env.SENTRY_AUTH_TOKEN \|\| "";
 // @mutate scripts/lib/sentryLedgerSync.mjs |     seenAt: i?.lastSeen, |     seenAt: undefined,
 // @mutate scripts/ops-alert-ledger.mjs |       const res = await fetch(sentryIssuesUrl(so, sp), { |       const res = await fetch(`https://sentry.io/api/0/projects/${so}/${sp}/issues/?query=is:unresolved`, {
+// Q1604: an automated browser's event must never become the occurrence.
+// @mutate scripts/lib/sentryLedgerSync.mjs |     if (String(v?.value) === "true") continue; |     if (String(v?.value) === "never") continue;
+// @mutate scripts/ops-alert-ledger.mjs |         if (seenAt === null) { automatedOnly++; continue; } |         if (seenAt === "never") { automatedOnly++; continue; }
+// @mutate scripts/ops-alert-ledger.mjs |         await recordOpsAlert({ ...sentryIssueToAlert(i), seenAt }); |         await recordOpsAlert(sentryIssueToAlert(i));
 // @mutate .github/workflows/prod-errors.yml |           SENTRY_READ_TOKEN: ${{ secrets.SENTRY_READ_TOKEN }} |           SENTRY_READ_TOKEN: ""
 
 const ROOT = join(__dirname, "..", "..");
@@ -79,12 +85,51 @@ describe("Sentry -> ledger sync tracks regressions from Sentry's own status (Q11
     const sync = blankComments(readFileSync(join(ROOT, "scripts/ops-alert-ledger.mjs"), "utf8"));
     expect(sync.match(/sentry/gi)?.length ?? 0).toBeGreaterThan(3);
     expect(sync).not.toMatch(/is:unresolved/);
-    for (const fn of ["sentryReadToken(process.env)", "sentryIssuesUrl(so, sp)", "recordOpsAlert(sentryIssueToAlert(i))"]) {
+    for (const fn of ["sentryReadToken(process.env)", "sentryIssuesUrl(so, sp)", "realOccurrenceAt(tag, i.lastSeen)", "sentryIssueTagUrl(so, i.id)", "recordOpsAlert({ ...sentryIssueToAlert(i), seenAt })", "if (seenAt === null) { automatedOnly++; continue; }"]) {
       expect(sync, fn).toContain(fn);
     }
     const wf = readFileSync(join(ROOT, ".github/workflows/prod-errors.yml"), "utf8")
       .split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
     const step = wf.slice(wf.indexOf("- name: Sync, verify, list"));
     expect(step.slice(0, step.indexOf("run:"))).toMatch(/SENTRY_READ_TOKEN:\s*\$\{\{\s*secrets\.SENTRY_READ_TOKEN\s*\}\}/);
+  });
+});
+
+// JAVASCRIPT-1V's `automated` tag as Sentry answered it on 2026-10-12 (the
+// Sentry MCP's get_issue_tag_values): 39 untagged events from the 09-13
+// journeys, 4 automated ZIP 99999 posts, 1 real guest typing 40560 at signup.
+const JAVASCRIPT_1V_AUTOMATED = {
+  key: "automated",
+  totalValues: 44,
+  topValues: [
+    { value: "", count: 39, lastSeen: "2026-09-13T05:09:28Z" },
+    { value: "true", count: 4, lastSeen: "2026-10-09T02:07:27Z" },
+    { value: "false", count: 1, lastSeen: "2026-10-09T00:55:36Z" },
+  ],
+};
+
+describe("an automated browser never reopens a ledger item (Q1604)", () => {
+  it("the occurrence is the newest NON-automated event, not the issue's lastSeen", () => {
+    expect(realOccurrenceAt(JAVASCRIPT_1V_AUTOMATED, "2026-10-09T02:07:27Z")).toBe("2026-10-09T00:55:36Z");
+  });
+
+  it("an issue only automated browsers sent is not an occurrence at all", () => {
+    const onlyBots = { topValues: [{ value: "true", count: 4, lastSeen: "2026-10-09T02:07:27Z" }] };
+    expect(realOccurrenceAt(onlyBots, "2026-10-09T02:07:27Z")).toBeNull();
+  });
+
+  it("untagged events (from before the tag existed) count as real", () => {
+    const old = { topValues: [{ value: "", count: 3, lastSeen: "2026-09-13T05:09:28Z" }, { value: "true", count: 1, lastSeen: "2026-10-09T02:07:27Z" }] };
+    expect(realOccurrenceAt(old, "2026-10-09T02:07:27Z")).toBe("2026-09-13T05:09:28Z");
+  });
+
+  it("an unreadable tag answer never hides an alert: the issue's own lastSeen stands", () => {
+    for (const bad of [null, undefined, {}, { topValues: [] }, { topValues: [{ value: "false" }] }]) {
+      expect(realOccurrenceAt(bad as never, "2026-10-09T02:07:27Z")).toBe("2026-10-09T02:07:27Z");
+    }
+  });
+
+  it("asks the issue's own tag endpoint", () => {
+    expect(sentryIssueTagUrl("helpr-4m", "6602326865")).toBe("https://sentry.io/api/0/organizations/helpr-4m/issues/6602326865/tags/automated/");
   });
 });

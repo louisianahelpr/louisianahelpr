@@ -63,11 +63,30 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/stranded-work.mjs --remote --check --no-fetch
 
+  # Owner, 2026-10-12: a disabled bot workflow is silent (no run, no red).
+  # Every workflow on REQUIRED_ACTIVE (scripts/lib/requiredActiveWorkflows.mjs)
+  # must read `active`; staleness-watch.yml runs the same check, so disabling
+  # one watcher is caught by the other. Guard: src/test/requiredActiveWorkflows.test.ts.
+  workflows-active:
+    name: No required workflow is disabled
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every required workflow reads active (REST)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-workflows-active.mjs
+
   # A red scheduled run files/updates one nightly-red issue (closed on the next
   # green). Push runs are already reported by main-red-watch.
   notify:
     name: Report nightly result
-    needs: [prune, stranded]
+    needs: [prune, stranded, workflows-active]
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -81,6 +100,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: branch-prune
-          status: ${{ (needs.prune.result == 'success' && needs.stranded.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.prune.result == 'success' && needs.stranded.result == 'success' && needs.workflows-active.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

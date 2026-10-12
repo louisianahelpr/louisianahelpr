@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { effectiveDefs } from "../../../test/helpers/effectiveFunctionDefs";
 import { trackedFiles } from "../../../test/helpers/trackedFiles";
-import { blankComments } from "../../../test/helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "../../../test/helpers/blankNonCode";
 import { filterAndSortProfiles, getTabCounts, isTestAccount } from "./useAdminUsersFilter";
 import type { Profile } from "../adminUserHelpers";
 
@@ -23,6 +24,10 @@ import type { Profile } from "../adminUserHelpers";
 // @mutate src/pages/admin/Admin.tsx | supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false), | supabase.from("profiles").select("id", { count: "exact", head: true }),
 // @mutate src/components/admin/adminHealth/useHealthData.ts | await supabase.from("jobs").select("id, parish, created_at").eq("status", "open").eq("is_seed", false), | await supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
 // @mutate src/components/admin/adminHealth/useHealthData.ts |               .eq("email_verified", true)\n              .eq("is_seed", false), |               .eq("email_verified", true),
+// Q1692: the fill rate (get_fill_rate_stats, the admin Health screen's other RPC).
+// @mutate supabase/migrations/20261012201528_fill_rate_leaves_test_jobs_out.sql |       AND NOT COALESCE(j.is_seed, false)\n |       AND true\n
+// @mutate supabase/migrations/20261012201528_fill_rate_leaves_test_jobs_out.sql |       AND NOT EXISTS (SELECT 1 FROM profiles hp WHERE hp.user_id = ja.helper_id AND hp.is_seed IS TRUE) |       AND true
+// @mutate supabase/migrations/20261012201528_fill_rate_leaves_test_jobs_out.sql |       AND public.has_role((SELECT auth.uid()), 'admin')\n |       AND true\n
 //   4. (Q1592) the Health screen's marketplace numbers (supply by parish, the
 //      week's jobs, time to first application): every jobs/profiles read in
 //      useHealthData.ts.
@@ -146,5 +151,21 @@ describe("the Health screen's marketplace numbers leave test rows out (Q1592)", 
   it("each jobs/profiles read filters is_seed = false", () => {
     const bad = chains.filter((c) => !/\.eq\(\s*["']is_seed["']\s*,\s*false\s*\)/.test(c)).map((c) => c.replace(/\s+/g, " "));
     expect(bad).toEqual([]);
+  });
+});
+
+describe("the Health screen's fill rate leaves test rows out, and is admin-only (Q1692)", () => {
+  const defs = effectiveDefs(join(REPO, "supabase/migrations"));
+  const body = blankSqlComments(defs.get("get_fill_rate_stats")?.stmt ?? "").replace(/\s+/g, " ");
+
+  it("reads the real definition (floor)", () => {
+    expect(defs.size).toBeGreaterThan(400);
+    expect(body).toContain("FROM jobs j LEFT JOIN applications ja");
+  });
+
+  it("no test job, no test applicant, and only an admin gets numbers", () => {
+    expect(body).toContain("AND NOT COALESCE(j.is_seed, false)");
+    expect(body).toContain("AND NOT EXISTS (SELECT 1 FROM profiles hp WHERE hp.user_id = ja.helper_id AND hp.is_seed IS TRUE)");
+    expect(body).toContain("AND public.has_role((SELECT auth.uid()), 'admin')");
   });
 });

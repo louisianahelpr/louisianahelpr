@@ -21,7 +21,7 @@ import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyStat
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
-import { ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
+import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 // Card-matching skeleton — mirrors the actual ConversationRow shape
 // (avatar + name/job/last-msg lines + timestamp + unread dot) so the
 // loading→loaded swap doesn't shift the row. See task #121.
@@ -1198,14 +1198,19 @@ export function ConversationList({
                actions gap by one step below 360 buys the four pixels back.
                375 and up are untouched, so the row stays pixel-identical to My
                Posts / My Jobs at every width a shipping phone actually has. */
-            className={`shrink-0 max-[359px]:gap-2 ${embedded ? "px-4" : ""}`}
+            /* Desktop website (not the split-pane embed): My Posts / My Jobs'
+               compact row, `[&>div:first-child]:!py-0` + COMPACT_HEADER_ROW_MIN_HEIGHT
+               (PostsHeader's inlineFilters). Without them this row was 40px
+               inside a 49px bar where theirs is 34 inside 43 (Q1558, measured
+               on a local build 2026-10-12). */
+            className={`shrink-0 max-[359px]:gap-2 ${embedded ? "px-4" : ""} ${isWebDesktop && !embedded ? "[&>div:first-child]:!py-0" : ""}`}
             style={{
               // The 52px floor is an IN-PANEL toolbar measure: it keeps the row
               // off the list under it. In the title card the card's own padding
               // governs the height and ScreenHeaderRow's own 44px floor carries
               // the controls — keeping 52 there made this card 6pt taller than
               // the identical card on My Posts, measured on device.
-              minHeight: embedded ? "52px" : undefined,
+              minHeight: embedded ? "52px" : isWebDesktop ? COMPACT_HEADER_ROW_MIN_HEIGHT : undefined,
               borderBottom: embedded ? "1px solid hsl(var(--olivewood) / 0.1)" : undefined,
             }}
             meta={rowTakeover ? undefined : headerMeta}

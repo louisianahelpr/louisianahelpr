@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Visual variant:
@@ -81,6 +82,10 @@ interface EmptyStateProps {
 
 /** The body lines every main-tab empty page (Home, My Posts, My Jobs, Messages) reserves. */
 export const MAIN_TAB_EMPTY_BODY_LINES = 3;
+
+/** min-height = --body-lines lines of a leading-relaxed (1.625) paragraph; one more line below 360px. */
+export const EMPTY_BODY_RESERVE_CLASS =
+  "min-h-[calc(var(--body-lines)*1.625em)] max-[359px]:min-h-[calc((var(--body-lines)_+_1)*1.625em)]";
 
 /**
  * EmptyState — the shared "nothing here yet" card used across the
@@ -264,12 +269,17 @@ export function EmptyState({
             </p>
           )}
           <p
-            className="font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
+            className={cn(
+              "font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words",
+              // leading-relaxed is 1.625: N lines of this paragraph, and one more
+              // below 360px, where the longest main-tab sentence (My Posts') wraps
+              // to 4 lines (measured at 320 on a local build, 2026-10-12).
+              bodyLines && EMPTY_BODY_RESERVE_CLASS,
+            )}
             data-body-lines={bodyLines}
             style={{
               color: "hsl(var(--olivewood) / 0.8)",
-              // leading-relaxed is 1.625: N lines of this paragraph.
-              ...(bodyLines ? { minHeight: `${(bodyLines * 1.625).toFixed(3)}em` } : {}),
+              ...(bodyLines ? ({ "--body-lines": bodyLines } as CSSProperties) : {}),
             }}
           >
             {body}

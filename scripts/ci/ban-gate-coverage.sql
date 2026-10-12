@@ -186,6 +186,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_clear_test_mode_dispute_stamp', 'admin-only (body checks has_role admin; Q1280)'),
   ('rpc_clear_test_mode_dispute_refund_stamp', 'admin-only (body checks has_role admin; Q1383)'),
   ('choose_new_social_account', 'pre-account: called signed-out (anon) before any account exists, keyed by a random choice id; a banned user has no session here (Q446)'),
+  ('rpc_admin_end_recurring_series', 'admin-only (body checks has_role admin; Q417)'),
   ('rpc_decide_dispute', 'admin-only (body checks has_role admin)'),
   ('rpc_decide_crew_dispute', 'admin-only (body checks has_role admin; Q728)'),
   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),

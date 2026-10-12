@@ -294,7 +294,9 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # heap. Guard: src/test/landVitestChangedChunks.test.ts.
   node scripts/land-vitest-changed.mjs origin/main
   # shellcheck disable=SC2086
-  npx vitest run $NAMED_TESTS \
+  # In chunks too: one process for this set ran out of node's heap on the
+  # 2026-10-12 money batch. Guard: src/test/landVitestChangedChunks.test.ts.
+  node scripts/land-vitest-changed.mjs --files $NAMED_TESTS \
     src/test/fixtureSchemaContract.test.ts \
     src/test/workflowFalseGreenShapes.test.ts \
     src/test/prodLoadQueue.test.ts \

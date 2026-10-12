@@ -47,19 +47,10 @@ export function parseListedFiles(stdout, cwd) {
   });
 }
 
-function main() {
-  const base = process.argv[2] || "origin/main";
-  const cwd = process.cwd();
-  const list = spawnSync("npx", ["vitest", "list", "--changed", base, "--filesOnly", "--json", "--passWithNoTests"], {
-    cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"],
-  });
-  if (list.status !== 0) {
-    console.error(`land-vitest-changed: vitest list --changed ${base} exited ${list.status}`);
-    process.exit(1);
-  }
-  const files = parseListedFiles(list.stdout, cwd);
+/** Run `files` CHUNK at a time; exit 1 on the first chunk that fails. */
+function runChunks(files, what, cwd) {
   const chunks = chunkFiles(files);
-  console.log(`land-vitest-changed: ${files.length} test file(s) related to ${base}..HEAD, ${chunks.length} chunk(s) of at most ${CHUNK}`);
+  console.log(`land-vitest-changed: ${files.length} ${what}, ${chunks.length} chunk(s) of at most ${CHUNK}`);
   chunks.forEach((chunk, i) => {
     console.log(`land-vitest-changed: chunk ${i + 1}/${chunks.length} (${chunk.length} files)`);
     const run = spawnSync("npx", ["vitest", "run", ...chunk], { cwd, stdio: "inherit" });
@@ -68,6 +59,27 @@ function main() {
       process.exit(1);
     }
   });
+}
+
+function main() {
+  const cwd = process.cwd();
+  // `--files a b c`: land.sh's named tests (the ones that read a changed file
+  // by path, and the repo-wide guards). One process for that set ran out of
+  // node's heap on the 2026-10-12 money batch, after the --changed set passed.
+  const at = process.argv.indexOf("--files");
+  if (at >= 0) {
+    runChunks(process.argv.slice(at + 1).filter(Boolean), "named test file(s)", cwd);
+    return;
+  }
+  const base = process.argv[2] || "origin/main";
+  const list = spawnSync("npx", ["vitest", "list", "--changed", base, "--filesOnly", "--json", "--passWithNoTests"], {
+    cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"],
+  });
+  if (list.status !== 0) {
+    console.error(`land-vitest-changed: vitest list --changed ${base} exited ${list.status}`);
+    process.exit(1);
+  }
+  runChunks(parseListedFiles(list.stdout, cwd), `test file(s) related to ${base}..HEAD`, cwd);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

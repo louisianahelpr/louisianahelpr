@@ -45,6 +45,6 @@ describe("land.sh runs the tests that read a changed file by path", () => {
     const land = readFileSync(join(ROOT, "scripts", "land.sh"), "utf8");
     const add = land.indexOf('NAMED_TESTS="$NAMED_TESTS $(node scripts/lib/landPathReaders.mjs $CHANGED_ALL');
     expect(add).toBeGreaterThan(-1);
-    expect(add).toBeLessThan(land.indexOf("npx vitest run $NAMED_TESTS"));
+    expect(add).toBeLessThan(land.indexOf("node scripts/land-vitest-changed.mjs --files $NAMED_TESTS"));
   });
 });

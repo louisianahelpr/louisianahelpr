@@ -87,7 +87,9 @@ const VIEWS: Record<string, Rule> = {
 /** A real read of is_seed — not merely the word in a type: a fetchSeedUserIds
  *  call, a select string naming the column, `select("*")` on profiles, or the
  *  shared job column list (which AdminJobs selects). */
-const RESOLVES_SEED = /fetchSeedUserIds\(\s*\w|select\(\s*["`][^"`]*\bis_seed\b|from\("profiles"\)\s*\.select\("\*"\)|^\s*"is_seed",$/m;
+// readJobsAheadOfDb("<columns>", ...) is a jobs select that retries without a column the
+// database does not have yet (src/lib/jobColumns.ts); its column list counts like select's.
+const RESOLVES_SEED = /fetchSeedUserIds\(\s*\w|(?:select|readJobsAheadOfDb)\(\s*["`][^"`]*\bis_seed\b|from\("profiles"\)\s*\.select\("\*"\)|^\s*"is_seed",$/m;
 
 /** The `case "<id>":` labels of Admin.tsx's view switch, read from source. */
 function switchCases(): string[] {

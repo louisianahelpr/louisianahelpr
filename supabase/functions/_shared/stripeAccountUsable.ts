@@ -25,7 +25,11 @@
  * function_logs 2026-09-30 10:00-12:30Z).
  */
 /** Stripe's 404 for a LIVE object requested with a TEST key. */
-const LIVE_OBJECT_UNDER_TEST_KEY = /a similar object exists in live mode, but a test mode key was used/;
+// Both of Stripe's wordings for it: the 404 for a stored object id, and the
+// 400 for an ACCOUNT ("acct_… was a livemode account … can only be used with
+// livemode keys"), the mirror of the testmode sentence matched below.
+const LIVE_OBJECT_UNDER_TEST_KEY =
+  /a similar object exists in live mode, but a test mode key was used|livemode key, and therefore can only be used with livemode keys/;
 
 export function isUnusableConnectAccountError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;

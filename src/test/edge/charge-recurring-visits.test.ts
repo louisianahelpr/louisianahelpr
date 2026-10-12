@@ -2040,6 +2040,57 @@ describe("charge-recurring-visits edge function", () => {
     expect(reasons(b)).toMatch(/could not confirm pi_late carries no refund/);
   });
 
+  // lh-money-escrow review of Q1493: a PAID row's charge with an open (or
+  // lost) chargeback is not booked on; a won dispute or a closed inquiry is.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (standing.length > 0) { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           const standing = disputes.filter((d) => d.status !== "won" && d.status !== "warning_closed"); |           const standing = disputes.filter((d) => d.status !== "won");
+  it.each(["needs_response", "under_review", "warning_needs_response", "lost"])(
+    "a PAID row whose charge carries a %s dispute is not booked, and ops is paged",
+    async (status) => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({ preflight: { rows: [paidToday] } });
+      stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status }] });
+
+      const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+      expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_late" }));
+      expect(insertedVisits()).toHaveLength(0);
+      expect(reasons(b)).toMatch(/pi_late is disputed/);
+      expect(slackAlerts.some((a) => /chargeback: not booked/.test(String((a as { title?: string }).title)))).toBe(true);
+      // The date's Helpr is told not to head out, as on the refund branch.
+      const told = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+      expect(told.length).toBeGreaterThan(0);
+    },
+  );
+
+  it.each(["won", "warning_closed"])("a PAID row whose only dispute is %s is still booked", async (status) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status }] });
+
+    await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(1);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (disputes === null) { |           if (false) {
+  it("a PAID row whose dispute state cannot be read is not booked", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [paidToday] } });
+    stripeMock.disputes.list.mockRejectedValue(new Error("stripe down"));
+
+    const b = await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(reasons(b)).toMatch(/could not confirm pi_late carries no dispute/);
+  });
+
   it("Q1266 (1) control: the narrowed run never CHARGES for today (a pending row is left alone)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -2128,6 +2179,109 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
     expect(b.errors).toBe(0);
+  });
+
+  // lh-money-escrow review: Stripe refuses a refund on a charged-back charge,
+  // so the sweep must not try one (it would page "refund by hand" daily,
+  // forever). A LOST chargeback settles; an OPEN one pages once a day; an
+  // inquiry or a WON dispute refunds as before.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (chargebacks.length === 0 && lostDisputes.length > 0) { |         if (false) {
+  it("the sweep settles an unbooked paid visit whose chargeback was LOST, and refunds nothing", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "lost", amount: 10000 }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.disputes.list).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_orphan" }));
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  // A dispute lost for PART of the payment leaves the rest owed to the payer.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (Number.isFinite(owed) && owed > 0 && lostCents + refundedCents >= owed) { |           if (Number.isFinite(owed) && owed > 0) {
+  it.each([
+    ["with nothing refunded", []],
+    ["plus a refund that still falls short", [{ id: "re_a", status: "succeeded", amount: 1000 }]],
+  ])("the sweep pages, and never settles, a chargeback lost for part of the payment %s", async (_label, refunds) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "lost", amount: 6000 }] });
+    stripeMock.refunds.list.mockResolvedValue({ data: refunds });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(reasons(b)).toMatch(/lost a chargeback for part of the payment/);
+  });
+
+  it("the sweep settles a chargeback lost for part of the payment once a refund covers the rest", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status: "lost", amount: 6000 }] });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_a", status: "succeeded", amount: 4000 }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (chargebacks.length > 0) { |         if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             oncePerDayKey: `visit-sweep-chargeback:${pi}`, |
+  it.each(["needs_response", "under_review"])("the sweep never refunds an unbooked paid visit with an OPEN %s chargeback; it pages once a day", async (status) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(reasons(b)).toMatch(/pi_orphan has an open chargeback/);
+    const page = slackAlerts.find((a) => /open chargeback/.test(String((a as { title?: string }).title))) as { oncePerDayKey?: string } | undefined;
+    expect(page?.oncePerDayKey).toBe("visit-sweep-chargeback:pi_orphan");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         const chargebacks = sweepDisputes.filter((d) => d.status === "needs_response" \|\| d.status === "under_review"); |         const chargebacks = sweepDisputes;
+  it.each(["won", "warning_needs_response", "warning_closed", "prevented"])("the sweep still refunds an unbooked paid visit whose only dispute is %s", async (status) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.disputes.list.mockResolvedValue({ data: [{ id: "dp_1", status }] });
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalled();
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (sweepDisputes === null) { |         if (false) {
+  it("the sweep refunds nothing while the disputes on an unbooked paid visit cannot be read", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.disputes.list.mockRejectedValue(new Error("stripe down"));
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(reasons(b)).toMatch(/could not read the disputes on pi_orphan/);
   });
 
   it("Q415 (e): the sweep never settles an intent only PART refunded by hand; it pages instead", async () => {

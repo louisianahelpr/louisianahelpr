@@ -893,6 +893,80 @@ serve(async (req) => {
           fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
           continue;
         }
+        // A CHARGEBACK on this charge (lh-money-escrow review): the booking
+        // step refuses a disputed paid visit, and Stripe refuses a refund on a
+        // charged-back charge, so without this the refund below would fail
+        // and page "refund by hand" every day, forever. An OPEN chargeback
+        // (needs_response / under_review) pages once a day and is left until
+        // it is decided. A LOST one returned money to the payer through their
+        // bank: when that plus the live refunds covers the whole payment the
+        // row settles as refunded; a part-lost one pages, since the rest is
+        // still owed to the payer. Any other status (won, an inquiry, one
+        // Stripe adds later) goes on to the refund logic below, which reads
+        // the live refunds itself.
+        let sweepDisputes: Stripe.Dispute[] | null = null;
+        let sweepDisputeErr = "dispute list gave no data";
+        try {
+          const d = await stripe.disputes.list({ payment_intent: pi, limit: 100 });
+          if (d && Array.isArray(d.data)) sweepDisputes = d.data;
+        } catch (e) {
+          sweepDisputeErr = caughtMessage(e);
+        }
+        if (sweepDisputes === null) {
+          fail(`visit payment ${row.id}: could not read the disputes on ${pi} (${sweepDisputeErr.slice(0, 160)}); nothing refunded, retried next run`);
+          continue;
+        }
+        const chargebacks = sweepDisputes.filter((d) => d.status === "needs_response" || d.status === "under_review");
+        const lostDisputes = sweepDisputes.filter((d) => d.status === "lost");
+        if (chargebacks.length === 0 && lostDisputes.length > 0) {
+          const lostCents = lostDisputes.reduce((sum, d) => sum + Number(d.amount ?? 0), 0);
+          let refundedCents: number | null = null;
+          let lostRefundErr = "refund list gave no data";
+          try {
+            const r = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
+            if (r && Array.isArray(r.data)) {
+              refundedCents = r.data
+                .filter((x: Stripe.Refund) => x.status !== "failed" && x.status !== "canceled")
+                .reduce((sum: number, x: Stripe.Refund) => sum + (x.amount ?? 0), 0);
+            }
+          } catch (e) {
+            lostRefundErr = caughtMessage(e);
+          }
+          if (refundedCents === null) {
+            fail(`visit payment ${row.id}: ${pi} lost a chargeback but its refunds could not be read (${lostRefundErr.slice(0, 160)}); retried next run`);
+            continue;
+          }
+          const owed = Number(row.amount_cents);
+          // An unreadable amount_cents never settles in silence.
+          if (Number.isFinite(owed) && owed > 0 && lostCents + refundedCents >= owed) {
+            (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
+            continue;
+          }
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Paid recurring visit was never booked and only part of it went back in a chargeback",
+            message:
+              `${pi} (visit on ${row.visit_date}) was never booked. The payer's bank took back $${(lostCents / 100).toFixed(2)} in a lost dispute and $${(refundedCents / 100).toFixed(2)} was refunded, of $${(owed / 100).toFixed(2)} paid. Refund the rest by hand, then mark recurring_visit_payments ${row.id} refunded.`,
+            fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
+            oncePerDayKey: `visit-sweep-part-chargeback:${pi}`,
+          });
+          fail(`visit payment ${row.id}: ${pi} lost a chargeback for part of the payment; the rest is not settled`);
+          continue;
+        }
+        if (chargebacks.length > 0) {
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Paid recurring visit was never booked and has an open chargeback",
+            message:
+              `${pi} (visit on ${row.visit_date}) was paid on-session, never booked, and the payer's bank has a dispute open on it (${chargebacks.map((d) => `${d.id} ${d.status}`).join(", ")}). Do NOT refund it: answer the dispute in Stripe. The row settles by itself once the dispute is lost; if it is won, the next run refunds it.`,
+            fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
+            oncePerDayKey: `visit-sweep-chargeback:${pi}`,
+          });
+          fail(`visit payment ${row.id}: ${pi} has an open chargeback (${chargebacks.map((d) => d.status).join(", ")}); not refunded`);
+          continue;
+        }
         const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause;
         const lessFeeCents = Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents));
         const owedCents = withholdFee ? lessFeeCents : amountCents;
@@ -1774,6 +1848,56 @@ serve(async (req) => {
             });
             fail(`series ${parent.id} ${visitDate}: intent ${intent.id} carries a refund; nothing booked`);
             (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "intent_refunded_before_booking", "held"))
+              .forEach(fail);
+            continue;
+          }
+        }
+
+        // A PAID row's charge can also carry a chargeback (lh-money-escrow
+        // review of Q1493). The payer paid on-session days ago, so a bank
+        // dispute can already be open on it, and until the visit is booked no
+        // job carries that payment for the chargeback handler to find: booking
+        // on it would pay the Helpr from money the bank is taking back. A
+        // dispute that is still open, or lost, books nothing and is paged; one
+        // we won (or an inquiry closed without a chargeback) does not stop it.
+        // An unreadable answer books nothing this run; the row stays 'paid'.
+        if (paidRow) {
+          let disputes: Stripe.Dispute[] | null = null;
+          let disputeReadErr = "dispute list gave no data";
+          try {
+            const d = await stripe.disputes.list({ payment_intent: intent.id, limit: 100 });
+            if (d && Array.isArray(d.data)) disputes = d.data;
+          } catch (e) {
+            disputeReadErr = caughtMessage(e);
+          }
+          if (disputes === null) {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Paid recurring visit held: its dispute state could not be read",
+              message:
+                `PaymentIntent ${intent.id} paid this visit, but Stripe did not say whether a chargeback is open on it, so the visit was NOT booked. The next run of the window retries; if this was the last, check the intent by hand.`,
+              fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: disputeReadErr.slice(0, 200) },
+              oncePerDayKey: `visit-dispute-unread:${intent.id}`,
+            });
+            fail(`series ${parent.id} ${visitDate}: could not confirm ${intent.id} carries no dispute before booking (${disputeReadErr.slice(0, 160)}); nothing booked, retried next run`);
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "dispute_state_unread", "held"))
+              .forEach(fail);
+            continue;
+          }
+          const standing = disputes.filter((d) => d.status !== "won" && d.status !== "warning_closed");
+          if (standing.length > 0) {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Paid recurring visit has a chargeback: not booked",
+              message:
+                `PaymentIntent ${intent.id} paid this visit, but the payer's bank has a dispute on it (${standing.map((d) => `${d.id} ${d.status}`).join(", ")}), so the visit was NOT booked. Reconcile the recurring_visit_payments row ${paidRow.id} by hand.`,
+              fields: { parentJobId: String(parent.id), visitDate, intent: intent.id },
+              oncePerDayKey: `visit-disputed-before-booking:${intent.id}`,
+            });
+            fail(`series ${parent.id} ${visitDate}: intent ${intent.id} is disputed (${standing.map((d) => d.status).join(", ")}); nothing booked`);
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "intent_disputed_before_booking", "held"))
               .forEach(fail);
             continue;
           }

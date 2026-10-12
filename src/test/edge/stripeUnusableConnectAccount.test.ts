@@ -12,7 +12,10 @@
  * Stripe sent, and pins that each function routes its Stripe calls through it.
  *
  * @mutate supabase/functions/_shared/stripeAccountUsable.ts | e.code === "resource_missing" \|\|\n    /test account created with a testmode key, and therefore can only be used with testmode keys/.test(message) | e.code === "resource_missing"
- * @mutate supabase/functions/_shared/stripeAccountUsable.ts | /test account created with a testmode key, and therefore can only be used with testmode keys/ | /can only be used with (test\|live)mode keys/
+ * (Widening the testmode sentence to "(test|live)mode keys" was a mutation
+ * here; the livemode sentence now returns "not unusable" before that arm is
+ * read, so the widening changes no answer. That property is held by the
+ * LIVE_OBJECT_UNDER_TEST_KEY mutation on the account_invalid case below.)
  * @mutate supabase/functions/stripe-payouts/index.ts | if (!isUnusableConnectAccountError(stripeErr)) throw stripeErr; | throw stripeErr;
  * @mutate supabase/functions/stripe-connect/index.ts | const isStaleAccountErr = isUnusableConnectAccountError(err); | const isStaleAccountErr = err.statusCode === 404;
  */
@@ -68,6 +71,16 @@ describe("unusable Stripe Connect account is classified, never a 500 (#1582)", (
         message: "No such account: 'acct_1Test'; a similar object exists in test mode, but a live mode key was used to make this request.",
       }),
     ).toBe(true);
+  });
+
+  // Stripe's SECOND wording for the same misconfiguration (an account, not a
+  // stored object id): it stays "not unusable" whatever code Stripe attaches,
+  // never only because the code happens not to be account_invalid.
+  // @mutate supabase/functions/_shared/stripeAccountUsable.ts | was used\|livemode key, and therefore can only be used with livemode keys/; | was used/;
+  it("does NOT classify the livemode-account wording as unusable even with an account_invalid code (Q1489)", () => {
+    const liveAccount = "The account acct_1Abc was a live account created with a livemode key, and therefore can only be used with livemode keys.";
+    expect(isUnusableConnectAccountError({ statusCode: 400, code: "account_invalid", message: liveAccount })).toBe(false);
+    expect(isUnusableConnectAccountError({ code: "resource_missing", message: liveAccount })).toBe(false);
   });
 
   it("keeps the pre-existing stale-account signals", () => {

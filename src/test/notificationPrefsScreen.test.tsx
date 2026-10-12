@@ -73,7 +73,7 @@ describe("prefs screen renders a control for every row", () => {
   // at all; the only way to mute it was to mute Job Updates, which also
   // silenced real status changes on your own jobs. The switch is server-side
   // (see jobMatchPreferenceGate.test.ts) — this asserts it is reachable.
-  it("renders the Job Matches switch next to the digest it governs", async () => {
+  it("renders the Job Matches switch, push and email", async () => {
     PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByLabelText("Job Matches push")).toBeTruthy());
@@ -81,24 +81,20 @@ describe("prefs screen renders a control for every row", () => {
     // Unset in the row means ON — an existing account must not silently lose
     // matches the moment the column ships.
     expect((screen.getByLabelText("Job Matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
-    // The digest is a sub-option OF matches, so it is still offered here.
-    expect((screen.getByLabelText("Daily match digest") as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByLabelText("Job Matches email") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
   });
 
-  it("disables the Daily Match Digest when Job Matches is off", async () => {
-    // Digest = "batch my matches". With matches off there is nothing to
-    // batch, so the sub-option must read as unavailable rather than as a
-    // second, contradictory switch.
-    PREFS_ROW = { user_id: "u1", push_enabled: true, job_matches: false, quiet_start: null, quiet_end: null };
+  // Q1585 (owner, 2026-10-12): no "Daily Match Digest" choice. Every member
+  // is told about each new job unless they turn Job Matches off; the server
+  // ignores match_digest_mode (src/test/jobAlertsReachEveryMember.test.ts).
+  it("offers no daily-list choice for job matches, even with an old row that had it on", async () => {
+    PREFS_ROW = { user_id: "u1", push_enabled: true, match_digest_mode: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByLabelText("Job Matches push")).toBeTruthy());
-    expect((screen.getByLabelText("Job Matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("false");
-    expect((screen.getByLabelText("Daily match digest") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByLabelText("Daily match digest")).toBeNull();
+    expect(screen.queryByText("Daily Match Digest")).toBeNull();
   });
 });
 
-// The Daily Match Digest is a sub-option OF Job Matches. Drop the dependency
-// and it stays live with matches off — a second, contradictory switch that
-// promises to batch notifications the user has already muted.
-// (the `|` of each `||` is escaped: the directive is pipe-delimited)
-// @mutate src/components/NotificationPreferences.tsx | disabled={!loaded \|\| !prefs.push_enabled \|\| !prefs.job_matches} | disabled={!loaded \|\| !prefs.push_enabled}
+// Proof the absence check can fail: a switch labelled as the digest again.
+// @mutate src/components/NotificationPreferences.tsx | ariaLabel="Saved Helpr availability nudges" | ariaLabel="Daily match digest"

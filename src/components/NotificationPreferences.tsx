@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import {
-  Bell, CheckCircle2, Loader2, Mail, Smartphone, Lock, Moon, Send,
+  Bell, Loader2, Mail, Smartphone, Lock, Moon, Send,
 } from "lucide-react";
 import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
 import { functionErrorMessage } from "@/lib/supabaseResult";
@@ -671,8 +671,8 @@ const NotificationPreferences = () => {
               ariaLabel="Quiet hours"
               savingId="quiet_hours"
             />
-            {/* THE EM-DASH IS 0.7, NOT 0.3 — and all three copies of it in this
-                file (here, the digest row, the saved-Helpr row) moved together.
+            {/* THE EM-DASH IS 0.7, NOT 0.3 — and both copies of it in this
+                file (here and the saved-Helpr row) moved together.
                 At 0.3 it measured 1.79:1 against a 4.5:1 AA floor: the faintest
                 text in the app and, at ds-14, genuinely hard to see rather than
                 merely quiet. It is NOT exempt as decoration: it is the cell's
@@ -789,66 +789,10 @@ const NotificationPreferences = () => {
             />
           </div>
         </div>
-      {item.key === "job_matches" && (<>
-        {/* Digest mode toggle — when on, non-urgent job-match pushes are
-            batched into one daily summary instead of firing per-match.
-            Renders directly under the Job Matches row because it is a
-            delivery mode FOR that category, not a category of its own, and
-            greys out when Job Matches is off — nothing left to batch. */}
-        <div
-          className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled && prefs.job_matches ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
-          style={{
-            borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-          }}
-        >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <span
-              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.14)",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </span>
-            <div className="min-w-0">
-              <Label
-                className="font-sans font-semibold block text-ds-14 mb-0"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                Daily Match Digest
-              </Label>
-              <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
-            <SwitchSlot
-              loaded={loaded}
-              savingKey={savingKey}
-              checked={prefs.match_digest_mode}
-              onCheckedChange={() => toggle("match_digest_mode")}
-              disabled={!loaded || !prefs.push_enabled || !prefs.job_matches}
-              ariaLabel="Daily match digest"
-              savingId="match_digest_mode"
-            />
-            {/* Email column placeholder — digest is a push-only delivery
-                mode, but the dash keeps the two-column grid visually
-                honest so the row reads as "app only, intentionally". */}
-            <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
-              <span
-                className="font-sans text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                aria-hidden
-              >
-                —
-              </span>
-              <span className="sr-only">Push-only, no email version</span>
-            </div>
-          </div>
-        </div>
-        </>)}
+      {/* Q1585 (owner, 2026-10-12): the "Daily Match Digest" choice is gone.
+          Every member is told about each new job, by email too, unless they
+          switch Job Matches (or its email column) off in the row above. The
+          server ignores match_digest_mode and holds it false. */}
         </Fragment>
       ))}
 
@@ -856,7 +800,7 @@ const NotificationPreferences = () => {
           2026-09-15), OFF by default. Not one of the type-routed category
           rows above (it isn't in `notification_type_pref_map`); the
           saved-helper-availability-push cron reads this column directly.
-          Push-only, like the digest row, so it keeps the two-column grid. */}
+          Push-only, like quiet hours, so it keeps the two-column grid. */}
       <div
         className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
@@ -895,7 +839,7 @@ const NotificationPreferences = () => {
             ariaLabel="Saved Helpr availability nudges"
             savingId="saved_helper_availability"
           />
-          {/* Push-only — no email version, like the digest row. */}
+          {/* Push-only — no email version. */}
           <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
             <span
               className="font-sans text-ds-14"

@@ -81,7 +81,7 @@ function sectionSizedIn(rel: string): string[] {
 // @two-way src/test/sectionSpacingScale.test.ts:A file whose count DROPPED must lower its entry
 const ALLOWED: Record<string, { n: number; why: string }> = {
   // Horizontal gaps inside a row, not a vertical rhythm.
-  "src/components/NotificationPreferences.tsx": { n: 6, why: "gap between the per-channel toggle columns of a row (horizontal)" },
+  "src/components/NotificationPreferences.tsx": { n: 5, why: "gap between the per-channel toggle columns of a row (horizontal)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.

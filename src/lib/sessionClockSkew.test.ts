@@ -10,7 +10,7 @@
  *
  * @mutate src/lib/sessionClockSkew.ts | if (Math.abs(s.expires_at - local) <= SKEW_TOLERANCE_S) return value; | return value;
  * @mutate src/lib/sessionClockSkew.ts | if (p && typeof p.access_token === "string" && p.access_token === v?.access_token && typeof p.expires_at === "number") { | if (false) {
- * @mutate src/integrations/supabase/client.ts | storage: withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())), | storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage()),
+ * @mutate src/integrations/supabase/client.ts | const authStorage = withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage())); | const authStorage = Capacitor.isNativePlatform() ? keychainStorageAdapter : withEntryAuthHandoff(getWebAuthStorage());
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -128,6 +128,8 @@ describe("session expiry follows the device clock (Q995)", () => {
 
   it("the app's Supabase client stores sessions through the wrapper", () => {
     const src = readFileSync(join(__dirname, "..", "integrations", "supabase", "client.ts"), "utf8").replace(/\/\/.*$/gm, "");
-    expect(src).toMatch(/storage:\s*withDeviceClockExpiry\(/);
+    // The one storage object, wrapped, is what the auth client persists in.
+    expect(src).toMatch(/const authStorage = withDeviceClockExpiry\(/);
+    expect(src).toMatch(/auth:\s*\{\s*storage:\s*authStorage,/);
   });
 });

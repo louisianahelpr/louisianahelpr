@@ -33,7 +33,15 @@
  *   7. a test account (is_seed) keeps the doubt-check, no ban;
  *   8. the service-role write (complete-signup) bans too;
  *   9. the trigger function is nobody's to call, SECURITY DEFINER, pinned
- *      search_path, and it fires AFTER the doubt-check flag (name order).
+ *      search_path, and it fires AFTER the doubt-check flag (name order);
+ *  10. Q1497 (20261012065930_retained_ban_marks_doubt_row): a doubt-check
+ *      filed before this trigger existed (auto_banned false) is marked
+ *      auto_banned when complete-signup's enforce_retained_ban bans the
+ *      account on the same match, so it leaves the admin doubt-check list.
+ *      NEW_MIGRATION=skip-1497 applies 20261012042748 but not that file: RED;
+ *  11. the same file's one-time backfill marks such a row on an account that
+ *      is ALREADY banned (the function never runs for it again), and leaves
+ *      an active account's doubt-check alone.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -53,6 +61,8 @@ const ROOT = new URL("../../../", import.meta.url).pathname;
 const DIR = `${ROOT}supabase/migrations/`;
 const mig = (f) => readFileSync(DIR + f, "utf8");
 const THIS = "20261012042748_phone_change_retained_ban.sql";
+// Later migrations that redefine a function this chain runs, applied after THIS.
+const LATER_MIGS = ["20261012065930_retained_ban_marks_doubt_row.sql"];
 const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the state BEFORE ${THIS} (expect FAILs)`);
 const BEFORE_FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql") && f < THIS).sort();
@@ -117,6 +127,8 @@ const ATTACKER = U(7);
 const SEED = U(8); // a test account
 const TXN = U(9); // ban + self-unban in one transaction
 const SERVICE = U(10); // complete-signup's service-role write
+const LEGACY = U(11); // a doubt-check filed before the phone trigger, then complete-signup
+const STALE = U(12); // banned before 20261012065930 deployed, doubt-check left at auto_banned false
 const BANNED_NUMBER = "(504) 555-0142";
 
 const SETUP = `
@@ -196,6 +208,10 @@ if (MODE !== "skip") {
   const sql = mig(THIS);
   for (let i = 0; i < 3; i++) await db.exec(sql);
   check("migration applies 3x (replay-safe)", true);
+  if (MODE !== "skip-1497") {
+    for (const f of LATER_MIGS) for (let i = 0; i < 3; i++) await db.exec(mig(f));
+    check(`later migrations apply 3x (replay-safe): ${LATER_MIGS.join(", ")}`, true);
+  }
 }
 
 const one = async (sql) => (await db.query(sql)).rows[0];
@@ -237,7 +253,9 @@ await db.exec(`INSERT INTO public.profiles (user_id, email, phone, ban_status, i
   ${row(ATTACKER, "attacker@example.com")},
   ${row(SEED, "seed@example.com", null, true)},
   ${row(TXN, "txn@example.com")},
-  ${row(SERVICE, "service@example.com")};`);
+  ${row(SERVICE, "service@example.com")},
+  ${row(LEGACY, "legacy@example.com")},
+  ${row(STALE, "stale@example.com")};`);
 
 // The original is banned the way admin-user-actions bans (service role), so
 // trg_retain_ban_on_ban retains its exact number.
@@ -320,6 +338,41 @@ check("7. a test account (is_seed) is not auto-banned", s7.ban_status === "activ
 const r8 = await as("service_role", null, `UPDATE public.profiles SET phone = '${BANNED_NUMBER}' WHERE user_id = '${SERVICE}' RETURNING user_id`);
 const s8 = await state(SERVICE);
 check("8. a service-role phone write of the exact number bans as well", r8.ok && BANNED.includes(s8.ban_status), r8.error ?? JSON.stringify(s8));
+
+// 10. Q1497: a doubt-check row filed before 20261012042748 (exact 'phone',
+// auto_banned false), then complete-signup runs enforce_retained_ban on the
+// same match (service role, phone from the request body).
+await db.exec(`INSERT INTO public.ban_evasion_matches (user_id, matched_on, match_sha256, retained_ban_id, auto_banned)
+  SELECT '${LEGACY}', 'phone', r.phone_sha256, r.id, false FROM public.retained_bans r
+   WHERE r.phone_sha256 = public.ban_fingerprint('phone', public.normalize_phone_for_ban('${BANNED_NUMBER}'))`);
+const s10before = await state(LEGACY);
+const r10 = await as("service_role", null,
+  `SELECT public.enforce_retained_ban('${LEGACY}', 'legacy@example.com', '${BANNED_NUMBER}', NULL) AS res`);
+const s10 = await state(LEGACY);
+check("10. setup: the legacy account is active with an exact-phone doubt-check", s10before.ban_status === "active" && s10before.flag_exact === 1,
+  JSON.stringify(s10before));
+check("10. complete-signup's enforce_retained_ban bans it", r10.ok && BANNED.includes(s10.ban_status) && s10.bans === 1, r10.error ?? JSON.stringify(s10));
+check("10. ...and its doubt-check becomes the ban's record (auto_banned, off the admin doubt-check list)",
+  s10.flag_exact === 0 && s10.auto_rows === 1, JSON.stringify(s10));
+
+// 11. The backfill: an account banned by the retained ban before this
+// migration deployed, whose doubt-check DO NOTHING left at false. Recreate
+// that state (ban, then put the row back to false), then deploy the file
+// once more, as db-deploy would onto prod.
+await db.exec(`INSERT INTO public.ban_evasion_matches (user_id, matched_on, match_sha256, retained_ban_id, auto_banned)
+  SELECT '${STALE}', 'phone', r.phone_sha256, r.id, false FROM public.retained_bans r
+   WHERE r.phone_sha256 = public.ban_fingerprint('phone', public.normalize_phone_for_ban('${BANNED_NUMBER}'))`);
+await as("service_role", null, `SELECT public.enforce_retained_ban('${STALE}', 'stale@example.com', '${BANNED_NUMBER}', NULL)`);
+await db.exec(`UPDATE public.ban_evasion_matches SET auto_banned = false WHERE user_id = '${STALE}'`);
+const s11before = await state(STALE);
+const s7before = await state(SEED);
+if (MODE === "") await db.exec(mig(LATER_MIGS[0]));
+const s11 = await state(STALE);
+const s7after = await state(SEED);
+check("11. setup: a banned account still listed as a doubt-check", BANNED.includes(s11before.ban_status) && s11before.flag_exact === 1, JSON.stringify(s11before));
+check("11. the backfill marks its doubt-check as the ban's record", s11.flag_exact === 0 && s11.auto_rows === 1, JSON.stringify(s11));
+check("11. ...and leaves an ACTIVE account's doubt-check on the list", s7before.flag_exact === 1 && s7after.flag_exact === 1 && s7after.auto_rows === 0,
+  JSON.stringify({ s7before, s7after }));
 
 // 9. Grants.
 if (MODE !== "skip") {

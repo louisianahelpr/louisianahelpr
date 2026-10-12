@@ -49,7 +49,6 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
  */
 // @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
 const NOT_FROM_A_REVIEW: Record<string, string> = {
-  Q1495: "an owner decision the money-b lane found while building Q1416 (a later phone change to a banned number), not a reviewer's finding",
   Q1496: "seen by the money-b lane while fixing Q1413, not a reviewer's finding",
   Q1690: "found by the lane closing Q1511, not a reviewer's finding; its text says the lh-silent-failure review narrowed the fix",
 };

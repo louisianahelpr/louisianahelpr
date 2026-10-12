@@ -30,6 +30,7 @@ import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobAc
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { CREW_ACCEPT_COPY } from "./crewAcceptCopy";
 import { AwardGateDialog } from "@/components/AwardGateDialog";
 import { reasonFromMissing, type AcceptMissing } from "@/lib/awardGate";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -170,13 +171,13 @@ export function CrewMemberSection({
   };
 
   const onConfirm = () =>
-    run("confirm", "We couldn't confirm your spot. Please try again.", async () => {
+    run("confirm", CREW_ACCEPT_COPY.failed, async () => {
       const r = await confirmCrewSpot(app.job_id);
       if ("pendingMissing" in r) {
         setSetupMissing(r.pendingMissing);
         return null;
       }
-      return "You're confirmed for this crew.";
+      return CREW_ACCEPT_COPY.accepted;
     });
   const onSetOut = () =>
     run("onTheWay", "We couldn't mark you on the way. Please try again.", async () => {
@@ -298,7 +299,7 @@ export function CrewMemberSection({
 
   const primary =
     step === "confirm" ? (
-      <JobStepPrimaryButton icon={CheckCircle2} label={busy ? "…" : "Confirm My Spot"} onClick={onConfirm} disabled={busy} />
+      <JobStepPrimaryButton icon={CheckCircle2} label={busy ? "…" : CREW_ACCEPT_COPY.button} onClick={onConfirm} disabled={busy} />
     ) : step === "set_out" ? (
       <JobStepPrimaryButton icon={Truck} label={busy ? "…" : "I'm On My Way"} onClick={onSetOut} disabled={busy} />
     ) : step === "arrive" ? (
@@ -315,9 +316,9 @@ export function CrewMemberSection({
     ) : null;
 
   const STATUS: Record<CrewMemberStep, string> = {
-    confirm: "Confirm you'll be there so the person who posted this job knows their crew is set.",
-    waiting_for_crew: "You're confirmed. You can head out once every spot on the crew is filled.",
-    set_out: "You're confirmed. Tap I'm On My Way when you head out.",
+    confirm: CREW_ACCEPT_COPY.hint,
+    waiting_for_crew: CREW_ACCEPT_COPY.onCrewWaiting,
+    set_out: CREW_ACCEPT_COPY.onCrewSetOut,
     arrive: "You're on your way. Tap I've Arrived when you get there.",
     awaiting_poster:
       'You\'re checked in. The person who posted this job now taps "Confirm They Arrived" for you, then you can finish your part.',
@@ -392,7 +393,7 @@ export function CrewMemberSection({
                 ? undefined
                 : {
                     icon: CalendarX2,
-                    text: `Leaving a crew you confirmed within 24 hours of the start counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`,
+                    text: `${CREW_ACCEPT_COPY.lateLeaveStrike} — ${RELIABILITY_LADDER_SENTENCE}.`,
                   }
             }
             primaryLabel={busy ? "Leaving…" : step === "confirm" ? "Turn Down" : "Leave Crew"}

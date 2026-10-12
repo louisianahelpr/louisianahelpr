@@ -187,21 +187,21 @@ export const RPC_ERROR_COPY = {
   },
   // CrewMemberSection — a crew member's own steps on their roster row (Q1382).
   rpc_group_member_confirm: {
-    not_authenticated: "Sign in again to confirm your spot.",
+    not_authenticated: "Sign in again to accept your spot.",
     not_on_this_crew: "You're not on this job's crew any more.",
-    job_not_confirmable: "This job isn't live any more, so your spot can't be confirmed. Pull to refresh.",
+    job_not_confirmable: "This job isn't live any more, so your spot can't be accepted. Pull to refresh.",
   },
   rpc_group_member_on_the_way: {
     not_authenticated: "Sign in again to update your status.",
     not_on_this_crew: NO_LONGER_BOOKED_STATUS,
     job_not_active: "You can head out once every spot on the crew is filled and the job is booked.",
-    helper_not_confirmed: "Confirm your spot first, then mark yourself on the way.",
+    helper_not_confirmed: "Accept your spot first, then mark yourself on the way.",
   },
   rpc_group_member_mark_arrival: {
     not_authenticated: "Sign in again to check in.",
     not_on_this_crew: NO_LONGER_BOOKED_STATUS,
     job_not_active: "You can check in once every spot on the crew is filled and the job is booked.",
-    helper_not_confirmed: "Confirm your spot first, then check in.",
+    helper_not_confirmed: "Accept your spot first, then check in.",
   },
   rpc_group_member_mark_done: {
     not_authenticated: "Sign in again to mark your part done.",
@@ -366,7 +366,7 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_the_assigned_helper: NO_LONGER_BOOKED_STATUS,
     job_not_active: JOB_NOT_ACTIVE_STATUS,
-    helper_not_confirmed: "Confirm this booking first, then mark yourself on the way.",
+    helper_not_confirmed: "Accept this job first, then mark yourself on the way.",
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
     helper_not_dayof_confirmed: "Tap \"Confirm You'll Be at the Job\" first, then you can head out.",
     on_the_way_too_early: "I'm On My Way turns on 2 hours before the job starts.",

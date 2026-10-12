@@ -273,6 +273,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/lib/landRebaseResolve.mjs": "land.sh only, mid-rebase: writes the resolved docs/OPEN.md, archive, generated file (main's copy, regenerated after the rebase) or count constant into the replayed commit, and the git-internal record .git/land-recount.json; not an inventory with output to re-derive",
   "scripts/lib/landRecount.mjs": "land.sh only, after the rebase: writes the value an exact-count guard measured into that guard's constant, which land.sh commits with the refresh; the guard itself checks the number",
   "scripts/storage-backup.mjs": "Q147: downloaded storage files + manifest.json into the db-backup runner's out/storage (encrypted into the CI artifact, never a repo file)",
+  "scripts/backup-coverage.mjs": "#2668: prod row counts (counts-before.json / counts-after.json) on the db-backup runner, read by its verify step; never a repo file",
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
   "scripts/open-renumber.mjs": "one-shot fix-up run by land.sh after the rebase: renames the branch's copy of a Q number that origin/main already uses, in docs/OPEN.md and the archives, and land.sh commits that. Not an inventory with output to re-derive; a duplicate left behind is caught by duplicateIds in queueItemsNameTheirGuard.test.ts",

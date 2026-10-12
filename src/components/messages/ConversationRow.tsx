@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { BellOff, Check } from "lucide-react";
 import { PinnedChip } from "./PinnedChip";
 import {
@@ -11,6 +11,7 @@ import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import UserAvatar from "@/components/UserAvatar";
 import type { Conversation } from "./types";
+import { rowAge } from "./rowAge";
 
 interface ConversationRowProps {
   convo: Conversation;
@@ -34,6 +35,10 @@ interface ConversationRowProps {
   onToggleSelect?: () => void;
   /** Pinned chip beside the timestamp (Q1090; see PinnedChip). */
   pinned?: boolean;
+  /** A control at the row's end (Recently Deleted's Restore), laid out IN
+   *  the row as a flex sibling so the text column shrinks around it. Q1465:
+   *  as an absolute overlay it covered the end of the job line at 375. */
+  trailing?: ReactNode;
 }
 
 /* ── THE UNREAD SIGNAL ──────────────────────────────────────────────────────
@@ -201,19 +206,9 @@ const ConversationRowBase = ({
   selected = false,
   onToggleSelect,
   pinned = false,
+  trailing,
 }: ConversationRowProps) => {
-  // Relative time so the list reads as "active", not as a stack of
-  // full dates.
-  const ageMs = Date.now() - new Date(c.lastAt).getTime();
-  const ageMin = Math.floor(ageMs / 60000);
-  const ageHr = Math.floor(ageMin / 60);
-  const ageDay = Math.floor(ageHr / 24);
-  const when =
-    ageMin < 1 ? "now" :
-    ageMin < 60 ? `${ageMin}m` :
-    ageHr < 24 ? `${ageHr}h` :
-    ageDay < 7 ? `${ageDay}d` :
-    new Date(c.lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const when = rowAge(c.lastAt);
   // Status chip — inline next to the job title. Labels come from the
   // canonical `jobStatusLabel` (#46); colors come from the canonical
   // `jobStatusColor` map (`src/lib/statusColors.ts`). Same state, same
@@ -605,6 +600,7 @@ const ConversationRowBase = ({
           </div>
         </div>
       </button>
+      {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>}
     </div>
   );
 };

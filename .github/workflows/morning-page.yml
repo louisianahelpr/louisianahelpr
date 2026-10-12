@@ -98,6 +98,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: morning-page
+          hold-for-trains: "true"
           title: "docs(morning): the morning page"
           paths: docs/morning/
           measured-dir: ${{ runner.temp }}/measured

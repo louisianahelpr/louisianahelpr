@@ -134,7 +134,12 @@ export function ScheduleChangeAskDialog({
               // min-w-0 + no native appearance: iOS gives date/time fields an
               // intrinsic width wider than half a phone dialog, so the pair
               // overlapped and ran off the edge (owner, iPhone, 2026-10-08).
-              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 bg-background text-left"
+              // With no native appearance iOS also pins the value to the top
+              // of the 44px box and centres it, ignoring text-left on the
+              // input: py-2.5 centres it vertically and the
+              // ::-webkit-date-and-time-value rule lines it up left
+              // (measured on the iOS 26.5 simulator, 2026-10-11, Q1548).
+              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 py-2.5 bg-background text-left [&::-webkit-date-and-time-value]:text-left"
             />
           </label>
           <label className="min-w-0 space-y-1 text-ds-12 text-foreground">
@@ -146,7 +151,12 @@ export function ScheduleChangeAskDialog({
               // min-w-0 + no native appearance: iOS gives date/time fields an
               // intrinsic width wider than half a phone dialog, so the pair
               // overlapped and ran off the edge (owner, iPhone, 2026-10-08).
-              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 bg-background text-left"
+              // With no native appearance iOS also pins the value to the top
+              // of the 44px box and centres it, ignoring text-left on the
+              // input: py-2.5 centres it vertically and the
+              // ::-webkit-date-and-time-value rule lines it up left
+              // (measured on the iOS 26.5 simulator, 2026-10-11, Q1548).
+              className="block w-full min-w-0 appearance-none min-h-[44px] rounded-ds-md border border-border px-3 py-2.5 bg-background text-left [&::-webkit-date-and-time-value]:text-left"
             />
           </label>
         </div>

@@ -29,6 +29,11 @@
  *      exact row can be marked enforced.
  *   4. Nobody can call the trigger function (REVOKE ... FROM PUBLIC, anon,
  *      authenticated in the migration that leaves its definition).
+ *   5. Q1497: when enforce_retained_ban bans, its match record takes over a
+ *      doubt-check already filed for the same match (ON CONFLICT ... DO UPDATE
+ *      SET auto_banned = true), so a banned account leaves the admin
+ *      doubt-check list (AdminBanEvasionReview lists auto_banned = false).
+ *      PGlite case 10; NEW_MIGRATION=skip-1497 is RED (1 FAIL).
  *
  * Behaviour (real enforce_retained_ban + prevent_self_escalation + the rest
  * of the chain, authenticated member, applied 3x):
@@ -43,6 +48,8 @@
  * @mutate supabase/migrations/20261012042748_phone_change_retained_ban.sql | REVOKE ALL ON FUNCTION public.enforce_retained_ban_on_phone() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.enforce_retained_ban_on_phone() FROM PUBLIC;
  * @mutate supabase/migrations/20261012042748_phone_change_retained_ban.sql |   IF COALESCE(NEW.is_seed, false) THEN | IF false THEN
  * @mutate supabase/migrations/20261012042748_phone_change_retained_ban.sql | SECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_full | SET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_full
+ * @mutate supabase/migrations/20261012065930_retained_ban_marks_doubt_row.sql |         DO UPDATE SET auto_banned = true\n        WHERE NOT public.ban_evasion_matches.auto_banned; |         DO NOTHING;
+ * @mutate supabase/migrations/20261012065930_retained_ban_marks_doubt_row.sql | UPDATE public.ban_evasion_matches m\n   SET auto_banned = true | UPDATE public.ban_evasion_matches m\n   SET auto_banned = m.auto_banned
  * @mutate supabase/migrations/20260923172405_retire_approval_status_reads.sql |   IF current_setting('app.trusted_ladder_write', true) = 'on' THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
  */
 import { describe, expect, it } from "vitest";
@@ -148,5 +155,17 @@ describe("Q1586/Q1495: a retained-ban phone written after sign-up bans at once",
     const pin = body.search(/NEW\.ban_status\s*:=\s*OLD\.ban_status/i);
     expect(trusted).toBeGreaterThan(-1);
     expect(pin).toBeGreaterThan(trusted);
+  });
+
+  it("Q1497: the ban's match record marks a doubt-check already filed for the same match (auto_banned)", () => {
+    const body = code("enforce_retained_ban");
+    const insert = /INSERT\s+INTO\s+public\.ban_evasion_matches[\s\S]*?;/i.exec(body);
+    expect(insert, "enforce_retained_ban no longer records its match in ban_evasion_matches").not.toBeNull();
+    expect(insert![0]).toMatch(/ON\s+CONFLICT\s*\(\s*user_id\s*,\s*matched_on\s*,\s*retained_ban_id\s*\)\s*DO\s+UPDATE\s+SET\s+auto_banned\s*=\s*true/i);
+    const src = blankSqlComments(sqlOf(stmt("enforce_retained_ban").file));
+    // The rows already stuck at false on prod: the function never runs again
+    // for an account that is already banned, so the same migration backfills them.
+    expect(src).toMatch(/UPDATE\s+public\.ban_evasion_matches\s+m\s+SET\s+auto_banned\s*=\s*true[\s\S]*?NOT\s+m\.auto_banned[\s\S]*?ban_status\s+IN/i);
+    expect(src).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.enforce_retained_ban\(uuid,\s*text,\s*text,\s*text\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated\s*;/i);
   });
 });

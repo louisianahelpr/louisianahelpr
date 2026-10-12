@@ -26,6 +26,7 @@ import path from "node:path";
 import os from "node:os";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -68,7 +69,7 @@ export function readRegistryFromMigrations(dir = MIG_DIR): { keys: Set<string>; 
   const keys = new Set<string>();
   const problems: InsertFinding[] = [];
   let inserts = 0;
-  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(fs.readFileSync(path.join(dir, file), "utf8"));
     for (const m of sql.matchAll(/INSERT\s+INTO\s+(?:public\.)?feature_switches\s*\(([^)]*)\)\s*VALUES\s*([\s\S]*?);/gi)) {
       inserts++;

@@ -2226,7 +2226,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 95,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2236,7 +2236,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 126,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2246,7 +2246,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 130,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2256,7 +2256,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 145,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2266,7 +2266,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 147,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2276,7 +2276,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 163,
+      "line": 155,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2296,7 +2296,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 190,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2306,7 +2306,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 207,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2316,7 +2316,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 209,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2326,7 +2326,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 224,
+      "line": 216,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2336,7 +2336,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 234,
+      "line": 226,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2346,7 +2346,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 249,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2356,7 +2356,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 265,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2366,7 +2366,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 308,
+      "line": 300,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2376,7 +2376,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 344,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2386,7 +2386,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 356,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2396,7 +2396,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 390,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2952,7 +2952,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 56,
+      "line": 61,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -2962,11 +2962,11 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 59,
+      "line": 64,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "userFacingError(err, \"Couldn't change that switch — nothing was changed. Try again.\")"
+        "text": "rpcErrorMessage(\"admin_set_feature_switch\", err) ?? userFacingError(err, \"Couldn't change that switch — nothing was changed. Try again.\")"
       },
       "renders": true
     },

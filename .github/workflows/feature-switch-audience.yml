@@ -10,8 +10,8 @@ name: Feature switch audience
 #
 # A monitor, not a suite (exempt from the 90-min spacing by name in
 # src/test/prodWorkflowSpacing.test.ts): one service-role read of
-# feature_switches, one user lookup + password reset, three reads of the probe's
-# role/test-account/profile rows, two sign-ins, and one feature_enabled_for call
+# feature_switches, one user lookup, three reads/writes of the probe's
+# role/test-account/profile rows, two service-role session mints, and one feature_enabled_for call
 # per switch for each of three callers, once a day.
 
 on:
@@ -31,6 +31,12 @@ jobs:
     name: Hidden switches stay hidden from an ordinary account
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # It mints a session for the shared poster account (the positive control),
+    # so it holds the shared-account lock like every job that signs one in
+    # (src/test/sharedAccountJobsHoldOneLock.test.ts, Q326).
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -48,7 +54,6 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
-          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
         run: node scripts/feature-switch-audience.mjs
 
   # A red run lands in a `nightly-red` issue (closed by the next green run).

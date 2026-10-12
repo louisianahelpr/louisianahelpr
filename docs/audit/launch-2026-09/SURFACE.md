@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 156 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
 | Toast messages | **call site** | 611 (across 156 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 21 |
+| Multi-step flows — confirmed | flow | 22 |
 | Multi-step flows — probable | flow | 16 |
 | Back/next navigation only | flow | 39 |
 | Forms (submittable) | form | 43 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 119 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 120 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **474** |
+| **Navigable surfaces** (places a person can stand) | mixed | **476** |
 | **Copy surfaces** (strings a person may read) | mixed | **649** |
-| **Total auditable surface** | mixed | **1123** |
+| **Total auditable surface** | mixed | **1125** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 156 | 130 | agree within method (script counts every menu instance) |
 | Forms | 43 | ~38 | agree |
-| Confirmed multi-step flows | 21 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 22 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -322,6 +322,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 
 | Component | Signals |
 |---|---|
+| `src/components/admin/settings/FeatureSwitchesCard.tsx` | compare |
 | `src/components/AdminRoute.tsx` | compare |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |

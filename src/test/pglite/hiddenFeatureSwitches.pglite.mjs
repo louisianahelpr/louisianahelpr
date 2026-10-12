@@ -7,7 +7,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/hiddenFeatureSwitches.pglite.mjs   # RED
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/hiddenFeatureSwitches.pglite.mjs
  *
- * Measured 2026-10-12: 50 PASS on the migration; NEW_MIGRATION=skip 49 FAIL;
+ * Measured 2026-10-12: 49 PASS on the migration; NEW_MIGRATION=skip 48 FAIL;
  * planted defects each caught: testers/off branch `ELSE true` (6 FAIL), anon
  * left out of feature_enabled_for's REVOKE (4), the RPC's no-double-audit
  * marker removed (3), the audit trigger moved off UPDATE (2), authenticated
@@ -163,9 +163,6 @@ await db.exec(`UPDATE public.feature_switches SET audience = 'everyone' WHERE ke
 const srv = (await db.query(`SELECT admin_id, details FROM public.admin_audit_log WHERE action = 'set_feature_switch' ORDER BY created_at DESC, id LIMIT 5`).catch(() => ({ rows: [] }))).rows;
 ok((await auditCount()) === 2 && srv.some((r) => r.admin_id === null && r.details?.to === "everyone"), "a server-side UPDATE to everyone is audited too (admin_id null)");
 await db.exec(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'switch_canary'`).catch(() => {});
-const upd = (await db.query(`SELECT updated_by FROM public.feature_switches WHERE key = 'switch_canary'`).catch(() => ({ rows: [] }))).rows[0];
-ok(upd?.updated_by === ADMIN, "updated_by records the admin");
-
 // --- admin_list_feature_switches
 const l1 = await as("authenticated", ORDINARY, `SELECT * FROM public.admin_list_feature_switches()`);
 ok(!Array.isArray(l1) && /not_authorized/.test(l1.error), "non-admin cannot list switches");

@@ -22,6 +22,7 @@ import { ChatComposer } from "./chatView/ChatComposer";
 import { JumpToBottomButton } from "./chatView/JumpToBottomButton";
 import { useChatScroll } from "./chatView/useChatScroll";
 import { useTimestampReveal } from "./chatView/useTimestampReveal";
+import { ApplicationNoteCard } from "./chatView/ApplicationNoteCard";
 import {
   buildTimeline,
   resolveLastOwnMessageId,
@@ -123,15 +124,12 @@ function readBannerDismissed(key: string | null): boolean {
 }
 
 /**
- * ChatView — the active-conversation surface of the Messages page: the
- * chat header (avatar / status chip / options), the community-rules
- * banner, the scrolling message thread (with attachments, read
- * receipts, typing indicator), and the quick-reply + composer dock.
- *
- * Extracted verbatim from Messages.tsx (a step in splitting that file)
- * — the JSX is unchanged. The draft + banner-dismissed state are purely
- * local to this surface, so they live here rather than being threaded
- * down as props.
+ * ChatView — the active-conversation surface of the Messages page: the chat
+ * header (avatar / status chip / options), the community-rules banner, the
+ * scrolling thread (the poster sees the applicant's note at its top, then
+ * messages with attachments, read receipts, typing indicator), and the
+ * quick-reply + composer dock. Extracted from Messages.tsx; the draft and
+ * banner-dismissed state are local to this surface, so they live here.
  */
 export function ChatView({
   activeConvo,
@@ -476,6 +474,8 @@ export function ChatView({
             {...revealHandlers}
             className={`overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"}`}
           >
+          {/* The applicant's full note heads the thread and scrolls with it (owner, 2026-10-12). */}
+          <ApplicationNoteCard activeConvo={activeConvo} />
           <ChatTimeline
             reveal={reveal}
             timeline={timeline}

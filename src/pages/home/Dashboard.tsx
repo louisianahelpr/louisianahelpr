@@ -137,6 +137,7 @@ const Dashboard = () => {
   // look through and step back out of, not a layout preference.
   const {
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
+    savedJobsLoadFailed, retrySavedJobs, savedJobsRetrying,
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
@@ -701,6 +702,9 @@ const Dashboard = () => {
                     // every time the next page loads with zero recommendations.
                     recommendedLoading={refreshing}
                     savedOnly={savedOnly}
+                    savedLoadFailed={savedJobsLoadFailed}
+                    retrySaved={retrySavedJobs}
+                    savedRetrying={savedJobsRetrying}
                     effectiveFee={effectiveFee}
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}

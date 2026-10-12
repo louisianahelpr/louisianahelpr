@@ -127,6 +127,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // lookup (n.link = ...), now per JOB through error_logs' job_id tag: per
   // poster hid a second stuck job by the same poster entirely.
   "20261009223355_stuck_payment_needs_stripe_proof.sql::detect_stuck_payments",
+  // Q1500: respond_job_detail_change's "accepted" notice (poster '/posts?job=',
+  // crew '/jobs?job=') moved, links unchanged, into settle_job_detail_change,
+  // which a crew member leaving also runs.
+  "20261012053253_detail_change_settles_after_crew_departure.sql::respond_job_detail_change",
 ]);
 
 /**

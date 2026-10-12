@@ -458,7 +458,10 @@ serve(async (req) => {
         .eq('receiver_id', payload.user_id)
         .eq('read', false)
         .not('is_system', 'is', true)
-      if (blocked.length > 0) unread = unread.not('sender_id', 'in', `(${blocked.join(',')})`)
+      // Q1591(b): Team-thread rows get through a block (and count in the
+      // in-app badge), so they count here too; job rows from a blocked
+      // sender stay out.
+      if (blocked.length > 0) unread = unread.or(`sender_id.not.in.(${blocked.join(',')}),team_thread_user_id.not.is.null`)
       // N-006 (owner, 2026-09-27): the icon is unread messages PLUS unread
       // notifications — the same sum the app sets (useNavUnreadCount), counted
       // like the bell (NotificationPanel: user_id, read = false). Either count

@@ -610,7 +610,7 @@ describe("refund notice emails that failed are retried, bounded (void-cancelled-
   });
 
   it("the last allowed attempt failing pages a person to tell them by hand", async () => {
-    failedRows([{ ...FAILED, email_attempts: 2 }]);
+    failedRows([{ ...FAILED, email_attempts: 2, created_at: hoursAgo(7) }]);
     notificationEmailAnswer.status = 401;
     notificationEmailAnswer.body = { error: "unauthorized" };
     await runSweep();
@@ -618,6 +618,47 @@ describe("refund notice emails that failed are retried, bounded (void-cancelled-
     const stamp = noticeUpdates()[1];
     expect(stamp.payload).toEqual({ emailed: false, email_error: "send-notification-email answered 401" });
     expect((slackAlerts as Array<{ title: string }>).some((a) => /refund notice email failed every try/.test(a.title))).toBe(true);
+  });
+
+  // Review #4: the last try waits 6 hours, so one outage of a couple of hours
+  // does not use up every try.
+  // @mutate supabase/functions/_shared/refundNotice.ts |   return tried <= 1 ? REFUND_EMAIL_RETRY_AFTER_MS : 6 * 3_600_000; |   return REFUND_EMAIL_RETRY_AFTER_MS;
+  it("the last try waits until the notice is 6 hours old", async () => {
+    failedRows([{ ...FAILED, email_attempts: 2, created_at: hoursAgo(2) }]);
+    await runSweep();
+    expect(notificationEmails).toHaveLength(0);
+    expect(noticeUpdates()).toHaveLength(0);
+  });
+
+  // Review #1: an email the person's switches held back is excluded in the
+  // query itself, so 50 of them never crowd a failed one out.
+  it("the read leaves out emails the person's switches held back", async () => {
+    failedRows([FAILED]);
+    await runSweep();
+    const q = scenario.readQueries.find((r) => r.table === "refund_notices" && r.cols.includes("email_attempts"));
+    expect(q?.filters).toEqual(expect.arrayContaining([expect.objectContaining({ op: "or", value: "email_error.is.null,email_error.not.like.skipped:*" })]));
+  });
+
+  // Review #2: a person may delete their own notice once read. They saw it:
+  // closed without an email and without a page.
+  // @mutate supabase/functions/_shared/refundNotice.ts |       if ((claimedRows ?? []).length === 0 \|\| !note) continue; |       if ((claimedRows ?? []).length === 0) continue;
+  it("a notice the person deleted is closed without an email or a page", async () => {
+    failedRows([FAILED]);
+    scenario.reads.notifications = { rows: [] };
+    const res = await runSweep();
+    expect(await res.text()).not.toContain("refund email retry");
+    expect(notificationEmails).toHaveLength(0);
+    expect(noticeUpdates().map((u) => u.payload)).toEqual([{ email_attempts: 3, email_error: "the in-app notice was deleted by the person; email not retried" }]);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /failed every try/.test(a.title))).toBe(false);
+  });
+
+  // Review #5: the column not deployed yet is recorded as a defect, not only logged.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (r.skipped) defects.record(`refund email retry skipped: ${r.skipped}`); |       if (r.skipped) console.warn(r.skipped);
+  it("before the column deploys, nothing is sent and the run says why", async () => {
+    scenario.reads.refund_notices = { rows: [], selectOverrides: [{ includes: "email_attempts", result: { error: { code: "42703", message: "column refund_notices.email_attempts does not exist" } } }] };
+    const res = await runSweep();
+    expect(notificationEmails).toHaveLength(0);
+    expect(await res.text()).toContain("refund email retry skipped: email_attempts column not deployed yet");
   });
 
   it("an attempt that fails before the cap pages nobody; the next run retries it", async () => {

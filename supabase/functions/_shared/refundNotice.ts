@@ -362,6 +362,14 @@ export const REFUND_EMAIL_MAX_ATTEMPTS = 3;
 export const REFUND_EMAIL_RETRY_DAYS = 7;
 /** A notice younger than this may still be mid-send in its own sender. */
 const REFUND_EMAIL_RETRY_AFTER_MS = 15 * 60_000;
+/**
+ * How old a notice must be before each retry: the second send 15 minutes
+ * after the first, the third (the last) 6 hours after, so one sender outage
+ * of a couple of hours does not use up every try (silent-failure review #4).
+ */
+export function refundEmailRetryDueMs(tried: number): number {
+  return tried <= 1 ? REFUND_EMAIL_RETRY_AFTER_MS : 6 * 3_600_000;
+}
 
 /**
  * Re-send the EMAIL of refund notices whose in-app notice was written but
@@ -390,6 +398,9 @@ export async function retryFailedRefundEmails(
       .not("notification_id", "is", null)
       .neq("notification_id", ZERO_UUID)
       .lt("email_attempts", REFUND_EMAIL_MAX_ATTEMPTS)
+      // An email the person's own switches held back is done, and must not
+      // crowd failed ones out of the 50 (silent-failure review #1).
+      .or("email_error.is.null,email_error.not.like.skipped:*")
       .gte("created_at", new Date(now - REFUND_EMAIL_RETRY_DAYS * 86_400_000).toISOString())
       .lte("created_at", new Date(now - REFUND_EMAIL_RETRY_AFTER_MS).toISOString())
       .order("created_at", { ascending: true })
@@ -408,7 +419,8 @@ export async function retryFailedRefundEmails(
       // The query says the same; read again here so a looser read never widens it.
       if (!row.notification_id || row.notification_id === ZERO_UUID || !(tried < REFUND_EMAIL_MAX_ATTEMPTS)) continue;
       if ((row.email_error ?? "").startsWith("skipped:")) continue;
-      if (now - Date.parse(row.created_at) > REFUND_EMAIL_RETRY_DAYS * 86_400_000) continue;
+      const age = now - Date.parse(row.created_at);
+      if (!(age <= REFUND_EMAIL_RETRY_DAYS * 86_400_000) || age < refundEmailRetryDueMs(tried)) continue;
 
       const { data: n, error: nErr } = await supabase.from("notifications")
         .select("id, title, message, link, job_id").eq("id", row.notification_id).maybeSingle();
@@ -416,16 +428,14 @@ export async function retryFailedRefundEmails(
       const note = n as { id: string; title: string; message: string; link: string | null; job_id: string | null } | null;
 
       // Claim this attempt before sending: a concurrent run matches zero rows.
+      // A notice that is gone was deleted by the person (they may delete their
+      // own once read): they saw it, so it is closed without an email or a
+      // page (silent-failure review #2).
       const { data: claimedRows, error: claimErr } = await supabase.from("refund_notices")
-        .update(note ? { email_attempts: tried + 1 } : { email_attempts: REFUND_EMAIL_MAX_ATTEMPTS, email_error: "the in-app notice is gone; email not retried" })
+        .update(note ? { email_attempts: tried + 1 } : { email_attempts: REFUND_EMAIL_MAX_ATTEMPTS, email_error: "the in-app notice was deleted by the person; email not retried" })
         .eq("notice_key", row.notice_key).eq("email_attempts", tried).eq("emailed", false).select("notice_key");
       if (claimErr) { out.problems.push(`${row.notice_key} claim: ${claimErr.message}`); continue; }
-      if ((claimedRows ?? []).length === 0) continue;
-      if (!note) {
-        out.problems.push(`${row.notice_key}: the in-app notice ${row.notification_id} is gone, so its email cannot be re-sent`);
-        out.gaveUp.push(row.notice_key);
-        continue;
-      }
+      if ((claimedRows ?? []).length === 0 || !note) continue;
 
       out.retried++;
       const sent = await postRefundEmail(ep, {

@@ -54,9 +54,9 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *    fee (create-payment's tip action and auto-tip-charge bill
  *    tipChargeBreakdown(tip).chargeCents; tips.amount stores only the tip, so
  *    a $3 tip charged $3.40), less any refund ledgered on the tip's
- *    PaymentIntent. Manual tips
- *    never stamp tips.stripe_payment_intent_id (checkoutSessionCompleted), so
- *    a refund or chargeback of a manual tip cannot be matched yet (Q1328).
+ *    PaymentIntent. Manual tips get tips.stripe_payment_intent_id when their
+ *    checkout completes (checkoutSessionCompleted, Q1344), so a refund or
+ *    chargeback of one is matched like an auto tip's.
  *
  * Recurring visits are job rows of their own, so they count like any job.
  * STILL OUT (not job spend, owner not asked): the one-time account setup fee

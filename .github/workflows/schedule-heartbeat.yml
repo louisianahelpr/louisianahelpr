@@ -88,6 +88,7 @@ jobs:
           # src/test/scheduleHeartbeatWatchesEveryCron.test.ts.
           WATCHED="
           a11y-webkit-prod.yml:4
+          action-pins.yml:2
           app-store-reviews.yml:2
           branch-prune.yml:1
           broken-links.yml:14

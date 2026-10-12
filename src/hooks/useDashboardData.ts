@@ -6,6 +6,7 @@ import { fetchRatingStats } from "@/lib/reviewStats";
 import { jobDayHasEnded } from "@/lib/jobDate";
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
@@ -48,6 +49,16 @@ const PAGE_SIZE = 25;
  * second lets the probe row slide into this page and then render AGAIN as the
  * first row of the next one.
  */
+/** A row of `open_jobs_browse`. Postgres reports every view column nullable,
+ *  but the view selects `jobs` columns straight through, so each keeps the
+ *  table's own nullability; `customer_id` is non-null because the view's
+ *  WHERE says `customer_id IS NOT NULL` (ownerless jobs never browse). */
+type JobsRow = Database["public"]["Tables"]["jobs"]["Row"];
+type BrowseViewRow = Database["public"]["Views"]["open_jobs_browse"]["Row"];
+type BrowseJobRow = {
+  [K in keyof BrowseViewRow]: K extends keyof JobsRow ? JobsRow[K] : BrowseViewRow[K];
+} & { customer_id: string };
+
 export function splitFeedPage<T>(
   serverRows: T[],
   isBlocked: (row: T) => boolean,
@@ -287,7 +298,10 @@ export function useDashboardData() {
         Date.now() - earlyAccessDelayMs(effectiveTier),
       ).toISOString();
 
-      let rawJobsRes: any[];
+      // The browse view's row. `columns` is a runtime string, so PostgREST's
+      // inferred type cannot follow it; the view's generated Row is the shape
+      // every read below assumes (Q806: was `any[]`).
+      let rawJobsRes: BrowseJobRow[];
       try {
         // Build query — early-access filter applied conditionally.
         // Q1461: `materials_note` is the poster's "Materials I'll provide"
@@ -347,7 +361,7 @@ export function useDashboardData() {
           .lte("created_at", earlyAccessCutoff)
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE)), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as any[];
+          .range(offset, offset + PAGE_SIZE)), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as unknown as BrowseJobRow[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
@@ -370,7 +384,7 @@ export function useDashboardData() {
       const blockedUserIds = ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>());
 
       const { rows: rawJobs, hasMore } = splitFeedPage(
-        (rawJobsRes ?? []) as any[],
+        rawJobsRes ?? [],
         (j) => blockedUserIds.has(j.customer_id),
       );
 

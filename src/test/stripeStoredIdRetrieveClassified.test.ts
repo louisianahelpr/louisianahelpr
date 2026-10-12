@@ -113,7 +113,7 @@ const CLASSIFIED = [
   "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2",
   "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)",
-  "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paidRow.stripe_payment_intent_id)",
+  "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paidPi)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",

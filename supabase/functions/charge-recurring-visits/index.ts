@@ -1561,7 +1561,8 @@ serve(async (req) => {
           let disputed = false;
           let chargeRead = false;
           try {
-            const paidIntent = await stripe.paymentIntents.retrieve(paidRow.stripe_payment_intent_id, { expand: ["latest_charge"] });
+            const paidPi = String(paidRow.stripe_payment_intent_id);
+            const paidIntent = await stripe.paymentIntents.retrieve(paidPi, { expand: ["latest_charge"] });
             paidStatus = paidIntent.status;
             const ch = paidIntent.latest_charge;
             // Fail closed: an unexpanded or missing charge proves nothing

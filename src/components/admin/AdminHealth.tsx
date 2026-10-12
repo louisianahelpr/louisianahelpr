@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
+import { Activity, RefreshCw, Mail, ShieldAlert, Database, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ import { useFillRate } from "./adminHealth/useFillRate";
 import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
 import { useCronHealth } from "./adminHealth/useCronHealth";
 import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
+import { SentrySmokeTestCard } from "./adminHealth/SentrySmokeTestCard";
+import { Reading } from "./adminHealth/Reading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -69,16 +71,6 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
     </li>
   );
 };
-
-/**
- * A reading whose read has not answered yet (Q1287). useInstantQuery hands
- * back its fallback's zeros until then, and those painted as real numbers:
- * "0 sent", "0 unresolved", Job Activity all 0, on every cold load. A pending
- * reading is a placeholder bone, never the fallback. Guard:
- * src/components/admin/AdminHealth.coldLoad.test.tsx.
- */
-const Reading = ({ pending, bone, children }: { pending: boolean; bone: string; children: ReactNode }) =>
-  pending ? <Skeleton data-pending-reading="" aria-hidden="true" className={bone} /> : <>{children}</>;
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -335,39 +327,7 @@ const AdminHealth = () => {
       </AdminCard>
       )}
 
-      {/* Sentry test — admin-only sanity check */}
-      <AdminCard
-        title={<span className="flex items-center gap-1.5"><Bug className="w-4 h-4 text-primary" /> Sentry Smoke Test</span>}
-        subtitle="Fires a test exception; it should appear in Sentry within ~30 seconds."
-      >
-        <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                report(new Error(`Sentry smoke test (manual) — ${new Date().toISOString()}`), {
-                  severity: "info",
-                  tags: { source: "admin_smoke_test", kind: "manual" },
-                });
-                confirmConsequential("Test event sent", { description: "Check Sentry in ~30 seconds." });
-              }}
-            >
-              Send Test Event
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                setTimeout(() => {
-                  throw new Error(`Sentry uncaught test — ${new Date().toISOString()}`);
-                }, 0);
-                toast("Throwing uncaught error", { description: "Check Sentry in ~30 seconds." });
-              }}
-            >
-              Throw Uncaught
-            </Button>
-        </div>
-      </AdminCard>
+      <SentrySmokeTestCard />
 
       {/* Job activity (7 days) and the marketplace pulse read the same
           health data: hidden, not zeroed, when it never loaded (Q1194). */}

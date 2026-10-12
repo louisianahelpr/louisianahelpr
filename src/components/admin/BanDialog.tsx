@@ -8,7 +8,7 @@ import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { mutationErrorMessage } from "@/lib/mutationResult";
-import { setProfileBanStatus } from "@/lib/adminBanStatus";
+import { applyAdminAccountAction } from "@/lib/adminBanStatus";
 import {
   Dialog,
   DialogContent,
@@ -168,23 +168,19 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     }
 
     try {
+      // Q1494: the standing, the ban row and the strike are ONE server
+      // transaction (admin_apply_account_action via admin-user-actions). It
+      // refuses an open ban settlement review before writing anything, so a
+      // review opened after the check above can no longer leave a ban row and
+      // a strike behind a refused status write. The standing goes through the
+      // service role (Q304: authenticated holds no UPDATE on those columns);
+      // a zero-row write comes back as a rejection, so the dialog never
+      // closes on a ban that didn't land.
       if (banType === "warning") {
-        const { error: vErr } = await supabase.from("user_violations").insert({
-          user_id: profile.user_id,
-          violation_type: "admin_warning",
-          description: reason,
-          action_taken: "warning",
-          reported_by: user.id,
-        });
-        if (vErr) throw vErr;
-        // The ban row above is only bookkeeping — this is the write the app
-        // actually reads to lock the account. It goes through the
-        // admin-user-actions edge function (Q304: authenticated holds no
-        // UPDATE on these columns), which reports a zero-row write as a
-        // rejection, so the dialog never closes on a ban that didn't land.
-        await setProfileBanStatus({
+        await applyAdminAccountAction({
           userId: profile.user_id,
-          banStatus: "final_warning",
+          action: "warning",
+          reason,
           rejectedMessage: "The warning wasn't applied to this account — nothing was changed. Check your admin permissions and try again.",
         });
         await createNotification({
@@ -207,43 +203,19 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       } else if (banType === "temporary") {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(duration));
-        const { error: bErr } = await supabase.from("user_bans").insert({
-          user_id: profile.user_id,
-          ban_type: "temporary",
-          reason,
-          banned_by: user.id,
-          expires_at: expiresAt.toISOString(),
-        });
-        if (bErr) throw bErr;
-        const { error: vErr } = await supabase.from("user_violations").insert({
-          user_id: profile.user_id,
-          violation_type: "admin_action",
-          description: reason,
-          action_taken: "temp_ban",
-          reported_by: user.id,
-        });
-        if (vErr) throw vErr;
-        // The ban row above is only bookkeeping — this is the write the app
-        // actually reads to lock the account. It goes through the
-        // admin-user-actions edge function (Q304: authenticated holds no
-        // UPDATE on these columns), which reports a zero-row write as a
-        // rejection, so the dialog never closes on a ban that didn't land.
-        // `auto_suspended_until` is NOT optional bookkeeping — it is the only
-        // column anything reads to END this suspension, and the only one that
-        // tells the user when it ends:
+        // The same instant goes to user_bans.expires_at AND
+        // profiles.auto_suspended_until. The latter is NOT optional
+        // bookkeeping — it is the only column anything reads to END this
+        // suspension, and the only one that tells the user when it ends:
         //   • sweep_expired_auto_bans (the cron that lifts a temp ban) selects
         //     `ban_status='temp_banned' AND auto_suspended_until < NOW()`. It
         //     never looks at user_bans.expires_at, and nothing else does either.
         //   • StrikeBanner.tsx renders the "suspended until …" countdown from
         //     this column and shows nothing without it.
-        // So writing only `user_bans.expires_at` (as this did) meant an admin's
-        // "Ban for 7 days" — with the dialog and the user's own notification
-        // both promising a duration — never auto-lifted and never displayed an
-        // end date. The account stayed locked until a human happened to click
-        // Lift Ban. Writing the same instant here makes the promise true.
-        await setProfileBanStatus({
+        await applyAdminAccountAction({
           userId: profile.user_id,
-          banStatus: "temp_banned",
+          action: "temporary",
+          reason,
           suspendedUntil: expiresAt.toISOString(),
           rejectedMessage: "The temporary ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
         });
@@ -264,29 +236,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           reason_note: reasonNote.trim(),
         });
       } else {
-        const { error: bErr } = await supabase.from("user_bans").insert({
-          user_id: profile.user_id,
-          ban_type: "permanent",
-          reason,
-          banned_by: user.id,
-        });
-        if (bErr) throw bErr;
-        const { error: vErr } = await supabase.from("user_violations").insert({
-          user_id: profile.user_id,
-          violation_type: "admin_action",
-          description: reason,
-          action_taken: "permanent_ban",
-          reported_by: user.id,
-        });
-        if (vErr) throw vErr;
-        // The ban row above is only bookkeeping — this is the write the app
-        // actually reads to lock the account. It goes through the
-        // admin-user-actions edge function (Q304: authenticated holds no
-        // UPDATE on these columns), which reports a zero-row write as a
-        // rejection, so the dialog never closes on a ban that didn't land.
-        await setProfileBanStatus({
+        await applyAdminAccountAction({
           userId: profile.user_id,
-          banStatus: "permanently_banned",
+          action: "permanent",
+          reason,
           rejectedMessage: "The permanent ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
         });
         await createNotification({

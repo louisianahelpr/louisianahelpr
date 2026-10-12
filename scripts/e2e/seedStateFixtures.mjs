@@ -73,6 +73,7 @@
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 export const POSTER = { email: "helpr-e2e-poster-0902@mailinator.com", userId: "951264df-1e7c-4b6f-912e-a1be37e0dbfb" };
 export const HELPER = { email: "helpr-e2e-helper-0902@mailinator.com", userId: "7b923b19-aba5-44cb-8730-8c33ba2b9321" };
@@ -246,7 +247,8 @@ export function fixtureProblem(key, job, extra = {}, now = Date.now()) {
 
 // ── REST plumbing ───────────────────────────────────────────────────────────
 function client({ supabaseUrl = DEFAULT_SUPABASE_URL, serviceKey, fetchImpl = fetch }) {
-  const base = supabaseUrl.replace(/\/+$/, "");
+  // The service-role key only ever goes to a Supabase host (toolingApiBaseIsLoopbackOnly).
+  const base = supabaseBase(supabaseUrl).replace(/\/+$/, "");
   const call = async (method, pathAndQuery, body, { token, prefer = "return=representation" } = {}) => {
     const key = token ? PUBLIC_ANON_KEY : serviceKey;
     // A table write always names its columns (RETURNING * is a 403 for a

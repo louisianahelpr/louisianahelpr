@@ -81,6 +81,7 @@ export interface RefundNoticeInput {
 export type RefundNoticeStatus =
   | "sent"          // in-app row written (emailed says whether the email went)
   | "duplicate"     // another sender already told them about this refund
+  | "in_flight"     // another sender claimed it seconds ago and is writing it now
   | "no_recipient"  // nobody to tell: no job, no payer on the payment
   | "dropped"       // the seed boundary dropped the row by design (a seed subject, a real person)
   | "unwritten"     // the insert matched zero rows for another reason: nobody was told
@@ -89,8 +90,44 @@ export type RefundNoticeStatus =
 export interface RefundNoticeResult {
   status: RefundNoticeStatus;
   emailed?: boolean;
+  /** The person's own switches (or the seed boundary) held the email back: not a fault. */
+  emailSkipped?: boolean;
   error?: string;
 }
+
+/**
+ * What a sender must page about, or null. Every sender pages the same way
+ * (review of Q1652 #1/#8): a refund nobody was told about, or a notice whose
+ * email failed for a reason other than the person's own switches.
+ */
+export function refundNoticeProblem(r: RefundNoticeResult): string | null {
+  if (r.status === "failed" || r.status === "unwritten" || r.status === "no_recipient") {
+    return `the refund notice was not sent (${r.status}${r.error ? `: ${r.error}` : ""})`;
+  }
+  if (r.status === "sent" && !r.emailed && !r.emailSkipped) {
+    return `the in-app refund notice was sent but its email was not (${r.error ?? "unknown"})`;
+  }
+  return null;
+}
+
+/**
+ * Refunds whose own path tells the person, with words only it has (the
+ * dispute decision, the admin's reason, the visit and the card fee), marked by
+ * metadata those paths already put on the refund. The charge.refunded webhook
+ * leaves these to their path, so the wording never depends on which sender
+ * wins (review of Q1652 #1/#9); src/test/refundPathsSendTheNotice.test.ts
+ * holds every path that sets one of these marks to calling sendRefundNotice.
+ */
+export function pathAnnouncesRefund(md: Record<string, string> | null | undefined): boolean {
+  if (!md) return false;
+  return !!md.dispute_id || md.source === "admin_refund_dispute" || md.source === "admin_refund_general" ||
+    md.fee_withheld === "true";
+}
+
+/** Postgres errors no retry can pass: a foreign key, a CHECK, a malformed value. */
+const PERMANENT = new Set(["23503", "23514", "22P02", "23502"]);
+/** Marks a claim whose notification a trigger dropped by design: never taken over. */
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 interface JobRow {
   id: string;
@@ -131,6 +168,19 @@ const BRANDS: Record<string, string> = {
   visa: "Visa",
 };
 
+/** Non-card payment_method_details.type values, in the words a person knows. */
+const METHOD_TYPES: Record<string, string> = {
+  link: "your Link account",
+  cashapp: "Cash App Pay",
+  amazon_pay: "Amazon Pay",
+  paypal: "PayPal",
+  klarna: "Klarna",
+  affirm: "Affirm",
+  afterpay_clearpay: "Afterpay",
+  us_bank_account: "your bank account",
+  revolut_pay: "Revolut Pay",
+};
+
 /** "your Visa ending in 4242", "Apple Pay (Visa ending in 4242)", or the fallback. */
 export function describePaymentMethod(m: PaymentMethodLabel | null | undefined): string {
   if (!m) return "your original payment method";
@@ -139,8 +189,9 @@ export function describePaymentMethod(m: PaymentMethodLabel | null | undefined):
   const wallet = m.wallet ? (WALLETS[m.wallet] ?? m.wallet.replace(/_/g, " ")) : null;
   if (wallet) return card ? `${wallet} (${card})` : wallet;
   if (card) return `your ${card}`;
-  if (m.type === "us_bank_account") return m.last4 ? `your bank account ending in ${m.last4}` : "your bank account";
-  if (m.type && m.type !== "card") return m.type.replace(/_/g, " ");
+  if (m.type === "us_bank_account" && m.last4) return `your bank account ending in ${m.last4}`;
+  // Never the raw type ("to link", review of Q1652 #4): a known name, or the fallback.
+  if (m.type && METHOD_TYPES[m.type]) return METHOD_TYPES[m.type];
   return "your original payment method";
 }
 
@@ -173,10 +224,10 @@ export function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "
   const why = input.keptReason ?? input.metadata?.kept_reason ?? null;
   if (why) return ` We kept ${kept}: ${why}.`;
   const md = input.metadata ?? {};
-  if (md.dispute_id || md.source === "admin_refund_dispute" || (job?.dispute_status ?? null)) {
+  if (md.dispute_id || md.source === "admin_refund_dispute") {
     return ` We kept ${kept}: the part of the payment the dispute decision gave the Helpr.`;
   }
-  if (md.fee_withheld === "true") return ` We kept ${kept}: the service fee, which isn't refunded.`;
+  if (md.fee_withheld === "true") return ` We kept ${kept}: the card processor's fee, which can't be returned.`;
   if (job?.status === "cancelled") {
     const feeCents = Math.min(keptCents, Math.max(0, cents(job.cancellation_fee)));
     const restCents = keptCents - feeCents;
@@ -265,13 +316,30 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         job = r.job;
       }
     }
-    const recipient = input.recipientId ?? job?.customer_id ??
-      md.customer_id ?? md.payer_id ?? md.tipper_id ?? md.supabase_user_id ?? md.user_id ?? null;
+    let recipient: string | null = input.recipientId ?? job?.customer_id ??
+      md.customer_id ?? md.payer_id ?? md.tipper_id ?? md.donor_id ?? md.supabase_user_id ?? md.user_id ?? null;
+    // A tip's or a gift card's PaymentIntent names nobody (their payer sits on
+    // the Checkout Session): their own ledgers do (review of Q1652 #7).
+    for (const [table, col] of [["tips", "tipper_id"], ["gift_cards", "donor_id"]] as const) {
+      if (recipient || !input.paymentIntentId || input.jobByPayment === false) break;
+      const { data, error } = await supabase.from(table).select(col).eq("stripe_payment_intent_id", input.paymentIntentId).limit(1);
+      if (error) return { status: "failed", error: `${table} read: ${error.message}` };
+      recipient = ((data ?? [])[0] as Record<string, string> | undefined)?.[col] ?? null;
+    }
     if (!recipient) return { status: "no_recipient" };
 
     const ref = input.key.slice(input.key.indexOf(":") + 1);
     const link = input.link ??
       (job ? `/posts?job=${job.id}&refund=${encodeURIComponent(ref)}` : `/posts?refund=${encodeURIComponent(ref)}`);
+
+    // A notice for this refund already in the person's list (its reference
+    // rides in every refund notice's link): the dedupe the claim falls back on.
+    const alreadyListed = async (): Promise<boolean | null> => {
+      const { data, error } = await supabase.from("notifications").select("id")
+        .eq("user_id", recipient).eq("type", "payment").ilike("link", `%${ref}%`).limit(1);
+      if (error) return null;
+      return (data ?? []).length > 0;
+    };
 
     // 1. Claim. The primary key is the dedupe: the loser stops here.
     let claimed = true;
@@ -284,101 +352,120 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
     }).select("notice_key");
     let { error: claimErr } = await claim();
     if (claimErr?.code === "23505") {
-      // Taken. A claim that never got its notification (the sender died
-      // between the two writes) is taken over after 5 minutes, so the person
-      // is still told; anything newer or finished is the other sender's.
+      // Taken. Finished (notification_id set): a duplicate. Fresh and not yet
+      // written: the other sender is writing it now (in_flight; it pages if it
+      // fails). Older than 5 minutes and never written: that sender died, so
+      // it is taken over, unless the notice is in the list after all (its
+      // stamp was what failed).
       const { data: held, error: heldErr } = await supabase.from("refund_notices")
         .select("notification_id, created_at").eq("notice_key", input.key).maybeSingle();
       const h = held as { notification_id: string | null; created_at: string } | null;
-      const stale = !heldErr && h && !h.notification_id && Date.now() - Date.parse(h.created_at) > 5 * 60_000;
-      if (!stale) return { status: "duplicate" };
+      if (heldErr || !h || h.notification_id) return { status: "duplicate" };
+      if (Date.now() - Date.parse(h.created_at) <= 5 * 60_000) return { status: "in_flight" };
+      if ((await alreadyListed()) !== false) return { status: "duplicate" };
       const { data: freed, error: freeErr } = await supabase.from("refund_notices").delete()
-        .eq("notice_key", input.key).is("notification_id", null).eq("created_at", h!.created_at).select("notice_key");
+        .eq("notice_key", input.key).is("notification_id", null).eq("created_at", h.created_at).select("notice_key");
       if (freeErr || (freed ?? []).length === 0) return { status: "duplicate" };
       ({ error: claimErr } = await claim());
       if (claimErr?.code === "23505") return { status: "duplicate" };
     }
     if (claimErr && isMissingTable(claimErr)) {
       // Deploy lag (functions deployed before db-deploy finished): dedupe on
-      // the notice's own link instead, which carries the refund id.
+      // the notice's own link instead, which carries the refund reference.
       claimed = false;
-      const { data: prior, error: priorErr } = await supabase
-        .from("notifications").select("id").eq("user_id", recipient).eq("link", link).limit(1);
-      if (priorErr) return { status: "failed", error: `prior notice read: ${priorErr.message}` };
-      if ((prior ?? []).length > 0) return { status: "duplicate" };
+      const listed = await alreadyListed();
+      if (listed === null) return { status: "failed", error: "prior notice read failed" };
+      if (listed) return { status: "duplicate" };
+    } else if (claimErr && PERMANENT.has(claimErr.code ?? "")) {
+      // A constraint no retry can pass (the recipient's account is gone: the
+      // FK; a malformed id): nobody can be told, and redelivering will not
+      // change that (review of Q1652 #6).
+      return { status: "no_recipient", error: `claim: ${claimErr.code} ${claimErr.message}` };
     } else if (claimErr) {
       return { status: "failed", error: `claim: ${claimErr.message}` };
     }
     const release = async () => {
       if (!claimed) return;
-      const { error } = await supabase.from("refund_notices").delete().eq("notice_key", input.key);
-      if (error) console.error("[refundNotice] claim release failed; this refund will not be re-sent", { key: input.key, error: error.message });
+      const { error } = await supabase.from("refund_notices").delete().eq("notice_key", input.key).is("notification_id", null);
+      if (error) console.error("[refundNotice] claim release failed; the 5-minute takeover will re-send it", { key: input.key, error: error.message });
     };
 
-    // 2. The in-app notice.
-    const { title, message } = refundNoticeCopy({ ...input, metadata: md }, job);
-    const { data: rows, error: insErr } = await supabase.from("notifications").insert({
-      user_id: recipient,
-      job_id: job?.id ?? null,
-      title,
-      message,
-      type: "payment",
-      link,
-    }).select("id");
-    if (insErr) {
-      await release();
-      return { status: "failed", error: `notification: ${insErr.message}` };
-    }
-    const notificationId = (rows as Array<{ id: string }> | null)?.[0]?.id ?? null;
-    if (!notificationId) {
-      // Zero rows with no error: a BEFORE INSERT trigger dropped it. The seed
-      // boundary does that on purpose (a seed job never tells a real person),
-      // and the email would be refused for the same reason. Anything else is
-      // reported. The claim stays either way: a retry would be dropped again.
-      const { data: seed, error: seedErr } = await supabase.rpc("notification_crosses_seed_boundary", {
-        p_recipient: recipient, p_job_id: job?.id ?? null, p_link: link,
-      });
-      if (!seedErr && seed === true) return { status: "dropped" };
-      return { status: "unwritten", error: "the notification insert matched zero rows" };
-    }
-
-    // Stamped at once, so the stale-claim takeover above never re-sends it.
-    if (claimed) {
-      const { error: stampErr } = await supabase.from("refund_notices")
-        .update({ notification_id: notificationId }).eq("notice_key", input.key).select("notice_key");
-      if (stampErr) console.error("[refundNotice] notification stamp failed (notice was sent)", { key: input.key, error: stampErr.message });
-    }
-
-    // 3. The email, through the one sender that honours the person's switches.
-    const ep = input.endpoint ?? envEndpoint();
-    let emailed = false;
-    let emailError: string | undefined;
-    if (!ep) {
-      emailError = "no SUPABASE_URL / service key to reach send-notification-email";
-    } else {
-      try {
-        const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
-          body: JSON.stringify({ notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null }),
-          signal: AbortSignal.timeout(20_000),
-        });
-        // A body that is not JSON reads as "not skipped": res.ok alone decides.
-        const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string };
-        emailed = res.ok && !body.skipped;
-        if (!res.ok) emailError = `send-notification-email answered ${res.status}`;
-        else if (body.skipped) emailError = `skipped: ${body.reason ?? "unknown"}`;
-      } catch (e) {
-        emailError = e instanceof Error ? e.message : String(e);
+    try {
+      // 2. The in-app notice.
+      const { title, message } = refundNoticeCopy({ ...input, metadata: md }, job);
+      const { data: rows, error: insErr } = await supabase.from("notifications").insert({
+        user_id: recipient,
+        job_id: job?.id ?? null,
+        title,
+        message,
+        type: "payment",
+        link,
+      }).select("id");
+      if (insErr) {
+        await release();
+        if (PERMANENT.has(insErr.code ?? "")) return { status: "unwritten", error: `notification: ${insErr.code} ${insErr.message}` };
+        return { status: "failed", error: `notification: ${insErr.message}` };
       }
+      const notificationId = (rows as Array<{ id: string }> | null)?.[0]?.id ?? null;
+      if (!notificationId) {
+        // Zero rows with no error: a BEFORE INSERT trigger dropped it. The seed
+        // boundary does that on purpose (a seed job never tells a real person),
+        // and the email would be refused for the same reason. Anything else is
+        // reported. The claim stays either way: a retry would be dropped again.
+        const { data: seed, error: seedErr } = await supabase.rpc("notification_crosses_seed_boundary", {
+          p_recipient: recipient, p_job_id: job?.id ?? null, p_link: link,
+        });
+        if (claimed) {
+          await supabase.from("refund_notices").update({ notification_id: ZERO_UUID }).eq("notice_key", input.key).select("notice_key");
+        }
+        if (!seedErr && seed === true) return { status: "dropped" };
+        return { status: "unwritten", error: "the notification insert matched zero rows" };
+      }
+
+      // Stamped at once, so the stale-claim takeover above never re-sends it.
+      if (claimed) {
+        const { error: stampErr } = await supabase.from("refund_notices")
+          .update({ notification_id: notificationId }).eq("notice_key", input.key).select("notice_key");
+        if (stampErr) console.error("[refundNotice] notification stamp failed (notice was sent)", { key: input.key, error: stampErr.message });
+      }
+
+      // 3. The email, through the one sender that honours the person's switches.
+      const ep = input.endpoint ?? envEndpoint();
+      let emailed = false;
+      let emailError: string | undefined;
+      let emailSkipped = false;
+      if (!ep) {
+        emailError = "no SUPABASE_URL / service key to reach send-notification-email";
+      } else {
+        try {
+          const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
+            body: JSON.stringify({ notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null }),
+            signal: AbortSignal.timeout(20_000),
+          });
+          // A body that is not JSON reads as "not skipped": res.ok alone decides.
+          const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string };
+          emailed = res.ok && !body.skipped;
+          if (!res.ok) emailError = `send-notification-email answered ${res.status}`;
+          else if (body.skipped) { emailSkipped = true; emailError = `skipped: ${body.reason ?? "unknown"}`; }
+        } catch (e) {
+          emailError = e instanceof Error ? e.message : String(e);
+        }
+      }
+      if (claimed) {
+        // The email's outcome is recorded on the claim (review of Q1652 #8):
+        // emailed, or why not, so an unsent one can be found and re-sent.
+        const { error: emailStampErr } = await supabase.from("refund_notices")
+          .update({ emailed, email_error: emailError ?? null }).eq("notice_key", input.key).select("notice_key");
+        if (emailStampErr) console.error("[refundNotice] email stamp failed", { key: input.key, error: emailStampErr.message });
+      }
+      if (emailError) console.warn("[refundNotice] email not sent", { key: input.key, error: emailError });
+      return { status: "sent", emailed, emailSkipped, ...(emailError ? { error: emailError } : {}) };
+    } catch (e) {
+      await release();
+      throw e;
     }
-    if (claimed && emailed) {
-      const { error: emailStampErr } = await supabase.from("refund_notices")
-        .update({ emailed: true }).eq("notice_key", input.key).select("notice_key");
-      if (emailStampErr) console.error("[refundNotice] emailed stamp failed (email was sent)", { key: input.key, error: emailStampErr.message });
-    }
-    if (emailError) console.warn("[refundNotice] email not sent", { key: input.key, error: emailError });
-    return { status: "sent", emailed, ...(emailError ? { error: emailError } : {}) };
   } catch (e) {
     return { status: "failed", error: e instanceof Error ? e.message : String(e) };
   }

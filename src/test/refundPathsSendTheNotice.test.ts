@@ -27,7 +27,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) { |   if (!isOnboardingFeeCorrection && isFullRefund && ordinaryRefunds.length > 0) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       const result = await sendRefundNotice(supabase, { |       const result = await Promise.resolve({ status: "sent", error: "", emailed: false }); void ({
  * @mutate supabase/functions/stripe-webhook/index.ts |   "charge.refunded": handleChargeRefunded, |   "charge.refunded_off": handleChargeRefunded,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterHoldReleased(job, pi, Number(pi.amount ?? 0), 0, null); |             void tellPosterHoldReleased;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |       const result = await sendRefundNotice(supabaseAdmin, { |       const result = await Promise.resolve({ status: "sent", error: "" }); void ({
  */
 import { describe, it, expect } from "vitest";
@@ -57,7 +57,7 @@ function sites(pattern: RegExp): Site[] {
     const lines = code.split("\n");
     lines.forEach((text, i) => {
       if (pattern.test(text)) {
-        found.push({ file: relative(ROOT, abs), line: i + 1, text: text.trim(), following: lines.slice(i, i + 8).join("\n") });
+        found.push({ file: relative(ROOT, abs), line: i + 1, text: text.trim(), following: lines.slice(i, i + 40).join("\n") });
       }
     });
   }
@@ -74,11 +74,50 @@ const RELEASE_EXEMPT: Record<string, string> = {
     "cancels the PaymentIntent of an abandoned 3D Secure challenge before a new checkout: the challenge never completed, so nothing was authorised or held",
 };
 
-/** Refunds announced by their own path instead of the webhook (file -> reason). EXACT. */
+/**
+ * Files that make a refund WITHOUT calling sendRefundNotice themselves
+ * (file -> reason). Every other file with a refunds.create announces its own
+ * refund at once, with the amounts it computed (review of Q1652 #3/#9). EXACT.
+ */
+// @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_OWN_NOTICE entry
 const REFUND_OWN_NOTICE: Record<string, string> = {
   "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts":
     "a duplicate onboarding-fee correction (metadata.reason duplicate_onboarding_fee) is announced as \"Duplicate fee refunded\"; handleChargeRefunded skips it as a correction",
+  "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts":
+    "refunds a second payment inside the webhook itself; the charge.refunded it raises sends the notice (recipient from the payment's metadata)",
 };
+
+/**
+ * Notification writes whose words mention a refund but are NOT the payer's
+ * refund notice (file -> how many, why). EXACT. Anything else that tells a
+ * person about a refund must go through sendRefundNotice, so nobody gets two.
+ */
+// @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_WORDS_ALLOWED entry
+const REFUND_WORDS_ALLOWED: Record<string, { lines: number; why: string }> = {
+  "supabase/functions/charge-recurring-visits/index.ts": { lines: 4, why: "the $0 fallback: the card fee took the whole payment, so nothing was refunded" },
+  "supabase/functions/create-payment/index.ts": { lines: 4, why: "to the HELPR (two writes): the job they worked was refunded to its poster" },
+  "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts": { lines: 2, why: "a chargeback the bank decided for the card holder: no refund was made" },
+  "supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts": { lines: 2, why: "a refund that FAILED after it was made" },
+  "supabase/functions/stripe-webhook/handlers/chargeRefunded.ts": { lines: 2, why: "to the HELPR: the decided split cannot be paid" },
+  "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts": { lines: 2, why: "the onboarding-fee correction's own notice" },
+};
+
+/** title:/message: lines in a notifications write whose words mention a refund. */
+function refundWordsInNotices(): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const abs of walk(FN)) {
+    const file = relative(ROOT, abs);
+    if (file.endsWith("_shared/refundNotice.ts")) continue;
+    const lines = blankComments(readFileSync(abs, "utf8")).split("\n");
+    lines.forEach((l, i) => {
+      if (!/^\s*(title|message):/.test(l)) return;
+      if (!/refund/i.test(lines.slice(i, i + 4).join(" "))) return;
+      if (!/from\("notifications"\)\.insert|insertNotifications\(/.test(lines.slice(Math.max(0, i - 8), i).join("\n"))) return;
+      out.set(file, (out.get(file) ?? 0) + 1);
+    });
+  }
+  return out;
+}
 
 describe("Q1652: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
@@ -106,31 +145,59 @@ describe("Q1652: every refund path tells the person their money is back", () => 
     expect(handler).not.toMatch(/title: "Refund processed"/);
   });
 
-  it("(A) every refund site is covered by charge.refunded unless it announces itself (exact list)", () => {
-    const own = refundSites.filter((s) => /duplicate_onboarding_fee/.test(readFileSync(join(ROOT, s.file), "utf8")) && s.file.endsWith("settleOnboardingFee.ts"));
-    expect(own.map((s) => s.file).sort()).toEqual(Object.keys(REFUND_OWN_NOTICE).sort());
-    const own_src = readFileSync(join(ROOT, Object.keys(REFUND_OWN_NOTICE)[0]), "utf8");
-    expect(own_src).toMatch(/Duplicate fee refunded/);
+  it("(A) every file that makes a refund announces it through sendRefundNotice, or is on the exact exempt list", () => {
+    const files = [...new Set(refundSites.map((s) => s.file))];
+    const silent = files.filter((f) => !/sendRefundNotice\(|tellPosterMoneyBack\(|tellVisitRefund\(|tellPayerRefunded\(|announceRefund\(/.test(
+      blankComments(readFileSync(join(ROOT, f), "utf8")),
+    ));
+    expect(silent.sort()).toEqual(Object.keys(REFUND_OWN_NOTICE).sort());
+    const stale = Object.keys(REFUND_OWN_NOTICE).filter((f) => !files.includes(f));
+    expect(stale.map((f) => `stale REFUND_OWN_NOTICE entry ${f} — remove it (lower the baseline)`)).toEqual([]);
+    expect(readFileSync(join(FN, "stripe-webhook/handlers/settleOnboardingFee.ts"), "utf8")).toMatch(/Duplicate fee refunded/);
+  });
+
+  it("(A) refunds whose path announces them are skipped by the webhook, and every such path calls the notice", () => {
+    const helper = blankComments(readFileSync(join(FN, "_shared/refundNotice.ts"), "utf8"));
+    expect(helper).toMatch(/export function pathAnnouncesRefund/);
+    // Each mark the webhook defers on is set by a file that sends the notice itself.
+    for (const [mark, file] of [
+      ["dispute_id: disputeId", "execute-dispute-split/index.ts"],
+      ['source: "admin_refund_dispute"', "create-payment/index.ts"],
+      ['source: "admin_refund_general"', "create-payment/index.ts"],
+      ['fee_withheld: "true"', "charge-recurring-visits/index.ts"],
+    ] as const) {
+      const src = blankComments(readFileSync(join(FN, file), "utf8"));
+      expect(src, `${file} sets ${mark}`).toContain(mark);
+      expect(src, `${file} sends the notice itself`).toMatch(/sendRefundNotice\(|announceRefund\(|tellVisitRefund\(/);
+    }
+  });
+
+  it("(C) no other notification tells a person about a refund (one refund, one notice)", () => {
+    const found = Object.fromEntries(refundWordsInNotices());
+    const allowed = Object.fromEntries(Object.entries(REFUND_WORDS_ALLOWED).map(([f, v]) => [f, v.lines]));
+    expect(found).toEqual(allowed);
+    const stale = Object.keys(REFUND_WORDS_ALLOWED).filter((f) => !(f in found));
+    expect(stale.map((f) => `stale REFUND_WORDS_ALLOWED entry ${f} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("(B) every released hold calls the refund notice right after it, or is exempt with a reason", () => {
     const untold = releaseSites.filter(
-      (s) => !/sendRefundNotice\(|tellPosterHoldReleased\(/.test(s.following) && !RELEASE_EXEMPT[s.file],
+      (s) => !/sendRefundNotice\(|tellPosterMoneyBack\(/.test(s.following) && !RELEASE_EXEMPT[s.file],
     );
     expect(untold.map((s) => `${s.file}:${s.line} ${s.text}`)).toEqual([]);
     // The exemption list is exact: every entry still names a real release site.
     const stale = Object.keys(RELEASE_EXEMPT).filter(
-      (f) => !releaseSites.some((s) => s.file === f && !/sendRefundNotice\(|tellPosterHoldReleased\(/.test(s.following)),
+      (f) => !releaseSites.some((s) => s.file === f && !/sendRefundNotice\(|tellPosterMoneyBack\(/.test(s.following)),
     );
     expect(stale.map((f) => `stale RELEASE_EXEMPT entry ${f} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("(B) the hold-release notice really sends (claimed on the PaymentIntent, as a release)", () => {
     const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
-    const fn = v.slice(v.indexOf("const tellPosterHoldReleased"), v.indexOf("const settleCancelledJob"));
+    const fn = v.slice(v.indexOf("const tellPosterMoneyBack"), v.indexOf("const settleCancelledJob"));
     expect(fn).toMatch(/const result = await sendRefundNotice\(supabaseAdmin, \{/);
-    expect(fn).toMatch(/key: `release:\$\{pi\.id\}`/);
-    expect(fn).toMatch(/kind: "release"/);
+    // Both releases (full void, fee capture) are keyed on the PaymentIntent.
+    expect(v.match(/key: `release:\$\{pi\.id\}`, kind: "release"/g)?.length).toBe(2);
   });
 
   it("the notice itself names the amount, the card, the reference, 5-10 business days and what was kept, and is emailed", () => {

@@ -183,6 +183,9 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,600}update\s+public\.ban_settlement_queue/i);
     expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_review\.deferred_ban_status\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
     expect(body("lift_ban_settlement_review")).toMatch(/set\s+ban_status\s*=\s*v_status/i);
+    // ...and v_status IS the deferred standing when that branch is taken (vacuity
+    // showed the assignment could be dropped with this test green, 2026-10-12).
+    expect(body("lift_ban_settlement_review")).toMatch(/\)\s+then\s+v_status\s*:=\s*v_review\.deferred_ban_status;/i);
     // A strike an admin reversed during the review takes its standing with it.
     expect(body("lift_ban_settlement_review")).toMatch(/exists\s*\(select\s+1\s+from\s+public\.user_violations\s+v\s+where\s+v\.user_id\s*=\s*p_user_id\s+and\s+v\.created_at\s*>=\s*v_review\.created_at\)/i);
     expect(readFileSync(join(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8")).toMatch(/update\.ban_status = applied\.ban_status/);

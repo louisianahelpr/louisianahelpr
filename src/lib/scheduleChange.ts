@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isNotDeployedYet } from "@/lib/seriesDates";
 
 /**
@@ -68,7 +68,9 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
     // as non-null; the function takes NULL for a time.
     p_start_time: startTime as string,
   });
-  if (error) throw changeError(error, rpcErrorMessage("request_job_schedule_change", error));
+  // The daily cap is a trigger on the requests table (Q1501), so its copy is
+  // in the shared lifecycle table, not this RPC's own.
+  if (error) throw changeError(error, rpcErrorMessage("request_job_schedule_change", error) ?? lifecycleErrorMessage(error));
 }
 
 /**

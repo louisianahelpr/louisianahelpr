@@ -86,5 +86,5 @@ describe("AdminHealth when its health reads fail (Q1194)", () => {
 });
 
 // @mutate src/components/admin/AdminHealth.tsx |   const healthNeverLoaded = isError && !dataUpdatedAt; |   const healthNeverLoaded = false;
-// @mutate src/components/admin/AdminHealth.tsx |       {!healthNeverLoaded && adminPushTokenCount === 0 && ( |       {adminPushTokenCount === 0 && (
+// @mutate src/components/admin/AdminHealth.tsx |       {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && ( |       {!healthLoading && adminPushTokenCount === 0 && (
 // @mutate src/components/admin/AdminHealth.tsx |   const healthStale = isError && !!dataUpdatedAt; |   const healthStale = false;

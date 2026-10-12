@@ -1613,18 +1613,19 @@ serve(async (req) => {
           results.declined++;
 
           if (outcome.kind === "unknown") {
-            // Not a decline. Stripe never told us whether it took the money, and
-            // this is the ONE failure whose cost compounds: with no job row, the
-            // next daily run finds `alreadyThere` empty and re-charges — and by
-            // then the idempotency key has expired, so that is a second REAL
-            // charge with no 23505 to catch it (the first intent never got a
-            // row). Two charges, one visit, nothing that ever notices.
+            // Not a decline. Stripe never told us whether it took the money, so
+            // a PaymentIntent may hold it with no visit row behind it. The next
+            // run adopts that intent rather than charging again (Q1104,
+            // priorVisitIntent), so the page warns against an early hand
+            // refund, except on the window's last run, when nothing after this
+            // looks at the intent again (Q1339).
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
               title: "Recurring visit charge outcome UNKNOWN",
-              message:
-                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${chargeKey} BEFORE tomorrow's run, which will charge again on a fresh key.`,
+              message: visitDate <= addDays(today, 1)
+                ? `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. This was the visit's last funding run, so no later run looks for it: check key ${chargeKey} in Stripe by hand now and refund it if it took money.`
+                : `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. The next run looks this charge up first (key ${chargeKey}) and, if it succeeded for this visit's amount on the same claim, books the visit on it and charges nothing new (Q1104), so do not refund it before then. If the date changes hands, the series ends or a party is blocked first, nothing adopts it: check it by hand.`,
               fields: {
                 parentJobId: String(parent.id),
                 visitDate,

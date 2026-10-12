@@ -51,10 +51,11 @@ export function ReadyTurnovers() {
               to={`/post-job?turnover=${t.id}`}
               className="flex items-center gap-3 px-4 py-3 min-h-[44px]"
               data-testid="ready-turnover"
+              aria-label={`Post the cleaning for ${t.propertyName}, checkout ${formatShortDate(t.checkoutDate)}`}
             >
               <CalendarCheck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-ds-14 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="block truncate text-ds-14 font-medium" style={{ color: "hsl(var(--ink-deep))" }} title={t.propertyName}>
                   {t.propertyName}
                 </span>
                 <span className="block text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

@@ -289,8 +289,21 @@ describe("postSlackOpsAlert: text a person wrote reaches Slack escaped (Q1350)",
     expect(payload.blocks[1].text.text).toBe(escaped);
     expect(payload.blocks[2].fields[0].text).toBe("*From:*\n&lt;!here&gt; Mallory");
   });
+
+  it("Q1466: renders our own link and drops one that could end Slack's <url|label> early", async () => {
+    await post({ kind: "support_request", severity: "info", link: "/admin?view=support" });
+    await post({ kind: "support_request", severity: "info", link: "/admin|Open in admin> <https://evil.test" });
+    await post({ kind: "support_request", severity: "info", link: "javascript:alert(1)" });
+    const sent = slackPosts().map((c) => JSON.parse(String(c.init?.body)));
+    expect(sent).toHaveLength(3);
+    expect(sent[0].blocks.at(-1).elements[0].text).toBe("</admin?view=support|Open in admin →>");
+    expect(JSON.stringify(sent[1])).not.toContain("Open in admin");
+    expect(JSON.stringify(sent[2])).not.toContain("Open in admin");
+  });
 });
 
+// @mutate supabase/functions/_shared/slack-alerts.ts | const link = safeSlackLink(input.link) | const link = input.link
+// @mutate supabase/functions/_shared/alertPolicy.ts | if (!(/^\/(?!\/)/.test(link) \|\| link.startsWith('https://'))) return null |
 // @mutate supabase/functions/_shared/slack-alerts.ts | text: escapeSlackText(input.message) } }, | text: input.message } },
 // @mutate supabase/functions/_shared/slack-alerts.ts | ${escapeSlackText(String(v))} | ${String(v)}
 // @mutate supabase/functions/_shared/slack-alerts.ts | ${escapeSlackText(input.title)} — ${escapeSlackText(input.message)} | ${input.title} — ${input.message}

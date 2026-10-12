@@ -156,6 +156,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/audit/a11y-webkit-known.json": {
     "[]": "scripts/audit/a11y-engine-diff.mjs:const stale = known.filter((k) => !seen.has(k.key))",
   },
+  "scripts/ci/performance-advisor-baseline.json": {
+    counts: "scripts/check-performance-advisor.mjs:else if (n < b) out.under.push(",
+  },
   "scripts/audit/function-body-drift.baseline.json": {
     accepted: "scripts/audit/function-body-drift.mjs:const staleEntries =",
   },

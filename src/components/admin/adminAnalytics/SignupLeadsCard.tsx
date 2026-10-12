@@ -140,7 +140,7 @@ export function SignupLeadsCard() {
             <button
               type="button"
               onClick={() => setShowAll((v) => !v)}
-              className="mt-3 min-h-[44px] text-ds-13 font-medium text-primary hover:underline"
+              className="mt-3 min-h-[44px] text-ds-13 font-medium text-primary link-standard"
             >
               {showAll ? "Show fewer" : `Show all ${rows.length}`}
             </button>

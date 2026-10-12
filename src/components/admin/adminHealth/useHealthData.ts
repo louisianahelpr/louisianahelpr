@@ -86,10 +86,10 @@ export const useHealthData = () => {
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "open").gte("created_at", weekAgo),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").gte("updated_at", weekAgo),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").gte("updated_at", weekAgo),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "open").gte("created_at", weekAgo).eq("is_seed", false),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").gte("updated_at", weekAgo).eq("is_seed", false),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").gte("updated_at", weekAgo).eq("is_seed", false),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo).eq("is_seed", false),
       ]);
       for (const r of [openRes, compRes, dispRes, cancelRes]) unwrap(r);
       const recentJobs = {
@@ -120,10 +120,13 @@ export const useHealthData = () => {
       // paths that matter already use — `get_ranked_open_jobs`' parish rung and
       // `notify_helpers_on_job_post`'s fan-out — so the panel now measures the
       // supply those paths actually reach.
+      // Every jobs/profiles read on this screen leaves test rows out
+      // (is_seed = false), like the dashboard tiles and Analytics (Q1592,
+      // owner 2026-10-09: "so i can see the actual number of real users").
       const [openJobs, helperProfiles] = await Promise.all([
         (async () =>
           unwrap(
-            await supabase.from("jobs").select("id, parish, created_at").eq("status", "open"),
+            await supabase.from("jobs").select("id, parish, created_at").eq("status", "open").eq("is_seed", false),
           ) as { id: string; parish: string | null; created_at: string }[])(),
         (async () =>
           unwrap(
@@ -132,7 +135,8 @@ export const useHealthData = () => {
               .select("user_id, parish, ban_status")
               .not("parish", "is", null)
               // The fan-out's own gate (Q205b: was approval_status = 'approved').
-              .eq("email_verified", true),
+              .eq("email_verified", true)
+              .eq("is_seed", false),
           ) as { user_id: string; parish: string | null; ban_status: string | null }[])(),
       ]);
 
@@ -171,7 +175,8 @@ export const useHealthData = () => {
       const recentJobsForApps = await supabase
         .from("jobs")
         .select("id, created_at")
-        .gte("created_at", weekAgo);
+        .gte("created_at", weekAgo)
+        .eq("is_seed", false);
       const jobIds = (unwrap(recentJobsForApps) || []).map((j) => j.id);
       let medianTimeToFirstAppMin: number | null = null;
       let jobsAwaitingApps = 0;

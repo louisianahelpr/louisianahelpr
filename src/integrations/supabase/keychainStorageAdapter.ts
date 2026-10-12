@@ -216,7 +216,7 @@ function readSync(key: string): string | null {
 // sign-out's delete restores the session on the next launch). Every Keychain
 // write therefore runs in one queue, in the order the app issued it: a hung
 // call delays the ones behind it, never reorders them.
-export const KEYCHAIN_WRITE_CAP_MS = 1_500;
+const KEYCHAIN_WRITE_CAP_MS = 1_500;
 
 let keychainQueue: Promise<void> = Promise.resolve();
 function inKeychainOrder(op: () => Promise<void>): Promise<void> {

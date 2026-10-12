@@ -6,6 +6,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
+import { PAYOUT_TRANSFER_ANALYTICS_COLUMNS, realPayoutTransfers, type PayoutTransferRow } from "./adminAnalytics/realPayoutTransfers";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS, TIER_ORDER } from "@/lib/subscriptionTiers";
@@ -51,7 +52,7 @@ async function readAllProfiles<T>(
 type AnalyticsLoad = {
   profiles: Profile[];
   allJobs: Job[];
-  transfers: { amount_cents: number | string; status: string; job_id?: string | null }[] | null;
+  transfers: PayoutTransferRow[] | null;
   tips: Tip[];
   roleByUser: Map<string, string>;
 };
@@ -72,7 +73,6 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
     page++;
   }
 
-  let transfers: AnalyticsLoad["transfers"];
   const [profilesRes, tipsRes, rolesRes, transfersRes, giftCardPaidRes] = await Promise.all([
     readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
     // Seed-filtered like every other source in this loader. `tips` has no
@@ -87,7 +87,7 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
     // with a fee fallback, which overstated it — see computeMetrics.
     // `job_id` so the Payout Pipeline's Released rung can be attributed to
     // the jobs it settled rather than quoting a budget as a settlement.
-    supabase.from("payout_transfers").select("amount_cents, status, job_id"),
+    supabase.from("payout_transfers").select(PAYOUT_TRANSFER_ANALYTICS_COLUMNS),
     loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
   ]);
   if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
@@ -99,12 +99,8 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
   // empty array, which sums to $0.00 and renders identically to "no helper
   // has ever been paid". Null now means "we don't know", and the tile says
   // so instead of asserting a zero.
-  if (transfersRes.error) {
-    report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
-    transfers = null;
-  } else {
-    transfers = (transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || [];
-  }
+  if (transfersRes.error) report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
+  const transfers: AnalyticsLoad["transfers"] = transfersRes.error ? null : realPayoutTransfers(transfersRes.data);
   return {
     profiles: profilesRes.rows,
     allJobs: withGiftCardPaid(allJobsData, giftCardPaidRes.ids),

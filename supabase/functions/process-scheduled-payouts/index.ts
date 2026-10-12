@@ -25,6 +25,7 @@ import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFees.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
+import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 
 serve(async (req) => {
@@ -68,9 +69,12 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Stripe mode (owner 2026-10-12): each payout runs on the key of its job's
+    // own mode (test accounts on the test key); a job mixing test and real
+    // accounts is skipped as a defect. `stripe` (live) is kept only for the
+    // held-money re-drives at the end, which are not per job.
+    const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
+    const stripe = stripes.clientFor("live");
 
     const now = new Date().toISOString();
 
@@ -531,8 +535,10 @@ serve(async (req) => {
       paidCents: number;
       /** Q1390: block fees paid to members out of their closed spots' shares. */
       blockFeeCents: number;
+      /** The client of this job's Stripe mode (owner 2026-10-12). */
+      stripe: Stripe;
     }): Promise<{ ok: boolean; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
-      const { job } = a;
+      const { job, stripe } = a;
       const slots = crewSlotByJob.get(job.id);
       const decision = crewDecisionByJob.get(job.id);
       const needed = Math.max(1, Number(job.helpers_needed ?? 1));
@@ -830,8 +836,10 @@ serve(async (req) => {
       giftAppliedCents: number;
       capturedCents: number;
       cardLegTestMode: boolean;
+      /** The client of this job's Stripe mode (owner 2026-10-12). */
+      stripe: Stripe;
     }): Promise<{ ready: boolean; paidCents: number; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
-      const { job } = a;
+      const { job, stripe } = a;
       const { data: paidRows, error: paidCountErr } = await supabaseAdmin
         .from("payout_transfers")
         .select("helper_id, amount_cents")
@@ -949,6 +957,17 @@ serve(async (req) => {
       if (hold.kind === "held") {
         console.warn(`[process-scheduled-payouts] helper ${helperId} is on a payout hold; job ${job.id} left payout_pending`);
         results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
+        continue;
+      }
+      // Stripe mode for THIS job (owner 2026-10-12): shadows the run's live
+      // client for the whole iteration.
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await stripes.clientForJob(job.id, "payout", [helperId]));
+      } catch (e) {
+        if (!(e instanceof StripeModeRefused)) throw e;
+        results.push({ job_id: job.id, status: "stripe_mode_refused", error: e.reason });
+        jobDefect(job.id, `stripe mode ${job.id}: ${e.reason}: ${e.message}${e.reason === "mixed_parties" ? " (a payee in the other Stripe mode cannot be paid from this escrow: refund the person who paid it, from Admin)" : ""}`);
         continue;
       }
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
@@ -1308,7 +1327,7 @@ serve(async (req) => {
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode, stripe });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -1730,7 +1749,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode, stripe });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);

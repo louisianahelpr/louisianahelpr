@@ -8,6 +8,7 @@ import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -219,7 +220,9 @@ serve(async (req) => {
     if (unconfirmedEmail) return unconfirmedEmail;
 
     callerId = user.id;
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
     stripeClient = stripe;
@@ -792,6 +795,7 @@ serve(async (req) => {
 
     throw new Error("Invalid action");
   } catch (error) {
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     // Log the full error so Supabase Edge Function logs surface a real
     // diagnosis (the log api only shows status codes, not response bodies,
     // so without console.error every 500 is opaque). Hundreds of v6 500s

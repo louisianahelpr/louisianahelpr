@@ -111,6 +111,7 @@
     "supabase/functions/_shared/louisianaDate.ts",
     "supabase/functions/_shared/stripeIdentity.ts",
     "supabase/functions/_shared/stripeAccountUsable.ts",
+    "supabase/functions/_shared/stripeMode.ts",
     "supabase/functions/_shared/instantPayoutFee.ts",
     "supabase/functions/_shared/stripeFees.ts",
     "supabase/functions/_shared/posterFees.ts",

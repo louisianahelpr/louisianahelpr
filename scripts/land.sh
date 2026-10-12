@@ -292,6 +292,15 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # The --changed set runs in chunks of 60 files: one process for a big set
   # (162 files, fix-land/no-poster-fee, 2026-10-12) ran out of node's ~2 GB
   # heap. Guard: src/test/landVitestChangedChunks.test.ts.
+  # A batch TRAIN (cherry-picked keepers in one branch) is tested once, on
+  # GitHub (owner, 2026-10-12: the 8 GB Mac building trains one after another
+  # was the bottleneck while CI merged each train in 8-18 min). Run it as
+  # `LAND_TRAIN=1 bash scripts/land.sh`: every other step still runs (eslint,
+  # counts, generated, review records, closing keywords, the migration twins,
+  # the critical-path build); only these two vitest runs are left to CI.
+  if [ "${LAND_TRAIN:-}" = 1 ]; then
+    echo "land: LAND_TRAIN=1: the --changed and named vitest runs are left to GitHub CI (batch train, owner 2026-10-12)."
+  else
   node scripts/land-vitest-changed.mjs origin/main
   # shellcheck disable=SC2086
   # In chunks too: one process for this set ran out of node's heap on the
@@ -303,6 +312,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     src/test/workflowInstallsMatchLockfile.test.ts \
     src/test/baselinesAreTwoWay.test.ts \
     src/test/mutateRegistrationsResolve.test.ts
+  fi
 
   # db-deploy runs the moment a migration reaches main, before CI's vitest
   # does. Its two commonest reds (ledger 00fd2bd0, runs since 2026-09-24:

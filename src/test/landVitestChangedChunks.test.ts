@@ -16,6 +16,7 @@
 // @mutate scripts/land-vitest-changed.mjs | export const CHUNK = 60; | export const CHUNK = 6000;
 // @mutate scripts/land.sh |   node scripts/land-vitest-changed.mjs origin/main |   npx vitest run --changed origin/main --passWithNoTests
 // @mutate scripts/land.sh |   node scripts/land-vitest-changed.mjs --files $NAMED_TESTS |   npx vitest run $NAMED_TESTS
+// @mutate scripts/land.sh |   if [ "${LAND_TRAIN:-}" = 1 ]; then |   if true; then
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
@@ -54,6 +55,26 @@ describe("land.sh runs the --changed test set in chunks", () => {
     // of heap in one process after its --changed set had passed in chunks).
     expect(code).toContain("node scripts/land-vitest-changed.mjs --files $NAMED_TESTS");
     expect(code).not.toMatch(/npx vitest run \$NAMED_TESTS/);
+  });
+
+  // A batch train leaves exactly these two runs to GitHub CI (owner,
+  // 2026-10-12), only when LAND_TRAIN=1 is set: a plain land.sh still runs them.
+  it("LAND_TRAIN=1 skips only the two local vitest runs, and only when set", () => {
+    const land = readFileSync(join(ROOT, "scripts", "land.sh"), "utf8");
+    const at = land.indexOf('if [ "${LAND_TRAIN:-}" = 1 ]; then');
+    expect(at).toBeGreaterThan(-1);
+    const end = land.indexOf("\n  fi\n", at);
+    const block = land.slice(at, end);
+    expect(block).toContain("node scripts/land-vitest-changed.mjs origin/main");
+    expect(block).toContain("node scripts/land-vitest-changed.mjs --files $NAMED_TESTS");
+    // Nothing else sits inside the skipped branch.
+    const skipped = block.slice(block.indexOf("else"));
+    expect(skipped.split("\n").filter((l) => /^\s*(npm|npx|node|git)\b/.test(l))).toHaveLength(2);
+    // The checks around it still run unconditionally.
+    for (const step of ["npx eslint --quiet $CHANGED_LINT", "npm run -s check:counts", "node scripts/check-sensitive-review.mjs"]) {
+      expect(land.indexOf(step), step).toBeGreaterThan(-1);
+      expect(land.slice(at, end)).not.toContain(step);
+    }
     const runner = readFileSync(join(ROOT, "scripts", "land-vitest-changed.mjs"), "utf8");
     expect(runner).toContain('"list", "--changed", base, "--filesOnly", "--json"');
     expect(runner).toMatch(/if \(run\.status !== 0\) \{[\s\S]*?process\.exit\(1\);/);

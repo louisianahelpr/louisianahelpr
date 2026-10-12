@@ -250,10 +250,24 @@ export function escapeSlackText(text: string): string {
  * Every caller passes our own value today (/admin?view=..., our https site,
  * dashboard.stripe.com); only a site path or an https URL with no Slack
  * control characters or whitespace is rendered.
+ *
+ * Q1715: a site path is returned ABSOLUTE on `origin` (the senders pass
+ * getAppUrl()). Slack has no page to resolve `</admin?view=health|...>`
+ * against, so a bare path is not a working link there.
  */
-export function safeSlackLink(link: string | null | undefined): string | null {
+export function safeSlackLink(link: string | null | undefined, origin: string): string | null {
   if (typeof link !== 'string') return null
   if (!(/^\/(?!\/)/.test(link) || link.startsWith('https://'))) return null
   if (/[|<>\s]/.test(link)) return null
+  if (link.startsWith('/')) {
+    if (!/^https:\/\/[^/|<>\s]+$/.test(origin.replace(/\/$/, ''))) {
+      // The alert still posts, only without its "Open in admin" button; say
+      // why, so a misconfigured APP_URL is not a silent loss of every link
+      // (lh-silent-failure review note, 2026-10-12).
+      console.warn(`[slack-alerts] APP_URL ${JSON.stringify(origin)} is not a bare https origin; dropped the link ${link}`)
+      return null
+    }
+    return `${origin.replace(/\/$/, '')}${link}`
+  }
   return link
 }

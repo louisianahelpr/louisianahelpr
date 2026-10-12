@@ -17,10 +17,12 @@
  * so the remote half covers them; work that never left a cloud container
  * cannot be seen from here, which is why every cloud prompt must push.
  *
- * Remote items that are deliberately not landed go in
+ * Items that are deliberately not landed go in
  * docs/audit/stranded-accepted.json with the reason and the open item that
  * carries the decision; the list is exact both ways (an entry whose ref is gone
- * or moved fails too). PRs closed before --since (default 2026-10-03, the day
+ * or moved fails too). Remote ids (pr:, remote:) are judged by CI; local ids
+ * (branch:, worktree:...@HEAD) only by --local on the Mac that holds them
+ * (splitAccepted). An uncommitted-file snapshot has no stable sha: commit it. PRs closed before --since (default 2026-10-03, the day
  * the rule started) were triaged by hand: docs/audit/stranded-triage-2026-10-03.md.
  * Exit: 0 clean, 1 stranded or a stale acceptance (--check), 2 could not look.
  */
@@ -144,7 +146,18 @@ export function landedElsewhere(bodies) {
   return bodies.some((b) => /^\s*(Landed (on main |in |as |through )|Same work as .*already on main|Reopened automatically by branch-prune.*work is on main)/is.test(b));
 }
 
-/** Which remote items are not accepted, and which acceptances no longer match anything (exact both ways). */
+/**
+ * Acceptances split by where their ref lives. Remote ids (`pr:`, `remote:`) are
+ * judged by the CI check; local ones (`branch:`, `worktree:`, `stash:`) only by
+ * --local on the Mac that holds them, so a local entry never reads as a stale
+ * REMOTE acceptance in branch-prune.yml.
+ */
+export function splitAccepted(accepted) {
+  const isRemote = (a) => /^(pr|remote):/.test(a.id);
+  return { remote: accepted.filter(isRemote), local: accepted.filter((a) => !isRemote(a)) };
+}
+
+/** Which items are not accepted, and which acceptances no longer match anything (exact both ways). */
 export function judge(items, accepted) {
   const key = (x) => `${x.id}@${x.sha}`;
   const acceptedKeys = new Set(accepted.map(key));
@@ -213,19 +226,25 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.
     const index = buildMainIndex(git, MAIN);
     const local = doLocal ? localInventory(git, index) : [];
     const remote = doRemote ? remoteInventory(git, index) : [];
-    const accepted = existsSync(ACCEPTED_PATH) ? JSON.parse(readFileSync(ACCEPTED_PATH, "utf8")).accepted ?? [] : [];
-    const { unaccepted, stale, fresh } = judge(remote, accepted);
-    const report = { checkedAt: new Date().toISOString(), main: git(["rev-parse", MAIN]).trim(), local, remote: unaccepted, acceptedRemote: remote.length - unaccepted.length - fresh.length, freshRemote: fresh, staleAcceptances: stale };
+    const all = existsSync(ACCEPTED_PATH) ? JSON.parse(readFileSync(ACCEPTED_PATH, "utf8")).accepted ?? [] : [];
+    const { remote: acceptedRemoteList, local: acceptedLocalList } = splitAccepted(all);
+    const { unaccepted, stale: staleRemote, fresh } = judge(remote, acceptedRemoteList);
+    // Local acceptances only mean something on the machine that holds those refs.
+    const localJ = doLocal ? judge(local, acceptedLocalList) : { unaccepted: local, stale: [] };
+    const stale = doRemote ? staleRemote : [];
+    const acceptedLocal = local.length - localJ.unaccepted.length;
+    const report = { checkedAt: new Date().toISOString(), main: git(["rev-parse", MAIN]).trim(), local: localJ.unaccepted, acceptedLocal, staleLocalAcceptances: localJ.stale, remote: unaccepted, acceptedRemote: remote.length - unaccepted.length - fresh.length, freshRemote: fresh, staleAcceptances: stale };
     const reportPath = opt("--report", null);
     if (reportPath) { mkdirSync(dirname(reportPath), { recursive: true }); writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n"); }
     if (flag("--json")) console.log(JSON.stringify(report, null, 2));
     else {
-      const idle = local.filter((i) => !i.active);
+      const open = localJ.unaccepted;
+      const idle = open.filter((i) => !i.active);
       console.log(`Stranded work (not on ${MAIN} by content):`);
-      if (doLocal) console.log(`local: ${idle.length} item(s)${local.length > idle.length ? ` (+${local.length - idle.length} in a worktree something is using now)` : ""}\n${summarize(local)}`);
+      if (doLocal) console.log(`local: ${idle.length} item(s)${open.length > idle.length ? ` (+${open.length - idle.length} in a worktree something is using now)` : ""}, ${acceptedLocal} accepted, ${localJ.stale.length} stale acceptance(s)\n${summarize(open)}${localJ.stale.length ? `\n  stale local acceptances (ref gone or moved): ${localJ.stale.map((s) => s.id).join(", ")}` : ""}`);
       if (doRemote) console.log(`remote: ${unaccepted.length} not accepted, ${remote.length - unaccepted.length - fresh.length} accepted, ${stale.length} stale acceptance(s)\n${summarize(unaccepted)}${stale.length ? `\n  stale acceptances (ref gone or moved): ${stale.map((s) => s.id).join(", ")}` : ""}${fresh.length ? `\n  pushed under ${STRANDED_AFTER_HOURS}h ago, judged once older: ${fresh.map((f) => f.id).join(", ")}` : ""}`);
     }
-    if (flag("--check") && (unaccepted.length || stale.length || (doLocal && local.some((i) => !i.active)))) {
+    if (flag("--check") && (unaccepted.length || stale.length || (doLocal && (localJ.stale.length || localJ.unaccepted.some((i) => !i.active))))) {
       console.log("::error title=Stranded work::work that is not on main and not landed or accepted; land it (bash scripts/land.sh), or record why in docs/audit/stranded-accepted.json with its open item");
       process.exit(1);
     }

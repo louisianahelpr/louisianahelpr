@@ -233,6 +233,12 @@ export async function fetchConversations(
     // semantics exactly: the SENDER still sees what they wrote (so a blocked
     // message doesn't just vanish on them), the RECIPIENT does not.
     if (m.flagged_hidden && m.sender_id !== uid) return false;
+    // Q1591(b) (owner, 2026-10-11, "Team messages get through"): a
+    // "Louisiana Helpr Team" row is delivered through a block of the staff
+    // member's personal account, both ways (the server's block gate lets it
+    // through since 20261012030525), so the inbox must not drop it either.
+    // Job (personal) rows are still filtered below.
+    if (isTeamThreadKey(m.job_id)) return true;
     const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
     // Q262: null = the other party deleted their account (receiver_id SET
     // NULL). Nobody to be blocked with.

@@ -36,7 +36,10 @@
  * and lands the ticks the same way (owner, 2026-10-12: "make it an automated
  * ticking mechanism"; 58 READY items had sat untouched because the nightly
  * only reported them). A READY item is no longer a red: only a marker that
- * cannot be read, or a crash, is.
+ * cannot be read, or a crash, is. A READY item whose text still owes a look or
+ * a manual step ("Left: a 375 look", "screenshot pending", "tick once live and
+ * LOOKED at") is HELD, never ticked on tests alone (heldForOwedLook, owner
+ * 2026-10-12); `look: done <YYYY-MM-DD>` after the owed step releases it.
  *
  * --status-file <path> (with --tick): write the exit status (1 = a marker could
  * not be read) to <path> as the LAST thing the run does, and exit 0, so the
@@ -327,6 +330,69 @@ export function heldForNoGuard(md, readyIds, notes, root = process.cwd()) {
   return held;
 }
 
+/**
+ * A look or a manual step the item still owes (owner, 2026-10-12). The nightly
+ * --tick (bot PR #2899) closed Q1327, Q1402, Q1465, Q1504, Q1537, Q1558 and
+ * Q1646 because their unit tests passed, while each line still said a
+ * screenshot or a look on prod was owed; Q1504 was really still broken on
+ * prod and Q1646's WebKit paint defect was still on main. A test cannot stand
+ * in for a look, so such an item is HELD: a person ticks it after looking.
+ * Each pattern reads an OUTSTANDING step, not a past one ("LOOKED AT on prod"
+ * alone does not hold).
+ */
+export const OWED_LOOK_PATTERNS = [
+  /\btick(?:ed)? (?:it )?(?:only )?(?:once|after|when)\b[^.]{0,240}?\blook(?:ed|s)?\b/i, // "tick once live and LOOKED at"
+  /\bleft:[^.]{0,300}?\b(?:look|looks|looked|screenshots?|owner'?s (?:phone|iphone)|on a device|simulator|testflight)\b/i, // "Left: a 375 look ..."
+  /\bscreenshots? (?:still )?(?:pending|owed)\b/i, // "screenshot pending"
+  /\bnot (?:yet )?looked at\b/i, // "NOT LOOKED AT", "still not looked at"
+  /\bneeds? (?:a|an|the) (?:\d+ )?(?:look|screenshot)\b/i, // "needs a look"
+  /\bwebkit look\b/i,
+  /\b(?:on|see it on) the owner'?s (?:phone|iphone)\b/i,
+];
+
+/**
+ * Releases a hold: `look: done <YYYY-MM-DD>` written AFTER the last owed step,
+ * by the person who looked (and recorded it with `npm run review:record`).
+ */
+export const LOOK_DONE = /\blook: done \d{4}-\d{2}-\d{2}\b/gi;
+
+/** The owed look this text names (the matched words), or null when nothing is owed. */
+export function owedLook(text) {
+  let last = -1;
+  let words = null;
+  for (const rx of OWED_LOOK_PATTERNS) {
+    const g = new RegExp(rx.source, rx.flags.includes("g") ? rx.flags : `${rx.flags}g`);
+    for (const m of text.matchAll(g)) {
+      if (m.index > last) {
+        last = m.index;
+        words = m[0];
+      }
+    }
+  }
+  if (last < 0) return null;
+  let released = -1;
+  for (const m of text.matchAll(LOOK_DONE)) released = Math.max(released, m.index);
+  return released > last ? null : words;
+}
+
+/**
+ * The READY items that must NOT be ticked because their text still owes a look
+ * or a manual step (owedLook). Returns [id, the words that owe it].
+ * @param {string} md
+ * @param {Iterable<string>} readyIds
+ * @returns {[string, string][]}
+ */
+export function heldForOwedLook(md, readyIds) {
+  const want = new Set(readyIds);
+  const held = [];
+  for (const it of queueItems(md)) {
+    if (!want.has(it.id)) continue;
+    const owed = owedLook(it.text);
+    if (owed) held.push([it.id, owed]);
+  }
+  return held;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
@@ -372,6 +438,10 @@ async function main() {
     }
     for (const id of heldForNoGuard(md, readyIds.keys(), readyIds)) {
       console.log(`held   ${id}: READY, but its text names no guard (or NO-GUARD: <why>); a person ticks it with one`);
+      readyIds.delete(id);
+    }
+    for (const [id, owed] of heldForOwedLook(md, readyIds.keys())) {
+      console.log(`held   ${id}: READY, but its text still owes a look or manual step ("${owed.slice(0, 80)}"); a person ticks it after looking (or writes \`look: done <date>\`)`);
       readyIds.delete(id);
     }
     if (readyIds.size) writeFileSync(file, tickReady(readFileSync(file, "utf8"), readyIds, new Date().toISOString().slice(0, 10)));

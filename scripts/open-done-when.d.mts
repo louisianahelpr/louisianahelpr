@@ -22,3 +22,8 @@ export function appFunctionsCalled(query: string, appFns: Set<string>): string[]
 export function rowText(rows: unknown): string;
 /** Which test files passed, from vitest's JSON report (paths relative to `root`). */
 export function testFileResults(report: { testResults?: { name: string; status: string }[] }, root: string): Map<string, boolean>;
+/** The outstanding look or manual step an item's text names, or null (a later `look: done <date>` releases it). */
+export function owedLook(text: string): string | null;
+/** READY items held because their text still owes a look: [id, the words that owe it]. */
+export function heldForOwedLook(md: string, readyIds: Iterable<string>): [string, string][];
+export const OWED_LOOK_PATTERNS: RegExp[];

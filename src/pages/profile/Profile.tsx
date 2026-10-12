@@ -7,7 +7,7 @@ import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
-import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
 import { ProfileOfflineGate } from "@/components/profile/ProfileOfflineGate";
 import { EarningsPageSkeleton, isEarningsTabUrl } from "@/components/profile/earningsTab/EarningsPageSkeleton";

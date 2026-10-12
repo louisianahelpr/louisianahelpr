@@ -262,7 +262,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # shellcheck disable=SC2086
   NAMED_TESTS="$NAMED_TESTS $(node scripts/lib/landPathReaders.mjs $CHANGED_ALL | tr '\n' ' ')"
   # Two runs: vitest intersects file filters with --changed, so they cannot share one.
-  npx vitest run --changed origin/main --passWithNoTests
+  # The --changed set runs in chunks of 60 files: one process for a big set
+  # (162 files, fix-land/no-poster-fee, 2026-10-12) ran out of node's ~2 GB
+  # heap. Guard: src/test/landVitestChangedChunks.test.ts.
+  node scripts/land-vitest-changed.mjs origin/main
   # shellcheck disable=SC2086
   npx vitest run $NAMED_TESTS \
     src/test/fixtureSchemaContract.test.ts \

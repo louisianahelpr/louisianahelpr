@@ -8,14 +8,12 @@ import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { TIER_PERKS, TIER_ORDER } from "@/lib/subscriptionTiers";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
-import { PIE_COLORS } from "./adminAnalyticsConstants";
+import { PIE_COLORS, TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
 import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
-import { TIER_ORDER } from "@/lib/subscriptionTiers";
-import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
 import { computeMetrics, mostPrivilegedRoleByUser } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
@@ -610,9 +608,7 @@ const AdminAnalytics = () => {
         <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
 
-      {/* Q1587: step-1 sign-up emails, the one reminder, and who finished. */}
       <SignupLeadsCard />
-
       <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
 
       <AdminCard title={<span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" /> Jobs per Month</span>}>

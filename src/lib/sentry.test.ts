@@ -205,6 +205,39 @@ describe("beforeSend noise filter", () => {
     expect(beforeSend(event)).toBeNull();
   });
 
+  // Q1634: a host app's injected script (Facebook's Android in-app browser,
+  // iabjs://) is not our code. Sentry JAVASCRIPT-3B, verbatim frames.
+  // @mutate src/lib/sentry.ts |   if (frameUrls.length > 0 && frameUrls.every((u) => !SHIPPED_SCRIPT_SCHEME.test(u))) return true; |   if (frameUrls.length < 0) return true;
+  it("drops an error every frame of which is an injected in-app-browser script", async () => {
+    const beforeSend = await getBeforeSend();
+    const frames = [
+      { filename: "iabjs://navigation_performance_logger_android", abs_path: "iabjs://navigation_performance_logger_android" },
+      { filename: "iabjs://navigation_performance_logger_android" },
+      { filename: "iabjs://navigation_performance_logger_android" },
+    ];
+    expect(
+      beforeSend({ exception: { values: [{ value: "Error invoking postMessage: Java object is gone", stacktrace: { frames } }] } }),
+    ).toBeNull();
+  });
+
+  it("keeps an error with any frame of ours, on every scheme we ship from", async () => {
+    const beforeSend = await getBeforeSend();
+    for (const ours of [
+      "https://www.louisianahelpr.com/assets/index.js",
+      "capacitor://localhost/assets/index.js",
+      "https://localhost/assets/index.js",
+      "http://127.0.0.1:4173/assets/index.js",
+    ]) {
+      const event = {
+        exception: { values: [{ value: "TypeError: x is null", stacktrace: { frames: [{ filename: "iabjs://logger" }, { filename: ours }] } }] },
+      };
+      expect(beforeSend(event), ours).toEqual(event);
+    }
+    // Frames with no url (native, <anonymous>) say nothing either way.
+    const bare = { exception: { values: [{ value: "TypeError: x is null", stacktrace: { frames: [{ filename: "<anonymous>" }] } }] } };
+    expect(beforeSend(bare)).toEqual(bare);
+  });
+
   it("drops quota/storage errors common in private mode", async () => {
     const beforeSend = await getBeforeSend();
     expect(beforeSend({ message: "QuotaExceededError" })).toBeNull();

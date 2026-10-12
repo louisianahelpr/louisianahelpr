@@ -1776,7 +1776,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 119,
+      "line": 122,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1790,7 +1790,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 127,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1804,7 +1804,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 135,
+      "line": 138,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1818,7 +1818,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 137,
+      "line": 140,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1832,7 +1832,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 139,
+      "line": 142,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1846,7 +1846,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 141,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1860,7 +1860,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 145,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "literal",

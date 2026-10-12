@@ -2360,7 +2360,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     resetSharedMocks();
     // The series the row belongs to: live unless a test says otherwise.
     scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: null, status: "in_progress" }] };
-    // Q1654: Stripe answers a refund with its id; the payer's notice is claimed on it.
+    // Q1714: Stripe answers a refund with its id; the payer's notice is claimed on it.
     stripeMock.refunds.create.mockResolvedValue({ id: "re_rv", amount: 31500, status: "succeeded" });
   });
 
@@ -2510,7 +2510,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     expect(statusWrites()).toEqual(["expired"]);
     const expire = flips()[0];
     expect(expire.filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
-    // No booking kick (the refund's email, Q1654, is the only call).
+    // No booking kick (the refund's email, Q1714, is the only call).
     expect(kick.mock.calls.filter((c) => String(c[0]).includes("charge-recurring-visits"))).toHaveLength(0);
   });
 
@@ -2579,7 +2579,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
   // ── Q1247 (a): the payer hears about a refund from us ─────────────────────
   // On main every refund branch refunded and paged ops but wrote the payer
   // nothing: the money came back with no word. Each branch is driven here.
-  // Q1654: the notice is THE refund notice (_shared/refundNotice.ts), in the
+  // Q1714: the notice is THE refund notice (_shared/refundNotice.ts), in the
   // app and by email, claimed on the refund's id.
   // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   if (result.status === "sent" \|\| result.status === "dropped") return { told: true, alreadyTold: false }; |   if (false) return { told: true, alreadyTold: false };
   // @mutate supabase/functions/_shared/refundNotice.ts |       if (!seedErr && seed === true) return { status: "dropped" }; |       return { status: "dropped" };
@@ -2646,7 +2646,7 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
     await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(payerNotices()).toHaveLength(1);
-    // Q1654 review N6: the refund's id rides in the link beside the payment's.
+    // Q1714 review N6: the refund's id rides in the link beside the payment's.
     expect(String(payerNotices()[0].link)).toBe("/posts?visit_refund=pi_rv&refund=re_1");
     expect(JSON.stringify(slackAlerts)).toContain("paid but not bookable");
   });

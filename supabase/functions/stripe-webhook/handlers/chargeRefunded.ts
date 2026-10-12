@@ -118,7 +118,7 @@ export async function handleChargeRefunded(
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
   const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
-  // Q1654: one sentence the refund notice adds for the newest refund (the gift
+  // Q1714: one sentence the refund notice adds for the newest refund (the gift
   // card a full refund gave back), set below where that is decided.
   let noticeExtra: string | null = null;
 
@@ -365,7 +365,7 @@ export async function handleChargeRefunded(
         });
       }
 
-      // Q1654: the card holder's notice is sent below for EVERY refund, full
+      // Q1714: the card holder's notice is sent below for EVERY refund, full
       // or partial (it was this "Refund processed" row, full refunds only,
       // in-app only). The gift sentence rides on it.
       noticeExtra = giftSentence.trim() || null;
@@ -444,7 +444,7 @@ export async function handleChargeRefunded(
     }
   }
 
-  // Q1654 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
+  // Q1714 (owner report 2026-10-12: a $100.00 partial refund on "Mow & Weed
   // Eat Yard" reached the card and nobody was told). EVERY refund the platform
   // makes raises this event, whichever path made it, so this is where the
   // person who paid is told: once per live refund (refund_notices dedupes a
@@ -454,7 +454,7 @@ export async function handleChargeRefunded(
   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) {
     const method = paymentMethodFromCharge(charge);
     // What was CAPTURED, not authorised: a hold captured in part released the
-    // rest, which was never "kept" (review of Q1654 #10).
+    // rest, which was never "kept" (review of Q1714 #10).
     const capturedCents = Number((charge as { amount_captured?: number | null }).amount_captured ?? charge.amount ?? 0);
     const keptCents = Math.max(0, capturedCents - liveRefundedCents);
     const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
@@ -480,7 +480,7 @@ export async function handleChargeRefunded(
     // webhook answers 200 and leaves them to it; the hourly untold-refund
     // sweep (void-cancelled-payments) is the safety net for a path that
     // stopped first. Not deferring through Stripe's retries: a re-run repeats
-    // this whole event (third review of Q1654).
+    // this whole event (third review of Q1714).
     const { data: pathRows, error: pathRowsErr } = await supabase.from("payment_refunds")
       .select("stripe_refund_id, source").in("stripe_refund_id", ordinaryRefunds.map((r) => r.id))
       .neq("source", "stripe_dashboard");

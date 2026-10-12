@@ -1,5 +1,5 @@
 /**
- * Q1654: the ONE notice a person gets when money goes back to them.
+ * Q1714: the ONE notice a person gets when money goes back to them.
  *
  * Owner report 2026-10-12: "was i refunded for mow and weed eat yard? i dont
  * think i got an email that i was refunded". Measured: void-cancelled-payments
@@ -99,7 +99,7 @@ export interface RefundNoticeResult {
 
 /**
  * What a sender must page about, or null. Every sender pages the same way
- * (review of Q1654 #1/#8): a refund nobody was told about, or a notice whose
+ * (review of Q1714 #1/#8): a refund nobody was told about, or a notice whose
  * email failed for a reason other than the person's own switches.
  */
 export function refundNoticeProblem(r: RefundNoticeResult): string | null {
@@ -117,7 +117,7 @@ export function refundNoticeProblem(r: RefundNoticeResult): string | null {
  * dispute decision, the admin's reason, the visit and the card fee), marked by
  * metadata those paths already put on the refund. The charge.refunded webhook
  * leaves these to their path, so the wording never depends on which sender
- * wins (review of Q1654 #1/#9); src/test/refundPathsSendTheNotice.test.ts
+ * wins (review of Q1714 #1/#9); src/test/refundPathsSendTheNotice.test.ts
  * holds every path that sets one of these marks to calling sendRefundNotice.
  */
 export function pathAnnouncesRefund(md: Record<string, string> | null | undefined): boolean {
@@ -130,7 +130,7 @@ export function pathAnnouncesRefund(md: Record<string, string> | null | undefine
  * The amount a `release:<pi>` notice already told the person about, or null.
  * A hold captured in part releases the rest; should Stripe also show that as a
  * Refund on the charge, the webhook must not announce the same money twice
- * (second review of Q1654, N8).
+ * (second review of Q1714, N8).
  */
 export async function releasedCentsAlreadyTold(
   supabase: Client,
@@ -211,7 +211,7 @@ function describePaymentMethod(m: PaymentMethodLabel | null | undefined): string
   if (wallet) return card ? `${wallet} (${card})` : wallet;
   if (card) return `your ${card}`;
   if (m.type === "us_bank_account" && m.last4) return `your bank account ending in ${m.last4}`;
-  // Never the raw type ("to link", review of Q1654 #4): a known name, or the fallback.
+  // Never the raw type ("to link", review of Q1714 #4): a known name, or the fallback.
   if (m.type && METHOD_TYPES[m.type]) return METHOD_TYPES[m.type];
   return "your original payment method";
 }
@@ -350,7 +350,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
     let recipient: string | null = input.recipientId ?? job?.customer_id ??
       md.customer_id ?? md.payer_id ?? md.tipper_id ?? md.donor_id ?? md.supabase_user_id ?? md.user_id ?? null;
     // A tip's or a gift card's PaymentIntent names nobody (their payer sits on
-    // the Checkout Session): their own ledgers do (review of Q1654 #7).
+    // the Checkout Session): their own ledgers do (review of Q1714 #7).
     for (const [table, col] of [["tips", "tipper_id"], ["gift_cards", "donor_id"]] as const) {
       if (recipient || !input.paymentIntentId || input.jobByPayment === false) break;
       const { data, error } = await supabase.from(table).select(col).eq("stripe_payment_intent_id", input.paymentIntentId).limit(1);
@@ -410,7 +410,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
     } else if (claimErr && PERMANENT.has(claimErr.code ?? "")) {
       // A constraint no retry can pass (the recipient's account is gone: the
       // FK; a malformed id): nobody can be told, and redelivering will not
-      // change that (review of Q1654 #6).
+      // change that (review of Q1714 #6).
       return { status: "no_recipient", error: `claim: ${claimErr.code} ${claimErr.message}` };
     } else if (claimErr) {
       return { status: "failed", error: `claim: ${claimErr.message}` };
@@ -472,7 +472,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
           // A fresh timeout per attempt (a signal made once is already spent
           // when fetchFunction retries after a rate limit), and one deadline
           // for all of it, so a money path never waits a minute on an email
-          // (second review of Q1654, N5).
+          // (second review of Q1714, N5).
           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
@@ -494,7 +494,7 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         }
       }
       if (claimed) {
-        // The email's outcome is recorded on the claim (review of Q1654 #8):
+        // The email's outcome is recorded on the claim (review of Q1714 #8):
         // emailed, or why not, so an unsent one can be found and re-sent.
         const { error: emailStampErr } = await supabase.from("refund_notices")
           .update({ emailed, email_error: emailError ?? null }).eq("notice_key", input.key).select("notice_key");

@@ -1,4 +1,4 @@
-// @mutate scripts/land.sh |   npx vitest run --changed origin/main --passWithNoTests | 
+// @mutate scripts/land.sh |   node scripts/land-vitest-changed.mjs origin/main | 
 // @mutate scripts/land.sh |   npm run -s check:counts\n | 
 // @mutate scripts/land.sh |     src/test/deadcodeRatchet.test.ts \ |     \
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
@@ -237,7 +237,7 @@ describe("land.sh first-try pass (owner, 2026-10-05: make landings pass on the f
     for (const needle of [
       "npx eslint --quiet $CHANGED_LINT",
       "npm run -s check:counts",
-      "npx vitest run --changed origin/main --passWithNoTests",
+      "node scripts/land-vitest-changed.mjs origin/main",
       'git grep -l -F -- "$b"',
       "src/test/fixtureSchemaContract.test.ts",
       "src/test/workflowFalseGreenShapes.test.ts",

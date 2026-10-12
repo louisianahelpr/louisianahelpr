@@ -163,6 +163,11 @@ const NOT_A_JOB_TITLE = new Set<string>([
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit created without its application row"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit funding had failures"',
   'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and is only partly refunded"',
+  // items-b-money-small-2 (2026-10-12): Slack ops alerts for a charged-back visit payment.
+  'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and only part of it went back in a chargeback"',
+  'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and has an open chargeback"',
+  'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit held: its dispute state could not be read"',
+  'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit has a chargeback: not booked"',
   // (the poster's "We couldn't charge for your next visit" is now a ternary,
   // 2026-10-05, and so is "Your visit charge was refunded, less the card fee",
   // 2026-10-07, so neither is a literal hit any more)

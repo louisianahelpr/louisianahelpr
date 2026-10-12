@@ -8,6 +8,8 @@
  * there. The request mirrors what postgrest-js `insert()` sends.
  */
 
+import { sessionKnown, whenSessionKnown } from "@/lib/sessionKnown";
+
 /** fetch keepalive refuses bodies over 64 KiB; stay under it with margin. */
 const KEEPALIVE_MAX_BYTES = 60_000;
 
@@ -50,6 +52,10 @@ export async function postRows<T>(
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!supabaseUrl || !key || typeof fetch !== "function") return 0;
+  // In the app, before the Keychain restore lands, an evicted localStorage
+  // holds no token and the row went out as anon (Q1463). Wait for it (capped
+  // at SESSION_KNOWN_CAP_MS); on the web this is already resolved.
+  if (!sessionKnown()) await whenSessionKnown();
   const cols = columns.map((c) => `"${c}"`).join(",");
   const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/${table}?columns=${encodeURIComponent(cols)}`;
   const send = (bearer: string, asUser: boolean) => {

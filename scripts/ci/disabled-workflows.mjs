@@ -42,6 +42,7 @@ export function judgeWorkflows(workflows, readFile, allow = INTENTIONALLY_OFF) {
   for (const w of workflows) {
     const file = String(w.path ?? "").replace(/^\.github\/workflows\//, "");
     if (!/\.ya?ml$/.test(file)) continue; // dynamic workflows (CodeQL default setup, Copilot) carry no file here
+    if (w.state === "deleted") continue; // its file is gone; the API keeps listing it while it has run history
     seen.add(file);
     const src = readFile(file);
     if (w.state === "active") {

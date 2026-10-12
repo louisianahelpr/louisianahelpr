@@ -119,7 +119,7 @@ export const DisputeCard = ({
   // Q1732: the split refused because this job's money ran in Stripe TEST mode
   // (execute-dispute-split's refusals all say "Stripe test mode"). The server
   // re-checks every recorded id at Stripe before clearing anything.
-  const ranInTestMode = unsettled && /Stripe test mode/i.test(record?.execution_error ?? "");
+  const ranInTestMode = unsettled && /Stripe test mode|test-mode records cleared by an admin/i.test(record?.execution_error ?? "");
   const [testModeNote, setTestModeNote] = useState("");
   // What each side actually receives at the current slider position.
   const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
@@ -311,7 +311,7 @@ export const DisputeCard = ({
               {ranInTestMode && clearTestModeRecords && (
                 <div className="space-y-1.5 border-t border-destructive/20 pt-2">
                   <Label htmlFor={`test-mode-note-${job.id}`} className="text-ds-11">
-                    This ran in Stripe test mode, so no real money moved. Clear its test-mode records and re-open the dispute to decide it again. Say how you checked:
+                    This ran in Stripe test mode, so no real money moved. Clear its test-mode refund and transfer records and re-open the dispute. Say how you checked:
                   </Label>
                   <Textarea
                     id={`test-mode-note-${job.id}`}

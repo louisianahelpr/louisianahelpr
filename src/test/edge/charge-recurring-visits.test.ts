@@ -1767,6 +1767,8 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_day1", amount: 9680, metadata: { fee_withheld: "true" } });
     expect(b.errors).toBeGreaterThan(0);
     expect(JSON.stringify(b)).toContain("refund the remaining fee on pi_day1 by hand");
+    // Review #4a: the poster is not told "less the card fee" when an admin end may be why.
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toMatch(/card fee|card processor/);
   });
 
   it("a series ended mid-run whose refund FAILS is still a defect", async () => {
@@ -2277,6 +2279,42 @@ describe("charge-recurring-visits edge function", () => {
     wireVisitPayments({ sweep: { rows: [orphan] } });
     scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
     scenario.reads.series_visit_holds = { rows: [] };
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(b.errors).toBe(0);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const owesTheFee = platformEnded && refunded < amountCents; | const owesTheFee = false;
+  it("Q1735 review #4b: a platform-ended visit already refunded LESS the fee is not settled; ops refund the rest", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_less", status: "succeeded", amount: 9680, metadata: { fee_withheld: "true" } }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(b.errors).toBeGreaterThan(0);
+    expect(JSON.stringify(b)).toContain("$96.80 of $100.00");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee = (piObj?.metadata?.refund_withhold_fee === "true" \|\|
+  it("Q1735 review #4c: a fee-withheld TAG on the intent is ignored once an admin ended the series", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // Not ended by the read and the date still held: only the tag would withhold.
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: null, status: "open" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    scenario.reads.series_visit_holds = { rows: [{ id: "h1", helper_id: "helper-still" }] };
     otherPiRetrieve.mockResolvedValue(taggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 

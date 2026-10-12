@@ -169,6 +169,9 @@ check("a run still executing inside the claim TTL is refused", /dispute_settleme
 await seed();
 await db.exec(`UPDATE public.jobs SET payment_status = 'refunded'`);
 check("escrow no longer held is refused", /clear_ledger_escrow_not_held/.test(errOf(await as("", clearLedger()))));
+await seed();
+await db.exec(`INSERT INTO public.disputes(job_id, status) VALUES ('${JOB}', 'open')`);
+check("another open dispute on the job is refused BEFORE clearing (the re-open would refuse)", /dispute_already_open/.test(errOf(await as("", clearLedger()))));
 await seed(ADMIN2);
 check("an admin who is a party is refused", /admin_is_party/.test(errOf(await as("", clearLedger(ADMIN2)))));
 for (const st of ["executed", "pending", null]) {
@@ -188,8 +191,8 @@ check("the checked test-mode set is cleared", r?.action === "cleared" && r.refun
 const left = (await db.query(`SELECT (SELECT count(*) FROM public.payment_refunds)::int AS refunds, (SELECT string_agg(stripe_transfer_id, ',') FROM public.payout_transfers) AS transfers`)).rows[0];
 check("the ledger rows are gone; a failed transfer row (never money moved) is kept", left.refunds === 0 && left.transfers === "tr_failed_kept", JSON.stringify(left));
 const d = (await db.query(`SELECT execution_refund_id, execution_transfer_id, execution_error FROM public.disputes WHERE id = '${DISPUTE}'`)).rows[0];
-check("both stamps are cleared and the reason is on the dispute",
-  d.execution_refund_id === null && d.execution_transfer_id === null && /test-mode records cleared by an admin/.test(d.execution_error ?? ""), JSON.stringify(d));
+check("both stamps are cleared and execution_error STARTS with the marker the split refuses on",
+  d.execution_refund_id === null && d.execution_transfer_id === null && (d.execution_error ?? "").startsWith("test-mode records cleared by an admin"), JSON.stringify(d));
 const audit = (await db.query(`SELECT admin_id, details FROM public.admin_audit_log WHERE action = 'clear_test_mode_dispute_ledger'`)).rows;
 check("one audit row, by the admin, with every removed row in full",
   audit.length === 1 && audit[0].admin_id === ADMIN && audit[0].details.removed_payment_refunds?.[0]?.amount_cents === 5000

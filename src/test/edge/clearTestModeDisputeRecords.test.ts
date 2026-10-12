@@ -22,6 +22,12 @@
  * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (dispute.status === "superseded") { |   if (false) {
  * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (reason.length < 10) { |   if (false) {
  * @mutate supabase/functions/execute-dispute-split/index.ts |     if (body.action !== CLEAR_TEST_MODE_ACTION) return json({ error: "unknown action" }, 400); |     if (false) return json({ error: "unknown action" }, 400);
+ * Money review of 6b2434f20: #1 a cleared decision is never split again; #2 the
+ * escrow itself must be a test object; #3 nothing recorded is refused (no loop).
+ * @mutate supabase/functions/execute-dispute-split/index.ts |   if ((dispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) { |   if (false) {
+ * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |     return { status: 409, body: { error: `this job's payment ${escrowId} is LIVE money | return { status: 200, body: { error: `this job's payment ${escrowId} is LIVE money
+ * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (!escrowKind \|\| !escrowId) { |   if (false) {
+ * @mutate supabase/functions/execute-dispute-split/clearTestModeRecords.ts |   if (refundIds.length === 0 && transferIds.length === 0 && !alreadyCleared) { |   if (false) {
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
@@ -55,12 +61,14 @@ function seedStuck(dispute: Record<string, unknown> = {}) {
   scenario.reads.disputes = {
     rows: [{ id: DISPUTE_ID, job_id: "job-1", status: "decided", execution_refund_id: RE, execution_transfer_id: null, ...dispute }],
   };
+  scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: "pi_test_old", stripe_session_id: null }] };
   scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: RE }] };
   scenario.reads.payout_transfers = { rows: [{ stripe_transfer_id: TR, status: "paid" }] };
   scenario.rpc.clear_test_mode_dispute_ledger = { action: "cleared", refunds_removed: 1, transfers_removed: 1 };
   scenario.rpc.rpc_supersede_dispute_decision = NEW_DISPUTE_ID;
   stripeMock.refunds.retrieve.mockRejectedValue(testModeUnderLiveKey("refund", RE));
   stripeMock.transfers.retrieve.mockRejectedValue(testModeUnderLiveKey("transfer", TR));
+  stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
 }
 
 async function press(h: EdgeHarness, body: Record<string, unknown> = {}) {
@@ -107,7 +115,8 @@ describe("execute-dispute-split: clear_test_mode_records (Q1732)", () => {
     expect(sup).toHaveLength(1);
     expect(authOf(sup[0].client)).toBe("Bearer admin-jwt");
     expect((sup[0].args as { _reason: string })._reason).toContain(REASON);
-    expect(skips.lines().map((l) => l.object).sort()).toEqual(["refund", "transfer"]);
+    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old");
+    expect(skips.lines().map((l) => l.object).sort()).toEqual(["payment_intent", "refund", "transfer"]);
     // It settles nothing, so it never rewrites the dispute's execution record.
     expect(scenario.writes.filter((w) => w.table === "disputes")).toEqual([]);
   });
@@ -210,5 +219,69 @@ describe("execute-dispute-split: clear_test_mode_records (Q1732)", () => {
     const r = await press(h, { action: "something_else" });
     expect(r.status).toBe(400);
     expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("review #2: a job whose ESCROW is live money is refused, nothing cleared", async () => {
+    seedStuck();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_test_old", status: "succeeded" });
+    const r = await press(h);
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/LIVE money/);
+    expect(stripeMock.refunds.retrieve).not.toHaveBeenCalled();
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
+  });
+
+  it("review #2: a job with no Stripe payment (a gift card only) is refused, nothing cleared", async () => {
+    seedStuck();
+    scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: null, stripe_session_id: null }] };
+    const r = await press(h);
+    expect(r.status).toBe(409);
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
+  });
+
+  it("review #2: an escrow Stripe cannot answer about is retry, nothing cleared", async () => {
+    seedStuck();
+    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("connection reset"));
+    const r = await press(h);
+    expect(r.status).toBe(502);
+    expect(calls("clear_test_mode_dispute_ledger")).toHaveLength(0);
+  });
+
+  it("review #2: a checkout-session-only job is checked through its session", async () => {
+    seedStuck();
+    scenario.reads.jobs = { rows: [{ id: "job-1", stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+    const r = await press(h);
+    expect(r.status).toBe(200);
+    expect(stripeMock.checkout.sessions.retrieve).toHaveBeenCalledWith("cs_test_old");
+  });
+
+  it("review #3: nothing recorded and never cleared is refused (re-opening would only loop)", async () => {
+    seedStuck({ execution_refund_id: null });
+    scenario.reads.payment_refunds = { rows: [] };
+    scenario.reads.payout_transfers = { rows: [] };
+    const r = await press(h);
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/nothing to clear/);
+    expect(calls("rpc_supersede_dispute_decision")).toHaveLength(0);
+  });
+
+  it("review #1: cleared earlier but the re-open failed: pressing again re-opens it", async () => {
+    seedStuck({ execution_refund_id: null, execution_error: "test-mode records cleared by an admin (checked at Stripe): x" });
+    scenario.reads.payment_refunds = { rows: [] };
+    scenario.reads.payout_transfers = { rows: [] };
+    scenario.rpc.clear_test_mode_dispute_ledger = { action: "nothing_to_clear" };
+    const r = await press(h);
+    expect(r.status).toBe(200);
+    expect(r.body.action).toBe("superseded");
+  });
+
+  it("review #1: a cleared decision is never split again, and the refusal keeps the marker (no markFailed)", async () => {
+    seedStuck({ execution_refund_id: null, execution_status: "failed", execution_error: "test-mode records cleared by an admin (checked at Stripe): x" });
+    const res = await h.fetch(h.request({ method: "POST", headers: AUTH, body: { dispute_id: DISPUTE_ID } }));
+    expect(res.status).toBe(409);
+    expect(await res.text()).toMatch(/re-open/);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "disputes")).toEqual([]);
   });
 });

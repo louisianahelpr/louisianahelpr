@@ -119,6 +119,8 @@ const CLASSIFIED = [
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)",
   "create-payment/index.ts::stripe.paymentIntents.retrieve(cancelPaymentIntentId)",
   // Q1732: the admin button's Stripe check; a test-mode id is the ONLY answer that lets the clear run.
+  "execute-dispute-split/clearTestModeRecords.ts::stripe.checkout.sessions.retrieve(escrowId)",
+  "execute-dispute-split/clearTestModeRecords.ts::stripe.paymentIntents.retrieve(escrowId)",
   "execute-dispute-split/clearTestModeRecords.ts::stripe.refunds.retrieve(id)",
   "execute-dispute-split/clearTestModeRecords.ts::stripe.transfers.retrieve(id)",
   "execute-dispute-split/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",

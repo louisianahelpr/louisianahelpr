@@ -196,6 +196,30 @@ export async function waitForNoModal(timeoutMs = 120_000, stepMs = 500): Promise
   return true;
 }
 
+/**
+ * Calls `onOpen` once, the moment a modal opens (Q1504, seen on prod
+ * 2026-10-12 at 375: the nudge was already up on /posts when a job card's
+ * Cancel dialog opened, and it stayed over the dialog for its 12 s, on top of
+ * the policy text and, scrolled, the Keep / Cancel Job buttons). Waiting
+ * before showing covers a dialog that is already open; this covers one that
+ * opens after. Returns the stop function.
+ */
+export function watchForModal(onOpen: () => void, doc: Document = document): () => void {
+  if (typeof MutationObserver === "undefined" || !doc.body) return () => {};
+  const observer = new MutationObserver(() => {
+    if (!modalIsOpen(doc)) return;
+    observer.disconnect();
+    onOpen();
+  });
+  observer.observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-state", "role"] });
+  return () => observer.disconnect();
+}
+
+/** Undo markNudgeShown: the nudge gave way to a dialog before the user chose. */
+export function unmarkNudgeShown(reason: NudgeReason): void {
+  safeStorage.removeItem(NUDGE_SHOWN_PREFIX + reason);
+}
+
 /** Copy lives next to the trigger so the toast stays grep-able.
  *  Title only — the explainer line under it was cut on the owner's call
  *  (2026-08-24): the question plus Enable / × says everything. */
@@ -245,7 +269,12 @@ export function usePushPermissionNudge() {
         markNudgeShown(reason);
 
         const { title } = COPY[reason];
-        toast(title, {
+        // A dialog that opens while the nudge is up takes the screen: the
+        // nudge is dismissed, with no 14-day cooldown (the user did not say
+        // no) and its "shown" mark cleared, so the next trigger asks again.
+        let yieldedToModal = false;
+        let stopWatching = () => {};
+        const id = toast(title, {
           duration: 12_000,
           // NO per-toast position override any more. This toast used to opt
           // out to bottom-centre on phones, because the Toaster was anchored to
@@ -278,6 +307,7 @@ export function usePushPermissionNudge() {
               // permission, the second one appearing *because* you accepted
               // the first. Marking the kind confirmed sends the tap straight
               // to the OS prompt, which is the only thing left to show.
+              stopWatching();
               markRationaleConfirmed("notifications");
               // Fire-and-forget — the OS prompt runs inside requestPush. We
               // don't await inside the action because sonner's onClick types
@@ -285,11 +315,22 @@ export function usePushPermissionNudge() {
               void requestPush();
             },
           },
-          onDismiss: () => recordNudgeDismissal(),
+          // sonner also calls onDismiss for a programmatic toast.dismiss(id),
+          // so the yield below must not count as the user's "no".
+          onDismiss: () => {
+            stopWatching();
+            if (!yieldedToModal) recordNudgeDismissal();
+          },
+          onAutoClose: () => stopWatching(),
           // The × (or a swipe) records the 14-day cooldown; the auto-dismiss
           // after `duration` does NOT (treat that as ambient — the user didn't
           // interact), so the same reason still counts as "already shown" via
           // markNudgeShown() above and won't repeat.
+        });
+        stopWatching = watchForModal(() => {
+          yieldedToModal = true;
+          unmarkNudgeShown(reason);
+          toast.dismiss(id);
         });
       } catch {
         // A failed permission probe or sonner import error must not

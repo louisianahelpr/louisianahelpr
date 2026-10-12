@@ -46,6 +46,7 @@ try {
   process.exit(2);
 }
 import fs from "node:fs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 const MIG = read("../../supabase/migrations/20260915055601_revoke_excess_anon_grants.sql");
 // The zero-policy rule's own migration: the table that rule was written for.
@@ -59,8 +60,8 @@ const RECEIVER = "5b0e0a6c-7a43-4a55-9d8f-0c2b1f7d9e11";
 const MSG = "8f3c2d1e-4b5a-4c6d-8e7f-9a0b1c2d3e4f";
 
 const OWNER = "vbypass"; // stands in for postgres: BYPASSRLS, not a superuser
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const STRANGER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const STRANGER = ACCOUNTS["helper-e2e"].userId;
 const JOB = "e6979a12-ee25-46c9-98f5-c088189849e5";
 
 // The 12 sensitive tables that take no anon write, + the 2 telemetry tables.

@@ -33,12 +33,13 @@ try {
   process.exit(2);
 }
 import fs from "node:fs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 const MIG1 = fs.readFileSync(new URL("../../supabase/migrations/20260914210443_is_party_to_job_internal_receiver_gate.sql", import.meta.url), "utf8");
 const MIG2 = fs.readFileSync(new URL("../../supabase/migrations/20260914215014_offered_helpr_poster_only_receiver.sql", import.meta.url), "utf8");
 const MIG = `${MIG1}\n${MIG2}`;
 
-const A = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";   // poster of J1, J3, J4
-const B = "7b923b19-aba5-44cb-8730-8c33ba2b9321";   // stranger to J1 (poster of J2)
+const A = ACCOUNTS["poster-e2e"].userId;   // poster of J1, J3, J4
+const B = ACCOUNTS["helper-e2e"].userId;   // stranger to J1 (poster of J2)
 const H1 = "11111111-1111-4111-8111-111111111111";  // assigned Helpr on J1, J3, J4
 const R = "22222222-2222-4222-8222-222222222222";   // group roster member on J1
 const APP = "33333333-3333-4333-8333-333333333333"; // applicant on J1, never hired

@@ -32,13 +32,14 @@ try {
 }
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 const PRIOR = fs.readFileSync(new URL("../../supabase/migrations/20260912023326_system_open_dispute_on_undelivered_revision.sql", import.meta.url), "utf8");
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260915025607_block_disputes_on_completed_jobs.sql", import.meta.url), "utf8");
 const LIVE_MD5 = "cf6308e7b2397381d528f1063341b494";
 const LIVE_ACL = "{postgres=X/postgres,service_role=X/postgres}";
 
 const POSTER = "76b07824-9b41-4741-a4c4-4f8de362f682";
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const HELPER = ACCOUNTS["helper-e2e"].userId;
 const STRANGER = "11111111-1111-4111-8111-111111111111";
 const ADMIN = "22222222-2222-4222-8222-222222222222";
 const J_DONE = "5eed0a10-0000-4000-8000-000000000010";      // completed, no dispute

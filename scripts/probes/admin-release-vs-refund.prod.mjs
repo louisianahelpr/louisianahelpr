@@ -55,6 +55,7 @@
 // (mint-funded-seed-jobs.prod.mjs) admin-dispute-race.prod.mjs uses.
 import { readFileSync } from "node:fs";
 import { rest, session, invoke, rpcSr } from "./lib/prodEnv.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 const args = process.argv.slice(2);
 const piFile = args.find((a) => !a.startsWith("--"));
@@ -65,8 +66,8 @@ if (!piFile || !["crossed", "same", "fail", "all"].includes(MODE)) {
   process.exit(2);
 }
 const PIS = readFileSync(piFile, "utf8").split("\n").filter(Boolean).map((l) => l.trim().split(/\s+/));
-const POSTER = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-const HELPER = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+const POSTER = ACCOUNTS["poster-e2e"].userId;
+const HELPER = ACCOUNTS["helper-e2e"].userId;
 const admin = session("admin-e2e");
 const adminTok = admin.access_token;
 const ADMIN_ID = admin.user.id;

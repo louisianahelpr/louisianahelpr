@@ -18,12 +18,11 @@
  * same commit (dated records under docs/ and applied migrations keep theirs).
  *
  * @mutate scripts/test-signin-link.mjs | userId: "7b923b19-aba5-44cb-8730-8c33ba2b9321", | userId: "437de07d-1bd7-46c8-a451-6b46aa3bcad5",
- * @mutate e2e/prod-audit/harness.ts | export const POSTER_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb"; | export const POSTER_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
+ * @mutate e2e/prod-audit/harness.ts | export const POSTER_ID = ACCOUNTS["poster-e2e"].userId; | export const POSTER_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-// @ts-expect-error - plain .mjs tool script, no types
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 const REPO = resolve(__dirname, "../..");

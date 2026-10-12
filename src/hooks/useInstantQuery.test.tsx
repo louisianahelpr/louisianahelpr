@@ -61,18 +61,41 @@ describe("useInstantQuery", () => {
     await waitFor(() => expect(result.current.data).toEqual(["real-data"]));
   });
 
-  it("isInitialLoading is false when fallback exists (we have something to show)", () => {
-    const fetcher = vi.fn(() => new Promise<string[]>(() => {})); // never resolves
+  // Q1287: no fallback is data. An object fallback is a shell of zeros, and
+  // it painted as a reading: the admin health screen opened on "0 sent",
+  // "0 unresolved" and a false "No admin has registered a push token"
+  // banner. Every fallback shape the app passes is covered here.
+  // @mutate src/hooks/useInstantQuery.ts |       query.data === undefined, |       query.data === undefined && (fallback === undefined \|\| (Array.isArray(fallback) && fallback.length === 0)),
+  it.each([
+    ["a non-empty array", ["shell"]],
+    ["an object of zeros", { sent: 0, failed: 0 }],
+    ["an object with an empty list", { rows: [], deployed: true }],
+  ])("isInitialLoading is TRUE while the first fetch is in flight, with %s as the fallback (Q1287)", (_label, fallback) => {
+    const fetcher = vi.fn(() => new Promise<unknown>(() => {})); // never resolves
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
       () =>
-        useInstantQuery({
-          key: ["test-3"],
+        useInstantQuery<unknown>({
+          key: ["test-3", _label],
           fetcher,
-          fallback: ["shell"],
+          fallback,
         }),
       { wrapper },
     );
+    expect(result.current.isInitialLoading).toBe(true);
+    // The fallback still shapes `data`, so a caller can render unconditionally.
+    expect(result.current.data).toEqual(fallback);
+  });
+
+  it("control: isInitialLoading turns false once the first answer lands, whatever the fallback (Q1287)", async () => {
+    // The fix must not leave a permanent skeleton.
+    const fetcher = vi.fn(async () => ({ sent: 8, failed: 0 }));
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useInstantQuery({ key: ["test-3-landed"], fetcher, fallback: { sent: 0, failed: 0 } }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.data).toEqual({ sent: 8, failed: 0 }));
     expect(result.current.isInitialLoading).toBe(false);
   });
 

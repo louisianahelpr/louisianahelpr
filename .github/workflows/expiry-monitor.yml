@@ -91,7 +91,6 @@ jobs:
         id: expiry
         env:
           WARN_DAYS: ${{ inputs.warn_days || '30' }}
-          VITE_APPLE_MAPKIT_TOKEN: ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}

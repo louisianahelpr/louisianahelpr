@@ -949,3 +949,8 @@ describe("VN-21 — a nested CTA replaces the step's own primary", () => {
 // row`s primary slot must stand the step`s OWN primary down. Drop the claim
 // check and the working card draws two glossy CTAs in one row.
 // @mutate src/components/job-card/JobStepCard.tsx | const ownPrimary = claims === 0 && hasRenderable(primary) ? primary : null; | const ownPrimary = hasRenderable(primary) ? primary : null;
+
+// Shown able to fail (Q1561, owner 2026-10-08: "move everything besides the
+// primary button into the more tab, for poster and Helpr"): put Message, Cancel,
+// Edit... back on the row beside the primary and every state above goes red.
+// @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (c: ReactNode) => isValidElement(c) && MORE_ONLY_CHIP_KEYS.includes(String(c.key));

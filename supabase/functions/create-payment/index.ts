@@ -3383,7 +3383,8 @@ serve(async (req) => {
               // existingRefundCovering finds a retried full refund by it.
               partial: String(isPartial),
               source: "admin_refund_general",
-              ...(keptSetupCents > 0 ? { kept_setup_fee_cents: String(keptSetupCents) } : {}),
+              // Always written ("0" when none): a creator never spreads metadata (Q343).
+              kept_setup_fee_cents: String(keptSetupCents),
             },
           }, {
             // Full refund: deduped within Stripe's ~24h key lifetime; after

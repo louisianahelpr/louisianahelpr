@@ -604,7 +604,10 @@ describe("release-payout edge function", () => {
     });
 
     it("takes a non-whole-dollar onboarding fee BEFORE the one whole-dollar floor, not between two (Q236)", async () => {
-      seedPayableJob(scenario, { budget: 100, urgent_fee: 20 });
+      // A non-whole unrounded payout, or the two orders give the same answer
+      // and this test proves nothing: $100 at the free tier's 12% + $19.50
+      // urgent = $107.50.
+      seedPayableJob(scenario, { budget: 100, urgent_fee: 19.5 });
       scenario.reads.platform_settings = {
         rows: [{ helper_fee_percent: 10, onboarding_fee_cents: 230 }],
       };
@@ -625,9 +628,20 @@ describe("release-payout edge function", () => {
           body: { job_id: "job-1" },
         }),
       );
-      // $107.42 owed − $2.30 fee = $105.12 → paid $105. Flooring first
+      // $107.50 owed − $2.30 fee = $105.20 → paid $105. Flooring first
       // ($107 − $2.30 = $104.70 → $104) would cost the Helpr a second dollar.
       expect((await json(res)).amount_cents).toBe(10500);
+      // Q1520: the ledger row records what was withheld and never sent (the
+      // $2.30 fee and the cents rounded off), on the claim AND on the settle,
+      // so the earnings export's gross is what was earned, not only what was
+      // paid: $105.20 after the fee, paid $105, so 20c is the remainder.
+      // @mutate supabase/functions/_shared/money.ts |     rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)), |     rounding_remainder_cents: 0,
+      // @mutate supabase/functions/release-payout/index.ts |       ...payoutWithheldMetadata(unroundedPayoutCents, onboardingFeeDeductedCents, payoutCents),\n    }, |     },
+      const withheld = { onboarding_fee_cents: 230, rounding_remainder_cents: 20 };
+      const claim = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert");
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect((claim?.payload as { metadata?: unknown } | undefined)?.metadata).toEqual(expect.objectContaining(withheld));
+      expect((settle?.payload as { metadata?: unknown } | undefined)?.metadata).toEqual(expect.objectContaining(withheld));
     });
 
     it("returns 502 when the Stripe transfer call fails", async () => {

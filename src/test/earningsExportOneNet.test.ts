@@ -21,13 +21,15 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * the 20261005171601 body with --before; all green after, applied 3x).
  */
 
-// @mutate supabase/migrations/20261007145338_earnings_export_one_net.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           ELSE j.budget END AS gross_budget, |            THEN j.budget\n           ELSE j.budget END AS gross_budget,
-// @mutate supabase/migrations/20261007145338_earnings_export_one_net.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
-// @mutate supabase/migrations/20261007145338_earnings_export_one_net.sql |       AND j.is_group_job IS NOT TRUE\n |\n
+// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           ELSE j.budget END AS gross_budget, |            THEN j.budget\n           ELSE j.budget END AS gross_budget,
+// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
+// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |       AND j.is_group_job IS NOT TRUE\n |\n
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
-const THIS = "20261007145338_earnings_export_one_net.sql";
+// Q1520 (20261012175545) restates the export with the withheld amounts in the
+// fee; every Q1379 property below still holds on it.
+const THIS = "20261012175545_earnings_export_withheld.sql";
 const def = effectiveDefs(MIGRATIONS).get("get_helper_earnings_export");
 const body = blankSqlComments(def?.stmt ?? "").replace(/\s+/g, " ");
 
@@ -72,7 +74,8 @@ describe("Q1379: the earnings export has one definition of net, read from the pa
     const proof = resolve(ROOT, "src/test/pglite/earningsExportOneNet.pglite.mjs");
     expect(existsSync(proof)).toBe(true);
     const src = readFileSync(proof, "utf8");
-    expect(src).toContain(`const THIS = "${THIS}"`);
+    // The proof is pinned to the Q1379 migration itself (the newest restatement has its own: earningsExportWithheld.pglite.mjs).
+    expect(src).toContain(`const THIS = "20261007145338_earnings_export_one_net.sql"`);
     expect(src).toContain("effectiveDefs(DIR, { before: THIS })");
     for (const c of ["E1 a crew row's gross includes the urgent share", "E2 a single job's net is what was PAID", "E4 on every ledger row, gross - fee = net", "E5 a partial reversal later won", "E6 a crew member's partial reversal lost", "E7 a legacy crew lead", "const expected = 6;"]) {
       expect(src).toContain(c);

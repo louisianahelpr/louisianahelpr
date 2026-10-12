@@ -350,6 +350,10 @@ describe("execute-dispute-split edge function", () => {
         initiated_by_user_id: ADMIN.id,
       });
       expect(payout.metadata).toMatchObject({ source: "execute_dispute_split", dispute_id: DISPUTE_ID });
+      // Q1520 (review of the export change): $52.80 owed, $52 sent, so the 80c
+      // rounded off is on the row for the earnings export.
+      // @mutate supabase/functions/execute-dispute-split/index.ts |         ...payoutWithheldMetadata(Math.max(0, Math.round(helperPayoutDollars * 100)), 0, helperCents), |
+      expect(payout.metadata).toMatchObject({ onboarding_fee_cents: 0, rounding_remainder_cents: 80 });
 
       const refund = writeTo("payment_refunds", "insert");
       expect(refund).toMatchObject({

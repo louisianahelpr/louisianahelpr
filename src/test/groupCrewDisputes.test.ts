@@ -57,8 +57,6 @@ const CALLER_DISTINCT_FROM_HELPER = /\b_uid IS DISTINCT FROM _helper\b/;
  * to a job's helper. EXACT and two-way: a fixed one fails until removed.
  */
 const NOT_A_JOB_HELPER: Record<string, string> = {
-  get_helper_earnings_export:
-    "`auth.uid() <> _helper_id` compares the caller to its own _helper_id ARGUMENT; a NULL argument passes the check but its `helper_id = _helper_id` query matches no rows (a NULL-argument finding, docs/OPEN.md Q729, not a crew hole)",
 };
 
 describe("disputes on a crew (Q728)", () => {

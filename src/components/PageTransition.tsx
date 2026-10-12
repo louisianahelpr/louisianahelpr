@@ -1,14 +1,6 @@
-import { ReactNode, useRef } from "react";
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  useDragControls,
-  type PanInfo,
-} from "framer-motion";
-import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
+import { ReactNode, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import { useReducedMotion } from "@/lib/accessibility";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 
@@ -24,141 +16,142 @@ const EDGE_ZONE_PX = 44;
 // Commit the back navigation once the drag passes either an absolute distance
 // or a fast enough flick — mirrors UIKit's interactive pop completion logic.
 const DISMISS_DISTANCE_PX = 110;
-const DISMISS_VELOCITY = 520;
+const DISMISS_VELOCITY = 520; // px per second
+// Travel before the gesture picks an axis: a mostly-vertical start is a scroll
+// and is left alone for the rest of that touch.
+const AXIS_LOCK_PX = 6;
+// The page follows the finger at 90% (the old dragElastic of 0.9) and fades
+// to 0.6 by 200px, which reads as "peeling back".
+const FOLLOW = 0.9;
+const FADE_BY_PX = 200;
+// Velocity is read over the last ~100ms of movement.
+const VELOCITY_WINDOW_MS = 100;
 
 /**
- * Direction-aware native-style page transition.
+ * The route wrapper: no enter animation, only iPhone's swipe-from-the-left-edge
+ * to go back (owner, 2026-10-12, Q1356: drop the page-change fade, keep the
+ * swipe-back). It used to be a framer-motion div with a slide/fade on every
+ * route, which made every visitor download framer-motion (~39 KB gzip) after
+ * the first page settled. The gesture is plain pointer events now, and
+ * scripts/check-deferred-vendors.mjs holds this file's built closure free of
+ * framer-motion.
  *
- * iOS navigation reads as a horizontal slide, not a web-page fade:
- *   - A forward navigation (PUSH / REPLACE) slides the incoming screen
- *     in from the right.
- *   - A back navigation (POP) slides it in from the left.
+ * A drag that begins inside the left edge zone and travels far or fast enough
+ * calls `navigate(-1)`. Drags that start away from the edge are never touched,
+ * so the browse map, carousels and sliders keep their own gestures.
  *
- * The previous screen is unmounted by React Router immediately, so we
- * only animate the *incoming* screen — a self-contained enter animation,
- * which avoids needing AnimatePresence or a shared layout shell.
+ * The wrapper carries NO transform and no will-change at rest (the framer div
+ * always had `will-change: transform`). A transformed ancestor becomes the
+ * containing block of AppShell's `position: fixed` frame, so it is set only
+ * while a finger is dragging the page and cleared on release. At rest the
+ * viewport contains the frame, the same as on a cold load before this chunk
+ * arrives (App.tsx renders a plain keyed div until then).
  *
- * It also hosts the interactive edge-swipe-back gesture: a drag that begins
- * inside the left edge zone and travels far/fast enough calls `navigate(-1)`,
- * reusing the same POP slide for a continuous feel. Drags that start away
- * from the edge are ignored so in-page horizontal gestures keep working.
- *
- * Keyed by location.key so every navigation (even same-component route
- * changes) replays the animation.
- *
- * Respects `prefers-reduced-motion`: falls back to a plain opacity fade
- * with no translation, and disables the interactive drag follow.
+ * Keyed by location.key so every navigation mounts a fresh wrapper.
+ * Under `prefers-reduced-motion` the page does not follow the finger, as before.
  */
 const PageTransition = ({ children }: PageTransitionProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const navigationType = useNavigationType();
   const reducedMotion = useReducedMotion();
-  /* A route that mounts while the app is backgrounded has nobody to watch it
-     arrive, and framer's rAF tween would leave it at `opacity: 0` — slid
-     sideways by `offsetX` — until frames resume. That is the blank screen a
-     user meets when a push deep-link or a resume restores a route. Render the
-     settled state instead. See useHiddenAtMount. */
-  const hiddenAtMount = useHiddenAtMount();
+  const pageRef = useRef<HTMLDivElement>(null);
+  // Removes the window listeners of a gesture still in flight (unmount).
+  const endGesture = useRef<(() => void) | null>(null);
 
-  // POP = back navigation. PUSH/REPLACE = forward.
-  const isBack = navigationType === "POP";
-
-  // Small horizontal offset reads as a gentle slide without a jarring jump
-  // on tab switches (a larger offset made bottom-nav taps feel like the page
-  // lurched sideways). Incoming-from-right on push, incoming-from-left on pop.
-  const offsetX = reducedMotion ? 0 : isBack ? -10 : 10;
-
-  // Tracks the live finger position so the page can follow the drag.
-  const x = useMotionValue(0);
-  // Fade the page slightly as it's dragged away — reads as "peeling back".
-  const opacity = useTransform(x, [0, 200], [1, 0.6]);
-  // Whether the active drag began inside the left edge zone. A drag that
-  // starts mid-screen is left alone so horizontal content keeps its gestures.
-  const fromEdge = useRef(false);
-  const dragControls = useDragControls();
+  useEffect(() => () => endGesture.current?.(), []);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const atEdge = e.clientX <= EDGE_ZONE_PX;
-    fromEdge.current = atEdge;
-    // Only ARM the page drag for a true left-edge start. Paired with
-    // `dragListener={false}` below, framer won't translate the page on any
-    // other pointerdown — so dragging mid-screen content (the browse map,
-    // carousels, sliders) can never slide the whole fixed app shell sideways.
-    // Framer's automatic drag listener ignored this: it dragged the page from
-    // anywhere and only gated the *navigation* on fromEdge, which is exactly
-    // why panning the Browse map dragged the entire app left/right.
-    if (atEdge) dragControls.start(e);
+    // Only a primary pointer starting inside the left edge zone arms the
+    // gesture; anything else is the page's own input.
+    if (reducedMotion || !e.isPrimary || e.button !== 0) return;
+    if (e.clientX > EDGE_ZONE_PX) return;
+    endGesture.current?.();
+
+    const el = pageRef.current;
+    if (!el) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pointerId = e.pointerId;
+    let axis: "x" | "y" | null = null;
+    let dx = 0;
+    const samples: { t: number; x: number }[] = [{ t: e.timeStamp, x: e.clientX }];
+
+    const paint = (offset: number) => {
+      if (offset <= 0) {
+        el.style.transform = "";
+        el.style.opacity = "";
+        el.style.userSelect = "";
+        return;
+      }
+      // A swipe is not a text selection (a mouse drag otherwise highlights
+      // whatever the pointer crosses).
+      if (!el.style.userSelect) {
+        el.style.userSelect = "none";
+        window.getSelection?.()?.removeAllRanges();
+      }
+      el.style.transform = `translate3d(${offset * FOLLOW}px, 0, 0)`;
+      el.style.opacity = String(1 - 0.4 * Math.min(offset / FADE_BY_PX, 1));
+    };
+
+    const finish = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      endGesture.current = null;
+      paint(0);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const mx = ev.clientX - startX;
+      const my = ev.clientY - startY;
+      if (axis === null) {
+        if (Math.abs(mx) < AXIS_LOCK_PX && Math.abs(my) < AXIS_LOCK_PX) return;
+        axis = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+        // A vertical start is a scroll: let it go for the rest of the touch.
+        if (axis === "y") {
+          finish();
+          return;
+        }
+      }
+      if (ev.cancelable) ev.preventDefault();
+      dx = Math.max(mx, 0);
+      samples.push({ t: ev.timeStamp, x: ev.clientX });
+      while (samples.length > 2 && ev.timeStamp - samples[0].t > VELOCITY_WINDOW_MS) samples.shift();
+      paint(dx);
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      const dt = (last.t - first.t) / 1000;
+      const velocity = dt > 0 ? (last.x - first.x) / dt : 0;
+      const committed = axis === "x" && (dx > DISMISS_DISTANCE_PX || velocity > DISMISS_VELOCITY);
+      finish();
+      // ...but only if there is somewhere to go. A cold-opened deep link has no
+      // entry behind it, and `navigate(-1)` there walks the user clean out of
+      // the app — the same defect BackButton was fixed for. With no history the
+      // swipe snaps back to rest, which is also what iOS does when you swipe at
+      // the root of a navigation stack.
+      if (committed && hasInAppHistory()) navigate(-1);
+    };
+
+    // The browser took the touch (a scroll, a system gesture): snap back.
+    const onCancel = (ev: PointerEvent) => {
+      if (ev.pointerId === pointerId) finish();
+    };
+
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    endGesture.current = finish;
   };
-
-  const handleDragEnd = (_e: unknown, info: PanInfo) => {
-    const committed =
-      fromEdge.current &&
-      (info.offset.x > DISMISS_DISTANCE_PX ||
-        info.velocity.x > DISMISS_VELOCITY);
-    fromEdge.current = false;
-    // ...but only if there is somewhere to go. A cold-opened deep link has no
-    // entry behind it, and `navigate(-1)` there walks the user clean out of the
-    // app — the same defect BackButton was fixed for, which the gesture never
-    // inherited because the guard was a closure inside that component. With no
-    // history the swipe snaps back to rest, which is also what iOS does when
-    // you swipe at the root of a navigation stack: the screen you are on IS the
-    // entry point, so the gesture has nothing to dismiss.
-    if (committed && hasInAppHistory()) {
-      navigate(-1);
-      return;
-    }
-    // Released early — snap back to rest.
-    x.set(0);
-  };
-
-  // Reduced motion: keep the simple fade, no interactive drag follow.
-  if (hiddenAtMount) {
-    return <div key={location.key}>{children}</div>;
-  }
-
-  if (reducedMotion) {
-    return (
-      <motion.div
-        key={location.key}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.18 }}
-        style={{ willChange: "opacity" }}
-      >
-        {children}
-      </motion.div>
-    );
-  }
 
   return (
-    <motion.div
-      key={location.key}
-      initial={{ opacity: 0, x: offsetX }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{
-        duration: 0.22,
-        // Matches the design system's `ds-out` easing curve.
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      onPointerDownCapture={handlePointerDown}
-      // Only horizontal drag, and ONLY when armed from the left edge via
-      // dragControls (see handlePointerDown). `dragListener={false}` stops
-      // framer from auto-starting a drag on every pointerdown, so mid-screen
-      // content (maps, carousels) keeps its own gestures and never drags the
-      // page. `dragDirectionLock` still keeps a mostly-vertical scroll free.
-      drag="x"
-      dragListener={false}
-      dragControls={dragControls}
-      dragDirectionLock
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={{ left: 0, right: 0.9 }}
-      dragMomentum={false}
-      onDragEnd={handleDragEnd}
-      style={{ x, opacity, willChange: "transform, opacity" }}
-    >
+    <div key={location.key} ref={pageRef} onPointerDownCapture={handlePointerDown}>
       {children}
-    </motion.div>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
 
@@ -151,38 +150,47 @@ const ScrollToTop = () => {
     }
   };
 
+  // The button fades/scales in and out with a plain CSS transition (Q1356:
+  // framer-motion left this file so no route downloads it for a fade). It
+  // stays mounted; while hidden it is `visibility: hidden`, so it is neither
+  // tappable nor in the accessibility tree, and the visibility flip waits for
+  // the fade-out to finish.
+  const duration = reducedMotion ? 120 : 180;
+  const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
+  const hiddenTransform = reducedMotion ? "none" : "translateY(8px) scale(0.8)";
   return (
-    <AnimatePresence>
-      {visible ? (
-        <motion.button
-          type="button"
-          onClick={scrollToTop}
-          aria-label="Scroll to top"
-          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 8 }}
-          transition={reducedMotion ? { duration: 0.12 } : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          // Sit above the floating MobileNav dock + home indicator, hugging
-          // the right edge. z below the nav (which is z-40+) so it never
-          // overlaps the dock's controls.
-          className="fixed right-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full active:scale-[0.94]"
-          style={{
-            bottom: "calc(var(--safe-area-bottom, 0px) + 112px)",
-            background: "var(--surface-premium)",
-            border: "1px solid hsl(var(--olivewood) / 0.18)",
-            color: "hsl(var(--olivewood))",
-            backdropFilter: "blur(10px) saturate(150%)",
-            WebkitBackdropFilter: "blur(10px) saturate(150%)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 2px 6px hsl(var(--olivewood) / 0.10), " +
-              "0 8px 18px -6px hsl(var(--olivewood) / 0.16)",
-          }}
-        >
-          <ChevronUp className="h-5 w-5" strokeWidth={2.25} />
-        </motion.button>
-      ) : null}
-    </AnimatePresence>
+    <button
+      type="button"
+      onClick={scrollToTop}
+      aria-label="Scroll to top"
+      aria-hidden={visible ? undefined : true}
+      tabIndex={visible ? undefined : -1}
+      data-visible={visible ? "true" : "false"}
+      // Sit above the floating MobileNav dock + home indicator, hugging
+      // the right edge. z below the nav (which is z-40+) so it never
+      // overlaps the dock's controls.
+      className="fixed right-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full active:scale-[0.94]"
+      style={{
+        bottom: "calc(var(--safe-area-bottom, 0px) + 112px)",
+        background: "var(--surface-premium)",
+        border: "1px solid hsl(var(--olivewood) / 0.18)",
+        color: "hsl(var(--olivewood))",
+        backdropFilter: "blur(10px) saturate(150%)",
+        WebkitBackdropFilter: "blur(10px) saturate(150%)",
+        boxShadow:
+          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+          "0 2px 6px hsl(var(--olivewood) / 0.10), " +
+          "0 8px 18px -6px hsl(var(--olivewood) / 0.16)",
+        opacity: visible ? 1 : 0,
+        transform: visible ? undefined : hiddenTransform,
+        visibility: visible ? "visible" : "hidden",
+        transition: visible
+          ? `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}, visibility 0s`
+          : `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}, visibility 0s linear ${duration}ms`,
+      }}
+    >
+      <ChevronUp className="h-5 w-5" strokeWidth={2.25} />
+    </button>
   );
 };
 

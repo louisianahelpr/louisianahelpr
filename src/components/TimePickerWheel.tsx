@@ -74,6 +74,15 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastEmitted = useRef<string | null>(null);
+  // A scroll commits a value ONLY after the person has touched this wheel.
+  // WebKit (Safari, and the iOS app's WKWebView) fires trusted scroll events
+  // on a freshly mounted snap list (measured on prod 2026-10-12, Playwright
+  // WebKit 390x844: Hour and Minute each fired one at scrollTop 1 on mount),
+  // and this handler turned that into a pick of the resting rows, 12 and 00.
+  // Post a Job then read "Wed, Oct 14 · 12:00 AM" for a poster who never chose
+  // a time, and its "Pick a Start Time to Continue" gate never showed (Q1660).
+  const touched = useRef(false);
+  const markTouched = () => { touched.current = true; };
 
   useEffect(() => {
     const el = ref.current;
@@ -87,6 +96,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
   const handleScroll = () => {
     const el = ref.current;
     if (!el) return;
+    if (!touched.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const idx = Math.round(el.scrollTop / ITEM_HEIGHT);
@@ -145,6 +155,10 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
       <div
         ref={ref}
         onScroll={handleScroll}
+        onPointerDown={markTouched}
+        onTouchStart={markTouched}
+        onWheel={markTouched}
+        onKeyDown={markTouched}
         data-allow-scroll="true"
         // axe `scrollable-region-focusable`: the scrollable element must
         // itself be keyboard-reachable. Move role="listbox" + aria-label

@@ -4,6 +4,7 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { MessageApplicantButton } from "@/components/jobs/MessageApplicantButton";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatName } from "@/lib/utils";
 import { hapticError } from "@/lib/haptics";
@@ -237,6 +238,8 @@ export function SeriesDatesPanel({
                       {(applicants ?? []).map((a) => (
                         <li key={a.id} className="flex items-center gap-2 min-h-[44px]">
                           <span className="text-ds-12 text-foreground flex-1 truncate">{a.name}</span>
+                          {/* Pending applicants only (the query above), so always messageable; poster-first. */}
+                          <MessageApplicantButton jobId={jobId} helperId={a.id} helperName={a.name} appearance="row" />
                           <button
                             type="button"
                             disabled={busy || view.offeredTo.includes(a.id)}

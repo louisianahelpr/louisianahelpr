@@ -147,6 +147,10 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     const page = alerts().find((a) => /taxed recurring visit/.test(a.title));
     expect(page?.message).toContain("tax_1");
     expect(page?.message).toContain("re_1");
+    // Undoing the reversal is right only if the money is kept for good; a
+    // re-refund needs it to stand (review of Q1730).
+    expect(page?.message).toMatch(/LEAVE the reversal/);
+    expect(page?.message).not.toMatch(/\bvoid that reversal\b/);
   });
 
   it("control: a failed refund with no tax transaction pages nothing about tax", async () => {

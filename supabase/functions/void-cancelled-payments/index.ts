@@ -1914,7 +1914,7 @@ serve(async (req) => {
       const until = new Date(Date.now() - 15 * 60_000).toISOString();
       const { data: ledger, error: ledgerErr } = await supabaseAdmin
         .from("payment_refunds")
-        .select("stripe_refund_id, stripe_payment_intent_id, job_id, customer_id, amount_cents")
+        .select("stripe_refund_id, stripe_payment_intent_id, job_id, customer_id, amount_cents, source, created_at")
         .gte("created_at", from)
         .lte("created_at", until)
         .order("created_at", { ascending: true })
@@ -1922,28 +1922,38 @@ serve(async (req) => {
       if (ledgerErr) {
         defects.record(`untold refund sweep read: ${ledgerErr.message}`);
       } else if ((ledger ?? []).length > 0) {
-        const rows = (ledger ?? []) as Array<{ stripe_refund_id: string | null; stripe_payment_intent_id: string | null; job_id: string | null; customer_id: string | null; amount_cents: number | null }>;
+        const rows = (ledger ?? []) as Array<{ stripe_refund_id: string | null; stripe_payment_intent_id: string | null; job_id: string | null; customer_id: string | null; amount_cents: number | null; source?: string | null; created_at?: string | null }>;
         const keys = rows.filter((r) => r.stripe_refund_id).map((r) => `refund:${r.stripe_refund_id}`);
         // Q1726: a released hold's notice (`release:<pi>`) already told them about
-        // money Stripe may also list as a Refund of the same amount. The webhook
+        // money Stripe may also list as a Refund of the same amount, which
+        // charge.refunded books as a `stripe_dashboard` ledger row. The webhook
         // skips that refund only if the release claim existed when it ran; this
-        // sweep runs 15+ minutes later, so it reads the release notices too.
+        // sweep runs 15+ minutes later, so it reads the release notices too, and
+        // skips only such a row: same amount, stripe_dashboard, within an hour of
+        // the release either way (a path's own refund is never hidden by it).
         const releaseKeys = [...new Set(rows.filter((r) => r.stripe_payment_intent_id).map((r) => `release:${r.stripe_payment_intent_id}`))];
         const { data: told, error: toldErr } = await supabaseAdmin
-          .from("refund_notices").select("notice_key, amount_cents").in("notice_key", [...keys, ...releaseKeys]).not("notification_id", "is", null);
+          .from("refund_notices").select("notice_key, amount_cents, created_at").in("notice_key", [...keys, ...releaseKeys]).not("notification_id", "is", null);
         const toldMissing = !!toldErr && (toldErr.code === "42P01" || toldErr.code === "PGRST205");
         if (toldErr && !toldMissing) {
           defects.record(`untold refund sweep claim read: ${toldErr.message}`);
         } else if (!toldMissing) {
-          const toldRows = (told ?? []) as Array<{ notice_key: string; amount_cents: number | null }>;
+          const toldRows = (told ?? []) as Array<{ notice_key: string; amount_cents: number | null; created_at?: string | null }>;
           const done = new Set(toldRows.map((t) => t.notice_key));
-          const releasedCents = new Map(
-            toldRows.filter((t) => t.notice_key.startsWith("release:")).map((t) => [t.notice_key.slice("release:".length), Number(t.amount_cents)]),
+          const released = new Map(
+            toldRows.filter((t) => t.notice_key.startsWith("release:"))
+              .map((t) => [t.notice_key.slice("release:".length), { cents: Number(t.amount_cents), at: Date.parse(String(t.created_at ?? "")) }]),
           );
+          const sameMoneyAsRelease = (r: (typeof rows)[number]): boolean => {
+            const rel = r.stripe_payment_intent_id ? released.get(r.stripe_payment_intent_id) : undefined;
+            if (!rel || r.source !== "stripe_dashboard" || rel.cents !== Number(r.amount_cents)) return false;
+            const gap = Math.abs(Date.parse(String(r.created_at ?? "")) - rel.at);
+            return Number.isFinite(gap) && gap <= 60 * 60_000;
+          };
           for (const r of rows) {
             const key = `refund:${r.stripe_refund_id}`;
             if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
-            if (r.stripe_payment_intent_id && releasedCents.get(r.stripe_payment_intent_id) === Number(r.amount_cents)) continue;
+            if (sameMoneyAsRelease(r)) continue;
             const result = await sendRefundNotice(supabaseAdmin, {
               key,
               kind: "refund",

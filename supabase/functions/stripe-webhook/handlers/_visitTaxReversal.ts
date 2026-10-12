@@ -147,7 +147,7 @@ export async function pageVisitTaxForFailedRefund(args: {
     kind: "money_at_risk",
     severity: "warning",
     title: "Failed refund on a taxed recurring visit: its sales tax may be reversed",
-    message: `Refund ${refundId} (${formatExactDollars(amountCents)}) on ${chargeId ?? piId} turned '${refundStatus}': the money stayed with the platform. If Stripe Tax transaction ${txId} was reversed for this refund (reference refund:${chargeId ?? "?"}, or a partial reversal made by hand), the tax is no longer reported as collected: record it again (Stripe Tax > Transactions) or void that reversal.`,
+    message: `Refund ${refundId} (${formatExactDollars(amountCents)}) on ${chargeId ?? piId} turned '${refundStatus}': the money stayed with the platform, and Stripe Tax transaction ${txId} may already be reversed for it (reference refund:${chargeId ?? "?"}, or a partial reversal made by hand). If the card holder will be refunded again (the usual case), LEAVE the reversal: a re-refund's own full reversal finds that reference taken and does nothing. Only if the money is kept for good, undo it in Stripe Tax by fully reversing that reversal transaction (tax transactions cannot be edited or voided).`,
     fields: { "Tax transaction": txId, Refund: refundId, Charge: chargeId ?? "—", "Payment Intent": piId },
     oncePerDayKey: `visit-tax-refund-failed:${refundId}`,
   });

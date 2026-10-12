@@ -28,7 +28,8 @@
  * @mutate supabase/functions/_shared/refundNotice.ts |       const jobId = md.job_id ?? md.parent_job_id; |       const jobId = md.job_id;
  * @mutate supabase/functions/_shared/refundNotice.ts |   const kept = keptSentence(Number(input.keptCents ?? 0), input, jobOwnsCharge ? job : null); |   const kept = keptSentence(Number(input.keptCents ?? 0), input, job);
  * @mutate supabase/functions/_shared/refundNotice.ts |           emailed = res.ok && !body.skipped && body.success !== false; |           emailed = res.ok && !body.skipped;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (r.stripe_payment_intent_id && releasedCents.get(r.stripe_payment_intent_id) === Number(r.amount_cents)) continue; |
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (sameMoneyAsRelease(r)) continue; |
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!rel \|\| r.source !== "stripe_dashboard" \|\| rel.cents !== Number(r.amount_cents)) return false; |             if (!rel \|\| rel.cents !== Number(r.amount_cents)) return false;
  * @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -492,9 +493,11 @@ describe("Q1714: the hourly untold-refund sweep (void-cancelled-payments Part G)
   // "Payment hold released", that Stripe also lists as a Refund of the same
   // amount (charge.refunded wrote it as a stripe_dashboard ledger row) is the
   // same money: the sweep does not send "Refund issued" for it a second time.
+  const RELEASED_AT = "2026-10-12T20:00:00Z";
+  const DASHBOARD_ROW = { ...LEDGER_ROW, source: "stripe_dashboard", created_at: "2026-10-12T20:00:40Z" };
   it("a refund of the same amount as a released hold already announced is not announced again", async () => {
-    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [LEDGER_ROW] } }] };
-    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 10000 }] };
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [DASHBOARD_ROW] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 10000, created_at: RELEASED_AT }] };
     await runSweep();
     expect(posterNotices()).toHaveLength(0);
     expect(claims()).toEqual([]);
@@ -502,8 +505,22 @@ describe("Q1714: the hourly untold-refund sweep (void-cancelled-payments Part G)
   });
 
   it("control: a released hold of a DIFFERENT amount does not hide a later refund", async () => {
-    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [LEDGER_ROW] } }] };
-    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 1200 }] };
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [DASHBOARD_ROW] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 1200, created_at: RELEASED_AT }] };
+    await runSweep();
+    expect(claims()).toEqual(["refund:re_untold"]);
+  });
+
+  it("a PATH's own refund of the same amount (a crashed admin refund) is still announced", async () => {
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [{ ...DASHBOARD_ROW, source: "admin_refund_general" }] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 10000, created_at: RELEASED_AT }] };
+    await runSweep();
+    expect(claims()).toEqual(["refund:re_untold"]);
+  });
+
+  it("a same-amount dashboard refund days after the release is a separate refund, announced", async () => {
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [{ ...DASHBOARD_ROW, created_at: "2026-10-14T09:00:00Z" }] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 10000, created_at: RELEASED_AT }] };
     await runSweep();
     expect(claims()).toEqual(["refund:re_untold"]);
   });

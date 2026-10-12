@@ -28,7 +28,7 @@
     "src/components/profile/SubscriptionTab.tsx": 885,
     "src/components/ReportDialog.tsx": 654,
     "src/components/ui/dialog.tsx": 931,
-    "src/pages/admin/Admin.tsx": 655,
+    "src/pages/admin/Admin.tsx": 650,
     "src/pages/auth/CompleteProfile.tsx": 968,
     "src/pages/auth/Login.tsx": 653,
     "src/pages/auth/Signup.tsx": 619,

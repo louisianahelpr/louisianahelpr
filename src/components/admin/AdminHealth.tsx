@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth
 import { useCronHealth } from "./adminHealth/useCronHealth";
 import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -69,11 +70,21 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
   );
 };
 
+/**
+ * A reading whose read has not answered yet (Q1287). useInstantQuery hands
+ * back its fallback's zeros until then, and those painted as real numbers:
+ * "0 sent", "0 unresolved", Job Activity all 0, on every cold load. A pending
+ * reading is a placeholder bone, never the fallback. Guard:
+ * src/components/admin/AdminHealth.coldLoad.test.tsx.
+ */
+const Reading = ({ pending, bone, children }: { pending: boolean; bone: string; children: ReactNode }) =>
+  pending ? <Skeleton data-pending-reading="" aria-hidden="true" className={bone} /> : <>{children}</>;
+
 const AdminHealth = () => {
   const qc = useQueryClient();
   const [sendingTestPush, setSendingTestPush] = useState(false);
 
-  const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort } = useFillRate();
+  const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort } = useFillRate();
   const { data: configChecks } = useConfigChecks();
   const { data: cronChecks } = useCronHealth();
   const { data: openAlerts } = useOpenAlerts();
@@ -145,7 +156,7 @@ const AdminHealth = () => {
     }
   };
 
-  const { queryKey, data, isFetching, isError, dataUpdatedAt, refetch } = useHealthData();
+  const { queryKey, data, isFetching, isError, dataUpdatedAt, refetch, isInitialLoading: healthLoading } = useHealthData();
   // Q1194: every read behind these numbers throws through unwrap(). Never
   // loaded, the numbers are the fallback shell's zeros, so the panels that
   // show them are replaced by an error; loaded once, they are the last good
@@ -168,7 +179,9 @@ const AdminHealth = () => {
           push_tokens. With zero admin tokens registered, it all goes
           to in-app only and gets missed in real time. Surfacing as a
           loud red banner so it can't be ignored during launch. */}
-      {!healthNeverLoaded && adminPushTokenCount === 0 && (
+      {/* Only on an ANSWERED read: before it lands adminPushTokenCount is the
+          fallback's 0, and the banner flashed on every cold load (Q1287). */}
+      {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && (
         <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4">
           <div className="flex items-start gap-3">
             <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -294,6 +307,7 @@ const AdminHealth = () => {
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-13">
+            <Reading pending={healthLoading} bone="h-5 w-44">
             {/* An alarm colour has to mean an alarm. These three were painted
                 unconditionally, so a perfectly healthy hour rendered "0 failed"
                 in red and "0 suppressed" in yellow — two warnings on a
@@ -304,6 +318,7 @@ const AdminHealth = () => {
             <span className={cn("font-semibold", emailStats.sent > 0 ? toneTextClasses.success : "text-muted-foreground")}>{emailStats.sent} sent</span>
             <span className={cn("font-semibold", emailStats.failed > 0 ? toneTextClasses.danger : "text-muted-foreground")}>{emailStats.failed} failed</span>
             <span className={cn("font-semibold", emailStats.suppressed > 0 ? toneTextClasses.notice : "text-muted-foreground")}>{emailStats.suppressed} suppressed</span>
+            </Reading>
           </div>
         </div>
 
@@ -311,9 +326,11 @@ const AdminHealth = () => {
           <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" /> Fraud Flags
           </span>
-          <p className={`text-ds-17 font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
-            {fraudCount} unresolved
-          </p>
+          <Reading pending={healthLoading} bone="h-6 w-32">
+            <p className={`text-ds-17 font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
+              {fraudCount} unresolved
+            </p>
+          </Reading>
         </div>
       </AdminCard>
       )}
@@ -361,19 +378,27 @@ const AdminHealth = () => {
         contentClassName="grid grid-cols-2 sm:grid-cols-4 gap-3"
       >
           <div className="text-center">
-            <p className="text-ds-24 font-bold text-foreground">{recentJobs.open}</p>
+            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
+              <p className="text-ds-24 font-bold text-foreground">{recentJobs.open}</p>
+            </Reading>
             <p className="text-ds-11 text-muted-foreground">New Jobs</p>
           </div>
           <div className="text-center">
-            <p className={cn("text-ds-24 font-bold", toneTextClasses.success)}>{recentJobs.completed}</p>
+            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
+              <p className={cn("text-ds-24 font-bold", toneTextClasses.success)}>{recentJobs.completed}</p>
+            </Reading>
             <p className="text-ds-11 text-muted-foreground">Completed</p>
           </div>
           <div className="text-center">
-            <p className={cn("text-ds-24 font-bold", toneTextClasses.danger)}>{recentJobs.disputed}</p>
+            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
+              <p className={cn("text-ds-24 font-bold", toneTextClasses.danger)}>{recentJobs.disputed}</p>
+            </Reading>
             <p className="text-ds-11 text-muted-foreground">Disputed</p>
           </div>
           <div className="text-center">
-            <p className={cn("text-ds-24 font-bold", toneTextClasses.notice)}>{recentJobs.cancelled}</p>
+            <Reading pending={healthLoading} bone="mx-auto h-8 w-10">
+              <p className={cn("text-ds-24 font-bold", toneTextClasses.notice)}>{recentJobs.cancelled}</p>
+            </Reading>
             <p className="text-ds-11 text-muted-foreground">Cancelled</p>
           </div>
       </AdminCard>
@@ -385,7 +410,9 @@ const AdminHealth = () => {
           <div className="flex flex-wrap items-center gap-2 text-ds-11">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Zap className="w-3 h-3" /> Median first-app:
-              <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
+              <Reading pending={healthLoading} bone="h-3 w-10">
+                <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
+              </Reading>
             </span>
             {jobsAwaitingApps > 0 && (
               <Badge variant="outline" className="text-ds-10">
@@ -395,7 +422,11 @@ const AdminHealth = () => {
           </div>
         }
       >
-        {parishStats.length === 0 ? (
+        {healthLoading ? (
+          <div className="space-y-1.5" aria-hidden="true">
+            {[0, 1, 2].map((i) => <Skeleton key={i} data-pending-reading="" className="h-9 w-full" />)}
+          </div>
+        ) : parishStats.length === 0 ? (
           <EmptyState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
@@ -458,22 +489,28 @@ const AdminHealth = () => {
           <div className="grid grid-cols-3 gap-2 text-ds-13">
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
               <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Fill Rate</div>
-              <div className="text-ds-24 font-semibold tabular-nums">
-                {fillData.fill_rate_pct !== null ? `${fillData.fill_rate_pct}%` : "—"}
-              </div>
+              <Reading pending={fillLoading} bone="h-8 w-14">
+                <div className="text-ds-24 font-semibold tabular-nums">
+                  {fillData.fill_rate_pct !== null ? `${fillData.fill_rate_pct}%` : "—"}
+                </div>
+              </Reading>
               <div className="text-ds-10 text-muted-foreground">jobs with ≥1 app</div>
             </div>
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
               <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Median Response</div>
-              <div className="text-ds-24 font-semibold tabular-nums">
-                {formatDelay(fillData.median_minutes_to_first_app)}
-              </div>
+              <Reading pending={fillLoading} bone="h-8 w-14">
+                <div className="text-ds-24 font-semibold tabular-nums">
+                  {formatDelay(fillData.median_minutes_to_first_app)}
+                </div>
+              </Reading>
               <div className="text-ds-10 text-muted-foreground">time to first app</div>
             </div>
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
               <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Jobs Tracked</div>
-              <div className="text-ds-24 font-semibold tabular-nums">{fillData.total_jobs}</div>
-              <div className="text-ds-10 text-muted-foreground">{fillData.filled_jobs} filled</div>
+              <Reading pending={fillLoading} bone="h-8 w-14">
+                <div className="text-ds-24 font-semibold tabular-nums">{fillData.total_jobs}</div>
+                <div className="text-ds-10 text-muted-foreground">{fillData.filled_jobs} filled</div>
+              </Reading>
             </div>
           </div>
 
@@ -524,7 +561,7 @@ const AdminHealth = () => {
             </div>
           )}
 
-          {sortedParishes.length === 0 && fillData.total_jobs === 0 && (
+          {!fillLoading && sortedParishes.length === 0 && fillData.total_jobs === 0 && (
             <p className="text-ds-11 text-muted-foreground">No job data for this period yet.</p>
           )}
         </AdminCard>
@@ -539,15 +576,21 @@ const AdminHealth = () => {
         <div className="grid grid-cols-3 gap-2 text-ds-13">
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Total tokens</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
+            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
+              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
+            </Reading>
           </div>
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">iOS</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
+            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
+              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
+            </Reading>
           </div>
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Android</div>
-            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
+            <Reading pending={healthLoading} bone="mt-1 h-8 w-10">
+              <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
+            </Reading>
           </div>
         </div>
         {pushStats.latestAt && (
@@ -558,7 +601,7 @@ const AdminHealth = () => {
             </span>
           </p>
         )}
-        {pushStats.total === 0 && (
+        {!healthLoading && pushStats.total === 0 && (
           <p className="text-ds-11 text-muted-foreground">
             No devices registered yet. Have a user open the iOS/Android app, sign in,
             and tap Allow on the push permission prompt — token will register on next launch.

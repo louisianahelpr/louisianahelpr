@@ -13,6 +13,9 @@
  *     what makes the row origin 'client' (no Slack page, no muted server page);
  *   - browser-extension and about:/data: noise is dropped before any database
  *     call (no rate-limit hit, no insert);
+ *   - a report about any page that is not ours (another host, a look-alike,
+ *     http, a non-default port, credentials, a deployment URL) is dropped the
+ *     same way (Q1353);
  *   - a body over 64 KB is refused with 413 and never parsed, and a real
  *     4-entry Reporting API batch (each entry carrying originalPolicy) is
  *     stored, not refused (lh-authz-rls review: an 8 KB cap dropped it);
@@ -140,6 +143,46 @@ describe("csp-report", () => {
     expect(res.status).toBe(204);
     expect(inserts()).toHaveLength(0);
     expect(rateLimitCalls).toHaveLength(0);
+  });
+
+  // Q1353: the endpoint is public (a browser sends no key), so anyone could
+  // post reports about OTHER sites into error_logs. Only documents served by
+  // our own Vercel headers carry our CSP; measured on prod 2026-10-12, every
+  // stored csp row (115) came from https://www.louisianahelpr.com.
+  // @mutate supabase/functions/csp-report/report.ts |   return !isOurDocument(v.documentURL); |   return !/^https?:\/\//i.test(v.documentURL);
+  // @mutate supabase/functions/csp-report/report.ts |     parsed.username === "" && parsed.password === "" && |     true &&
+  // @mutate supabase/functions/csp-report/report.ts |     parsed.port === "" && |     true &&
+  it.each([
+    ["another site", "https://evil.example.com/page"],
+    ["a look-alike suffix", "https://louisianahelpr.com.evil.example/x"],
+    ["a look-alike prefix", "https://notlouisianahelpr.com/x"],
+    ["a subdomain we do not serve", "https://shop.louisianahelpr.com/x"],
+    ["plain http of our host", "http://www.louisianahelpr.com/x"],
+    ["the native app's origin (meta CSP never reports)", "capacitor://localhost/browse"],
+    ["a Vercel deployment URL", "https://louisianahelpr-abc123.vercel.app/"],
+    ["another host after userinfo", "https://www.louisianahelpr.com@evil.example/x"],
+    ["credentials on our host (browsers never send them: forged)", "https://user:pw@www.louisianahelpr.com/x"],
+    ["a non-default port", "https://www.louisianahelpr.com:8443/x"],
+  ])("drops a report about %s before any database call (Q1353)", async (_label, documentURL) => {
+    const fn = await load();
+    const res = await post(fn, legacy({ "document-uri": documentURL }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+    expect(rateLimitCalls).toHaveLength(0);
+    const api = await post(fn, reportingApi({ documentURL }), "application/reports+json");
+    expect(api.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+  });
+
+  it.each([
+    ["www", "https://www.louisianahelpr.com/jobs?x=1"],
+    ["the apex", "https://louisianahelpr.com/browse"],
+    ["an explicit default port", "https://www.louisianahelpr.com:443/x"],
+    ["upper case host", "https://WWW.LouisianaHelpr.com/x"],
+  ])("keeps a report about our own page: %s (Q1353 control)", async (_label, documentURL) => {
+    const fn = await load();
+    await post(fn, legacy({ "document-uri": documentURL }));
+    expect(inserts()).toHaveLength(1);
   });
 
   it("drops a violation whose source file is an extension's", async () => {

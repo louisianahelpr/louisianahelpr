@@ -157,12 +157,34 @@ function noisy(u: string): boolean {
   return NOISE_URL.test(u) || NOISE_KEYWORD.test(u);
 }
 
-/** True when the violation is extension or browser noise, not our page. */
+// The only documents that carry our CSP (and so the only ones a browser
+// reports to us about) are the pages Vercel serves with vercel.json's
+// headers: the site itself. The native app's CSP is a meta tag, which cannot
+// report. This endpoint is public (a browser sends no key), so without this
+// list anyone could post reports about any other site into error_logs (Q1353;
+// measured 2026-10-12: all 115 stored csp rows came from www).
+const OUR_DOCUMENT_HOSTS = new Set(["www.louisianahelpr.com", "louisianahelpr.com"]);
+
+/** https, one of our hosts, the default port, and no userinfo. */
+function isOurDocument(u: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    return false; // not a URL: not a page of ours
+  }
+  return parsed.protocol === "https:" &&
+    parsed.username === "" && parsed.password === "" &&
+    parsed.port === "" &&
+    OUR_DOCUMENT_HOSTS.has(parsed.hostname);
+}
+
+/** True when the violation is noise or not about one of our pages. */
 export function isNoise(v: Violation): boolean {
   if (noisy(v.blockedURL) || noisy(v.sourceFile)) return true;
-  // A report about a document that is not a web page (an extension's own
-  // page, about:blank) is not about this site.
-  return !/^https?:\/\//i.test(v.documentURL);
+  // A report about a document that is not one of our pages (another site, an
+  // extension's own page, about:blank) is not about this site.
+  return !isOurDocument(v.documentURL);
 }
 
 export interface ErrorLogRow {

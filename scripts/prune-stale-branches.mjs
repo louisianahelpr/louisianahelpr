@@ -28,7 +28,11 @@
  * among them) sat on origin with no PR while this job stayed green. A branch is
  * STRANDED when it is over STRANDED_AFTER_HOURS old, has no open PR, and holds
  * a commit whose patch (`git cherry`) AND subject are on neither main nor any
- * open PR head (subjects catch work a conflict-resolving rebase rewrote). Any
+ * open PR head (subjects catch work a conflict-resolving rebase rewrote), AND
+ * whose CONTENT is not on main (scripts/lib/strandedContent.mjs; findStranded).
+ * Identity alone re-opened auto-land PRs for a branch whose work had merged
+ * (fix/no-false-signout: #2696, #2707, #2712) because a regenerated-inventory
+ * commit and a superseded floor bump never match by patch. Any
  * STRANDED branch makes this exit 1, so the workflow files a nightly-red issue.
  * land/* branches count too: a land PR closed unmerged strands its head.
  * Resolve one by landing it (bash scripts/land.sh) or deleting the branch.
@@ -45,7 +49,7 @@
  * measured (--force-with-lease), so a branch pushed to since is left alone.
  */
 import { execFileSync } from "node:child_process";
-import { buildMainIndex, unlandedContent } from "./lib/strandedContent.mjs";
+import { buildMainIndex, unlandedContent, gitRunner } from "./lib/strandedContent.mjs";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -141,11 +145,17 @@ export function neverLand(name, uncovered = []) {
 
 /**
  * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
- * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[], accepted?: boolean }} b
+ * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[], accepted?: boolean, contentOnMain?: boolean }} b
  */
-export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false }) {
+export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false, contentOnMain = false }) {
   if (PROTECTED.has(name)) return false;
   if (hasOpenPr) return false;
+  // Its CONTENT is on main (scripts/lib/strandedContent.mjs, the test
+  // `npm run stranded` uses): what is left by commit identity is regenerated
+  // files or superseded edits, not work. 2026-10-11: origin/fix/no-false-signout
+  // merged via #2689, but its inventory refresh and coverage-floor bump stayed
+  // "+" in git cherry, so every run re-opened an auto-land PR (#2696, #2707, #2712).
+  if (contentOnMain) return false;
   // Content-checked and recorded as deliberately not landed (its work went to
   // main another way): never re-open an auto-land PR for it (2026-10-04: the
   // closed cloud PRs came back as #2277-#2280 every run).
@@ -161,6 +171,41 @@ export function readAcceptedTips(file = "docs/audit/stranded-accepted.json") {
   if (!existsSync(file)) return out;
   for (const e of JSON.parse(readFileSync(file, "utf8")).accepted ?? []) out.set(e.id, e.sha);
   return out;
+}
+
+/**
+ * Which remote branches are STRANDED (each gets an auto-land PR with --apply).
+ * Commit identity (patch + subject) shortlists; CONTENT decides: a shortlisted
+ * branch whose content is on main goes to `contentOnMain`, never `stranded`.
+ * @param {(args: string[]) => string} gitFn runs git in the repo
+ * @param {{ name: string, sha: string, ageHours: number }[]} branches
+ * @param {Set<string>} openHeads
+ * @param {Map<string, string>} acceptedTips
+ * @param {(name: string) => boolean} contentStrandedOf
+ */
+export function findStranded(gitFn, branches, openHeads, acceptedTips, contentStrandedOf) {
+  const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
+  // Subjects already on main (recent history) or on any open PR's head.
+  const covered = new Set(gitFn(["log", "--format=%s", "-n", "5000", "origin/main"]).split("\n"));
+  for (const head of openHeads) {
+    if (!tipOf.has(head)) continue;
+    for (const s of gitFn(["log", "--format=%s", `origin/main..origin/${head}`]).split("\n")) covered.add(s);
+  }
+  const stranded = [];
+  const contentOnMain = [];
+  for (const { name, ageHours } of branches) {
+    const hasOpenPr = openHeads.has(name);
+    if (PROTECTED.has(name) || hasOpenPr || !(ageHours >= STRANDED_AFTER_HOURS)) continue;
+    const uncovered = uncoveredCommits(gitFn(["cherry", "-v", "origin/main", `origin/${name}`]), covered);
+    const accepted = acceptedTips.get(`remote:origin/${name}`) === tipOf.get(name);
+    if (!isStranded({ name, hasOpenPr, ageHours, uncovered, accepted })) continue;
+    if (isStranded({ name, hasOpenPr, ageHours, uncovered, accepted, contentOnMain: !contentStrandedOf(name) })) {
+      stranded.push({ name, ageHours, uncovered });
+    } else {
+      contentOnMain.push({ name, ageHours, uncovered });
+    }
+  }
+  return { stranded, contentOnMain };
 }
 
 function git(args) {
@@ -206,6 +251,11 @@ function main() {
   const branches = listRemoteBranches();
   const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
   let mainIndex = null;
+  const run = gitRunner(process.cwd());
+  const contentStrandedOf = (name) => {
+    mainIndex ??= buildMainIndex(run, "origin/main");
+    return unlandedContent(run, `origin/${name}`, "origin/main", mainIndex).stranded;
+  };
   const rows = branches.map(({ name, ageHours }) => {
     const facts = {
       name,
@@ -217,9 +267,7 @@ function main() {
     const first = decideBranch(facts);
     if (first.action !== "DELETE") return first;
     // Only a would-be delete pays for the content check; the index is built once.
-    const run = (argv, o = {}) => execFileSync("git", argv, { encoding: "utf8", maxBuffer: 1 << 30, input: o.input, stdio: [o.input ? "pipe" : "ignore", "pipe", "pipe"] });
-    mainIndex ??= buildMainIndex(run, "origin/main");
-    return decideBranch({ ...facts, contentStranded: unlandedContent(run, `origin/${name}`, "origin/main", mainIndex).stranded });
+    return decideBranch({ ...facts, contentStranded: contentStrandedOf(name) });
   });
 
   const order = { DELETE: 0, UNLANDED: 1, KEEP: 2 };
@@ -233,20 +281,9 @@ function main() {
       (apply ? "" : "  (dry run; pass --apply to delete the DELETE rows)"),
   );
 
-  // Subjects already on main (recent history) or on any open PR's head.
-  const covered = new Set(git(["log", "--format=%s", "-n", "5000", "origin/main"]).split("\n"));
-  for (const head of openHeads) {
-    if (!tipOf.has(head)) continue;
-    for (const s of git(["log", "--format=%s", `origin/main..origin/${head}`]).split("\n")) covered.add(s);
-  }
-  const acceptedTips = readAcceptedTips();
-  const stranded = [];
-  for (const { name, ageHours } of branches) {
-    const hasOpenPr = openHeads.has(name);
-    if (PROTECTED.has(name) || hasOpenPr || !(ageHours >= STRANDED_AFTER_HOURS)) continue;
-    const uncovered = uncoveredCommits(git(["cherry", "-v", "origin/main", `origin/${name}`]), covered);
-    const accepted = acceptedTips.get(`remote:origin/${name}`) === tipOf.get(name);
-    if (isStranded({ name, hasOpenPr, ageHours, uncovered, accepted })) stranded.push({ name, ageHours, uncovered });
+  const { stranded, contentOnMain } = findStranded(git, branches, openHeads, readAcceptedTips(), contentStrandedOf);
+  for (const b of contentOnMain) {
+    console.log(`content on main, no auto-land PR: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
   }
   if (stranded.length) {
     console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (land it or delete it):`);

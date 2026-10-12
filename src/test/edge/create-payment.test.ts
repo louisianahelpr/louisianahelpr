@@ -1973,6 +1973,39 @@ describe("create-payment edge function", () => {
     // the JWT is enough) and refund themselves out of a live dispute, or race an
     // admin Quick Release into a double spend. poster_cancel_job has always
     // excluded `disputed`; this door now does too.
+    // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a
+    // cancel. Live shape (job 1e16c281): 4120c = 3500 job + 420 fee + 200 setup.
+    // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeCents; | const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+    it("cancelling a first job refunds everything but the service fee AND the kept $2 setup fee (Q1674)", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_first", budget: 35, customer_fee_amount: 4.2, onboarding_fee_amount: 2, payment_status: "escrow" }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_first", status: "succeeded", amount: 4120, amount_received: 4120 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_first", amount: 3500, currency: "usd" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_first", amount: 3500 });
+      const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+      expect(String((ledger?.payload as Record<string, unknown>)?.reason)).toContain("kept $2 setup fee");
+    });
+
+    it("a job with no setup fee still refunds all but the service fee (Q1674 changes nothing else)", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_next", budget: 35, customer_fee_amount: 4.2, onboarding_fee_amount: null, payment_status: "escrow" }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_next", status: "succeeded", amount: 3920, amount_received: 3920 });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_next", amount: 3500, currency: "usd" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_next", amount: 3500 });
+    });
+
     it("refuses a DISPUTED job: 409, no Stripe call, no claim written", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -2212,7 +2245,7 @@ describe("create-payment edge function", () => {
             // Q86 (b), POLICY (pinned 2026-10-07): the poster WON the dispute,
             // so the $10 service fee goes back too; only Stripe's own fee is
             // withheld. cancel_escrow keeps the service fee; this must not.
-            // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents); | const nonRefundableCents = Math.max(1000, actualOrEstimatedFeeCents(pi, capturedCents));
+            // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job); | const nonRefundableCents = Math.max(1000, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeKeptCents(job);
             customer_fee_amount: 10,
           },
         ],
@@ -2245,6 +2278,37 @@ describe("create-payment edge function", () => {
       );
       expect((jobUpdate?.payload as Record<string, unknown>).payment_status).toBe(
         "refunded",
+      );
+    });
+
+    // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
+    // the poster wins the dispute, and the refund notice says so.
+    // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job); | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
+    // @mutate supabase/functions/create-payment/index.ts | : null, disputeSetupKeptCents) | : null, 0)
+    it("admin_refund_dispute on a first job keeps the $2 setup fee and the notice says so (Q1674)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "First job",
+          stripe_payment_intent_id: "pi_rs", customer_fee_amount: 10, onboarding_fee_amount: 2,
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_rs", status: "succeeded", amount: 10200, amount_received: 10200,
+        latest_charge: { balance_transaction: { fee: 326 } },
+      });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_rs", amount: 9674 });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      // 10200 captured - 326 Stripe fee - 200 kept setup fee.
+      expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ payment_intent: "pi_rs", amount: 9674 });
+      const posterNote = scenario.writes.find(
+        (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
+      );
+      expect(String((posterNote?.payload as Record<string, unknown>)?.message)).toContain(
+        "the one-time $2.00 account setup fee, which is paid once and never refunded",
       );
     });
 

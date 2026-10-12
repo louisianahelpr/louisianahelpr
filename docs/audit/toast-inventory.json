@@ -92,7 +92,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 238,
+      "line": 247,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -102,7 +102,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 240,
+      "line": 249,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -112,11 +112,11 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 262,
+      "line": 271,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "!wasFunded ? // Nothing was ever charged, so there is nothing to return. This // branch exists because the unfunded case used to fall through to // the refund sentence below and tell a poster whose checkout never // completed that \"the full amount returns to your card\" — a // promise of money movement that will never appear on a statement, // on the one screen where they are already unsure what happened to // their payment. \"Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund.\" : appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.` : \"Job cancelled — the full amount returns to your card.\"",
+        "text": "!wasFunded ? // Nothing was ever charged, so there is nothing to return. This // branch exists because the unfunded case used to fall through to // the refund sentence below and tell a poster whose checkout never // completed that \"the full amount returns to your card\" — a // promise of money movement that will never appear on a statement, // on the one screen where they are already unsure what happened to // their payment. \"Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund.\" : appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}` : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`",
         "branches": [
           {
             "form": "literal",
@@ -124,15 +124,15 @@
           },
           {
             "form": "dynamic",
-            "text": "appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.` : \"Job cancelled — the full amount returns to your card.\"",
+            "text": "appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}` : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`",
             "branches": [
               {
                 "form": "template",
-                "text": "Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card."
+                "text": "Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}"
               },
               {
-                "form": "literal",
-                "text": "Job cancelled — the full amount returns to your card."
+                "form": "template",
+                "text": "Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}"
               }
             ]
           }
@@ -142,7 +142,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 284,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

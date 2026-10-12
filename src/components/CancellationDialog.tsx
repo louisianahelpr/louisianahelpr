@@ -57,6 +57,10 @@ type CancellationDialogProps = {
   wasFunded: boolean;
   helperId?: string | null;
   helperName?: string;
+  /** The one-time setup fee this (first) job's checkout kept, in dollars
+   *  (jobs.onboarding_fee_amount). Owner, 2026-10-12 (Q1674): kept on a
+   *  cancel, never refunded; the dialog and the toast say so. */
+  setupFeeKept?: number | null;
   /**
    * A GROUP job (Q407: a crew has no lead). `members` are the hired members,
    * each with their frozen share of the budget (cents) and whether they
@@ -71,7 +75,12 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, open, onClose, onCancelled }: CancellationDialogProps) => {
+  // Q1674: the sentence both the policy text and the toast add for a first job.
+  const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
+  const keptFeeSentence = keptFee > 0
+    ? ` The one-time $${keptFee.toFixed(2)} account setup fee is kept: it is paid once and never refunded.`
+    : "";
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -270,8 +279,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             // their payment.
             "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
           : appliedFee > 0
-            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
-            : "Job cancelled — the full amount returns to your card.",
+            ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.${keptFeeSentence}`
+            : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`,
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();
@@ -318,7 +327,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     charged $67.20 and refunded $60.00, exactly as designed —
                     while this text promised a "full refund", which is the part
                     that was wrong. */}
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.{keptFeeSentence}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
                   <span className="text-ds-11 text-primary font-medium">$0 cancellation fee · Budget refunded · No consequences</span>
@@ -345,6 +354,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     <li><strong className="text-foreground">Less than 24 hours:</strong> {LATE_CANCEL_PERCENT}% fee</li>
                     <li><strong className="text-foreground">Less than 2 hours:</strong> {VERY_LATE_CANCEL_PERCENT}% fee</li>
                   </ul>
+                  {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <DollarSign className="w-3 h-3 text-accent shrink-0" />

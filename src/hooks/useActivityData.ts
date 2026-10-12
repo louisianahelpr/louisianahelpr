@@ -189,7 +189,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // Q1461: plus the poster's own materials note, which their card shows.
     // It is newer than the deploy that may serve this build, so it is read
     // through readJobsAheadOfDb (dropped and asked again on 42703).
-    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
+    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount`, (columns) => supabase
       .from("jobs")
       .select(columns)
       .eq("customer_id", userId)

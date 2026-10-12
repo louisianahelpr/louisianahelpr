@@ -16,6 +16,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
+import { groupDisputeRecords } from "./adminDisputes/groupDisputeRecords";
 import { isUnsettled } from "./adminDisputes/unsettled";
 import type {
   DisputedJob,
@@ -36,8 +37,7 @@ const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
   const [decidedJobs, setDecidedJobs] = useState<DisputedJob[]>([]);
   const [disputeRecords, setDisputeRecords] = useState<Record<string, DisputeRecord>>({});
-  // Q1327: every earlier dispute on a job (a re-file keeps the old one's row,
-  // the Helpr's answer archived on it), newest first.
+  // Q1327: each job's earlier disputes, newest first (groupDisputeRecords).
   const [earlierDisputes, setEarlierDisputes] = useState<Record<string, DisputeRecord[]>>({});
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
@@ -194,8 +194,7 @@ const AdminDisputes = () => {
         )
       : null;
 
-    const recordsMap: Record<string, DisputeRecord> = {};
-    const earlierMap: Record<string, DisputeRecord[]> = {};
+    let recordRows: DisputeRecord[] = [];
     if (allJobIds.length > 0) {
       const BASE_COLUMNS =
         "id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split";
@@ -218,18 +217,11 @@ const AdminDisputes = () => {
       if (recordsErr && recordsErr.code !== "PGRST205" && recordsErr.code !== "42P01") {
         report(recordsErr, { tags: { source: "AdminDisputes.loadRecords" } });
       }
-      const newestFirst = [...((records as DisputeRecord[] | null) ?? [])].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-      for (const r of newestFirst) {
-        // One current row per job — on a re-file, the most recent. The older
-        // ones are the job's dispute history (Q1327).
-        if (!recordsMap[r.job_id]) recordsMap[r.job_id] = r;
-        else (earlierMap[r.job_id] ??= []).push(r);
-      }
+      recordRows = (records as DisputeRecord[] | null) ?? [];
     }
-    setDisputeRecords(recordsMap);
-    setEarlierDisputes(earlierMap);
+    const grouped = groupDisputeRecords(recordRows);
+    setDisputeRecords(grouped.current);
+    setEarlierDisputes(grouped.earlier);
 
     const tMap: Record<string, string | null> = {};
     if (profilesPromise) {

@@ -3400,7 +3400,12 @@ serve(async (req) => {
             generalRefundForNotice = {
               id: refund.id,
               amountCents: refundedCents,
-              keptCents: Number.isFinite(capturedCents) ? Math.max(0, capturedCents - generalAlreadyRefundedCents - refundedCents) : 0,
+              // A REUSED refund (a retry) is already inside generalAlreadyRefundedCents;
+              // counting it twice made "kept" 0 and dropped the kept $2 from the
+              // notice (lh-money-escrow re-review of the setup-fee merge, note 2).
+              keptCents: Number.isFinite(capturedCents)
+                ? Math.max(0, capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents))
+                : 0,
             };
           }
           await recordRefund(supabaseAdmin, {

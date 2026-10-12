@@ -3942,6 +3942,25 @@ describe("create-payment edge function", () => {
         expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("The earlier refunds already returned everything except the one-time $2.00 account setup fee");
       });
 
+      // A RETRIED full refund reuses the first one; the notice still says the
+      // $2 was kept (it was counted twice before, so "kept" read 0).
+      // @mutate supabase/functions/create-payment/index.ts | - generalAlreadyRefundedCents - (reused ? 0 : refundedCents)) | - generalAlreadyRefundedCents - refundedCents)
+      it("a retried full refund that reuses the earlier refund still tells the poster the $2 setup fee was kept (Q1674)", async () => {
+        seedFull();
+        scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], onboarding_fee_amount: 2 };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 11400, amount_received: 11400 });
+        stripeMock.refunds.list.mockResolvedValue({
+          data: [{ id: "re_first", amount: 11200, status: "succeeded", metadata: { source: "admin_refund_general", partial: "false", kept_setup_fee_cents: "200" } }],
+        });
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        const note = scenario.writes.find(
+          (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
+        );
+        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("the one-time $2.00 account setup fee, which is paid once and never refunded");
+      });
+
       it("control for Q1674: a full refund of a job with no setup fee still refunds the whole charge (no amount sent)", async () => {
         seedFull();
         stripeMock.refunds.list.mockResolvedValue({ data: [] });

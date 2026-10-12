@@ -30,6 +30,7 @@
  */
 import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
+import { setupFeeKeptCents } from "./posterFees.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = any;
@@ -158,9 +159,10 @@ interface JobRow {
   cancellation_fee: number | string | null;
   customer_fee_amount: number | string | null;
   dispute_status: string | null;
+  onboarding_fee_amount?: number | string | null;
 }
 
-const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status";
+const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount";
 
 /** "$100" or "$41.87": the poster's money is never rounded (formatExactDollars). */
 export function refundDollars(cents: number): string {
@@ -251,7 +253,11 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
   if (md.fee_withheld === "true") return ` We kept ${kept}: the card processor's fee, which can't be returned.`;
   if (job?.status === "cancelled") {
     const feeCents = Math.min(keptCents, Math.max(0, cents(job.cancellation_fee)));
-    const restCents = keptCents - feeCents;
+    // Q1674: a first job's one-time $2 setup fee is kept on every refund; it
+    // is named on its own, never counted as a service or card fee (the
+    // fallback when charge.refunded arrives before the path's own notice).
+    const setupCents = Math.min(keptCents - feeCents, setupFeeKeptCents(job));
+    const restCents = keptCents - feeCents - setupCents;
     const serviceCents = cents(job.customer_fee_amount);
     const parts: string[] = [];
     if (feeCents > 0) parts.push(`${refundDollars(feeCents)} cancellation fee paid to your Helpr`);
@@ -260,7 +266,8 @@ function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptRea
         ? `${refundDollars(restCents)} service fee, which isn't refunded when a job is cancelled`
         : `${refundDollars(restCents)} in service and card processing fees, which aren't refunded when a job is cancelled`);
     }
-    if (parts.length === 1 && restCents === serviceCents && feeCents === 0) {
+    if (setupCents > 0) parts.push(`${refundDollars(setupCents)} one-time account setup fee, which is paid once and never refunded`);
+    if (parts.length === 1 && restCents === serviceCents && feeCents === 0 && setupCents === 0) {
       return ` We kept ${kept}: the service fee, which isn't refunded when a job is cancelled.`;
     }
     return ` We kept ${kept}: ${parts.join(" and ")}.`;

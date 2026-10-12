@@ -51,6 +51,25 @@ describe("unusable Stripe Connect account is classified, never a 500 (#1582)", (
     ).toBe(false);
   });
 
+  // Q1489 (lh-money-escrow review of Q1251): Stripe answers a LIVE account
+  // read with a TEST key as 404 resource_missing too. Classifying that as
+  // unusable would tell live Helprs to set payouts up again and clear their
+  // stored account if prod ever ran on a test key.
+  // @mutate supabase/functions/_shared/stripeAccountUsable.ts |   if (LIVE_OBJECT_UNDER_TEST_KEY.test(message)) return false; |
+  it("does NOT classify a live object read with a test key (404 resource_missing) as unusable (Q1489)", () => {
+    const liveUnderTest = "No such account: 'acct_1Live'; a similar object exists in live mode, but a test mode key was used to make this request.";
+    expect(isUnusableConnectAccountError({ statusCode: 404, code: "resource_missing", message: liveUnderTest })).toBe(false);
+    expect(isUnusableConnectAccountError({ code: "resource_missing", message: liveUnderTest })).toBe(false);
+    // The test-mode direction under the live key is still unusable (no real money behind it).
+    expect(
+      isUnusableConnectAccountError({
+        statusCode: 404,
+        code: "resource_missing",
+        message: "No such account: 'acct_1Test'; a similar object exists in test mode, but a live mode key was used to make this request.",
+      }),
+    ).toBe(true);
+  });
+
   it("keeps the pre-existing stale-account signals", () => {
     expect(isUnusableConnectAccountError({ statusCode: 404, message: "x" })).toBe(true);
     expect(isUnusableConnectAccountError({ message: "No such account: 'acct_x'" })).toBe(true);

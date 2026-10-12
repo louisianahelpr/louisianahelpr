@@ -1,5 +1,5 @@
-// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
-// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
+// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund", disputeRefundCents > 0); | const raced = null as Response \| null;
+// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund", disputeRefundCents > 0); | const raced = null as Response \| null;
 // @mutate supabase/functions/create-payment/index.ts | if (error \|\| !current \|\| current.payment_status !== "chargeback") return null; | if (error \|\| !current) return null;
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_REFUND_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
@@ -3104,7 +3104,7 @@ describe("create-payment edge function", () => {
         // Q1260: the transfer that lost the race to a chargeback is clawed back
         // HERE. The webhooks' clawback runs on charge.dispute.created and
         // funds_withdrawn, and both can be processed before this transfer exists.
-        // @mutate supabase/functions/create-payment/index.ts |   const clawbackOutcome = moved === "transfer" && release | const clawbackOutcome = false && release
+        // @mutate supabase/functions/create-payment/index.ts |   const clawbackOutcome = moved === "transfer" && moneyMoved && release | const clawbackOutcome = false && release
         // @mutate supabase/functions/create-payment/index.ts |   const real = disputes.find((d) => ["needs_response", "under_review", "lost"].includes(String(d.status ?? ""))); |   const real = disputes[0];
         describe("Quick Release that raced a chargeback reverses its own transfer (Q1260)", () => {
           const qrTransfer = { id: "tr_d", amount: 8800, amount_reversed: 0, created: 1, destination: "acct_helper", transfer_group: "job_job-1" };
@@ -3190,6 +3190,85 @@ describe("create-payment edge function", () => {
           expect(raceAlerts()).toHaveLength(1);
           expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
           expect(scenario.writes.some((w) => w.table === "admin_audit_log")).toBe(false);
+        });
+
+        // Q1302 (survived mutants of the second money review of Q1192/Q1193):
+        // the Quick Refund race keeps its claim (the refund went out), and a
+        // FAILED re-read is not a race (the manual-reconciliation 500 stands).
+        it("Quick Refund that raced a chargeback KEEPS its settlement claim: the refund went out (Q1302)", async () => {
+          seedRefundable();
+          chargebackLanded();
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect(stripeMock.refunds.create).toHaveBeenCalled();
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        // The `error ||` clause itself is an EQUIVALENT mutant: supabase-js
+        // answers `data: null` with every error, so `!current` already returns
+        // null there. What this pins is the behaviour: a failed re-read is no
+        // race page and no 409.
+        it.each([
+          ["admin_release_dispute", seedReleasable],
+          ["admin_refund_dispute", seedRefundable],
+        ])("%s: a re-read that FAILS after zero flipped rows is not called a chargeback race; the 500 stands (Q1302)", async (action, seed) => {
+          seed();
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { error: { message: "connection reset" } } },
+            ],
+            rows: [(scenario.reads.jobs.rows ?? [])[0]],
+          };
+          scenario.writeSelectRows.jobs = [];
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action, jobId: "job-1" } }));
+          expect(res.status).toBe(500);
+          expect((await json(res)).chargebackRaced).toBeUndefined();
+          expect(raceAlerts()).toHaveLength(0);
+        });
+
+        // Q1303: no Helpr / nothing owed means no Stripe call, so the 409 and
+        // the page must not say the money "went out".
+        // @mutate supabase/functions/create-payment/index.ts |   if (!moneyMoved) { |   if (false) {
+        it("Quick Release with no Helpr to pay that raced a chargeback says nothing was sent, and pages no money_at_risk (Q1303)", async () => {
+          seedReleasable();
+          chargebackLanded({ helper_id: null });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          const body = await json(res);
+          expect(body.chargebackRaced).toBe(true);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(String(body.error)).toMatch(/No transfer was sent/);
+          expect(String(body.error)).not.toMatch(/went out/);
+          const pages = raceAlerts() as Array<{ kind?: string; title?: string; message?: string }>;
+          expect(pages).toHaveLength(1);
+          expect(pages[0].kind).not.toBe("money_at_risk");
+          expect(String(pages[0].title)).toMatch(/nothing was sent/);
+          expect(String(pages[0].message)).not.toMatch(/went out/);
+        });
+
+        it("Quick Refund whose refund is $0 (the fee took the whole capture) that raced a chargeback says nothing was sent (Q1303)", async () => {
+          seedRefundable();
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({
+            id: "pi_r", status: "succeeded", amount: 320, amount_received: 320,
+            latest_charge: { balance_transaction: { fee: 320 } },
+          });
+          chargebackLanded();
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          const body = await json(res);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(String(body.error)).toMatch(/No refund was sent/);
+          expect(String(body.error)).not.toMatch(/went out/);
         });
 
         it("Quick Refund gives the claim back when Stripe DEFINITELY refused the refund (round 5)", async () => {

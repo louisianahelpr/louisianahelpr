@@ -1719,7 +1719,11 @@ serve(async (req) => {
         // canceled (pending included) means the money is going back, and the
         // visit is not booked on it. An unreadable answer books nothing either:
         // the intent stays held and the next run of the window adopts it.
-        if (!paidRow) {
+        // Q1493 (lh-money-escrow review of Q809): a PAID row's on-session
+        // intent is asked too. If a mid-run refund of it failed and ops then
+        // refunded it by hand while the row still reads 'paid', booking on it
+        // would pay the Helpr from the platform balance.
+        {
           let liveRefunds: Stripe.Refund[] | null = null;
           let readErr = "refund list gave no data";
           try {
@@ -1744,7 +1748,20 @@ serve(async (req) => {
               .forEach(fail);
             continue;
           }
-          if (liveRefunds.some((r) => r.status !== "failed" && r.status !== "canceled")) {
+          const liveNow = liveRefunds.filter((r) => r.status !== "failed" && r.status !== "canceled");
+          const liveCents = liveNow.reduce((sum, r) => sum + (r.amount ?? 0), 0);
+          // An unreadable amount (null, NaN, 0) never counts as refunded in full.
+          const paidCents = paidRow ? Number(paidRow.amount_cents) : NaN;
+          const refundedInFull = liveNow.length > 0 && Number.isFinite(paidCents) && paidCents > 0 && liveCents >= paidCents;
+          if (paidRow && (liveNow.some((r) => r.metadata?.fee_withheld === "true") || refundedInFull)) {
+            // Our own fee-withheld refund of this paid row already went out (an
+            // earlier run refunded it and its settle write was lost), or ops
+            // refunded the whole of it by hand: the row is settled as refunded
+            // (the sweep's own rule), never booked, and nobody is paged.
+            (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
+            continue;
+          }
+          if (liveNow.length > 0) {
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
@@ -1752,6 +1769,8 @@ serve(async (req) => {
               message:
                 `PaymentIntent ${intent.id} carries a refund, so this visit was NOT booked on it. Check the series by hand: the poster may need to pay again.`,
               fields: { parentJobId: String(parent.id), visitDate, intent: intent.id },
+              // Each daily run of the window would page again for the same intent.
+              oncePerDayKey: `visit-refunded-before-booking:${intent.id}`,
             });
             fail(`series ${parent.id} ${visitDate}: intent ${intent.id} carries a refund; nothing booked`);
             (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "intent_refunded_before_booking", "held"))

@@ -71,6 +71,12 @@ export interface VirtualListProps<T> {
   virtualizerRef?: MutableRefObject<VirtualListHandle | null>;
 }
 
+/** `listAriaLabel` -> a named list container (rows become LIST_ITEM_ROLE). */
+function listContainerAttrs(label: string | undefined) {
+  return label ? { role: "list", "aria-label": label } : {};
+}
+const LIST_ITEM_ROLE = "listitem";
+
 /** What callers may do imperatively to a mounted VirtualList. */
 export interface VirtualListHandle {
   scrollToIndex: (index: number, opts?: { align?: "start" | "center" | "end" | "auto" }) => void;
@@ -140,8 +146,7 @@ function WindowVirtualList<T>({
     <div
       ref={parentRef}
       className={className}
-      role={listAriaLabel ? "list" : undefined}
-      aria-label={listAriaLabel}
+      {...listContainerAttrs(listAriaLabel)}
       style={{ position: "relative", height: totalSize, width: "100%", ...style }}
     >
       {virtualItems.map((virtualRow) => {
@@ -152,7 +157,7 @@ function WindowVirtualList<T>({
             data-index={virtualRow.index}
             ref={virtualizer.measureElement}
             className={itemClassName}
-            role={listAriaLabel ? "listitem" : undefined}
+            role={listAriaLabel ? LIST_ITEM_ROLE : undefined}
             style={{
               position: "absolute",
               top: 0,
@@ -245,8 +250,7 @@ function ElementVirtualList<T>({
     <div
       ref={parentRef}
       className={className}
-      role={listAriaLabel ? "list" : undefined}
-      aria-label={listAriaLabel}
+      {...listContainerAttrs(listAriaLabel)}
       style={{
         position: "relative",
         height: virtualizer.getTotalSize(),
@@ -263,7 +267,7 @@ function ElementVirtualList<T>({
             data-index={virtualRow.index}
             ref={virtualizer.measureElement}
             className={itemClassName}
-            role={listAriaLabel ? "listitem" : undefined}
+            role={listAriaLabel ? LIST_ITEM_ROLE : undefined}
             style={{
               position: "absolute",
               top: 0,

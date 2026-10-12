@@ -6792,6 +6792,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_signup_leads: {
+        Args: never
+        Returns: {
+          completed_at: string
+          created_at: string
+          email: string
+          reminder_sent_at: string
+          source: string
+          unsubscribed_at: string
+        }[]
+      }
       admin_stalled_job_queue: {
         Args: { p_include_resolved?: boolean }
         Returns: {

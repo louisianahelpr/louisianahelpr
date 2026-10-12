@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
+import { MetricCard, StatusRow, MRRRow } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
@@ -25,6 +25,7 @@ import { AnalyticsUnavailable } from "@/components/admin/adminAnalytics/Analytic
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { FunnelsAndRetention } from "./adminAnalytics/FunnelsAndRetention";
 import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
 
 /** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
@@ -603,13 +604,7 @@ const AdminAnalytics = () => {
       </div>
 
       {/* ── Funnels & retention ── */}
-      <SectionLabel>Funnels &amp; Retention</SectionLabel>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <FunnelCard title="Poster activation" subtitle="Signup → revenue" stages={customerFunnel} />
-        <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
-      </div>
-
-      <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
+      <FunnelsAndRetention customerFunnel={customerFunnel} helperFunnel={helperFunnel} cohorts={cohortRetention} monthLabel={monthLabel} />
 
       <AdminCard title={<span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" /> Jobs per Month</span>}>
         <div className="h-[200px]">

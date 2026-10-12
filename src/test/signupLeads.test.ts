@@ -19,6 +19,8 @@
  * @mutate supabase/migrations/20261009223714_signup_leads.sql |   DELETE FROM public.signup_leads\n   WHERE created_at < now() - interval '30 days' |   DELETE FROM public.signup_leads\n   WHERE false
  * @mutate supabase/migrations/20261009223714_signup_leads.sql |     AND (completed_at IS NOT NULL OR (reminder_sent_at IS NULL AND unsubscribed_at IS NULL)); |     ;
  * @mutate supabase/migrations/20261009223714_signup_leads.sql |       AND l.created_at > now() - interval '2 hours'\n | \n
+ * @mutate supabase/migrations/20261012043611_admin_signup_leads.sql |    WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role) |    WHERE true
+ * @mutate supabase/migrations/20261012043611_admin_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_signup_leads() FROM PUBLIC;
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
@@ -81,6 +83,23 @@ describe("signup leads: database layer", () => {
       expect(all, sig).not.toMatch(new RegExp(`GRANT\\s+[^;]*ON\\s+FUNCTION\\s+public\\.${esc}\\s+TO\\s+[^;]*\\b(?:anon|authenticated|PUBLIC)\\b`, "i"));
       expect(newestBody(sig.split("(")[0]), sig).toMatch(/SECURITY\s+DEFINER[\s\S]*SET\s+search_path\s*=\s*''/i);
     }
+  });
+
+  it("the one client read (admin_signup_leads, Q1587) is admin-gated, closed to PUBLIC and anon, and the only lead function a signed-in user may call", () => {
+    expect(all).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.admin_signup_leads\(\)\s+FROM\s+PUBLIC,\s*anon\s*;/i);
+    expect(all).toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.admin_signup_leads\(\)\s+TO\s+authenticated,\s*service_role\s*;/i);
+    const b = newestBody("admin_signup_leads");
+    expect(b).toMatch(/SECURITY\s+DEFINER[\s\S]*SET\s+search_path\s*=\s*''/i);
+    expect(b).toMatch(/WHERE\s+public\.has_role\(\(SELECT\s+auth\.uid\(\)\),\s*'admin'::public\.app_role\)/i);
+    // THE CLASS: every function whose body reads public.signup_leads is either
+    // in FUNCTIONS (service_role only, checked above) or admin-gated here.
+    const readers = new Set<string>();
+    for (const m of all.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.(\w+)\s*\(/gi)) {
+      if (/public\.signup_leads\b/i.test(newestBody(m[1]))) readers.add(m[1]);
+    }
+    expect(readers.size).toBeGreaterThan(4);
+    const known = new Set([...FUNCTIONS.map((f) => f.split("(")[0]), "admin_signup_leads"]);
+    expect([...readers].filter((r) => !known.has(r))).toEqual([]);
   });
 
   it("record_signup_lead validates, is idempotent, and completes an address that already has an account", () => {

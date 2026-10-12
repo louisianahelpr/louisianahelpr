@@ -29,6 +29,7 @@
     "admin_reverse_violation(uuid, text, boolean)": "client",
     "admin_send_team_message(uuid, text, uuid)": "client",
     "admin_set_payout_hold(uuid, text)": "client",
+    "admin_signup_leads()": "client",
     "admin_stalled_job_queue(boolean)": "client",
     "admin_support_queue(text, text[], integer)": "client",
     "apply_cancellation_violation_consequence(uuid)": "reviewed 2026-10-05 (Q14): acts only on auth.uid()'s own cancellation; no client caller today (CancellationDialog notes nothing binds it).",

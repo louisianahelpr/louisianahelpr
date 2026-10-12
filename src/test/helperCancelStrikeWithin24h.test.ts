@@ -44,9 +44,9 @@ const LADDER_CALLERS: Record<string, "before_start_give_up" | string> = {
   // the start leaves the crew as helper_cancel_booking's crew branch does.
   block_user_and_settle: "before_start_give_up",
   helper_abort_job: "abandons a job already in progress (after the start), not a before-start cancel",
-  decline_job_offer:
-    "declines a hire offer the Helpr never confirmed; not a booking they committed to (owner question in docs/OPEN.md Q415)",
-  expire_unanswered_offers: "a hire offer left unanswered past its deadline, not a cancellation",
+  // decline_job_offer and expire_unanswered_offers left this list with Q1281
+  // (20261012184444): an offer is free to decline or let run out
+  // (src/test/offerFreeToRefuse.test.ts).
 };
 
 const LATE_GATE = /IF\s+public\.is_late_cancellation\(\s*true\s*,/g;
@@ -57,7 +57,8 @@ describe("a before-start give-up strikes only within 24 hours (Q407 6, 11)", () 
       .filter((n) => n !== "apply_job_denial_consequence")
       .filter((n) => /apply_job_denial_consequence\s*\(/.test(body(n)))
       .sort();
-    expect(callers.length).toBeGreaterThanOrEqual(5);
+    // four on 2026-10-12 (two offer handlers stopped striking, Q1281)
+    expect(callers.length).toBeGreaterThanOrEqual(4);
     expect(callers).toEqual(Object.keys(LADDER_CALLERS).sort());
   });
 

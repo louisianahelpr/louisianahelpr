@@ -342,12 +342,11 @@ serve(async (req) => {
     // 3. Expire UNANSWERED offers past their response_deadline.
     //
     // Runs BEFORE the direct-offer sweep and after step 1, but it is really
-    // step 1's missing half: step 1 reopens a stale acceptance keyed on
-    // `updated_at` older than 24h and files no violation, so a helper who
-    // ghosted an offer they had applied for walked away clean while one who
-    // pressed Decline took a strike. This keys on the deadline the poster
-    // actually set and applies the same 5-strike ladder decline_job_offer
-    // does (owner: an expired offer reopens the job AND counts as a decline).
+    // step 1's missing half: this keys on the deadline the poster actually
+    // set, reopens the job and tells both sides. It files no strike, and
+    // neither does decline_job_offer (owner, 2026-10-05, Q1281: an offer is
+    // free to decline or let run out; strikes are for backing out after an
+    // accept).
     let unansweredExpired = 0;
     // PGRST202 is deliberately NOT a defect: it means the migration merged but
     // db-deploy has not finished, which is expected for a few minutes on every

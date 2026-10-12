@@ -194,7 +194,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                 <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
                 Denial policy:
               </span>{" "}
-              Helprs who decline jobs repeatedly will face escalating consequences:
+              Declining an offer, or not answering it, is never a strike. Helprs who back out after accepting face escalating consequences:
             </p>
             {/* Rungs come from the shared ladder statement so this list can
                 never again disagree with what the RPC actually applies —

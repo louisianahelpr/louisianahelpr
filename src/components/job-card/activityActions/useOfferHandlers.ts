@@ -551,10 +551,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
       toast.error("Couldn't accept the job — please try again.");
     } else {
-      // Decline — atomic via the decline_job_offer RPC: the violation
-      // insert, ladder escalation (apply_job_denial_consequence, migration
-      // 20260824243000), app rejection and job reopen all run in one
-      // transaction. If the RPC isn't deployed yet the decline fails CLOSED
+      // Decline — atomic via the decline_job_offer RPC: app rejection, job
+      // reopen and the poster's notice run in one transaction. It files no
+      // strike (owner, 2026-10-05, Q1281; 20261012184444), so it answers
+      // action "none"; the ladder branches below stay for any older server
+      // body still answering a rung during a deploy window. If the RPC isn't deployed yet the decline fails CLOSED
       // (see below) — there is deliberately no client-side re-implementation
       // of the consequence ladder.
       let actionTaken: string;
@@ -650,8 +651,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       }
       // No client admin fan-out (Q308): create-notification refuses a
       // non-admin sending to an admin, so the old per-admin loop here never
-      // delivered. The rung an admin must act on (ban review) is paged by
-      // apply_job_denial_consequence inside decline_job_offer.
+      // delivered. Declining files no strike (Q1281), so there is no rung
+      // for an admin to act on here.
       refresh();
     }
     } finally {

@@ -55,8 +55,8 @@ export function useAwardBlockReason(): AwardBlockReason | null {
 
 /**
  * The same verdict, with "we don't know yet" kept apart from "nothing stops
- * you". The offer card reads it only for the Decline confirm's no-strike
- * promise: its Accept is offered to every Helpr whatever this says (owner,
+ * you". The offer card reads it only for its waiting-on-Stripe status panel
+ * (declining is never a strike since Q1281): its Accept is offered to every Helpr whatever this says (owner,
  * 2026-10-06: anyone can accept, payout setup comes after; Q1399). Same
  * derivation as useAwardBlockReason above (the client
  * mirror of helper_accept_missing, which is also what accept_job_offer answers

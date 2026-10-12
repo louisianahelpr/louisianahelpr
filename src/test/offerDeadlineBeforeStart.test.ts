@@ -22,7 +22,7 @@
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql |          response_deadline = v_deadline | response_deadline = p_deadline
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | now() + interval '55 minutes'),\n    v_cutoff); | now() + interval '55 minutes')\n    );
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | CREATE TRIGGER zzzz_offer_deadline_follows_start | CREATE TRIGGER zzzz_offer_deadline_follows_start_off
- * @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); | v_cap_ended := false;
+ * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); | v_cap_ended := false;
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |       NEW.response_deadline := LEAST(public.job_offer_cutoff(NEW.date_needed, NEW.start_time), now() + interval '48 hours'); |       NEW.response_deadline := LEAST(NEW.response_deadline, public.job_offer_cutoff(NEW.date_needed, NEW.start_time));
  * @mutate src/lib/offerDeadline.ts | const cappedByStart = !!cutoff && cutoff.getTime() < chosen; | const cappedByStart = false;
  * @mutate src/lib/offerDeadline.ts | export const OFFER_MIN_LEAD_MINUTES = 15; | export const OFFER_MIN_LEAD_MINUTES = 5;
@@ -94,11 +94,14 @@ describe("offer answer-by never after the job's start (server)", () => {
 });
 
 describe("a window ended by the job's start is not a strike (lh-money-escrow review, finding 1)", () => {
-  it("expire_unanswered_offers files no strike when the answer-by was the start", () => {
+  it("expire_unanswered_offers files no strike when the answer-by was the start, and says why", () => {
     const body = blankSqlComments(effectiveDefs(DIR).get("expire_unanswered_offers")!.stmt);
     expect(body).toMatch(/v_cap_ended\s*:=\s*v_locked\.response_deadline\s*>=\s*public\.job_offer_cutoff\(v_locked\.date_needed, v_locked\.start_time\);/);
-    expect(body).toMatch(/v_no_strike\s*:=\s*v_cap_ended\b/);
-    expect(body).toMatch(/v_crew_no_strike\s*:=\s*v_crew_cap\b/);
+    // Since Q1281 (20261012184444) no expiry strikes at all; the capped window
+    // keeps its own sentence on both passes.
+    expect(body).not.toMatch(/apply_job_denial_consequence\s*\(/);
+    expect(body).toMatch(/CASE WHEN v_cap_ended\s+THEN '" when the job started, so it went back to everyone\. No strike\.'/);
+    expect(body).toMatch(/CASE WHEN v_crew_cap\s+THEN '" when the job started, so you lost your spot\. No strike\.'/);
   });
   it("a window that was the old start follows a start moved later", () => {
     const fn = blankSqlComments(effectiveDefs(DIR).get("offer_deadline_follows_start")!.stmt);

@@ -17,9 +17,9 @@
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |     IF NOT v_no_strike THEN |     IF true THEN
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
@@ -42,7 +42,7 @@
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
 // @mutate src/lib/awardGate.ts |     missing.includes("stripe_id") ? "finish your Stripe ID check" : null, |     "finish your Stripe ID check",
-// @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const noStrike = gate.reason !== null \|\| acceptPending; |   const noStrike = gate.reason !== null;
+// @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Your Stripe setup isn't finished yet, so declining now isn't a strike."
 // @mutate src/lib/lifecycleErrors.ts |   accept_required:\n |   accept_required_retired:\n
 // @mutate src/lib/seriesDates.ts | rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) | rpcErrorMessage("claim_series_dates", error)
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) THEN |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) AND false THEN
@@ -209,9 +209,13 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     expect(handlers).toMatch(/if \(accept && answer\.action === "pending_setup"\) \{[\s\S]*?setAcceptPendingMissing\(missing\)/);
   });
 
-  it("no strike while setup is unfinished; a never-accepted Helpr is no no-show", () => {
-    expect(body("expire_unanswered_offers")).toMatch(/IF NOT v_no_strike THEN\s+PERFORM public\.apply_job_denial_consequence/);
-    expect(body("decline_job_offer")).toMatch(/helper_accept_block_reason\(v_app_helper\) IS NOT NULL[\s\S]*'setup_unfinished'/);
+  it("no strike for an offer (Q1281 widened Q1180's setup exemption to every offer); a never-accepted Helpr is no no-show", () => {
+    const expire = body("expire_unanswered_offers");
+    expect(expire).not.toMatch(/apply_job_denial_consequence\s*\(/);
+    // The setup case keeps its own sentence: finish both to accept the next offer.
+    expect(expire).toMatch(/v_setup_unfinished := public\.helper_accept_block_reason\(v_locked\.helper_id\) IS NOT NULL\s+OR EXISTS \(SELECT 1 FROM public\.job_accept_pending p/);
+    expect(expire).toMatch(/WHEN v_setup_unfinished\s+THEN '" before your payout setup and Stripe ID were done/);
+    expect(body("decline_job_offer")).not.toMatch(/apply_job_denial_consequence\s*\(/);
     const noShow = body("report_helper_no_show");
     expect(noShow).toContain("RAISE EXCEPTION 'helper_never_accepted'");
     expect(noShow).toMatch(/helper_confirmed_at = NULL,\s+helper_dayof_confirmed_at = NULL/);
@@ -242,12 +246,11 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
 
   it("the Decline confirm promises no strike exactly when the server files none (re-review #9)", () => {
     const card = blankComments(readFileSync(join(REPO, "src/pages/jobs/appliedJobCard/OfferedActions.tsx"), "utf8"));
-    // decline_job_offer: helper_accept_block_reason IS NOT NULL OR a pending row for this job
-    // The gate now comes through useAcceptGate (same derivation, plus a
-    // loading state the offer card's primary needs, owner 2026-10-05).
+    // Q1281: decline_job_offer files no strike for anyone, so the confirm says
+    // so unconditionally (src/test/offerFreeToRefuse.test.ts pins the rest).
     expect(card).toContain("const gate = useAcceptGate();");
-    expect(card).toContain("const noStrike = gate.reason !== null || acceptPending;");
-    expect(card).not.toMatch(/setupUnfinished/);
+    expect(card).toContain(`description="You applied for this one and the person who posted it picked you. Declining isn't a strike."`);
+    expect(card).not.toMatch(/setupUnfinished|noStrike/);
   });
 
   it("picking series dates names the gate's reason, never the raw code (re-review #10)", () => {

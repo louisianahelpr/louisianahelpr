@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { useAcceptPendingJobs } from "@/hooks/useAcceptPendingJobs";
 import { useAcceptGate } from "@/hooks/useAwardBlockReason";
 import { pendingAcceptStatus } from "@/lib/awardGate";
@@ -20,16 +19,11 @@ interface OfferedActionsProps {
 }
 
 /**
- * Declining after you were SELECTED from your own application files a
- * `job_denial` violation on the shared reliability ladder
- * (`apply_job_denial_consequence`, migration 20260829010000): the first
- * strike is recorded with only a courtesy warning, the second is a final
- * warning, the third suspends the account for 7 days, and a fourth restricts
- * it for 7 days while an admin reviews it for a permanent ban — which is never
- * automatic. A helper could walk most of the way up that ladder from a
- * single unconfirmed tap on a button labelled only "Decline", while
- * WITHDRAWING an application (which costs nothing) got a whole sheet with a
- * mandatory reason. This confirm inverts that back.
+ * Declining an offer is FREE (owner, 2026-10-05, Q1281): nothing is committed
+ * until the Helpr taps Accept, so decline_job_offer files no strike
+ * (20261012184444_offer_free_to_refuse). The confirm stays because the decline
+ * cannot be undone: the job goes back to everyone. Strikes are only for
+ * backing out AFTER accepting (helper_cancel_booking).
  *
  * A DIRECT offer is exempt: the helper never applied, so turning down
  * unsolicited work isn't misconduct and `respond_to_direct_offer` files no
@@ -46,13 +40,8 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // Q1180: they tapped Accept and it waits on their Stripe setup; tapping
   // again reopens the checklist (accept_job_offer answers with what is left).
   const acceptPending = useAcceptPendingJobs().has(job.id);
-  // decline_job_offer (20261003193541) files no strike while setup is
-  // unfinished OR while this job's accept is pending; the confirm mirrors both
-  // halves so it never promises what the server will not do (re-review #9).
-  // The profile is live over realtime, and the decline's own result decides
-  // the toast afterwards.
+  // The profile mirror of helper_accept_missing, live over realtime.
   const gate = useAcceptGate();
-  const noStrike = gate.reason !== null || acceptPending;
   // ANYONE CAN ACCEPT; PAYOUT SETUP COMES AFTER (owner, 2026-10-06, said
   // twice: "you can offer job to anyone, they would set it up after
   // accepting. this is not an exception, it's the rule."). Before the tap the
@@ -63,8 +52,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // profile mirror had a gate reason (Q1399, seen live 2026-10-07 at 375).
   // After the accept, while it waits on Stripe (acceptPending), the primary is
   // still Accept (owner, 2026-10-07: "never Set Up Payouts"); a status panel
-  // says what it waits on. The gate feeds only that panel and the Decline
-  // confirm's no-strike promise above.
+  // says what it waits on. The gate feeds only that panel.
   // Guards: src/test/offerAcceptForEveryone.test.tsx,
   // src/test/offerCardHierarchy.test.tsx.
   // Once accepted and waiting only on Stripe, the button finishes that accept
@@ -143,17 +131,14 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           a timestamp we don't have, because a fabricated deadline is worse than
           none — the helper would plan around it. */}
       {deadline ? (
-        /* THE CONSEQUENCE IS STATED, because as of the
-           `expire_unanswered_offers` sweep there is one. Letting the clock run
-           out on an offer you applied for now files the same `job_denial`
-           strike that pressing Decline does — the job reopens either way, and
-           silence used to be the free option. Warning somebody before you
-           count a strike against them is the minimum; "Accept or decline
-           before the deadline" did not say what happens if you do neither.
+        /* WHAT SILENCE DOES IS STATED: when the answer-by passes,
+           `expire_unanswered_offers` gives the job back to everyone. It files
+           no strike (owner, 2026-10-05, Q1281), and the line says so, so
+           nobody accepts out of fear of a penalty that does not exist.
 
            Only shown for a HARD deadline. The derived 24-hour clock is an
            inference from `updated_at` and the server does not act on it, so
-           threatening a strike against it would be a threat we cannot keep. */
+           promising a reopen against it would be a promise we cannot keep. */
         /* BOTH CLOCKS, ONE FORMAT, SOONEST FIRST (owner, 2026-10-07, Q1399):
            "Job starts in" used to be a grey pill above and this a cream box,
            two designs for two clocks. Now both are rows of one panel,
@@ -167,7 +152,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           ]}
           note={
             hardDeadline
-              ? "No answer counts the same as declining, and the job reopens to everyone."
+              ? "If you don't answer in time, the job reopens to everyone. No strike."
               : "Accept or decline before the deadline."
           }
         />
@@ -294,19 +279,10 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Decline This Job?"
-        description={
-          noStrike
-            ? "You applied for this one and the person who posted it picked you. Your Stripe setup isn't finished yet, so declining now isn't a strike."
-            : "You applied for this one and the person who posted it picked you, so backing out now counts against your account."
-        }
+        description="You applied for this one and the person who posted it picked you. Declining isn't a strike."
         callout={{
-          // The real ladder, from the shared statement — this callout used to
-          // quote the retired 5-strike math ("Three declines gets you a
-          // warning. Five is a permanent ban."). No strike while Stripe setup
-          // is unfinished (decline_job_offer, 20261003193541).
-          text: noStrike
-            ? "The job goes back to everyone. This can’t be undone."
-            : `Declining after accepting counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. This can’t be undone.`,
+          // decline_job_offer files no strike (Q1281, 20261012184444).
+          text: "The job goes back to everyone. This can’t be undone.",
         }}
         primaryLabel="Decline the Job"
         primaryTone="sienna"

@@ -5,7 +5,8 @@
  * Before, AdminDisputes kept only the newest dispute record per job and read
  * neither answer.
  *
- * @mutate src/components/admin/AdminDisputes.tsx |         else (earlierMap[r.job_id] ??= []).push(r); |         else void 0;
+ * @mutate src/components/admin/adminDisputes/groupDisputeRecords.ts |     else (earlier[r.job_id] ??= []).push(r); |     else void 0;
+ * @mutate src/components/admin/AdminDisputes.tsx |     setEarlierDisputes(grouped.earlier); |     setEarlierDisputes({});
  * @mutate src/components/admin/adminDisputes/EarlierDisputes.tsx |               Helpr's answer: {r.helper_response ? `"${r.helper_response}"` : "none on record"} |               Helpr's answer: none on record
  * @mutate src/components/admin/adminDisputes/DisputeCard.tsx |         <EarlierDisputes records={earlierDisputes} /> |
  * @mutate src/components/admin/AdminDisputes.tsx | execution_refund_cents, execution_error, helper_response"; | execution_refund_cents, execution_error";
@@ -14,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { EarlierDisputes } from "@/components/admin/adminDisputes/EarlierDisputes";
+import { groupDisputeRecords } from "@/components/admin/adminDisputes/groupDisputeRecords";
 import type { DisputeRecord } from "@/components/admin/adminDisputes/types";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -41,8 +43,18 @@ describe("admin dispute history (Q1327)", () => {
   const page = blankComments(readFileSync("src/components/admin/AdminDisputes.tsx", "utf8"));
   const card = blankComments(readFileSync("src/components/admin/adminDisputes/DisputeCard.tsx", "utf8"));
 
+  it("a re-filed job keeps its newest record current and the older ones as history", () => {
+    const g = groupDisputeRecords([
+      rec({ id: "old", created_at: "2026-10-01T15:00:00Z" }),
+      rec({ id: "new", status: "open", created_at: "2026-10-03T15:00:00Z" }),
+      rec({ id: "mid", created_at: "2026-10-02T15:00:00Z" }),
+    ]);
+    expect(g.current.j1.id).toBe("new");
+    expect(g.earlier.j1.map((r) => r.id)).toEqual(["mid", "old"]);
+  });
+
   it("the queue keeps every older record per job and reads both answers", () => {
-    expect(page).toMatch(/else \(earlierMap\[r\.job_id\] \?\?= \[\]\)\.push\(r\);/);
+    expect(page).toMatch(/setEarlierDisputes\(grouped\.earlier\);/);
     expect(page).toMatch(/execution_error, helper_response"/);
     expect((page.match(/is_seed, dispute_helper_response"\)/g) ?? []).length).toBe(2);
     expect(page).toMatch(/earlierDisputes=\{earlierDisputes\[job\.id\]\}/);

@@ -20,7 +20,7 @@
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = false;
 // @mutate scripts/stranded-work.mjs |     unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))), |     unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = true;
-// @mutate scripts/stranded-work.mjs |   return out.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l)); |   return out.split("\n").filter((l) => l.trim()).slice(0, 1).map((l) => JSON.parse(l));
+// @mutate scripts/stranded-work.mjs | .filter((l) => l.trim()).map((l) => JSON.parse(l)); | .filter((l) => l.trim()).slice(0, 1).map((l) => JSON.parse(l));
 // @mutate scripts/stranded-work.mjs |   const out = gh(["api", "--paginate", | const out = gh(["api", "--search",
 // @mutate scripts/stranded-work.mjs | select(.merged_at == null and .closed_at >= "${since}") | select(.merged_at == null)
 // @mutate scripts/stranded-work.mjs |   const isRemote = (a) => /^(pr\|remote):/.test(a.id); |   const isRemote = (a) => true;

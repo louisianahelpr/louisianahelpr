@@ -119,7 +119,7 @@ export function useDashboardSideQueries({ userId, allJobs }: UseDashboardSideQue
       // Failed with nothing read yet. After one good read a later failed
       // refetch keeps that data, which is still the viewer's real saved list.
       failed: savedJobsError && savedJobsData === undefined,
-      retry: () => { void refetchSavedJobs(); },
+      onRetry: () => { void refetchSavedJobs(); },
       retrying: savedJobsFetching === true,
     },
     setSavedJobIds,

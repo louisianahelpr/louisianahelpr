@@ -13,7 +13,8 @@
  *
  * @mutate src/pages/profile/StrSettings.tsx | Helpr fills in a cleaning job for you to post | Helpr automatically posts a cleaning job
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";

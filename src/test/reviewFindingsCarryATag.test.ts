@@ -51,6 +51,7 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
 const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q1495: "an owner decision the money-b lane found while building Q1416 (a later phone change to a banned number), not a reviewer's finding",
   Q1496: "seen by the money-b lane while fixing Q1413, not a reviewer's finding",
+  Q1401: "found by the lane doing Q1398 (live bodies read), not a reviewer's finding; its BUILT note cites the lh-authz-rls review of the fix",
   Q1520: "found by the lane building Q1379 (its 'money review required' is the fix's future review), not a reviewer's finding",
 };
 /**

@@ -15,10 +15,14 @@
  *   payout freeze 6 h verify 6 / 5 min kick 6 / 30 min page 3 / 6 h re-page 3,
  *   ban review 24 h page 3 / re-page 3, job start window 36 min 3 / opened 1 s
  *   early 3 / read as UTC instead of Central 4; 90 -> 89 days 12)
+ *   node src/test/pglite/sweepCronMonitorClock.pglite.mjs  (77 PASS; FAIL on each
+ *   edge made inclusive: blackout 24 h 6 (it and dead_crons' raised window),
+ *   startup 20 min 3 / re-page 3, http 60 min 3 / catch-up 2 h 3 / untagged
+ *   UTC day 3, dead 1 h 3 / raised 24 h 3 / UTC day 3, silent 6 h 3 / 30 d 3)
  *
  * @mutate src/test/sweepClockProofs.test.ts |   sweep_old_notifications: "sweepClockBoundaries.pglite.mjs", |   sweep_old_notification: "sweepClockBoundaries.pglite.mjs",
  * @mutate src/test/sweepClockProofs.test.ts |   "sweep_saved_search_alert_queue",\n |   "sweep_saved_search_alert_queue",\n  "sweep_old_error_logs",\n
- * @mutate src/test/sweepClockProofs.test.ts |   "sweep_dead_crons",\n | \n
+ * @mutate src/test/sweepClockProofs.test.ts |   "sweep_no_show_alerts",\n | \n
  * @mutate src/test/pglite/sweepClockBoundaries.pglite.mjs | } from "./lib/fixedClock.mjs"; | } from "./lib/otherClock.mjs";
  */
 import { describe, expect, it } from "vitest";
@@ -33,6 +37,10 @@ const CLOCK = /\bnow\s*\(\s*\)|\bcurrent_timestamp\b|\bcurrent_date\b|\bclock_ti
 /** sweep_* function -> the probe that runs it on the fixed clock. */
 // @two-way src/test/sweepClockProofs.test.ts:PROVEN names a sweep that is gone or reads no clock
 const PROVEN: Record<string, string> = {
+  sweep_cron_blackouts: "sweepCronMonitorClock.pglite.mjs",
+  sweep_cron_http_failures: "sweepCronMonitorClock.pglite.mjs",
+  sweep_cron_startup_failures: "sweepCronMonitorClock.pglite.mjs",
+  sweep_dead_crons: "sweepCronMonitorClock.pglite.mjs",
   sweep_expired_auto_bans: "sweepClockBoundaries.pglite.mjs",
   sweep_job_start_reminders: "sweepClockBoundaries.pglite.mjs",
   sweep_old_email_send_log: "sweepClockBoundaries.pglite.mjs",
@@ -41,6 +49,7 @@ const PROVEN: Record<string, string> = {
   sweep_open_ban_settlement_reviews: "sweepClockBoundaries.pglite.mjs",
   sweep_payout_schedule_freezes: "sweepClockBoundaries.pglite.mjs",
   sweep_signup_leads: "sweepClockBoundaries.pglite.mjs",
+  sweep_silent_cron_failures: "sweepCronMonitorClock.pglite.mjs",
 };
 
 /** EXACT (2026-10-12): clock-reading sweeps with no fixed-clock proof yet. Only shrinks. */
@@ -48,17 +57,12 @@ const PROVEN: Record<string, string> = {
 const NOT_YET_PROVEN = [
   "sweep_backout_notice_reminders",
   "sweep_confirm_reminders_and_repost",
-  "sweep_cron_blackouts",
-  "sweep_cron_http_failures",
-  "sweep_cron_startup_failures",
   "sweep_daily_job_digest",
   "sweep_dayof_confirm_reminders",
-  "sweep_dead_crons",
   "sweep_job_match_queue",
   "sweep_no_show_alerts",
   "sweep_release_last_chance",
   "sweep_saved_search_alert_queue",
-  "sweep_silent_cron_failures",
 ];
 
 const clockSweeps = (): string[] => {

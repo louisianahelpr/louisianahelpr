@@ -30,7 +30,7 @@
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          SET retry_after = GREATEST(v_oldest + interval '1 hour', now() + interval '1 minute')\n       WHERE id = r.id; |          SET status = 'dropped', drop_reason = 'hourly job_match cap', settled_at = now()\n       WHERE id = r.id;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |           SELECT 1 FROM public.parish_match_alert_queue q\n           WHERE q.user_id = p.user_id AND q.job_id = nj.id | SELECT 1 WHERE false
  * @mutate supabase/functions/send-notification-email/index.ts |         ? await unsubscribeHeaders(profile.email, 'job_matches') |         ? await unsubscribeHeaders(profile.email)
- * @mutate supabase/functions/email-unsubscribe/index.ts |       if (list === 'job_matches') { |       if (false) {
+ * @mutate supabase/functions/email-unsubscribe/index.ts |         await setJobMatchEmails(supabase, profile.user_id, action !== 'resubscribe') |         await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)

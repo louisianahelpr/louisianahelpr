@@ -67,7 +67,7 @@ describe("the platform can end a recurring series (Q417 c, d)", () => {
     const helprBlock = sql.slice(sql.indexOf("'Recurring series ended',"), sql.indexOf("FROM ( SELECT h.helper_id") > 0 ? sql.indexOf("FROM ( SELECT h.helper_id") : sql.indexOf("FROM (\n      SELECT h.helper_id"));
     expect(helprBlock).not.toMatch(/disputed/);
     // The poster is told a paid, unbooked visit is refunded IN FULL: the platform
-    // ended it (owner decision Q1733, 2026-10-12; was "less the card fee").
+    // ended it (owner decision Q1735, 2026-10-12; was "less the card fee").
     expect(p).toMatch(/WHEN 'chargeback' THEN format\([^)]*refunded, less the card processing fee\./);
     expect(p).toMatch(/ELSE format\('Louisiana Helpr ended your recurring series[^)]*is refunded in full\./);
     // ...and the record charge-recurring-visits reads to refund in full.
@@ -80,7 +80,7 @@ describe("the platform can end a recurring series (Q417 c, d)", () => {
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.end_recurring_series_by_platform\(uuid, text, text, uuid\) FROM PUBLIC, anon, authenticated;/);
     expect(mig).not.toMatch(/GRANT [^;]*end_recurring_series_by_platform[^;]*\b(?:anon|authenticated)\b/);
     expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.rpc_admin_end_recurring_series\(uuid, text\) FROM PUBLIC, anon;/);
-    // Q1733: no client can write the record that buys a full refund.
+    // Q1735: no client can write the record that buys a full refund.
     const m2 = blankSqlComments(readFileSync(join(MIG, "20261012205559_platform_series_end_refunds_in_full.sql"), "utf8"));
     expect(m2).toMatch(/REVOKE ALL ON public\.series_platform_ends FROM PUBLIC, anon, authenticated;/);
     expect(m2).toMatch(/ALTER TABLE public\.series_platform_ends ENABLE ROW LEVEL SECURITY;/);

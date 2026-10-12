@@ -108,7 +108,7 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | await stripe.paymentIntents.update(intent.id, { metadata: { refund_withhold_fee: "true" } }); | void 0;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Refund ${pi} by hand: ${\n            refundParams.amount === undefined ? | Refund ${pi} by hand: ${\n            refundParams.amount !== undefined ?
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const kept = refundParams.amount !== undefined; | const kept = false;
-// @mutate supabase/functions/charge-recurring-visits/index.ts |           continue;\n        }\n        // Q1733: an end | \n        }\n        // Q1733: an end
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           continue;\n        }\n        // Q1735: an end | \n        }\n        // Q1735: an end
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled"); | const live = prior.data;
 // Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) {\n            console.log( |           if (false) {\n            console.log(
@@ -1708,9 +1708,9 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.funded).toBe(0);
   });
 
-  // Q1733 (owner, 2026-10-12): a series the PLATFORM ended refunds in full.
+  // Q1735 (owner, 2026-10-12): a series the PLATFORM ended refunds in full.
   // @mutate supabase/functions/charge-recurring-visits/index.ts |               platformEndedMidRun = true; |               void 0;
-  it("Q1733: a series the PLATFORM ended after this run read it: the refused visit is refunded IN FULL", async () => {
+  it("Q1735: a series the PLATFORM ended after this run read it: the refused visit is refunded IN FULL", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     scenario.writeErrors.jobs = {
@@ -1732,7 +1732,7 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (platformEndedMidRun && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { |           if (false) {
-  it("Q1733: the poster is told a mid-run platform-end refund was in full", async () => {
+  it("Q1735: the poster is told a mid-run platform-end refund was in full", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     scenario.writeErrors.jobs = {
@@ -1751,7 +1751,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
-  it("Q1733: an unreadable platform-end record mid-run keeps the fee withheld and says what to do", async () => {
+  it("Q1735: an unreadable platform-end record mid-run keeps the fee withheld and says what to do", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     scenario.writeErrors.jobs = {
@@ -2253,7 +2253,7 @@ describe("charge-recurring-visits edge function", () => {
   const untaggedIntent = { ...taggedIntent, metadata: {} };
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && ( | const withholdFee = (
-  it("Q1733: a paid visit of a series the PLATFORM ended is refunded IN FULL (card fee included)", async () => {
+  it("Q1735: a paid visit of a series the PLATFORM ended is refunded IN FULL (card fee included)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
@@ -2270,7 +2270,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
-  it("Q1733: a platform-ended series refunds in full even after its date was given up (unheld)", async () => {
+  it("Q1735: a platform-ended series refunds in full even after its date was given up (unheld)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
@@ -2287,7 +2287,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
-  it("Q1733: an unreadable platform-end record refunds nothing this run (retried), never a guess", async () => {
+  it("Q1735: an unreadable platform-end record refunds nothing this run (retried), never a guess", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });

@@ -27,12 +27,13 @@ import { mintAdminSession, playwrightTransport } from "../../scripts/lib/adminSe
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 import { serviceHeaders, srFetch } from "../serviceRoleFetch";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
 /** The shared accounts' user ids, as source constants (01-browse sends them to the browse fixture). */
-export const POSTER_E2E_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-export const HELPER_E2E_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+export const POSTER_E2E_ID = ACCOUNTS["poster-e2e"].userId;
+export const HELPER_E2E_ID = ACCOUNTS["helper-e2e"].userId;
 
 /** The shared accounts: never a throwaway, whatever else matches. */
 const SHARED_IDS = new Set([POSTER_E2E_ID, HELPER_E2E_ID]);

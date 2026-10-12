@@ -17,6 +17,7 @@ import { isReadRpcPath, isStorageSignPath } from "../readRpc";
 import { measureLayout } from "../happy-path/auditRoutes";
 import { srFetch } from "../serviceRoleFetch";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
+import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 export { newUserContext, rest, SUPABASE_URL, ANON };
 /** Q100: the funded open job fixture (a real Stripe TEST checkout as poster-e2e) — see fundedOpenJob.ts. */
@@ -27,8 +28,8 @@ export type { Role, Session };
 /** Every row a spec writes carries this in its text, so cleanup finds it. */
 export const MARKER = "[E2E-PRODAUDIT]";
 
-export const POSTER_ID = "951264df-1e7c-4b6f-912e-a1be37e0dbfb";
-export const HELPER_ID = "7b923b19-aba5-44cb-8730-8c33ba2b9321";
+export const POSTER_ID = ACCOUNTS["poster-e2e"].userId;
+export const HELPER_ID = ACCOUNTS["helper-e2e"].userId;
 
 /** The four seeded accounts scripts/test-signin-link.mjs may mint for. */
 export type Account = "poster" | "helper" | "incomplete" | "admin";

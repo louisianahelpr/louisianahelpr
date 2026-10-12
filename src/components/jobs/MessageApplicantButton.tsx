@@ -32,7 +32,7 @@ export function canMessageApplicant(status: string | null | undefined): boolean 
   return (MESSAGEABLE_APPLICATION_STATUSES as readonly string[]).includes(status ?? "");
 }
 
-export function applicantThreadPath(jobId: string, helperId: string): string {
+function applicantThreadPath(jobId: string, helperId: string): string {
   return `/messages?jobId=${encodeURIComponent(jobId)}&userId=${encodeURIComponent(helperId)}`;
 }
 

@@ -311,6 +311,7 @@ export type Database = {
           decided_by: string | null
           deferred_at: string | null
           deferred_ban_status: string | null
+          deferred_rungs: Json
           deferred_suspended_until: string | null
           id: string
           matched_on: string
@@ -326,6 +327,7 @@ export type Database = {
           decided_by?: string | null
           deferred_at?: string | null
           deferred_ban_status?: string | null
+          deferred_rungs?: Json
           deferred_suspended_until?: string | null
           id?: string
           matched_on: string
@@ -341,6 +343,7 @@ export type Database = {
           decided_by?: string | null
           deferred_at?: string | null
           deferred_ban_status?: string | null
+          deferred_rungs?: Json
           deferred_suspended_until?: string | null
           id?: string
           matched_on?: string
@@ -6746,6 +6749,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_apply_account_action: {
+        Args: {
+          p_action: string
+          p_admin_id: string
+          p_reason: string
+          p_record_strike?: boolean
+          p_suspended_until?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       admin_ban_settlement_reviews: { Args: never; Returns: Json }
       admin_confirm_ban_settlement: {
         Args: { p_user_id: string }
@@ -6994,6 +7008,10 @@ export type Database = {
         Returns: string
       }
       ban_fingerprint_salt: { Args: never; Returns: string }
+      ban_review_standing_rung: {
+        Args: { p_review_id: string; p_skip_spent: boolean }
+        Returns: Json
+      }
       ban_standing_rank: { Args: { p_status: string }; Returns: number }
       ban_settlement_action: {
         Args: {

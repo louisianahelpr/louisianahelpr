@@ -1,6 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { writeAdminAudit } from '../_shared/adminAuditLog.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { banConfirmedMessage, banDismissedMessage, banReviewCopy } from './banReviewCopy.ts'
@@ -32,6 +33,9 @@ type ActionType =
   | 'dismiss_message_ban_review'
   // Q304: the admin UI's ban / unban / reverse-auto-restriction column write.
   | 'set_ban_status'
+  // Q1494: BanDialog's warning / temporary / permanent ban, in ONE transaction
+  // (admin_apply_account_action): the standing, the ban row, the strike.
+  | 'apply_account_action'
 
 // Every admin email used to go out through a local hand-rolled Resend fetch,
 // fired as `sendEmail(...).catch(console.error)`. That swallowed EVERY failure:
@@ -248,6 +252,81 @@ serve(async (req) => {
       // Q1413: what was actually applied (a lift can keep a standing the
       // strike ladder earned during the review).
       return json(200, { success: true, appliedBanStatus: update.ban_status, appliedSuspendedUntil: update.auto_suspended_until ?? null })
+    }
+
+    // ---- apply_account_action (Q1494) ----
+    // BanDialog used to write user_bans, user_violations and (through
+    // set_ban_status) profiles.ban_status as three requests; a ban settlement
+    // review opened between them was refused only at the last one, leaving a
+    // ban row and a strike behind. admin_apply_account_action does all three
+    // in one transaction and refuses an open review before writing anything.
+    // Like set_ban_status it sits before the email check: a ban never needed
+    // the target's email.
+    if (action === 'apply_account_action') {
+      const json = (status: number, payload: Record<string, unknown>) =>
+        new Response(JSON.stringify(payload), {
+          status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      if (!profile) return json(404, { error: 'User not found', rejected: true })
+      if (targetUserId === userData.user.id) {
+        return json(400, { error: "You can't take an account action against your own account. Ask another admin." })
+      }
+      const kind: unknown = body.kind
+      if (kind !== 'warning' && kind !== 'temporary' && kind !== 'permanent') {
+        return json(400, { error: 'Invalid account action' })
+      }
+      const reason = (typeof body.reason === 'string' ? body.reason : '').slice(0, 1000)
+      let until: string | null = null
+      if (kind === 'temporary') {
+        const t = typeof body.suspendedUntil === 'string' ? Date.parse(body.suspendedUntil) : NaN
+        if (!Number.isFinite(t) || t <= Date.now() || t > Date.now() + 366 * 86_400_000) {
+          return json(400, { error: 'A temporary ban needs an end date in the next year' })
+        }
+        until = new Date(t).toISOString()
+      }
+      const { data: applied, error: applyErr } = await admin.rpc('admin_apply_account_action', {
+        p_user_id: targetUserId,
+        p_admin_id: userData.user.id,
+        p_action: kind,
+        p_reason: reason,
+        p_suspended_until: until,
+        p_record_strike: true,
+      })
+      if (applyErr) {
+        if (applyErr.code === 'PGRST202') {
+          // The function ships with its migration; in the minutes between the
+          // two deploys it does not exist yet (PGRST202). Nothing was written.
+          return new Response(JSON.stringify({ error: "This action is being updated. Nothing was changed - try again in a few minutes.", code: 'not_deployed' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (/ban_review_open/.test(applyErr.message)) {
+          return json(409, {
+            error: 'This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.',
+            code: 'ban_review_open',
+          })
+        }
+        if (/user_not_found/.test(applyErr.message)) return json(404, { error: 'User not found', rejected: true })
+        throw new Error(`admin_apply_account_action failed: ${applyErr.message}`)
+      }
+      const a = (applied ?? null) as { ban_status?: string; suspended_until?: string | null; state_changed?: boolean } | null
+      if (!a || typeof a.ban_status !== 'string') return json(404, { error: 'User not found', rejected: true })
+      // The transaction wrote its own set_ban_status row; this one records the
+      // admin action as the tool named it.
+      await writeAdminAudit(admin, {
+        adminId: userData.user.id,
+        action: 'apply_account_action',
+        targetType: 'user',
+        targetId: targetUserId,
+        details: { kind, reason, suspended_until: until, applied: a },
+        source: 'admin-user-actions',
+      }, postSlackOpsAlert)
+      return json(200, {
+        success: true,
+        appliedBanStatus: a.ban_status,
+        appliedSuspendedUntil: a.suspended_until ?? null,
+        stateChanged: a.state_changed === true,
+      })
     }
 
     if (!profile?.email) {
@@ -537,6 +616,7 @@ serve(async (req) => {
       const effectivePriorStrikes = bypassStrike ? Math.max(0, (priorStrikes || 0) - 1) : (priorStrikes || 0)
       const strikeNumber = effectivePriorStrikes + 1
       let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
+      let cancelBidsAfterStrike = false
       let banStatusUpdate: any = { ban_status: 'warned' }
       let notifTitle = 'Formal warning (Strike 1 of 3)'
       let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
@@ -591,9 +671,8 @@ serve(async (req) => {
           ],
         }
 
-        // Cancel all pending applications (active bids)
-        await admin.from('applications').update({ status: 'rejected' } as any)
-          .eq('helper_id', targetUserId).eq('status', 'pending')
+        // Active bids are cancelled once the suspension is written (below).
+        cancelBidsAfterStrike = true
 
         postSlackOpsAlert({
           kind: 'auto_suspended',
@@ -620,16 +699,39 @@ serve(async (req) => {
       const violationDescription = reasonCategory
         ? `[${reasonCategory}] ${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
         : `${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
-      const { error: violationErr } = await admin.from('user_violations').insert({
-        user_id: targetUserId,
-        violation_type: 'admin_warning',
-        description: violationDescription,
-        action_taken: actionTaken,
-        reported_by: userData.user.id,
+      // Q1494: the strike and the standing in ONE transaction
+      // (admin_apply_account_action); an open ban settlement review refuses
+      // both before either is written, instead of leaving the strike behind a
+      // refused status write.
+      const { error: applyErr } = await admin.rpc('admin_apply_account_action', {
+        p_user_id: targetUserId,
+        p_admin_id: userData.user.id,
+        p_action: actionTaken === 'suspension' ? 'suspension' : (actionTaken === 'final_warning' ? 'final_warning' : 'formal_warning'),
+        p_reason: violationDescription,
+        p_suspended_until: banStatusUpdate.auto_suspended_until ?? null,
+        p_record_strike: true,
       })
-      if (violationErr) throw new Error(`Failed to record violation: ${violationErr.message}`)
-      const { error: banErr } = await admin.from('profiles').update(banStatusUpdate).eq('user_id', targetUserId)
-      if (banErr) throw new Error(`Failed to apply ban status: ${banErr.message}`)
+      if (applyErr) {
+        if (applyErr.code === 'PGRST202') {
+          // The function ships with its migration; in the minutes between the
+          // two deploys it does not exist yet (PGRST202). Nothing was written.
+          return new Response(JSON.stringify({ error: "This action is being updated. Nothing was changed - try again in a few minutes.", code: 'not_deployed' }), {
+            status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (/ban_review_open/.test(applyErr.message)) {
+          return new Response(JSON.stringify({
+            error: 'This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.',
+            code: 'ban_review_open',
+          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        throw new Error(`Failed to record the strike: ${applyErr.message}`)
+      }
+      if (cancelBidsAfterStrike) {
+        // Cancel all pending applications (active bids), once the suspension is in.
+        await admin.from('applications').update({ status: 'rejected' } as any)
+          .eq('helper_id', targetUserId).eq('status', 'pending')
+      }
 
       const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
@@ -743,51 +845,42 @@ serve(async (req) => {
       // not own. Raised for a follow-up that can change all of them together.
       let stateChanged = true
       if (confirming) {
-        // Q1414: an open ban settlement review refuses the status write below
-        // (ban_review_open), but only after the user_bans row is in. Ask first
-        // and change nothing: the review is confirmed or lifted first.
-        const { data: openReviews, error: reviewErr } = await admin.from('ban_settlement_queue')
-          .select('id')
-          .eq('user_id', targetUserId)
-          .eq('review_state', 'open')
-          .limit(1)
-        if (reviewErr) throw new Error(`Failed to check for an open ban review: ${reviewErr.message}`)
-        if (openReviews && openReviews.length > 0) {
-          return new Response(JSON.stringify({
-            error: 'This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.',
-            code: 'ban_review_open',
-          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        }
-        const { data: existingBans, error: existingErr } = await admin.from('user_bans')
-          .select('id')
-          .eq('user_id', targetUserId)
-          .eq('ban_type', 'permanent')
-          .eq('is_active', true)
-          .limit(1)
-        if (existingErr) throw new Error(`Failed to check existing bans: ${existingErr.message}`)
-
-        if (existingBans && existingBans.length > 0) {
-          // Already permanently banned. Fall through to the queue close and the
-          // audit row (the admin really did press the button, and that belongs
-          // in the log) but do not duplicate the ban row or re-notify.
-          stateChanged = false
-        } else {
-          const { data: banRows, error: banErr } = await admin.from('user_bans').insert({
-            user_id: targetUserId,
-            ban_type: 'permanent',
-            reason: note || copy.banReason,
-            banned_by: userData.user.id,
-          }).select('id')
-          if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
-          if (!banRows || banRows.length === 0) {
-            throw new Error('Failed to record ban: no row was written.')
+        // Q1494: the ban row and the standing in ONE transaction
+        // (admin_apply_account_action). It refuses an open ban settlement
+        // review up front (Q1414) and, because the standing is written first,
+        // a review opened after that check rolls the whole call back instead
+        // of leaving a ban row behind. An account already permanently banned
+        // gets no second ban row (ban_row_written false): fall through to the
+        // queue close and the audit row (the admin really did press the
+        // button) but do not re-notify. No new strike: the case's own
+        // pending_ban_review row is closed below.
+        const { data: applied, error: applyErr } = await admin.rpc('admin_apply_account_action', {
+          p_user_id: targetUserId,
+          p_admin_id: userData.user.id,
+          p_action: 'permanent',
+          p_reason: note || copy.banReason,
+          p_suspended_until: null,
+          p_record_strike: false,
+        })
+        if (applyErr) {
+          if (applyErr.code === 'PGRST202') {
+            // The function ships with its migration; in the minutes between the
+            // two deploys it does not exist yet (PGRST202). Nothing was written.
+            return new Response(JSON.stringify({ error: "This action is being updated. Nothing was changed - try again in a few minutes.", code: 'not_deployed' }), {
+              status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
           }
+          if (/ban_review_open/.test(applyErr.message)) {
+            return new Response(JSON.stringify({
+              error: 'This account is under a ban settlement review. Confirm or lift it in the Fraud console first. Nothing was changed.',
+              code: 'ban_review_open',
+            }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+          }
+          throw new Error(`Failed to apply the ban: ${applyErr.message}`)
         }
-
-        const { error: statusErr } = await admin.from('profiles')
-          .update({ ban_status: 'permanently_banned', auto_suspended_until: null })
-          .eq('user_id', targetUserId)
-        if (statusErr) throw new Error(`Failed to apply ban status: ${statusErr.message}`)
+        const a = (applied ?? null) as { ban_row_written?: boolean } | null
+        if (!a) throw new Error('Failed to apply the ban: no result was returned.')
+        stateChanged = a.ban_row_written === true
       } else {
         // Dismissed: undo the reversible restriction the ladder applied. Only
         // lift a suspension that is still auto-managed — a manual admin ban

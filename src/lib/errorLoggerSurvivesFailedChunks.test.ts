@@ -24,7 +24,7 @@
 // @mutate src/lib/chunkReload.ts | backgroundImportFailureListener?.(name, err); | void name;
 // @mutate src/lib/errorLogger.ts | else persistStats.failed += batch.length; | else void 0;
 // @mutate src/lib/analytics.ts | await backgroundImport(() => import("@/lib/posthog"), "posthog"); | await backgroundImport(() => import("@/lib/posthog"));
-// @mutate src/lib/analytics.ts |     asUser ? batch : batch.map((r) => ({ ...r, user_id: null })), |     batch,
+// @mutate src/lib/analytics.ts | (asUser) => (asUser ? batch : batch.map((r) => ({ ...r, user_id: null }))), | (asUser) => batch,
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -23,6 +23,7 @@ import { Reading } from "./adminHealth/Reading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { FillRateReadFailed, FillRateStaleNote } from "./adminHealth/FillRateReadState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
@@ -445,21 +446,10 @@ const AdminHealth = () => {
           }
           contentClassName="space-y-4"
         >
-          {/* Q1672: a failed read says so; it never reads as "no job data". */}
-          {fillNeverLoaded ? (
-            <ErrorState
-              variant="inline"
-              title="Couldn't load fill rate"
-              body="The read behind these numbers failed, so none of them is shown rather than zeros."
-              onRetry={() => void refetchFill()}
-              retryDisabled={fillFetching}
-            />
+          {fillNeverLoaded ? ( /* Q1672: a failed read says so (FillRateReadState) */
+            <FillRateReadFailed fetching={fillFetching} onRetry={() => void refetchFill()} />
           ) : (<>
-          {fillStale && (
-            <p className="text-ds-12 font-medium text-destructive" role="status">
-              Couldn't refresh fill rate. The numbers below are from {new Date(fillUpdatedAt).toLocaleTimeString()}.
-            </p>
-          )}
+          <FillRateStaleNote stale={fillStale} updatedAt={fillUpdatedAt} />
           {/* 3 stat cards */}
           <div className="grid grid-cols-3 gap-2 text-ds-13">
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">

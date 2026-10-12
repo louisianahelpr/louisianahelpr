@@ -57,7 +57,10 @@ const SHELLS: { file: string; must: string[]; mustNot?: RegExp[] }[] = [
   { file: "src/components/marketing/PublicLayout.tsx", must: ["var(--public-nav-h)"] },
   { file: "src/components/Navbar.tsx", must: ["h-[var(--public-nav-h)]"], mustNot: [/h-14 lg:h-16/] },
   // Skeletons mirror the shell they stand in for, or the swap jumps.
-  { file: "src/components/SkeletonLoaders.tsx", must: ["pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"] },
+  // The Profile landing skeleton's title is the landing's own <PageHeader>
+  // since Q1173 (2026-10-12), not a hand-copied row of its padding, so it
+  // reads the tokens through PageHeader (listed above) by construction.
+  { file: "src/components/profile/ProfilePageSkeleton.tsx", must: ["<PageHeader"] },
   { file: "src/components/LoginRouteSkeleton.tsx", must: ["pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))]"] },
 ];
 
@@ -108,6 +111,8 @@ describe("page shells share the phone spacing tokens (Q176)", () => {
     for (const f of tsxFiles(join(ROOT, "src/components"))) {
       uses += (blankComments(readFileSync(f, "utf8")).match(/var\(--shell-gap\)/g) ?? []).length;
     }
-    expect(uses).toBeGreaterThanOrEqual(11);
+    // 9 since Q1173 (2026-10-12): the two uses in SkeletonLoaders' hand-copied
+    // landing title row went with it, replaced by the real <PageHeader>.
+    expect(uses).toBeGreaterThanOrEqual(9);
   });
 });

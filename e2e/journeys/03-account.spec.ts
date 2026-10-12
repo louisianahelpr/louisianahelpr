@@ -505,12 +505,15 @@ test(j8, async ({ browser, request, journey }) => {
     // session: a typed "Hallie Helper" went stale when prod's helper-e2e row
     // came to say "E2E Helper" (e2e-journeys 37926437936, 2026-10-09). The
     // heading is profile.full_name trimmed (Profile.tsx `displayName`).
+    // It is the landing card's <h2> since the owner moved the name back beside
+    // the photo (2026-10-09; the page <h1> reads "Profile"). Q1429 guard:
+    // src/test/e2eNameHeadingLevelMatchesApp.test.ts.
     const who = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${fresh.user.id}&select=full_name`, { headers: rest(fresh) });
     expect(who.ok(), `reading the helper's name: HTTP ${who.status()}`).toBe(true);
     const name = ((await who.json()) as Array<{ full_name: string | null }>)[0]?.full_name?.trim() ?? "";
     expect(name, "the helper's profile row has no full_name to sign back in as").not.toBe("");
     await page.goto("/profile");
-    await expect(page.getByRole("heading", { name, exact: true, level: 1 }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name, exact: true, level: 2 }), "not signed back in as the helper").toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, "signed back in");
     await journey.milestone(page, "signed-back-in");
   });

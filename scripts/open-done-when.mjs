@@ -26,17 +26,31 @@
  * SUPABASE_PROJECT_REF, as prod-errors.yml has); locally the linked supabase
  * CLI (LH_SUPABASE_WORKDIR). Only a single SELECT/WITH statement is accepted.
  *
- * Usage: node scripts/open-done-when.mjs [--file docs/OPEN.md] [--no-sql] [--no-test] [--out <md>] [--tick]
+ * Usage: node scripts/open-done-when.mjs [--file docs/OPEN.md] [--no-sql] [--no-test] [--out <md>] [--tick] [--status-file <path>]
  *
  * --tick (owner, 2026-10-04: "the count lags the work"): every READY item is
  * ticked IN the file (`- [~]` -> `- [x]`) with its evidence, and the run exits 0
  * unless a marker could not be read. .github/workflows/open-auto-tick.yml runs it
- * after each deploy and lands the ticks through a refresh PR.
- * Nightly: .github/workflows/open-done-when.yml (one nightly-red issue listing what to tick).
+ * after each deploy (--no-test) and lands the ticks through a refresh PR.
+ * Nightly: .github/workflows/open-done-when.yml runs it WITH the test markers
+ * and lands the ticks the same way (owner, 2026-10-12: "make it an automated
+ * ticking mechanism"; 58 READY items had sat untouched because the nightly
+ * only reported them). A READY item is no longer a red: only a marker that
+ * cannot be read, or a crash, is.
+ *
+ * --status-file <path> (with --tick): write the exit status (1 = a marker could
+ * not be read) to <path> as the LAST thing the run does, and exit 0, so the
+ * refresh PR still lands the items that did hold. The workflow's next step
+ * fails on a status of 1 AND on a missing file (a crash wrote none): fail closed.
+ *
+ * Test markers run in ONE vitest call (JSON reporter; ~60 files one by one
+ * took longer than the job). A marker naming a file that does not exist can
+ * never hold, so it is a problem, not "not yet".
  * Guard: src/test/openPartlyDoneItemsSayDoneWhen.test.ts.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { greenNightlyRunAfter, ledgerWorkflowKey, workflowAliases } from "./lib/opsAlertLedger.mjs";
@@ -166,6 +180,9 @@ async function runMarker(mk, opts) {
   }
   if (mk.kind === "test") {
     if (opts.noTest) return { ok: null, note: "test skipped (--no-test)" };
+    if (!existsSync(mk.path)) throw new Error(`test marker names ${mk.path}, which does not exist`);
+    const batched = opts.testResults?.get(mk.path);
+    if (batched !== undefined) return { ok: batched, note: `${mk.path} ${batched ? "passes" : "fails"}` };
     try {
       execFileSync("npx", ["vitest", "run", mk.path], { stdio: "ignore", timeout: 600000 });
       return { ok: true, note: `${mk.path} passes` };
@@ -236,6 +253,37 @@ export function heldBySnapshot(md, readyIds, snapshot) {
   return held;
 }
 
+/**
+ * Which test files passed, from vitest's JSON report: path (relative to `root`)
+ * -> true when the file ran and every test in it passed. A file the report
+ * does not list is absent from the map (its marker then runs on its own).
+ * @param {{testResults?: {name: string, status: string}[]}} report
+ * @param {string} root
+ */
+export function testFileResults(report, root) {
+  const out = new Map();
+  for (const r of report?.testResults ?? []) {
+    const rel = resolve(r.name).startsWith(resolve(root) + "/") ? resolve(r.name).slice(resolve(root).length + 1) : r.name;
+    out.set(rel, r.status === "passed");
+  }
+  return out;
+}
+
+/** Run every existing test-marker file in one vitest call; null when the report cannot be read. */
+function batchTests(paths) {
+  const files = [...new Set(paths)].filter((p) => existsSync(p));
+  if (!files.length) return new Map();
+  const outFile = join(mkdtempSync(join(tmpdir(), "done-when-")), "vitest.json");
+  try {
+    execFileSync("npx", ["vitest", "run", "--reporter=json", `--outputFile=${outFile}`, ...files], { stdio: "ignore", timeout: 1800000 });
+  } catch {
+    // A failing file exits non-zero; the JSON report says which one. A report
+    // that is missing is handled below (each marker then runs on its own).
+  }
+  if (!existsSync(outFile)) return null;
+  return testFileResults(JSON.parse(readFileSync(outFile, "utf8")), process.cwd());
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
@@ -243,6 +291,7 @@ async function main() {
   const file = opt("file") ?? "docs/OPEN.md";
   const items = partlyDoneItems(readFileSync(file, "utf8"));
   const withMarkers = items.filter((it) => it.markers.length || it.malformed.length);
+  if (!opts.noTest) opts.testResults = batchTests(withMarkers.flatMap((it) => it.markers.filter((m) => m.kind === "test").map((m) => m.path)));
   const ready = [];
   const readyIds = new Map();
   const problems = [];
@@ -280,7 +329,12 @@ async function main() {
     }
     if (readyIds.size) writeFileSync(file, tickReady(readFileSync(file, "utf8"), readyIds, new Date().toISOString().slice(0, 10)));
     console.log(`--tick: ticked ${readyIds.size} item(s) in ${file}`);
-    process.exit(problems.length ? 1 : 0);
+    const status = problems.length ? 1 : 0;
+    if (opt("status-file")) {
+      writeFileSync(opt("status-file"), `${status}\n`);
+      process.exit(0);
+    }
+    process.exit(status);
   }
   process.exit(ready.length || problems.length ? 1 : 0);
 }

@@ -13,7 +13,7 @@
  */
 // @mutate src/lib/posterSpend.ts | if (tip.payment_status !== "paid") return 0; | if (tip.payment_status === "__never__") return 0;
 // @mutate src/lib/posterSpend.ts | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0) + tipCents; | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0);
-// @mutate src/lib/posterSpend.ts | for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0 }); | for (const o of orphanTips) void o;
+// @mutate src/lib/posterSpend.ts | for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false }); | for (const o of orphanTips) void o;
 // @mutate src/lib/posterSpend.ts | if (pi && jobPi.get(r.job_id) && pi !== jobPi.get(r.job_id)) continue; | if (false) continue;
 // @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0))); | return 0;
 // @mutate src/lib/posterSpend.ts | return Math.max(0, charged - Math.max(0, refundedCents)); | return Math.max(0, charged);
@@ -26,7 +26,7 @@
 // @mutate src/lib/posterSpend.ts | return Math.max(0, chargedCents - Math.max(0, refundedCents)); | return Math.max(0, chargedCents);
 // @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)));
 // @mutate src/lib/posterSpend.ts | const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars))); | const giftCents = Math.max(0, cents(giftDollars));
-// @mutate src/lib/posterSpend.ts | if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0 }); | rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0 });
+// @mutate src/lib/posterSpend.ts | if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) }); | rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
 // @mutate src/lib/posterSpend.ts | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling"] as const; | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling", "chargeback", "cancelled"] as const;
 import { describe, it, expect } from "vitest";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
@@ -141,7 +141,7 @@ describe("spentRows / spentTotalCents — one source for the Spent list and the 
 
   it("refund rows for other jobs never touch this one", () => {
     expect(spentRows([job({ id: "paid" })], [{ job_id: "other", amount_cents: 11200 }], [])).toEqual([
-      { job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200, tipCents: 0, refundedCents: 0 },
+      { job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200, tipCents: 0, refundedCents: 0, adminRefunded: false },
     ]);
   });
 
@@ -182,7 +182,7 @@ describe("tips count (owner, 2026-10-05)", () => {
 
   it("a tip joins its job's row; the row shows charge + tip", () => {
     const rows = spentRows([job({ id: "paid" })], [], [], [tip()]);
-    expect(rows).toEqual([{ job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200 + T10, tipCents: T10, refundedCents: 0 }]);
+    expect(rows).toEqual([{ job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200 + T10, tipCents: T10, refundedCents: 0, adminRefunded: false }]);
   });
 
   it("a refund on the tip's PaymentIntent comes off the tip, never off the job", () => {
@@ -197,7 +197,7 @@ describe("tips count (owner, 2026-10-05)", () => {
 
   it("a paid tip whose job is not in the list still counts, as its own row", () => {
     const rows = spentRows([], [], [], [tip({ job_id: "elsewhere" })]);
-    expect(rows).toEqual([{ job: null, tip: expect.objectContaining({ id: "t1" }), cents: T10, tipCents: T10, refundedCents: 0 }]);
+    expect(rows).toEqual([{ job: null, tip: expect.objectContaining({ id: "t1" }), cents: T10, tipCents: T10, refundedCents: 0, adminRefunded: false }]);
     expect(spentTotalCents(rows)).toBe(T10);
   });
 

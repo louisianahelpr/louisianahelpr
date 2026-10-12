@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { setupFeeKeptCents, setupFeeKeptSentence } from "../../supabase/functions/_shared/posterFees";
-import { setupFeeReceiptNote } from "@/lib/posterSpend";
+import { setupFeeReceiptNote, spentRows } from "@/lib/posterSpend";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -76,7 +76,18 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     expect(setupFeeReceiptNote({ ...first, onboarding_fee_amount: null }, 3500)).toBe("");
     const spent = code("src/components/profile/earningsTab/SpentSection.tsx");
     expect(spent.length).toBeGreaterThan(1000);
-    expect(spent).toContain("setupFeeReceiptNote(r.job, r.refundedCents)");
+    expect(spent).toContain("setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded)");
+    expect(spent).toContain('.select("job_id, amount_cents, stripe_payment_intent_id, source")');
+    // An admin's full refund keeps ONLY the fee: 1320 charged, 1120 back.
+    const tenDollar = { budget: 10, customer_fee_amount: 1.2, onboarding_fee_amount: 2 };
+    expect(setupFeeReceiptNote(tenDollar, 1120, true)).toBe(" · $2.00 one-time setup fee kept (not refundable)");
+    expect(setupFeeReceiptNote(tenDollar, 1120, false)).toBe("");
+    // The Spent rows carry which refunds were the admin's, from the ledger's source.
+    const job = { id: "j1", ...tenDollar, payment_status: "refunded", stripe_payment_intent_id: "pi_1" };
+    const [adminRow] = spentRows([job], [{ job_id: "j1", amount_cents: 1120, stripe_payment_intent_id: "pi_1", source: "admin_refund_general" }], []);
+    expect(adminRow.adminRefunded).toBe(true);
+    const [cancelRow] = spentRows([job], [{ job_id: "j1", amount_cents: 1000, stripe_payment_intent_id: "pi_1", source: "cancel_escrow" }], []);
+    expect(cancelRow.adminRefunded).toBe(false);
   });
 
   it("the cancel dialog tells a first-job poster the $2 is kept, and no one else", () => {
@@ -108,7 +119,10 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 
   it("every poster refund path takes the kept fee off what it returns", () => {
     const cp = code("supabase/functions/create-payment/index.ts");
-    expect(cp.match(/setupFeeKeptCents\(job\)/g)?.length).toBeGreaterThanOrEqual(3); // cancel, dispute refund, dispute notice
+    expect(cp.match(/setupFeeKeptCents\(job\)/g)?.length).toBeGreaterThanOrEqual(5); // cancel, dispute refund + notice, admin full refund + notice
+    // Owner, 2026-10-12 (second pop-up): an admin's FULL refund keeps it too.
+    expect(cp).toContain("const keptSetupCents = isPartial ? 0 : setupFeeKeptCents(job);");
+    expect(code("src/components/admin/adminJobs/RefundJobDialog.tsx")).toContain("keeps its one-time $2 setup fee");
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/\+ setupFeeKeptCents\(job\);/);
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/customer_fee_amount, onboarding_fee_amount, cancellation_fee/);
     const split = code("supabase/functions/execute-dispute-split/index.ts");
@@ -120,8 +134,9 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 // @mutate supabase/functions/_shared/posterFees.ts |   return Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0; |   return 0;
 // @mutate src/components/CancellationDialog.tsx | the service fee isn&apos;t refundable once payment has been processed.{keptFeeSentence}</p> | the service fee isn&apos;t refundable once payment has been processed.</p>
 // @mutate src/lib/posterSpend.ts |   if (!(refundedCents > 0)) return ` · includes ${amount} one-time setup fee`; |   if (!(refundedCents > 0)) return "";
-// @mutate src/components/profile/earningsTab/SpentSection.tsx |                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents) : ""} |
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""} |
 // @mutate src/lib/disputeSplitPreview.ts |   const posterGross = Math.round(Math.max(0, capturedCents - keptSetupFeeCents) * posterShare) / 100; |   const posterGross = Math.round(capturedCents * posterShare) / 100;
 // @mutate src/hooks/useActivityData.ts | materials_note, onboarding_fee_amount` | materials_note`
 // @mutate supabase/functions/money-reconciliation/index.ts |             + setupFeeKeptCents(job as { onboarding_fee_amount?: number \| string \| null }); |             + 0;
-// @mutate src/lib/posterSpend.ts |   const otherKeptCents = job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents); |   const otherKeptCents = 0;
+// @mutate src/lib/posterSpend.ts |   const otherKeptCents = adminRefunded ? 0 : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents); |   const otherKeptCents = 0;
+// @mutate src/lib/posterSpend.ts |     if (r.source === "admin_refund_general") adminRefundedJobs.add(r.job_id); |

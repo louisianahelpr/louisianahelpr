@@ -26,6 +26,23 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
  * attribute a profile fee to that job.
  */
 /**
+ * Whether the job is seed/E2E data, so its ops alerts go to the daily digest
+ * instead of paging (postSlackOpsAlert `seed`). A failed read counts as real:
+ * a page is never hidden because the flag could not be read.
+ */
+async function jobIsSeed(
+  jobId: string,
+  { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">,
+): Promise<boolean> {
+  const { data, error } = await supabase.from("jobs").select("is_seed").eq("id", jobId).maybeSingle();
+  if (error) {
+    logStep("WARNING: could not read the job's is_seed; its setup-fee alert pages as real", { jobId, error: error.message });
+    return false;
+  }
+  return (data as { is_seed?: boolean } | null)?.is_seed === true;
+}
+
+/**
  * Q1346 (owner, 2026-10-12: the poster's Spent total and receipts count the
  * $2): record on the JOB the setup fee its checkout kept, so posterSpend /
  * posterJobCost can add it. Called only by the WINNER of the claim above (a
@@ -45,10 +62,6 @@ async function stampJobSetupFee(
   const meta = (session.metadata ?? {}) as { job_id?: string; onboarding_fee_cents?: string };
   const jobId = meta.job_id;
   if (!jobId) return;
-  // seed-policy: seed and real jobs page alike here. Both alerts below fire
-  // only on a defect in the fee path itself (a session without its amount, or
-  // a stamp write that failed or matched no row), and that defect is the same
-  // code bug whether the job is a test job or a real one.
   // No guessed figure: create-payment writes onboarding_fee_cents on every
   // session it bills the fee on (from the same variable as the line item). A
   // session without a readable amount is not stamped, and ops is told.
@@ -61,6 +74,7 @@ async function stampJobSetupFee(
       title: "Setup fee not recorded on its job",
       message: "A first-post setup fee was collected but its session carried no readable onboarding_fee_cents, so jobs.onboarding_fee_amount was not written. Set it by hand from the Stripe line item.",
       fields: { job_id: jobId, session_id: session.id, onboarding_fee_cents: String(meta.onboarding_fee_cents ?? "") },
+      seed: await jobIsSeed(jobId, { supabase, logStep }),
     });
     return;
   }
@@ -78,6 +92,7 @@ async function stampJobSetupFee(
       title: "Setup fee not recorded on its job",
       message: "A first-post setup fee was collected but jobs.onboarding_fee_amount was not written, so the poster's Spent total is short by it. Set it by hand.",
       fields: { job_id: jobId, session_id: session.id, fee_cents: String(feeCents), db_error: stampErr?.message ?? "matched 0 rows" },
+      seed: await jobIsSeed(jobId, { supabase, logStep }),
     });
   }
 }

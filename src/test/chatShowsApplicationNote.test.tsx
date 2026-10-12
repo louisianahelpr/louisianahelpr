@@ -160,4 +160,9 @@ describe("(c) the read is one the poster's client may make", () => {
     const card = blankComments(read("components/messages/chatView/ApplicationNoteCard.tsx"));
     expect(card).toMatch(/unwrap\(\s*await supabase\s*\.from\("applications"\)/);
   });
+  it("the read selects exactly APPLICATION_NOTE_COLUMNS (spelled out for the Q1232 column guard)", () => {
+    const card = blankComments(read("components/messages/chatView/ApplicationNoteCard.tsx"));
+    const m = /\.from\("applications"\)\s*\.select\("([^"]*)"\)/.exec(card);
+    expect(m?.[1]).toBe(APPLICATION_NOTE_COLUMNS);
+  });
 });

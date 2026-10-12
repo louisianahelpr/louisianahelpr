@@ -32,8 +32,11 @@ export function canMessageApplicant(status: string | null | undefined): boolean 
   return (MESSAGEABLE_APPLICATION_STATUSES as readonly string[]).includes(status ?? "");
 }
 
-function applicantThreadPath(jobId: string, helperId: string): string {
-  return `/messages?jobId=${encodeURIComponent(jobId)}&userId=${encodeURIComponent(helperId)}`;
+/** A deleted applicant's helper_id is NULL (Q262/AL-009): no thread to open, so
+ *  the inbox instead of a dead `userId=null` link. */
+function applicantThreadPath(jobId: string, helperId: string | null | undefined): string {
+  const id = helperId ? encodeURIComponent(helperId) : null;
+  return id ? `/messages?jobId=${encodeURIComponent(jobId)}&userId=${id}` : "/messages";
 }
 
 interface MessageApplicantButtonProps {

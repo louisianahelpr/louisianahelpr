@@ -23,6 +23,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import { assignPlaceholders, PLACEHOLDER } from "../../scripts/open-assign-numbers.mjs";
+// @ts-expect-error — plain .mjs module, no declaration file
 import { filedIn, namedIn, unrecordedItems } from "../../scripts/lib/fixUpdatesItem.mjs";
 
 const ROOT = join(__dirname, "..", "..");

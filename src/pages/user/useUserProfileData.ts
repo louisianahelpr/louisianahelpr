@@ -184,7 +184,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const profileRows = (profileRes.error ? [] : profileRes.data ?? []) as Array<
         { user_id?: string | null; profile_id?: string | null }
       >;
-      let prof = pickRequestedProfile(profileRows, userId) as any;
+      let prof: object | null = pickRequestedProfile(profileRows, userId);
 
       if (!prof && profileRows.length > 0) {
         // Rows came back and not one of them answers the id we asked for. That
@@ -283,7 +283,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               .or(
                 `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
               )
-          : Promise.resolve({ data: null, error: null, count: 0 } as any),
+          : Promise.resolve({ data: null, error: null, count: 0 }),
         // Worked-side timing fields (#6) — drives on-time arrival rate +
         // revision frequency stats. Pulled separately from the inline-
         // rendered list because we want the broader history (50 rows),
@@ -362,14 +362,14 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               .or(
                 `and(sender_id.eq.${currentUserId},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUserId})`,
               )
-          : Promise.resolve({ data: null, error: null, count: 0 } as any),
+          : Promise.resolve({ data: null, error: null, count: 0 }),
         wantsMutual
           ? supabase
               .from("applications")
               .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
               .eq("helper_id", userId!)
               .eq("jobs.customer_id", currentUserId!)
-          : Promise.resolve({ data: null, error: null, count: 0 } as any),
+          : Promise.resolve({ data: null, error: null, count: 0 }),
         // THE PUBLIC AGGREGATES. Granted to anon AND authenticated — a
         // signed-out visitor is the truest stranger there is, and a count and
         // a mean identify nobody.
@@ -394,7 +394,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
            visitor never fires it. */
         wantsReplyLatency
           ? supabase.rpc("get_my_reply_latency")
-          : Promise.resolve({ data: null, error: null } as any),
+          : Promise.resolve({ data: null, error: null }),
         // Q965: "Worked together" counts jobs the two FINISHED together. The
         // broader count above (every job they were paired on, cancelled
         // included) still gates messaging; the tile reads only completed ones
@@ -739,7 +739,11 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // types occasionally infer an array — read both shapes defensively.
       // Only show when there are 3+ poster reviews (same minimum as the
       // helper-side chart) to avoid noisy stats on fresh accounts.
-      const allReviewRows = (posterReviewsRes.data ?? []) as any[];
+      const allReviewRows: Array<{
+        rating: number;
+        job_id: string | null;
+        jobs?: { customer_id: string | null } | Array<{ customer_id: string | null }> | null;
+      }> = posterReviewsRes.data ?? [];
       // With the `jobs!inner` embed removed from that query (see the comment
       // on it — the join silently zeroed EVERY stat on this page), `r.jobs` is
       // absent and this filter yields []. That is not a regression: `jobs` is
@@ -790,7 +794,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         ? helperSideReviews(publicStats)
         : helperSideFromRatings(
             allReviewRows
-              .filter((r) => workedJobIds.has(r?.job_id))
+              .filter((r) => r.job_id !== null && workedJobIds.has(r.job_id))
               .map((r) => r.rating as number),
           );
 

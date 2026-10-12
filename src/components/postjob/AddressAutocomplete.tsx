@@ -113,7 +113,7 @@ export function AddressAutocomplete({
         // locked to LA in the calling form, so a non-LA pick will
         // still get rejected at submit by validation downstream.
         getsUserLocation: false,
-      });
+      }) as MapKitSearch;
     } catch {
       searchRef.current = null;
     }

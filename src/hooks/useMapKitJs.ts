@@ -32,15 +32,30 @@ export type MapKitStatus =
 
 /** Minimal `mapkit` shape we touch — enough to keep TS honest without
  *  pulling in the full @types/mapkit-js package, which has historically
- *  drifted from Apple's runtime. We treat everything else as `any`. */
+ *  drifted from Apple's runtime. The value objects below carry only the
+ *  fields Apple documents for them; callers pass them back into MapKit.
+ *  `Search` instances are `unknown`: each caller narrows to the methods it
+ *  calls (AddressAutocomplete's MapKitSearch). Q806: was `any`. */
+export interface MapKitCoordinate {
+  readonly latitude: number;
+  readonly longitude: number;
+}
+export interface MapKitCoordinateSpan {
+  readonly latitudeDelta: number;
+  readonly longitudeDelta: number;
+}
+export interface MapKitCoordinateRegion {
+  readonly center: MapKitCoordinate;
+  readonly span: MapKitCoordinateSpan;
+}
 interface MapKitGlobal {
   init: (options: {
     authorizationCallback: (done: (token: string) => void) => void;
   }) => void;
-  Search: new (options?: Record<string, unknown>) => any;
-  Coordinate: new (lat: number, lng: number) => any;
-  CoordinateRegion: new (center: any, span: any) => any;
-  CoordinateSpan: new (latDelta: number, lngDelta: number) => any;
+  Search: new (options?: Record<string, unknown>) => unknown;
+  Coordinate: new (lat: number, lng: number) => MapKitCoordinate;
+  CoordinateRegion: new (center: MapKitCoordinate, span: MapKitCoordinateSpan) => MapKitCoordinateRegion;
+  CoordinateSpan: new (latDelta: number, lngDelta: number) => MapKitCoordinateSpan;
 }
 
 declare global {

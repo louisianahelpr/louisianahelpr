@@ -42,7 +42,8 @@
  *
  * Usage: node scripts/typecheck-edge.mjs [--json]
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
+import { resolveDeno, PINNED_NPM_DENO } from "./lib/resolveDeno.mjs";
 import { readdirSync, statSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -134,13 +135,15 @@ if (!existsSync(FUNCTIONS_DIR)) {
   process.exit(1);
 }
 
-try {
-  execFileSync("deno", ["--version"], { stdio: "ignore" });
-} catch {
+// A Deno on PATH, else the pinned npm build through npx (cloud sessions ship
+// no Deno). Every `deno` below runs through DENO, never a bare "deno".
+const DENO = resolveDeno();
+if (!DENO) {
   console.error(
     [
       "",
-      "  Deno is not installed, so the edge functions cannot be type-checked.",
+      `  Deno is not installed and the npm build (npx deno@${PINNED_NPM_DENO}) could not run,`,
+      "  so the edge functions cannot be type-checked.",
       "",
       "  This check does NOT silently skip: edge functions went unchecked for the",
       "  life of this project and that is how a RangeError shipped into every",
@@ -152,6 +155,8 @@ try {
   );
   process.exit(1);
 }
+if (DENO.via === "npm") console.error(`(no Deno on PATH: using the npm build, npx deno@${PINNED_NPM_DENO})`);
+const deno = (args, opts) => spawnSync(DENO.cmd, [...DENO.pre, ...args], opts);
 
 const files = walk(FUNCTIONS_DIR);
 if (files.length === 0) {
@@ -197,7 +202,7 @@ function assertStripeTypesAreLive() {
   ].join("\n");
   writeFileSync(canary, source);
   try {
-    const probe = spawnSync("deno", ["check", "--config", CONFIG, canary], {
+    const probe = deno(["check", "--config", CONFIG, canary], {
       cwd: ROOT,
       encoding: "utf8",
       maxBuffer: 16 * 1024 * 1024,
@@ -233,7 +238,7 @@ if (!canary.ok) {
 }
 
 // ── Run deno check ─────────────────────────────────────────────────────────
-const run = spawnSync("deno", ["check", "--config", CONFIG, ...files], {
+const run = deno(["check", "--config", CONFIG, ...files], {
   cwd: ROOT,
   encoding: "utf8",
   maxBuffer: 64 * 1024 * 1024,

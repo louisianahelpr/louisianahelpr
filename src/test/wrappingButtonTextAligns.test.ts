@@ -11,7 +11,7 @@
  * text-start, text-center, ...). A centred wrap is then a choice someone
  * wrote down, never the user-agent default leaking through.
  *
- * @mutate src/components/job-card/JobCardMetaRow.tsx | px-1 -mx-1 rounded-ds-sm text-left hover:bg- | px-1 -mx-1 rounded-ds-sm hover:bg-
+ * @mutate src/components/job-card/JobCardMetaRow.tsx | min-w-0 shrink text-left" | min-w-0 shrink"
  * @mutate src/components/postjob/detailsSection/CredentialTierSelector.tsx | className={`flex min-h-[52px] w-full min-w-0 flex-col | className={`flex text-center min-h-[52px] w-full min-w-0 flex-col
  */
 import { readFileSync } from "node:fs";

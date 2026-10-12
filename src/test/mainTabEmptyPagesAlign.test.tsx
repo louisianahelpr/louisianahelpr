@@ -72,7 +72,7 @@ describe("main-tab empty pages put their circle, title and button in one place",
     const msgs = code("src/components/messages/ConversationList.tsx");
     const posts = code("src/pages/posts/PostsHeader.tsx");
     expect(posts).toContain('inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"');
-    const desktopClass = /const HEADER_ICON_BUTTON_DESKTOP_CLASS =([\s\S]*?);/.exec(msgs)?.[1] ?? "";
+    const desktopClass = /const HEADER_ICON_BUTTON_DESKTOP_CLASS =([\s\S]*?);/.exec(code("src/components/messages/conversationListHeaderClasses.ts"))?.[1] ?? "";
     expect(desktopClass).toContain("h-7 w-7 !min-h-0 !min-w-0");
     for (const label of ["Search conversations", "Conversation list options"]) {
       // The BUTTON carrying the label (the search field's input shares it).

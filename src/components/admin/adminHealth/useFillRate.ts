@@ -12,7 +12,8 @@ export const useFillRate = () => {
   // Fill-rate stats — separate query keyed by p_days so changing the
   // period refetches without invalidating the rest of AdminHealth.
   const fillQueryKey = ["admin-fill-rate", fillDays];
-  const { data: fillData, isFetching: fillFetching } = useInstantQuery<FillRateSummary>({
+  // fillLoading: the fallback below is a shell of zeros, not a reading (Q1287).
+  const { data: fillData, isFetching: fillFetching, isInitialLoading: fillLoading } = useInstantQuery<FillRateSummary>({
     key: fillQueryKey,
     fallback: {
       total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
@@ -61,5 +62,5 @@ export const useFillRate = () => {
     else { setFillSort(key); setFillSortAsc(key === "fill_rate_pct"); }
   };
 
-  return { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort };
+  return { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, fillLoading, sortedParishes, handleFillSort };
 };

@@ -35,8 +35,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |         DELETE FROM public.group_job_helpers\n         WHERE job_id = _job_id\n           AND helper_confirmed_at IS NULL |         DELETE FROM public.group_job_helpers\n         WHERE false\n           AND helper_confirmed_at IS NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |       IF v_left > 0 THEN | IF false THEN
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |          AND a.helper_id = ANY (COALESCE(v_gone, '{}'::uuid[])) |          AND a.helper_id IS NOT NULL
-// @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" \|\| crewSpotRefillable(job, roster, now); |   return job.status === "open";
-// @mutate src/pages/posts/postedJobCard/PostedJobApplicants.tsx |   if (!takesApplicants(job, crewRoster)) return null; |   if (job.status !== "open") return null;
+// @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" \|\| crewSpotRefillable(job, roster, now, closedSpots); |   return job.status === "open";
+// @mutate src/pages/posts/postedJobCard/PostedJobApplicants.tsx |   if (!takesApplicants(job, crewRoster, undefined, closedSpots)) return null; |   if (job.status !== "open") return null;
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -164,9 +164,9 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
     const card = blankComments(readFileSync(resolve(ROOT, "src/pages/posts/PostedJobCard.tsx"), "utf8"));
     expect(card).toMatch(/<PostedJobApplicants\s+job=\{job\}\s+crewRoster=\{initialGroupHelpers\}/);
     const button = blankComments(readFileSync(resolve(ROOT, "src/pages/posts/postedJobCard/PostedJobApplicants.tsx"), "utf8"));
-    expect(button).toMatch(/if \(!takesApplicants\(job, crewRoster\)\) return null;/);
+    expect(button).toMatch(/if \(!takesApplicants\(job, crewRoster, undefined, closedSpots\)\) return null;/);
     const gate = blankComments(readFileSync(resolve(ROOT, "src/pages/posts/postedJobCard/crewRefill.ts"), "utf8"));
-    expect(gate).toMatch(/return job\.status === "open" \|\| crewSpotRefillable\(job, roster, now\);/);
+    expect(gate).toMatch(/return job\.status === "open" \|\| crewSpotRefillable\(job, roster, now, closedSpots\);/);
   });
 
   it("has a PGlite proof that is red on the old functions", () => {

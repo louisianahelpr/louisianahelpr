@@ -7037,6 +7037,7 @@ export type Database = {
         Args: { p_kind: string; p_path: string; p_user_id: string }
         Returns: boolean
       }
+      crew_closed_spot_count: { Args: { p_job_id: string }; Returns: number }
       crew_completes_when_hired_done: { Args: never; Returns: boolean }
       crew_fee_pays_unconfirmed: { Args: never; Returns: boolean }
       crew_spots_open: { Args: { p_job_id: string }; Returns: number }

@@ -22,7 +22,15 @@
  * any account whose profile is not is_seed, so it can never enrol a real
  * person. scripts/check-test-account-strikes.mjs is the detector
  * (findUnenrolled), and fails nightly when a shared account is not enrolled.
+ *
+ * The service-role key goes ONLY to https://<project>.supabase.co or a loopback
+ * stub: the URL passes through supabaseBase() (scripts/lib/apiBase.mjs), which
+ * throws for any other host, before a single request is sent. A caller may read
+ * the URL from an environment variable (e2e/journeys/fixtures.ts reads
+ * PLAYWRIGHT_SUPABASE_URL), so the pin lives here, not in each caller
+ * (src/test/toolingApiBaseIsLoopbackOnly.test.ts).
  */
+import { supabaseBase } from "./apiBase.mjs";
 
 /**
  * The shared accounts every prod harness signs in as (e2e/journeys/fixtures.ts
@@ -61,7 +69,9 @@ export function findUnenrolled(profiles, enrolledRows) {
 export async function ensureTestAccountsEnrolled({ supabaseUrl, serviceKey, userIds, note, fetchImpl = fetch }) {
   const ids = [...new Set((userIds ?? []).filter(Boolean))];
   if (ids.length === 0) throw new Error("testAccountEnrolment: no user ids given");
-  const base = supabaseUrl.replace(/\/$/, "");
+  if (!supabaseUrl) throw new Error("testAccountEnrolment: no Supabase URL given");
+  if (!serviceKey) throw new Error("testAccountEnrolment: no service-role key given");
+  const base = supabaseBase(String(supabaseUrl)).replace(/\/+$/, "");
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" };
   const call = async (method, path, body, prefer) => {
     const res = await fetchImpl(`${base}/rest/v1/${path}`, {

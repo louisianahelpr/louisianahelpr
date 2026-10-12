@@ -14,6 +14,7 @@
  * and a dispatcher that still reaches each one.
  */
 // @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: []
+// @mutate .github/workflows/secret-scan.yml | || toJSON(github.event.commits) != '[]' | 
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -71,5 +72,18 @@ describe("PR run budget", () => {
 
   it("secret-scan does not scan a land/** push twice", () => {
     expect(onBlock(read("secret-scan.yml"))).toMatch(/^\s{2}push:\s*\n\s+branches-ignore: \["land\/\*\*"\]/m);
+  });
+
+  // 2026-10-12: every claim/* marker push (a branch created at an existing
+  // commit) took a Secret Scan runner. The job skips exactly that push: a
+  // claim push that adds commits, any other branch, and every PR still scan.
+  it("secret-scan skips only a claim/* push that adds no commit", () => {
+    const src = read("secret-scan.yml");
+    const job = src.slice(src.indexOf("\n  scan:"));
+    expect(job).toMatch(
+      /^\s{4}if: github\.event_name != 'push' \|\| !startsWith\(github\.ref, 'refs\/heads\/claim\/'\) \|\| toJSON\(github\.event\.commits\) != '\[\]'$/m,
+    );
+    // Never by branch filter: that would leave claim pushes WITH commits unscanned.
+    expect(src).not.toMatch(/branches(?:-ignore)?:[^\n]*claim/);
   });
 });

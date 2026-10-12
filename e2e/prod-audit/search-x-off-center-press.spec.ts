@@ -24,6 +24,11 @@
 // @mutate src/index.css | here to this. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | here to this. */\n  transform: scale(0.97);
 // @mutate src/index.css | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)); | Chromium and WebKit, 2026-10-07). Keep the translate, drop the rest. */\n    transform: none;
 
+// The ✕ is centred in its INPUT, not in a wrapper the flex row stretched past
+// it (4.00px off in vacuity run 38173155817: Add Admin beside its 56px button,
+// and Find a User beside the Sort trigger's 44px floor at 1440).
+// @mutate src/components/admin/settings/AdminUserSearchField.tsx | <div className="relative flex-1 self-start"> | <div className="relative flex-1">
+// @mutate src/components/admin/AdminUsers.tsx | <div className="relative flex-1 sm:self-start"> | <div className="relative flex-1">
 import { test, expect, webkit, type Browser } from "../prodTest";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";

@@ -109,6 +109,9 @@ describe("index.html boot watchdog: a stall with no error", () => {
     expect(rows()).toEqual([]);
     visibility = "visible";
     await vi.advanceTimersByTimeAsync(5_100);
+    // Floor: the same probe that read no rows above reads one now, so that
+    // empty list was the watchdog waiting, not a probe that sees nothing.
+    expect(rows().length).toBeGreaterThan(0);
     expect(rows()[0].tags.kind).toBe("boot-stall");
   });
 });

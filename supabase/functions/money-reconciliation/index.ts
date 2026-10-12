@@ -306,7 +306,7 @@ serve(async (req) => {
       heldMoneyNotRedriven: new Check(
         "held_money_not_redriven",
         "critical",
-        `Money a payout hold kept back is not moving: a tip_hold_redrives row Stripe refused ('failed' re-pay or 'not_reversed'), or a held tip / won-chargeback re-pay (chargeback_clawbacks.held_repay_owed_at) whose Helpr is no longer on hold and that is still unpaid ${HELD_REDRIVE_STUCK_HOURS}h after the re-drive first tried it (an 'owed' tip: ${HELD_REDRIVE_STUCK_HOURS}h after it was paid) (no payout account, a short balance, or a dead sweep). Read the row's failure_reason; a refused row is paid by hand and marked repaid with that transfer id.`,
+        `Money a payout hold kept back is not moving: a tip_hold_redrives row Stripe refused ('failed' re-pay or 'not_reversed'), or a held tip / won-chargeback re-pay (chargeback_clawbacks.held_repay_owed_at) whose Helpr is no longer on hold and that is still unpaid ${HELD_REDRIVE_STUCK_HOURS}h after the re-drive first tried it (an 'owed' tip: ${HELD_REDRIVE_STUCK_HOURS}h after it was paid) (no payout account, a short balance, or a dead sweep). Read the row's failure_reason. A refused tip row is paid by hand and marked repaid with that transfer id. A row whose failure_reason starts with 'balance_insufficient:' waits on the platform balance (Q1291): top the balance up and do NOT pay it by hand (the re-drive would pay it again).`,
       ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",

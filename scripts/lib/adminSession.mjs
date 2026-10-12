@@ -38,6 +38,18 @@
  * separate processes; an in-memory mutex would not reach them).
  * Guard: src/test/adminSessionMintLock.test.ts.
  *
+ * ACROSS RUNNERS (Q1651, 2026-10-12). The lock file only reaches processes on
+ * one machine. Two workflows on different runners can still mint one address
+ * in the same second: core-loop-canary (hourly, PLAYWRIGHT_POSTER_EMAIL and
+ * PLAYWRIGHT_HELPER_EMAIL) and e2e-real-backend's `authenticated` job run
+ * outside the `prod-lifecycle-shared-accounts` concurrency group that every
+ * other shared-account job joins. So a /verify that answers 403 otp_expired
+ * is re-minted once, inside the same `retries` budget as a transient failure.
+ * Cost: on a Playwright transport the lost /verify and the re-mint's /verify
+ * are both metered, so such a race adds one sign-in to that run's count.
+ * Guard: src/test/adminSessionMintLock.test.ts ("a token lost to another
+ * runner is re-minted once").
+ *
  * TRANSPORT. Playwright callers pass `playwrightTransport(api)` so the two
  * requests go through the spec's metered APIRequestContext (e2e/requestMeter
  * counts the /verify as the sign-in); node scripts use the default `fetch`.
@@ -208,7 +220,12 @@ export async function mintAdminSession({
     const tokenHash = linkJson.hashed_token ?? linkJson.properties?.hashed_token;
     if (!tokenHash) return { status: 500, error: `generate_link for ${email} answered without a hashed_token` };
     const verify = await send("/auth/v1/verify", { apikey: anonKey }, { type: "recovery", token_hash: tokenHash });
-    if (verify.status < 200 || verify.status >= 300) return { status: verify.status, error: `verify for ${email}: HTTP ${verify.status} ${verify.text.slice(0, 300)}` };
+    if (verify.status < 200 || verify.status >= 300) {
+      // 403 otp_expired: another mint of this account replaced our token
+      // between generate_link and /verify (see ACROSS RUNNERS above).
+      const expired = verify.status === 403 && /otp_expired/.test(verify.text);
+      return { status: verify.status, expired, error: `verify for ${email}: HTTP ${verify.status} ${verify.text.slice(0, 300)}` };
+    }
     const session = parse(verify.text, "verify");
     if (!session?.access_token || !session?.refresh_token || !session?.user?.id) {
       return { status: 500, error: `verify for ${email} answered without a full session` };
@@ -226,7 +243,7 @@ export async function mintAdminSession({
     const r = await withMintLock(email, once, { dir: lockDir, staleMs: 2 * timeoutMs + 10_000, waitMs: 4 * timeoutMs + 30_000 });
     if (r.session) return r.session;
     errors.push(r.error);
-    if (attempt >= retries || !RETRYABLE(r.status)) throw new Error(errors.join(" | after: "));
+    if (attempt >= retries || !(RETRYABLE(r.status) || r.expired)) throw new Error(errors.join(" | after: "));
     await new Promise((res) => setTimeout(res, retryDelayMs));
   }
 }

@@ -18,6 +18,9 @@
  * The released-locks check is only as good as its floor: locks taken anywhere
  * but lockDir must turn it red too.
  * @mutate scripts/lib/adminSession.mjs | withMintLock(email, once, { dir: lockDir, | withMintLock(email, once, { dir: undefined,
+ * A mint on ANOTHER runner (no shared lock file, Q1651) can still take the
+ * token; that 403 otp_expired is re-minted once.
+ * @mutate scripts/lib/adminSession.mjs | !(RETRYABLE(r.status) \|\| r.expired) | !RETRYABLE(r.status)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -149,5 +152,34 @@ describe("mintAdminSession: one mint per account at a time", () => {
     }, { dir: lockDir });
     await Promise.all([a, b]);
     expect(order).toEqual(["two", "one"]);
+  });
+
+  it("a token lost to another runner is re-minted once (Q1651)", async () => {
+    const { fetchImpl, calls } = fakeGoTrue();
+    // The other runner's generate_link lands while this mint waits on /verify:
+    // no lock file is shared, so only the token state on the server races.
+    let raced = false;
+    vi.stubGlobal("fetch", async (url: string, init: { body?: string }) => {
+      if (url.endsWith("/auth/v1/verify") && !raced) {
+        raced = true;
+        await fetchImpl("https://x.supabase.co/auth/v1/admin/generate_link", { body: JSON.stringify({ email: EMAIL }) });
+      }
+      return fetchImpl(url, init);
+    });
+    const session = await mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir, retryDelayMs: 1 });
+    expect(session.access_token).toMatch(/^a-h/);
+    // ours + the other runner's + our re-mint; the first verify lost, the second won.
+    expect(calls).toEqual({ generate: 3, verify: 2, expired: 1 });
+  });
+
+  it("a 403 that is not otp_expired is not retried", async () => {
+    let verifies = 0;
+    vi.stubGlobal("fetch", async (url: string) => {
+      if (url.endsWith("/auth/v1/admin/generate_link")) return new Response(JSON.stringify({ hashed_token: "h" }), { status: 200 });
+      verifies++;
+      return new Response(JSON.stringify({ error_code: "forbidden" }), { status: 403 });
+    });
+    await expect(mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir, retryDelayMs: 1 })).rejects.toThrow(/HTTP 403/);
+    expect(verifies).toBe(1);
   });
 });

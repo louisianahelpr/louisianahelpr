@@ -208,7 +208,7 @@ test.describe.serial("admin and safety journeys", () => {
     });
 
     await test.step("the poster is told once per refund, with a link to the job", async () => {
-      // Q1652: ONE notice per refund (in the app and by email), claimed on the
+      // Q1654: ONE notice per refund (in the app and by email), claimed on the
       // refund's id, so the charge.refunded webhook no longer adds a second
       // "Refund processed" for the same refund (that was Q300).
       const r = await request.get(

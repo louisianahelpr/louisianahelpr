@@ -2077,7 +2077,7 @@ serve(async (req) => {
               reason: "escrow cancellation refund (minus non-refundable service fee)",
               initiatedByUserId: user.id,
             });
-            // Q1652: the poster is told at once, with what was kept and why
+            // Q1654: the poster is told at once, with what was kept and why
             // in the amounts computed here.
             if (refund?.id) {
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
@@ -2663,7 +2663,7 @@ serve(async (req) => {
       // consumed the whole capture" outcome, which the branch below alerts on.
       let disputeRefundId: string | null = null;
       let disputeRefundCents = 0;
-      // Q1652: what the capture kept (Stripe's processing fee), for the notice.
+      // Q1654: what the capture kept (Stripe's processing fee), for the notice.
       let disputeKeptCents = 0;
       // Hoisted so the success path below can hand the claim back by token. It
       // is TAKEN inside the try (immediately before the Stripe call, after every
@@ -2964,7 +2964,7 @@ serve(async (req) => {
         },
       });
 
-      // Notify both parties. Q1652: the poster's is THE refund notice (in the
+      // Notify both parties. Q1654: the poster's is THE refund notice (in the
       // app and by email); the webhook leaves an admin_refund_dispute refund
       // to this path. A $0 card refund (all gift) keeps the plain notice.
       if (disputeRefundId && disputeRefundCents > 0) {
@@ -3226,7 +3226,7 @@ serve(async (req) => {
       // Q1290: set just before the Stripe refund call. Until then nothing can
       // have moved, so any stop puts the job claim back.
       let generalRefundSent = false;
-      // Q1652: the refund the poster's notice is about (claimed on its id).
+      // Q1654: the refund the poster's notice is about (claimed on its id).
       let generalRefundForNotice: { id: string; amountCents: number; keptCents: number } | null = null;
       let paymentIntentId = job.stripe_payment_intent_id;
       try {
@@ -3497,7 +3497,7 @@ serve(async (req) => {
         },
       });
 
-      // Q1652: THE refund notice (in the app and by email: amount, card,
+      // Q1654: THE refund notice (in the app and by email: amount, card,
       // reference, 5-10 business days, what was kept), claimed on the refund's
       // id. The charge.refunded webhook leaves an admin_refund_general refund
       // to this path (its metadata.source), so the admin's reason and a
@@ -4921,7 +4921,7 @@ async function recordRefund(
 }
 
 /**
- * Q1652: tell the poster their money is back (one in-app notice and one email,
+ * Q1654: tell the poster their money is back (one in-app notice and one email,
  * _shared/refundNotice.ts) and page when they could not be fully told. The
  * money already moved, so this never throws.
  */

@@ -27,11 +27,11 @@ on:
     # (press 320 min, prod-audit 307, e2e-journeys 187): it queued behind them
     # and was cancelled when db-backup queued too.
     # Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
-    # Not Sundays (2026-10-12): the weekly vacuity sweep's ninth e2e leg made
-    # its worst case 402 min from Sun 07:17, past this 13:17 fire, and the
-    # prod-load week has no free slot to move either run to (rule 5 above;
-    # prodWorkflowSpacing's free-slot list is empty). Monday's run covers it.
-    - cron: "17 13 * * 1-6"
+    # Every day again since 2026-10-12 (Q1721): it skipped Sundays for a few
+    # hours, when the weekly vacuity sweep's ninth e2e leg made its worst case
+    # 402 min from Sun 07:17, past this fire. The sweep now starts at Sun 05:17
+    # and ends by 11:59; prodWorkflowSpacing.test.ts fails if any day loses it.
+    - cron: "17 13 * * *"
   workflow_dispatch:
 
 permissions:

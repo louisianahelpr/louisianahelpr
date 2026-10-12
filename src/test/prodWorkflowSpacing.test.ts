@@ -575,7 +575,14 @@ function loadWorkflows(): Wf[] {
 // Rule 5 (Q318), red on the original bug: drift-detect or backup back at
 // 05:17 / 07:17, inside the 03:17 press run's two-wave worst case; and a
 // timeout raise alone (no cron moved) must widen the window and go red too.
-// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * 1-6" | - cron: "17 13 * * *"
+// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * *" | - cron: "17 5 * * *"
+// Q1721 (2026-10-12), red on the original bug: the sweep back at Sun 07:17 covers
+// db-drift-detect's Sunday fire (rule 5), and drift skipping Sundays again fails
+// the every-day test below; so does e2e-journeys back at 60 min (its worst case
+// covering open-done-when's Tue/Fri 07:17).
+// @mutate .github/workflows/vacuity.yml | - cron: "17 5 * * 0" | - cron: "17 7 * * 0"
+// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * *" | - cron: "17 13 * * 1-6"
+// @mutate .github/workflows/e2e-journeys.yml |     timeout-minutes: 56 # journeys leg (chromium) |     timeout-minutes: 60 # journeys leg (chromium)
 // @mutate .github/workflows/db-backup.yml | - cron: "17 15 * * *" | - cron: "17 7 * * *"
 // @mutate .github/workflows/e2e-abuse-notifications.yml |     timeout-minutes: 60 |     timeout-minutes: 250
 describe("prod-hitting workflow schedules", () => {
@@ -652,6 +659,21 @@ describe("prod-hitting workflow schedules", () => {
     expect(violations(wfs)).toEqual([]);
   });
 
+  // Q1721: db-drift-detect went Mon-Sat on 2026-10-12 because the weekly sweep
+  // had no room, and nothing noticed the two-day gap. The daily database checks
+  // (drift, backup) keep all seven days; make room in the week instead.
+  it("Q1721: the daily database checks fire on every day of the week", () => {
+    const daily = ["db-drift-detect.yml", "db-backup.yml"];
+    const missing: string[] = [];
+    for (const file of daily) {
+      const w = wfs.find((x) => x.file === file);
+      expect(w, `${file} exists`).toBeTruthy();
+      const days = new Set(w!.crons.flatMap(fireMinutes).map((m) => Math.floor(m / 1440)));
+      for (let d = 0; d < 7; d++) if (!days.has(d)) missing.push(`${file} does not fire on ${fmt(d * 1440).slice(0, 3)}`);
+    }
+    expect(missing).toEqual([]);
+  });
+
   it("rule 5: no prod-load run is due while another's worst case still holds the group (Q318)", () => {
     const modelled = prodHitting(wfs).filter((w) => !EXEMPT[w.file] && inProdLoad(w));
     // Inventory floor: the model must see the long suites, or it proves nothing.
@@ -677,7 +699,10 @@ describe("prod-hitting workflow schedules", () => {
     // under 60 minutes (sharedAccountLockJobsAreShort) freed these two.
     // 2026-10-06: e2e-real-backend took both (nightly-red #2375): a11y-webkit-
     // prod's two locked engine legs hold the group past its old 11:17 Mon/Wed/Fri.
-    expect(free).toEqual([]);
+    // 2026-10-12 (Q1721): e2e-journeys' worst case 127 -> 119 freed Tue/Fri
+    // 07:17 and Thu 11:17; open-done-when moved Sun/Thu 05:17 -> Tue/Fri 07:17 so
+    // vacuity could start at Sun 05:17 and db-drift-detect got its Sunday back.
+    expect(free).toEqual(["Thu 05:17", "Thu 11:17"]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

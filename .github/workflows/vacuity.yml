@@ -50,7 +50,11 @@ on:
       - "fastlane/metadata/**"
       - "LICENSE"
   schedule:
-    # 07:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
+    # 05:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
+    # 05:17 since 2026-10-12 (Q1721): at 07:17 the nine-leg worst case (402 min)
+    # covered db-drift-detect's Sun 13:17 fire; from 05:17, right after
+    # prod-audit's Sun 01:17 worst case (232), it has 480 min to 13:17 (room for
+    # a tenth leg). open-done-when gave up Sun 05:17 for Tue/Fri 07:17.
     # Was 14:17, where its worst case (305 min) ran over 16:17 loading-states
     # and 19:17 scoreboard. Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
     #
@@ -73,7 +77,7 @@ on:
     # minutes from every other daily prod cron. 06:10 was 53 min from
     # db-drift-detect (05:17) and 67 from db-backup (07:17), so it moved rather
     # than crowd two database jobs with a Playwright sweep.
-    - cron: "17 7 * * 0"
+    - cron: "17 5 * * 0"
   workflow_dispatch:
     inputs:
       full:
@@ -375,9 +379,8 @@ jobs:
     # balanced on measured minutes (run.mjs E2E_COST: 2.5 min a guard file,
     # 0.65 a registration, a11y-prod 8 a run): nine legs since 2026-10-12
     # (src/test/vacuityE2eLegs.test.ts). 43 minutes a leg; the run's worst case
-    # (10 + 9 x 43 + 5 = 402 from Sun 07:17) would cover db-drift-detect's
-    # 13:17 fire, so db-drift-detect skips Sundays (prodWorkflowSpacing rule 5;
-    # the prod-load week has no free slot to move either run to). And
+    # (10 + 9 x 43 + 5 = 402 from Sun 05:17) must end before db-drift-detect's
+    # Sun 13:17 fire (prodWorkflowSpacing rule 5): 480 min, one more leg fits. And
     # `--budget-minutes 39` makes a leg that still runs long stop itself, red,
     # with the verdicts it reached, before the timeout, so it never holds the
     # accounts for a leg GitHub cancels with no result.

@@ -18,7 +18,8 @@ permissions:
 
 on:
   schedule:
-    # Tue, Fri 05:17 and Thu 09:17 UTC (worst case 187 min). Tue/Fri was 03:17,
+    # Tue, Fri 05:17 and Thu 09:17 UTC (worst case 119 min since 2026-10-12, Q1721:
+    # it ends before the next :17 slot, which open-done-when takes on Tue/Fri). Tue/Fri was 03:17,
     # under 01:17 slow-network's worst case (127). Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
     - cron: "17 5 * * 2,5"
     - cron: "17 9 * * 4"
@@ -146,8 +147,11 @@ jobs:
     runs-on: ubuntu-latest
     # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
     # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max
-    # 24.3 min among completed runs.
-    timeout-minutes: 60
+    # 24.3 min among completed runs. 2026-10-12 (60 runs, 09-28..10-12): journeys
+    # max 16.5 min, journeys-webkit max 43.1 (run 37818197264). 56, not 60, so the
+    # run's worst case (2 + 56 + 56 + 5 = 119) ends inside one 120-min :17 slot and
+    # open-done-when can take Tue/Fri 07:17 (Q1721, prodWorkflowSpacing rule 5).
+    timeout-minutes: 56 # journeys leg (chromium)
     # Workflow-level group is prod-load now; this job-level lock keeps the
     # shared-account serialisation with e2e-real-backend's push-triggered
     # prod-lifecycle job, which holds the same group.
@@ -226,7 +230,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
-        timeout-minutes: 52
+        timeout-minutes: 48
         run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)
@@ -278,8 +282,11 @@ jobs:
     runs-on: ubuntu-latest
     # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
     # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max
-    # 24.3 min among completed runs.
-    timeout-minutes: 60
+    # 24.3 min among completed runs. 2026-10-12 (60 runs, 09-28..10-12): journeys
+    # max 16.5 min, journeys-webkit max 43.1 (run 37818197264). 56, not 60, so the
+    # run's worst case (2 + 56 + 56 + 5 = 119) ends inside one 120-min :17 slot and
+    # open-done-when can take Tue/Fri 07:17 (Q1721, prodWorkflowSpacing rule 5).
+    timeout-minutes: 56 # journeys leg (webkit)
     # Workflow-level group is prod-load now; this job-level lock keeps the
     # shared-account serialisation with e2e-real-backend's push-triggered
     # prod-lifecycle job, which holds the same group.
@@ -359,7 +366,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
-        timeout-minutes: 52
+        timeout-minutes: 48
         run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)

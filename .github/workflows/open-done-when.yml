@@ -23,8 +23,11 @@ on:
   schedule:
     # Twice a week, not nightly: Sun and Thu 05:17 UTC were the only two free
     # :17 slots in the prod-load week on 2026-09-27 (Q322 list in
-    # src/test/prodWorkflowSpacing.test.ts). Dispatch any time to re-check.
-    - cron: "17 5 * * 0,4"
+    # src/test/prodWorkflowSpacing.test.ts). Since 2026-10-12 (Q1721) Tue and
+    # Fri 07:17, after e2e-journeys' 05:17 run (worst case cut to 119 min), so
+    # the weekly vacuity sweep can start at Sun 05:17 and end before
+    # db-drift-detect's Sunday 13:17 fire. Dispatch any time to re-check.
+    - cron: "17 7 * * 2,5"
 
 permissions:
   contents: read

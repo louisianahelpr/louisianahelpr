@@ -20,7 +20,6 @@ import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useBackoutNotices } from "@/lib/backoutNotices";
 import { fetchScheduleChangesAskedOf } from "@/lib/scheduleChange";
-import { fetchMyScheduleClashes } from "@/lib/scheduleClashes";
 import { closedApplicantsSummary } from "@/pages/posts/postedJobs/applicantBadge";
 
 /* ============================================================================
@@ -1052,24 +1051,14 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     staleTime: 30_000,
     queryFn: () => fetchScheduleChangesAskedOf(user!.id),
   }).data;
-  // Q1326: a Helpr booked for two overlapping jobs sees it on both cards (one read).
-  const clashes = useQuery({
-    queryKey: ["activity", "scheduleClashes", user?.id],
-    enabled: !!user?.id,
-    staleTime: 30_000,
-    queryFn: fetchMyScheduleClashes,
-  }).data;
   const postedJobsList = posted.postedJobs;
   const tag = useCallback(
     <J extends { id: string }>(j: J): J => {
       const n = backout.get(j.id);
       const a = asked?.includes(j.id);
-      const c = clashes?.get(j.id);
-      return n || a || c
-        ? { ...j, ...(n ? { backout_notice: n } : {}), ...(a ? { schedule_change_asked_of_me: true } : {}), ...(c ? { schedule_clash: c } : {}) }
-        : j;
+      return n || a ? { ...j, ...(n ? { backout_notice: n } : {}), ...(a ? { schedule_change_asked_of_me: true } : {}) } : j;
     },
-    [backout, asked, clashes],
+    [backout, asked],
   );
   const postedWithBackout = useMemo(() => postedJobsList.map(tag), [postedJobsList, tag]);
   const appliedWithBackout = useMemo(

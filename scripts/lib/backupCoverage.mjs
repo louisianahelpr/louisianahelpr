@@ -46,7 +46,13 @@ export const COUNT_SQL =
 export const MUST_HAVE_ROWS = ["auth.users", "public.profiles", "public.jobs", "public.applications"];
 
 /** @type {Record<string, string>} table -> why `supabase db dump --data-only` never carries it */
-export const EXCLUDED_TABLES = {};
+export const EXCLUDED_TABLES = {
+  // Measured 2026-10-12 (run 38199067536): 82 rows on prod, no INSERT in
+  // data.sql. It is the Auth server's own migration ledger, which the CLI's data
+  // dump leaves out on purpose: a restore target's Auth service writes its own,
+  // and replaying prod's would collide with it.
+  "auth.schema_migrations": "Supabase Auth's own migration ledger; the target project's Auth service creates it, the CLI never dumps it",
+};
 
 /** "schema.table" for every `INSERT INTO "schema"."table" ` statement in a data dump. */
 export function dumpedTables(dataSql) {

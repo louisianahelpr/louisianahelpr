@@ -11027,6 +11027,7 @@
       "longitude",
       "materials_note",
       "no_show_alert_sent_at",
+      "onboarding_fee_amount",
       "parent_job_id",
       "parish",
       "payment_confirm_notif_sent",
@@ -11549,6 +11550,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "uuid"
+    },
+    "onboarding_fee_amount": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "numeric"
     },
     "parent_job_id": {
      "enum": null,

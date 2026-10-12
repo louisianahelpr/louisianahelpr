@@ -3,6 +3,7 @@
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 // @mutate scripts/lib/openFeeds.mjs | const keepMarkerless = target.state === "~" && | const keepMarkerless = false &&
+// @mutate docs/OPEN.md | done-when: sql `SELECT count(*) FROM public.ops_alert_ledger WHERE status <> 'closed'` => 0 | (marker removed)
 /*
  * A `[~]` item that nobody re-checks stays `[~]` forever.
  *
@@ -27,7 +28,7 @@ import { applyFeeds } from "../../scripts/lib/openFeeds.mjs";
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
-/** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 after the LOW branch rebased: 21 (four new "FIXED 2026-10-02, protection pending" lines whose last step is a 375 screenshot, which no marker kind can express); 19 after Q73 and Q387 were ticked done (combined landing #2087); 15 after rebasing onto origin/main 2026-10-02; 18 after three stranded notes landed (Q858 waits on Q785; Complete Profile and My Posts wait on a 375 screenshot); 17 after pd-b gave one a marker; 24 on 2026-10-03 after the lead removed seven markers that held while their items' own remaining work did not (Q71, Q104, Q380, Q416, Q421, Q593, Q701; each line says why); 20 on 2026-10-03 after Q340 got its done-when marker (lane B).; 22 on 2026-10-03 after the perf lane marked Q1157 and Q1158 fixed-and-waiting: what is left of each is Vercel Speed Insights' real-user P75 after deploy, which no marker kind can read (no API) */
+/* HISTORY of the old bare count of `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 after the LOW branch rebased: 21 (four new "FIXED 2026-10-02, protection pending" lines whose last step is a 375 screenshot, which no marker kind can express); 19 after Q73 and Q387 were ticked done (combined landing #2087); 15 after rebasing onto origin/main 2026-10-02; 18 after three stranded notes landed (Q858 waits on Q785; Complete Profile and My Posts wait on a 375 screenshot); 17 after pd-b gave one a marker; 24 on 2026-10-03 after the lead removed seven markers that held while their items' own remaining work did not (Q71, Q104, Q380, Q416, Q421, Q593, Q701; each line says why); 20 on 2026-10-03 after Q340 got its done-when marker (lane B).; 22 on 2026-10-03 after the perf lane marked Q1157 and Q1158 fixed-and-waiting: what is left of each is Vercel Speed Insights' real-user P75 after deploy, which no marker kind can read (no API) */
 // 24 on 2026-10-04: Q654 and Q1172 are fixed in part and wait on the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse, which no marker kind can express (merging the PR is not "done").
 // 26 on 2026-10-05: the money lane's Q805 (chargeback follow-ups wait on a Stripe test-mode dispute run and the owner's webhook secret) and Q1336 (waits on the owner subscribing the live endpoint to charge.refund.updated) are fixed in part; neither wait is something a done-when marker can read.
 // 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
@@ -49,8 +50,43 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 26 on 2026-10-07 (lane-product, rebased on main's 28): Q333 and Q335 ticked (their screenshot halves done on prod), leaving the markerless set.
 // 23 on 2026-10-07 (HIGH lane, landing agent/high4-q1421-q1398, rebased on 24): Q1398 ticked.
 // 24 on 2026-10-07: Q913 (Money-B batch 3) is fixed and waits on the press spec run and a look at the six admin ✕s at 375 and 1440, which no marker kind can express.
-// 26 on 2026-10-12 (proof finisher): Q936 ticked (the Vercel heartbeat measured live).
-const MARKERLESS_PARTLY_DONE = 26;
+// 25 on 2026-10-12 (chore/automate-ticking): Q42 (sql: alert ledger open rows => 0) and Q1420 (its two suites' nightly-red issues closed) got the markers their own text implies.
+//
+// 2026-10-12 (owner: "make it an automated ticking mechanism"; "make sure
+// nothing can be messed up"): the bare count became an EXACT list of ids, each
+// with what it waits on. A count let a new markerless [~] in if another item
+// left the set in the same commit; the list cannot. Every item here waits on
+// something no marker kind can read (a screenshot, a device, a real-user P75,
+// an owner's look, a run that has not happened in the shape the item needs);
+// a marker that holds before that is done would auto-tick it (the lead removed
+// seven such markers on 2026-10-03). Give an item a marker, or tick it, and
+// delete its line here in the same commit.
+const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q44: "closes when Vacuity's push runs on main are green for a whole day; no marker kind reads a workflow's run history over a window",
+  Q52: "area 1 waits on a full vacuity sweep that finishes and reports the e2e registrations conclusively; no marker kind reads a vacuity report's verdicts",
+  Q71: "marker removed by the lead 2026-10-03; what is left is the owner's VoiceOver pass on a device each release",
+  Q104: "per-test budgets calibrated from nightly summaries, repeated-GET trims and a re-measure of prod REST from the CI origin (edge_logs by run window)",
+  Q206: "(a) is open: shrink the boot graph and tighten scripts/perf/critical-path-budget.json, a code change not a state to read",
+  Q238: "the live half: seed the four admin queue states as is_seed rows, assert counts in admin-views.spec.ts and look at the screenshots",
+  Q334: "a live two-account delete-mid-thread send plus a screenshot of the read-only thread",
+  Q380: "marker removed by the lead 2026-10-03: the slow-network 1440 hire-and-message step has not run since (LIVE_PAY skips it)",
+  Q416: "marker removed by the lead 2026-10-03: the BORROWED statuses still need an owner, which no marker kind can read",
+  Q421: "marker removed by the lead 2026-10-03: needs a green e2e-journeys run AND a sweep log showing the escrow rows settled",
+  Q427: "a device or simulator check of cold-start and warm deep links (code fix only)",
+  Q511: "a live two-device restore check (restore on device B, reload device A, the thread stays in the inbox)",
+  Q593: "marker removed by the lead 2026-10-03: the reserved accepted fixture was never built and cannot be minted with Stripe live",
+  Q654: "the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse after deploy",
+  Q701: "marker removed by the lead 2026-10-03: a full unpinned e2e-journeys run that actually runs the step",
+  Q768: "not built yet: str-ical-sync still inserts a jobs row before payment; its class check does not exist",
+  Q858: "one green prod-audit run, then signIns set from that measurement",
+  Q913: "the press spec run and a look at the six admin ✕s at 375 and 1440",
+  Q965: "a browser look at /help and /support on native and the marketing Navbar while /legal and /help scroll",
+  Q1158: "Vercel Speed Insights real-user P75 after deploy (no API a marker can read)",
+  Q1170: "not built yet: the --expired lab run must match the fresh-token run, with a budget in e2e/web-vitals/first-screens.spec.ts",
+  Q1172: "the lead's real-browser filmstrip and cwv-lab run",
+  Q1399: "the owner looking at both offer cards on a phone",
+  Q1464: "a screenshot of a re-listed crew (needs a booked, paid crew with a member gone: not on prod, Stripe live)",
+};
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);
@@ -59,9 +95,15 @@ describe("[~] items say when they are done", () => {
     expect(items.length).toBeGreaterThan(20);
   });
 
-  it("markerless [~] count is exactly the baseline (lower it when you add a marker or tick one)", () => {
-    const markerless = items.filter((i) => i.markers.length === 0 && i.malformed.length === 0);
-    expect(markerless.length, markerless.map((i) => i.id).join(", ")).toBe(MARKERLESS_PARTLY_DONE);
+  it("every [~] item has a done-when marker, or is on the exact markerless list (two-way)", () => {
+    const markerless = items.filter((i) => i.markers.length === 0 && i.malformed.length === 0).map((i) => i.id);
+    const listed = Object.keys(MARKERLESS_PARTLY_DONE);
+    const unlisted = markerless.filter((id) => !(id in MARKERLESS_PARTLY_DONE));
+    expect(unlisted, "a [~] item with no done-when marker: give it the marker its own text implies (sql, test, issue, pr, bus), or list it in MARKERLESS_PARTLY_DONE with what it waits on that no marker kind can read").toEqual([]);
+    const stale = listed.filter((id) => !markerless.includes(id));
+    expect(stale, "listed as markerless but it now has a marker, was ticked or is no longer [~]: delete its line in MARKERLESS_PARTLY_DONE").toEqual([]);
+    for (const [id, why] of Object.entries(MARKERLESS_PARTLY_DONE)) expect(why.length, `${id}: say what it waits on`).toBeGreaterThan(40);
+    expect(listed.length).toBe(markerless.length);
   });
 
   // 2026-09-28 (#1951, open-done-when run 36365813029): the Q82 marker called

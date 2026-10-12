@@ -504,7 +504,7 @@ async function ledgerRows(sqlFn) {
 
 function nightlyRedRows(now, timeout = 20000) {
   try {
-    const issues = ghJson(["issue", "list", "--label", "nightly-red", "--state", "open", "--limit", "100", "--json", "number,title,createdAt"], timeout);
+    const issues = ghJson(["issue", "list", "--label", "nightly-red", "--state", "open", "--limit", "1000", "--json", "number,title,createdAt"], timeout);
     const oldest = issues.reduce((m, i) => (!m || i.createdAt < m ? i.createdAt : m), null);
     return {
       summary: { open: issues.length, at: iso(now), oldest },

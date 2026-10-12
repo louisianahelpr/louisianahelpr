@@ -356,7 +356,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # set. Any other open land/** PR whose head is already inside this HEAD is
   # superseded: close it and delete its branch so its checks stop queueing.
   # Guard: src/test/landingPath.test.ts.
-  gh pr list --state open --json number,headRefName,headRefOid \
+  gh pr list --state open --limit 1000 --json number,headRefName,headRefOid \
     --jq '.[] | select(.headRefName | startswith("land/")) | "\(.number) \(.headRefName) \(.headRefOid)"' |
   while read -r num ref oid; do
     [ "$ref" = "$BR" ] && continue

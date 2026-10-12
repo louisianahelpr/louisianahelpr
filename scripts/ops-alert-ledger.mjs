@@ -224,7 +224,7 @@ async function sync() {
     known.set(String(r.issue), new Date(r.last_seen));
   }
   for (const label of ALERT_LABELS) {
-    const issues = gh(["issue", "list", "--repo", repo, "--label", label, "--state", "open", "--limit", "100",
+    const issues = gh(["issue", "list", "--repo", repo, "--label", label, "--state", "open", "--limit", "1000",
       "--json", "number,title,updatedAt,url"]);
     for (const i of issues) {
       const seen = known.get(String(i.number));

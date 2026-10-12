@@ -24,6 +24,8 @@ import { pathToFileURL } from "node:url";
 
 export const QUEUE_LABEL = "land-queue";
 export const FAILED_LABEL = "land-queue-failed";
+/** Read cap for the queue list; reaching it is an error, never a partial queue. */
+export const GH_LIST_LIMIT = 1000;
 
 /**
  * Checks that are not branch-protection-required but must never be red on a
@@ -151,7 +153,12 @@ export function mergeOrWait(run, log = console.log) {
 }
 
 function readQueue() {
-  const list = JSON.parse(gh(["pr", "list", "--state", "open", "--label", QUEUE_LABEL, "--json", "number,isDraft", "--limit", "50"]));
+  // The WHOLE queue (Q1693): gh lists newest first, so a cap below the queue's
+  // length hid the oldest PRs, and the head became the oldest of the newest N,
+  // moving every time a new PR joined (94 queued, cap 50, 2026-10-12: no merge
+  // for 3 h). Guard: src/test/ghListReadsWholeSet.test.ts.
+  const list = JSON.parse(gh(["pr", "list", "--state", "open", "--label", QUEUE_LABEL, "--json", "number,isDraft", "--limit", String(GH_LIST_LIMIT)]));
+  if (list.length >= GH_LIST_LIMIT) throw new Error(`land-queue: ${list.length} queued PRs reached the read limit ${GH_LIST_LIMIT}; refusing to pick a head from a partial queue`);
   const prs = [];
   for (const { number } of list.filter((p) => !p.isDraft).sort((a, b) => a.number - b.number)) {
     const view = JSON.parse(gh(["pr", "view", String(number), "--json", "mergeStateStatus"]));

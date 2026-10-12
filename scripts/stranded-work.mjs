@@ -103,7 +103,7 @@ export function localInventory(git, mainIndex, { cwdOf = defaultCwds } = {}) {
  */
 export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now() } = {}) {
   const out = [];
-  const open = gh(["pr", "list", "--state", "open", "--limit", "200", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
+  const open = gh(["pr", "list", "--state", "open", "--limit", "1000", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
   // A branch an open PR carries is tracked by that PR (and by the stale-PR check below).
   const openHeads = new Set(open.map((p) => `origin/${p.headRefName}`));
   for (const name of git(["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]).split("\n").filter(Boolean)) {
@@ -115,7 +115,7 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
     const fresh = tipHours < STRANDED_AFTER_HOURS;
     out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), ...(fresh ? { fresh: true } : {}) });
   }
-  const closed = gh(["pr", "list", "--state", "closed", "--limit", "500", "--search", `closed:>=${SINCE.slice(0, 10)}`,
+  const closed = gh(["pr", "list", "--state", "closed", "--limit", "1000", "--search", `closed:>=${SINCE.slice(0, 10)}`,
     "--json", "number,headRefOid,mergedAt,closedAt,author,title,headRefName"]);
   for (const pr of closed.filter((p) => !p.mergedAt && p.closedAt >= SINCE && !/dependabot/i.test(p.author?.login ?? ""))) {
     const ref = `refs/stranded/pr/${pr.number}`;

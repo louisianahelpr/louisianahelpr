@@ -9,6 +9,7 @@
  *   NEW_MIGRATION=skip-q106 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: Q96/Q97 only
  *   NEW_MIGRATION=skip-q113 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: no Q113 fix
  *   NEW_MIGRATION=skip-q122 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: drop column still `kind`
+ *   NEW_MIGRATION=skip-q1351 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs # RED: CSP shares the guest bucket
  *   MUTATE=q122-rename-only node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: renamed, bodies not replaced
  *   MUTATE=no-stamp node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs          # RED: Q106 stamp line removed
  *
@@ -51,6 +52,11 @@
  *         is on drop_kind, and every Q113 count above still lands under the new
  *         name. MUTATE=q122-rename-only applies only the rename: the recorder
  *         then swallows its own error and every drop count is 0.
+ *   Q1351 - (20261012145240) guest CSP reports (tags.source csp, as csp-report
+ *         posts them with the anon key) have their own bucket of 100 a minute:
+ *         a CSP storm stores 100, counts the rest as drop_kind 'csp', and a real
+ *         guest crash is still stored; with the guest bucket full a CSP report
+ *         is still stored; the fingerprint cap still applies to CSP rows.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -70,6 +76,7 @@ const Q96 = "20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql
 const Q106 = "20260923094457_error_logs_client_identity_and_throttle.sql";
 const Q113 = "20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql";
 const Q122 = "20260923105333_throttle_drops_kind_rename.sql";
+const Q1351 = "20261012145240_csp_reports_own_error_log_budget.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -156,7 +163,7 @@ for (const f of CHAIN) {
   }
 }
 const MODE = process.env.NEW_MIGRATION ?? "";
-const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : MODE === "skip-q113" ? [Q96, Q106] : MODE === "skip-q122" ? [Q96, Q106, Q113] : [Q96, Q106, Q113, Q122];
+const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : MODE === "skip-q113" ? [Q96, Q106] : MODE === "skip-q122" ? [Q96, Q106, Q113] : MODE === "skip-q1351" ? [Q96, Q106, Q113, Q122] : [Q96, Q106, Q113, Q122, Q1351];
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against a partly UNFIXED chain (expect FAILs)`);
 for (const f of NEWS) {
   for (let i = 1; i <= 3; i++) {
@@ -413,6 +420,46 @@ if (hasDrops && (await exists("public.check_error_log_throttle()"))) {
   check("Q113: ops_alert_verify closes it on the clean minute", L?.status === "closed", L?.status);
 } else {
   check("Q113: check_error_log_throttle() and error_log_throttle_drops exist", false, "not in this chain");
+}
+
+// ── Q1351: CSP reports have their own budget ───────────────────────────────
+if (hasDrops) {
+  const age = () => db.exec(`UPDATE public.error_logs SET created_at = now() - interval '2 minutes';
+                              DELETE FROM public.error_log_throttle_drops;`);
+  const csp = (msg) => asClient(null, () => db.query(
+    `INSERT INTO public.error_logs (severity, message, url, tags) VALUES ('warning', $1, 'https://louisianahelpr.com/browse', $2::jsonb)`,
+    [msg, JSON.stringify({ source: "csp", directive: "script-src", disposition: "enforce" })]));
+  const stored = async (where) =>
+    (await q(`SELECT count(*)::int n FROM public.error_logs WHERE user_id IS NULL AND created_at > now() - interval '1 minute' AND ${where}`))[0].n;
+  const cspCons = (await q(`SELECT pg_get_constraintdef(oid) d FROM pg_constraint
+    WHERE conrelid = 'public.error_log_throttle_drops'::regclass AND conname = 'error_log_throttle_drops_drop_kind_check'`))[0]?.d ?? "";
+  check("Q1351: drop_kind's CHECK admits 'csp' (else the recorder swallows a CHECK violation and the drop is invisible)",
+    cspCons.includes("'csp'") && ["guest", "guest_fp", "account"].every((v) => cspCons.includes(`'${v}'`)), cspCons);
+
+  // A CSP storm: 320 reports, all different fingerprints, in one minute.
+  await age();
+  for (let i = 0; i < 320; i++) await csp(`CSP script-src blocked ${word(i)}`);
+  check("Q1351: a CSP storm stores at most 100 reports a minute", (await stored(`tags->>'source' = 'csp'`)) === 100,
+    `stored=${await stored(`tags->>'source' = 'csp'`)}`);
+  check("Q1351: ... and each of its 220 drops is counted as drop_kind 'csp'", (await drops("csp")) === 220,
+    `csp=${await drops("csp")} guest=${await drops("guest")}`);
+  await ins(null, { source: "ErrorBoundary" }, "a real guest crash during the CSP storm");
+  check("Q1351: ... while a real guest crash is still stored (the storm spent none of the guest bucket)",
+    (await stored(`message = 'a real guest crash during the CSP storm'`)) === 1);
+
+  // The other way round: the guest bucket is full, a CSP report still lands.
+  await age();
+  for (let i = 0; i < 300; i++) await ins(null, { source: "guest-loop" }, `guest full ${word(i)}`);
+  check("Q1351: (setup) the guest bucket is full", (await stored(`tags->>'source' = 'guest-loop'`)) === 300);
+  await csp("CSP img-src blocked while guests are full");
+  check("Q1351: with the guest bucket full, a CSP report is still stored",
+    (await stored(`message = 'CSP img-src blocked while guests are full'`)) === 1);
+
+  // The fingerprint cap still comes first for CSP rows.
+  await age();
+  for (let i = 0; i < 30; i++) await csp(`CSP connect-src blocked for request ${i}`);
+  check("Q1351: one CSP fingerprint still stores at most 20 a minute", (await stored(`message LIKE 'CSP connect-src%'`)) === 20,
+    `stored=${await stored(`message LIKE 'CSP connect-src%'`)} guest_fp=${await drops("guest_fp")}`);
 }
 
 // ── privileges ──────────────────────────────────────────────────────────────

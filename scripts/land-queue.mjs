@@ -38,6 +38,11 @@ export const GATE_CHECKS = [
   "Apply migrations + post-job trigger smoke",
   "Lint new migration SQL",
   "Check for duplicate migration timestamps",
+  // Q1513: not path-filtered, but not required either, and two-way: a landing
+  // that raises src/lib or src/hooks line coverage without raising
+  // scripts/coverage-baseline.json merged green and turned main's Vitest red
+  // (runs 37869639703, 38156828263, 38160002856 on 2026-10-09 and -11).
+  "Coverage floor",
 ];
 
 /** Required checks plus any gate check present on the PR (by name). Pure. */

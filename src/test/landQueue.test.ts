@@ -120,6 +120,13 @@ describe("migration gate checks count in the queue", () => {
     expect(fail).toMatch(/gh\(\["pr", "merge", n, "--disable-auto"\]\)/);
   });
 
+  // Q1513: main's Vitest went red three times on a coverage rise a PR landed
+  // without raising the baseline; the queue now drops such a PR instead.
+  // @mutate scripts/land-queue.mjs |   "Coverage floor",\n]; | ];
+  it("the two-way coverage floor is a gate: a PR cannot land with it red", () => {
+    expect(GATE_CHECKS).toContain("Coverage floor");
+  });
+
   it("every gate check is a real job name, in a workflow the queue wakes on", () => {
     const dir = join(process.cwd(), ".github/workflows");
     const queueYml = readFileSync(join(dir, "land-queue.yml"), "utf8");

@@ -4,7 +4,7 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileWaitPhase } from "@/hooks/useFeedPhase";
-import { TAB_TITLES, type Tab } from "@/pages/profile/types";
+import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types";
 
 /**
  * Profile's boot placeholder, unless the profile can never arrive (Q571).
@@ -38,7 +38,7 @@ export function ProfileOfflineGate({ tab, onBack, children }: { tab: Tab; onBack
   // The same shell every tab body uses (profileTabShell.test.ts).
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
+      <ProfileTabHeader title={profileTabTitle(tab, currentSearch())} onBack={onBack} />
       {card}
     </ProfileTabBody>
   );

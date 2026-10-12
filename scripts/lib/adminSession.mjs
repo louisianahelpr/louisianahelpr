@@ -76,6 +76,39 @@ export function resolveServiceKey({ env = process.env, cwd = process.cwd() } = {
   return key || null;
 }
 
+/**
+ * WHO MAY BE MINTED (Q1422, lh-authz-rls review 2026-10-06, finding
+ * lh-authz-rls@6f19180fc#2). This mint needs no password, only the
+ * service-role key, so it must not sign in whatever address a caller names: had
+ * a CI secret (PLAYWRIGHT_ADMIN_EMAIL) ever named the owner's real account,
+ * automation would have signed in as the owner. Allowed: the six shared test
+ * accounts (scripts/test-signin-link.mjs ACCOUNTS; src/test/mintOnlyTestAccounts
+ * .test.ts keeps the two lists equal) and any @mailinator.com fixture inbox
+ * (every such account is is_seed from its first row via
+ * trg_profiles_seed_from_fixture_email; the throwaway journey and the privacy
+ * specs create them). Measured before enforcing (2026-10-12, prod
+ * auth.sessions over 5 days): every automated session was on one of these.
+ */
+export const SHARED_TEST_EMAILS = Object.freeze([
+  "helpr-audit-web-0824@mailinator.com",
+  "eli.test.helper@louisianahelpr.com",
+  "helpr-e2e-poster-0902@mailinator.com",
+  "helpr-e2e-helper-0902@mailinator.com",
+  "helpr-seed-incomplete-0912@mailinator.com",
+  "helpr-seed-admin-0912@louisianahelpr.com",
+]);
+const FIXTURE_INBOX = /^[a-z0-9._+-]+@mailinator\.com$/;
+
+/** null when `email` may be minted, else the refusal sentence. */
+export function mintRefusal(email) {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (SHARED_TEST_EMAILS.includes(e) || FIXTURE_INBOX.test(e)) return null;
+  return (
+    `mintAdminSession: refusing to mint a session for "${email}": only the shared test accounts ` +
+    `(scripts/test-signin-link.mjs ACCOUNTS) and @mailinator.com fixture inboxes may be signed in this way (Q1422).`
+  );
+}
+
 /** Node's fetch as a transport: `(url, {method, headers, body, timeoutMs}) -> {status, text}`. */
 export async function fetchTransport(url, { method, headers, body, timeoutMs }) {
   const r = await fetch(url, {
@@ -192,6 +225,8 @@ export async function mintAdminSession({
   lockDir = defaultMintLockDir(),
 }) {
   if (!email) throw new Error("mintAdminSession: no email given");
+  const refused = mintRefusal(email);
+  if (refused) throw new Error(refused);
   if (!serviceKey) throw new Error(`mintAdminSession: no service-role key to mint ${email}'s session with (SUPABASE_SERVICE_ROLE_KEY)`);
   const base = supabaseBase(String(supabaseUrl).replace(/\/+$/, ""));
 

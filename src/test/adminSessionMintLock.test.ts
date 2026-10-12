@@ -27,7 +27,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mintAdminSession, withMintLock } from "../../scripts/lib/adminSession.mjs";
 
-const EMAIL = "lock-test@example.com";
+// A @mailinator.com fixture inbox: the mint refuses any other address (Q1422).
+const EMAIL = "helpr-lock-test@mailinator.com";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** One recovery token per user, as GoTrue keeps it. */

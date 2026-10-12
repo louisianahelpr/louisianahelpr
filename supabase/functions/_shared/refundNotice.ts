@@ -312,6 +312,141 @@ function envEndpoint(): { url: string; key: string } | null {
 const isMissingTable = (e: { code?: string; message?: string } | null) =>
   !!e && (e.code === "42P01" || e.code === "PGRST205" || /refund_notices/.test(e.message ?? "") && /does not exist|schema cache/.test(e.message ?? ""));
 
+/** What one email send came to. */
+interface EmailOutcome {
+  emailed: boolean;
+  /** The person's own switches (or the seed boundary) held it back: not a fault. */
+  emailSkipped: boolean;
+  emailError?: string;
+}
+
+/**
+ * One email for a written notice, through send-notification-email (the one
+ * sender that honours the person's switches). Never throws.
+ */
+async function postRefundEmail(
+  ep: { url: string; key: string } | null,
+  payload: { notification_id: string; user_id: string; title: string; message: string; type: "payment"; link: string | null; job_id: string | null },
+): Promise<EmailOutcome> {
+  if (!ep) return { emailed: false, emailSkipped: false, emailError: "no SUPABASE_URL / service key to reach send-notification-email" };
+  try {
+    // A fresh timeout per attempt (a signal made once is already spent
+    // when fetchFunction retries after a rate limit), and one deadline
+    // for all of it, so a money path never waits a minute on an email
+    // (second review of Q1714, N5).
+    const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
+      body: JSON.stringify(payload),
+    }, {
+      deadlineAt: Date.now() + 25_000,
+      fetchImpl: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15_000) }),
+    });
+    // A body that is not JSON reads as "not skipped": res.ok alone decides.
+    const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string; success?: boolean; error?: string };
+    // Both of the sender's delivery paths failing is a 200 with
+    // success: false, so the status alone does not mean it went out.
+    const emailed = res.ok && !body.skipped && body.success !== false;
+    if (!res.ok) return { emailed, emailSkipped: false, emailError: `send-notification-email answered ${res.status}` };
+    if (body.skipped) return { emailed, emailSkipped: true, emailError: `skipped: ${body.reason ?? "unknown"}` };
+    if (body.success === false) return { emailed, emailSkipped: false, emailError: `send failed: ${body.error ?? body.reason ?? "unknown"}` };
+    return { emailed, emailSkipped: false };
+  } catch (e) {
+    return { emailed: false, emailSkipped: false, emailError: caughtMessage(e) };
+  }
+}
+
+/** Email sends a notice gets in all (the first send is attempt 1). */
+export const REFUND_EMAIL_MAX_ATTEMPTS = 3;
+/** A notice older than this is not emailed again: a week-old "refund issued" email reads as a new refund. */
+export const REFUND_EMAIL_RETRY_DAYS = 7;
+/** A notice younger than this may still be mid-send in its own sender. */
+const REFUND_EMAIL_RETRY_AFTER_MS = 15 * 60_000;
+
+/**
+ * Re-send the EMAIL of refund notices whose in-app notice was written but
+ * whose email failed (owner-approved one-time notices for the 10-11 refunds,
+ * 2026-10-12: both in-app rows written, both emails "answered 401", and
+ * nothing ever retried them). Bounded: at most REFUND_EMAIL_MAX_ATTEMPTS sends
+ * per notice, only notices under REFUND_EMAIL_RETRY_DAYS old, never one the
+ * person's own switches held back ("skipped: ..."), never a notice a trigger
+ * dropped by design. Each retry is claimed first by a compare-and-set on
+ * email_attempts, so two runs never send the same attempt twice. The email
+ * repeats the in-app notice's own title and words. Never throws.
+ *
+ * `gaveUp` lists notices whose last allowed attempt just failed: the caller
+ * pages for a person to tell them by hand.
+ */
+export async function retryFailedRefundEmails(
+  supabase: Client,
+  opts: { endpoint?: { url: string; key: string } | null; now?: number } = {},
+): Promise<{ retried: number; emailed: number; problems: string[]; gaveUp: string[]; skipped?: string }> {
+  const out = { retried: 0, emailed: 0, problems: [] as string[], gaveUp: [] as string[] };
+  try {
+    const now = opts.now ?? Date.now();
+    const { data, error } = await supabase.from("refund_notices")
+      .select("notice_key, user_id, job_id, notification_id, email_attempts, email_error, created_at")
+      .eq("emailed", false)
+      .not("notification_id", "is", null)
+      .neq("notification_id", ZERO_UUID)
+      .lt("email_attempts", REFUND_EMAIL_MAX_ATTEMPTS)
+      .gte("created_at", new Date(now - REFUND_EMAIL_RETRY_DAYS * 86_400_000).toISOString())
+      .lte("created_at", new Date(now - REFUND_EMAIL_RETRY_AFTER_MS).toISOString())
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (error) {
+      // Deploy lag: the function can deploy before the email_attempts column does.
+      if (error.code === "42703" || /email_attempts/.test(error.message ?? "")) return { ...out, skipped: "email_attempts column not deployed yet" };
+      if (isMissingTable(error)) return { ...out, skipped: "refund_notices not deployed yet" };
+      out.problems.push(`read: ${error.message}`);
+      return out;
+    }
+    type Row = { notice_key: string; user_id: string; job_id: string | null; notification_id: string | null; email_attempts: number | null; email_error: string | null; created_at: string };
+    const ep = opts.endpoint ?? envEndpoint();
+    for (const row of (data ?? []) as Row[]) {
+      const tried = Number(row.email_attempts ?? 1);
+      // The query says the same; read again here so a looser read never widens it.
+      if (!row.notification_id || row.notification_id === ZERO_UUID || !(tried < REFUND_EMAIL_MAX_ATTEMPTS)) continue;
+      if ((row.email_error ?? "").startsWith("skipped:")) continue;
+      if (now - Date.parse(row.created_at) > REFUND_EMAIL_RETRY_DAYS * 86_400_000) continue;
+
+      const { data: n, error: nErr } = await supabase.from("notifications")
+        .select("id, title, message, link, job_id").eq("id", row.notification_id).maybeSingle();
+      if (nErr) { out.problems.push(`${row.notice_key} notification read: ${nErr.message}`); continue; }
+      const note = n as { id: string; title: string; message: string; link: string | null; job_id: string | null } | null;
+
+      // Claim this attempt before sending: a concurrent run matches zero rows.
+      const { data: claimedRows, error: claimErr } = await supabase.from("refund_notices")
+        .update(note ? { email_attempts: tried + 1 } : { email_attempts: REFUND_EMAIL_MAX_ATTEMPTS, email_error: "the in-app notice is gone; email not retried" })
+        .eq("notice_key", row.notice_key).eq("email_attempts", tried).eq("emailed", false).select("notice_key");
+      if (claimErr) { out.problems.push(`${row.notice_key} claim: ${claimErr.message}`); continue; }
+      if ((claimedRows ?? []).length === 0) continue;
+      if (!note) {
+        out.problems.push(`${row.notice_key}: the in-app notice ${row.notification_id} is gone, so its email cannot be re-sent`);
+        out.gaveUp.push(row.notice_key);
+        continue;
+      }
+
+      out.retried++;
+      const sent = await postRefundEmail(ep, {
+        notification_id: note.id, user_id: row.user_id, title: note.title, message: note.message,
+        type: "payment", link: note.link ?? null, job_id: note.job_id ?? row.job_id ?? null,
+      });
+      const { error: stampErr } = await supabase.from("refund_notices")
+        .update({ emailed: sent.emailed, email_error: sent.emailError ?? null }).eq("notice_key", row.notice_key).select("notice_key");
+      if (stampErr) out.problems.push(`${row.notice_key} email stamp: ${stampErr.message}`);
+      if (sent.emailed) { out.emailed++; continue; }
+      if (sent.emailSkipped) continue;
+      out.problems.push(`${row.notice_key} attempt ${tried + 1}: ${sent.emailError ?? "unknown"}`);
+      if (tried + 1 >= REFUND_EMAIL_MAX_ATTEMPTS) out.gaveUp.push(row.notice_key);
+    }
+    return out;
+  } catch (e) {
+    out.problems.push(caughtMessage(e));
+    return out;
+  }
+}
+
 /**
  * Tell the person their money is on its way back. Never throws: the money has
  * already moved, so a notice failure is reported in the result ("failed") for
@@ -468,38 +603,9 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       }
 
       // 3. The email, through the one sender that honours the person's switches.
-      const ep = input.endpoint ?? envEndpoint();
-      let emailed = false;
-      let emailError: string | undefined;
-      let emailSkipped = false;
-      if (!ep) {
-        emailError = "no SUPABASE_URL / service key to reach send-notification-email";
-      } else {
-        try {
-          // A fresh timeout per attempt (a signal made once is already spent
-          // when fetchFunction retries after a rate limit), and one deadline
-          // for all of it, so a money path never waits a minute on an email
-          // (second review of Q1714, N5).
-          const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
-            body: JSON.stringify({ notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null }),
-          }, {
-            deadlineAt: Date.now() + 25_000,
-            fetchImpl: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15_000) }),
-          });
-          // A body that is not JSON reads as "not skipped": res.ok alone decides.
-          const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string; success?: boolean; error?: string };
-          // Both of the sender's delivery paths failing is a 200 with
-          // success: false, so the status alone does not mean it went out.
-          emailed = res.ok && !body.skipped && body.success !== false;
-          if (!res.ok) emailError = `send-notification-email answered ${res.status}`;
-          else if (body.skipped) { emailSkipped = true; emailError = `skipped: ${body.reason ?? "unknown"}`; }
-          else if (body.success === false) emailError = `send failed: ${body.error ?? body.reason ?? "unknown"}`;
-        } catch (e) {
-          emailError = caughtMessage(e);
-        }
-      }
+      const { emailed, emailSkipped, emailError } = await postRefundEmail(input.endpoint ?? envEndpoint(), {
+        notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null,
+      });
       if (claimed) {
         // The email's outcome is recorded on the claim (review of Q1714 #8):
         // emailed, or why not, so an unsent one can be found and re-sent.

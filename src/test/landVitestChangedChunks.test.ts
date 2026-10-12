@@ -15,6 +15,7 @@
 // @mutate scripts/land-vitest-changed.mjs |   if (!Array.isArray(rows)) throw new Error("vitest list did not return an array"); |   if (!Array.isArray(rows)) return [];
 // @mutate scripts/land-vitest-changed.mjs | export const CHUNK = 60; | export const CHUNK = 6000;
 // @mutate scripts/land.sh |   node scripts/land-vitest-changed.mjs origin/main |   npx vitest run --changed origin/main --passWithNoTests
+// @mutate scripts/land.sh |   node scripts/land-vitest-changed.mjs --files $NAMED_TESTS |   npx vitest run $NAMED_TESTS
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
@@ -49,6 +50,10 @@ describe("land.sh runs the --changed test set in chunks", () => {
     const code = land.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
     expect(code).toContain("node scripts/land-vitest-changed.mjs origin/main");
     expect(code).not.toMatch(/vitest run --changed/);
+    // The named-tests run too (2026-10-12: the money batch's named set ran out
+    // of heap in one process after its --changed set had passed in chunks).
+    expect(code).toContain("node scripts/land-vitest-changed.mjs --files $NAMED_TESTS");
+    expect(code).not.toMatch(/npx vitest run \$NAMED_TESTS/);
     const runner = readFileSync(join(ROOT, "scripts", "land-vitest-changed.mjs"), "utf8");
     expect(runner).toContain('"list", "--changed", base, "--filesOnly", "--json"');
     expect(runner).toMatch(/if \(run\.status !== 0\) \{[\s\S]*?process\.exit\(1\);/);

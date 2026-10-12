@@ -53,7 +53,7 @@ export async function fetchApplicationNote(jobId: string, applicantId: string): 
   const row = unwrap(
     await supabase
       .from("applications")
-      .select(APPLICATION_NOTE_COLUMNS)
+      .select("message, created_at") // = APPLICATION_NOTE_COLUMNS, spelled out so the Q1232 column guard can read it
       .eq("job_id", jobId)
       .eq("helper_id", applicantId)
       .maybeSingle(),
@@ -77,8 +77,9 @@ export function ApplicationNoteCard({
 }) {
   const enabled = showsApplicationNote(activeConvo);
   const jobId = activeConvo.jobId;
-  const applicantId = activeConvo.otherUserId ?? "";
-  const key = `${jobId}|${applicantId}`;
+  // A deleted account leaves otherUserId null (Q262): no applicant, no card.
+  const applicantId = activeConvo.otherUserId;
+  const key = `${jobId}|${String(applicantId)}`;
   const [answer, setAnswer] = useState<{ key: string; note: ApplicationNote | null } | null>(null);
 
   useEffect(() => {

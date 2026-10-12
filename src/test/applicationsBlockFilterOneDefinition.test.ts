@@ -128,6 +128,9 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
           // Q407 (5): the poster's pending applicants to a series, to offer its
           // open dates; read through the same block-filtered poster policy.
           "src/components/series/SeriesDatesPanel.tsx",
+          // The poster's chat shows the applicant's own note (2026-10-12): one
+          // row, read through the same block-filtered poster policy.
+          "src/components/messages/chatView/ApplicationNoteCard.tsx",
       ].sort(),
     );
   });

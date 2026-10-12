@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 609,
-    "files": 155,
+    "files": 156,
     "rendering": 581,
     "suppressedByPolicy": 28,
     "byKind": {
@@ -1776,7 +1776,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 127,
+      "line": 119,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1790,7 +1790,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 135,
+      "line": 127,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1804,7 +1804,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 143,
+      "line": 135,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1818,7 +1818,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 145,
+      "line": 137,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -1832,7 +1832,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 147,
+      "line": 139,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1846,7 +1846,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 149,
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1860,7 +1860,7 @@
     },
     {
       "file": "src/components/admin/AdminHealth.tsx",
-      "line": 153,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1869,34 +1869,6 @@
       "description": {
         "form": "dynamic",
         "text": "userFacingError(err, \"Try again in a minute.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminHealth.tsx",
-      "line": 352,
-      "kind": "confirmConsequential",
-      "title": {
-        "form": "literal",
-        "text": "Test event sent"
-      },
-      "description": {
-        "form": "literal",
-        "text": "Check Sentry in ~30 seconds."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminHealth.tsx",
-      "line": 364,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Throwing uncaught error"
-      },
-      "description": {
-        "form": "literal",
-        "text": "Check Sentry in ~30 seconds."
       },
       "renders": true
     },
@@ -2715,6 +2687,34 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/adminHealth/SentrySmokeTestCard.tsx",
+      "line": 25,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Test event sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Check Sentry in ~30 seconds."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminHealth/SentrySmokeTestCard.tsx",
+      "line": 37,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Throwing uncaught error"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Check Sentry in ~30 seconds."
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/adminJobs/notifyJobParty.ts",
       "line": 84,
       "kind": "toast.message",
@@ -3500,7 +3500,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 587,
+      "line": 558,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3510,7 +3510,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 593,
+      "line": 564,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3520,7 +3520,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 1606,
+      "line": 1583,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3993,7 +3993,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 159,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4003,7 +4003,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 163,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4013,7 +4013,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 196,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4023,7 +4023,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 236,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -14,10 +14,10 @@
  * (optimisticSavedIds), a failed refetch after one good read keeps the good
  * list, and the retry button is disabled while the re-read runs.
  *
- * @mutate src/pages/home/useDashboardSideQueries.ts | savedJobsLoadFailed: savedJobsError && savedJobsData === undefined, | savedJobsLoadFailed: false,
- * @mutate src/pages/home/useDashboardSideQueries.ts | savedJobsLoadFailed: savedJobsError && savedJobsData === undefined, | savedJobsLoadFailed: savedJobsError,
- * @mutate src/components/dashboard/BrowseTasksFeed.tsx | ) : savedOnly && savedLoadFailed ? ( | ) : false ? (
- * @mutate src/components/dashboard/BrowseTasksFeed.tsx |             retryDisabled={savedRetrying} |             retryDisabled={false}
+ * @mutate src/pages/home/useDashboardSideQueries.ts | failed: savedJobsError && savedJobsData === undefined, | failed: false,
+ * @mutate src/pages/home/useDashboardSideQueries.ts | failed: savedJobsError && savedJobsData === undefined, | failed: savedJobsError,
+ * @mutate src/components/dashboard/SavedOnlyState.tsx | {savedRead?.failed ? ( | {false ? (
+ * @mutate src/components/dashboard/SavedOnlyState.tsx | retryDisabled={savedRead.retrying} | retryDisabled={false}
  * @mutate src/pages/home/optimisticSavedIds.ts |   if (prev === undefined) return undefined; |   if (prev === undefined) prev = [];
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -113,9 +113,7 @@ function renderFeed(opts: {
         recommendedJobs={[]}
         recommendedLoading={false}
         savedOnly
-        savedLoadFailed={opts.savedLoadFailed}
-        retrySaved={opts.retrySaved}
-        savedRetrying={opts.savedRetrying}
+        savedRead={{ failed: opts.savedLoadFailed, retry: opts.retrySaved ?? noop, retrying: opts.savedRetrying ?? false }}
         savedJobIds={opts.savedJobIds}
         effectiveFee={10}
         handleApplyRequest={noop}
@@ -141,9 +139,9 @@ function renderFeed(opts: {
 describe("saved-only feed: a failed saved read is an error with a retry (Q1701)", () => {
   it("the hook reports a failed saved-ids read and retries it", () => {
     const { result } = renderHook(() => useDashboardSideQueries({ userId: "viewer-1", allJobs: [] }));
-    expect(result.current.savedJobsLoadFailed).toBe(true);
+    expect(result.current.savedRead.failed).toBe(true);
     expect(result.current.savedJobIds.size).toBe(0);
-    result.current.retrySavedJobs();
+    result.current.savedRead.retry();
     expect(refetchSaved).toHaveBeenCalledTimes(1);
   });
 
@@ -165,14 +163,14 @@ describe("saved-only feed: a failed saved read is an error with a retry (Q1701)"
   it("a failed REFETCH after one good read keeps the good list (not an error)", () => {
     Object.assign(savedAnswer, { data: ["id-a"], isError: true });
     const { result } = renderHook(() => useDashboardSideQueries({ userId: "viewer-1", allJobs: [] }));
-    expect(result.current.savedJobsLoadFailed).toBe(false);
+    expect(result.current.savedRead.failed).toBe(false);
     expect([...result.current.savedJobIds]).toEqual(["id-a"]);
   });
 
   it("the retry button is disabled while the re-read runs", () => {
     Object.assign(savedAnswer, { isFetching: true });
     const { result } = renderHook(() => useDashboardSideQueries({ userId: "viewer-1", allJobs: [] }));
-    expect(result.current.savedJobsRetrying).toBe(true);
+    expect(result.current.savedRead.retrying).toBe(true);
     const retry = vi.fn();
     renderFeed({ savedLoadFailed: true, savedJobIds: new Set(), retrySaved: retry, savedRetrying: true });
     const button = screen.getByRole("button", { name: /try again/i }) as HTMLButtonElement;

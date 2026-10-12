@@ -136,8 +136,7 @@ const Dashboard = () => {
   // the surface that knows how to apply to it. Not persisted — a lens you
   // look through and step back out of, not a layout preference.
   const {
-    savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
-    savedJobsLoadFailed, retrySavedJobs, savedJobsRetrying,
+    savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds, savedRead,
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
@@ -701,10 +700,7 @@ const Dashboard = () => {
                     // otherwise flash two placeholder cards at the top of the feed
                     // every time the next page loads with zero recommendations.
                     recommendedLoading={refreshing}
-                    savedOnly={savedOnly}
-                    savedLoadFailed={savedJobsLoadFailed}
-                    retrySaved={retrySavedJobs}
-                    savedRetrying={savedJobsRetrying}
+                    savedOnly={savedOnly} savedRead={savedRead}
                     effectiveFee={effectiveFee}
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}

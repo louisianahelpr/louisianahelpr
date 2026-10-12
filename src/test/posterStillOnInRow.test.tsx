@@ -150,6 +150,19 @@ describe("on the way: ONE greyed arrival button, nothing above the profile", () 
     expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
     expect(screen.getAllByText(/turns on once/)).toHaveLength(1);
   });
+
+  // The row a poster sees between the Helpr's On My Way tap and the status
+  // flip reaching this card: still `accepted`, so ScheduledStep (which mounts
+  // JobConfirmation) and not InProgressStep. JobConfirmation's on-the-way
+  // early return is what stands it down there; the test above renders
+  // InProgressStep, which never mounts it, so dropping that clause survived
+  // (vacuity push run 38181478413).
+  it("on the way but the card still reads accepted: no I'm Still On in the row", () => {
+    wrap(<ScheduledStep {...ctx(makeJob({ poster_confirmed_at: null, helper_on_the_way_at: ago(0.05) }))} />);
+    expect(row()).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /I'm Still On/ })).toBeNull();
+    expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
+  });
 });
 
 describe("the poster card draws no confirmation panel of its own", () => {

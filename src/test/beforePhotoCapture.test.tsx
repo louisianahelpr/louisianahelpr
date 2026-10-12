@@ -77,12 +77,20 @@ import type { ReactElement } from "react";
 // (Re-anchored 2026-09-19: the chip moved to the END of the actions array
 // when the owner pinned the row's two ends, so it no longer carries a
 // trailing comma.)
-// @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />] | null]
+// (Re-anchored 2026-10-12: since photo first the one-Helpr on-site capture is
+// the `mode="primary"` mount in the notice; the actions-array chip renders
+// nothing for a one-Helpr job, so removing it SURVIVED a local vacuity run.)
+// @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" mode="primary" /> | null
 // @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
 // The third takes the BEFORE-photo half of the gate off Start Working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once
-// 20260919195158 put it in the database.
-// @mutate src/components/JobTracking.tsx | disabled={updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof \|\| doneTooEarly} | disabled={updating \|\| isLocked \|\| needsArrival \|\| needsProof \|\| doneTooEarly}
+// 20260919195158 put it in the database. Since photo-first (owner 2026-10-08,
+// Q1562) the step row does not render Start Working at all while the before
+// photo is owed (`photoIsPrimary`), so the old mutation (dropping
+// `needsBeforePhoto` from the button's `disabled`) changed nothing this row
+// shows and SURVIVED (vacuity push run 38181478413). The gate the row really
+// applies is `photoIsPrimary`; putting Start Working back must turn this red.
+// @mutate src/components/JobTracking.tsx | const photoIsPrimary = needsBeforePhoto \|\| needsProof; | const photoIsPrimary = needsProof;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -352,6 +360,10 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     );
     const cta = primary(container);
     expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take Before Photo/);
+    expect(
+      within(row(container)).queryByRole("button", { name: /Start Working/ }),
+      "Start Working is on the row while the before photo is still owed",
+    ).toBeNull();
     expect(START_WORKING_IS_SERVER_GATED, "the server must still refuse working without the photo").toBe(true);
     expect(BEFORE_PHOTO_GATE_REASON, "the reason no longer names the control").toContain("Before Photo");
   });

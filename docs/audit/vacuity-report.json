@@ -1,14 +1,10 @@
 {
-  "generated": "2026-10-11T22:34:26.465Z",
-  "guards": 1672,
-  "registered": 1671,
-  "unregistered": [
-    "src/test/nativeBuildTurnstile.test.ts"
-  ],
+  "generated": "2026-10-12T03:02:36.709Z",
+  "guards": 1674,
+  "registered": 1674,
+  "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/adminSessionMintLock.test.ts",
-    "src/test/bootStallWatchdog.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -271,15 +267,6 @@
       ],
       "parents": [
         "src/components/MobileNav.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/HelperTierBadge.tsx",
-      "tests": [
-        "src/test/onlyStripeIdVerifiedBadge.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/profileLanding/IdentityHeader.tsx"
       ]
     },
     {

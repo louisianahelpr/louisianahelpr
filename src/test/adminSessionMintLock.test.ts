@@ -15,6 +15,9 @@
  * concurrent mints of one account must both succeed, each with ONE verify.
  *
  * @mutate scripts/lib/adminSession.mjs |     const r = await withMintLock(email, once, { dir: lockDir, staleMs: 2 * timeoutMs + 10_000, waitMs: 4 * timeoutMs + 30_000 }); |     const r = await once();
+ * The released-locks check is only as good as its floor: locks taken anywhere
+ * but lockDir must turn it red too.
+ * @mutate scripts/lib/adminSession.mjs | withMintLock(email, once, { dir: lockDir, | withMintLock(email, once, { dir: undefined,
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -81,11 +84,21 @@ describe("mintAdminSession: one mint per account at a time", () => {
 
   it("two concurrent mints of one account both sign in, one verify each", async () => {
     const { fetchImpl, calls } = fakeGoTrue();
-    vi.stubGlobal("fetch", fetchImpl);
+    // The lock files this test expects released must be the ones the mints
+    // took: read lockDir at every generate_link, while that mint holds it.
+    const heldAtGenerate: number[] = [];
+    vi.stubGlobal("fetch", (url: string, init: { body?: string }) => {
+      if (url.endsWith("/auth/v1/admin/generate_link")) heldAtGenerate.push(readdirSync(lockDir).length);
+      return fetchImpl(url, init);
+    });
     const mint = () => mintAdminSession({ email: EMAIL, serviceKey: "service", supabaseUrl: "https://x.supabase.co", lockDir });
     const results = await Promise.allSettled([mint(), mint(), mint()]);
     expect(results.map((r) => (r.status === "rejected" ? String(r.reason) : "ok"))).toEqual(["ok", "ok", "ok"]);
     expect(calls).toEqual({ generate: 3, verify: 3, expired: 0 });
+    // Floor: each of the three mints held exactly one lock file in lockDir,
+    // so the empty directory below is locks released, not locks kept elsewhere.
+    expect(heldAtGenerate).toHaveLength(3);
+    expect(heldAtGenerate.every((n) => n === 1)).toBe(true);
     expect(readdirSync(lockDir)).toEqual([]); // every lock released
   });
 

@@ -12,7 +12,12 @@ export function AdminUserSearchField({
   onEnter: () => void;
 }) {
   return (
-    <div className="relative flex-1">
+    // `self-start`: the row's Search button is h-14 (56px) and the default
+    // stretch made this wrapper 56px round a 48px input, so the ✕'s
+    // `top-1/2` sat 4px below the field's centre (search-x-off-center-press,
+    // vacuity run 38173155817). The wrapper is the input's height now; the
+    // input does not move.
+    <div className="relative flex-1 self-start">
       <Input
         type="search"
         aria-label="Search users by name or email"

@@ -368,7 +368,11 @@ const AdminUsers = () => {
         {/* A magnifier and a placeholder. It had neither — just an aria-label —
             so it rendered as a bare empty pill with no indication of what it
             searched or that it was a search field at all. */}
-        <div className="relative flex-1">
+        {/* `sm:self-start`: side by side, the Sort trigger's 44px tap floor
+            stretched this wrapper past the h-9 input, so the ✕'s `top-1/2`
+            sat 4px below the field's centre at 1440 (search-x-off-center-press,
+            vacuity run 38173155817). Stacked (phone) there is no stretch. */}
+        <div className="relative flex-1 sm:self-start">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" aria-hidden />
           <Input
             type="search"

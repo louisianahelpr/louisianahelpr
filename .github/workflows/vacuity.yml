@@ -478,6 +478,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs
 
+      # The prod-audit guards read seeded fixtures (the poster's saved Helprs,
+      # pets, credentials...). prod-audit.yml repairs them before its specs;
+      # this job did not, so a baseline read whatever another run left: push
+      # run 38173155817 (2026-10-11 23:31-23:51Z) had search-x-off-center-press
+      # RED before any mutation, its saved-helprs cases timing out on a Search
+      # button that renders only when the poster has saved Helprs; the poster's
+      # two favorite_helpers rows on prod were created at 00:10:50Z by the next
+      # prod-audit's repair (run 38181023758), after that leg. 2 registrations
+      # came back INCONCLUSIVE after 20 locked minutes. --apply is idempotent
+      # and writes only seed-owned rows. Skipped (with a warning) when the
+      # service-role key is absent: the gate then reports those registrations
+      # INCONCLUSIVE itself. Guard: src/test/vacuityE2eRepairsSeed.test.ts.
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; }
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -642,6 +665,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 2
 
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 2
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -791,6 +825,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 3
+
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 3
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
 
       - name: Vacuity gate (Playwright registrations)
         env:
@@ -942,6 +987,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 4
 
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 4
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -1091,6 +1147,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 5
+
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 5
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
 
       - name: Vacuity gate (Playwright registrations)
         env:
@@ -1242,6 +1309,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 6
 
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 6
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -1392,6 +1470,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 7
 
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 7
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -1541,6 +1630,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ci/wait-commit-deploys.mjs # leg 8
+
+      - name: Repair seed fixtures before the prod-backed guards
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if grep -q '^SUPABASE_SERVICE_ROLE_KEY=' .env; then
+            node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; } # leg 8
+          else
+            echo "::warning::no service-role key: seed fixtures not repaired; prod-audit registrations may be inconclusive."
+          fi
 
       - name: Vacuity gate (Playwright registrations)
         env:

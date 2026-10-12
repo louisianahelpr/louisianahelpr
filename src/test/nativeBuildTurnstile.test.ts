@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 // installed binary cannot be patched. build:ios is the one command every iOS
 // lane runs (ios-beta.yml, deploy.yml, local fastlane), and vite.config.ts
 // refuses a Capacitor build without the flag. This pins both halves.
+// @mutate package.json | VITE_CAPACITOR_BUILD=1 VITE_TURNSTILE_ENABLED=true vite build | VITE_CAPACITOR_BUILD=1 vite build
+// @mutate vite.config.ts | if (isCapacitorBuild && env.VITE_TURNSTILE_ENABLED !== "true") { | if (false) {
 const root = join(__dirname, "..", "..");
 
 describe("native builds ship with Turnstile on", () => {

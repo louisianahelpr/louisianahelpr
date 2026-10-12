@@ -114,7 +114,7 @@
     "report_helper_no_show(uuid)": "client",
     "request_job_detail_change(uuid, jsonb)": "reviewed 2026-10-08 (Q1546): the job's poster or a booked Helpr only (auth.uid() checks inside, ban-gated); the app's Ask to change the details was removed (owner, 2026-10-08), so no client caller now.",
     "request_job_schedule_change(uuid, date, time without time zone)": "client",
-    "require_feature(text)": "reviewed 2026-10-12 (hidden feature switches, 20261012031120): enforcement helper an RPC behind a hidden feature PERFORMs first; answers only for auth.uid() and raises feature_disabled; no direct client caller.",
+    "require_feature(text)": "reviewed 2026-10-12 (Q14): hidden feature switches (migration 20261012031120) enforcement helper an RPC behind a hidden feature PERFORMs first; answers only for auth.uid() and raises feature_disabled; no direct client caller.",
     "resolve_stalled_job_flag(uuid)": "client",
     "respond_job_detail_change(uuid, boolean)": "reviewed 2026-10-08 (Q1546): the job's poster or a booked Helpr only (auth.uid() checks inside, ban-gated); the app's Ask to change the details was removed (owner, 2026-10-08), so no client caller now.",
     "respond_job_schedule_change(uuid, boolean)": "client",

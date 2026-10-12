@@ -18,7 +18,7 @@ export const WIPE_NOTICE =
  * nothing. A missing function (PGRST202, before the migration deploys) is
  * silent; any other error is reported, not dropped.
  */
-export function usePreVerificationWipe(): boolean {
+function usePreVerificationWipe(): boolean {
   const { user } = useCurrentUser();
   const userId = user?.id;
   const { data } = useQuery({

@@ -3,10 +3,12 @@
  * reports real failures, stays quiet on the rate limit, and never sends the
  * password.
  *
- * @mutate src/lib/signupLead.ts |     if (error && statusOf(error) !== 429) { |     if (false) {
+ * @mutate src/lib/signupLead.ts |     if (error && !QUIET_STATUSES.has(statusOf(error) ?? 0)) { |     if (false) {
+ * @mutate src/lib/signupLead.ts |         ...(captchaToken ? { captcha_token: captchaToken } : {}), |         ...{},
+ * @mutate src/lib/signupLead.ts |             widget.reset();\n |             \n
  * @mutate src/lib/signupLead.ts | ...(prev && prev !== next ? { replaces: prev } : {}) | ...{}
  * @mutate src/lib/signupLead.ts | host.endsWith(".louisianahelpr.com") | host.endsWith("louisianahelpr.com")
- * @mutate src/lib/signupLead.ts | queueRef.current = queueRef.current.then(() => captureSignupLead(email, source, replaces)); | void captureSignupLead(email, source, replaces);
+ * @mutate src/lib/signupLead.ts | queueRef.current = queueRef.current.then(() => token).then((t) => captureSignupLead(email, source, replaces, t)); | void token.then((t) => captureSignupLead(email, source, replaces, t));
  * @mutate src/lib/signupLead.ts |   } catch (err) {\n    report(err, { tags: { source: "signupLead.capture" } });\n  } |   } finally {}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -54,6 +56,15 @@ describe("captureSignupLead", () => {
     expect(report).not.toHaveBeenCalled();
   });
 
+  it("sends the Turnstile token as captcha_token (Q1589), and stays quiet when the bot check refuses it", async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: "403", context: { status: 403 } } });
+    await captureSignupLead("me@gmail.com", "direct", null, "tok-1");
+    expect(invoke).toHaveBeenCalledWith("record-signup-lead", {
+      body: { email: "me@gmail.com", source: "direct", captcha_token: "tok-1" },
+    });
+    expect(report).not.toHaveBeenCalled();
+  });
+
   it("a thrown network error is reported, not raised", async () => {
     invoke.mockRejectedValue(new Error("offline"));
     await expect(captureSignupLead("me@gmail.com", "direct")).resolves.toBeUndefined();
@@ -81,6 +92,34 @@ describe("useSignupLeadCapture", () => {
     finishFirst();
     await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
     expect(invoke.mock.calls[1][1]).toEqual({ body: { email: "jon@gmail.com", source: "direct", replaces: "jon@gmial.com" } });
+  });
+});
+
+describe("useSignupLeadCapture with the sign-up page's Turnstile widget (Q1589)", () => {
+  beforeEach(() => {
+    invoke.mockReset();
+    report.mockReset();
+  });
+
+  it("spends one token per capture and re-arms the widget straight away for step 2's signUp", async () => {
+    invoke.mockResolvedValue({ data: null, error: null });
+    const tokens = ["tok-a", "tok-b"];
+    const widget = { getToken: vi.fn(async () => tokens.shift() ?? null), reset: vi.fn() };
+    const ref = { current: widget };
+    const { result } = renderHook(() => useSignupLeadCapture(ref));
+    result.current("jon@gmial.com");
+    result.current("jon@gmail.com");
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+    expect(invoke.mock.calls.map((c) => c[1].body.captcha_token)).toEqual(["tok-a", "tok-b"]);
+    expect(widget.reset).toHaveBeenCalledTimes(2);
+  });
+
+  it("with no widget mounted the capture still goes out, carrying no token", async () => {
+    invoke.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useSignupLeadCapture({ current: null }));
+    result.current("a@gmail.com");
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    expect(invoke.mock.calls[0][1]).toEqual({ body: { email: "a@gmail.com", source: "direct" } });
   });
 });
 

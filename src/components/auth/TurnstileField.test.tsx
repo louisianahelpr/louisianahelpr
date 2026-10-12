@@ -7,6 +7,7 @@
 // @mutate src/components/auth/TurnstileField.tsx |             apiRef.current.reset(widgetRef.current); |             void 0;
 // @mutate src/components/auth/TurnstileField.tsx |         {status === "error" && ( |         {status === "never" && (
 // @mutate src/components/auth/TurnstileField.tsx |             if (s === "interactive") sawInteractive = true; |             void 0;
+// @mutate src/components/auth/TurnstileField.tsx |               tokenRef.current = null;\n              return taken; |               return taken;
 // @mutate src/lib/turnstile.ts |   if (import.meta.env.VITE_TURNSTILE_ENABLED !== "true") return null; |   void 0;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, createRef } from "react";
@@ -57,6 +58,17 @@ describe("TurnstileField (Q1314)", () => {
     const pending = ref.current!.getToken();
     act(() => opts!.callback("tok-1"));
     await expect(pending).resolves.toBe("tok-1");
+  });
+
+  it("two waiters never get the same single-use token: the second waits for the re-armed one (Q1589)", async () => {
+    const ref = await mount();
+    const first = ref.current!.getToken();
+    const second = ref.current!.getToken();
+    act(() => opts!.callback("tok-1"));
+    await expect(first).resolves.toBe("tok-1");
+    act(() => ref.current!.reset());
+    act(() => opts!.callback("tok-2"));
+    await expect(second).resolves.toBe("tok-2");
   });
 
   it("reset() spends the token and asks Cloudflare for a fresh one", async () => {

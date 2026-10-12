@@ -184,6 +184,15 @@
       "ciReadable": false
     },
     {
+      "id": "turnstile-secret-key",
+      "label": "Cloudflare Turnstile secret key (record-signup-lead's bot check, Q1589; the same secret Supabase Auth holds for its CAPTCHA)",
+      "env": ["TURNSTILE_SECRET_KEY"],
+      "hosts": [],
+      "sourceOfTruth": "Cloudflare dashboard > Turnstile > Louisiana Helpr sign-in > Settings (a widget secret has no expiry; it changes only on a rotate)",
+      "read": { "method": "no-expiry", "reason": "a Turnstile widget secret does not lapse on a calendar date; it changes only when rotated in Cloudflare" },
+      "ciReadable": false
+    },
+    {
       "id": "github-actions-token",
       "label": "GitHub token used by workflows (GITHUB_TOKEN)",
       "env": ["GITHUB_TOKEN"],

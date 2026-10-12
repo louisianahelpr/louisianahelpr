@@ -159,7 +159,7 @@ describe("signup leads: client and unsubscribe layers", () => {
     expect(block).toMatch(/\n\s*captureLead\(email\);/);
     expect(block).not.toMatch(/await\s+captureLead/);
     expect(block.indexOf("validateAccountStep")).toBeLessThan(block.indexOf("captureLead"));
-    expect(signup).toMatch(/const captureLead = useSignupLeadCapture\(\);/);
+    expect(signup).toMatch(/const captureLead = useSignupLeadCapture\(captcha\.ref\);/);
     // The hook never awaits, remembers the last address (a typo fix replaces
     // it), and queues each save behind the previous one so a corrected address
     // can never reach the server before the typo it replaces.
@@ -167,7 +167,9 @@ describe("signup leads: client and unsubscribe layers", () => {
     expect(hook).not.toMatch(/\bawait\b/);
     expect(hook).toMatch(/const replaces = capturedLeadRef\.current;/);
     expect(hook).toMatch(/capturedLeadRef\.current = email;/);
-    expect(hook).toMatch(/queueRef\.current = queueRef\.current\.then\(\(\) => captureSignupLead\(email, source, replaces\)\);/);
+    // Q1589: the Turnstile token is taken at call time, then the save waits
+    // its turn in the queue.
+    expect(hook).toMatch(/queueRef\.current = queueRef\.current\.then\(\(\) => token\)\.then\(\(t\) => captureSignupLead\(email, source, replaces, t\)\);/);
   });
 
   it("step 1 tells the visitor before it happens", () => {

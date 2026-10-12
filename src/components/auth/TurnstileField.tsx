@@ -11,8 +11,9 @@ import { loadTurnstile, turnstileSiteKey, type TurnstileApi } from "@/lib/turnst
  * visible challenge is up), and resolves `null` rather than hanging. A null
  * token still goes to Supabase — while captcha is off server-side that is
  * simply a sign-in; once it is on, GoTrue refuses with a captcha error, which
- * the caller words via `isCaptchaError`. Tokens are single-use: the caller
- * calls `reset()` after every attempt.
+ * the caller words via `isCaptchaError`. Tokens are single-use: getToken
+ * hands each one out once, and the caller calls `reset()` after every attempt
+ * so the widget mints the next.
  */
 export interface TurnstileHandle {
   getToken: () => Promise<string | null>;
@@ -110,7 +111,14 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
           // "loading" while Cloudflare verifies the tap.
           let sawInteractive = false;
           for (;;) {
-            if (tokenRef.current) return tokenRef.current;
+            // TAKE the token, never just read it (Q1589): two callers can be
+            // waiting at once (sign-up's lead capture and its signUp), and a
+            // token is single-use, so the second must wait for a fresh one.
+            const taken = tokenRef.current;
+            if (taken) {
+              tokenRef.current = null;
+              return taken;
+            }
             const s = statusRef.current;
             if (s === "off" || s === "error") return null;
             if (s === "interactive") sawInteractive = true;

@@ -175,8 +175,11 @@ function nightlyRunsFor(issue) {
 
 async function runMarker(mk, opts) {
   if (mk.kind === "sql") {
+    // Q1694: a marker that is not one SELECT/WITH can never be run, so it is a
+    // PROBLEM (the run goes red), never a quiet "not yet", and that holds under
+    // --no-sql too: it is a defect in the marker, not a read that was skipped.
+    if (!READ_ONLY_SQL.test(mk.query)) throw new Error("only one SELECT/WITH statement is allowed, so this sql marker can never be read");
     if (opts.noSql) return { ok: null, note: "sql skipped (--no-sql)" };
-    if (!READ_ONLY_SQL.test(mk.query)) return { ok: false, error: "only one SELECT/WITH statement is allowed" };
     const { sql } = await import("./lib/opsAlertLedger.mjs");
     const got = rowText(await sql(mk.query, { readOnly: true, timeoutMs: 30000 }));
     return { ok: got === mk.expected, note: `got ${got}, want ${mk.expected}` };

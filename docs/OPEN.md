@@ -4,11 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 236** (161 to do, 75 fixed with protection pending; 1136 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 237** (162 to do, 75 fixed with protection pending; 1136 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 11 red, 13 stale, 2 unknown, 49 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:01Z)_
-- **Remote branches:** 197 carry patches not on main, 149 fully merged, of 354 (Q79). _(2026-10-12T20:01Z)_
+- **Workflows on main:** 12 red, 13 stale, 2 unknown, 48 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:16Z)_
+- **Remote branches:** 202 carry patches not on main, 150 fully merged, of 360 (Q79). _(2026-10-12T20:16Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -91,7 +91,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1372 items — 1136 done, 75 partly done (fixed, protection pending), 161 open.**
+**Queue: 1373 items — 1136 done, 75 partly done (fixed, protection pending), 162 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

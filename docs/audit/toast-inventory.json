@@ -3072,7 +3072,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 433,
+      "line": 436,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4986,7 +4986,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 760,
+      "line": 761,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5130,7 +5130,7 @@
     },
     {
       "file": "src/pages/home/useSaveJob.ts",
-      "line": 71,
+      "line": 69,
       "kind": "errorToast",
       "title": {
         "form": "literal",

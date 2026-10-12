@@ -86,6 +86,8 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q1172: "the lead's real-browser filmstrip and cwv-lab run",
   Q1399: "the owner looking at both offer cards on a phone",
   Q1464: "a screenshot of a re-listed crew (needs a booked, paid crew with a member gone: not on prod, Stripe live)",
+  Q1286: "owner1012 screens lane: built and guarded; waits on a look at the wipe notice on /complete-profile at 375 and 1440 and a live function check after deploy",
+  Q1288: "owner1012 screens lane: built and guarded; waits on a look at the empty/error title gap at 375 and 1440",
 };
 
 describe("[~] items say when they are done", () => {

@@ -412,9 +412,9 @@ export function ApplicantsEmptyState({
            and e2e/prod-audit/applicants-empty-position.spec.ts. */
         align="top-phone"
         icon={icon}
-        /* NO `eyebrow`. `.text-display-eyebrow` is `display: none` app-wide
-           (index.css:1966 — "all eyebrows gone", 2026-07-25), so anything
-           passed here renders to nothing. The first draft of this state put
+        /* NO eyebrow: EmptyState has none (its hidden eyebrow was removed
+           2026-10-12, Q1288; "all eyebrows gone" since 2026-07-25), so a
+           kicker line is not an option. The first draft of this state put
            the timing fact there ("Was due 4 days ago") and it was invisible in
            the render; every branch now carries its timing in the title or the
            body, where it is actually read. */

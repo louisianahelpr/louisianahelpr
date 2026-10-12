@@ -22,7 +22,6 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function EmptyStateSkeleton({
   variant = "dock",
-  hiddenEyebrow = false,
   titleH = 28,
   bodyLines = 2,
   bodyH,
@@ -30,9 +29,6 @@ export function EmptyStateSkeleton({
   testId,
 }: {
   variant?: "dock" | "inline" | "bare";
-  /** The real state passes an eyebrow its CSS hides (`display: none`): it
-   *  takes no height but still gives the title its 8px `space-y-2` margin. */
-  hiddenEyebrow?: boolean;
   /** Height of the title's line box at 375. */
   titleH?: number;
   /** Lines the body copy wraps to at 375. */
@@ -62,7 +58,6 @@ export function EmptyStateSkeleton({
       <Skeleton className="w-[88px] h-[88px] rounded-full" />
       <div className="w-full min-w-0 flex flex-col items-center gap-3">
         <div className="w-full min-w-0 space-y-2">
-          {hiddenEyebrow && <span className="hidden" />}
           <Skeleton className="w-56 mx-auto rounded" style={{ height: titleH }} />
           {bodyH != null ? (
             <div className="flex flex-col items-center justify-around" style={{ height: bodyH }}>

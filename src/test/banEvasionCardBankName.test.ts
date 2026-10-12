@@ -37,10 +37,10 @@
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |                 WHERE q.review_state = 'open' AND q.user_id IN (v_customer, v_helper, NEW.helper_id)) THEN | WHERE false) THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   AFTER UPDATE OF payment_status ON public.jobs
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
- * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
+ * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
- * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
- * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
+ * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
+ * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n  THEN |   THEN
  * @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
@@ -171,22 +171,25 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // while a review is open is kept on the review row and applied by the lift /
   // confirm, never dropped. Behaviour: banEvasionCardBankName.pglite.mjs
   // (NEW_MIGRATION=skip-strikes: 4 FAIL).
-  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     v_status := v_review.deferred_ban_status;\n | NULL;\n
-  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |      AND EXISTS (SELECT 1 FROM public.user_violations v\n                  WHERE v.user_id = p_user_id AND v.created_at >= v_review.created_at) THEN |      THEN
-  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     UPDATE public.ban_settlement_queue r\n       SET deferred_ban_status = NEW.ban_status, |     UPDATE public.ban_settlement_queue r\n       SET deferred_at = now(),
+  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
+  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |             EXISTS (SELECT 1 FROM public.user_violations v\n                      WHERE v.user_id = r.user_id AND v.created_at >= r.created_at) |             true
+  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |        SET deferred_rungs = r.deferred_rungs || jsonb_build_array(jsonb_build_object( |        SET deferred_rungs = '[]'::jsonb || jsonb_build_array(jsonb_build_object(
   it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {
     const refuse = body("refuse_unban_during_ban_review");
-    const record = refuse.search(/update\s+public\.ban_settlement_queue\s+r\s+set\s+deferred_ban_status\s*=\s*new\.ban_status/i);
+    // Q1496: every rung is kept with its strike count (deferred_rungs).
+    const record = refuse.search(/update\s+public\.ban_settlement_queue\s+r\s+set\s+deferred_rungs\s*=\s*r\.deferred_rungs\s*\|\|/i);
     const keep = refuse.search(/-- 1\.|new\.ban_status\s*:=\s*old\.ban_status/i);
     expect(record, "the ladder's deferred standing is recorded on the open review").toBeGreaterThan(-1);
     expect(record, "recorded before any branch keeps the old standing").toBeLessThan(keep);
     expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,600}update\s+public\.ban_settlement_queue/i);
-    expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_review\.deferred_ban_status\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
+    expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_rung ->> 'ban_status'\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
     expect(body("lift_ban_settlement_review")).toMatch(/set\s+ban_status\s*=\s*v_status/i);
-    // A strike an admin reversed during the review takes its standing with it.
-    expect(body("lift_ban_settlement_review")).toMatch(/exists\s*\(select\s+1\s+from\s+public\.user_violations\s+v\s+where\s+v\.user_id\s*=\s*p_user_id\s+and\s+v\.created_at\s*>=\s*v_review\.created_at\)/i);
+    // A strike an admin reversed during the review takes its standing with it
+    // (Q1496: down to the rung the remaining strikes reach; none when none remain).
+    expect(body("lift_ban_settlement_review")).toMatch(/v_rung := public\.ban_review_standing_rung\(v_review\.id, true\)/i);
+    expect(body("ban_review_standing_rung")).toMatch(/= 0 THEN\s+EXISTS \(SELECT 1 FROM public\.user_violations v\s+WHERE v\.user_id = r\.user_id AND v\.created_at >= r\.created_at\)/i);
     expect(readFileSync(join(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8")).toMatch(/update\.ban_status = applied\.ban_status/);
-    expect(body("admin_confirm_ban_settlement")).toMatch(/deferred_ban_status/i);
+    expect(body("admin_confirm_ban_settlement")).toMatch(/v_rung := public\.ban_review_standing_rung\(v_review\.id, false\)/i);
     expect(body("admin_ban_settlement_reviews")).toMatch(/'strikes_during_review'/);
   });
 

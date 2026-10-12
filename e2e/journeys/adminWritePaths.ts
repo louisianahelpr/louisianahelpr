@@ -49,8 +49,16 @@ export const ADMIN_WRITE_PATHS: Record<string, AdminPath> = {
     refusal: { driven: { spec: MONEY, evidence: "for (const action of NON_ADMIN_REFUSED)" } },
   },
   "execute-dispute-split": { success: { uncovered: `${DISPUTE_ONLY}; it also needs an admin decision (rpc_decide_dispute) on it` } },
-  // Driven on a per-run throwaway account through the admin Suspend / Ban dialog.
-  "admin-user-actions:set_ban_status": { success: { driven: { spec: ADMIN_SAFETY, evidence: 'name: "Permanently Ban"' } } },
+  // Driven on a per-run throwaway account through the admin Suspend / Ban dialog
+  // (BanDialog's ban is one apply_account_action transaction since Q1494).
+  "admin-user-actions:apply_account_action": { success: { driven: { spec: ADMIN_SAFETY, evidence: 'name: "Permanently Ban"' } } },
+  "admin-user-actions:set_ban_status": {
+    success: {
+      uncovered:
+        "since Q1494 the ban dialog writes through apply_account_action; set_ban_status is the unban / reverse-auto-restriction " +
+        `write, and ${SHARED_TARGET}`,
+    },
+  },
   "admin-user-actions:formal_warning": { success: { uncovered: SHARED_TARGET } },
   "admin-user-actions:confirm_message_ban": { success: { uncovered: SHARED_TARGET } },
   "admin-user-actions:dismiss_message_ban_review": {

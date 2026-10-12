@@ -195,40 +195,54 @@ describe("admin-user-actions: an admin unban lifts the review, attributably", ()
 
 // Q1414 (lh-money-escrow review of fbdfa47c7, #5): confirm_message_ban wrote
 // its user_bans row BEFORE the status write that an open review refuses, so a
-// refusal left an active ban row behind. It now asks first and writes nothing.
-// @mutate supabase/functions/admin-user-actions/index.ts |         if (openReviews && openReviews.length > 0) { |         if (false) {
-describe("admin-user-actions: confirm_message_ban on an account under an open ban review (Q1414)", () => {
-  async function confirm(review: Array<{ id: string }> | { error: { message: string } }) {
+// refusal left an active ban row behind. Q1494: the ban row and the standing
+// are now ONE transaction (admin_apply_account_action), which refuses an open
+// review before writing anything; the function writes neither table itself.
+// Transaction behaviour: src/test/pglite/banActionsAtomic.pglite.mjs.
+// @mutate supabase/functions/admin-user-actions/index.ts |         if (applyErr) {\n          if (/ban_review_open/.test(applyErr.message)) {\n            return new Response(JSON.stringify({ |         if (applyErr) {\n          if (false) {\n            return new Response(JSON.stringify({
+describe("admin-user-actions: confirm_message_ban on an account under an open ban review (Q1414, Q1494)", () => {
+  async function confirm(applyError?: { message: string; code?: string }, applied: unknown = { ban_row_written: true }) {
     setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", SUPABASE_ANON_KEY: "anon" });
     scenario.authUser = { id: "admin-1", email: "admin@example.test" };
     scenario.rpc.has_role = true;
+    scenario.rpc.admin_apply_account_action = applied;
+    if (applyError) scenario.rpcErrors = { ...scenario.rpcErrors, admin_apply_account_action: applyError };
     scenario.reads.profiles = { rows: [{ user_id: POSTER, email: "p@example.test", full_name: "P" }] };
     scenario.reads.user_violations = { rows: [{ violation_type: "message_violation" }] };
-    scenario.reads.user_bans = { rows: [] };
-    scenario.reads.ban_settlement_queue = Array.isArray(review) ? { rows: review } : review;
     const fn = await loadEdgeFunction("admin-user-actions");
     return fn.fetch(fn.request({ headers: { Authorization: "Bearer admin-jwt" }, body: { action: "confirm_message_ban", userId: POSTER, violationId: "v-1" } }));
   }
+  const applyCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_apply_account_action");
 
-  it("writes no ban row and no status, answers 409 ban_review_open", async () => {
-    const res = await confirm([{ id: "review-1" }]);
+  it("an open review (refused inside the transaction): 409 ban_review_open, no queue close, no direct writes", async () => {
+    const res = await confirm({ message: "ban_review_open", code: "42501" });
     expect(res.status).toBe(409);
     expect((await json(res)).code).toBe("ban_review_open");
     expect(scenario.writes.some((w) => w.table === "user_bans")).toBe(false);
     expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+    expect(scenario.writes.some((w) => w.table === "user_violations" && w.op === "update")).toBe(false);
   });
 
-  it("an unreadable review state fails closed: no ban row", async () => {
-    const res = await confirm({ error: { message: "boom" } });
+  it("any other failure of the transaction fails closed: 5xx, no direct writes", async () => {
+    const res = await confirm({ message: "boom" });
     expect(res.status).toBeGreaterThanOrEqual(500);
     expect(scenario.writes.some((w) => w.table === "user_bans")).toBe(false);
   });
 
-  it("no open review: the confirm goes ahead as before", async () => {
-    scenario.writeSelectRows.user_bans = [{ id: "ban-1" }];
-    const res = await confirm([]);
+  it("no open review: one transactional call (permanent, as this admin, no new strike), then the case closes", async () => {
+    const res = await confirm();
     expect(res.status).toBe(200);
-    expect(scenario.writes.some((w) => w.table === "user_bans" && w.op === "insert")).toBe(true);
+    expect(applyCalls()).toHaveLength(1);
+    expect(applyCalls()[0].args).toMatchObject({ p_user_id: POSTER, p_admin_id: "admin-1", p_action: "permanent", p_record_strike: false });
+    expect(scenario.writes.some((w) => w.table === "user_bans")).toBe(false);
+    expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+    expect(scenario.writes.some((w) => w.table === "user_violations" && w.op === "update")).toBe(true);
+  });
+
+  it("already permanently banned (no new ban row): the confirm succeeds without re-notifying", async () => {
+    const res = await confirm(undefined, { ban_row_written: false });
+    expect(res.status).toBe(200);
+    expect((await json(res)).already_applied).toBe(true);
   });
 });
 
@@ -354,5 +368,68 @@ describe("create-payment: a payment touching an account under review is refused,
     const body = await json(await call({ action: "recurring_visit", paymentId: "11111111-2222-4333-8444-555555555555" }));
     expect(String(body.error)).toMatch(NEUTRAL);
     noCheckout();
+  });
+});
+
+// Q1494: BanDialog's ban and the formal-warning strikes are ONE transaction
+// (admin_apply_account_action); the function writes no ban row, strike or
+// standing itself, and an open review comes back as 409 with nothing written.
+// @mutate supabase/functions/admin-user-actions/index.ts |       if (applyErr) {\n        if (/ban_review_open/.test(applyErr.message)) {\n          return json(409, { |       if (applyErr) {\n        if (false) {\n          return json(409, {
+describe("admin-user-actions: apply_account_action and formal_warning are one transaction (Q1494)", () => {
+  async function call(body: Record<string, unknown>, applyError?: { message: string; code?: string }) {
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key", SUPABASE_ANON_KEY: "anon" });
+    scenario.authUser = { id: "admin-1", email: "admin@example.test" };
+    scenario.rpc.has_role = true;
+    scenario.rpc.admin_apply_account_action = { ban_status: "temp_banned", suspended_until: null, state_changed: true, ban_row_written: true };
+    if (applyError) scenario.rpcErrors = { ...scenario.rpcErrors, admin_apply_account_action: applyError };
+    scenario.reads.profiles = { rows: [{ user_id: POSTER, email: "p@example.test", full_name: "P" }] };
+    scenario.reads.user_violations = { rows: [], count: 0 };
+    scenario.writeSelectRows.admin_audit_log = [{ id: "audit-1" }];
+    const fn = await loadEdgeFunction("admin-user-actions");
+    return fn.fetch(fn.request({ headers: { Authorization: "Bearer admin-jwt" }, body: { userId: POSTER, ...body } }));
+  }
+  const applyCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_apply_account_action");
+  const directStandingWrites = () =>
+    scenario.writes.filter((w) => w.table === "user_bans" || (w.table === "user_violations" && w.op === "insert") || (w.table === "profiles" && w.op === "update"));
+  const inAWeek = () => new Date(Date.now() + 7 * 86_400_000).toISOString();
+
+  it("a temporary ban: one call with this admin and the end date, no direct writes", async () => {
+    const until = inAWeek();
+    const res = await call({ action: "apply_account_action", kind: "temporary", reason: "Spam", suspendedUntil: until });
+    expect(res.status).toBe(200);
+    expect(applyCalls()).toHaveLength(1);
+    expect(applyCalls()[0].args).toMatchObject({ p_user_id: POSTER, p_admin_id: "admin-1", p_action: "temporary", p_suspended_until: until, p_record_strike: true });
+    expect(directStandingWrites()).toEqual([]);
+  });
+
+  // @mutate supabase/functions/admin-user-actions/index.ts |       if (applyErr) {\n        if (applyErr.code === 'PGRST202') { |       if (applyErr) {\n        if (false) {
+  it("before the migration deploys (PGRST202): 503, nothing written", async () => {
+    const res = await call({ action: "apply_account_action", kind: "permanent", reason: "Spam" }, { message: "Could not find the function", code: "PGRST202" });
+    expect(res.status).toBe(503);
+    expect((await json(res)).code).toBe("not_deployed");
+    expect(directStandingWrites()).toEqual([]);
+  });
+
+  it("an open review: 409 ban_review_open", async () => {
+    const res = await call({ action: "apply_account_action", kind: "permanent", reason: "Spam" }, { message: "ban_review_open" });
+    expect(res.status).toBe(409);
+    expect((await json(res)).code).toBe("ban_review_open");
+    expect(directStandingWrites()).toEqual([]);
+  });
+
+  it("refuses an unknown kind, a temporary ban without a future end, and the admin's own account, before any call", async () => {
+    expect((await call({ action: "apply_account_action", kind: "nuke", reason: "x" })).status).toBe(400);
+    expect((await call({ action: "apply_account_action", kind: "temporary", reason: "x", suspendedUntil: "2000-01-01T00:00:00Z" })).status).toBe(400);
+    expect((await call({ action: "apply_account_action", kind: "warning", reason: "x", userId: "admin-1" })).status).toBe(400);
+    expect(applyCalls()).toEqual([]);
+  });
+
+  it("formal_warning: the strike and the standing are one call; an open review is 409", async () => {
+    const res = await call({ action: "formal_warning", note: "be nice" });
+    expect(applyCalls().map((c) => (c.args as { p_action: string }).p_action)).toEqual(["formal_warning"]);
+    expect(directStandingWrites()).toEqual([]);
+    void res; // the warning email that follows the call is outside this harness (queueEmail is not stubbed here)
+    const refused = await call({ action: "formal_warning", note: "be nice" }, { message: "ban_review_open" });
+    expect(refused.status).toBe(409);
   });
 });

@@ -373,11 +373,11 @@ jobs:
     # (run 38145674494, 2026-10-11): each guard file's unmutated baseline runs
     # first, and those phases alone took 47.6-52.9 min a leg. Legs are now
     # balanced on measured minutes (run.mjs E2E_COST: 2.5 min a guard file,
-    # 0.65 a registration, a11y-prod 8 a run): eight legs, the largest
-    # estimated at ~37 min with setup (src/test/vacuityE2eLegs.test.ts).
-    # 43 minutes a leg, because the run's worst case (10 + 8 x 43 + 5 = 359)
-    # must end before db-drift-detect's Sun 13:17 fire (prodWorkflowSpacing
-    # rule 5); the prod-load week has no free slot to move to. And
+    # 0.65 a registration, a11y-prod 8 a run): nine legs since 2026-10-12
+    # (src/test/vacuityE2eLegs.test.ts). 43 minutes a leg; the run's worst case
+    # (10 + 9 x 43 + 5 = 402 from Sun 07:17) would cover db-drift-detect's
+    # 13:17 fire, so db-drift-detect skips Sundays (prodWorkflowSpacing rule 5;
+    # the prod-load week has no free slot to move either run to). And
     # `--budget-minutes 39` makes a leg that still runs long stop itself, red,
     # with the verdicts it reached, before the timeout, so it never holds the
     # accounts for a leg GitHub cancels with no result.

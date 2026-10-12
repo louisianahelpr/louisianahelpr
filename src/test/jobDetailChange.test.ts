@@ -9,13 +9,16 @@
  * later restatement cannot drop a clause silently, and holds the flag that
  * unlocks the columns to its one writer.
  *
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF v_waiting > 0 THEN | IF false THEN
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |      OR NOT (v_uid = ANY (v_booked)) THEN |      THEN
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF now() >= v_req.expires_at\n | IF false\n
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     UPDATE public.job_detail_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id; |     NULL;
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |   IF v_waiting > 0 THEN\n    RETURN jsonb_build_object('status', 'waiting' |   IF false THEN\n    RETURN jsonb_build_object('status', 'waiting'
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |   IF v_waiting > 0 THEN\n    RETURN 'waiting'; |   IF false THEN\n    RETURN 'waiting';
+ * Q1500: a crew member leaving settles what the rest agreed to.
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |     PERFORM public.settle_job_detail_change(v_id); |     NULL;
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |      OR NOT (v_uid = ANY (v_booked)) THEN |      THEN
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |   IF now() >= v_req.expires_at\n | IF false\n
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |     UPDATE public.job_detail_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id; |     NULL;
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |     CHECK (cardinality(changed_fields) > 0 AND changed_fields <@ ARRAY['title', 'description', 'location', 'materials_note']::text[]), |     CHECK (cardinality(changed_fields) > 0 AND changed_fields <@ ARRAY['title', 'description', 'location', 'materials_note', 'photos']::text[]),
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       IF changed_col IN ('title', 'description', 'location', 'latitude', 'longitude', 'materials_note')\n | IF changed_col IN ('title', 'description', 'location', 'latitude', 'longitude', 'materials_note', 'budget')\n
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   PERFORM set_config('app.detail_change_rpc', '0', true); | PERFORM 1;
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |   PERFORM set_config('app.detail_change_rpc', COALESCE(v_prev, '0'), true); | PERFORM 1;
  * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |      v_job.materials_note, CASE WHEN 'materials_note' = ANY (v_fields) THEN v_materials END,\n     v_starts_at)\n  RETURNING id INTO v_id; |      v_job.materials_note, CASE WHEN 'materials_note' = ANY (v_fields) THEN v_materials END,\n     v_starts_at + interval '30 days')\n  RETURNING id INTO v_id;
  * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |     INSERT INTO public.job_detail_change_answers (request_id, helper_id) VALUES (v_id, v_helper); |     NULL;
  * Q1499: a changed address never keeps the old pin, and booked jobs are re-geocoded.
@@ -24,7 +27,7 @@
  * @mutate supabase/functions/backfill-job-geocode/index.ts | const GEOCODE_STATUSES = ["open", "accepted", "in_progress"]; | const GEOCODE_STATUSES = ["open"];
  * G1: an agreed new address must carry its own map point (a pinless booked job verifies any arrival).
  * @mutate supabase/migrations/20261012044739_change_request_daily_cap.sql |     IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 | IF false AND v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END, |          latitude = latitude,
+ * @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |          latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END, |          latitude = latitude,
  * H1: an agreed address that geocodes to the same point keeps it (the clear stands aside for the agreed write).
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   IF current_setting('app.detail_change_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n  IF NEW.location |   IF NEW.location
  * G4: the geocoder writes only for the address it looked up.
@@ -46,6 +49,9 @@ const FIELDS = ["title", "description", "location", "materials_note"];
 describe("a booked job's place and details change only by a request every booked Helpr accepts (Q1254)", () => {
   const request = body("request_job_detail_change");
   const respond = body("respond_job_detail_change");
+  // Q1500: the apply step is one internal function, run by an accept and by a crew departure.
+  const settle = body("settle_job_detail_change");
+  const departure = body("sync_job_after_roster_departure");
   const whitelist = body("enforce_helper_jobs_column_whitelist");
 
   it("inventory: both RPCs exist, SECURITY DEFINER, and anon cannot run them", () => {
@@ -85,24 +91,40 @@ describe("a booked job's place and details change only by a request every booked
   it("one decline ends it; the change applies only once no booked Helpr is left un-accepted", () => {
     expect(respond).toMatch(/IF NOT p_accept THEN\s+UPDATE public\.job_detail_change_requests SET status = 'declined'/);
     const waiting = respond.search(/IF v_waiting > 0 THEN\s+RETURN jsonb_build_object\('status', 'waiting'/);
-    const flag = respond.indexOf("PERFORM set_config('app.detail_change_rpc', '1', true);");
-    const apply = respond.indexOf("UPDATE public.jobs");
-    const clear = respond.indexOf("PERFORM set_config('app.detail_change_rpc', '0', true);");
     expect(waiting).toBeGreaterThan(0);
     expect(respond).toMatch(/a\.helper_id = ANY \(v_booked\) AND a\.answer <> 'accepted'/);
-    expect(flag).toBeGreaterThan(waiting);
+    expect(respond.indexOf("public.settle_job_detail_change(v_req.id)")).toBeGreaterThan(waiting);
+    expect(respond).not.toContain("UPDATE public.jobs");
+    // The settle step counts only the Helprs booked NOW (Q1500), then applies.
+    const counted = settle.search(/FROM unnest\(v_booked\) h\(helper_id\)\s+WHERE NOT EXISTS \(SELECT 1 FROM public\.job_detail_change_answers a\s+WHERE a\.request_id = v_req\.id AND a\.helper_id = h\.helper_id AND a\.answer = 'accepted'\);/);
+    const swait = settle.search(/IF v_waiting > 0 THEN\s+RETURN 'waiting';/);
+    const flag = settle.indexOf("PERFORM set_config('app.detail_change_rpc', '1', true);");
+    const apply = settle.indexOf("UPDATE public.jobs");
+    const clear = settle.indexOf("PERFORM set_config('app.detail_change_rpc', COALESCE(v_prev, '0'), true);");
+    expect(counted).toBeGreaterThan(0);
+    expect(swait).toBeGreaterThan(counted);
+    expect(flag).toBeGreaterThan(swait);
     expect(apply).toBeGreaterThan(flag);
     expect(clear).toBeGreaterThan(apply);
     // Nothing between the flag and the apply but the apply itself.
-    expect(respond.slice(apply, clear).match(/UPDATE /g)?.length).toBe(1);
+    expect(settle.slice(apply, clear).match(/UPDATE /g)?.length).toBe(1);
   });
 
-  it("the flag unlocks exactly the four columns, in the Helpr's whitelist, and only respond_job_detail_change sets it", () => {
+  it("Q1500: a crew member leaving settles the job's pending request; clients cannot call the settle step", () => {
+    expect(departure).toMatch(/WHERE r\.job_id = OLD\.job_id AND r\.status = 'pending'\s+LOOP\s+BEGIN\s+PERFORM public\.settle_job_detail_change\(v_id\);/);
+    // A failed settle never blocks the departure, and is logged, not swallowed.
+    expect(departure).toMatch(/PERFORM public\.settle_job_detail_change\(v_id\);\s+EXCEPTION WHEN others THEN\s+INSERT INTO public\.error_logs/);
+    expect(allSql).toContain("REVOKE ALL ON FUNCTION public.settle_job_detail_change(uuid) FROM PUBLIC, anon, authenticated;");
+    // Nobody left booked: expired, never applied.
+    expect(settle).toMatch(/IF cardinality\(v_booked\) = 0\s+OR now\(\) >= v_req\.expires_at/);
+  });
+
+  it("the flag unlocks exactly the four columns, in the Helpr's whitelist, and only the settle step sets it", () => {
     expect(whitelist).toMatch(
       /IF changed_col IN \('title', 'description', 'location', 'latitude', 'longitude', 'materials_note'\)\s+AND current_setting\('app\.detail_change_rpc', true\) = '1' THEN\s+CONTINUE;/,
     );
     const setters = [...DEFS.entries()].filter(([, d]) => /set_config\(\s*'app\.detail_change_rpc',\s*'1'/.test(blankSqlComments(d.stmt))).map(([n]) => n);
-    expect(setters).toEqual(["respond_job_detail_change"]);
+    expect(setters).toEqual(["settle_job_detail_change"]);
   });
 
   it("Q1499: an address change clears the old coordinates, after every lock has judged the write, and booked jobs are re-geocoded", () => {
@@ -126,8 +148,8 @@ describe("a booked job's place and details change only by a request every booked
 
   it("G1: an agreed new address carries its own map point, written in the same update", () => {
     expect(request).toMatch(/IF 'location' = ANY \(v_fields\) THEN[\s\S]{0,400}IF v_lat IS NULL OR v_lng IS NULL OR v_lat NOT BETWEEN -90 AND 90 OR v_lng NOT BETWEEN -180 AND 180 THEN\s+RAISE EXCEPTION 'detail_change_location_unmapped';/);
-    expect(respond).toContain("latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END,");
-    expect(respond).toContain("longitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_longitude ELSE longitude END,");
+    expect(settle).toContain("latitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_latitude ELSE latitude END,");
+    expect(settle).toContain("longitude = CASE WHEN 'location' = ANY (v_req.changed_fields) THEN v_req.new_longitude ELSE longitude END,");
     // The app's "Ask to change the details" and its client (src/lib/jobDetailChange.ts) were
     // removed (owner, 2026-10-08: "delete ask to change the details"); the server half stands.
   });

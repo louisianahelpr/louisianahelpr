@@ -10,6 +10,7 @@
  */
 import { backgroundImport } from "@/lib/chunkReload";
 import { postRows } from "@/lib/restInsert";
+import { sessionKnown, whenSessionKnown } from "@/lib/sessionKnown";
 
 type AnalyticsEventRow = {
   event: string;
@@ -87,6 +88,8 @@ export const AhaEvent = {
 type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});
 
 const queue: AnalyticsEventRow[] = [];
+/** Rows tracked before the stored session was readable (Q1463). */
+const unattributed = new WeakSet<AnalyticsEventRow>();
 let flushTimer: number | null = null;
 
 const ANALYTICS_COLUMNS = ["event", "user_id", "properties", "url", "referrer", "platform"] as const;
@@ -99,6 +102,11 @@ const ANALYTICS_COLUMNS = ["event", "user_id", "properties", "url", "referrer", 
 async function flush() {
   if (queue.length === 0) return;
   const batch = queue.splice(0, queue.length);
+  if (batch.some((r) => unattributed.has(r))) {
+    await whenSessionKnown();
+    const id = resolveUserId();
+    for (const r of batch) if (unattributed.delete(r)) r.user_id = id;
+  }
   // Never throws; a failed batch is dropped, not reported (no recursion).
   await postRows("analytics_events", ANALYTICS_COLUMNS, (asUser) =>
     asUser ? batch : batch.map((r) => ({ ...r, user_id: null })),
@@ -184,14 +192,18 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   // Caller-supplied props win: an explicit value beats one scraped from the URL.
   const campaign = campaignProps();
-  queue.push({
+  const row: AnalyticsEventRow = {
     event,
     user_id: resolveUserId(),
     properties: Object.keys(campaign).length ? { ...campaign, ...props } : props,
     url: window.location.pathname,
     referrer: document.referrer || null,
     platform: (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "web",
-  });
+  };
+  // Before the app's Keychain restore lands the session is unreadable, not
+  // absent (Q1463): the row is attributed at flush, once it is.
+  if (!sessionKnown()) unattributed.add(row);
+  queue.push(row);
   schedule();
   // Fan out to PostHog (lazy-loaded). No-op until initPostHog() runs.
   void fanOutToPostHog(event, props);

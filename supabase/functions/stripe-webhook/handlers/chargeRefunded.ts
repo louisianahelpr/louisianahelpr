@@ -9,6 +9,7 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
+import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
 import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice } from "../../_shared/refundNotice.ts";
@@ -459,7 +460,7 @@ export async function handleChargeRefunded(
       } catch (e) {
         // Not fatal: the notice falls back to the charge's own metadata, and
         // a refund nobody can be told about pages ops below.
-        logStep("WARN: PaymentIntent read for the refund notice failed", { pi: refundPiId, error: String(e) });
+        logStep("WARN: PaymentIntent read for the refund notice failed", { pi: refundPiId, error: caughtMessage(e) });
         return chargeMeta;
       }
     })());

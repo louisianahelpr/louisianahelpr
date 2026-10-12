@@ -958,14 +958,14 @@ serve(async (req) => {
       }
       (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
       if (row.payer_id && !alreadyRefunded && refundMade && refundMade.cents > 0) {
-        const kept = refundParams.amount !== undefined;
+        const feeKept = refundParams.amount !== undefined;
         const problem = await tellVisitRefund(supabase, {
           refund: refundMade,
           recipientId: String(row.payer_id),
           parentJobId: String(row.parent_job_id),
           paymentIntentId: pi,
-          keptCents: kept ? Math.max(0, Number(row.amount_cents) - refundMade.cents) : 0,
-          extra: kept
+          keptCents: feeKept ? Math.max(0, Number(row.amount_cents) - refundMade.cents) : 0,
+          extra: feeKept
             ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid.`
             : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
         });

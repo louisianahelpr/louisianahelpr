@@ -14,9 +14,8 @@
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) { |   if (!isOnboardingFeeCorrection && isFullRefund && ordinaryRefunds.length > 0) {
  * @mutate supabase/functions/_shared/refundNotice.ts |     if (claimErr?.code === "23505") { |     if (false) {
- * @mutate supabase/functions/_shared/refundNotice.ts |         await release();
-        if (PERMANENT.has(insErr.code |         if (PERMANENT.has(insErr.code
- * @mutate supabase/functions/_shared/refundNotice.ts |           const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, { |           const res = await fetch(`${ep.url}/functions/v1/send-notification-email-off`, {
+ * @mutate supabase/functions/_shared/refundNotice.ts |         await release();\n        if (PERMANENT.has(insErr.code |         if (PERMANENT.has(insErr.code
+ * @mutate supabase/functions/_shared/refundNotice.ts |           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, { |           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email-off`, {
  * @mutate supabase/functions/_shared/refundNotice.ts |   if (m.type && METHOD_TYPES[m.type]) return METHOD_TYPES[m.type]; |   if (m.type) return m.type;
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (Date.now() - Date.parse(h.created_at) <= 5 * 60_000) return { status: "in_flight" }; |       if (false) return { status: "in_flight" };
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
@@ -195,7 +194,13 @@ describe("Q1652: the charge.refunded webhook tells the poster about EVERY refund
   });
 
   it("a fresh claim still being written by the path that made the refund: the webhook leaves it (in_flight), no second notice", async () => {
-    scenario.writeErrors.refund_notices = { message: "duplicate key", code: "23505" };
+    // Only the first claim is refused, so a takeover (the wrong answer for a
+    // FRESH claim) would succeed and send: the test tells the two apart.
+    scenario.writeOverrides = [{
+      table: "refund_notices", op: "insert",
+      when: () => scenario.writes.filter((w) => w.table === "refund_notices" && w.op === "insert").length === 1,
+      error: { message: "duplicate key", code: "23505" },
+    }];
     scenario.reads.refund_notices = { rows: [{ notification_id: null, created_at: new Date().toISOString() }] };
     const res = await deliverChargeRefunded();
     expect(res.status).toBe(200);

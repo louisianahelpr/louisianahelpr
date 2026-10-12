@@ -205,6 +205,24 @@ describe("beforeSend noise filter", () => {
     expect(beforeSend(event)).toBeNull();
   });
 
+  // Q1634 (2026-10-09): the Facebook/Instagram Android in-app browser's own
+  // injected script threw inside our page.
+  // @mutate src/lib/sentry.ts |   /^iabjs:\/\//i, |   /^iabjsx:\/\//i,
+  it("drops errors thrown by an in-app browser's injected iabjs:// script", async () => {
+    const beforeSend = await getBeforeSend();
+    const event = {
+      exception: {
+        values: [
+          {
+            value: "Error invoking postMessage: Java object is gone",
+            stacktrace: { frames: [{ filename: "iabjs://navigation_performance_logger_android" }] },
+          },
+        ],
+      },
+    };
+    expect(beforeSend(event)).toBeNull();
+  });
+
   it("drops quota/storage errors common in private mode", async () => {
     const beforeSend = await getBeforeSend();
     expect(beforeSend({ message: "QuotaExceededError" })).toBeNull();

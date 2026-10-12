@@ -109,16 +109,20 @@ export function previewDisputeSplit(
     (job.customer_fee_amount ?? 0) +
     (job.urgent_fee ?? 0) +
     (job.sales_tax_amount ?? 0) +
-    // Q1346: the executor splits pi.amount_received, which includes the setup
-    // fee on the poster's first checkout.
+    // Q1346: pi.amount_received includes the setup fee on the poster's first
+    // checkout, and Stripe's cost is on that whole charge.
     (job.onboarding_fee_amount ?? 0);
   const capturedCents = Math.round(captured * 100);
   const processingCents = capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0;
-  const refundableCents = Math.max(0, capturedCents - processingCents);
+  // Q1674 (owner, 2026-10-12): the setup fee is kept, never split back, so
+  // neither the poster's gross nor their refund is drawn from it — the
+  // executor's `capturedCents - nonRefundableCents - setupFeeKeptCents(job)`.
+  const keptSetupFeeCents = Math.max(0, Math.round((job.onboarding_fee_amount ?? 0) * 100));
+  const refundableCents = Math.max(0, capturedCents - processingCents - keptSetupFeeCents);
   // `Math.round` to whole cents, mirroring the executor's
   // `refundCents = Math.max(0, Math.round(refundableCents * posterShare))`.
   const posterNet = Math.round(refundableCents * posterShare) / 100;
-  const posterGross = Math.round(capturedCents * posterShare) / 100;
+  const posterGross = Math.round(Math.max(0, capturedCents - keptSetupFeeCents) * posterShare) / 100;
 
   return {
     helperGross: budgetShare + urgentShare,

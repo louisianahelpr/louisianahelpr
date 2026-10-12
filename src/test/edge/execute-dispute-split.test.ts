@@ -306,6 +306,23 @@ describe("execute-dispute-split edge function", () => {
       expect(body.helper_cents + body.refund_cents).toBeLessThanOrEqual(CAPTURED_CENTS);
     });
 
+    // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept, never
+    // split back to the poster; the poster's notice says so.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |   const refundableCents = Math.max(0, capturedCents - nonRefundableCents - (pi ? setupFeeKeptCents(job) : 0)); |   const refundableCents = Math.max(0, capturedCents - nonRefundableCents);
+    // @mutate supabase/functions/execute-dispute-split/index.ts | ${refundCents > 0 && pi ? setupFeeKeptSentence(setupFeeKeptCents(job)) : ""} |
+    it("a first job's kept $2 setup fee is not part of the poster's share, and the notice says it was kept (Q1674)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, job: { onboarding_fee_amount: 2 } });
+      const fn = await load();
+      const body = await json(await invoke(fn));
+      // 40% of ($110.00 captured − $3.49 Stripe − $2.00 kept).
+      expect(body.refund_cents).toBe(Math.round((CAPTURED_CENTS - STRIPE_COST_CENTS - 200) * 0.4));
+      expect(body.helper_cents).toBe(5200);
+      const note = scenario.writes.find(
+        (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "poster-1",
+      );
+      expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("account setup fee was kept");
+    });
+
     it("sends the Stripe transfer with the escrow charge and a dispute-keyed idempotency key", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       const fn = await load();

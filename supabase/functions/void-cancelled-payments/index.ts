@@ -9,6 +9,7 @@ import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -811,7 +812,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -1510,9 +1511,11 @@ serve(async (req) => {
           // too, but never Stripe's processing fee: the platform never absorbs
           // a fee and never refunds more than it netted (owner decision
           // Q407 (12), 2026-09-25).
-          const nonRefundableCents = fullSeriesRefund
+          // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
+          // cancel ("paid and done": never refunded, never charged again).
+          const nonRefundableCents = (fullSeriesRefund
             ? actualOrEstimatedFeeCents(pi, capturedCents)
-            : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+            : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents))) + setupFeeKeptCents(job);
           // Q1390: the crew's block fees are tried first and withheld from the refund.
           await payBlockFees(pi);
           const blockFeeCents = crewBlockFeeCents(blockFeeRows);
@@ -1566,7 +1569,9 @@ serve(async (req) => {
               amount_cents: Math.round(Number(refund.amount ?? refundAmount)),
               currency: refund.currency ?? "usd",
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
-              reason: "cancellation refund (minus cancellation + service fee)",
+              reason: setupFeeKeptCents(job) > 0
+                ? "cancellation refund (minus cancellation + service fee and the kept $2 setup fee)"
+                : "cancellation refund (minus cancellation + service fee)",
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });

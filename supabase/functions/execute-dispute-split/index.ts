@@ -60,6 +60,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { setupFeeKeptCents, setupFeeKeptSentence } from "../_shared/posterFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -243,7 +244,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, onboarding_fee_amount",
     )
     .eq("id", dispute.job_id)
     .maybeSingle();
@@ -576,7 +577,9 @@ serve(async (req) => {
   // cost when the gift was bought, so withholding it again here would take the
   // same cut twice out of one dollar.
   const nonRefundableCents = pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
-  const refundableCents = Math.max(0, capturedCents - nonRefundableCents);
+  // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept ("paid and
+  // done"), so it is not part of what the poster's share is drawn from.
+  const refundableCents = Math.max(0, capturedCents - nonRefundableCents - (pi ? setupFeeKeptCents(job) : 0));
   const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
 
   // Gift leg. Basis points, not dollars: the amount is computed inside
@@ -1795,7 +1798,7 @@ serve(async (req) => {
       title: restoredGiftCents > 0 && refundCents === 0
         ? "Dispute settled — your gift is back"
         : "Dispute settled — refund issued",
-      message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. ${posterHow}`,
+      message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. ${posterHow}${refundCents > 0 && pi ? setupFeeKeptSentence(setupFeeKeptCents(job)) : ""}`,
       type: "payment",
       // The settled job. A resolved dispute leaves the job completed or
       // cancelled — either way not in the "Needs you" bucket /posts opens on.

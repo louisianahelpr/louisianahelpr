@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { formatShortDate } from "@/lib/format";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -90,7 +91,7 @@ export function SignupLeadsCard() {
         <ErrorState
           variant="inline"
           title="Couldn't load sign-up leads"
-          body="Check your connection and try again."
+          body={rpcErrorMessage("admin_list_signup_leads", q.error) ?? "Check your connection and try again."}
           onRetry={() => void q.refetch()}
           surfaceStyle={NESTED_EMPTY_SURFACE}
         />

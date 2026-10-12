@@ -434,6 +434,10 @@ export const RPC_ERROR_COPY = {
   admin_release_payout_hold: {
     admin_only: "Only admins can release a payout hold.",
   },
+  // AdminAnalytics → Sign-up leads card (Q1587, 20261012030524).
+  admin_list_signup_leads: {
+    admin_only: "Only admins can see sign-up leads.",
+  },
   // The "Louisiana Helpr Team" thread (20261011161100): the admin's message
   // (AdminMessageUserDialog, and a reply typed in the thread) and the user's reply.
   admin_send_team_message: {

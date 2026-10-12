@@ -450,6 +450,15 @@ export const RPC_ERROR_COPY = {
     message_too_long: "That message is too long. Messages are limited to 4,000 characters.",
     user_not_found: "That account no longer exists.",
   },
+  // Hidden feature switches (20261012031120): Admin -> Settings card.
+  admin_list_feature_switches: {
+    not_authorized: "Only admins can see the feature switches. Check your admin role.",
+  },
+  admin_set_feature_switch: {
+    invalid_audience: "That isn't a switch setting. Choose Off, Testers only or Everyone.",
+    not_authorized: "Only admins can change a feature switch. Check your admin role.",
+    unknown_switch: "That switch no longer exists. Refresh the list.",
+  },
   send_team_reply: {
     empty_message: "Write a message first.",
     message_too_long: "That message is too long. Messages are limited to 4,000 characters.",

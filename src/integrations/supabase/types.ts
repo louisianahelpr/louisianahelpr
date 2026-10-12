@@ -1424,6 +1424,30 @@ export type Database = {
           },
         ]
       }
+      feature_switches: {
+        Row: {
+          audience: string
+          created_at: string
+          description: string
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          description: string
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          description?: string
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gift_cards: {
         Row: {
           amount: number
@@ -6723,6 +6747,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_feature_switches: {
+        Args: never
+        Returns: {
+          audience: string
+          created_at: string
+          description: string
+          key: string
+          updated_at: string
+        }[]
+      }
       admin_list_signup_leads: {
         Args: never
         Returns: {
@@ -6786,6 +6820,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_feature_switch: {
+        Args: { p_audience: string; p_key: string }
+        Returns: string
       }
       admin_set_payout_hold: {
         Args: { p_helper_id: string; p_reason: string }
@@ -7172,6 +7210,11 @@ export type Database = {
           job_id: string
           new_expires_at: string
         }[]
+      }
+      feature_enabled_for: { Args: { p_key: string }; Returns: boolean }
+      feature_enabled_for_user: {
+        Args: { p_key: string; p_user_id: string }
+        Returns: boolean
       }
       flag_possible_ban_evasion_by_identity: {
         Args: { p_nodoc_sha256: string; p_user_id: string }
@@ -8262,6 +8305,7 @@ export type Database = {
         Args: { p_date: string; p_job_id: string; p_start_time: string }
         Returns: Json
       }
+      require_feature: { Args: { p_key: string }; Returns: undefined }
       resolve_auto_tip: {
         Args: { _budget: number; _user: string }
         Returns: number

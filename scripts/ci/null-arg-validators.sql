@@ -47,6 +47,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('check_dispute_velocity',        'allow',    'TRUE = under the dispute limit (no fraud flag)'),
   ('credential_document_path_ok',   'allow',    'profile credential URL is the member''s own object'),
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
+  ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
+  ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),
@@ -136,6 +138,9 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('check_dispute_velocity',        NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
   ('credential_document_path_ok',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''insurance''', '''00000000-0000-4000-8140-00000000000a/credentials/insurance-1787168146999.png'''], ARRAY[1,2,3]),
   ('dispute_evidence_url_ok',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a/disputes/00000000-0000-4000-8140-000000000101/a.png''', '''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1,2,3]),
+  -- switch_canary is created as 'testers' (20261012031120) and D is an admin, so the non-NULL call is TRUE.
+  ('feature_enabled_for',           '00000000-0000-4000-8140-00000000000d', ARRAY['''switch_canary'''], ARRAY[1]),
+  ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),

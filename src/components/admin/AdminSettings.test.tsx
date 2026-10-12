@@ -23,6 +23,11 @@ vi.mock("@/lib/biometricGate", () => ({
     (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),
 }));
 
+// The hidden-switches card runs its own React Query reads (it needs a
+// QueryClientProvider this file does not mount) and has its own test,
+// settings/FeatureSwitchesCard.test.tsx; stubbed out here.
+vi.mock("./settings/FeatureSwitchesCard", () => ({ FeatureSwitchesCard: () => null }));
+
 const ADMIN_USER_ID = "admin-user-1";
 const ADMIN_ROLE_ID = "role-1";
 const CANDIDATE_ID = "candidate-1";

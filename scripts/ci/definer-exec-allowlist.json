@@ -23,6 +23,7 @@
     "admin_delete_review(uuid, text)": "client",
     "admin_deny_payout_hold(uuid, text)": "client",
     "admin_gift_card_paid_job_ids()": "client",
+    "admin_list_signup_leads()": "client",
     "admin_notification_crosses_seed_boundary(uuid, uuid, text)": "client",
     "admin_release_payout_hold(uuid)": "client",
     "admin_resolve_ban_evasion_match(uuid)": "client",

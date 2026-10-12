@@ -48,7 +48,7 @@ async function measure() {
   const snap = { note: "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts", measured_at: new Date().toISOString().slice(0, 16) + "Z" };
   try {
     // Every alert label (scripts/lib/alertIssueLabels.mjs), not only nightly-red.
-    const list = (label) => JSON.parse(execFileSync("gh", ["issue", "list", "--label", label, "--state", "open", "--limit", "200", "--json", "number,title"], { encoding: "utf8", timeout: 30000, cwd: ROOT }));
+    const list = (label) => JSON.parse(execFileSync("gh", ["issue", "list", "--label", label, "--state", "open", "--limit", "1000", "--json", "number,title"], { encoding: "utf8", timeout: 30000, cwd: ROOT }));
     snap.issues = { readable: true, open: openAlertIssues(list) };
   } catch (e) {
     snap.issues = { readable: false, error: String(e.message).split("\n")[0], open: [] };

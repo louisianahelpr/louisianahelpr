@@ -23,6 +23,7 @@
  * Behaviour (real jobs chain, poster + Helpr, applied 3x; RED without it):
  *   npx tsx src/test/pglite/jobAddressRederivesPlace.pglite.mjs
  *
+ * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |   IF NEW.location IS NULL THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |   NEW.zip_code := v_zip; |   v_zip := v_zip;
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |     SELECT z.parish INTO NEW.parish FROM | SELECT z.parish INTO v_city FROM
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql | CREATE TRIGGER zzzzzz_jobs_location_rederives_place | CREATE TRIGGER aaa_jobs_location_rederives_place
@@ -69,6 +70,15 @@ describe("Q1503: a job's place columns follow its address", () => {
     const place = onLocationUpdate.filter((t) => PLACE_COLUMNS.some((c) => assigns(t.fn, c))).map((t) => t.name);
     const others = before.map((t) => t.name).filter((n) => !place.includes(n));
     for (const p of place) for (const o of others) expect(o < p, `${o} sorts after ${p}`).toBe(true);
+  });
+
+  it("account deletion's redaction (location NULL) is not a move: ZIP and parish stay for the earnings export", () => {
+    const d = defs.get("jobs_location_rederives_place");
+    expect(d).toBeDefined();
+    const code = blankSqlComments(bodyOf(d!.stmt));
+    const guard = code.search(/IF\s+NEW\.location\s+IS\s+NULL\s+THEN\s+RETURN\s+NEW;/i);
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(code.search(/NEW\.zip_code\s*:=/i));
   });
 
   it("the parish/ZIP derivation is SECURITY DEFINER, pinned, and nobody's to call", () => {

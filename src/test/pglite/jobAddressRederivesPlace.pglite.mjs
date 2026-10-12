@@ -20,6 +20,8 @@
  *   A4 an edit that leaves the address alone keeps ZIP and parish
  *   A5 an agreed change of a booked job's address (applied as the Helpr): ZIP
  *      and parish follow, and the Helpr's whitelist does not refuse it
+ *   A7 account deletion's redaction (location NULL) keeps ZIP and parish (the
+ *      earnings export groups tax by parish)
  *   A6 the trigger function is nobody's to call, SECURITY DEFINER, pinned
  *      search_path, and sorts after every other BEFORE UPDATE trigger on jobs
  */
@@ -121,6 +123,10 @@ r = await as(db, "authenticated", A, `select public.respond_job_detail_change('$
 p = await place(db, J(5));
 check("A5 the Helpr's accept applies it (their whitelist does not refuse the derived columns)", r.ok && r.rows[0].v.status === "accepted", r.err ?? JSON.stringify(r.rows?.[0]?.v));
 check("A5 ...and the booked job's ZIP and parish follow the agreed address", p.location === "1 Main St, Lafayette, LA 70501" && p.zip_code === "70501" && p.parish === "Lafayette", JSON.stringify(p));
+
+r = await as(db, "service_role", null, `update public.jobs set location = null where id='${J(4)}'`);
+p = await place(db, J(4));
+check("A7 a redacted address (account deletion) keeps ZIP and parish", r.ok && p.location === null && p.zip_code === "70802" && p.parish === "East Baton Rouge", r.err ?? JSON.stringify(p));
 
 const g = (await db.query(`select has_function_privilege('anon','public.jobs_location_rederives_place()','EXECUTE') a,
   has_function_privilege('authenticated','public.jobs_location_rederives_place()','EXECUTE') u,

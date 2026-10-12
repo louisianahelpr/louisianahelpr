@@ -22,7 +22,8 @@
 --      have (out of state) gives NULL, never the old parish.
 --   3. no ZIP at all: zip_code NULL, parish from the city segment
 --      (get_parish_for_city, which refuses an ambiguous city), else NULL.
--- An address that does not change leaves both alone.
+-- An address that does not change, or is redacted to NULL by account
+-- deletion (the earnings export groups tax by parish), leaves both alone.
 --
 -- Named to sort AFTER every other BEFORE UPDATE trigger on jobs (they fire in
 -- name order; the last was zzzzzz_jobs_location_clears_coords): the poster's
@@ -49,6 +50,12 @@ DECLARE
   v_parts text[];
 BEGIN
   IF NEW.location IS NOT DISTINCT FROM OLD.location THEN
+    RETURN NEW;
+  END IF;
+  -- Account deletion redacts the poster's money-carrying jobs (location :=
+  -- NULL) and keeps the rest of the financial record: the Helpr's earnings
+  -- export groups sales tax by parish. A redaction is not a move.
+  IF NEW.location IS NULL THEN
     RETURN NEW;
   END IF;
 

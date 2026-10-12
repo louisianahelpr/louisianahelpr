@@ -479,22 +479,6 @@
         "issue": null
       },
       {
-        "fingerprint": "4937f4e1c62a94253c28fe203519e73b",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/app-shared-BZgXTI1M)",
-        "status": "open",
-        "title": "error: profile request timed out",
-        "issue": null
-      },
-      {
-        "fingerprint": "6cc892e3fa10a48e10acaa6a70294d86",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/notificationFeed-B4je1ZJb)",
-        "status": "open",
-        "title": "error: notifications load timed out after #ms",
-        "issue": null
-      },
-      {
         "fingerprint": "824bcfd4ec0ab78ef98107bf2323796b",
         "source_kind": "sentry",
         "source": "sentry:bu(assets/app-shared-B0ccjbe2)",
@@ -588,7 +572,6 @@
     "ledger 40a33605c7c3": "Q1603",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
-    "ledger 4937f4e1c62a": "Q1639",
     "ledger 4b5ace7af165": "Q1621",
     "ledger 54b8c187374a": "Q1524",
     "ledger 5b3c79ac5eb7": "Q1581",
@@ -599,7 +582,6 @@
     "ledger 6389f98a9f66": "Q1427",
     "ledger 6471854dcd82": "Q1597",
     "ledger 65bd41ba4452": "Q1597",
-    "ledger 6cc892e3fa10": "Q1640",
     "ledger 6d012a67fd60": "Q1643",
     "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",

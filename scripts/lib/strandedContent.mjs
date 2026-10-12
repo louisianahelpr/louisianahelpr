@@ -222,6 +222,60 @@ export function contentNote(r) {
   return `by content: ${parts.join(", ")}${files ? ` in ${files}${r.files.length > 3 ? ", …" : ""}` : ""}`;
 }
 
+/**
+ * Every significant line the given refs ADD and REMOVE against `mainRef`
+ * (merge-base..ref), pooled: the content already carried by open PRs.
+ * branch-prune (scripts/prune-stale-branches.mjs) opens no auto-land PR for a
+ * branch whose unlanded content all sits here (2026-10-12: the same change
+ * had 2-4 PRs, e.g. local/q1287 #2771, fix-land/q1287 #2818, fixpr #2806/#2859).
+ * A ref with no merge base is skipped. Ignored paths are skipped, as above.
+ * @param {(argv: string[], o?: {input?: string}) => string} git
+ * @param {string} mainRef
+ * @param {string[]} refs
+ * @returns {{ added: Set<string>, removed: Set<string> }}
+ */
+export function buildRefsContentIndex(git, mainRef, refs) {
+  const added = new Set();
+  const removed = new Set();
+  for (const ref of refs) {
+    let mergeBase;
+    try {
+      mergeBase = git(["merge-base", mainRef, ref]).trim();
+    } catch {
+      // No common history with main: it carries nothing comparable.
+      continue;
+    }
+    let file = "";
+    for (const l of git(["diff", "-U0", "--no-renames", mergeBase, ref]).split("\n")) {
+      if (l.startsWith("diff --git ")) { file = ""; continue; }
+      if (l.startsWith("--- ")) { if (l.startsWith("--- a/")) file = l.slice(6); continue; }
+      if (l.startsWith("+++ ")) { if (l.startsWith("+++ b/")) file = l.slice(6); continue; }
+      if (!file || isIgnoredPath(file)) continue;
+      const s = sigLine(l.slice(1));
+      if (!s) continue;
+      if (l.startsWith("+")) added.add(s);
+      else if (l.startsWith("-")) removed.add(s);
+    }
+  }
+  return { added, removed };
+}
+
+/**
+ * Is everything an unlandedContent() result holds off main already carried by
+ * the pooled refs (buildRefsContentIndex)? Same threshold as isStranded: every
+ * missing added line must be in `idx.added`, and fewer than 5 of its unlanded
+ * deletions may be absent from `idx.removed`. An errored result never is.
+ */
+export function contentCoveredBy(r, idx) {
+  if (r.error || r.mergeBase === null) return false;
+  let removedUncovered = 0;
+  for (const f of r.files) {
+    if (f.missing.some((s) => !idx.added.has(s))) return false;
+    removedUncovered += f.removedStill.filter((s) => !idx.removed.has(s)).length;
+  }
+  return !isStranded(0, removedUncovered);
+}
+
 /** A `git(args, {input}) -> stdout` runner rooted at `cwd`, the shape every function above takes. */
 export function gitRunner(cwd) {
   return (argv, o = {}) => execFileSync("git", argv, {

@@ -49,7 +49,7 @@
  * measured (--force-with-lease), so a branch pushed to since is left alone.
  */
 import { execFileSync } from "node:child_process";
-import { buildMainIndex, unlandedContent, gitRunner } from "./lib/strandedContent.mjs";
+import { buildMainIndex, unlandedContent, gitRunner, buildRefsContentIndex, contentCoveredBy } from "./lib/strandedContent.mjs";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +59,27 @@ export const MIN_AGE_HOURS = 24;
 export const STRANDED_AFTER_HOURS = 1;
 export const AUTO_LAND_PREFIX = "auto-land: ";
 export const AUTO_LAND_STUCK_HOURS = 6;
+
+/**
+ * DUPLICATE FLOOD (2026-10-12: 144 open PRs, the same change in 2-4 of them).
+ * This job runs on every push to main, and it opened an auto-land PR for:
+ *   - claim/* branches, which only mark a lane's claim on a queue item
+ *     (#2814 claim/Q1357, #2815 claim/Q1500, #2848, #2849), never work to land;
+ *   - branches whose content another open PR already carries (a land-queue
+ *     fix-land/* rebuild of a branch that had its own PR: #2818 beside #2771).
+ * Neither gets one now, and a run opens at most MAX_AUTO_LAND_PER_RUN, and
+ * none while MAX_OPEN_AUTO_LAND auto-land PRs are already open. The rest wait
+ * for a later run (the stranded job still reports them).
+ */
+export const NEVER_AUTO_LAND_PREFIXES = ["claim/"];
+export const MAX_AUTO_LAND_PER_RUN = 3;
+export const MAX_OPEN_AUTO_LAND = 6;
+
+/** How many auto-land PRs this run may open, given the open PR list. */
+export function autoLandBudget(openPrs) {
+  const open = openPrs.filter((p) => String(p.title).startsWith(AUTO_LAND_PREFIX)).length;
+  return Math.max(0, Math.min(MAX_AUTO_LAND_PER_RUN, MAX_OPEN_AUTO_LAND - open));
+}
 
 export function autoLandTitle(name) {
   return `${AUTO_LAND_PREFIX}${name}`;
@@ -147,9 +168,13 @@ export function neverLand(name, uncovered = []) {
  * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
  * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[], accepted?: boolean, contentOnMain?: boolean }} b
  */
-export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false, contentOnMain = false }) {
+export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false, contentOnMain = false, contentInOpenPr = false }) {
   if (PROTECTED.has(name)) return false;
   if (hasOpenPr) return false;
+  // A lane's claim marker, never work to land (#2814, #2815).
+  if (NEVER_AUTO_LAND_PREFIXES.some((p) => name.startsWith(p))) return false;
+  // Its unlanded content is already in another open PR: that PR lands it.
+  if (contentInOpenPr) return false;
   // Its CONTENT is on main (scripts/lib/strandedContent.mjs, the test
   // `npm run stranded` uses): what is left by commit identity is regenerated
   // files or superseded edits, not work. 2026-10-11: origin/fix/no-false-signout
@@ -181,9 +206,12 @@ export function readAcceptedTips(file = "docs/audit/stranded-accepted.json") {
  * @param {{ name: string, sha: string, ageHours: number }[]} branches
  * @param {Set<string>} openHeads
  * @param {Map<string, string>} acceptedTips
+ * A content-stranded branch whose unlanded content another open PR already
+ * carries (`contentInOpenPrOf`) goes to `inOpenPr`, never `stranded`.
  * @param {(name: string) => boolean} contentStrandedOf
+ * @param {(name: string) => boolean} [contentInOpenPrOf]
  */
-export function findStranded(gitFn, branches, openHeads, acceptedTips, contentStrandedOf) {
+export function findStranded(gitFn, branches, openHeads, acceptedTips, contentStrandedOf, contentInOpenPrOf = () => false) {
   const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
   // Subjects already on main (recent history) or on any open PR's head.
   const covered = new Set(gitFn(["log", "--format=%s", "-n", "5000", "origin/main"]).split("\n"));
@@ -193,19 +221,22 @@ export function findStranded(gitFn, branches, openHeads, acceptedTips, contentSt
   }
   const stranded = [];
   const contentOnMain = [];
+  const inOpenPr = [];
   for (const { name, ageHours } of branches) {
     const hasOpenPr = openHeads.has(name);
     if (PROTECTED.has(name) || hasOpenPr || !(ageHours >= STRANDED_AFTER_HOURS)) continue;
     const uncovered = uncoveredCommits(gitFn(["cherry", "-v", "origin/main", `origin/${name}`]), covered);
     const accepted = acceptedTips.get(`remote:origin/${name}`) === tipOf.get(name);
     if (!isStranded({ name, hasOpenPr, ageHours, uncovered, accepted })) continue;
-    if (isStranded({ name, hasOpenPr, ageHours, uncovered, accepted, contentOnMain: !contentStrandedOf(name) })) {
-      stranded.push({ name, ageHours, uncovered });
-    } else {
+    if (!isStranded({ name, hasOpenPr, ageHours, uncovered, accepted, contentOnMain: !contentStrandedOf(name) })) {
       contentOnMain.push({ name, ageHours, uncovered });
+    } else if (!isStranded({ name, hasOpenPr, ageHours, uncovered, accepted, contentInOpenPr: contentInOpenPrOf(name) })) {
+      inOpenPr.push({ name, ageHours, uncovered });
+    } else {
+      stranded.push({ name, ageHours, uncovered });
     }
   }
-  return { stranded, contentOnMain };
+  return { stranded, contentOnMain, inOpenPr };
 }
 
 function git(args) {
@@ -252,9 +283,18 @@ function main() {
   const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
   let mainIndex = null;
   const run = gitRunner(process.cwd());
-  const contentStrandedOf = (name) => {
+  const contentOf = new Map();
+  const contentResult = (name) => {
     mainIndex ??= buildMainIndex(run, "origin/main");
-    return unlandedContent(run, `origin/${name}`, "origin/main", mainIndex).stranded;
+    if (!contentOf.has(name)) contentOf.set(name, unlandedContent(run, `origin/${name}`, "origin/main", mainIndex));
+    return contentOf.get(name);
+  };
+  const contentStrandedOf = (name) => contentResult(name).stranded;
+  // Lines every open PR's head adds/removes, pooled; built once, on first use.
+  let openPrIndex = null;
+  const contentInOpenPrOf = (name) => {
+    openPrIndex ??= buildRefsContentIndex(run, "origin/main", [...openHeads].filter((h) => tipOf.has(h)).map((h) => `origin/${h}`));
+    return contentCoveredBy(contentResult(name), openPrIndex);
   };
   const rows = branches.map(({ name, ageHours }) => {
     const facts = {
@@ -281,9 +321,18 @@ function main() {
       (apply ? "" : "  (dry run; pass --apply to delete the DELETE rows)"),
   );
 
-  const { stranded, contentOnMain } = findStranded(git, branches, openHeads, readAcceptedTips(), contentStrandedOf);
+  const { stranded, contentOnMain, inOpenPr } = findStranded(git, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
   for (const b of contentOnMain) {
     console.log(`content on main, no auto-land PR: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
+  }
+  for (const b of inOpenPr) {
+    console.log(`content already in an open PR, no auto-land PR: ${b.name}`);
+  }
+  const budget = autoLandBudget(openPrs);
+  const toOpen = stranded.slice(0, budget);
+  const deferred = stranded.slice(budget);
+  for (const b of deferred) {
+    console.log(`auto-land deferred to a later run (cap ${MAX_AUTO_LAND_PER_RUN} per run, ${MAX_OPEN_AUTO_LAND} open): ${b.name}`);
   }
   if (stranded.length) {
     console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (land it or delete it):`);
@@ -298,7 +347,7 @@ function main() {
   let failed = 0;
   const autoOpened = [];
   if (apply) {
-    for (const b of stranded) {
+    for (const b of toOpen) {
       try {
         const body =
           `Opened by branch-prune: \`${b.name}\` held ${b.uncovered.length} commit(s) on neither main nor an open PR ` +
@@ -344,6 +393,12 @@ function main() {
     }
     if (autoOpened.length) {
       md += `\n### Auto-land PRs opened\n\n${autoOpened.map((a) => `- \`${a.name}\`: ${a.url}`).join("\n")}\n`;
+    }
+    if (deferred.length) {
+      md += `\n### Auto-land deferred (cap ${MAX_AUTO_LAND_PER_RUN} per run, ${MAX_OPEN_AUTO_LAND} open)\n\n${deferred.map((b) => `- \`${b.name}\``).join("\n")}\n`;
+    }
+    if (inOpenPr.length) {
+      md += `\n### Content already in an open PR (no auto-land PR)\n\n${inOpenPr.map((b) => `- \`${b.name}\``).join("\n")}\n`;
     }
     if (stuck.length) {
       md += `\n### STUCK auto-land PRs (red)\n\n${stuck.map((p) => `- #${p.number} \`${p.headRefName}\``).join("\n")}\n`;

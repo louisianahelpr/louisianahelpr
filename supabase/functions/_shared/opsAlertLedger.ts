@@ -23,12 +23,13 @@ export interface LedgerOccurrence {
   verifyKind?: 'manual'
 }
 
-export async function recordOpsAlertLedger(o: LedgerOccurrence): Promise<void> {
+/** True only when ops_alert_record answered OK (a caller may need to know, Q1582). */
+export async function recordOpsAlertLedger(o: LedgerOccurrence): Promise<boolean> {
   const url = Deno.env.get('SUPABASE_URL')
   const key = Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !key) {
     console.warn(`[ops_alert_record] NOT RECORDED (no SUPABASE_URL/SECRET_KEY): ${o.title}`)
-    return
+    return false
   }
   try {
     const res = await fetch(`${url}/rest/v1/rpc/ops_alert_record`, {
@@ -46,7 +47,9 @@ export async function recordOpsAlertLedger(o: LedgerOccurrence): Promise<void> {
       signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) console.warn('[ops_alert_record] non-OK', res.status, await res.text())
+    return res.ok
   } catch (err) {
     console.warn('[ops_alert_record] failed:', err instanceof Error ? err.message : err)
+    return false
   }
 }

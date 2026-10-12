@@ -71,6 +71,7 @@ export const REQUIRED_ACTIVE = [
 ];
 
 /** Run on their own or land through the refresh PR, but may be disabled: file -> why. */
+// @two-way src/test/requiredActiveWorkflows.test.ts:no longer runs on its own: drop it from EXEMPT_FROM_ACTIVE
 export const EXEMPT_FROM_ACTIVE = {
   "ios-icon-sync.yml":
     "a refresh-PR bot that only a person dispatches (no schedule, no workflow_run); disabled, nothing that runs on its own stops",

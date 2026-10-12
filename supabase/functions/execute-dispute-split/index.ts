@@ -1802,8 +1802,11 @@ serve(async (req) => {
         kind: "refund",
         paymentIntentId: paymentIntentId ?? null,
         amountCents: refundCents,
-        keptCents: movedHelperCents + movedPlatformFeeCents,
-        keptReason: "the Helpr's share under the dispute decision",
+        // What the CARD charge kept (second review of Q1652, N1): the Helpr's
+        // share of it and the card processing fee, so refunded + kept is the
+        // receipt's total. A gift's share is not on the card at all.
+        keptCents: Math.max(0, capturedCents - refundCents),
+        keptReason: "the Helpr's share under the dispute decision and the card processing fee",
         recipientId: job.customer_id,
         jobId: job.id,
         extra: restoredGiftCents > 0

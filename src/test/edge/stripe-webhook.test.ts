@@ -2431,7 +2431,8 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     expect(statusWrites()).toEqual(["expired"]);
     const expire = flips()[0];
     expect(expire.filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
-    expect(kick).not.toHaveBeenCalled();
+    // No booking kick (the refund's email, Q1652, is the only call).
+    expect(kick.mock.calls.filter((c) => String(c[0]).includes("charge-recurring-visits"))).toHaveLength(0);
   });
 
   it("Q750 (4): a payment for a series whose parent was CANCELLED is refunded in full, never marked paid", async () => {
@@ -2566,7 +2567,8 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
     await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(payerNotices()).toHaveLength(1);
-    expect(String(payerNotices()[0].link)).toBe("/posts?visit_refund=pi_rv");
+    // Q1652 review N6: the refund's id rides in the link beside the payment's.
+    expect(String(payerNotices()[0].link)).toBe("/posts?visit_refund=pi_rv&refund=re_1");
     expect(JSON.stringify(slackAlerts)).toContain("paid but not bookable");
   });
 

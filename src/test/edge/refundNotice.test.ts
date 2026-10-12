@@ -22,6 +22,10 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |               amountCents: Math.max(0, Number(pi.amount ?? 0) - feeCents), keptCents: feeCents, |               amountCents: 0, keptCents: feeCents,
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (cancellationRefundNotice) await tellPosterMoneyBack(job, pi, cancellationRefundNotice); |             void cancellationRefundNotice;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       if (pathAnnouncesRefund((r.metadata ?? null) as Record<string, string> \| null)) { |       if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         if (ageS < PATH_GRACE_S) { |         if (true) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       } else if (state !== "in_flight" && ageS < PATH_HEAD_START_S) { |       } else if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       if (releaseTold !== null && Number(r.amount ?? 0) === releaseTold) { |       if (false) {
+ * @mutate supabase/functions/stripe-webhook/index.ts |     if (err instanceof WebhookDeferred) { |     if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -41,7 +45,10 @@ const OWNER_JOB = {
   customer_fee_amount: "12",
   dispute_status: null,
 };
-const OWNER_REFUND = { id: "re_3UOcZ8Kp2H4b7tEC1cVCF92O", amount: 10000, status: "succeeded", metadata: {}, created: Math.floor(Date.now() / 1000) };
+// Made 10 minutes ago: past the 2-minute head start the webhook gives the
+// path that made a refund to announce it itself.
+const OWNER_REFUND = { id: "re_3UOcZ8Kp2H4b7tEC1cVCF92O", amount: 10000, status: "succeeded", metadata: {}, created: Math.floor(Date.now() / 1000) - 600 };
+const minutesAgo = (m: number) => Math.floor(Date.now() / 1000) - m * 60;
 const VISA_4242 = { type: "card", card: { brand: "visa", last4: "4242", wallet: null } };
 // The owner's real charge (ch_3UOcZ8Kp2H4b7tEC1lZSOnVi, read live by the
 // review of Q1652): paid with Link, not a card.
@@ -193,7 +200,7 @@ describe("Q1652: the charge.refunded webhook tells the poster about EVERY refund
     expect(String(posterNotices()[0].message)).toContain("to your original payment method");
   });
 
-  it("a fresh claim still being written by the path that made the refund: the webhook leaves it (in_flight), no second notice", async () => {
+  it("a fresh claim still being written by the path that made the refund: deferred (in_flight), no second notice", async () => {
     // Only the first claim is refused, so a takeover (the wrong answer for a
     // FRESH claim) would succeed and send: the test tells the two apart.
     scenario.writeOverrides = [{
@@ -203,19 +210,58 @@ describe("Q1652: the charge.refunded webhook tells the poster about EVERY refund
     }];
     scenario.reads.refund_notices = { rows: [{ notification_id: null, created_at: new Date().toISOString() }] };
     const res = await deliverChargeRefunded();
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(503);
     expect(posterNotices()).toHaveLength(0);
     expect(notificationEmails).toHaveLength(0);
   });
 
-  it("a refund its own path announces (admin, dispute split, visit card fee) is left to that path", async () => {
+  it("a refund its own path announces (admin, dispute split, visit card fee) is left to that path while it is fresh: deferred, not paged", async () => {
     for (const md of [{ source: "admin_refund_general" }, { source: "admin_refund_dispute" }, { dispute_id: "d-1" }, { fee_withheld: "true" }]) {
       scenario.writes.length = 0;
-      stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, metadata: md }] });
-      await deliverChargeRefunded();
+      slackAlerts.length = 0;
+      stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, created: minutesAgo(5), metadata: md }] });
+      const res = await deliverChargeRefunded();
+      expect(res.status, JSON.stringify(md)).toBe(503);
       expect(posterNotices(), JSON.stringify(md)).toHaveLength(0);
       expect(claims(), JSON.stringify(md)).toEqual([]);
+      expect(JSON.stringify(slackAlerts)).not.toContain("processing error");
     }
+  });
+
+  it("the same refund, already told by its path, is acknowledged with no second notice", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, created: minutesAgo(5), metadata: { source: "admin_refund_general" } }] });
+    scenario.reads.refund_notices = { rows: [{ notification_id: "n-path" }] };
+    const res = await deliverChargeRefunded();
+    expect(res.status).toBe(200);
+    expect(posterNotices()).toHaveLength(0);
+  });
+
+  it("a path that stopped between its refund and its notice: past 15 minutes the webhook tells the person itself (review N2)", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, created: minutesAgo(20), metadata: { source: "admin_refund_dispute" } }] });
+    const res = await deliverChargeRefunded();
+    expect(res.status).toBe(200);
+    expect(posterNotices()).toHaveLength(1);
+    expect(notificationEmails).toHaveLength(1);
+  });
+
+  it("a fresh refund nobody has claimed yet gets the path's head start: deferred (503, no page), then sent on redelivery", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, created: minutesAgo(0) }] });
+    const res = await deliverChargeRefunded();
+    expect(res.status).toBe(503);
+    expect(posterNotices()).toHaveLength(0);
+    expect(JSON.stringify(slackAlerts)).not.toContain("processing error");
+    // The dedupe row was rolled back, so Stripe's redelivery is processed.
+    expect(scenario.writes.some((w) => w.table === "stripe_webhook_events" && w.op === "delete")).toBe(true);
+  });
+
+  it("a released hold already announced is not announced again as a refund of the same amount (review N8)", async () => {
+    scenario.reads.refund_notices = {
+      rows: [],
+      selectOverrides: [{ includes: "amount_cents", result: { rows: [{ amount_cents: 10000, notification_id: "n-release" }] } }],
+    };
+    const res = await deliverChargeRefunded();
+    expect(res.status).toBe(200);
+    expect(posterNotices()).toHaveLength(0);
   });
 
   it("a tip refund is told to the tipper its ledger names (the tip's PaymentIntent names nobody)", async () => {

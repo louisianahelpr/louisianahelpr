@@ -4,7 +4,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { sendRefundNotice } from "../../_shared/refundNotice.ts";
+import { refundNoticeProblem, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q210(b): the payer paid a $300+ recurring visit on-session.
@@ -209,9 +209,13 @@ async function tellPayerRefunded(
   v: { pi: string; payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; refundId: string | null; duplicate: boolean },
 ): Promise<{ told: boolean; alreadyTold: boolean }> {
   if (!v.payerId) return { told: false, alreadyTold: false };
-  const link = `/posts?visit_refund=${encodeURIComponent(v.pi)}`;
+  // The refund's id rides in the link too, so the refund notice's own dedupe
+  // (it matches the reference) sees this notice (second review of Q1652, N6).
+  // An earlier notice is found by its payment, whichever form its link took.
+  const visitLink = `/posts?visit_refund=${encodeURIComponent(v.pi)}`;
+  const link = v.refundId ? `${visitLink}&refund=${encodeURIComponent(v.refundId)}` : visitLink;
   const { data: prior, error: priorErr } = await supabase
-    .from("notifications").select("id").eq("user_id", v.payerId).eq("link", link).limit(1);
+    .from("notifications").select("id").eq("user_id", v.payerId).ilike("link", `${visitLink}%`).limit(1);
   if (!priorErr && (prior ?? []).length > 0) return { told: true, alreadyTold: true };
   if (!v.refundId || !(Number(v.amountCents) > 0)) return { told: false, alreadyTold: false };
   const visit = `The visit${v.visitDate ? ` on ${v.visitDate}` : ""}`;
@@ -231,6 +235,18 @@ async function tellPayerRefunded(
       : `${visit} couldn't be booked, so we refunded what you paid for it in full.`,
   });
   if (result.status === "duplicate") return { told: true, alreadyTold: true };
+  // Told in the app but the email failed: paged like every other path (N7).
+  const problem = refundNoticeProblem(result);
+  if (problem && result.status === "sent") {
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "warning",
+      title: "Money went back to a payer who was not fully told",
+      message: `Visit refund ${v.refundId} on ${v.pi}: ${problem}. Tell them by hand.`,
+      fields: { payment_intent: v.pi, refund_id: v.refundId ?? "—" },
+      oncePerDayKey: `refund-notice:refund:${v.refundId}`,
+    });
+  }
   if (result.status === "sent" || result.status === "dropped") return { told: true, alreadyTold: false };
   return { told: false, alreadyTold: false };
 }

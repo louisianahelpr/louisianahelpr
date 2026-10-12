@@ -126,6 +126,37 @@ export function pathAnnouncesRefund(md: Record<string, string> | null | undefine
     md.fee_withheld === "true";
 }
 
+/**
+ * Where a refund's notice stands, read only (no claim taken): "done" (written,
+ * or dropped by design), "in_flight" (claimed, not written yet), "none", or
+ * "unknown" (the read failed, or the table is not deployed yet).
+ */
+export async function refundNoticeState(supabase: Client, key: string): Promise<"done" | "in_flight" | "none" | "unknown"> {
+  try {
+    const { data, error } = await supabase.from("refund_notices").select("notification_id").eq("notice_key", key).maybeSingle();
+    if (error) return "unknown";
+    if (!data) return "none";
+    return (data as { notification_id: string | null }).notification_id ? "done" : "in_flight";
+  } catch (e) {
+    console.warn("[refundNotice] state read threw", { key, error: caughtMessage(e) });
+    return "unknown";
+  }
+}
+
+/**
+ * The amount a `release:<pi>` notice already told the person about, or null.
+ * A hold captured in part releases the rest; should Stripe also show that as a
+ * Refund on the charge, the webhook must not announce the same money twice
+ * (second review of Q1652, N8).
+ */
+export async function releasedCentsAlreadyTold(supabase: Client, paymentIntentId: string | null): Promise<number | null> {
+  if (!paymentIntentId) return null;
+  const { data, error } = await supabase.from("refund_notices").select("amount_cents, notification_id")
+    .eq("notice_key", `release:${paymentIntentId}`).maybeSingle();
+  if (error || !data) return null;
+  return (data as { notification_id: string | null }).notification_id ? Number((data as { amount_cents: number }).amount_cents) : null;
+}
+
 /** Postgres errors no retry can pass: a foreign key, a CHECK, a malformed value. */
 const PERMANENT = new Set(["23503", "23514", "22P02", "23502"]);
 /** Marks a claim whose notification a trigger dropped by design: never taken over. */
@@ -440,11 +471,17 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
         emailError = "no SUPABASE_URL / service key to reach send-notification-email";
       } else {
         try {
+          // A fresh timeout per attempt (a signal made once is already spent
+          // when fetchFunction retries after a rate limit), and one deadline
+          // for all of it, so a money path never waits a minute on an email
+          // (second review of Q1652, N5).
           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
             body: JSON.stringify({ notification_id: notificationId, user_id: recipient, title, message, type: "payment", link, job_id: job?.id ?? null }),
-            signal: AbortSignal.timeout(20_000),
+          }, {
+            deadlineAt: Date.now() + 25_000,
+            fetchImpl: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15_000) }),
           });
           // A body that is not JSON reads as "not skipped": res.ok alone decides.
           const body = await res.json().catch(() => ({})) as { skipped?: boolean; reason?: string };

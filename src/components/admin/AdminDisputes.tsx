@@ -453,6 +453,54 @@ const AdminDisputes = () => {
     }
   };
 
+  /**
+   * Q1732 (owner, 2026-10-12): un-stick a decided dispute that ran in Stripe
+   * TEST mode. execute-dispute-split's clear_test_mode_records branch asks
+   * Stripe about every refund and transfer id the books and the dispute hold,
+   * clears them only if EVERY one is a test-mode object
+   * (clear_test_mode_dispute_ledger: admin, audited, compare-and-set), then
+   * supersedes the decision as this admin so it can be decided again. A live
+   * id refuses with nothing changed. Pressing it twice does nothing twice.
+   */
+  const clearTestModeRecords = async (job: DisputedJob, note: string) => {
+    const disputeId = disputeRecords[job.id]?.id ?? null;
+    if (!disputeId) {
+      toast.error("This dispute has no formal record to clear.");
+      return;
+    }
+    const ok = await requireBiometric("Confirm clearing this dispute's test-mode records");
+    if (!ok) return;
+    setRetrying(job.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("execute-dispute-split", {
+        body: { dispute_id: disputeId, action: "clear_test_mode_records", reason: note.trim() },
+      });
+      const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);
+      if (invokeError) {
+        report(invokeError, { tags: { source: "AdminDisputes.clearTestModeRecords" } });
+        // A non-2xx carries the server's own words in its Response body; a 2xx
+        // with an error envelope carries them in data.error.
+        toast.error(
+          error
+            ? await functionErrorMessage(error, "Couldn't clear the test-mode records — nothing was changed; try again.")
+            : String(data.error),
+        );
+        return;
+      }
+      confirmConsequential(
+        (data as { action?: string } | null)?.action === "already_superseded"
+          ? "Already done: this decision was re-opened earlier."
+          : "Test-mode records cleared. The dispute is open again to decide.",
+      );
+    } catch (err: unknown) {
+      report(err, { tags: { source: "AdminDisputes.clearTestModeRecords" } });
+      toast.error(userFacingError(err, "Couldn't clear the test-mode records — try again."));
+    } finally {
+      setRetrying(null);
+      loadDisputes();
+    }
+  };
+
   // Record the formal decision (text + split), then EXECUTE it: the recorded
   // split now moves real money via the `execute-dispute-split` edge function —
   // one Stripe transfer for the Helpr's share, one refund for the poster's.
@@ -762,6 +810,7 @@ const AdminDisputes = () => {
               decide={decide}
               retrySettlement={retrySettlement}
               closeWithoutPayment={closeWithoutPayment}
+              clearTestModeRecords={clearTestModeRecords}
               retrying={retrying}
             />
           ))

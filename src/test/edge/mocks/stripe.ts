@@ -63,6 +63,8 @@ export interface StripeMock {
     /** Used to derive the partial-refund idempotency sequence (see
      *  create-payment admin_refund_general). Defaults to an empty list. */
     list: ReturnType<typeof vi.fn>;
+    /** Q1732: execute-dispute-split's clear_test_mode_records asks Stripe about each recorded refund. */
+    retrieve: ReturnType<typeof vi.fn>;
   };
   transfers: {
     create: ReturnType<typeof vi.fn>;
@@ -173,6 +175,7 @@ export const stripeMock: StripeMock = {
     // Default to "no prior refunds" so the partial-refund sequence starts at 0.
     // Tests that exercise a repeat partial can override this per-case.
     list: vi.fn().mockResolvedValue({ data: [] }),
+    retrieve: vi.fn(),
   },
   transfers: {
     create: vi.fn(),

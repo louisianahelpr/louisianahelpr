@@ -7151,6 +7151,16 @@ export type Database = {
       cleanup_observability_tables: { Args: never; Returns: Json }
       cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
+      clear_test_mode_dispute_ledger: {
+        Args: {
+          _admin: string
+          _dispute_id: string
+          _reason: string
+          _refund_ids: string[]
+          _transfer_ids: string[]
+        }
+        Returns: Json
+      }
       clear_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean

@@ -15,7 +15,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) { |   if (!isOnboardingFeeCorrection && isFullRefund && ordinaryRefunds.length > 0) {
  * @mutate supabase/functions/_shared/refundNotice.ts |     if (claimErr?.code === "23505") { |     if (false) {
  * @mutate supabase/functions/_shared/refundNotice.ts |         await release();\n        if (PERMANENT.has(insErr.code |         if (PERMANENT.has(insErr.code
- * @mutate supabase/functions/_shared/refundNotice.ts |           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, { |           const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email-off`, {
+ * @mutate supabase/functions/_shared/refundNotice.ts |     const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, { |     const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email-off`, {
  * @mutate supabase/functions/_shared/refundNotice.ts |   if (m.type && METHOD_TYPES[m.type]) return METHOD_TYPES[m.type]; |   if (m.type) return m.type;
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (Date.now() - Date.parse(h.created_at) <= 5 * 60_000) return { status: "in_flight" }; |       if (false) return { status: "in_flight" };
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null }); |             void tellPosterMoneyBack;
@@ -27,10 +27,15 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |       } else if ((ledger ?? []).length > 0) { |       } else if (false) {
  * @mutate supabase/functions/_shared/refundNotice.ts |       const jobId = md.job_id ?? md.parent_job_id; |       const jobId = md.job_id;
  * @mutate supabase/functions/_shared/refundNotice.ts |   const kept = keptSentence(Number(input.keptCents ?? 0), input, jobOwnsCharge ? job : null); |   const kept = keptSentence(Number(input.keptCents ?? 0), input, job);
- * @mutate supabase/functions/_shared/refundNotice.ts |           emailed = res.ok && !body.skipped && body.success !== false; |           emailed = res.ok && !body.skipped;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (sameMoneyAsRelease(r)) continue; |
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!rel \|\| r.source !== "stripe_dashboard" \|\| rel.cents !== Number(r.amount_cents)) return false; |             if (!rel \|\| rel.cents !== Number(r.amount_cents)) return false;
+ * @mutate supabase/functions/_shared/refundNotice.ts |     const emailed = res.ok && !body.skipped && body.success !== false; |     const emailed = res.ok && !body.skipped;
  * @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |       const r = await retryFailedRefundEmails(supabaseAdmin); |       const r = { retried: 0, emailed: 0, problems: [] as string[], gaveUp: [] as string[], skipped: undefined as string \| undefined };
+ * @mutate supabase/functions/_shared/refundNotice.ts |       if ((row.email_error ?? "").startsWith("skipped:")) continue; |       if (false) continue;
+ * @mutate supabase/functions/_shared/refundNotice.ts |       if (!row.notification_id \|\| row.notification_id === ZERO_UUID \|\| !(tried < REFUND_EMAIL_MAX_ATTEMPTS)) continue; |       if (!row.notification_id) continue;
+ * @mutate supabase/functions/_shared/refundNotice.ts |       if ((claimedRows ?? []).length === 0) continue; |       if (false) continue;
+ * @mutate supabase/functions/_shared/refundNotice.ts |       if (tried + 1 >= REFUND_EMAIL_MAX_ATTEMPTS) out.gaveUp.push(row.notice_key); |       void 0;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -531,5 +536,96 @@ describe("Q1714: the hourly untold-refund sweep (void-cancelled-payments Part G)
     await runSweep();
     expect(posterNotices()).toHaveLength(0);
     expect(claims()).toEqual([]);
+  });
+});
+
+// The two owner-approved one-time notices for the 10-11 refunds (2026-10-12):
+// in-app notices written, both emails "send-notification-email answered 401",
+// and nothing ever retried them. void-cancelled-payments Part H re-sends a
+// failed email, bounded: 3 sends in all, notices under 7 days old, never one
+// the person's own switches held back.
+describe("refund notice emails that failed are retried, bounded (void-cancelled-payments Part H)", () => {
+  const CRON_SECRET = "cron-secret-void";
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+  async function runSweep() {
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_void", CRON_SECRET });
+    const h = await loadEdgeFunction("void-cancelled-payments");
+    return h.fetch(new Request("https://x/functions/v1/void-cancelled-payments", { method: "POST", headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+  }
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+  const FAILED = {
+    notice_key: "refund:re_3UOcZ8Kp2H4b7tEC1cVCF92O", user_id: OWNER_JOB.customer_id, job_id: OWNER_JOB.id,
+    notification_id: "6ab00306-d7aa-4c2a-a8a8-a2c257946532", email_attempts: 1,
+    email_error: "send-notification-email answered 401", created_at: hoursAgo(1),
+  };
+  const NOTICE = {
+    id: FAILED.notification_id, title: "Refund issued: $100", link: `/posts?job=${OWNER_JOB.id}&refund=re_3UOcZ8Kp2H4b7tEC1cVCF92O`, job_id: OWNER_JOB.id,
+    message: "We refunded $100 for \"Mow & Weed Eat Yard\" to your Link account (refund reference re_3UOcZ8Kp2H4b7tEC1cVCF92O).",
+  };
+  const failedRows = (rows: unknown[]) => {
+    scenario.reads.refund_notices = { rows: [], selectOverrides: [{ includes: "email_attempts", result: { rows } }] };
+    scenario.reads.notifications = { rows: [NOTICE] };
+  };
+  const noticeUpdates = () => scenario.writes.filter((w) => w.table === "refund_notices" && w.op === "update");
+
+  it("re-sends the failed email with the in-app notice's own words, claiming the attempt first", async () => {
+    failedRows([FAILED]);
+    await runSweep();
+    expect(notificationEmails).toHaveLength(1);
+    expect(notificationEmails[0]).toMatchObject({ notification_id: NOTICE.id, user_id: OWNER_JOB.customer_id, title: NOTICE.title, message: NOTICE.message, type: "payment", link: NOTICE.link });
+    const [claim, stamp] = noticeUpdates();
+    expect(claim.payload).toEqual({ email_attempts: 2 });
+    expect(claim.filters).toEqual(expect.arrayContaining([{ op: "eq", column: "email_attempts", value: 1 }, { op: "eq", column: "emailed", value: false }]));
+    expect(stamp.payload).toEqual({ emailed: true, email_error: null });
+    // No new in-app notice: only the email goes again.
+    expect(scenario.writes.some((w) => w.table === "notifications" && w.op === "insert")).toBe(false);
+    // The read is bounded: under 3 attempts, 7 days old at most, 15 minutes old at least.
+    const q = scenario.readQueries.find((r) => r.table === "refund_notices" && r.cols.includes("email_attempts"));
+    expect(q?.filters).toEqual(expect.arrayContaining([{ op: "eq", column: "emailed", value: false }, { op: "lt", column: "email_attempts", value: 3 }]));
+    expect(q?.filters.map((f) => f.op)).toEqual(expect.arrayContaining(["gte", "lte"]));
+  });
+
+  it("never re-sends one the person's switches held back, one at the cap, one a week old, or one a trigger dropped", async () => {
+    failedRows([
+      { ...FAILED, email_error: "skipped: email_disabled" },
+      { ...FAILED, email_attempts: 3 },
+      { ...FAILED, created_at: hoursAgo(24 * 8) },
+      { ...FAILED, notification_id: "00000000-0000-0000-0000-000000000000" },
+    ]);
+    await runSweep();
+    expect(notificationEmails).toHaveLength(0);
+    expect(noticeUpdates()).toHaveLength(0);
+  });
+
+  it("another run already claimed the attempt: nothing is sent", async () => {
+    failedRows([FAILED]);
+    scenario.writeSelectRows["refund_notices:update"] = [];
+    await runSweep();
+    expect(notificationEmails).toHaveLength(0);
+  });
+
+  it("the last allowed attempt failing pages a person to tell them by hand", async () => {
+    failedRows([{ ...FAILED, email_attempts: 2 }]);
+    notificationEmailAnswer.status = 401;
+    notificationEmailAnswer.body = { error: "unauthorized" };
+    await runSweep();
+    expect(notificationEmails).toHaveLength(1);
+    const stamp = noticeUpdates()[1];
+    expect(stamp.payload).toEqual({ emailed: false, email_error: "send-notification-email answered 401" });
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /refund notice email failed every try/.test(a.title))).toBe(true);
+  });
+
+  it("an attempt that fails before the cap pages nobody; the next run retries it", async () => {
+    failedRows([FAILED]);
+    notificationEmailAnswer.status = 500;
+    notificationEmailAnswer.body = { error: "boom" };
+    await runSweep();
+    expect(notificationEmails).toHaveLength(1);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /failed every try/.test(a.title))).toBe(false);
   });
 });

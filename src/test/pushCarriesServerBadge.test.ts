@@ -24,7 +24,8 @@ describe("every iOS push carries the server's unread count (NB-002)", () => {
     const block = src.slice(src.indexOf("// NB-002:"), src.indexOf("// NB-002 server badge") + 30);
     expect(block).toContain("typeof payload.badge !== 'number'");
     expect(block).toMatch(/\.eq\('receiver_id', payload\.user_id\)\s*\.eq\('read', false\)\s*\.not\('is_system', 'is', true\)/);
-    expect(block).toContain("not('sender_id', 'in'");
+    // Blocked senders stay out, except Team-thread rows (Q1591(b), teamMessagesPassBlocks.test.ts).
+    expect(block).toContain("sender_id.not.in.(${blocked.join(',')}),team_thread_user_id.not.is.null");
     expect(block).toMatch(/payload\.badge = count \+ notifCount \/\/ NB-002 server badge/);
   });
   it("the badge adds the bell's unread notifications (N-006)", () => {

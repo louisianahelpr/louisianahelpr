@@ -6720,6 +6720,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_signup_leads: {
+        Args: never
+        Returns: {
+          completed_at: string
+          created_at: string
+          email: string
+          reminder_sent_at: string
+          total_count: number
+        }[]
+      }
       admin_notification_crosses_seed_boundary: {
         Args: { p_job_id: string; p_link: string; p_recipient: string }
         Returns: boolean

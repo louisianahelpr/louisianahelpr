@@ -65,9 +65,11 @@ const MIG = join(__dirname, "..", "..", "supabase", "migrations");
  * NOT SERVER NOTICES: a PERSON'S OWN MESSAGE written through a SECURITY
  * DEFINER RPC (2026-10-09, the "Louisiana Helpr Team" thread: it has no job,
  * so the INSERT policy refuses a client INSERT and the server writes it,
- * 20261011161100). The block gate, the send cap and the ban and
- * unconfirmed-email gates must refuse these exactly as they refuse a client
- * INSERT, so they are left OUT of the server-notice inventory below. EXACT and
+ * 20261011161100). The send cap and the ban and unconfirmed-email gates must
+ * refuse these exactly as they refuse a client INSERT, and so must the block
+ * gate, except for the Team-thread exemption the owner chose on 2026-10-11
+ * (Q1591(b), 20261012030525, guarded by teamMessagesPassBlocks.test.ts), so
+ * they are left OUT of the server-notice inventory below. EXACT and
  * two-way: each must exist, insert into messages, write sender_id from
  * auth.uid() and never write is_system (`personSendGaps`).
  */

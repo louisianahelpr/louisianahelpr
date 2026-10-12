@@ -25,6 +25,7 @@ import { AnalyticsUnavailable } from "@/components/admin/adminAnalytics/Analytic
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { SignupLeadsCard } from "./adminAnalytics/SignupLeadsCard";
 import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
 
 /** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
@@ -608,6 +609,9 @@ const AdminAnalytics = () => {
         <FunnelCard title="Poster activation" subtitle="Signup → revenue" stages={customerFunnel} />
         <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
+
+      {/* Q1587: step-1 sign-up emails, the one reminder, and who finished. */}
+      <SignupLeadsCard />
 
       <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
 

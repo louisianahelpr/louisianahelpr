@@ -24,10 +24,18 @@
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email you once if you don't finish signing up.\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
+ * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC;
+ * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
+ * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO anon, authenticated, service_role;
+ * @mutate src/components/admin/AdminAnalytics.tsx |       <SignupLeadsCard />\n | \n
+ *
+ * Q1587 (owner 2026-10-11): the admin card reads the leads through
+ * admin_list_signup_leads(), an admin-only read. Its grant shape is pinned
+ * below; the card's render is src/components/admin/adminAnalytics/SignupLeadsCard.test.tsx.
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import { readdirSync } from "./helpers/trackedFiles";
+import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
@@ -169,5 +177,47 @@ describe("signup leads: client and unsubscribe layers", () => {
   it("the one-click unsubscribe also stamps the lead, and a failed write is not reported as success", () => {
     expect(unsub).toMatch(/\.from\('signup_leads'\)\s*\.update\(\{\s*unsubscribed_at:/);
     expect(unsub).toMatch(/if \(leadError && leadError\.code !== '42P01' && leadError\.code !== 'PGRST205'\) \{[\s\S]*?if \(!profile\) \{[\s\S]*?500/);
+  });
+});
+
+describe("signup leads: the admin card's read (Q1587)", () => {
+  const sig = "admin_list_signup_leads\\(\\)";
+
+  it("is an admin-only, read-only SECURITY DEFINER function returning exactly the card's columns", () => {
+    const b = newestBody("admin_list_signup_leads");
+    expect(b).toMatch(/SECURITY\s+DEFINER[\s\S]*SET\s+search_path\s*=\s*''/i);
+    expect(b).toMatch(/\bSTABLE\b/i);
+    // The admin check comes first and raises; has_role(NULL, ...) is false, so anon is refused too.
+    expect(b).toMatch(
+      /BEGIN\s+IF\s+NOT\s+COALESCE\(public\.has_role\(auth\.uid\(\),\s*'admin'::public\.app_role\),\s*false\)\s+THEN\s+RAISE\s+EXCEPTION\s+'admin_only'/i,
+    );
+    expect(b.search(/RAISE\s+EXCEPTION\s+'admin_only'/i)).toBeLessThan(b.search(/RETURN\s+QUERY/i));
+    expect(b).not.toMatch(/\b(?:INSERT\s+INTO|UPDATE\s+public\.|DELETE\s+FROM)\b/i);
+    const ret = /RETURNS\s+TABLE\s*\(([\s\S]*?)\)\s*LANGUAGE/i.exec(b)![1];
+    expect(ret.split(",").map((c) => c.trim().split(/\s+/)[0]).sort()).toEqual(
+      ["completed_at", "created_at", "email", "reminder_sent_at", "total_count"],
+    );
+    expect(b).toMatch(/FROM\s+public\.signup_leads\s+l/i);
+  });
+
+  it("EXECUTE: revoked from PUBLIC and anon, granted to authenticated (the role check is inside) and nobody else", () => {
+    expect(all).toMatch(new RegExp(`REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+public\\.${sig}\\s+FROM\\s+PUBLIC,\\s*anon\\s*;`, "i"));
+    const grants = [...all.matchAll(new RegExp(`GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.${sig}\\s+TO\\s+([^;]+);`, "gi"))].map((m) => m[1]);
+    expect(grants.length).toBeGreaterThan(0);
+    for (const g of grants) expect(g).not.toMatch(/\b(?:anon|PUBLIC)\b/i);
+    expect(grants.join(",")).toMatch(/\bauthenticated\b/);
+  });
+
+  it("the card is mounted under Funnels & Retention, and only the admin surface calls the RPC", () => {
+    const page = blankComments(readFileSync(join(ROOT, "src/components/admin/AdminAnalytics.tsx"), "utf8"));
+    const label = page.indexOf("Funnels &amp; Retention");
+    expect(label).toBeGreaterThan(-1);
+    const at = page.indexOf("<SignupLeadsCard />");
+    expect(at).toBeGreaterThan(label);
+    expect(at).toBeLessThan(page.indexOf("<CohortRetentionCard", label));
+    const callers = trackedFiles("src")
+      .filter((p) => /\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p) && !p.startsWith("src/test/") && p !== "src/integrations/supabase/types.ts")
+      .filter((p) => /["'`]admin_list_signup_leads["'`]/.test(blankComments(readFileSync(join(ROOT, p), "utf8"))));
+    expect(callers).toEqual(["src/components/admin/adminAnalytics/SignupLeadsCard.tsx"]);
   });
 });

@@ -83,7 +83,10 @@ function openStore(userId: string): UnreadStore {
       .limit(UNREAD_ROW_CAP); // PD-012 bounded
     let query = base.not("is_system", "is", true);
     if (blockedSet.size > 0) {
-      query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
+      // Q1591(b): a Team-thread row (team_thread_user_id set) is delivered
+      // through a block, so it counts here as it shows in the inbox; every
+      // job row from a blocked sender stays out.
+      query = query.or(`sender_id.not.in.(${[...blockedSet].join(",")}),team_thread_user_id.not.is.null`);
     }
     const { data, error } = await query;
     // Only overwrite the seeded value on a successful response —

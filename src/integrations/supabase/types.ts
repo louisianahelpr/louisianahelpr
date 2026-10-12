@@ -7077,6 +7077,7 @@ export type Database = {
       check_push_token_health: { Args: never; Returns: Json }
       check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
+      check_user_reports_reach_ledger: { Args: never; Returns: number }
       client_compat_floor: { Args: never; Returns: number }
       end_recurring_series_by_platform: {
         Args: {

@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
-import { TAB_TITLES, type Tab } from "@/pages/profile/types";
+import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types";
 
 /**
  * ProfileTabFallback — what a Profile tab looks like before its chunk lands.
@@ -280,7 +280,7 @@ const ScreenfulReserve = ({ media }: { media: number }) => {
 
 export const ProfileTabFallback = ({ tab, onBack }: ProfileTabFallbackProps) => (
   <ProfileTabBody>
-    <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
+    <ProfileTabHeader title={profileTabTitle(tab, currentSearch())} onBack={onBack} />
     <ProfileTabBodyReserve tab={tab} />
   </ProfileTabBody>
 );

@@ -10,12 +10,12 @@
  * REPORT_BUG_TITLE there too.
  *
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | { key: "legal", label: TAB_TITLES.legal, | { key: "legal", label: "Legal",
- * @mutate src/components/profile/SupportInline.tsx | title={openedAsBugReport ? REPORT_BUG_TITLE : "Help & Support"} | title="Help & Support"
+ * @mutate src/components/profile/SupportInline.tsx | title={profileTabTitle("support", searchParams.toString())} | title="Help & Support"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
+import { REPORT_BUG_TITLE, TAB_TITLES, profileTabTitle } from "@/pages/profile/types";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const ROWS_SRC = read("src/components/profile/profileLanding/useProfileLandingDerived.tsx");
@@ -67,8 +67,10 @@ describe("every Profile menu row is named what the screen it opens is titled", (
   });
 
   it("the support screen opened as a bug report is titled like its row", () => {
+    // One title function for every header renderer (profileTabTitleOneSource.test.tsx, Q1530).
     expect(read("src/components/profile/SupportInline.tsx")).toMatch(
-      /title=\{openedAsBugReport \? REPORT_BUG_TITLE : "Help & Support"\}/,
+      /title=\{profileTabTitle\("support", searchParams\.toString\(\)\)\}/,
     );
+    expect(profileTabTitle("support", "?tab=support&topic=report")).toBe(REPORT_BUG_TITLE);
   });
 });

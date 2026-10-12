@@ -146,6 +146,10 @@ const EXTENSION_URL_PATTERNS: RegExp[] = [
   /moz-extension:\/\//i,
   /safari-extension:\/\//i,
   /safari-web-extension:\/\//i,
+  // A host app's in-app browser injecting its own script (Facebook/Instagram
+  // on Android: iabjs://navigation_performance_logger_android, "Java object
+  // is gone", Q1634, 2026-10-09). Not our code, not actionable.
+  /^iabjs:\/\//i,
 ];
 
 interface MinimalStackFrame {

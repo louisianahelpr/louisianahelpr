@@ -128,7 +128,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
 // ruling, one mutation each: strip the real header and the placeholder is back
 // to a bone that shifts every tab's body down on arrival; hard-code the reserve
 // and it is the measured 118px against 447-3,477px of real content again.
-// @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> |
+// @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={profileTabTitle(tab, currentSearch())} onBack={onBack} /> |
 // @mutate src/components/profile/ProfileTabFallback.tsx | setReserve(Math.max(0, Math.round(window.innerHeight - top))); | setReserve(118);
 // Size to content: a shaped tab falling back to the screenful is the 236-678px collapse again.
 // @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[tab] : undefined; | const shape = undefined as Block[] \| undefined;

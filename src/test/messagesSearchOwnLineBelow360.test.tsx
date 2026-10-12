@@ -22,7 +22,7 @@
  */
 // PROOF THIS GUARD CAN FAIL (npm run vacuity):
 // the own-line arrangement never switches on (the 320 case fails);
-// @mutate src/components/messages/ConversationList.tsx | const SEARCH_OWN_LINE_QUERY = "(max-width: 359px)"; | const SEARCH_OWN_LINE_QUERY = "(max-width: 1px)";
+// @mutate src/components/messages/useSearchOnOwnLine.ts | const SEARCH_OWN_LINE_QUERY = "(max-width: 359px)"; | const SEARCH_OWN_LINE_QUERY = "(max-width: 1px)";
 // the field is left in the row as well as on the line (the 320 case fails);
 // @mutate src/components/messages/ConversationList.tsx | open: searchOpen && !selectMode && !searchOnOwnLine, | open: searchOpen && !selectMode,
 // the own line also opens at 375 (the 375 case fails).

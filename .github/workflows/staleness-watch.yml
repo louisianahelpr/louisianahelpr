@@ -16,7 +16,8 @@ name: Staleness watch
 # A red scheduled run opens a `nightly-red: staleness-watch` issue (session
 # start reads it; "Nightly reds nobody read" escalates it) and closes on green.
 #  - land (schedule + dispatch, Q57; and on a push that DRIFTED): re-runs every
-#    CI generator on LATEST main (`npm run inventories:refresh`) and lands
+#    CI generator on LATEST main (`npm run inventories:refresh:all`; the plain
+#    one skips the whole-tree totals, which only main regenerates) and lands
 #    whatever moved through .github/actions/refresh-pr — one bot branch, one
 #    PR, auto-merge on green.
 #    On push it runs ONLY when check:generated exits 3 (drift: every problem is
@@ -160,7 +161,7 @@ jobs:
           id: inventories
           title: "chore(refresh): generated inventories regenerated"
           paths: ${{ steps.outs.outputs.paths }}
-          regenerate: npm run inventories:refresh
+          regenerate: npm run inventories:refresh:all
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
 

@@ -23,7 +23,7 @@
  *
  * @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   gh pr merge "$BR" --squash --auto
  * @mutate scripts/land.sh |   git push --no-verify --force origin "HEAD:refs/heads/$BR" |   git push --no-verify --force origin "HEAD:main"
- * @mutate scripts/land.sh |     if [ "$STATE" = MERGED ]; then |     if [ "$STATE" = OPEN ]; then
+ * @mutate scripts/land.sh |       merged)\n        echo "land: $BR merged into main." |       mergedx)\n        echo "land: $BR merged into main."
  * @mutate .claude/AGENT-BRIEF.md | It is the ONLY way | It is one way
  * @mutate .claude/AGENT-BRIEF.md | **Agents do not land.** | **Agents may land.**
  *
@@ -74,8 +74,8 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
     // Success only on MERGED; DIRTY loops back to the rebase (BEHIND is the
     // land queue's since 2026-10-05: src/test/landQueue.test.ts).
-    expect(pr).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s*echo "land: \$BR merged into main\."\n(?:[ \t]*(?:#[^\n]*)?\n)*(?:\s*rm -f "\$\(git rev-parse --git-path land-recount\.json\)"\n)?\s*exit 0/);
-    expect(pr).toMatch(/if \[ "\$MSS" = DIRTY \]; then\n\s*echo "land: \$BR conflicts with main; rebasing it here[^"]*"\n\s*break/);
+    expect(pr).toMatch(/\n\s*merged\)\n\s*echo "land: \$BR merged into main\."\n(?:[ \t]*(?:#[^\n]*)?\n)*(?:\s*rm -f "\$\(git rev-parse --git-path land-recount\.json\)"\n)?\s*exit 0/);
+    expect(pr).toMatch(/\n\s*rebase\)\n\s*echo "land: \$BR \$DETAIL; rebasing it here[^"]*"\n\s*break/);
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
     expect(brief).toMatch(/It is the ONLY way\s+onto main \(Q44\)/);
   });

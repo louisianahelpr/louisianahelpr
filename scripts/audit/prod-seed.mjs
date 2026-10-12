@@ -59,6 +59,7 @@ import { seedPasswordFor } from "./seedPasswords.mjs";
 import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { SHARED_TEST_ACCOUNTS, ensureTestAccountsEnrolled, findUnenrolled } from "../lib/testAccountEnrolment.mjs";
+import { stateFixtureJobIds } from "../e2e/seedStateFixtures.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -725,7 +726,13 @@ async function apply() {
   // The real funded pair job to hang the thread, reviews and dispute on.
   const pairJobs = await select(`jobs?customer_id=eq.${posterId}&helper_id=eq.${helperId}&select=id,status,payment_status,has_active_dispute&order=created_at.desc`);
   const threadJob = pairJobs.find((j) => ["completed", "in_progress", "accepted", "disputed"].includes(j.status)) ?? pairJobs[0];
-  const releasedJob = pairJobs.find((j) => j.payment_status === "released");
+  // The durable state fixtures (scripts/e2e/seedStateFixtures.mjs) hold ONE
+  // state each for the screens that need it: a review would turn the completed
+  // one's "Leave a Review" into a reviewed card, and a dispute would take a
+  // scheduled or arrived one out of its state. They may carry the thread; they
+  // are never reviewed or disputed here.
+  const stateFixtures = new Set(stateFixtureJobIds());
+  const releasedJob = pairJobs.find((j) => j.payment_status === "released" && !stateFixtures.has(j.id));
   // No pair job → skip the pair fixtures (thread, reactions, pins) rather than fail
   // the whole seed. Owner, 2026-10-01: Stripe is live, so a funded pair job cannot
   // be made, and the seeder must not invent one; the rest of the seed still runs.
@@ -798,8 +805,8 @@ async function apply() {
 
   // Dispute through the real RPC, as the poster, on a funded pair job without one.
   // Same statuses open_dispute_as accepts; rpc_withdraw_dispute returns a job to in_progress, so a re-apply must match that too.
-  const disputeTarget = pairJobs.find((j) => ["completed", "in_progress", "revision_requested", "accepted"].includes(j.status) && j.payment_status === "escrow" && !j.has_active_dispute);
-  const openDispute = pairJobs.find((j) => j.status === "disputed");
+  const disputeTarget = pairJobs.find((j) => ["completed", "in_progress", "revision_requested", "accepted"].includes(j.status) && j.payment_status === "escrow" && !j.has_active_dispute && !stateFixtures.has(j.id));
+  const openDispute = pairJobs.find((j) => j.status === "disputed" && !stateFixtures.has(j.id));
   if (!openDispute && disputeTarget) {
     await rest("POST", "rpc/rpc_open_dispute", { _job_id: disputeTarget.id, _reason: "SEED audit fixture: two items missing from the receipt.", _evidence_urls: [] }, { token: sessionFor(POSTER.key) });
   }

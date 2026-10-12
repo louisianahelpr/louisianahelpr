@@ -2081,7 +2081,9 @@ serve(async (req) => {
       const r = await retryFailedRefundEmails(supabaseAdmin);
       refundEmailsRetried = r.retried;
       refundEmailsSent = r.emailed;
-      if (r.skipped) console.warn(`[void-cancelled-payments] refund email retry skipped: ${r.skipped}`);
+      // Recorded, not only logged: a skip that never ends (the column never
+      // deployed) would let failed emails age out unretried and unpaged.
+      if (r.skipped) defects.record(`refund email retry skipped: ${r.skipped}`);
       for (const p of r.problems) defects.record(`refund email retry: ${p}`);
       for (const key of r.gaveUp) {
         await postSlackOpsAlert({

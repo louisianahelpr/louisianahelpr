@@ -20,7 +20,7 @@
     "src/components/messages/ConversationRow.tsx": 613,
     "src/components/MobileNav.tsx": 797,
     "src/components/NotificationPanel.tsx": 971,
-    "src/components/NotificationPreferences.tsx": 1025,
+    "src/components/NotificationPreferences.tsx": 969,
     "src/components/PhotoProof.tsx": 634,
     "src/components/postjob/CheckoutStep.tsx": 839,
     "src/components/profile/CredentialsTab.tsx": 911,

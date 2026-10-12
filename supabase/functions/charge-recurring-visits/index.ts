@@ -844,7 +844,7 @@ serve(async (req) => {
       // Any other unbooked paid visit (a chargeback stop, a block whose hold
       // still stands with the same Helpr) is refunded in full.
       // Unread, the cause is unknown: refund nothing this run, retry next.
-      const [causeParent, causeHold] = await Promise.all([
+      const [causeParent, causeHold, causePlatform] = await Promise.all([
         supabase.from("jobs").select("id, series_ended_on, status").eq("id", row.parent_job_id).maybeSingle(),
         supabase
           .from("series_visit_holds")
@@ -852,13 +852,18 @@ serve(async (req) => {
           .eq("parent_job_id", row.parent_job_id)
           .eq("visit_date", row.visit_date)
           .limit(1),
+        // Q1733 (owner, 2026-10-12): a series the PLATFORM ended (admin,
+        // service or chargeback path) refunds its paid, unbooked visits IN
+        // FULL. Server-only row (series_platform_ends).
+        supabase.from("series_platform_ends").select("parent_job_id").eq("parent_job_id", row.parent_job_id).limit(1),
       ]);
-      if (causeParent.error || causeHold.error) {
+      if (causeParent.error || causeHold.error || causePlatform.error) {
         fail(
-          `visit payment ${row.id}: could not read why its visit was not booked (${causeParent.error?.message ?? causeHold.error?.message}); retried next run`,
+          `visit payment ${row.id}: could not read why its visit was not booked (${causeParent.error?.message ?? causeHold.error?.message ?? causePlatform.error?.message}); retried next run`,
         );
         continue;
       }
+      const platformEnded = ((causePlatform.data ?? []) as unknown[]).length > 0;
       // Q1246 (3): a CANCELLED parent is a series that is over, the same as an
       // ended one (Q808: the card fee is withheld), whether or not the cancel
       // stamped series_ended_on.
@@ -893,7 +898,9 @@ serve(async (req) => {
           fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
           continue;
         }
-        const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause;
+        // Q1733: an end by the platform is not the parties' doing, so it
+        // withholds nothing (unless the date also changed hands).
+        const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || (seriesEndedCause && !platformEnded) || dateUnheldCause;
         const lessFeeCents = Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents));
         const owedCents = withholdFee ? lessFeeCents : amountCents;
         // Set before any other Stripe call, so a failure below alerts with
@@ -1954,9 +1961,27 @@ serve(async (req) => {
           // (end_recurring_series) after this run read it. Once the refund
           // below goes through that is the designed outcome, not a defect.
           const seriesEndedMidRun = String(childErr?.message ?? "").startsWith("series_ended:");
+          let platformEndedMidRun = false;
+          // Q1733 (owner, 2026-10-12): the PLATFORM ending it is not the
+          // parties' doing: refunded in full. Unread, today's rule stands
+          // (the fee is withheld) and the run says so.
+          if (seriesEndedMidRun) {
+            const { data: pe, error: peErr } = await supabase
+              .from("series_platform_ends")
+              .select("parent_job_id")
+              .eq("parent_job_id", parent.id)
+              .limit(1);
+            if (peErr) {
+              fail(`series ${parent.id} ${visitDate}: could not read whether the platform ended it (${peErr.message}); the card fee is withheld`);
+            } else if ((pe ?? []).length > 0) {
+              platformEndedMidRun = true;
+            }
+          }
           // trg_series_visit_within_end: the date changed hands (given up or
           // taken over) after this run read it. Refunded below, then a skip.
           const holderChangedMidRun = String(childErr?.message ?? "").startsWith("series_date_unheld:");
+          // Q1733: whether the card fee is withheld on this refund.
+          const withholdMidRun = (seriesEndedMidRun && !platformEndedMidRun) || holderChangedMidRun;
           // Q415 (e) (owner, 2026-09-27): a charge the PLATFORM got wrong (an
           // insert that simply failed) comes back in full. A series that
           // ended, or a date that changed hands, between charge and insert is
@@ -1967,7 +1992,7 @@ serve(async (req) => {
           let alreadyRefunded = false;
           let refundMade: { id: string; cents: number } | null = null;
           try {
-            if (seriesEndedMidRun || holderChangedMidRun) {
+            if (withholdMidRun) {
               // Tell the stale-visit sweep why, before any refund request: if
               // this refund fails, the sweep retries it and must withhold the
               // fee too. Best effort: a refund that goes through carries its
@@ -2009,7 +2034,7 @@ serve(async (req) => {
               message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand: ${
                 refundParams.amount !== undefined
                   ? `$${(refundParams.amount / 100).toFixed(2)} (the card fee is withheld)`
-                  : seriesEndedMidRun || holderChangedMidRun
+                  : withholdMidRun
                   ? "the amount charged LESS Stripe's card fee (the fee is withheld: the series ended or the date changed hands; the amount could not be worked out)"
                   : "in full"
               }.`,

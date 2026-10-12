@@ -20,3 +20,5 @@ export function partlyDoneItems(md: string): PartlyDoneItem[];
 export function appFunctionsCalled(query: string, appFns: Set<string>): string[];
 /** First result row as text, columns joined with "|". */
 export function rowText(rows: unknown): string;
+/** Which test files passed, from vitest's JSON report (paths relative to `root`). */
+export function testFileResults(report: { testResults?: { name: string; status: string }[] }, root: string): Map<string, boolean>;

@@ -85,6 +85,7 @@ export const JOB_READABLE_COLUMN_LIST = [
   "location",
   "longitude",
   "no_show_alert_sent_at",
+  "onboarding_fee_amount",
   "parent_job_id",
   "parish",
   "payment_confirm_notif_sent",

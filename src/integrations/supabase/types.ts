@@ -2732,6 +2732,7 @@ export type Database = {
           materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
+          onboarding_fee_amount: number | null
           parent_job_id: string | null
           parish: string | null
           payment_confirm_notif_sent: boolean | null
@@ -2850,6 +2851,7 @@ export type Database = {
           materials_note?: string | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
+          onboarding_fee_amount?: number | null
           parent_job_id?: string | null
           parish?: string | null
           payment_confirm_notif_sent?: boolean | null
@@ -2968,6 +2970,7 @@ export type Database = {
           materials_note?: string | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
+          onboarding_fee_amount?: number | null
           parent_job_id?: string | null
           parish?: string | null
           payment_confirm_notif_sent?: boolean | null
@@ -7449,6 +7452,7 @@ export type Database = {
           materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
+          onboarding_fee_amount: number | null
           parent_job_id: string | null
           parish: string | null
           payment_confirm_notif_sent: boolean | null
@@ -7592,6 +7596,7 @@ export type Database = {
           materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
+          onboarding_fee_amount: number | null
           parent_job_id: string | null
           parish: string | null
           payment_confirm_notif_sent: boolean | null

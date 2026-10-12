@@ -783,6 +783,83 @@ describe("stripe-webhook edge function", () => {
       await fn.fetch(webhookRequest(fn, "{}"));
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     });
+
+    // Q1346 (owner, 2026-10-12): the job whose checkout KEPT the setup fee
+    // carries it, so the poster's Spent total and Home History count it.
+    // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |       await stampJobSetupFee(session, posterId, { supabase, logStep }); |
+    // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |     .update({ onboarding_fee_amount: feeCents / 100 }) |     .update({ onboarding_fee_amount: 2 })
+    it("the winning checkout stamps the setup fee it kept on its job (Q1346)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_stampfee",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_stamp",
+            mode: "payment",
+            customer_email: "poster@test.com",
+            payment_intent: "pi_stamp",
+            metadata: { job_id: "job-1", onboarding_fee_charged: "true", customer_id: "poster-1", onboarding_fee_cents: "250" },
+          },
+        },
+      });
+      scenario.writeSelectRows.profiles = [{ user_id: "poster-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const stamps = scenario.writes.filter(
+        (w) => w.table === "jobs" && w.op === "update" && "onboarding_fee_amount" in (w.payload as Record<string, unknown>),
+      );
+      expect(stamps.map((w) => w.payload)).toEqual([{ onboarding_fee_amount: 2.5 }]);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |   const feeCents = Number.parseInt(meta.onboarding_fee_cents ?? "", 10); |   const feeCents = Number.parseInt(meta.onboarding_fee_cents ?? "200", 10);
+    it("a session with no readable fee amount is not stamped with a guess, and ops is told (Q1346)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_nofee",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_nofee",
+            mode: "payment",
+            customer_email: "poster@test.com",
+            payment_intent: "pi_nofee",
+            metadata: { job_id: "job-1", onboarding_fee_charged: "true", customer_id: "poster-1" },
+          },
+        },
+      });
+      scenario.writeSelectRows.profiles = [{ user_id: "poster-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const stamps = scenario.writes.filter(
+        (w) => w.table === "jobs" && "onboarding_fee_amount" in ((w.payload ?? {}) as Record<string, unknown>),
+      );
+      expect(stamps).toEqual([]);
+      expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Setup fee not recorded on its job")).toBe(true);
+    });
+
+    it("a losing (duplicate, refunded) checkout never stamps the fee on its job (Q1346)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_nostamp",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_nostamp",
+            mode: "payment",
+            customer_email: "poster@test.com",
+            payment_intent: "pi_nostamp",
+            metadata: { job_id: "job-1", onboarding_fee_charged: "true", customer_id: "poster-1", onboarding_fee_cents: "200" },
+          },
+        },
+      });
+      scenario.writeSelectRows.profiles = [];
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_nostamp" });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.refunds.create).toHaveBeenCalled();
+      const stamps = scenario.writes.filter(
+        (w) => w.table === "jobs" && "onboarding_fee_amount" in ((w.payload ?? {}) as Record<string, unknown>),
+      );
+      expect(stamps).toEqual([]);
+    });
   });
 
   describe("payment_intent.payment_failed", () => {

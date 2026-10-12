@@ -12,6 +12,7 @@
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -53,7 +54,12 @@ await db.exec(`
 await db.exec(newestFn("job_payment_is_funded"));
 if (!MODE) for (let i = 0; i < 3; i++) await db.exec(NEW);
 
-const tomorrow = `(now() AT TIME ZONE 'America/Chicago')::date + 1`;
+// Q1357 (sweepClockProofs): the sweep runs on a FIXED clock, its newest body
+// with every now()/current_date pointed at public._probe_now(). 10:00 Central.
+await installClock(db);
+await setClock(db, "2031-06-10T15:00:00Z");
+if (!MODE) await db.exec(onFixedClock(newestFunction("sweep_unfilled_series_visit_reminders").stmt));
+const tomorrow = `(public._probe_now() AT TIME ZONE 'America/Chicago')::date + 1`;
 await db.exec(`
   INSERT INTO public.jobs VALUES
     ('${SERIES}', 'Weekly lawn', '${POSTER}', NULL, NULL, ${tomorrow} - 14, 'completed', 'released', NULL),
@@ -81,6 +87,11 @@ check("  the notice names tomorrow and what happens if it stays empty", /tomorro
 check("  it links to the series on My Posts", told[0]?.link === `/posts?job=${SERIES}`, told[0]?.link);
 const second = await run();
 check("a second run tells nobody again", second === 0 && (await db.query(`SELECT count(*)::int n FROM public.notifications`)).rows[0].n === 1, String(second));
+// One day later on the same clock the visit that was two days out is tomorrow: it is told.
+await setClock(db, "2031-06-11T15:00:00Z");
+const nextDay = await run();
+const toldNext = (await db.query(`SELECT job_id FROM public.notifications ORDER BY job_id`)).rows.map((r) => r.job_id);
+check("the next day, the visit now dated tomorrow is told (fixed clock moved one day)", nextDay === 1 && toldNext.includes(id(3)), `${nextDay} / ${JSON.stringify(toldNext)}`);
 
 if (!MODE) {
   const priv = async (role) => (await db.query(`SELECT has_function_privilege('${role}', 'public.sweep_unfilled_series_visit_reminders()', 'EXECUTE') x`)).rows[0].x;

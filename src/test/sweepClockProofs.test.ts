@@ -47,6 +47,7 @@ const CLOCK = /\bnow\s*\(\s*\)|\bcurrent_timestamp\b|\bcurrent_date\b|\bclock_ti
 const PROVEN: Record<string, string> = {
   sweep_backout_notice_reminders: "sweepCentralStartClock.pglite.mjs",
   sweep_confirm_reminders_and_repost: "sweepCentralStartClock.pglite.mjs",
+  sweep_unfilled_series_visit_reminders: "unfilledSeriesVisitReminder.pglite.mjs",
   sweep_cron_blackouts: "sweepCronMonitorClock.pglite.mjs",
   sweep_cron_http_failures: "sweepCronMonitorClock.pglite.mjs",
   sweep_cron_startup_failures: "sweepCronMonitorClock.pglite.mjs",

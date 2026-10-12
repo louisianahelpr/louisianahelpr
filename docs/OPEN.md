@@ -8,6 +8,7 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Open: 256** (196 to do, 60 fixed with protection pending; 1078 done). Feeds mirrored in: 54 from the alert ledger, 12 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Open: 234** (163 to do, 71 fixed with protection pending; 1137 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Open: 242** (164 to do, 78 fixed with protection pending; 1131 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 235** (163 to do, 72 fixed with protection pending; 1136 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 13 stale, 2 unknown, 46 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T19:37Z)_

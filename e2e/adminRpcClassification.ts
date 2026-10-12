@@ -57,6 +57,9 @@ export const WRITE_RPC = new Set([
   // thread). Writes messages, notifications and admin_audit_log (migration
   // 20261011161100, plpgsql volatile).
   "admin_send_team_message",
+  // 2026-10-12: hidden feature switches. Writes feature_switches and
+  // admin_audit_log (migration 20261012031120, plpgsql volatile).
+  "admin_set_feature_switch",
 ]);
 
 /**

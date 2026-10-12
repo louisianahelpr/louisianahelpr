@@ -25,6 +25,7 @@
  * SQL RPCs behind a hidden feature use `PERFORM public.require_feature('<key>');`
  * as their first statement instead (migration 20261012031120).
  */
+import { caughtMessage } from "./caughtMessage.ts";
 
 /** The one call this needs from a supabase-js client. */
 export interface FeatureSwitchClient {
@@ -54,7 +55,7 @@ export async function featureEnabledForUser(
     return data === true;
   } catch (err) {
     // Fail closed: a transport failure is "off", logged so it is not silent.
-    console.error(`[featureSwitch] feature_enabled_for_user(${key}) threw: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[featureSwitch] feature_enabled_for_user(${key}) threw: ${caughtMessage(err)}`);
     return false;
   }
 }

@@ -1428,7 +1428,6 @@ export type Database = {
           description: string
           key: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
           audience?: string
@@ -1436,7 +1435,6 @@ export type Database = {
           description: string
           key: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
           audience?: string
@@ -1444,7 +1442,6 @@ export type Database = {
           description?: string
           key?: string
           updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -6755,7 +6752,6 @@ export type Database = {
           description: string
           key: string
           updated_at: string
-          updated_by: string
         }[]
       }
       admin_notification_crosses_seed_boundary: {

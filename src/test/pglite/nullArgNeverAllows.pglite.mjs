@@ -112,6 +112,9 @@ CREATE TABLE public.job_detail_change_answers (request_id uuid, helper_id uuid, 
 CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, created_at timestamptz DEFAULT now(), is_system boolean NOT NULL DEFAULT false);
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
+CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
+CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
+INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
 CREATE TABLE storage.objects (id bigserial PRIMARY KEY, bucket_id text, name text, owner uuid, UNIQUE (bucket_id, name));
@@ -130,7 +133,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
-  "can_read_job_detail_change"];
+  "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { useFeature } from "@/hooks/useFeature";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
@@ -35,10 +38,12 @@ export function FeatureSwitchesCard() {
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const { data: switches, isLoading, isError, refetch } = useQuery({
+  const { data: switches, status, fetchStatus, error, refetch } = useQuery({
     queryKey: ["admin-feature-switches"],
     queryFn: async (): Promise<SwitchRow[]> => unwrap(await supabase.rpc("admin_list_feature_switches")) ?? [],
   });
+  // Offline with nothing loaded is not "no switches" (Q571).
+  const phase = useFeedPhase({ status, fetchStatus });
 
   const applyChange = async (change: PendingChange) => {
     const ok = await requireBiometric(`Confirm setting ${change.key} to ${FEATURE_AUDIENCE_LABEL[change.to]}`);
@@ -56,7 +61,10 @@ export function FeatureSwitchesCard() {
       toast.success(`${change.key} is now ${FEATURE_AUDIENCE_LABEL[change.to]}.`);
       await queryClient.invalidateQueries({ queryKey: ["feature-enabled"] });
     } catch (err) {
-      toast.error(userFacingError(err, "Couldn't change that switch — nothing was changed. Try again."));
+      toast.error(
+        rpcErrorMessage("admin_set_feature_switch", err) ??
+          userFacingError(err, "Couldn't change that switch — nothing was changed. Try again."),
+      );
     } finally {
       // Always re-read: the list must show what the server holds, not what we asked for.
       await refetch();
@@ -75,11 +83,15 @@ export function FeatureSwitchesCard() {
         Testers-only switches {canaryReachesMe ? "reach" : "do not reach"} this account
         {canaryReachesMe ? "." : " (or the canary switch is off)."}
       </p>
-      {isLoading ? (
+      {phase === "loading" ? (
         <p className="text-ds-12 text-muted-foreground">Loading switches…</p>
-      ) : isError ? (
+      ) : phase === "offline-empty" ? (
+        <OfflineEmptyState body="The feature switches will show here once you're back online." onRetry={() => refetch()} />
+      ) : phase === "error" ? (
         <div className="space-y-2">
-          <p className="text-ds-12 text-destructive">Couldn't read the switches. Nothing is shown rather than a guess.</p>
+          <p className="text-ds-12 text-destructive">
+            {rpcErrorMessage("admin_list_feature_switches", error) ?? "Couldn't read the switches. Nothing is shown rather than a guess."}
+          </p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Try again</Button>
         </div>
       ) : !switches || switches.length === 0 ? (

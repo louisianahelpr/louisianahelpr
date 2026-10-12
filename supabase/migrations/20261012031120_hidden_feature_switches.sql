@@ -55,11 +55,19 @@ CREATE TABLE IF NOT EXISTS public.feature_switches (
   audience text NOT NULL DEFAULT 'off' CHECK (audience IN ('off', 'testers', 'everyone')),
   description text NOT NULL CHECK (length(btrim(description)) > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  updated_by uuid
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.feature_switches ENABLE ROW LEVEL SECURITY;
+-- The Q807 statement gate every public table carries (no client writes here
+-- anyway; this keeps the class uniform).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 -- No policy on purpose: with RLS on and no policy, even a granted role reads
 -- nothing; and no client role is granted anything.
 REVOKE ALL ON TABLE public.feature_switches FROM PUBLIC, anon, authenticated;
@@ -197,7 +205,7 @@ COMMENT ON FUNCTION public.require_feature(text) IS
 
 -- Admin read for the Settings card.
 CREATE OR REPLACE FUNCTION public.admin_list_feature_switches()
-RETURNS TABLE(key text, audience text, description text, created_at timestamptz, updated_at timestamptz, updated_by uuid)
+RETURNS TABLE(key text, audience text, description text, created_at timestamptz, updated_at timestamptz)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -208,7 +216,7 @@ BEGIN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
   END IF;
   RETURN QUERY
-    SELECT s.key, s.audience, s.description, s.created_at, s.updated_at, s.updated_by
+    SELECT s.key, s.audience, s.description, s.created_at, s.updated_at
       FROM public.feature_switches s
      ORDER BY s.key;
 END;
@@ -252,7 +260,7 @@ BEGIN
   -- so it writes no second row.
   PERFORM set_config('lh.feature_switch_audited', p_key, true);
   UPDATE public.feature_switches
-     SET audience = p_audience, updated_at = now(), updated_by = v_uid
+     SET audience = p_audience, updated_at = now()
    WHERE key = p_key;
   PERFORM set_config('lh.feature_switch_audited', '', true);
 

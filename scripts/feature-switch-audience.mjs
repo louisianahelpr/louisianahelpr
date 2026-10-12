@@ -20,8 +20,9 @@
  * THE ORDINARY ACCOUNT. Every shared CI account is a tester, so there is no
  * ordinary credential to borrow. The probe is one dedicated account,
  * PROBE_EMAIL below: created on first run with the service role (email
- * confirmed, profile marked is_seed), its password reset to a fresh random one
- * each run (never stored), and asserted NOT admin and NOT a test account before
+ * confirmed, profile marked is_seed, no password: every session here is minted
+ * with the service role, scripts/lib/adminSession.mjs, Q1314), and asserted NOT
+ * admin and NOT a test account before
  * anything is judged (else the check would be vacuous). On the company domain,
  * not mailinator: a public inbox would let anyone reset its password.
  *
@@ -29,12 +30,11 @@
  * a non-boolean answer exits 1. Read-only apart from the probe account itself.
  *
  *   VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY \
- *   PLAYWRIGHT_POSTER_EMAIL PLAYWRIGHT_POSTER_PASSWORD node scripts/feature-switch-audience.mjs
+ *   PLAYWRIGHT_POSTER_EMAIL node scripts/feature-switch-audience.mjs
  *
  * Verdict logic: judge() below, unit-tested in src/test/featureSwitchAudience.test.ts.
  * Wired nightly: .github/workflows/feature-switch-audience.yml (files nightly-red).
  */
-import { randomBytes } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 export const PROBE_EMAIL = "helpr-switch-probe-1012@louisianahelpr.com";
@@ -78,16 +78,19 @@ export function judge(r) {
 
 async function main() {
   const { createClient } = await import("@supabase/supabase-js");
+  const { mintAdminSession, resolveServiceKey } = await import("./lib/adminSession.mjs");
   const env = process.env;
-  const need = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "PLAYWRIGHT_POSTER_EMAIL", "PLAYWRIGHT_POSTER_PASSWORD"];
-  const missing = need.filter((k) => !env[k]);
+  const serviceKey = resolveServiceKey();
+  const missing = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "PLAYWRIGHT_POSTER_EMAIL"].filter((k) => !env[k]);
+  if (!serviceKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
   if (missing.length) {
     console.error(`::error::feature-switch-audience: missing ${missing.join(", ")}; the check cannot run and does not pass.`);
     process.exit(1);
   }
   const url = env.VITE_SUPABASE_URL;
+  const anonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const opts = { auth: { persistSession: false, autoRefreshToken: false } };
-  const service = createClient(url, env.SUPABASE_SERVICE_ROLE_KEY, opts);
+  const service = createClient(url, serviceKey, opts);
 
   const { data: switches, error: swErr } = await service.from("feature_switches").select("key, audience").order("key");
   if (swErr) {
@@ -95,7 +98,8 @@ async function main() {
     process.exit(1);
   }
 
-  // The probe account: find or create, then a fresh password.
+  // The probe account: find it, or create it (email confirmed, no password:
+  // sessions are minted with the service role, never a password grant, Q1314).
   let probeId = null;
   for (let page = 1; page <= 50 && !probeId; page++) {
     const { data, error } = await service.auth.admin.listUsers({ page, perPage: 1000 });
@@ -106,21 +110,15 @@ async function main() {
     probeId = data.users.find((u) => u.email?.toLowerCase() === PROBE_EMAIL)?.id ?? null;
     if (data.users.length < 1000) break;
   }
-  const password = randomBytes(24).toString("base64url");
   if (!probeId) {
-    const { data, error } = await service.auth.admin.createUser({ email: PROBE_EMAIL, password, email_confirm: true });
+    // seed-policy: patched below (profiles.is_seed set to true right after)
+    const { data, error } = await service.auth.admin.createUser({ email: PROBE_EMAIL, email_confirm: true });
     if (error || !data.user) {
       console.error(`::error::could not create the probe account: ${error?.message}`);
       process.exit(1);
     }
     probeId = data.user.id;
     console.log(`created the ordinary probe account ${PROBE_EMAIL} (${probeId})`);
-  } else {
-    const { error } = await service.auth.admin.updateUserById(probeId, { password, email_confirm: true });
-    if (error) {
-      console.error(`::error::could not reset the probe account's password: ${error.message}`);
-      process.exit(1);
-    }
   }
   // Test-owned data is marked is_seed (CLAUDE.md). The profile row is created by
   // the signup trigger; a failure here is reported but does not change the verdict.
@@ -141,28 +139,24 @@ async function main() {
     }
     return out;
   }
-  async function signedIn(email, pw) {
-    const c = createClient(url, env.VITE_SUPABASE_PUBLISHABLE_KEY, opts);
-    const { error } = await c.auth.signInWithPassword({ email, password: pw });
-    if (error) {
-      console.error(`::error::could not sign in as ${email}: ${error.message}`);
+  async function signedIn(email) {
+    let session;
+    try {
+      session = await mintAdminSession({ email, serviceKey, supabaseUrl: url, anonKey });
+    } catch (err) {
+      console.error(`::error::could not mint a session for ${email}: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
-    return c;
+    return createClient(url, anonKey, { ...opts, global: { headers: { Authorization: `Bearer ${session.access_token}` } } });
   }
 
-  const probeClient = await signedIn(PROBE_EMAIL, password);
-  const testerClient = await signedIn(env.PLAYWRIGHT_POSTER_EMAIL, env.PLAYWRIGHT_POSTER_PASSWORD);
-  const anonClient = createClient(url, env.VITE_SUPABASE_PUBLISHABLE_KEY, opts);
   const result = {
     switches,
-    probe: await answers(probeClient),
-    tester: await answers(testerClient),
-    anon: await answers(anonClient),
+    probe: await answers(await signedIn(PROBE_EMAIL)),
+    tester: await answers(await signedIn(env.PLAYWRIGHT_POSTER_EMAIL)),
+    anon: await answers(createClient(url, anonKey, opts)),
     probeIsTester,
   };
-  await probeClient.auth.signOut();
-  await testerClient.auth.signOut();
 
   const problems = judge(result);
   console.log(`switches checked: ${switches.length} (${switches.map((s) => `${s.key}=${s.audience}`).join(", ")})`);

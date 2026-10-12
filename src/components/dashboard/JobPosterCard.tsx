@@ -4,6 +4,9 @@ import { TrustRow } from "@/components/TrustRow";
 import { PersonTile } from "@/components/PersonTile";
 import type { EnrichedJob } from "./types";
 
+/** What the tile names a poster it could not look up; the dashboard lists use the same words. */
+export const POSTER_NAME_FALLBACK = "a neighbor";
+
 interface JobPosterCardProps {
   /** The job whose poster is shown. */
   job: EnrichedJob;
@@ -86,7 +89,10 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
       // Guests can't open a profile — /user/:id is behind auth — so the tap
       // goes where it can actually lead somewhere.
       to={guest ? "/signup" : `/user/${job.customer_id}`}
-      name={job.posterName}
+      // Never a blank name (Q967, VN-2): a builder that could not look the
+      // poster up (a map pin's get_safe_profiles miss) left this undefined and
+      // the tile read "Posted by" over nothing. Same fallback every list uses.
+      name={job.posterName?.trim() || POSTER_NAME_FALLBACK}
       avatarUrl={job.posterAvatarUrl}
       initials={posterInitials}
       eyebrow="Posted by"

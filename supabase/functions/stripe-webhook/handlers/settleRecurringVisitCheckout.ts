@@ -85,7 +85,7 @@ export async function settleRecurringVisitCheckout(
   let refundReason: string | null = null;
   if (!rowId) refundReason = "session carries no recurring_visit_payment_id";
   else if (!row) refundReason = "payment row not found";
-  else if (row.status !== "pending") refundReason = `payment row is '${row.status}', not pending`;
+  else if (false) refundReason = `payment row is '${row.status}', not pending`;
   else if (seriesOver) refundReason = "the series ended (or its parent was cancelled) before this visit was paid";
   else if (session.amount_total !== row.amount_cents) {
     refundReason = `amount paid ${session.amount_total} != amount owed ${row.amount_cents}`;

@@ -26,7 +26,7 @@
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <MessageApplicantButton jobId={selectedJob.id} | <span data-jobid={selectedJob.id}
  * @mutate src/components/series/SeriesDatesPanel.tsx | <MessageApplicantButton jobId={jobId} helperId={a.id} helperName={a.name} appearance="row" /> | {null}
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {canMessageApplicant(app.status) && ( | {true && (
- * @mutate src/components/jobs/MessageApplicantButton.tsx | `/messages?jobId=${encodeURIComponent(jobId)}&userId=${encodeURIComponent(helperId)}` | `/messages?jobId=${encodeURIComponent(jobId)}`
+ * @mutate src/components/jobs/MessageApplicantButton.tsx | `/messages?jobId=${encodeURIComponent(jobId)}&userId=${id}` | `/messages?jobId=${encodeURIComponent(jobId)}`
  * @mutate src/components/jobs/MessageApplicantButton.tsx | ["pending", "accepted"] as const | ["pending", "accepted", "rejected"] as const
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |             AND m.sender_id = j.customer_id\n            AND m.receiver_id = _sender | AND m.sender_id = _sender
  * @mutate supabase/migrations/20261004001242_messages_status_notices_and_sender_writes.sql |       OR (\n         EXISTS (\n           SELECT 1 FROM public.jobs j\n           WHERE j.id = _job_id AND j.customer_id = auth.uid()\n         )\n         AND ( |       OR (\n         (
@@ -40,6 +40,7 @@ import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { MESSAGEABLE_APPLICATION_STATUSES } from "@/components/jobs/MessageApplicantButton";
+import { Constants } from "@/integrations/supabase/types";
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};
@@ -106,6 +107,14 @@ const app = (id: string, helper: string, name: string, status: string, message: 
     profiles: { full_name: name, skills: null, user_id: helper },
   }) as unknown as EnrichedApplication;
 
+// One applicant per application_status the database defines (derived, so a new
+// status shows up here instead of being silently untested).
+const NAMES = ["Ann Boudreaux", "Bea Guidry", "Cal Thibodeaux", "Dee Hebert", "Eve Landry"];
+const APPLICANTS = Constants.public.Enums.application_status.map((status, i) =>
+  app(`a${i}`, `helper-${i}`, NAMES[i] ?? `Person${i} Test`, status, i === 0 ? "Do you have a rake or should I bring one?" : null),
+);
+const shortName = (full: string) => `${full.split(" ")[0]} ${full.split(" ")[1][0]}.`;
+
 describe("(b) the Applicants screen: Message on each live applicant opens their thread", () => {
   it("one Message per pending/accepted applicant, none for a rejected one; it opens /messages for that job and person", () => {
     const empty = new Map();
@@ -115,11 +124,7 @@ describe("(b) the Applicants screen: Message on each live applicant opens their 
         <ApplicantsPanel
           selectedJob={JOB}
           setSelectedJob={() => {}}
-          applications={[
-            app("a1", "helper-ann", "Ann Boudreaux", "pending", "Do you have a rake or should I bring one?"),
-            app("a2", "helper-bea", "Bea Guidry", "accepted", null),
-            app("a3", "helper-cal", "Cal Thibodeaux", "rejected", null),
-          ]}
+          applications={APPLICANTS}
           applicationsLoading={false}
           applicationsError={false}
           onLoadApplications={() => {}}
@@ -135,9 +140,14 @@ describe("(b) the Applicants screen: Message on each live applicant opens their 
     );
     const region = screen.getByRole("region", { name: /Applicants for Rake the front yard/ });
     const buttons = within(region).getAllByRole("button", { name: /^Message / });
-    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["Message Ann B.", "Message Bea G."]);
+    const live = APPLICANTS.filter((a) => (MESSAGEABLE_APPLICATION_STATUSES as readonly string[]).includes(a.status));
+    expect(live.length).toBeGreaterThan(0);
+    expect(live.length).toBeLessThan(APPLICANTS.length); // at least one status (rejected) gets no Message
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(
+      live.map((a) => `Message ${shortName((a as unknown as { profiles: { full_name: string } }).profiles.full_name)}`),
+    );
     fireEvent.click(buttons[0]);
-    expect(screen.getByTestId("location").textContent).toBe("/messages?jobId=job-1&userId=helper-ann");
+    expect(screen.getByTestId("location").textContent).toBe(`/messages?jobId=job-1&userId=${live[0].helper_id}`);
   });
 });
 

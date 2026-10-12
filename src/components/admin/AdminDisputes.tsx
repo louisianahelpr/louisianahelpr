@@ -36,6 +36,9 @@ const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
   const [decidedJobs, setDecidedJobs] = useState<DisputedJob[]>([]);
   const [disputeRecords, setDisputeRecords] = useState<Record<string, DisputeRecord>>({});
+  // Q1327: every earlier dispute on a job (a re-file keeps the old one's row,
+  // the Helpr's answer archived on it), newest first.
+  const [earlierDisputes, setEarlierDisputes] = useState<Record<string, DisputeRecord[]>>({});
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
@@ -81,12 +84,12 @@ const AdminDisputes = () => {
     const [openRes, decidedRes, unsettledRes] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed, dispute_helper_response")
         .eq("status", "disputed")
         .order("disputed_at", { ascending: false }),
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed, dispute_helper_response")
         .not("dispute_resolved_at", "is", null)
         .order("dispute_resolved_at", { ascending: false })
         .limit(50),
@@ -192,11 +195,12 @@ const AdminDisputes = () => {
       : null;
 
     const recordsMap: Record<string, DisputeRecord> = {};
+    const earlierMap: Record<string, DisputeRecord[]> = {};
     if (allJobIds.length > 0) {
       const BASE_COLUMNS =
         "id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split";
       const EXECUTION_COLUMNS =
-        "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error";
+        "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error, helper_response";
       const readRecords = (columns: string) =>
         supabase.from("disputes").select(columns).in("job_id", allJobIds);
 
@@ -214,15 +218,18 @@ const AdminDisputes = () => {
       if (recordsErr && recordsErr.code !== "PGRST205" && recordsErr.code !== "42P01") {
         report(recordsErr, { tags: { source: "AdminDisputes.loadRecords" } });
       }
-      for (const r of (records as DisputeRecord[] | null) ?? []) {
-        // One row per job — if multiple exist (re-files), keep the
-        // most recent.
-        if (!recordsMap[r.job_id] || new Date(r.created_at) > new Date(recordsMap[r.job_id].created_at)) {
-          recordsMap[r.job_id] = r;
-        }
+      const newestFirst = [...((records as DisputeRecord[] | null) ?? [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      for (const r of newestFirst) {
+        // One current row per job — on a re-file, the most recent. The older
+        // ones are the job's dispute history (Q1327).
+        if (!recordsMap[r.job_id]) recordsMap[r.job_id] = r;
+        else (earlierMap[r.job_id] ??= []).push(r);
       }
     }
     setDisputeRecords(recordsMap);
+    setEarlierDisputes(earlierMap);
 
     const tMap: Record<string, string | null> = {};
     if (profilesPromise) {
@@ -754,6 +761,7 @@ const AdminDisputes = () => {
               job={job}
               filter={filter}
               disputeRecords={disputeRecords}
+              earlierDisputes={earlierDisputes[job.id]}
               profiles={profiles}
               tiers={tiers}
               activePanelJobId={activePanelJobId}

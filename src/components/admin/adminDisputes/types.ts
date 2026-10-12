@@ -32,6 +32,8 @@ export interface DisputedJob {
   sales_tax_amount?: number | null;
   /** Q368: a seed row, listed with a Test tag. */
   is_seed?: boolean | null;
+  /** The Helpr's answer to the CURRENT dispute (Q1327). */
+  dispute_helper_response?: string | null;
 }
 
 /** Row in the formal `public.disputes` table — null when the dispute
@@ -63,6 +65,12 @@ export interface DisputeRecord {
   /** What actually went back to the poster, in cents — vs. payment_refunds. */
   execution_refund_cents?: number | null;
   execution_error?: string | null;
+  /**
+   * The Helpr's answer to THIS dispute, archived here by open_dispute_as when a
+   * later dispute on the job starts (20261005064816); the current one lives on
+   * jobs.dispute_helper_response. Absent when read with the fallback columns.
+   */
+  helper_response?: string | null;
 }
 
 export type FilterTab = "open" | "decided";

@@ -22,8 +22,14 @@
  *   4. every real job category maps to a code: the taxable ones to the taxable
  *      labor code, every other one to Nontaxable;
  *   5. the webhook's "taxable but $0 in Louisiana" signal fires on exactly that
- *      case, and stripe-webhook calls it.
+ *      case, and stripe-webhook calls it;
+ *   6. the taxable labor code is one live Stripe Tax actually TAXES in
+ *      Louisiana. "General - Services" is exempt there, so every assembly and
+ *      handyman checkout collected $0 with the registration active (Q1578,
+ *      2026-10-12). A code joins LA_TAXED_LABOR_CODES only with the live
+ *      calculation that showed it standard_rated in Louisiana.
  *
+ * @mutate supabase/functions/_shared/salesTax.ts | export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005"; | export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
  * @mutate supabase/functions/create-bgc-payment/index.ts | ...(customerId ? { customer_update: { address: "auto" as const } } : {}), | ...({}),
  * @mutate supabase/functions/create-payment/index.ts | description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE }, | description: "Added so your Helpr receives the full tip." },
  * @mutate supabase/functions/calculate-tax/index.ts | tax_code: TAXABLE_LABOR_TAX_CODE, | tax_code: "txcd_20030000",
@@ -188,6 +194,20 @@ describe("Stripe tax codes (ME-043)", () => {
     for (const c of [null, undefined, "", "not_a_category"]) {
       expect(laborTaxCode(c)).toBe(NONTAXABLE_TAX_CODE);
     }
+  });
+
+  // Live Stripe Tax, 2026-10-12, taxcalc_1UPcYUKp2H4b7tECOt3PgfHe ($100 lines,
+  // 314 Lynn St, Delcambre LA 70528): these came back standard_rated at 11.25%.
+  // General - Services (txcd_20030000), Installation of TPP (txcd_20020018)
+  // and Repairs to Real Property (txcd_20080007) came back $0 product_exempt.
+  const LA_TAXED_LABOR_CODES = new Set(["txcd_20080005", "txcd_20090006"]);
+  const LA_UNTAXED_CODES_MEASURED = ["txcd_20030000", "txcd_20020018", "txcd_20080007"];
+
+  it("the taxable labor code is one live Stripe Tax measured as TAXED in Louisiana (Q1578)", () => {
+    expect(LA_TAXED_LABOR_CODES.size).toBeGreaterThan(0);
+    expect(LA_UNTAXED_CODES_MEASURED).not.toContain(TAXABLE_LABOR_TAX_CODE);
+    expect(LA_TAXED_LABOR_CODES.has(TAXABLE_LABOR_TAX_CODE), TAXABLE_LABOR_TAX_CODE).toBe(true);
+    for (const c of TAXABLE_CATEGORIES) expect(LA_TAXED_LABOR_CODES.has(laborTaxCode(c)), c).toBe(true);
   });
 
   it("flags $0 tax on taxable labor billed to Louisiana, and nothing else", () => {

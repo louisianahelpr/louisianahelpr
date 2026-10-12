@@ -1,3 +1,5 @@
+import { sessionKnown } from "@/lib/sessionKnown";
+
 /**
  * Synchronous "is there probably a session?" probe — WITHOUT importing
  * Supabase.
@@ -70,3 +72,12 @@ export const clearPersistedAuthToken = (): void => {
     /* unreadable store — nothing to remove, and nothing we can do about it */
   }
 };
+
+/**
+ * "No session, for certain" — the guest fast path. hasPersistedAuthToken()'s
+ * false is trustworthy only once the stored session is readable: in the app,
+ * before the Keychain restore lands, an evicted localStorage reads empty for a
+ * signed-in person (Q1463), so until then this says "not certain" and the
+ * caller takes its async path (getSession() waits for the restore).
+ */
+export const definitelyGuest = (): boolean => sessionKnown() && !hasPersistedAuthToken();

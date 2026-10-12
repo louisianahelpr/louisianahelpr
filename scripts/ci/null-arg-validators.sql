@@ -49,6 +49,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),

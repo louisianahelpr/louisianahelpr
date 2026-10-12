@@ -4,20 +4,11 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 234** (161 to do, 73 fixed with protection pending; 1137 done). Feeds mirrored in: 48 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 244** (151 to do, 93 fixed with protection pending; 1140 done). Feeds mirrored in: 46 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 237** (163 to do, 74 fixed with protection pending; 1136 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 245** (151 to do, 94 fixed with protection pending; 1140 done). Feeds mirrored in: 46 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 224** (184 to do, 40 fixed with protection pending; 1122 done). Feeds mirrored in: 50 from the alert ledger, 11 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 12 red, 13 stale, 2 unknown, 48 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:09Z)_
-- **Remote branches:** 198 carry patches not on main, 149 fully merged, of 355 (Q79). _(2026-10-12T20:09Z)_
-- **Workflows on main:** 12 red, 13 stale, 2 unknown, 48 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:21Z)_
-- **Remote branches:** 203 carry patches not on main, 150 fully merged, of 361 (Q79). _(2026-10-12T20:21Z)_
-- **Workflows on main:** 12 red, 13 stale, 2 unknown, 48 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:30Z)_
-- **Remote branches:** 206 carry patches not on main, 150 fully merged, of 364 (Q79). _(2026-10-12T20:30Z)_
-- **Workflows on main:** 14 red, 13 stale, 2 unknown, 46 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-12T20:46Z)_
-- **Remote branches:** 207 carry patches not on main, 151 fully merged, of 366 (Q79). _(2026-10-12T20:46Z)_
+- **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-10T22:38Z)_
+- **Remote branches:** 11 carry patches not on main, 1 fully merged, of 13 (Q79). _(2026-10-10T22:38Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 

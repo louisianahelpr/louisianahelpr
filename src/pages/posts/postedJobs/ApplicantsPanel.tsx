@@ -23,6 +23,8 @@ import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } fr
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
+import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
+import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
 
 interface ApplicantsPanelProps {
   /** No longer read here — the bid-mode sort default was its only consumer,
@@ -551,22 +553,7 @@ export function ApplicantsPanel({
                                 {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
                               </span>
                             )}
-                            {/* "Available now" pill — shown when the helper
-                                has toggled their 4-hour availability signal
-                                and the window hasn't expired yet. */}
-                            {(() => {
-                              const until = app.profiles?.available_until;
-                              const isNowAvailable = until && new Date(until) > new Date();
-                              return isNowAvailable ? (
-                                <span
-                                  className="inline-flex items-center gap-0.5 mt-0.5 text-ds-11 font-semibold px-1.5 py-0.5 rounded-full"
-                                  style={{ background: "hsl(var(--sage) / 0.12)", color: "hsl(var(--sage))" }}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current motion-safe:animate-pulse" aria-hidden="true" />
-                                  Available now
-                                </span>
-                              ) : null;
-                            })()}
+                            <ApplicantAvailableNow until={app.profiles?.available_until} />
                             {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").
                                 `flagged_hidden` is set server-side by
                                 applications_scan_contact_info when the note carries
@@ -645,6 +632,10 @@ export function ApplicantsPanel({
                                 <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                               </button>
                             </div>
+                          )}
+                          {/* Message under Hire, beside the applicant's note (owner, 2026-10-11); poster-first, see MessageApplicantButton. */}
+                          {canMessageApplicant(app.status) && (
+                            <MessageApplicantButton jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName} className="mr-1" />
                           )}
                           <ApplicantStatusBadge app={app} />
                           </div>

@@ -12,7 +12,7 @@
  * @mutate scripts/audit/pressFailureClass.mjs | return exp === null \|\| exp > now; | return true;
  * @mutate scripts/audit/pressFailureClass.mjs | return now - startedAt >= budgetMs; | return false;
  * @mutate scripts/audit/press-every-control.mjs | if (cls !== "app") { nonAppFails.push(`${cls}: ${s} | if (false) { nonAppFails.push(`${cls}: ${s}
- * @mutate scripts/audit/press-every-control.mjs | failedPresses > 0 \|\| undocumented > 0 \|\| sessionDeaths.length > 0 \|\| totalFound === 0 \|\| uncoveredPersonas.length > 0 \|\| notReached.length > 0 | failedPresses > 0 \|\| undocumented > 0 \|\| sessionDeaths.length > 0 \|\| totalFound === 0 \|\| uncoveredPersonas.length > 0
+ * @mutate scripts/audit/press-every-control.mjs | failedPresses > 0 \|\| undocumented > 0 \|\| sessionDeaths.length > 0 \|\| (totalFound === 0 && !drained) \|\| uncoveredPersonas.length > 0 \|\| notReached.length > 0 | failedPresses > 0 \|\| undocumented > 0 \|\| sessionDeaths.length > 0 \|\| (totalFound === 0 && !drained) \|\| uncoveredPersonas.length > 0
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

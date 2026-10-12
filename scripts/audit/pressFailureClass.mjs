@@ -355,6 +355,19 @@ export function releaseRow({ dir, key }) {
  *  - "stop": over budget in an earlier wave; leave it for the next wave.
  *  - "not-reached": over budget in the last wave; claim it and report it.
  */
+/**
+ * Q1689: a later wave whose shard found every row already claimed by earlier
+ * waves has nothing to press, and that is a drained queue, not an empty
+ * inventory. press-every-control 37605969628 (2026-10-07): leg 6's shards 11
+ * and 12 printed `found=0` and failed the run on the Q52 empty-inventory rule
+ * although legs 1-5 had pressed every row. Drained only when this shard walked
+ * no row, did not stop on its budget, and saw at least one row claimed by
+ * another shard; an empty inventory (nothing to claim) still fails.
+ */
+export function drainedQueueShard({ queueDir, rowsWalked, claimedElsewhere, stopped }) {
+  return Boolean(queueDir) && rowsWalked === 0 && claimedElsewhere > 0 && !stopped;
+}
+
 export function queuedRowAction({ overBudget, lastWave }) {
   if (!overBudget) return "walk";
   return lastWave ? "not-reached" : "stop";

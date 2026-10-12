@@ -28,6 +28,7 @@
  * @mutate supabase/functions/_shared/refundNotice.ts |       const jobId = md.job_id ?? md.parent_job_id; |       const jobId = md.job_id;
  * @mutate supabase/functions/_shared/refundNotice.ts |   const kept = keptSentence(Number(input.keptCents ?? 0), input, jobOwnsCharge ? job : null); |   const kept = keptSentence(Number(input.keptCents ?? 0), input, job);
  * @mutate supabase/functions/_shared/refundNotice.ts |           emailed = res.ok && !body.skipped && body.success !== false; |           emailed = res.ok && !body.skipped;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (r.stripe_payment_intent_id && releasedCents.get(r.stripe_payment_intent_id) === Number(r.amount_cents)) continue; |
  * @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -485,6 +486,26 @@ describe("Q1714: the hourly untold-refund sweep (void-cancelled-payments Part G)
     const q = scenario.readQueries.find((r) => r.table === "payment_refunds" && r.cols.includes("amount_cents"));
     expect(q?.filters.map((f) => f.op)).toEqual(expect.arrayContaining(["gte", "lte"]));
     expect(String(q?.filters.find((f) => f.op === "gte")?.value) >= "2026-10-12T12:00:00").toBe(true);
+  });
+
+  // Q1726 (finding lh-money-escrow@51461f2e6#1): a released hold, announced as
+  // "Payment hold released", that Stripe also lists as a Refund of the same
+  // amount (charge.refunded wrote it as a stripe_dashboard ledger row) is the
+  // same money: the sweep does not send "Refund issued" for it a second time.
+  it("a refund of the same amount as a released hold already announced is not announced again", async () => {
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [LEDGER_ROW] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 10000 }] };
+    await runSweep();
+    expect(posterNotices()).toHaveLength(0);
+    expect(claims()).toEqual([]);
+    expect(notificationEmails).toHaveLength(0);
+  });
+
+  it("control: a released hold of a DIFFERENT amount does not hide a later refund", async () => {
+    scenario.reads.payment_refunds = { rows: [], selectOverrides: [{ includes: "customer_id, amount_cents", result: { rows: [LEDGER_ROW] } }] };
+    scenario.reads.refund_notices = { rows: [{ notice_key: "release:pi_x", amount_cents: 1200 }] };
+    await runSweep();
+    expect(claims()).toEqual(["refund:re_untold"]);
   });
 
   it("a refund already announced is left alone", async () => {

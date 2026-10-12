@@ -60,7 +60,16 @@ export function useDashboardSideQueries({ userId, allJobs }: UseDashboardSideQue
   // re-run on every Dashboard mount. The result seeds the local
   // `savedJobIds` state (below), which handleToggleSave mutates
   // optimistically as the user saves/unsaves jobs.
-  const { data: savedJobsData } = useQuery({
+  // `isError` is kept, not just `data` (Q1701): a failed read left
+  // savedJobIds an empty Set, and the saved-only feed then said "Nothing saved
+  // yet" over a list it never managed to read. The error itself still reaches
+  // report() through QueryCache.onError.
+  const {
+    data: savedJobsData,
+    isError: savedJobsError,
+    isFetching: savedJobsFetching,
+    refetch: refetchSavedJobs,
+  } = useQuery({
     queryKey: queryKeys.dashboard.savedJobs(userId),
     queryFn: async () => {
       const data = unwrap(await supabase
@@ -106,6 +115,11 @@ export function useDashboardSideQueries({ userId, allJobs }: UseDashboardSideQue
   return {
     upcomingJob,
     savedJobIds,
+    // Failed with nothing read yet. After one good read a later failed refetch
+    // keeps that data, which is still the viewer's real saved list.
+    savedJobsLoadFailed: savedJobsError && savedJobsData === undefined,
+    retrySavedJobs: () => { void refetchSavedJobs(); },
+    savedJobsRetrying: savedJobsFetching === true,
     setSavedJobIds,
     dismissedJobIds,
     setDismissedJobIds,

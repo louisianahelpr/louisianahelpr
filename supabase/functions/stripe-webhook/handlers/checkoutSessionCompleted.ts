@@ -277,6 +277,21 @@ async function settleCheckoutSession(
         });
         throw new Error(`Tip status flip failed for job ${tipJobId}: ${tipError.message}`);
       }
+      // Q1344: stamp the tip's PaymentIntent, so a refund or chargeback of it
+      // (payment_refunds / disputes are keyed by PaymentIntent) can be matched
+      // to the tip and taken off the poster's Spent total (src/lib/posterSpend.ts).
+      // Runs on every delivery so a redelivery fills a row an earlier one left
+      // unstamped; zero rows is legitimate (already stamped), so no
+      // unwrapMutation. A failed write throws and Stripe redelivers.
+      const paidTipPi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+      if (paidTipPi) {
+        const { error: tipPiErr } = await supabase
+          .from("tips")
+          .update({ stripe_payment_intent_id: paidTipPi })
+          .eq("stripe_session_id", session.id)
+          .is("stripe_payment_intent_id", null);
+        if (tipPiErr) throw new Error(`Tip PaymentIntent stamp failed for session ${session.id}: ${tipPiErr.message}`);
+      }
       // Q1222: a tip is a destination charge, so Stripe already moved it to the
       // Helpr. If the Helpr is on a payout hold now (the Checkout was opened
       // before the hold), the transfer is reversed back to the platform and the

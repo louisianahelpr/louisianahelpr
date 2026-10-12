@@ -1,5 +1,5 @@
 {
-  "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
+  "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts 2026-10-12 (lane 2, by hand, no DB credentials in that session): issue #2668 and ledger 8a5eda1d93db, 41f88aeb227f, f08d7f0fc323 removed after each was measured closed (gh api issues/2668: closed 04:18Z; ops_alert_ledger.status = closed via SQL 08:4xZ). Everything else is still the measured_at measurement.",
   "measured_at": "2026-10-10T22:39Z",
   "issues": {
     "readable": true,
@@ -57,11 +57,6 @@
       {
         "number": 2660,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2668,
-        "title": "nightly-red: db-backup",
         "label": "nightly-red"
       }
     ]
@@ -166,14 +161,6 @@
         "issue": 2615
       },
       {
-        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-backup",
-        "issue": 2668
-      },
-      {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -187,22 +174,6 @@
         "source": "sentry:?(assets/app-shared-BltHQJ6d)",
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
-        "issue": null
-      },
-      {
-        "fingerprint": "f08d7f0fc323e27f5b0f419dfb6ff159",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: arrival-confirm-reminder returned 503",
-        "issue": null
-      },
-      {
-        "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
         "issue": null
       },
       {
@@ -602,7 +573,7 @@
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/home · error screen shown: nothing saved yet",
+        "title": "/home \u00b7 error screen shown: nothing saved yet",
         "issue": null
       }
     ]

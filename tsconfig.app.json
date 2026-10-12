@@ -44,6 +44,8 @@
     // matched a real notification body and took out three journey legs). This
     // project is `composite`, so a file it compiles has to be listed.
     "e2e/errorScreens.ts",
+    // src/test/journeyCleanupStripsMarkers.test.ts (Q1505) imports the marker helpers.
+    "e2e/journeys/journeyMarkers.ts",
     // src/test/e2eSkipsAreJustified.test.ts imports the skip inventory, allowlist
     // and reporter (TS6307 otherwise).
     "e2e/skipSites.ts",

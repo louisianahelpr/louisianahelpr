@@ -16,6 +16,7 @@ import {
   AUTH_STORAGE_KEY,
 } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { journeyMarker, withoutJourneyMarkers } from "./journeyMarkers";
 
 /**
  * Journeys 7 and 8 — the account itself.
@@ -79,6 +80,8 @@ test(j7, async ({ browser, request, journey }) => {
   const helper = await getSession(request, "helper");
   const poster = await getSession(request, "poster");
   const before = await readProfile(request, helper);
+  // Q1505: restore the seed bio, never a leftover marker from a run that died.
+  const seedBio = withoutJourneyMarkers(before.bio);
   const hctx = await newUserContext(browser, helper, { rotation });
   const pctx = await newUserContext(browser, poster, { rotation });
   const hp = journey.track("helper", await hctx.newPage());
@@ -99,12 +102,12 @@ test(j7, async ({ browser, request, journey }) => {
     const restorable = await resolvingUrl(request, before.avatar_url);
     const r = await request.patch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${helper.user.id}`, {
       headers: rest(helper, { Prefer: "return=representation" }),
-      data: restorable ? { bio: before.bio, avatar_url: restorable } : { bio: before.bio },
+      data: restorable ? { bio: seedBio, avatar_url: restorable } : { bio: seedBio },
     });
     expect(r.ok(), `restoring profile: ${r.status()} ${await r.text()}`).toBe(true);
     expect(((await r.json()) as unknown[]).length, "restoring profile matched no row").toBe(1);
     const after = await readProfile(request, helper);
-    expect(after.bio).toBe(before.bio);
+    expect(after.bio).toBe(seedBio);
     expect(
       await resolvingUrl(request, after.avatar_url),
       `after cleanup the helper's avatar_url names an object that does not exist: ${after.avatar_url}`,
@@ -114,7 +117,7 @@ test(j7, async ({ browser, request, journey }) => {
   await test.step("edit a profile field and see it on the profile", async () => {
     await openFromProfile(hp, /^Edit profile$|^Edit$/, "Edit Profile");
     const about = hp.getByRole("textbox", { name: "About you" });
-    await about.fill(`${before.bio ?? ""} Journey ${RUN}.`.trim());
+    await about.fill(`${seedBio ?? ""} ${journeyMarker(RUN)}`.trim());
     const save = hp.getByRole("button", { name: "Save Changes" });
     await expect(save, "the save bar never offered Save Changes after an edit").toBeEnabled({ timeout: 15_000 });
     await journey.milestone(hp, "edit-profile-dirty");

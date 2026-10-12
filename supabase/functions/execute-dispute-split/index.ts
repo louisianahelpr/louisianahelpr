@@ -1806,7 +1806,10 @@ serve(async (req) => {
         // share of it and the card processing fee, so refunded + kept is the
         // receipt's total. A gift's share is not on the card at all.
         keptCents: Math.max(0, capturedCents - refundCents),
-        keptReason: "the Helpr's share under the dispute decision and the card processing fee",
+        // The Helpr is named only when the decision gave them a share.
+        keptReason: movedHelperCents > 0
+          ? "the Helpr's share under the dispute decision and the card processing fee"
+          : "the card processing fee, which can't be returned",
         recipientId: job.customer_id,
         jobId: job.id,
         extra: restoredGiftCents > 0

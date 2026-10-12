@@ -8,7 +8,7 @@ import {
   stripeKeyMode,
   webhookRejectResponse,
 } from "../_shared/stripeWebhookReject.ts";
-import { logStep, WebhookDeferred, type WebhookContext } from "./context.ts";
+import { logStep, type WebhookContext } from "./context.ts";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted.ts";
 import { handleCheckoutSessionExpired } from "./handlers/checkoutSessionExpired.ts";
 import { handleCustomerSubscriptionUpdated } from "./handlers/customerSubscriptionUpdated.ts";
@@ -341,15 +341,6 @@ serve(async (req) => {
       logStep("Unhandled event type", { type: event.type });
     }
   } catch (err) {
-    if (err instanceof WebhookDeferred) {
-      // Q1654: not a failure. Stripe redelivers on the non-2xx; nobody is paged.
-      logStep("Event deferred; Stripe will redeliver", { reason: err.message });
-      await rollbackIdempotency();
-      return new Response(JSON.stringify({ received: false, deferred: true }), {
-        headers: { "Content-Type": "application/json" },
-        status: 503,
-      });
-    }
     logStep("ERROR processing event", { error: String(err) });
     // Roll back the dedupe row and return a non-2xx so Stripe REDELIVERS this
     // event. A transient DB/handler failure must not permanently lose a paid

@@ -127,34 +127,22 @@ export function pathAnnouncesRefund(md: Record<string, string> | null | undefine
 }
 
 /**
- * Where a refund's notice stands, read only (no claim taken): "done" (written,
- * or dropped by design), "in_flight" (claimed, not written yet), "none", or
- * "unknown" (the read failed, or the table is not deployed yet).
- */
-export async function refundNoticeState(supabase: Client, key: string): Promise<"done" | "in_flight" | "none" | "unknown"> {
-  try {
-    const { data, error } = await supabase.from("refund_notices").select("notification_id").eq("notice_key", key).maybeSingle();
-    if (error) return "unknown";
-    if (!data) return "none";
-    return (data as { notification_id: string | null }).notification_id ? "done" : "in_flight";
-  } catch (e) {
-    console.warn("[refundNotice] state read threw", { key, error: caughtMessage(e) });
-    return "unknown";
-  }
-}
-
-/**
  * The amount a `release:<pi>` notice already told the person about, or null.
  * A hold captured in part releases the rest; should Stripe also show that as a
  * Refund on the charge, the webhook must not announce the same money twice
  * (second review of Q1654, N8).
  */
-export async function releasedCentsAlreadyTold(supabase: Client, paymentIntentId: string | null): Promise<number | null> {
+export async function releasedCentsAlreadyTold(
+  supabase: Client,
+  paymentIntentId: string | null,
+): Promise<{ cents: number; createdS: number } | null> {
   if (!paymentIntentId) return null;
-  const { data, error } = await supabase.from("refund_notices").select("amount_cents, notification_id")
+  const { data, error } = await supabase.from("refund_notices").select("amount_cents, notification_id, created_at")
     .eq("notice_key", `release:${paymentIntentId}`).maybeSingle();
   if (error || !data) return null;
-  return (data as { notification_id: string | null }).notification_id ? Number((data as { amount_cents: number }).amount_cents) : null;
+  const row = data as { amount_cents: number; notification_id: string | null; created_at: string };
+  if (!row.notification_id) return null;
+  return { cents: Number(row.amount_cents), createdS: Date.parse(row.created_at) / 1000 };
 }
 
 /** Postgres errors no retry can pass: a foreign key, a CHECK, a malformed value. */

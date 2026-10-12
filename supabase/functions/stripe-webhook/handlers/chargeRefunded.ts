@@ -5,14 +5,14 @@
 // are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
-import { WebhookDeferred, type WebhookContext } from "../context.ts";
+import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
-import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, refundNoticeState, releasedCentsAlreadyTold, sendRefundNotice } from "../../_shared/refundNotice.ts";
+import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, releasedCentsAlreadyTold, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
@@ -29,11 +29,6 @@ const GIFT_GOES_BACK_WHOLE =
  * 'released' (the Helpr was paid), 'chargeback' (the card network holds it) or
  * 'refunded' (already closed).
  */
-/** Q1654: how long the path that made a refund has to tell the card holder before this handler does. */
-const PATH_GRACE_S = 15 * 60;
-/** Q1654: the head start every other path gets to claim its own refund's notice. */
-const PATH_HEAD_START_S = 2 * 60;
-
 const REFUND_CLOSABLE_PAYMENT_STATES = [
   "escrow", "payout_pending", "cancelling", "unpaid", "abandoned", "failed", "cancelled",
 ] as const;
@@ -472,36 +467,36 @@ export async function handleChargeRefunded(
     // A refund made long before this event (a later refund on the same charge)
     // is not announced now, days late: only refunds from the last 72 hours.
     const since = Number((event as { created?: number }).created ?? Math.floor(Date.now() / 1000)) - 72 * 3600;
-    const deferred: string[] = [];
     const releaseTold = await releasedCentsAlreadyTold(supabase, refundPiId ?? null);
+    // Refunds a PATH made and wrote to the ledger: that path tells the person
+    // itself, right after its ledger row, with the amounts it computed. The
+    // webhook answers 200 and leaves them to it; the hourly untold-refund
+    // sweep (void-cancelled-payments) is the safety net for a path that
+    // stopped first. Not deferring through Stripe's retries: a re-run repeats
+    // this whole event (third review of Q1654).
+    const { data: pathRows, error: pathRowsErr } = await supabase.from("payment_refunds")
+      .select("stripe_refund_id, source").in("stripe_refund_id", ordinaryRefunds.map((r) => r.id))
+      .neq("source", "stripe_dashboard");
+    if (pathRowsErr) logStep("WARN: path ledger read for the refund notice failed; sending from here", { error: pathRowsErr.message });
+    const madeByAPath = new Set(((pathRows ?? []) as Array<{ stripe_refund_id: string }>).map((x) => x.stripe_refund_id));
     for (const r of ordinaryRefunds) {
       if (typeof r.created === "number" && r.created < since) {
         logStep("Refund notice skipped: refund older than 72h", { refund: r.id, created: r.created });
         continue;
       }
-      // The path that made a refund has PATH_GRACE_S to tell the card holder
-      // itself. Until then this event is deferred (Stripe redelivers, nobody
-      // is paged); past it, a refund still untold gets this notice, so a path
-      // that stopped between its refund and its notice never leaves the
-      // person untold (second review of Q1654, N2/N3).
-      if (releaseTold !== null && Number(r.amount ?? 0) === releaseTold) {
+      const md = (r.metadata ?? null) as Record<string, string> | null;
+      // A hold captured in part released the rest, already announced as a
+      // release; should Stripe also list that as a Refund, it is the same
+      // money: same amount, no metadata of ours, made with the release.
+      if (
+        releaseTold && Number(r.amount ?? 0) === releaseTold.cents && Object.keys(md ?? {}).length === 0 &&
+        typeof r.created === "number" && Math.abs(r.created - releaseTold.createdS) < 600
+      ) {
         logStep("Refund notice skipped: the released hold's notice already told them", { refund: r.id });
         continue;
       }
-      const ageS = typeof r.created === "number" ? Date.now() / 1000 - r.created : Infinity;
-      const state = await refundNoticeState(supabase, `refund:${r.id}`);
-      if (state === "done") continue;
-      if (pathAnnouncesRefund((r.metadata ?? null) as Record<string, string> | null)) {
-        if (ageS < PATH_GRACE_S) {
-          deferred.push(r.id);
-          continue;
-        }
-        logStep("Refund notice: its own path never sent it; sending it here", { refund: r.id, state });
-      } else if (state !== "in_flight" && ageS < PATH_HEAD_START_S) {
-        // Every other path announces its refund right after its ledger row,
-        // with the amounts it computed; a fresh refund nobody claimed yet is
-        // given that head start, so the path's words win (review N4).
-        deferred.push(r.id);
+      if (pathAnnouncesRefund(md) || madeByAPath.has(r.id)) {
+        logStep("Refund notice left to the path that made it", { refund: r.id });
         continue;
       }
       const result = await sendRefundNotice(supabase, {
@@ -515,19 +510,9 @@ export async function handleChargeRefunded(
         extra: r.id === latestRefund?.id ? noticeExtra : null,
         loadMetadata,
       });
-      if (result.status === "in_flight") {
-        // Another sender is writing it now. Seen again after the grace (or
-        // the 5-minute takeover) unless that sender finishes.
-        deferred.push(r.id);
-        continue;
-      }
-      if (result.status === "failed") {
-        // A transient failure (permanent ones come back as no_recipient /
-        // unwritten): nothing was written and the claim was given back, so
-        // Stripe redelivers, and every step above is idempotent on a redelivery.
-        throw new Error(`Refund notice for ${r.id} failed: ${result.error}`);
-      }
-      // duplicate / dropped: done.
+      // in_flight: another sender is writing it now. duplicate / dropped:
+      // done. failed: nothing was written and the claim was given back; it is
+      // paged below and the hourly untold-refund sweep sends it.
       const problem = refundNoticeProblem(result);
       if (problem) {
         await postSlackOpsAlert({
@@ -540,9 +525,6 @@ export async function handleChargeRefunded(
         });
       }
       logStep("Refund notice", { refund: r.id, status: result.status, emailed: result.emailed ?? false, error: result.error });
-    }
-    if (deferred.length > 0) {
-      throw new WebhookDeferred(`refund notice still with its own path: ${deferred.join(", ")}`);
     }
   }
 }

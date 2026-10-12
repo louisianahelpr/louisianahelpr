@@ -1099,7 +1099,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN, reported not built (owner decisions)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1653 LOW Five admin queues have no rail count: the ?view= screens banreview, credentials, exceptions, fraud and idvreview (found doing Q1071, 2026-10-12).** Each is a list of people or money waiting on an admin decision, but adminBadgeFor (src/pages/admin/Admin.tsx) gives them no number, so a waiting item is seen only when someone opens the screen. Fix: a live open count per queue from the same read its screen makes, like Stuck Jobs now; remove each from KNOWN_NO_BADGE as it lands. GUARD: src/test/adminQueueRowsHaveBadges.test.ts (exact two-way list). Tier: LOW.
+- [ ] **Q1662 LOW Five admin queues have no rail count: the ?view= screens banreview, credentials, exceptions, fraud and idvreview (found doing Q1071, 2026-10-12).** Each is a list of people or money waiting on an admin decision, but adminBadgeFor (src/pages/admin/Admin.tsx) gives them no number, so a waiting item is seen only when someone opens the screen. Fix: a live open count per queue from the same read its screen makes, like Stuck Jobs now; remove each from KNOWN_NO_BADGE as it lands. GUARD: src/test/adminQueueRowsHaveBadges.test.ts (exact two-way list). Tier: LOW.
 
 ### REVERTED — a deploy-lag heuristic that masked a real defect
 Reconciled 2026-09-23; detail in the archive at the line shown.

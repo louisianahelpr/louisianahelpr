@@ -25,7 +25,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  */
 
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
@@ -51,7 +51,8 @@ const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: THIS,
-  block_user_and_settle: BLOCK_FEE,
+  // Q1380 restated it (the slotless hire-order fallback); the crew rules hold there.
+  block_user_and_settle: "20261012124103_crew_block_slotless_share_by_hire_order.sql",
   expire_unanswered_offers: UNCONFIRMED,
 };
 

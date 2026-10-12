@@ -241,3 +241,19 @@ export function utcDayStartIso(now: Date = new Date()): string {
 export function escapeSlackText(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
+
+/**
+ * The alert's `link`, or null when it is not one of ours (Q1466). Both senders
+ * put it inside Slack's `<url|Open in admin →>`, where a `|` or `>` in the
+ * value would end the url early and let the rest dress any text as our link,
+ * and a `javascript:`/`http:` scheme or a `//host` would point it anywhere.
+ * Every caller passes our own value today (/admin?view=..., our https site,
+ * dashboard.stripe.com); only a site path or an https URL with no Slack
+ * control characters or whitespace is rendered.
+ */
+export function safeSlackLink(link: string | null | undefined): string | null {
+  if (typeof link !== 'string') return null
+  if (!(/^\/(?!\/)/.test(link) || link.startsWith('https://'))) return null
+  if (/[|<>\s]/.test(link)) return null
+  return link
+}

@@ -8,7 +8,7 @@
 
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { effectiveSeverity, escapeSlackText, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
+import { effectiveSeverity, escapeSlackText, safeSlackLink, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
 import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -94,10 +94,11 @@ function buildBlocks(body: AlertBody, severity: AlertSeverity) {
     })
   }
 
-  if (body.link) {
+  const link = safeSlackLink(body.link)
+  if (link) {
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `<${body.link}|Open in admin →>` }],
+      elements: [{ type: 'mrkdwn', text: `<${link}|Open in admin →>` }],
     })
   }
 

@@ -397,6 +397,29 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
     expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe("</admin?view=health|Open in admin →>");
   });
 
+  it("Q1466: a link that is not a site path or https URL is dropped, ours still renders", async () => {
+    const bad = [
+      "/admin|Open in admin> <https://evil.test",
+      "javascript:alert(1)",
+      "http://evil.test",
+      "//evil.test/admin",
+      "/admin?x=1>pay",
+      "/admin view",
+    ];
+    const fn = await load();
+    for (const link of bad) {
+      slackPosts = [];
+      await fn.fetch(call(fn, { ...watcherBody(), link }));
+      expect(slackPosts, link).toHaveLength(1);
+      expect(JSON.stringify(slackPosts[0]), link).not.toContain("Open in admin");
+    }
+    for (const link of ["/admin?view=health", "https://dashboard.stripe.com/disputes/dp_1"]) {
+      slackPosts = [];
+      await fn.fetch(call(fn, { ...watcherBody(), link }));
+      expect(slackPosts[0].blocks.at(-1).elements[0].text).toBe(`<${link}|Open in admin →>`);
+    }
+  });
+
   it("escapes field names and values too", async () => {
     const fn = await load();
     await fn.fetch(call(fn, { ...watcherBody(), fields: { "<!here>": "<!channel> & co" } }));
@@ -404,6 +427,9 @@ describe("slack-ops-alert — client-written text is escaped before Slack sees i
   });
 });
 
+// @mutate supabase/functions/slack-ops-alert/index.ts | const link = safeSlackLink(body.link) | const link = body.link
+// @mutate supabase/functions/_shared/alertPolicy.ts | if (/[\|<>\s]/.test(link)) return null |
+// @mutate supabase/functions/_shared/alertPolicy.ts | /^\/(?!\/)/.test(link) | /^\//.test(link)
 // @mutate supabase/functions/slack-ops-alert/index.ts | text: { type: 'mrkdwn', text: escapeSlackText(body.message) }, | text: { type: 'mrkdwn', text: body.message },
 // @mutate supabase/functions/slack-ops-alert/index.ts | ${escapeSlackText(String(v))} | ${String(v)}
 // @mutate supabase/functions/slack-ops-alert/index.ts | *${escapeSlackText(k)}:* | *${k}:*

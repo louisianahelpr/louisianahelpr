@@ -96,7 +96,7 @@ await db.exec(`
 `);
 const ends = async () => {
   try {
-    return (await db.query(`SELECT parent_job_id, kind, admin_id FROM public.series_platform_ends ORDER BY kind`)).rows;
+    return (await db.query(`SELECT parent_job_id, end_kind AS kind, admin_id FROM public.series_platform_ends ORDER BY end_kind`)).rows;
   } catch (e) {
     return e.message;
   }

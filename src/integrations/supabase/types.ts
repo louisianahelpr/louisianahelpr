@@ -5440,21 +5440,21 @@ export type Database = {
         Row: {
           admin_id: string | null
           ended_at: string
-          kind: string
+          end_kind: string
           parent_job_id: string
           reason: string | null
         }
         Insert: {
           admin_id?: string | null
           ended_at?: string
-          kind: string
+          end_kind: string
           parent_job_id: string
           reason?: string | null
         }
         Update: {
           admin_id?: string | null
           ended_at?: string
-          kind?: string
+          end_kind?: string
           parent_job_id?: string
           reason?: string | null
         }

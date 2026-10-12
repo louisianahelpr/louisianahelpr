@@ -265,6 +265,11 @@ try {
         method: "PATCH",
         body: { status: "accepted", helper_id: SEED_HELPER, accepted_at: new Date().toISOString() },
       });
+      // The hire accept_application makes writes the Helpr's application as
+      // `accepted` too. Without it the two tables disagree, and the day this
+      // job ages out auto-expire-jobs reopens it and files "reopened but no
+      // accepted application was found to reject" (Q1525, 2026-10-08).
+      await rest("applications", { method: "POST", body: { job_id: job.id, helper_id: SEED_HELPER, status: "accepted" } });
     }
     appendFileSync(out, `${job.id} ${row.stripe_payment_intent_id}\n`);
     made++;

@@ -426,7 +426,9 @@ export function JobCardMetaRow({
                overhang lands on the card's own padding, never on another
                control — the row's only other interactive element is pinned to
                the opposite end. */
-            className="flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink"
+            /* text-left: a wrapped address (long, or at large Dynamic Type) drew centred,
+               apart from the pin (Q252; guard src/test/wrappingButtonTextAligns.test.ts). */
+            className="flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink text-left"
             /* DISCOVERABILITY, part 2 — say it in words, for everyone.
                `aria-label` states BOTH actions so a screen-reader user is told
                the tap expands (which is not guessable) and `aria-describedby`

@@ -9,6 +9,7 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Open: 290** (197 to do, 93 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Open: 293** (198 to do, 95 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Open: 292** (199 to do, 93 fixed with protection pending; 1029 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 291** (198 to do, 93 fixed with protection pending; 1030 done). Feeds mirrored in: 65 from the alert ledger, 17 from nightly-red issues, 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 2 left of 34** (2 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 12 red, 13 stale, 0 unknown, 48 green of 73 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-10T22:38Z)_
@@ -1141,7 +1142,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### STILL OPEN after the 2026-09-19 late session
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] **Q1096** LOW ApplicationCardSkeleton vs JobCardShell mismatch (-52px); /user/:id IdentityHeroSkeleton reserves 326px, 141px arrives — Not reached / still open per doc. (archive L7429)
-- [ ] **Q1097** LOW At 320 the wrapped address is centered while the date beneath it is left-aligned — Not reached / still open per doc — minor address/date alignment mismatch at 320. (see also line 7395) (archive L7431)
 
 ### 2026-09-20 lead visual verification of the overnight lanes
 Reconciled 2026-09-23; detail in the archive at the line shown.

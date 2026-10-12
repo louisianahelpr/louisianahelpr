@@ -80,6 +80,35 @@ export function resetSharedMocks() {
   recordOpsAlertLedger.mockClear();
   giftCardEmails.length = 0;
   sendGiftCardEmail.mockClear();
+  notificationEmails.length = 0;
+  notificationEmailAnswer.status = 200;
+  notificationEmailAnswer.body = { success: true };
+}
+
+/**
+ * Q1652: every POST to `/functions/v1/send-notification-email` an edge
+ * function under test makes through the global `fetch` (the refund notice's
+ * email), recorded and answered here instead of reaching the network. The
+ * harness installs the interceptor (`installNotificationEmailFetch`) when it
+ * loads a function; a test that stubs `fetch` itself replaces it.
+ */
+export const notificationEmails: Array<Record<string, unknown>> = [];
+export const notificationEmailAnswer: { status: number; body: Record<string, unknown> } = { status: 200, body: { success: true } };
+
+const EMAIL_FETCH_MARK = "__lhNotificationEmailFetch";
+export function installNotificationEmailFetch() {
+  const current = globalThis.fetch as typeof fetch & { [EMAIL_FETCH_MARK]?: boolean };
+  if (current?.[EMAIL_FETCH_MARK]) return;
+  const wrapped = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (new URL(url).pathname === "/functions/v1/send-notification-email") {
+      notificationEmails.push(JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>);
+      return new Response(JSON.stringify(notificationEmailAnswer.body), { status: notificationEmailAnswer.status });
+    }
+    return current(input, init);
+  }) as typeof fetch & { [EMAIL_FETCH_MARK]?: boolean };
+  wrapped[EMAIL_FETCH_MARK] = true;
+  globalThis.fetch = wrapped;
 }
 
 export async function checkRateLimit(

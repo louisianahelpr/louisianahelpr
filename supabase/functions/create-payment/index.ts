@@ -33,6 +33,7 @@ import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
+import { sendRefundNotice } from "../_shared/refundNotice.ts";
 
 /**
  * Q1324 (money review 2026-10-06): an account under an open ban settlement
@@ -3185,6 +3186,8 @@ serve(async (req) => {
       // Q1290: set just before the Stripe refund call. Until then nothing can
       // have moved, so any stop puts the job claim back.
       let generalRefundSent = false;
+      // Q1652: the refund the poster's notice is about (claimed on its id).
+      let generalRefundForNotice: { id: string; amountCents: number; keptCents: number } | null = null;
       let paymentIntentId = job.stripe_payment_intent_id;
       try {
       if (!paymentIntentId && job.stripe_session_id) {
@@ -3307,6 +3310,14 @@ serve(async (req) => {
               ? `refund-general-${jobId}-${requestedCents}-seq${refundSeq}`
               : `refund-general-${jobId}-full`,
           });
+          if (refund?.id) {
+            const refundedCents = Math.round(Number(refund.amount ?? (isPartial ? requestedCents : capturedCents - generalAlreadyRefundedCents)));
+            generalRefundForNotice = {
+              id: refund.id,
+              amountCents: refundedCents,
+              keptCents: Number.isFinite(capturedCents) ? Math.max(0, capturedCents - generalAlreadyRefundedCents - refundedCents) : 0,
+            };
+          }
           await recordRefund(supabaseAdmin, {
             refund,
             jobId,
@@ -3446,24 +3457,28 @@ serve(async (req) => {
         },
       });
 
-      const dollarAmount = isPartial
-        ? `$${(requestedCents! / 100).toFixed(2)}`
-        : `$${Number(job.budget).toFixed(2)}`;
-      const customerMessage = isPartial
-        ? `A partial refund of ${dollarAmount} has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`
-        : `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.${generalGift.posterSentence}`;
-
-      await insertNotifications(supabaseAdmin, {
-        user_id: job.customer_id,
-        title: isPartial ? "Partial refund issued" : "Refund issued",
-        message: customerMessage,
-        type: "payment",
-        // A partial refund leaves the job running, so it has no single fixed
-        // bucket — link the job and let Activity place it. (The full-refund
-        // branch cancels the job, so `cancelled` is safe there, but `?job=`
-        // says the same thing more directly.)
-        link: `/posts?job=${job.id}`,
-      });
+      // Q1652: THE refund notice (in the app and by email: amount, card,
+      // reference, 5-10 business days, what was kept), claimed on the refund's
+      // id so the charge.refunded webhook this refund raises does not send a
+      // second one (that pair was Q300). The admin's reason and a restored
+      // gift ride on it. It links the job: a partial refund leaves it running.
+      if (generalRefundForNotice) {
+        const notice = await sendRefundNotice(supabaseAdmin, {
+          key: `refund:${generalRefundForNotice.id}`,
+          kind: "refund",
+          paymentIntentId: paymentIntentId ?? null,
+          amountCents: generalRefundForNotice.amountCents,
+          // A partial refund leaves the rest paying for the job: nothing "kept".
+          keptCents: isPartial ? 0 : generalRefundForNotice.keptCents,
+          recipientId: job.customer_id ?? null,
+          jobId: job.id,
+          extra: [reason ? `Reason: ${reason}.` : "", generalGift.posterSentence.trim()].filter(Boolean).join(" ") || null,
+        });
+        if (notice.status === "failed" || notice.status === "unwritten") {
+          // The webhook's charge.refunded tries again with the same claim.
+          console.error(`[create-payment] admin_refund_general: refund notice for job ${job.id} not sent here (${notice.status}: ${notice.error ?? ""}); the charge.refunded webhook retries it`);
+        }
+      }
 
       // Helper notification — only on full refund (job is cancelled). Partial
       // refunds don't change the helper's stake; if a partial-refund scenario

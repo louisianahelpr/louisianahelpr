@@ -4,7 +4,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { seedBoundaryDropsRow } from "../../_shared/seedBoundary.ts";
+import { sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q210(b): the payer paid a $300+ recurring visit on-session.
@@ -113,8 +113,9 @@ export async function settleRecurringVisitCheckout(
   if (refundReason) {
     logStep("ERROR: recurring visit paid but cannot be booked — refunding", { rowId, pi, refundReason });
     let alreadyRefunded = false;
+    let refund: { id: string | null; amount: number | null } = { id: null, amount: null };
     try {
-      ({ alreadyRefunded } = await refundInFullOnce(stripe, pi));
+      ({ alreadyRefunded, refund } = await refundInFullOnce(stripe, pi));
     } catch (e) {
       await postSlackOpsAlert({
         kind: "custom",
@@ -144,7 +145,8 @@ export async function settleRecurringVisitCheckout(
       payerId,
       parentJobId: rowIsPayers ? String(row!.parent_job_id) : null,
       visitDate: rowIsPayers ? String(row!.visit_date) : null,
-      amountCents: session.amount_total ?? null,
+      amountCents: refund.amount ?? session.amount_total ?? null,
+      refundId: refund.id,
       // A visit already paid on another PaymentIntent IS booked: this was a
       // second payment for it, and the notice says so.
       duplicate: rowIsPayers && row!.status === "paid",
@@ -196,33 +198,40 @@ export async function settleRecurringVisitCheckout(
  * boundary by design (a seed series, a real recipient). `alreadyTold`: an
  * earlier delivery wrote it. An unreadable check is treated as not told
  * (a second notice at worst, never none).
+ *
+ * Q1652: it is THE refund notice (_shared/refundNotice.ts: in the app and by
+ * email, with the amount, the reference and 5-10 business days), claimed on
+ * the refund's id, so the charge.refunded event this refund raises finds it
+ * already sent and does not tell the payer a second time.
  */
 async function tellPayerRefunded(
   supabase: WebhookContext["supabase"],
-  v: { pi: string; payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; duplicate: boolean },
+  v: { pi: string; payerId: string | null; parentJobId: string | null; visitDate: string | null; amountCents: number | null; refundId: string | null; duplicate: boolean },
 ): Promise<{ told: boolean; alreadyTold: boolean }> {
   if (!v.payerId) return { told: false, alreadyTold: false };
   const link = `/posts?visit_refund=${encodeURIComponent(v.pi)}`;
   const { data: prior, error: priorErr } = await supabase
     .from("notifications").select("id").eq("user_id", v.payerId).eq("link", link).limit(1);
   if (!priorErr && (prior ?? []).length > 0) return { told: true, alreadyTold: true };
-  const amount = typeof v.amountCents === "number" ? ` $${(v.amountCents / 100).toFixed(2)}` : "";
+  if (!v.refundId || !(Number(v.amountCents) > 0)) return { told: false, alreadyTold: false };
   const visit = `The visit${v.visitDate ? ` on ${v.visitDate}` : ""}`;
-  const { data, error } = await supabase.from("notifications").insert({
-    user_id: v.payerId,
-    job_id: v.parentJobId,
-    title: "Your visit payment was refunded",
-    message: v.duplicate
-      ? `${visit} was already paid, so we refunded the second payment of${amount} in full.`
-      : `${visit} couldn't be booked, so we refunded the${amount} you paid for it in full.`,
-    type: "job_updates",
+  const result = await sendRefundNotice(supabase, {
+    key: `refund:${v.refundId}`,
+    kind: "refund",
+    paymentIntentId: v.pi,
+    amountCents: Number(v.amountCents),
+    keptCents: 0,
+    recipientId: v.payerId,
+    jobId: v.parentJobId,
+    // Only the row's own payer sees the row's series named (rowIsPayers).
+    jobByPayment: false,
     link,
-  }).select("id");
-  if (!error && data && data.length > 0) return { told: true, alreadyTold: false };
-  if (!error && data && data.length === 0) {
-    const dropped = (await seedBoundaryDropsRow(supabase, { user_id: v.payerId, job_id: v.parentJobId, link })) === true;
-    return { told: dropped, alreadyTold: false };
-  }
+    extra: v.duplicate
+      ? `${visit} was already paid, so we refunded the second payment in full.`
+      : `${visit} couldn't be booked, so we refunded what you paid for it in full.`,
+  });
+  if (result.status === "duplicate") return { told: true, alreadyTold: true };
+  if (result.status === "sent" || result.status === "dropped") return { told: true, alreadyTold: false };
   return { told: false, alreadyTold: false };
 }
 
@@ -236,7 +245,10 @@ async function tellPayerRefunded(
  * "done" only when the intent really carries a live refund; otherwise it is a
  * failed refund and is rethrown.
  */
-async function refundInFullOnce(stripe: WebhookContext["stripe"], pi: string): Promise<{ alreadyRefunded: boolean }> {
+async function refundInFullOnce(
+  stripe: WebhookContext["stripe"],
+  pi: string,
+): Promise<{ alreadyRefunded: boolean; refund: { id: string | null; amount: number | null } }> {
   // Q1248: within the key's 24 hours Stripe REPLAYS the first refund as a
   // success, so a redelivered event (say after the row write threw) looked
   // like a new refund: the payer was told twice and ops warned twice. The
@@ -255,15 +267,16 @@ async function refundInFullOnce(stripe: WebhookContext["stripe"], pi: string): P
   try {
     const created = await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
     const replayed = Boolean(created?.id) && (before ?? []).includes(created.id);
-    return { alreadyRefunded: replayed };
+    return { alreadyRefunded: replayed, refund: { id: created?.id ?? null, amount: created?.amount ?? null } };
   } catch (e) {
     const err = e as { type?: string; code?: string } | null;
     const maybeDone = err?.code === "charge_already_refunded" ||
       err?.type === "StripeIdempotencyError" || err?.type === "idempotency_error";
     if (!maybeDone) throw e;
     const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
-    if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
-    return { alreadyRefunded: true };
+    const live = prior.data.find((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled");
+    if (!live) throw e;
+    return { alreadyRefunded: true, refund: { id: live.id ?? null, amount: live.amount ?? null } };
   }
 }
 

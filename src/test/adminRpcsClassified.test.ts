@@ -9,7 +9,7 @@
  * Classification lives once, in e2e/adminRpcClassification.ts.
  */
 // @mutate src/components/admin/AdminSupport.tsx | rpc("admin_support_queue" | rpc("admin_support_items"
-// @mutate e2e/adminRpcClassification.ts | \|admin_gift_card_paid_job_ids(\?\|$))/; | )/;
+// @mutate e2e/adminRpcClassification.ts | \|admin_signup_leads(\?\|$))/; | )/;
 import { describe, expect, it } from "vitest";
 import { adminRpcNames, unclassifiedAdminRpcs, writesTheFirewallPasses } from "../../e2e/adminRpcClassification";
 

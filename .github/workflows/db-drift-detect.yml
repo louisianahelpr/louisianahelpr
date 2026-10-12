@@ -239,6 +239,20 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
+      # Q1321: the Supabase PERFORMANCE advisor (unused indexes, overlapping
+      # permissive policies, Auth's connection strategy) held to an EXACT
+      # per-class count in scripts/ci/performance-advisor-baseline.json, both
+      # ways: a new finding and a fixed one whose baseline was not lowered are
+      # both red. Management API only (no SQL load). Same shape as above.
+      - name: The performance advisor is at its exact baseline
+        id: performance_advisor
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-performance-advisor.mjs
+
       # OA-018 (docs/OPEN.md Q446): an existing email account signing in with
       # Apple/Google. Performs GoTrue's own row writes for the four linking
       # cases on PROD inside one transaction that always rolls back, and checks
@@ -589,6 +603,7 @@ jobs:
           UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
           MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }}
           DEPLOYED_FUNCTIONS: ${{ steps.deployed_functions.outcome }}
+          PERFORMANCE_ADVISOR: ${{ steps.performance_advisor.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -629,6 +644,11 @@ jobs:
           fi
           if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then
             echo "::error::A public constraint is NOT VALID (a row violates it; its next UPDATE will fail) — or the live read failed. See 'Every public constraint is validated' above."
+            failed=1
+          fi
+          if [ "${PERFORMANCE_ADVISOR:-success}" = "failure" ]; then
+            echo "::error::The Supabase performance advisor is off its exact baseline (a new finding, or a fixed one whose baseline was not lowered) — or it could not be read. See 'The performance advisor is at its exact baseline' above (docs/OPEN.md Q1321)."
+            echo "::error::FIX: fix the new finding, or set scripts/ci/performance-advisor-baseline.json to the measured count in the change that moved it."
             failed=1
           fi
           if [ "${DEPLOYED_FUNCTIONS:-success}" = "failure" ]; then

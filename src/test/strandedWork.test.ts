@@ -22,15 +22,15 @@
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = true;
 // @mutate scripts/stranded-work.mjs |   return pages.flat().map((p) => ({ |   return pages.slice(0, 1).flat().map((p) => ({
 // @mutate scripts/stranded-work.mjs | "api", "--paginate", "--slurp", | "api", "--paginate", "--slurp", "--search",
+// @mutate scripts/stranded-work.mjs |   const isRemote = (a) => /^(pr\|remote):/.test(a.id); |   const isRemote = (a) => true;
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-expect-error — plain .mjs module, no declaration file
 import { buildMainIndex, unlandedContent, isIgnoredPath } from "../../scripts/lib/strandedContent.mjs";
 // @ts-expect-error — plain .mjs module, no declaration file
-import { localInventory, remoteInventory, judge, makeGit, setMainRef, landedElsewhere, closedPullRequests } from "../../scripts/stranded-work.mjs";
+import { localInventory, remoteInventory, judge, makeGit, setMainRef, landedElsewhere, splitAccepted, closedPullRequests } from "../../scripts/stranded-work.mjs";
 
 let root = "";
 let repo = "";
@@ -229,5 +229,21 @@ describe("stranded-work: every place work sits", () => {
     const r = judge(items, [{ id: "pr:7", sha: "aaa", reason: "owner decision Q1" }, { id: "pr:99", sha: "ccc", reason: "gone" }]);
     expect(r.unaccepted.map((i: { id: string }) => i.id)).toEqual(["remote:origin/x"]);
     expect(r.stale.map((i: { id: string }) => i.id)).toEqual(["pr:99"]);
+  });
+  it("a LOCAL acceptance (branch:, worktree:) is judged only against local items, never as a stale remote one", () => {
+    const accepted = [
+      { id: "pr:7", sha: "aaa", reason: "superseded" },
+      { id: "branch:old-lane", sha: "ddd", reason: "landed another way, Q1" },
+      { id: "worktree:/x@HEAD", sha: "eee", reason: "superseded" },
+    ];
+    const { remote, local } = splitAccepted(accepted);
+    expect(remote.map((a: { id: string }) => a.id)).toEqual(["pr:7"]);
+    expect(local.map((a: { id: string }) => a.id)).toEqual(["branch:old-lane", "worktree:/x@HEAD"]);
+    // CI (--remote --check) sees the remote half only: no stale acceptance from a Mac-only branch.
+    expect(judge([{ id: "pr:7", sha: "aaa" }], remote).stale).toEqual([]);
+    // On the Mac: an accepted local branch is excused, an unaccepted one is not, a moved one is stale.
+    const l = judge([{ id: "branch:old-lane", sha: "ddd" }, { id: "branch:new-work", sha: "fff" }], local);
+    expect(l.unaccepted.map((i: { id: string }) => i.id)).toEqual(["branch:new-work"]);
+    expect(l.stale.map((i: { id: string }) => i.id)).toEqual(["worktree:/x@HEAD"]);
   });
 });

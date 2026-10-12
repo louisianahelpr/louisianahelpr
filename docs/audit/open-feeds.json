@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-10T22:39Z",
+  "measured_at": "2026-10-12T18:39Z",
   "issues": {
     "readable": true,
     "open": [
@@ -30,18 +30,8 @@
         "label": "nightly-red"
       },
       {
-        "number": 2435,
-        "title": "nightly-red: e2e-real-backend",
-        "label": "nightly-red"
-      },
-      {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2501,
-        "title": "nightly-red: vacuity",
         "label": "nightly-red"
       },
       {
@@ -60,8 +50,8 @@
         "label": "nightly-red"
       },
       {
-        "number": 2668,
-        "title": "nightly-red: db-backup",
+        "number": 2894,
+        "title": "nightly-red: vacuity",
         "label": "nightly-red"
       }
     ]
@@ -69,6 +59,14 @@
   "ledger": {
     "readable": true,
     "open": [
+      {
+        "fingerprint": "36bcfb8c2391617950fa4b575b25409a",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "job stalled with escrow held",
+        "issue": null
+      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -102,14 +100,6 @@
         "issue": 2601
       },
       {
-        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
-        "source_kind": "sql_slack",
-        "source": "slack-ops-alert:custom",
-        "status": "open",
-        "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
         "source_kind": "error_logs",
         "source": "push-tokens-empty",
@@ -123,7 +113,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 2501
+        "issue": null
       },
       {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
@@ -132,6 +122,14 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
+      },
+      {
+        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
+        "source_kind": "workflow",
+        "source": "functions-deploy",
+        "status": "open",
+        "title": "functions-deploy failed on main",
+        "issue": null
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -166,14 +164,6 @@
         "issue": 2615
       },
       {
-        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-backup",
-        "issue": 2668
-      },
-      {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -187,22 +177,6 @@
         "source": "sentry:?(assets/app-shared-BltHQJ6d)",
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
-        "issue": null
-      },
-      {
-        "fingerprint": "f08d7f0fc323e27f5b0f419dfb6ff159",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: arrival-confirm-reminder returned 503",
-        "issue": null
-      },
-      {
-        "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
         "issue": null
       },
       {
@@ -374,27 +348,11 @@
         "issue": null
       },
       {
-        "fingerprint": "6927babb2c1aa0eb8238dd39dab9ff62",
-        "source_kind": "sentry",
-        "source": "sentry:cu(assets/app-shared-D-Rq5FZy)",
-        "status": "open",
-        "title": "error: permission denied for table recurring_visit_payments",
-        "issue": null
-      },
-      {
         "fingerprint": "99390a68ded71e6b94ed26b0ccc27b60",
         "source_kind": "sentry",
         "source": "sentry:?(assets/supabase-B9flpjD6)",
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
-        "issue": null
-      },
-      {
-        "fingerprint": "3a0d59ca52d8b710a720e366c95a17c5",
-        "source_kind": "sentry",
-        "source": "sentry:Vr(assets/supabase-B9flpjD6)",
-        "status": "open",
-        "title": "authapierror: captcha protection: request disallowed (no captcha_token found)",
         "issue": null
       },
       {
@@ -427,14 +385,6 @@
         "source": "sentry:du(assets/app-shared-CaUCxfK9)",
         "status": "open",
         "title": "error: missing authorization header",
-        "issue": null
-      },
-      {
-        "fingerprint": "c47e76e53f84c16be4ea3d7be6b8a925",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/ErrorState-X239NUZX)",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your payout data.",
         "issue": null
       },
       {
@@ -499,14 +449,6 @@
         "source": "sentry:Object.callback(assets/main-ChTLiwi6)",
         "status": "open",
         "title": "error: unexpected sign-out",
-        "issue": null
-      },
-      {
-        "fingerprint": "8c46dc7330fc7c0be0c5c613fa9cac0f",
-        "source_kind": "sentry",
-        "source": "sentry:O(assets/sentry-BSkyBh_y)",
-        "status": "open",
-        "title": "error: duplicate key value violates unique constraint \"referral_codes_user_id_key\"",
         "issue": null
       },
       {
@@ -598,11 +540,27 @@
         "issue": null
       },
       {
-        "fingerprint": "08aea1a17f25a50901f36deac98c2b2a",
+        "fingerprint": "a0597e872e21b8e38a6e743453dbb87a",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "job stalled — nobody marked it done",
+        "issue": null
+      },
+      {
+        "fingerprint": "e36005f99c1554625ac10bc1169f4e2d",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/home · error screen shown: nothing saved yet",
+        "title": "/ · boot stalled #s on the startup screen (/assets/main-djyfppgh.js, /assets/rolldown-runtime-hepw80vl.js, /assets/app-shared-cq7-dbtm.js, /assets/supabase-b9flpjd6.js, /assets/lucide-cojxtbrd.js, /as",
+        "issue": null
+      },
+      {
+        "fingerprint": "afd194b74d95b70e66b19dbe6dc7a76c",
+        "source_kind": "sentry",
+        "source": "sentry:f.<anonymous>(assets/supabase-B9flpjD6)",
+        "status": "open",
+        "title": "functionshttperror: edge function returned a non-#xx status code",
         "issue": null
       }
     ]
@@ -620,103 +578,90 @@
     "issue #2420": "Q1427",
     "issue #2435": "Q1428",
     "issue #2436": "Q1429",
-    "issue #2462": "Q1430",
     "issue #2501": "Q1426",
-    "issue #2580": "Q1513",
     "issue #2589": "Q1507",
-    "issue #2596": "Q1510",
     "issue #2601": "Q1427",
-    "issue #2604": "Q1522",
     "issue #2615": "Q1524",
-    "issue #2626": "Q1577",
-    "issue #2630": "Q1577",
-    "issue #2631": "Q1513",
     "issue #2660": "Q1507",
-    "issue #2665": "Q1510",
     "issue #2668": "Q1595",
+    "issue #2894": "Q1426",
     "ledger 02a88ee4875f": "Q1634",
-    "ledger 03faea228969": "Q1629",
+    "ledger 03faea228969": "Q1602",
     "ledger 06c124e99b6d": "Q1583",
     "ledger 08aea1a17f25": "Q1645",
-    "ledger 0e88968519a2": "Q1508",
     "ledger 0fa6c60d7a29": "Q1511",
-    "ledger 13c460ab330a": "Q1607",
+    "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1b4eafb12222": "Q1636",
-    "ledger 1ef4b10bb74a": "Q1488",
+    "ledger 1bbb3f41bbe7": "Q1697",
     "ledger 21cbec5b98d2": "Q1584",
-    "ledger 27437b0c4f14": "Q1619",
-    "ledger 27c479ef17f8": "Q1617",
+    "ledger 27437b0c4f14": "Q1603",
+    "ledger 27c479ef17f8": "Q1596",
     "ledger 311dfd492bc2": "Q1604",
+    "ledger 36bcfb8c2391": "Q1696",
     "ledger 3a0d59ca52d8": "Q1616",
     "ledger 3a3460b71be7": "Q1428",
-    "ledger 3a55e8af0908": "Q1577",
     "ledger 3a801ee231b0": "Q1580",
-    "ledger 40a33605c7c3": "Q1635",
+    "ledger 40a33605c7c3": "Q1603",
     "ledger 41f88aeb227f": "Q1525",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
     "ledger 4937f4e1c62a": "Q1639",
     "ledger 4b5ace7af165": "Q1621",
     "ledger 54b8c187374a": "Q1524",
-    "ledger 54ef0bfdcec3": "Q1480",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1610",
     "ledger 604d92b9bafb": "Q1582",
-    "ledger 60afeab5c360": "Q1642",
+    "ledger 60afeab5c360": "Q1636",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
-    "ledger 6471854dcd82": "Q1624",
-    "ledger 65bd41ba4452": "Q1637",
+    "ledger 6471854dcd82": "Q1597",
+    "ledger 65bd41ba4452": "Q1597",
     "ledger 6927babb2c1a": "Q1614",
     "ledger 6cc892e3fa10": "Q1640",
     "ledger 6d012a67fd60": "Q1643",
     "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
-    "ledger 8018e82cb167": "Q1510",
-    "ledger 824bcfd4ec0a": "Q1641",
+    "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
     "ledger 8a5eda1d93db": "Q1595",
     "ledger 8ad756b6da76": "Q1630",
     "ledger 8c46dc7330fc": "Q1632",
     "ledger 99390a68ded7": "Q1615",
-    "ledger a5d62d53b6a4": "Q1435",
+    "ledger a0597e872e21": "Q1698",
     "ledger a75fb3fba970": "Q1622",
-    "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger ab736843373b": "Q1620",
+    "ledger afd194b74d95": "Q1700",
     "ledger b4de6dae32de": "Q1633",
-    "ledger b7cb40a7f712": "Q1612",
-    "ledger ba752f27944d": "Q1627",
-    "ledger bc6810c9f1ab": "Q1606",
-    "ledger bd4c3063280b": "Q1626",
-    "ledger c1ad0c081216": "Q1611",
+    "ledger b7cb40a7f712": "Q1602",
+    "ledger ba752f27944d": "Q1599",
+    "ledger bc6810c9f1ab": "Q1597",
+    "ledger bd4c3063280b": "Q1600",
+    "ledger c1ad0c081216": "Q1603",
     "ledger c31b9a387af0": "Q1638",
     "ledger c47e76e53f84": "Q1623",
     "ledger cd2127b53ee7": "Q1597",
     "ledger d1585655d567": "Q1601",
     "ledger d1f8391b44ec": "Q1631",
     "ledger d2ada3522c22": "Q1602",
-    "ledger d3424c5d01ad": "Q1613",
-    "ledger d5cc10e1fb86": "Q1605",
+    "ledger d3424c5d01ad": "Q1600",
+    "ledger d5cc10e1fb86": "Q1596",
     "ledger db0fb15c4ec3": "Q1507",
     "ledger dd274a9b4b57": "Q1596",
     "ledger de37efb6fa8e": "Q1599",
     "ledger e06748071241": "Q1603",
-    "ledger e275ee325abe": "Q1522",
-    "ledger e306dea6b044": "Q1608",
+    "ledger e306dea6b044": "Q1601",
+    "ledger e36005f99c15": "Q1699",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1609",
     "ledger ed333dc86f47": "Q1644",
-    "ledger ed3f34acc0e1": "Q1628",
+    "ledger ed3f34acc0e1": "Q1598",
     "ledger ed4c78a49f57": "Q1618",
     "ledger ef92a9f31bed": "Q1476",
     "ledger f08d7f0fc323": "Q1512",
-    "ledger f22e3275d50d": "Q1513",
-    "ledger f3c752b3230f": "Q1625",
-    "ledger fad6897fcfae": "Q1438",
-    "ledger fdf163a422f2": "Q1482"
+    "ledger f3c752b3230f": "Q1609"
   }
 }

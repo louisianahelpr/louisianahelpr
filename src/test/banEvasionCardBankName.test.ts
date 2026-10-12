@@ -173,7 +173,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // (NEW_MIGRATION=skip-strikes: 4 FAIL).
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |             EXISTS (SELECT 1 FROM public.user_violations v\n                      WHERE v.user_id = r.user_id AND v.created_at >= r.created_at) |             true
-  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |        SET deferred_rungs = r.deferred_rungs || jsonb_build_array(jsonb_build_object( |        SET deferred_rungs = '[]'::jsonb || jsonb_build_array(jsonb_build_object(
+  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |        SET deferred_rungs = r.deferred_rungs \|\| jsonb_build_array(jsonb_build_object( |        SET deferred_rungs = '[]'::jsonb \|\| jsonb_build_array(jsonb_build_object(
   it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {
     const refuse = body("refuse_unban_during_ban_review");
     // Q1496: every rung is kept with its strike count (deferred_rungs).

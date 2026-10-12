@@ -16,7 +16,7 @@
  */
 // @mutate e2e/journeys/04-money-outcomes.spec.ts | const NON_ADMIN_REFUSED = ["admin_refund_general", "admin_refund_dispute", "admin_release_dispute"] as const; | const NON_ADMIN_REFUSED = ["admin_refund_general", "admin_refund_dispute"] as const;
 // @mutate e2e/journeys/04-money-outcomes.spec.ts | { action: "admin_refund_general", jobId, reason: | { action: "admin_refund_dispute", jobId, reason:
-// @mutate e2e/journeys/adminWritePaths.ts |   "admin-user-actions:set_ban_status": { success: { driven: { spec: ADMIN_SAFETY, evidence: 'name: "Permanently Ban"' } } },\n |
+// @mutate e2e/journeys/adminWritePaths.ts |   "admin-user-actions:apply_account_action": { success: { driven: { spec: ADMIN_SAFETY, evidence: 'name: "Permanently Ban"' } } },\n |
 // @mutate e2e/journeys/04-admin-safety.spec.ts |       expect(jobBody).toContain("account_restricted"); |       expect(jobBody).toContain("restricted");
 // @mutate e2e/journeys/04-money-outcomes.spec.ts |     for (const p of uncoveredAdminPaths()) { |     for (const p of [] as ReturnType<typeof uncoveredAdminPaths>) {
 import { describe, it, expect } from "vitest";

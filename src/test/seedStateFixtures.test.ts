@@ -31,6 +31,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 import { hasStreetAddress } from "@/pages/jobs/appliedJobCard/JobAddressLine";
 import {
+  CREW_MATE,
   HELPER,
   JOB_FIXTURES,
   POSTER,
@@ -160,9 +161,9 @@ describe("seed state fixtures (Q946)", () => {
         if (u.includes("/profiles?")) return [
           { user_id: POSTER.userId, email: POSTER.email, is_seed: true, stripe_account_id: null },
           { user_id: HELPER.userId, email: HELPER.email, is_seed: true, stripe_account_id: null },
-          { user_id: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607", email: "eli.test.helper@louisianahelpr.com", is_seed: true, stripe_account_id: null },
+          { user_id: CREW_MATE.userId, email: "eli.test.helper@louisianahelpr.com", is_seed: true, stripe_account_id: null },
         ];
-        if (u.includes("/test_accounts?")) return [{ user_id: POSTER.userId }, { user_id: HELPER.userId }, { user_id: "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607" }];
+        if (u.includes("/test_accounts?")) return [{ user_id: POSTER.userId }, { user_id: HELPER.userId }, { user_id: CREW_MATE.userId }];
         if (u.includes("/jobs?") && init?.method === "GET") return [job];
         if (u.includes("/jobs?") && init?.method === "DELETE") return [{ id }];
         return [];

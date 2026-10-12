@@ -54,6 +54,9 @@ const NOT_PROCESSORS = [
   "hooks.slack.com", "ipify.org", "irs.gov", "haveibeenpwned.com", "invalid",
   // Our own ops alerts to our own Slack, relayed by Lovable's connector gateway.
   "connector-gateway.lovable.dev", "vercel-insights.com", "jsdelivr.net", "unpkg.com", "npmjs.com",
+  // Never called: csp-report/report.ts names the Vercel Toolbar's script URL
+  // only to drop the browser's report that our CSP BLOCKED it (no data sent).
+  "vercel.live",
 ];
 
 const files = [...walk("src"), ...walk("supabase/functions")];

@@ -8076,6 +8076,16 @@ export type Database = {
         Returns: number
       }
       my_credential_tier: { Args: never; Returns: number }
+      my_schedule_clashes: {
+        Args: never
+        Returns: {
+          job_id: string
+          other_date: string
+          other_job_id: string
+          other_start_time: string
+          other_title: string
+        }[]
+      }
       normalize_name_for_ban: { Args: { p_name: string }; Returns: string }
       normalize_phone7_for_ban: { Args: { p_phone: string }; Returns: string }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }

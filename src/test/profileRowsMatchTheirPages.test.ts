@@ -18,7 +18,12 @@ import { describe, expect, it } from "vitest";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
-const ROWS_SRC = read("src/components/profile/profileLanding/useProfileLandingDerived.tsx");
+// The Work group's rows live in workMenuGroup.tsx (static, so the landing
+// skeleton can draw them, Q1173); every other group in the hook.
+const ROWS_SRC = [
+  "src/components/profile/profileLanding/useProfileLandingDerived.tsx",
+  "src/components/profile/profileLanding/workMenuGroup.tsx",
+].map(read).join("\n");
 
 /** Every row object: its key, its label expression, and its href when it has one. */
 function rows(): { key: string; label: string; href: string | null }[] {

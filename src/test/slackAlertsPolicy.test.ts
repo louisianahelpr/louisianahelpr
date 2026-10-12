@@ -196,7 +196,8 @@ describe("postSlackOpsAlert: a failed post must not burn the day's token", () =>
     const env: Record<string, string> = { SUPABASE_URL: SUPA, SECRET_KEY: "svc", LOVABLE_API_KEY: "lk", SLACK_API_KEY: "xoxb" };
     (globalThis as any).Deno = { env: { get: (k: string) => env[k] } };
     await post({ kind: "support_request", severity: "info", oncePerDayKey: "support-request:beef" });
-    const outside = calls.filter((c) => !String(c.url).startsWith(SUPA));
+    // Compare origins, not a prefix: a prefix also matches https://proj.supabase.test.evil.example.
+    const outside = calls.filter((c) => new URL(String(c.url)).origin !== new URL(SUPA).origin);
     expect(outside.map((c) => String(c.url))).toEqual([]);
     expect(rowPatches()).toHaveLength(1);
     // Inventory floor: the alert really ran (it wrote its ledger row first).

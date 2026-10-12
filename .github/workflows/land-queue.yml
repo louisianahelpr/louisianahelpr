@@ -24,11 +24,6 @@ on:
   # land.sh dispatches this (no pull_request trigger, no schedule).
   workflow_dispatch:
 
-# One queue step at a time; a burst of events collapses into one pending run.
-concurrency:
-  group: land-queue
-  cancel-in-progress: false
-
 permissions:
   contents: read
   pull-requests: write
@@ -39,6 +34,14 @@ jobs:
     name: Advance the land queue
     # check_run fires for every check of every app; only CodeQL's matters here.
     if: github.event_name != 'check_run' || github.event.check_run.app.slug == 'github-advanced-security'
+    # One queue step at a time; a burst of events collapses into one pending
+    # job. JOB level, after the `if` above (Q1674): at workflow level every
+    # check_run event of every app joined the group and cancelled the pending
+    # advance before its job was even judged; 100 runs in a row were cancelled
+    # 2026-10-12 08:53Z-09:33Z, 43 of them check_run runs with 0 jobs.
+    concurrency:
+      group: land-queue
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

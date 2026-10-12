@@ -127,6 +127,15 @@ describe("migration gate checks count in the queue", () => {
     expect(GATE_CHECKS).toContain("Coverage floor");
   });
 
+  // Q1674: the concurrency group sits on the advance JOB, after its check_run
+  // filter, so an event whose job is skipped never cancels the pending advance.
+  // @mutate .github/workflows/land-queue.yml |     concurrency:\n      group: land-queue | concurrency:\n  group: land-queue
+  it("the land-queue concurrency group is job-level, never workflow-level", () => {
+    const yml = readFileSync(join(process.cwd(), ".github/workflows/land-queue.yml"), "utf8");
+    expect(yml, "no top-level concurrency: it would let skipped check_run runs cancel the pending advance").not.toMatch(/^concurrency:/m);
+    expect(yml).toMatch(/^ {4}concurrency:\n {6}group: land-queue\n {6}cancel-in-progress: false$/m);
+  });
+
   it("every gate check is a real job name, in a workflow the queue wakes on", () => {
     const dir = join(process.cwd(), ".github/workflows");
     const queueYml = readFileSync(join(dir, "land-queue.yml"), "utf8");

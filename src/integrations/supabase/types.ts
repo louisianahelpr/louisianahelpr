@@ -827,6 +827,21 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_job_first_seen: {
+        Row: {
+          first_seen: string
+          jobname: string
+        }
+        Insert: {
+          first_seen?: string
+          jobname: string
+        }
+        Update: {
+          first_seen?: string
+          jobname?: string
+        }
+        Relationships: []
+      }
       cron_run_log: {
         Row: {
           body: Json

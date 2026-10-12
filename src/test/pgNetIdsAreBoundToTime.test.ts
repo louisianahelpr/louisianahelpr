@@ -15,7 +15,7 @@
  * comparison in the same clause. Behaviour, red on the state before (5 checks):
  * src/test/pglite/cronLogSurvivesIdReuse.pglite.mjs.
  */
-// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |                 AND e.created_at >= resp.created) |                 )
+// @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |                 AND e.created_at >= resp.created) |                 )
 // @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |       JOIN net._http_response resp ON resp.id = l.response_id AND resp.created = l.occurred_at |       JOIN net._http_response resp ON resp.id = l.response_id
 // @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |   ON CONFLICT (response_id, occurred_at) DO NOTHING; |   ON CONFLICT (response_id) DO NOTHING;
 // @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql |   ON public.cron_run_log (response_id, occurred_at); |   ON public.cron_run_log (response_id);

@@ -24,6 +24,7 @@ import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shar
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFees.ts";
+import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
 
 serve(async (req) => {
@@ -636,7 +637,7 @@ serve(async (req) => {
       }
       // What the card still owes once the gift's share is back.
       const cardOwedCents = Math.max(0, owedCents - giftRestoredCents);
-      const notifyPoster = async (cardCents: number) => {
+      const notifyPoster = async (cardCents: number, refundId: string | null = null) => {
         if (!job.customer_id || cardCents + giftRestoredCents <= 0) return;
         const parts = [
           cardCents > 0 ? `$${formatExactDollars(cardCents / 100)} is being refunded to your card` : null,
@@ -646,13 +647,44 @@ serve(async (req) => {
           ? ", including that share of the service fee and tax"
           : feeReturnCents > 0 ? ", including that share of the service fee"
           : taxReturnCents > 0 ? ", including that share of the tax" : "";
+        const why = decision
+          ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
+          : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`;
+        if (refundId && cardCents > 0) {
+          // Q1652: a card refund gets THE refund notice (in the app and by
+          // email), claimed on the refund's id, so the charge.refunded
+          // webhook's safety net and a re-run never send a second one. The
+          // rest of the charge paid the crew: nothing is "kept".
+          const result = await sendRefundNotice(supabaseAdmin, {
+            key: `refund:${refundId}`,
+            kind: "refund",
+            paymentIntentId: a.paymentIntentId ?? null,
+            amountCents: cardCents,
+            keptCents: 0,
+            recipientId: job.customer_id,
+            jobId: job.id,
+            extra: why,
+          });
+          const problem = refundNoticeProblem(result);
+          if (problem) {
+            jobDefect(job.id, `crew ${source} refund notice ${job.id}: ${problem}`);
+            await postSlackOpsAlert({
+              kind: "custom",
+              seed: seedJobIds.has(job.id),
+              severity: "warning",
+              title: "Money went back to a poster who was not fully told",
+              message: `Crew job ${job.id} refund ${refundId}: ${problem}. Tell them by hand.`,
+              fields: { job_id: job.id, refund_id: refundId, status: result.status },
+              oncePerDayKey: `refund-notice:refund:${refundId}`,
+            });
+          }
+          return;
+        }
         await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           job_id: job.id,
           title: "Part of your payment is on its way back",
-          message: decision
-            ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
-            : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`,
+          message: why,
           type: "payment",
           link: `/posts?job=${job.id}`,
         });
@@ -682,7 +714,7 @@ serve(async (req) => {
         const shortCents = cardOwedCents - sentCents;
         // Tell the poster what did go back (card and/or gift); a re-run that
         // only reads the prior row back does not tell them again.
-        if (fresh) await notifyPoster(sentCents);
+        if (fresh) await notifyPoster(sentCents, refundId);
         jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${cardOwedCents}c owed`);
         await postSlackOpsAlert({
           kind: "money_at_risk",
@@ -774,8 +806,8 @@ serve(async (req) => {
             fields: { job_id: job.id, refund_id: refund.id, db_error: ledgerErr.message.slice(0, 200) },
           });
         }
-        await notifyPoster(refundCents);
         if (refundCents < cardOwedCents) return shortRefund(refund.id, refundCents);
+        await notifyPoster(refundCents, refund.id);
         return { ok: true, refundId: refund.id, refundCents: refundCents + giftRestoredCents };
       } catch (refundErr) {
         jobDefect(job.id, `crew ${source} ${job.id}: ${(refundErr as Error).message}`);

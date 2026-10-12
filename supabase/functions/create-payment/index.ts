@@ -33,7 +33,7 @@ import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
-import { sendRefundNotice } from "../_shared/refundNotice.ts";
+import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
 
 /**
  * Q1324 (money review 2026-10-06): an account under an open ban settlement
@@ -2077,6 +2077,27 @@ serve(async (req) => {
               reason: "escrow cancellation refund (minus non-refundable service fee)",
               initiatedByUserId: user.id,
             });
+            // Q1652: the poster is told at once, with what was kept and why
+            // in the amounts computed here.
+            if (refund?.id) {
+              const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
+              const keptCents = Math.max(0, capturedCents - refundedCents);
+              await announceRefund(supabaseAdmin, "cancel_escrow", {
+                key: `refund:${refund.id}`,
+                kind: "refund",
+                paymentIntentId: cancelPaymentIntentId,
+                amountCents: refundedCents,
+                keptCents,
+                keptReason: keptCents > 0 && keptCents === serviceFeeCents
+                  ? "the service fee, which isn't refunded when a job is cancelled"
+                  : keptCents > 0 && serviceFeeCents > 0
+                  ? "the service fee and card processing fee, which aren't refunded when a job is cancelled"
+                  : keptCents > 0 ? "the card processing fee, which can't be returned" : null,
+                recipientId: job.customer_id ?? null,
+                jobId,
+                method: paymentMethodFromCharge(typeof pi.latest_charge === "object" ? pi.latest_charge : null),
+              });
+            }
           } else {
             // The withholding consumed the whole capture, so the poster gets $0
             // back while the job still flips to cancelled. That can be legitimate
@@ -2642,6 +2663,8 @@ serve(async (req) => {
       // consumed the whole capture" outcome, which the branch below alerts on.
       let disputeRefundId: string | null = null;
       let disputeRefundCents = 0;
+      // Q1652: what the capture kept (Stripe's processing fee), for the notice.
+      let disputeKeptCents = 0;
       // Hoisted so the success path below can hand the claim back by token. It
       // is TAKEN inside the try (immediately before the Stripe call, after every
       // refusal that moves no money), but RELEASED after the flip, which is out
@@ -2793,6 +2816,7 @@ serve(async (req) => {
               }
               disputeRefundId = refund.id;
               disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
+              disputeKeptCents = Math.max(0, capturedCents - disputeRefundCents);
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,
@@ -2940,13 +2964,29 @@ serve(async (req) => {
         },
       });
 
-      // Notify both parties
-      await insertNotifications(supabaseAdmin, {
-        user_id: job.customer_id,
-        title: "Dispute resolved — refund issued",
-        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.${disputeGift.posterSentence}`,
-        type: "payment", link: `/posts?job=${job.id}`,
-      });
+      // Notify both parties. Q1652: the poster's is THE refund notice (in the
+      // app and by email); the webhook leaves an admin_refund_dispute refund
+      // to this path. A $0 card refund (all gift) keeps the plain notice.
+      if (disputeRefundId && disputeRefundCents > 0) {
+        await announceRefund(supabaseAdmin, "admin_refund_dispute", {
+          key: `refund:${disputeRefundId}`,
+          kind: "refund",
+          paymentIntentId: paymentIntentId ?? null,
+          amountCents: disputeRefundCents,
+          keptCents: disputeKeptCents,
+          keptReason: disputeKeptCents > 0 ? "the card processing fee, which can't be returned" : null,
+          recipientId: job.customer_id ?? null,
+          jobId: job.id,
+          extra: `The dispute on "${job.title}" was resolved in your favor.${disputeGift.posterSentence}`,
+        });
+      } else {
+        await insertNotifications(supabaseAdmin, {
+          user_id: job.customer_id,
+          title: "Dispute resolved",
+          message: `The dispute on "${job.title}" has been resolved in your favor.${disputeGift.posterSentence}`,
+          type: "payment", link: `/posts?job=${job.id}`,
+        });
+      }
       if (job.helper_id) {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
@@ -3459,25 +3499,23 @@ serve(async (req) => {
 
       // Q1652: THE refund notice (in the app and by email: amount, card,
       // reference, 5-10 business days, what was kept), claimed on the refund's
-      // id so the charge.refunded webhook this refund raises does not send a
-      // second one (that pair was Q300). The admin's reason and a restored
-      // gift ride on it. It links the job: a partial refund leaves it running.
+      // id. The charge.refunded webhook leaves an admin_refund_general refund
+      // to this path (its metadata.source), so the admin's reason and a
+      // restored gift always reach the poster, and they get one notice, not
+      // the old in-app pair (Q300). It links the job: a partial leaves it running.
       if (generalRefundForNotice) {
-        const notice = await sendRefundNotice(supabaseAdmin, {
+        await announceRefund(supabaseAdmin, "admin_refund_general", {
           key: `refund:${generalRefundForNotice.id}`,
           kind: "refund",
           paymentIntentId: paymentIntentId ?? null,
           amountCents: generalRefundForNotice.amountCents,
           // A partial refund leaves the rest paying for the job: nothing "kept".
           keptCents: isPartial ? 0 : generalRefundForNotice.keptCents,
+          keptReason: !isPartial && generalRefundForNotice.keptCents > 0 ? "the card processing fee, which can't be returned" : null,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
           extra: [reason ? `Reason: ${reason}.` : "", generalGift.posterSentence.trim()].filter(Boolean).join(" ") || null,
         });
-        if (notice.status === "failed" || notice.status === "unwritten") {
-          // The webhook's charge.refunded tries again with the same claim.
-          console.error(`[create-payment] admin_refund_general: refund notice for job ${job.id} not sent here (${notice.status}: ${notice.error ?? ""}); the charge.refunded webhook retries it`);
-        }
       }
 
       // Helper notification — only on full refund (job is cancelled). Partial
@@ -4880,4 +4918,25 @@ async function recordRefund(
   } catch (e) {
     console.error(`[create-payment] recordRefund — unexpected error for refund ${args.refund.id} (job ${args.jobId}):`, e);
   }
+}
+
+/**
+ * Q1652: tell the poster their money is back (one in-app notice and one email,
+ * _shared/refundNotice.ts) and page when they could not be fully told. The
+ * money already moved, so this never throws.
+ */
+// deno-lint-ignore no-explicit-any
+async function announceRefund(supabaseAdmin: any, path: string, input: RefundNoticeInput): Promise<void> {
+  const result = await sendRefundNotice(supabaseAdmin, input);
+  const problem = refundNoticeProblem(result);
+  if (!problem) return;
+  console.error(`[create-payment] ${path}: ${input.key}: ${problem}`);
+  await postSlackOpsAlert({
+    kind: "custom",
+    severity: "warning",
+    title: "Money went back to a poster who was not fully told",
+    message: `${path} ${input.key} (job ${input.jobId ?? "—"}): ${problem}. Tell them by hand.`,
+    fields: { path, notice: input.key, status: result.status },
+    oncePerDayKey: `refund-notice:${input.key}`,
+  });
 }

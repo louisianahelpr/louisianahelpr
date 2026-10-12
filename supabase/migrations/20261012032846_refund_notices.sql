@@ -8,7 +8,10 @@
 -- the two senders of one refund (the path that made it and the charge.refunded
 -- webhook, or a webhook redelivery) race on this primary key and exactly one
 -- of them tells the poster. A sender that fails to write the notification
--- deletes its claim so a retry can send it.
+-- deletes its claim so a retry can send it; a claim left unwritten for more
+-- than 5 minutes (its sender died) is taken over. notification_id
+-- 00000000-0000-0000-0000-000000000000 marks a notice a trigger dropped by
+-- design (the seed boundary), which is never re-sent.
 --
 -- Server-only: RLS on with no policy, no client grant. The notice itself is
 -- the user-facing record (notifications); this table only dedupes it.
@@ -21,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.refund_notices (
   amount_cents      integer NOT NULL CHECK (amount_cents >= 0),
   notification_id   uuid,
   emailed           boolean NOT NULL DEFAULT false,
+  -- Why the email did not go: the person's own switch ("skipped: ...") or a
+  -- failure to find and re-send. NULL once emailed.
+  email_error       text,
   created_at        timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT refund_notices_key_shape CHECK (notice_key ~ '^(refund|release):[A-Za-z0-9_]+$')
 );

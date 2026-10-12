@@ -11,7 +11,7 @@ import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
-import { paymentMethodFromCharge, sendRefundNotice } from "../../_shared/refundNotice.ts";
+import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
  * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
@@ -445,7 +445,10 @@ export async function handleChargeRefunded(
   // onboarding-fee correction has its own notice (settleOnboardingFee).
   if (!isOnboardingFeeCorrection && ordinaryRefunds.length > 0) {
     const method = paymentMethodFromCharge(charge);
-    const keptCents = Math.max(0, Number(charge.amount ?? 0) - liveRefundedCents);
+    // What was CAPTURED, not authorised: a hold captured in part released the
+    // rest, which was never "kept" (review of Q1652 #10).
+    const capturedCents = Number((charge as { amount_captured?: number | null }).amount_captured ?? charge.amount ?? 0);
+    const keptCents = Math.max(0, capturedCents - liveRefundedCents);
     const chargeMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
     let piMeta: Promise<Record<string, string> | null> | null = null;
     const loadMetadata = () => (piMeta ??= (async () => {
@@ -468,6 +471,10 @@ export async function handleChargeRefunded(
         logStep("Refund notice skipped: refund older than 72h", { refund: r.id, created: r.created });
         continue;
       }
+      if (pathAnnouncesRefund((r.metadata ?? null) as Record<string, string> | null)) {
+        logStep("Refund notice left to the path that made it", { refund: r.id });
+        continue;
+      }
       const result = await sendRefundNotice(supabase, {
         key: `refund:${r.id}`,
         kind: "refund",
@@ -480,28 +487,22 @@ export async function handleChargeRefunded(
         loadMetadata,
       });
       if (result.status === "failed") {
-        // Nothing was written (the claim was given back): Stripe redelivers,
-        // and every step above is idempotent on a redelivery.
+        // A transient failure (permanent ones come back as no_recipient /
+        // unwritten): nothing was written and the claim was given back, so
+        // Stripe redelivers, and every step above is idempotent on a redelivery.
         throw new Error(`Refund notice for ${r.id} failed: ${result.error}`);
       }
-      if (result.status === "unwritten") {
+      // in_flight: the path that made this refund is writing its own notice
+      // right now, and pages if that fails. duplicate / dropped: done.
+      const problem = refundNoticeProblem(result);
+      if (problem) {
         await postSlackOpsAlert({
           kind: "custom",
           severity: "warning",
-          title: "Refund made, but its notice was not written",
-          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back to the card, but the refund notice insert matched zero rows, so the card holder was not told. Tell them by hand.`,
-          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—" },
-          oncePerDayKey: `refund-notice-unwritten:${r.id}`,
-        });
-      }
-      if (result.status === "no_recipient") {
-        await postSlackOpsAlert({
-          kind: "custom",
-          severity: "warning",
-          title: "Refund made, but nobody could be told",
-          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back to the card, but no job or payer is linked to the payment, so no refund notice was sent. Tell the card holder by hand.`,
-          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—" },
-          oncePerDayKey: `refund-notice-no-recipient:${r.id}`,
+          title: "Refund made, but the card holder was not fully told",
+          message: `Refund ${r.id} (${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${refundPiId ?? charge.id} went back: ${problem}. Tell them by hand.`,
+          fields: { "Refund": r.id, "Payment Intent": refundPiId ?? "—", "Status": result.status },
+          oncePerDayKey: `refund-notice:${r.id}`,
         });
       }
       logStep("Refund notice", { refund: r.id, status: result.status, emailed: result.emailed ?? false, error: result.error });

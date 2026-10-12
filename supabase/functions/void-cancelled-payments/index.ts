@@ -15,7 +15,7 @@ import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from ".
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { paymentMethodFromCharge, refundDollars, sendRefundNotice } from "../_shared/refundNotice.ts";
+import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
 
@@ -228,33 +228,45 @@ serve(async (req) => {
      * for "the money already moved, so this write is not allowed to be quiet".
      */
     /**
-     * Q1652: a released card hold raises no charge.refunded, so the poster is
-     * told HERE (the refunds this function makes are told by the webhook).
-     * One notice, in the app and by email, claimed on the PaymentIntent.
+     * Q1652: the poster is told, once, in the app and by email, whenever this
+     * function sends money back: a released card hold (which raises no
+     * charge.refunded) or a cancellation refund (told here with the amounts
+     * computed here; the webhook's notice for the same refund is the safety
+     * net and loses the claim). A released hold is told AFTER the job's state
+     * writes, so a slow email never widens the window a cron timeout could
+     * leave a job unsettled in (review of Q1652 #12); a refund is told right
+     * after its ledger row, so this path wins the claim with its own amounts.
      */
-    const tellPosterHoldReleased = async (
+    const tellPosterMoneyBack = async (
       job: { id: string; customer_id?: string | null },
       // deno-lint-ignore no-explicit-any
       pi: any,
-      releasedCents: number,
-      keptCents: number,
-      keptReason: string | null,
+      n: { key: string; kind: "refund" | "release"; amountCents: number; keptCents: number; keptReason: string | null },
     ) => {
       const charge = pi?.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
       const result = await sendRefundNotice(supabaseAdmin, {
-        key: `release:${pi.id}`,
-        kind: "release",
+        key: n.key,
+        kind: n.kind,
         paymentIntentId: pi.id,
-        amountCents: releasedCents,
-        keptCents,
-        keptReason,
+        amountCents: n.amountCents,
+        keptCents: n.keptCents,
+        keptReason: n.keptReason,
         recipientId: job.customer_id ?? null,
         jobId: job.id,
         method: paymentMethodFromCharge(charge),
       });
-      if (result.status === "failed" || result.status === "unwritten" || result.status === "no_recipient") {
-        console.error(`[void-cancelled-payments] hold-release notice for job ${job.id} not sent:`, result);
-        defects.record(`hold-release notice ${job.id}: ${result.status}${result.error ? ` (${result.error})` : ""}`);
+      const problem = refundNoticeProblem(result);
+      if (problem) {
+        console.error(`[void-cancelled-payments] ${n.key} for job ${job.id}: ${problem}`);
+        defects.record(`refund notice ${job.id}: ${problem}`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Money went back to a poster who was not fully told",
+          message: `${n.key} (${refundDollars(n.amountCents)}) for job ${job.id}: ${problem}. Tell them by hand.`,
+          fields: { job_id: job.id, notice: n.key, status: result.status },
+          oncePerDayKey: `refund-notice:${n.key}`,
+        });
       }
     };
 
@@ -1488,13 +1500,13 @@ serve(async (req) => {
             // crew's block fees.
             const feeCents = Math.round(cancellationFee * 100) + blockCents;
             await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
-            // Q1652: the rest of the hold goes back; tell the poster what and why.
+            // Q1652: the rest of the hold goes back; the poster is told what and
+            // why once the job is settled below.
             const both = cancellationFee > 0 && blockCents > 0;
             const keptParts = [
               cancellationFee > 0 ? `${both ? `${refundDollars(Math.round(cancellationFee * 100))} ` : "the "}cancellation fee for your Helpr` : null,
               blockCents > 0 ? `${both ? `${refundDollars(blockCents)} ` : "the fees "}for the crew spots you closed close to the start` : null,
             ].filter((x): x is string => !!x);
-            await tellPosterHoldReleased(job, pi, Math.max(0, Number(pi.amount ?? 0) - feeCents), feeCents, keptParts.join(" and ") || null);
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -1505,14 +1517,19 @@ serve(async (req) => {
               cancellation_fee_status: "charged",
             }, "fee capture");
             if (settledFee) refunded++;
+            await tellPosterMoneyBack(job, pi, {
+              key: `release:${pi.id}`, kind: "release",
+              amountCents: Math.max(0, Number(pi.amount ?? 0) - feeCents), keptCents: feeCents,
+              keptReason: keptParts.join(" and ") || null,
+            });
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
           } else {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
-            // Q1652: the whole hold goes back; tell the poster.
-            await tellPosterHoldReleased(job, pi, Number(pi.amount ?? 0), 0, null);
             const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
+            // Q1652: the whole hold went back; tell the poster.
+            await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null });
             if (settledVoid) voided++;
             results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });
           }
@@ -1587,6 +1604,7 @@ serve(async (req) => {
             continue;
           }
           const alreadyRefunded = (priorRefunds ?? []).length > 0;
+          let cancellationRefundNotice: Parameters<typeof tellPosterMoneyBack>[2] | null = null;
 
           if (refundAmount > 0 && !alreadyRefunded) {
             // Idempotency key still set: it is the cheap in-window guard against
@@ -1596,6 +1614,26 @@ serve(async (req) => {
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
             );
+            // Q1652: announced at once (so this path, not the webhook's safety
+            // net, wins the claim), with what was kept and why in the amounts
+            // computed HERE (review of Q1652 #3), not rebuilt from job columns.
+            if (refund?.id) {
+              const serviceKeptCents = fullSeriesRefund ? 0 : Math.min(serviceFeeCents, nonRefundableCents);
+              const processingKeptCents = nonRefundableCents - serviceKeptCents;
+              const feeCents = Math.round(cancellationFee * 100);
+              const parts = [
+                feeCents > 0 ? `${refundDollars(feeCents)} cancellation fee paid to your Helpr` : null,
+                blockFeeCents > 0 ? `${refundDollars(blockFeeCents)} for the crew spots you closed close to the start` : null,
+                serviceKeptCents > 0 ? `${refundDollars(serviceKeptCents)} service fee, which isn't refunded when a job is cancelled` : null,
+                processingKeptCents > 0 ? `${refundDollars(processingKeptCents)} card processing fee, which can't be returned` : null,
+              ].filter((x): x is string => !!x);
+              const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
+              cancellationRefundNotice = {
+                key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,
+                keptCents: Math.max(0, capturedCents - refundedCents),
+                keptReason: parts.length === 1 ? parts[0].replace(/^\$[\d,.]+ /, "the ") : parts.join(", ") || null,
+              };
+            }
             // Ledger row (F-MONEY-04). Best-effort: the refund is already out,
             // so a ledger write failure is logged, not thrown. Upsert on the
             // Stripe refund id so a cron re-run doesn't duplicate the row.
@@ -1631,6 +1669,7 @@ serve(async (req) => {
                 },
               });
             }
+            if (cancellationRefundNotice) await tellPosterMoneyBack(job, pi, cancellationRefundNotice);
           } else if (alreadyRefunded) {
             // A refund for this cancellation is already on the ledger. Fall
             // through to the status flip so the job finally leaves escrow —

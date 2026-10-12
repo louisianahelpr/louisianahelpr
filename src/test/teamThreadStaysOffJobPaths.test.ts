@@ -34,7 +34,7 @@ import {
 // @mutate src/pages/messages/messagesData/loadConversations.ts | : supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", staffTeamUsers), | : supabase.rpc("get_safe_profiles", { user_ids: staffTeamUsers }),
 // @mutate src/lib/threadMutes.ts | if (isTeamThreadKey(jobId)) return false; | if (false) return false;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (teamUser !== null) {\n      await dispatchTeamMessage(optimistic, teamUser); | if (false) {\n      await dispatchTeamMessage(optimistic, teamUser);
-// @mutate supabase/migrations/20261011161100_team_thread_direct_messages.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
+// @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
 // @mutate supabase/migrations/20261011161100_team_thread_direct_messages.sql | IF NOT COALESCE(public.has_role(v_admin, 'admin'::public.app_role), false) THEN | IF false THEN
 
 const REPO = join(__dirname, "../..");
@@ -157,9 +157,14 @@ describe("server: who may write a team-thread row (newest definitions)", () => {
   });
 
   it("neither is executable by anon, and a job-less row needs a team thread", () => {
-    const mig = blankSqlComments(read("supabase/migrations/20261011161100_team_thread_direct_messages.sql"));
-    expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.admin_send_team_message\(uuid, text, uuid\) FROM PUBLIC, anon;/);
-    expect(mig).toMatch(/REVOKE ALL ON FUNCTION public\.send_team_reply\(text, uuid\) FROM PUBLIC, anon;/);
+    // Each REVOKE is read from the migration holding that function's NEWEST
+    // definition (send_team_reply was restated by Q1328's helper scoping).
+    for (const [fn, sig] of [["admin_send_team_message", "uuid, text, uuid"], ["send_team_reply", "text, uuid"]] as const) {
+      const file = defs.get(fn)?.file ?? "";
+      const own = blankSqlComments(read(`supabase/migrations/${file}`));
+      expect(own, `${fn} (newest in ${file})`).toContain(`REVOKE ALL ON FUNCTION public.${fn}(${sig}) FROM PUBLIC, anon;`);
+    }
+    const mig = blankSqlComments(read(`supabase/migrations/${defs.get("admin_send_team_message")?.file ?? ""}`));
     expect(mig).toMatch(/CHECK \(\(job_id IS NULL\) <> \(team_thread_user_id IS NULL\)\)/);
     // The client may read the column, never write it.
     expect(mig).toMatch(/GRANT SELECT \(team_thread_user_id\) ON public\.messages TO authenticated;/);

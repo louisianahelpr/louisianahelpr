@@ -42,7 +42,8 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(
 CREATE TYPE public.job_status AS ENUM ('open', 'accepted', 'in_progress', 'completed', 'cancelled');
 CREATE TABLE public.jobs (
   id uuid PRIMARY KEY, title text, customer_id uuid, helper_id uuid, status public.job_status NOT NULL DEFAULT 'open',
-  date_needed date, start_time time, estimated_hours numeric, helper_completed_at timestamptz, is_group_job boolean DEFAULT false);
+  date_needed date, start_time time, estimated_hours numeric, helper_completed_at timestamptz, is_group_job boolean DEFAULT false,
+  is_seed boolean NOT NULL DEFAULT false);
 CREATE TABLE public.group_job_helpers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid,
   status text NOT NULL DEFAULT 'accepted', helper_completed_at timestamptz);
 CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), severity text NOT NULL, message text NOT NULL,

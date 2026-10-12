@@ -39,7 +39,8 @@ describe("buttonGeometry EXEMPT_PARENTS is two-way", () => {
     const staleSels = sels.filter((sel) => {
       const name = /aria-label="([^"]+)"/.exec(sel)?.[1];
       if (!name) return true; // not matchable by name — the list's own rule says it must be
-      return !tsx.some((src) => src.includes(`aria-label="${name}"`) || src.includes(`aria-label={"${name}"}`));
+      // VirtualList's `listAriaLabel` renders as the list container's aria-label.
+      return !tsx.some((src) => src.includes(`aria-label="${name}"`) || src.includes(`aria-label={"${name}"}`) || src.includes(`listAriaLabel="${name}"`));
     });
     expect(staleSels.map((s) => `stale baseline entry ${s} — remove it (lower the baseline)`)).toEqual([]);
   });

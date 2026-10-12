@@ -505,7 +505,7 @@ test.describe.serial("marketplace chain", () => {
       await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
         const c = await card(page, "/jobs", "Needs You");
         await expect(c.getByText("1m remaining").first(), "90s before the deadline the offer does not read 1m remaining").toBeVisible({ timeout: 45_000 });
-        await expect(c.getByText(/No answer counts the same as declining/).first(), "the offer does not say what silence costs").toBeVisible();
+        await expect(c.getByText(/If you don't answer in time, the job reopens to everyone\. No strike\./).first(), "the offer does not say what silence does").toBeVisible();
         expect(await findChip(page, c, /^Accept\b/, 20_000), "Accept is not offered before the deadline").not.toBeNull();
         await assertHealthy(page, "offer 90s before its deadline");
         await journey.milestone(page, "tt-offer-1m-left");

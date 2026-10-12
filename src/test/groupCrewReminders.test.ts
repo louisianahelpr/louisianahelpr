@@ -40,8 +40,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
@@ -175,8 +175,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261007073145_crew_block_fee_ledger.sql");
     }
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
-    // its crew pass also covers a started crew.
-    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql");
+    // its crew pass also covers a started crew. 20261012184444 (Q1281: no
+    // strike for an unanswered offer) restates it again; the crew rules hold.
+    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261012184444_offer_free_to_refuse.sql");
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);

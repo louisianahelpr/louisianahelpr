@@ -26,11 +26,11 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
+// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |         DELETE FROM public.group_job_helpers\n         WHERE job_id = _job_id\n           AND helper_confirmed_at IS NULL |         DELETE FROM public.group_job_helpers\n         WHERE false\n           AND helper_confirmed_at IS NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |       IF v_left > 0 THEN | IF false THEN
@@ -46,13 +46,15 @@ const THIS = "20261006015121_crew_rest_carry_on.sql";
 /** Q1390 (the crew block-fee ledger) restates block_user_and_settle and accept_group_application from THIS. */
 const BLOCK_FEE = "20261007073145_crew_block_fee_ledger.sql";
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
+/** Q1281 restates expire_unanswered_offers from UNCONFIRMED with its strikes removed. */
+const OFFER_FREE = "20261012184444_offer_free_to_refuse.sql";
 /** lh-money-escrow review of bc9ea3a47: the roll-up closes only what its DELETE removed, then re-counts. */
 const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: THIS,
   block_user_and_settle: BLOCK_FEE,
-  expire_unanswered_offers: UNCONFIRMED,
+  expire_unanswered_offers: OFFER_FREE,
 };
 
 /** Every function that takes a member off a crew, and the roster DELETE that does it. */

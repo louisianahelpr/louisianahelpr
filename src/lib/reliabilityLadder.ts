@@ -31,7 +31,7 @@ export const RELIABILITY_LADDER_RUNGS = [
 
 /**
  * One-sentence version for confirm callouts. Callers prepend what earns the
- * strike ("Declining after accepting counts as a reliability strike — …").
+ * strike ("Cancelling a job you committed to counts as a reliability strike — …").
  */
 export const RELIABILITY_LADDER_SENTENCE =
   "a second is a final warning, a third suspends your account for 7 days, and a fourth restricts it for 7 days while an admin decides on a permanent ban";

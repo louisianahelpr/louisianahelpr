@@ -19,6 +19,7 @@ import type { Browser, Page } from "@playwright/test";
 import { test, expect } from "../prodTest";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { srFetch } from "../serviceRoleFetch";
+import { measureLayout } from "../happy-path/auditRoutes";
 import { RUN_MARKER, SUPABASE_URL, getSession, restAs, selectAs, serviceRoleKey, type Session } from "./harness";
 
 const WIDTHS = [375, 1440] as const;
@@ -54,8 +55,11 @@ async function openAs(browser: Browser, s: Session, width: number, path: string)
   return { page, close: () => ctx.close() };
 }
 
+/** Page clause (documentElement.scrollWidth) AND the per-element clause (Q1012): no element past the viewport. */
 async function fits(page: Page): Promise<boolean> {
-  return page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  const pageFits = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  const l = await measureLayout(page);
+  return pageFits && l.overflowPx <= 0 && l.overflowOffenders.length === 0;
 }
 
 test("team thread: admin message reaches the user, the user's reply reaches the admin (375 + 1440)", async ({ browser, request }, info) => {

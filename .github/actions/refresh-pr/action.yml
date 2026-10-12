@@ -57,6 +57,15 @@ inputs:
       pull_request workflows for the PR, so the action dispatches
       `check-workflows` on the bot branch itself to produce the required checks.
     required: true
+  hold-for-trains:
+    description: >-
+      "true": while any open PR outside bot/refresh/** carries the land-queue
+      label (a batch train), neither open, replace nor merge this refresh PR,
+      and turn its auto-merge off. A train regenerates the same files, and each
+      bot merge sent the trains DIRTY (lead, 2026-10-12: #2893 and #2896 merged
+      under train PR #2897). The next run after the trains land carries it.
+    required: false
+    default: "false"
   check-workflows:
     description: >
       Space-separated workflow files to dispatch on the bot branch when running
@@ -91,6 +100,7 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         DEFAULT_TOKEN: ${{ github.token }}
         CHECK_WORKFLOWS: ${{ inputs.check-workflows }}
+        HOLD_FOR_TRAINS: ${{ inputs.hold-for-trains }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         WORKFLOW: ${{ github.workflow }}
       run: |
@@ -172,6 +182,27 @@ runs:
             echo "Closed refresh PR #$PR (main caught up)."
           fi
         else
+          # TRAIN HOLD (lead, 2026-10-12): a generated-files refresh waits while a
+          # batch train is in the land queue. Merging it sent the train DIRTY
+          # (#2893 and #2896 under #2897), and the train regenerates these files
+          # itself. Its auto-merge goes off, so a PR this bot opened earlier does
+          # not merge mid-train either. Guard: src/test/refreshBotsWaitForTrains.test.ts.
+          if [ "$HOLD_FOR_TRAINS" = "true" ]; then
+            TRAINS=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+              --jq '[.[][] | select((.head.ref | startswith("bot/refresh/") | not) and any(.labels[]; .name == "land-queue")) | .number] | length')
+            if [ "$TRAINS" -gt 0 ]; then
+              if [ -n "$PR" ]; then
+                # Off before waiting; a PR with none on already says so on stderr.
+                if ! gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --disable-auto; then
+                  echo "::notice::refresh-pr: #$PR had no auto-merge to turn off."
+                fi
+              fi
+              echo "::notice::refresh-pr: $TRAINS land-queue PR(s) open (a batch train); this refresh waits for them to land."
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "pr=$PR" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           # HOLD (owner, 2026-10-05): never replace this PR while its checks are
           # still running. Every push here cancels the in-flight pull_request runs
           # (vitest.yml cancel-in-progress), so a bot that rebuilt on each deploy

@@ -58,6 +58,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           id: open-auto-tick
+          hold-for-trains: "true"
           title: "chore(open): tick the items verified live after the latest deploy"
           paths: |
             docs/OPEN.md

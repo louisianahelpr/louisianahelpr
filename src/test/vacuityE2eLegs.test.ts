@@ -131,8 +131,8 @@ describe("vacuity's e2e registrations run in legs under the lock cap (Q1270, Q14
     expect(readFileSync(resolve(__dirname, "sharedAccountLockJobsAreShort.test.ts"), "utf8"), "the ALLOWED exception is gone").not.toContain('"vacuity.yml:vacuity-e2e"');
   });
 });
-// @mutate scripts/vacuity/run.mjs | export const E2E_LEGS = 8; | export const E2E_LEGS = 4;
-// @mutate .github/workflows/vacuity.yml |             npm run vacuity:all -- --e2e --shard 3/8 --budget-minutes 39 |             npm run vacuity:all -- --e2e --shard 3/8
+// @mutate scripts/vacuity/run.mjs | export const E2E_LEGS = 9; | export const E2E_LEGS = 4;
+// @mutate .github/workflows/vacuity.yml |             npm run vacuity:all -- --e2e --shard 3/9 --budget-minutes 39 |             npm run vacuity:all -- --e2e --shard 3/9
 // @mutate scripts/vacuity/run.mjs |   return mutations.filter((m) => legOf.get(m.guard) === k); |   return mutations;
 // @mutate scripts/vacuity/run.mjs |   baselineMinutes: 2.5, |   baselineMinutes: 1.6,
 // @mutate scripts/vacuity/run.mjs |       if (!spent && remainingMs() < e2eRunMinutes(guard, isMutation) * 60_000) spent = true; |       if (!spent && remainingMs() < 0) spent = true;

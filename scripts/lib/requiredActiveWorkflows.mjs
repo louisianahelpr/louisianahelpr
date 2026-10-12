@@ -27,6 +27,7 @@ export const REQUIRED_ACTIVE = [
   "open-done-when.yml",
   // Every workflow that runs on its own (schedule or workflow_run).
   "a11y-webkit-prod.yml",
+  "action-pins.yml",
   "app-store-reviews.yml",
   "branch-prune.yml",
   "broken-links.yml",
@@ -42,6 +43,7 @@ export const REQUIRED_ACTIVE = [
   "edge-function-smoke.yml",
   "eslint.yml",
   "expiry-monitor.yml",
+  "feature-switch-audience.yml",
   "land-queue.yml",
   "lighthouse.yml",
   "loading-states-refresh.yml",

@@ -135,6 +135,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: scoreboard
+          hold-for-trains: "true"
           title: "chore(refresh): scoreboard + Everything-open block re-measured"
           paths: |
             docs/SCOREBOARD.md

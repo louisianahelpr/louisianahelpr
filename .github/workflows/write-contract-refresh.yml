@@ -168,6 +168,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: write-contract
+          hold-for-trains: "true"
           title: "chore(refresh): write-contract snapshot re-pulled from prod"
           paths: scripts/audit/write-contract.snapshot.json
           measured-dir: ${{ runner.temp }}/measured

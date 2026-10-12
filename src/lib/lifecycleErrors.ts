@@ -239,7 +239,8 @@ export const RPC_ERROR_COPY = {
     offer_not_active: "This offer is no longer available — it may have expired or gone to someone else.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
     credential_tier_required: "You don't have the credentials this job requires. Add your license or insurance in your profile to accept it.",
-    job_date_has_passed: "The date for this job has already passed.",
+    // Q1401: the listing closes at the job's start (job_offer_cutoff), not its day.
+    job_date_has_passed: "This job has already started, so the offer can't be accepted.",
     job_expired: "This posting has expired.",
     job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",

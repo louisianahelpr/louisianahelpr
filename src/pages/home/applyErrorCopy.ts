@@ -81,7 +81,8 @@ const EXACT: Record<string, string> = {
   // number the client cannot know.
   job_in_early_access_window:
     "This job is in early access for members right now. It opens to everyone shortly.",
-  job_date_has_passed: "The date for this job has already passed.",
+  // Q1401: the listing closes at the job's start (job_offer_cutoff), not its day.
+  job_date_has_passed: "This job has already started, so it's closed to new applications.",
   job_expired: "This posting has expired.",
   job_not_available: "This job is no longer available.",
   // C10 (Q341): helper and poster are blocked, in either direction. Worded so

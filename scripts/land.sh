@@ -464,7 +464,19 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
         exit 1
         ;;
     esac
+    # Advance the queue from HERE every 10 minutes, then also wake the
+    # workflow. The workflow's own advancer is an Actions job, and on GitHub
+    # Free's 20 runners it starves behind the queued PRs' checks: 2026-10-12
+    # its 5-minute job waited ~60 min for a runner (run created 06:07, done
+    # 07:11), 99 of 100 runs since 05:00 were cancelled pending, and the
+    # queue merged 2 PRs in 3 h with 50 waiting. The same script run here
+    # needs no runner. It speaks GraphQL (gh pr update-branch --rebase,
+    # server-side, no force-push from this machine), so in a cloud session
+    # it fails and only the dispatch remains. Guard: src/test/landQueue.test.ts.
     if [ $((waited % 10)) -eq 0 ]; then
+      if ADV=$(node scripts/land-queue.mjs 2>/dev/null); then
+        echo "land: advanced the land queue from here: $(tr '\n' ' ' <<<"$ADV" | cut -c1-200)"
+      fi
       gh workflow run land-queue.yml --ref main >/dev/null 2>&1 || true
     fi
   done

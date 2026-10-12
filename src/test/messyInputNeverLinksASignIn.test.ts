@@ -11,7 +11,7 @@
  * Class: every "Connect <provider>" label SignInMethodsCard can render is
  * refused by NEVER_PRESS, read from the component's own provider names.
  *
- * @mutate e2e/prod-audit/harness.ts | |edit email\|connect (apple\|google)/i; | |edit email/i;
+ * @mutate e2e/prod-audit/harness.ts | \|edit email\|connect (apple\|google)/i; | \|edit email/i;
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

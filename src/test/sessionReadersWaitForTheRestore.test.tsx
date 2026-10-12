@@ -145,6 +145,7 @@ const READERS: Record<string, string> = {
   "src/lib/simpleMode.ts": "waits",
   "src/lib/persistedAuthToken.ts": "waits", // definitelyGuest(); hasPersistedAuthToken stays the raw probe
   "src/hooks/useStoredSessionHint.ts": "waits",
+  "src/lib/signedInRequestGuard.ts": "waits: awaits the auth client's own storage adapter (getItem), the store auth-js reads; it only names the key",
   // Read only through the waiting helpers above:
   "src/pages/home/DashboardGuest.tsx": "via definitelyGuest()",
   "src/components/MobileNav.tsx": "via useStoredSessionHint()",

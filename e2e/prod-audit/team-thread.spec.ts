@@ -120,7 +120,7 @@ test("team thread: admin message reaches the user, the user's reply reaches the 
       ["notifications", `link=like.*teamThread=${poster.user.id}*&message=like.${enc}`],
       ["messages", `team_thread_user_id=eq.${poster.user.id}&content=like.${enc}`],
     ] as const) {
-      const r = await srFetch(svc!, "DELETE", `${SUPABASE_URL}/rest/v1/${table}?${q}`, { extra: { Prefer: "return=representation" } });
+      const r = await srFetch(svc!, "DELETE", `${SUPABASE_URL}/rest/v1/${table}?${q}&select=id`, { extra: { Prefer: "return=representation" } });
       done.push(`${table}: ${r.ok() ? `${((await r.json()) as unknown[]).length} removed` : `NOT removed (${r.status()} ${await r.text()})`}`);
     }
     info.annotations.push({ type: "cleanup", description: done.join("; ") });

@@ -20,8 +20,9 @@
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = false;
 // @mutate scripts/stranded-work.mjs |     unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))), |     unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = true;
-// @mutate scripts/stranded-work.mjs |   return pages.flat().map((p) => ({ |   return pages.slice(0, 1).flat().map((p) => ({
-// @mutate scripts/stranded-work.mjs | "api", "--paginate", "--slurp", | "api", "--paginate", "--slurp", "--search",
+// @mutate scripts/stranded-work.mjs |   return out.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l)); |   return out.split("\n").filter((l) => l.trim()).slice(0, 1).map((l) => JSON.parse(l));
+// @mutate scripts/stranded-work.mjs |   const out = gh(["api", "--paginate", | const out = gh(["api", "--search",
+// @mutate scripts/stranded-work.mjs | select(.merged_at == null and .closed_at >= "${since}") | select(.merged_at == null)
 // @mutate scripts/stranded-work.mjs |   const isRemote = (a) => /^(pr\|remote):/.test(a.id); |   const isRemote = (a) => true;
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -31,6 +32,15 @@ import { join } from "node:path";
 import { buildMainIndex, unlandedContent, isIgnoredPath } from "../../scripts/lib/strandedContent.mjs";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { localInventory, remoteInventory, judge, makeGit, setMainRef, landedElsewhere, splitAccepted, closedPullRequests } from "../../scripts/stranded-work.mjs";
+
+/** A fake `gh api --paginate ... --jq <expr>`: runs the REAL jq expression over each page, as gh does. */
+function ghPages(pages: object[][]) {
+  return (argv: string[], o?: { raw?: boolean }) => {
+    const expr = argv[argv.indexOf("--jq") + 1];
+    const text = pages.map((pg) => execFileSync("jq", ["-c", expr], { input: JSON.stringify(pg), encoding: "utf8" })).join("");
+    return o?.raw ? text : JSON.parse(text);
+  };
+}
 
 let root = "";
 let repo = "";
@@ -171,15 +181,15 @@ describe("stranded-work: every place work sits", () => {
     const index = buildMainIndex(git, "origin/main");
     sh(repo, "push", "-q", "origin", "unlanded:refs/heads/in-flight");
     sh(repo, "fetch", "-q", "origin");
-    const gh = (argv: string[]) => argv.includes("open")
+    const gh = (argv: string[], o?: { raw?: boolean }) => argv.includes("open")
       ? [{ number: 10, headRefOid: "w", headRefName: "in-flight", createdAt: new Date().toISOString(), title: "landing now", author: { login: "louisianahelpr" } }]
       : argv[0] === "api" && argv.some((a) => a.includes("state=closed"))
-      ? [[
+      ? ghPages([[
           { number: 7, head: { sha: "x", ref: "c7" }, merged_at: null, closed_at: "2026-10-04T00:00:00Z", user: { login: "louisianahelpr" }, title: "closed unmerged" },
           { number: 8, head: { sha: "y", ref: "c8" }, merged_at: "2026-10-04T00:00:00Z", closed_at: "2026-10-04T00:00:00Z", user: { login: "louisianahelpr" }, title: "merged" },
         ], [
           { number: 9, head: { sha: "z", ref: "c9" }, merged_at: null, closed_at: "2026-10-04T00:00:00Z", user: { login: "dependabot[bot]" }, title: "bump" },
-        ]]
+        ]])(argv, o)
       : [];
     // Judged two hours after the push: past STRANDED_AFTER_HOURS.
     const items = remoteInventory(git, index, gh, { now: Date.now() + 2 * 3_600_000 });
@@ -192,23 +202,27 @@ describe("stranded-work: every place work sits", () => {
   });
   it("closed PRs come from the REST pulls list, every page, never GitHub search (Q1376: search left out 14 of 130, #2444 and #2385 among them)", () => {
     const calls: string[][] = [];
-    const gh = (argv: string[]) => {
-      calls.push(argv);
-      return [[{ number: 2444, head: { sha: "c897919a", ref: "q975-red-proof" }, merged_at: null, closed_at: "2026-10-06T06:54:06Z", user: { login: "louisianahelpr" }, title: "red proof" }],
-        [{ number: 2385, head: { sha: "31bf45af", ref: "chore/generated-files-main-bot" }, merged_at: null, closed_at: "2026-10-06T19:42:01Z", user: { login: "louisianahelpr" }, title: "wip" }]];
-    };
-    const prs = closedPullRequests(gh);
+    const pages = ghPages([
+      [{ number: 2444, head: { sha: "c897919a", ref: "q975-red-proof" }, merged_at: null, closed_at: "2026-10-06T06:54:06Z", user: { login: "louisianahelpr" }, title: "red proof" },
+        { number: 2400, head: { sha: "m", ref: "merged" }, merged_at: "2026-10-06T00:00:00Z", closed_at: "2026-10-06T00:00:00Z", user: { login: "louisianahelpr" }, title: "merged" }],
+      [{ number: 2385, head: { sha: "31bf45af", ref: "chore/generated-files-main-bot" }, merged_at: null, closed_at: "2026-10-06T19:42:01Z", user: { login: "louisianahelpr" }, title: "wip" },
+        { number: 1900, head: { sha: "old", ref: "old" }, merged_at: null, closed_at: "2026-09-20T00:00:00Z", user: { login: "louisianahelpr" }, title: "before the rule" }],
+    ]);
+    const gh = (argv: string[], o?: { raw?: boolean }) => { calls.push(argv); return pages(argv, o); };
+    const prs = closedPullRequests(gh, "2026-10-03T00:00:00Z");
     expect(prs.length).toBeGreaterThan(1);
+    // Every page, unmerged and closed since the rule only, already trimmed by gh's jq (sentry review on #2813: the raw list was 39.7 MB).
     expect(prs.map((p: { number: number; headRefOid: string }) => `${p.number}@${p.headRefOid}`)).toEqual(["2444@c897919a", "2385@31bf45af"]);
+    expect(Object.keys(prs[0]).sort()).toEqual(["author", "closedAt", "headRefName", "headRefOid", "mergedAt", "number", "title"]);
     expect(calls).toHaveLength(1);
-    expect(calls[0].slice(0, 3)).toEqual(["api", "--paginate", "--slurp"]);
+    expect(calls[0].slice(0, 2)).toEqual(["api", "--paginate"]);
     expect(calls[0].join(" ")).toContain("state=closed");
     expect(calls[0]).not.toContain("--search");
-    expect(() => closedPullRequests(() => ({ message: "Not Found" }))).toThrow(/pages/);
+    expect(() => closedPullRequests(() => ({ message: "Not Found" }))).toThrow(/text/);
   });
   it("a branch pushed under STRANDED_AFTER_HOURS ago is a lane still working: listed fresh, not judged (Q1274)", () => {
     const index = buildMainIndex(git, "origin/main");
-    const gh = () => [];
+    const gh = (_argv: string[], o?: { raw?: boolean }) => (o?.raw ? "" : []);
     const items = remoteInventory(git, index, gh);
     const lane = items.find((i: { id: string }) => i.id === "remote:origin/cloud-session");
     expect(lane?.fresh).toBe(true);

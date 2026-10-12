@@ -3234,6 +3234,9 @@ serve(async (req) => {
       let generalRefundSent = false;
       // Q1714: the refund the poster's notice is about (claimed on its id).
       let generalRefundForNotice: { id: string; amountCents: number; keptCents: number } | null = null;
+      // Q1674: what a full refund kept (the setup fee) and sent, for the audit row.
+      let generalKeptSetupCents = 0;
+      let generalRefundCents: number | null = null;
       let paymentIntentId = job.stripe_payment_intent_id;
       try {
       if (!paymentIntentId && job.stripe_session_id) {
@@ -3329,22 +3332,58 @@ serve(async (req) => {
               useFullRefund: true,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
           }
+          // Q1674 (owner, 2026-10-12): an admin's FULL refund keeps a first
+          // job's $2 setup fee too, so the rule is the same on every refund
+          // path. The refund is then everything left on the charge but the
+          // fee (Stripe sees a partial; this path still cancels the job).
+          const keptSetupCents = isPartial ? 0 : setupFeeKeptCents(job);
+          if (keptSetupCents > 0 && (!Number.isFinite(capturedCents) || capturedCents <= keptSetupCents)) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "General refund aborted — captured amount unreadable or not above the setup fee",
+              message: `admin_refund_general could not keep the $2 setup fee on job ${jobId}: the captured amount (${String(capturedCents)}) is unreadable or not above it. No refund issued.`,
+              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents) },
+            });
+            throw new PublicError(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
+          }
+          const fullTargetCents = capturedCents - keptSetupCents;
           const reused = !isPartial
-            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, capturedCents, "admin_refund_general", priorRefunds.data)
+            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, keptSetupCents > 0 ? fullTargetCents : capturedCents, "admin_refund_general", priorRefunds.data)
             : null;
+          const keptFullAmountCents = fullTargetCents - generalAlreadyRefundedCents;
+          generalKeptSetupCents = keptSetupCents;
+          // Earlier admin partials already returned everything but the kept
+          // fee: nothing is left to send, but the full refund still CANCELS
+          // the job, so no payout can be made over a near-full refund (Q1320;
+          // lh-money-escrow review N1). Mirrors cancel_escrow's $0 branch.
+          const nothingLeftToSend = keptSetupCents > 0 && !reused && keptFullAmountCents <= 0;
+          if (nothingLeftToSend) {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "info",
+              title: "Full refund sent nothing: only the kept setup fee was left",
+              message: `admin_refund_general on job ${jobId}: earlier refunds already returned everything but the kept $2 setup fee, so no Stripe refund was sent; the job is cancelled.`,
+              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: capturedCents, already_refunded_cents: generalAlreadyRefundedCents },
+            });
+          }
           if (reused) {
             console.log(`[create-payment] admin_refund_general: charge for job ${jobId} already refunded ${generalAlreadyRefundedCents}¢ — reusing ${reused.id}, not refunding again`);
           }
 
+          if (!nothingLeftToSend) {
           generalRefundSent = true;
           const refund = reused ?? await stripe.refunds.create({
             payment_intent: paymentIntentId,
-            ...(isPartial ? { amount: requestedCents } : {}),
+            ...(isPartial ? { amount: requestedCents } : keptSetupCents > 0 ? { amount: keptFullAmountCents } : {}),
             metadata: {
               reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
               admin_user_id: user.id,
+              // "false" for a full refund even when it keeps the setup fee:
+              // existingRefundCovering finds a retried full refund by it.
               partial: String(isPartial),
               source: "admin_refund_general",
+              ...(keptSetupCents > 0 ? { kept_setup_fee_cents: String(keptSetupCents) } : {}),
             },
           }, {
             // Full refund: deduped within Stripe's ~24h key lifetime; after
@@ -3370,10 +3409,12 @@ serve(async (req) => {
             customerId: job.customer_id,
             paymentIntentId,
             source: "admin_refund_general",
-            isPartial,
-            reason: reason || null,
+            isPartial: isPartial || keptSetupCents > 0,
+            reason: [reason || null, keptSetupCents > 0 ? "full refund less the kept $2 setup fee" : null].filter(Boolean).join(" — ") || null,
             initiatedByUserId: user.id,
           });
+          generalRefundCents = Math.round(Number(refund.amount ?? 0));
+          }
         } else {
           // PI not succeeded — no money was captured, so marking the job
           // "refunded" with no actual refund would notify the customer of
@@ -3497,6 +3538,8 @@ serve(async (req) => {
           budget: job.budget,
           partial_amount_cents: isPartial ? requestedCents : null,
           partial_amount_dollars: isPartial ? (requestedCents! / 100).toFixed(2) : null,
+          refund_cents: generalRefundCents,
+          kept_setup_fee_cents: generalKeptSetupCents,
           gift_restored_cents: generalGift.restoredCents,
           gift_restore_failed: generalGift.failed,
           payment_intent_id: paymentIntentId,
@@ -3517,10 +3560,26 @@ serve(async (req) => {
           amountCents: generalRefundForNotice.amountCents,
           // A partial refund leaves the rest paying for the job: nothing "kept".
           keptCents: isPartial ? 0 : generalRefundForNotice.keptCents,
-          keptReason: !isPartial && generalRefundForNotice.keptCents > 0 ? "the card processing fee, which can't be returned" : null,
+          // Q1674: a full refund of a first job also keeps its one-time $2
+          // setup fee; the notice names it after the card fee (if any).
+          keptReason: !isPartial && generalRefundForNotice.keptCents > 0
+            ? setupFeeKeptReason(generalRefundForNotice.keptCents > generalKeptSetupCents ? "the card processing fee, which can't be returned" : null, generalKeptSetupCents)
+            : null,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
           extra: [reason ? `Reason: ${reason}.` : "", generalGift.posterSentence.trim()].filter(Boolean).join(" ") || null,
+        });
+      } else if (!isPartial && generalRefundCents === null && generalKeptSetupCents > 0) {
+        // Q1674: earlier partials already returned everything but the kept
+        // setup fee, so no refund was sent and there is no refund notice to
+        // claim; the poster is still told the job is cancelled and why the $2
+        // stayed (lh-money-escrow review N1 of the setup-fee change).
+        await insertNotifications(supabaseAdmin, {
+          user_id: job.customer_id,
+          title: "Refund issued",
+          message: `"${job.title}" has been cancelled.${reason ? ` Reason: ${reason}` : ""} The earlier refunds already returned everything except the one-time $${(generalKeptSetupCents / 100).toFixed(2)} account setup fee, which is paid once and never refunded.`,
+          type: "payment",
+          link: `/posts?job=${job.id}`,
         });
       }
 

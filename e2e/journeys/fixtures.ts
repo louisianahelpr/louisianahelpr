@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
-import { openCardFields } from "../stripeCheckoutCard";
+import { openCardFields, stripeLayoutReport, stripePaymentMethodControl } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
@@ -438,7 +438,6 @@ export const TEST_CARD = {
 /** Fill and submit Stripe's hosted Checkout the way prod-lifecycle learned it behaves. */
 export async function payOnStripeCheckout(page: Page) {
   const cardNumber = page.locator("#cardNumber");
-  const methodRadio = page.getByRole("radio").first();
   /**
    * Stripe's own page can fail to come up, and it says so in its own words:
    * "Something went wrong — You might be having a network connection problem,
@@ -470,7 +469,9 @@ export async function payOnStripeCheckout(page: Page) {
    * reported as uncovered rather than as a false red.
    */
   const brokenPanel = page.getByText(/Something went wrong/i).first();
-  const paymentField = cardNumber.or(methodRadio);
+  // Open card fields, the Card method button, or a radio: whichever layout
+  // Stripe rendered (e2e/stripeCheckoutCard.ts knows all three).
+  const paymentField = stripePaymentMethodControl(page);
   /* WHAT STRIPE'S PAGE TRIED AND FAILED, recorded while it loads, so a "Something
      went wrong" names its cause in the run log instead of only in a screenshot
      (the artifact host is not reachable from every place a red is read). */
@@ -482,10 +483,16 @@ export async function payOnStripeCheckout(page: Page) {
   page.on("requestfailed", onFailed);
   page.on("console", onConsole);
   for (let attempt = 1; attempt <= 2; attempt++) {
-    await expect(
-      paymentField.or(brokenPanel),
-      "Stripe Checkout rendered neither a payment field nor an error of its own",
-    ).toBeVisible({ timeout: 60_000 });
+    // .first(): an open card field and Stripe's error panel can both match.
+    await paymentField
+      .or(brokenPanel)
+      .first()
+      .waitFor({ state: "visible", timeout: 60_000 })
+      .catch(async () => {
+        throw new Error(
+          `Stripe Checkout rendered neither a payment field nor an error of its own. ${await stripeLayoutReport(page)}`,
+        );
+      });
     if (!(await brokenPanel.isVisible().catch(() => false))) break;
     test.info().annotations.push({
       type: "stripe-checkout-error",
@@ -511,7 +518,9 @@ export async function payOnStripeCheckout(page: Page) {
   }
   page.off("requestfailed", onFailed);
   page.off("console", onConsole);
-  await expect(paymentField, "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 30_000 });
+  await paymentField.waitFor({ state: "visible", timeout: 30_000 }).catch(async () => {
+    throw new Error(`Stripe Checkout never rendered a payment field. ${await stripeLayoutReport(page)}`);
+  });
   await openCardFields(page);
   await cardNumber.fill(TEST_CARD.number);
   await page.locator("#cardExpiry").fill(TEST_CARD.expiry);

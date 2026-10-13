@@ -101,6 +101,38 @@ test("every RPC the admin surface calls is classified read or write", () => {
   expect(both, "classified as a write but the read firewall passes it").toEqual([]);
 });
 
+/**
+ * SEEN POPULATED (Q238, 2026-10-13). An admin queue that renders "nothing
+ * waiting" passes the error-screen check whether its list works or not, and the
+ * IDV review, ban review, exception and expired-subscription views had never
+ * shown a row on prod. scripts/audit/prod-seed.mjs --apply (run before this
+ * suite in every prod-audit leg) puts one row in each, on an account it owns;
+ * each view must show that account's name. The names are the seeder's own
+ * OWNED full names, read from its source so the two cannot drift.
+ */
+const seedSrc = readFileSync(join(process.cwd(), "scripts/audit/prod-seed.mjs"), "utf8");
+const ownedName = (key: string): string => {
+  const m = new RegExp(`\\n  ${key}: \\{[^\\n]*?full_name: "([^"]+)"`).exec(seedSrc);
+  if (!m) throw new Error(`prod-seed.mjs: no OWNED.${key} full_name`);
+  return m[1];
+};
+const POPULATED_BY_SEED: Record<string, string> = {
+  idvreview: ownedName("denied"),
+  banreview: ownedName("banned"),
+  exceptions: ownedName("pending"),
+  // The heavy account's name is long and ends "(Seed Heavy)"; the row may cut it.
+  subscriptions: "Marie-Th",
+};
+
+test("every seeded admin queue names a view that exists and a seeded account", () => {
+  for (const [view, name] of Object.entries(POPULATED_BY_SEED)) {
+    expect(VIEWS, view).toContain(view);
+    expect(name.length, view).toBeGreaterThan(3);
+  }
+  expect(ownedName("heavy").startsWith(POPULATED_BY_SEED.subscriptions)).toBe(true);
+  expect(Object.keys(POPULATED_BY_SEED).length).toBe(4);
+});
+
 for (const view of VIEWS) {
   test(`/admin?view=${view} renders without an error screen`, async ({ browser, request }, info) => {
     const admin = await sessionFor(request, "admin");
@@ -159,6 +191,14 @@ for (const view of VIEWS) {
       found,
       `/admin?view=${view}: ${found?.name} — ${found?.excerpt}\nrefused at the wire: ${blocked.join(", ") || "nothing"}`,
     ).toBeNull();
+    const seeded = POPULATED_BY_SEED[view];
+    if (seeded) {
+      await expect(
+        page.getByText(seeded, { exact: false }).first(),
+        `/admin?view=${view} does not show the seeded row (${seeded}); prod-seed --apply puts one there (Q238)`,
+      ).toBeVisible({ timeout: 10_000 });
+      await page.screenshot({ path: info.outputPath(`admin-${view}-populated.png`), fullPage: true });
+    }
     await ctx.close();
   });
 }

@@ -96,6 +96,7 @@ vi.mock("../pages/posts/postedJobCard/PostedJobApplicants", () => ({ PostedJobAp
 vi.mock("../pages/posts/postedJobCard/PostedJobActions", () => ({ PostedJobActions: () => null }));
 
 import { posterConfirmationRung } from "../pages/posts/postedJobCard/steps/posterStepContract";
+import { posterStatusLine } from "../components/job-card/jobStatusLine";
 import { PostedJobCard } from "../pages/posts/PostedJobCard";
 import { AppliedJobCard } from "../pages/jobs/AppliedJobCard";
 import { OfferedActions } from "../pages/jobs/appliedJobCard/OfferedActions";
@@ -235,6 +236,16 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
     expect(strip.textContent).toMatch(/until the job starts/);
     expect(strip.textContent).not.toMatch(/confirm/i);
     expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();
+  });
+
+  it("poster, Helpr name unknown: the unnamed sentence says the same thing (Offer sent, not accepted yet)", () => {
+    // Vacuity 2026-10-13 (run 38332201431): the case above renders a card whose
+    // Helpr is named, so the unnamed copy (POSTER_WAIT.unconfirmed) could read
+    // "They haven't confirmed" again and nothing failed.
+    const line = posterStatusLine(offerJob as unknown as Job);
+    expect(line.id).toBe("unconfirmed");
+    expect(line.detail).toMatch(/^Offer sent — they haven't accepted yet$/);
+    expect(line.detail).not.toMatch(/confirm/i);
   });
 
   it("the start first when it ends first (soonest first, whichever it is)", () => {

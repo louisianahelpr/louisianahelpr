@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -67,14 +67,33 @@ describe("HelperPhotoAsk", () => {
     // rendered, so the assertion passed with `proofRequired` removed entirely.
     // Assert against what the chip actually paints, and that nothing at all is
     // mounted.
-    const { container } = render(
-      <QueryClientProvider client={new QueryClient()}>
-        <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: false })} step="working" />
-      </QueryClientProvider>,
-    );
-    expect(screen.queryByText("After Photo")).toBeNull();
-    expect(screen.queryByText("Before Photo")).toBeNull();
-    expect(container).toBeEmptyDOMElement();
+    //
+    // Vacuity 2026-10-13 (run 38332201431): with no after photo, the after ask
+    // is the PRIMARY (primaryPhotoAsk), so the chip mode drew nothing whether
+    // or not the poster required photos, and this case passed with the gate
+    // removed. Each shape below WOULD draw an ask if photos were required.
+    const shapes: Array<[string, Record<string, unknown>, "chip" | "primary"]> = [
+      ["primary, no after photo", { proof_after_urls: [] }, "primary"],
+      ["chip, after taken, before missing", { proof_after_urls: ["a.jpg"], proof_before_urls: [] }, "chip"],
+    ];
+    for (const [name, over, mode] of shapes) {
+      const asked = render(
+        <QueryClientProvider client={new QueryClient()}>
+          <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: true, ...over })} step="working" mode={mode} />
+        </QueryClientProvider>,
+      );
+      expect(asked.container.textContent, `${name}: drawn when required`).toMatch(/Photo/);
+      asked.unmount();
+      const { container } = render(
+        <QueryClientProvider client={new QueryClient()}>
+          <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: false, ...over })} step="working" mode={mode} />
+        </QueryClientProvider>,
+      );
+      expect(screen.queryByText(/After Photo/), name).toBeNull();
+      expect(screen.queryByText(/Before Photo/), name).toBeNull();
+      expect(container, name).toBeEmptyDOMElement();
+      cleanup();
+    }
   });
 
   it("still asks when the column is missing entirely (old database, `?? true`)", () => {

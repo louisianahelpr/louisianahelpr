@@ -533,3 +533,77 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Q1490 (lh-money-escrow review of Q1390): a FULLY gift-funded crew has no
+ * PaymentIntent, so it settles on the "no payment found" branch. The whole
+ * gift used to come back to the poster while Part F paid the blocked member's
+ * fee from the platform's balance. The gift now keeps the block fee: the
+ * restore is sized (from a dry run of what the gift paid) to the gift less the
+ * fee, by the largest share that does not overshoot.
+ */
+describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept from the gift (Q1490)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  const seedGiftCrew = (blockRows: Array<Record<string, unknown>>) => {
+    seedCancelledCrew();
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
+    jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
+    scenario.reads.crew_block_fees = { rows: blockRows };
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+      if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: 30000, restore_cents: 30000 };
+      const bps = a.p_share_bps ?? 10000;
+      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: 30000, restore_cents: Math.floor((30000 * bps) / 10000) };
+    };
+  };
+  const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
+  const BLOCK = { id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | "no payment found", crewBlockFeeCents(blockFeeRows)); | "no payment found");
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const target = Math.max(0, applied - withholdCents); |           const target = applied;
+  it("restores the gift less the block fee, never a cent of the fee", async () => {
+    seedGiftCrew([BLOCK]);
+    const h = await load();
+    await h.fetch(cronReq());
+    const calls = restoreCalls();
+    expect(calls[0]).toEqual({ p_job_id: "job-crew", p_dry_run: true });
+    const mint = calls.find((c) => !c.p_dry_run)!;
+    const restored = Math.floor((30000 * Number(mint.p_share_bps)) / 10000);
+    expect(restored).toBeLessThanOrEqual(30000 - 2500);
+    expect(restored).toBeGreaterThan(30000 - 2500 - 5);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(true);
+  });
+
+  it("a void block fee (member gone) is not kept: the whole gift comes back, no dry run", async () => {
+    seedGiftCrew([{ ...BLOCK, status: "void" }]);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(restoreCalls()).toEqual([{ p_job_id: "job-crew" }]);
+  });
+
+  it("a crew with no block fee restores the gift exactly as before", async () => {
+    seedGiftCrew([]);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(restoreCalls()).toEqual([{ p_job_id: "job-crew" }]);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (dryErr) { |         if (false) {
+  it("a dry run that fails leaves the job in escrow for the next run (fails closed)", async () => {
+    seedGiftCrew([BLOCK]);
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "boom" } };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(false);
+    // Never falls through to restoring the WHOLE gift.
+    expect(restoreCalls().filter((c) => !c.p_dry_run)).toEqual([]);
+  });
+});
+

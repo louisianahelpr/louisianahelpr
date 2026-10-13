@@ -5,10 +5,11 @@ name: Branch prune
 # This runs the same cleanup for branches whose every patch is already on main
 # (`git cherry` shows no `+`) and that no open PR uses. Anything with work not
 # on main is UNLANDED: kept, and listed in the job summary for a human.
-# STRANDED branches (work on neither main nor an open PR) get an auto-land PR
-# with rebase auto-merge, opened with REFRESH_PR_TOKEN because PRs opened with
-# GITHUB_TOKEN never trigger the required checks. An auto-land PR open over 6h
-# turns this red.
+# STRANDED branches (work on neither main nor an open PR) are REPORTED, never
+# opened as PRs (lead, 2026-10-13: one landing path, the landing train; the old
+# auto-land PRs were one of three paths behind 144 open PRs on 2026-10-12, and
+# this workflow sat disabled_manually from then, nightly-red #2910/#2911).
+# A ready/* branch is the train's queue and is judged only after 24 h.
 # Script + decision function: scripts/prune-stale-branches.mjs
 # Guard: src/test/pruneStaleBranches.test.ts
 # Stale claim/* branches (6 h, no open PR names the item): scripts/prune-stale-claims.mjs,
@@ -35,7 +36,7 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   prune:
@@ -45,9 +46,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Prune branches on main; auto-land stranded ones
+      - name: Prune branches on main; report stranded ones (opens no PR)
         env:
-          GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/prune-stale-branches.mjs --apply
       # Owner, 2026-10-12: a lane that dies leaves its claim/Q<n> branch behind
       # and the item stays claimed for good. Delete claim/* branches claimed

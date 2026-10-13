@@ -37,7 +37,10 @@ export function onFixedClock(stmt) {
   return stmt
     .replace(/\bnow\s*\(\s*\)/gi, "public._probe_now()")
     .replace(/\bcurrent_timestamp\b/gi, "public._probe_now()")
-    .replace(/\bcurrent_date\b/gi, "(public._probe_now())::date");
+    .replace(/\bcurrent_date\b/gi, "(public._probe_now())::date")
+    // LOCALTIMESTAMP is the session-zone wall clock (prune_retention_tables'
+    // profile_views edge); left alone it read the real clock (Q1424, 2026-10-13).
+    .replace(/\blocaltimestamp\b/gi, "(public._probe_now())::timestamp");
 }
 
 export async function installClock(db) {

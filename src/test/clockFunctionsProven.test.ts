@@ -24,6 +24,8 @@
  */
 // @mutate src/test/clockFunctionsProven.test.ts |   auto_start_due_jobs: "autoStartDueJobsClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/autoStartDueJobsClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
+// @mutate src/test/pglite/pruneRetentionClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
+// @mutate src/test/clockFunctionsProven.test.ts |   start_underfilled_crews: "startUnderfilledCrewsClock.pglite.mjs",\n | \n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -35,41 +37,42 @@ import { jobCommands } from "./helpers/cronWorkRegister";
 const ROOT = join(__dirname, "..", "..");
 const MIGRATIONS = join(ROOT, "supabase/migrations");
 const PROBES = join(ROOT, "src/test/pglite");
-const CLOCK = /\bnow\s*\(\s*\)|\bcurrent_timestamp\b|\bcurrent_date\b|\bclock_timestamp\s*\(/i;
+// localtimestamp too: prune_retention_tables reads it (fixedClock.mjs points it at the probe clock, 2026-10-13).
+const CLOCK = /\bnow\s*\(\s*\)|\bcurrent_timestamp\b|\bcurrent_date\b|\bclock_timestamp\s*\(|\blocaltimestamp\b/i;
 
 /** function -> the probe that runs it on the fixed clock. */
 // @two-way src/test/clockFunctionsProven.test.ts:PROVEN names a function that is gone, not cron-run, or reads no clock
 const PROVEN: Record<string, string> = {
   auto_start_due_jobs: "autoStartDueJobsClock.pglite.mjs",
+  start_underfilled_crews: "startUnderfilledCrewsClock.pglite.mjs",
+  prune_cron_run_log: "pruneRetentionClock.pglite.mjs",
+  prune_cron_run_details: "pruneRetentionClock.pglite.mjs",
+  prune_cron_http_requests: "pruneRetentionClock.pglite.mjs",
+  prune_edge_rate_limit_log: "pruneRetentionClock.pglite.mjs",
+  cleanup_observability_tables: "pruneRetentionClock.pglite.mjs",
+  cleanup_stripe_webhook_events: "pruneRetentionClock.pglite.mjs",
+  prune_retention_tables: "pruneRetentionClock.pglite.mjs",
+  check_seed_boundary_failures: "monitorWindowsClock.pglite.mjs",
+  check_error_log_throttle: "monitorWindowsClock.pglite.mjs",
+  check_push_token_health: "monitorWindowsClock.pglite.mjs",
+  send_ops_daily_digest: "monitorWindowsClock.pglite.mjs",
+  detect_suspicious_user_patterns: "suspiciousPatternsClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
 // @two-way src/test/clockFunctionsProven.test.ts:NOT_PROVEN names a function that is gone, not cron-run, reads no clock, or is proven
 const NOT_PROVEN: Record<string, string> = {
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
-  check_browse_view_definer: "named by openJobsBrowseHeals.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
+  check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   check_db_saturation: "named by dbSaturation.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  check_error_log_throttle: "named by userErrorScreenRepeatCap.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
   check_ops_alert_pending: "named by opsAlertPendingWatchdog.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  check_push_token_health: "named by pushTokenHealth.pglite.mjs, clientRowsCannotMuteServerAlerts.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  check_seed_boundary_failures: "named by seedBoundaryHonestSkips.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  check_stale_dispute_settlement_claims: "no PGlite probe names it",
+  check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",
   check_user_reports_reach_ledger: "named by userReportsReachTheLedgerCheck.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  cleanup_observability_tables: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  cleanup_stripe_webhook_events: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  cron_http_tag: "named by cronHttpTag.pglite.mjs and 7 more; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  cron_record_work: "named by cronWorkVisibility.pglite.mjs and 3 more; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  detect_suspicious_user_patterns: "no PGlite probe names it",
-  prune_cron_http_requests: "named by cronHttpTag.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  prune_cron_run_details: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  prune_cron_run_log: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  prune_edge_rate_limit_log: "no PGlite probe names it",
-  prune_retention_tables: "named by pruneRetentionTables.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  reap_stranded_instant_payouts: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
+  cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
+  cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
+  detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",
+  reap_stranded_instant_payouts: "named by cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",
   run_missed_cron_catch_up: "named by cronCatchUp.pglite.mjs, cronCatchUpHttpOutcome.pglite.mjs, cronCatchUpOneScan.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  send_ops_daily_digest: "named by opsDigestCountsCsp.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  start_underfilled_crews: "named by crewUnderfilledStarts.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
 };
 
 const files = readdirSync(MIGRATIONS)
@@ -105,7 +108,9 @@ describe("every clock-reading cron function outside sweep_* moves the clock in a
 
   it.each(Object.entries(PROVEN))("%s: its probe names it and runs it on the fixed clock", (fn, probe) => {
     const src = readFileSync(join(PROBES, probe), "utf8");
-    expect(src).toContain(`newestFunction("${fn}")`);
+    // Named in the probe: a newestFunction("<fn>") call, or a key of the table it loads by name.
+    expect(src).toMatch(new RegExp(`newestFunction\\("${fn}"\\)|\\b${fn}:`));
+    expect(src).toContain("newestFunction(");
     expect(src).toMatch(/from "\.\/lib\/fixedClock\.mjs"/);
     expect(src).toMatch(/onFixedClock\(/);
   });

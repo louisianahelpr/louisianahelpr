@@ -138,12 +138,91 @@ serve(async (req) => {
       return cronError("auto-tip-charge", `ban review read failed: ${banReview.message}`, corsHeaders);
     }
 
+    /**
+     * A tip that cannot be charged now (the Helpr's payout hold, Q1224, or an
+     * open ban settlement review on either party, Q1415 (a)) stays a
+     * candidate, but auto_tip_candidates offers a job for 14 days only. On the
+     * window's last day it is recorded (a 'failed' auto row, which also ends
+     * its candidacy) and the poster is told once per job. Nothing is charged.
+     */
+    const ageOutHeldTip = async (
+      c: Record<string, unknown>,
+      tipDollars: number,
+      failureReason: string,
+      posterMessage: string,
+    ): Promise<void> => {
+      const jobId = c.job_id as string;
+      const { data: heldJob, error: heldJobErr } = await supabase
+        .from("jobs")
+        .select("id, completed_at")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (heldJobErr) {
+        log("ERROR reading a held tip's job — cannot tell whether its window is closing", { jobId, error: heldJobErr.message });
+        defects.record(`held tip job read ${jobId}: ${heldJobErr.message}`);
+        return;
+      }
+      const completedMs = heldJob?.completed_at ? Date.parse(heldJob.completed_at as string) : NaN;
+      if (!Number.isFinite(completedMs) || Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) return;
+      const { data: agedRow, error: agedErr } = await supabase
+        .from("tips")
+        .insert({
+          job_id: jobId,
+          tipper_id: c.customer_id,
+          helper_id: c.helper_id,
+          amount: tipDollars,
+          source: "auto",
+          payment_status: "failed",
+          failure_reason: failureReason,
+          auto_prompt_sent_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (agedErr || !agedRow) {
+        // 23505: a row for this (job, member) already exists; it was recorded.
+        if ((agedErr as { code?: string } | null)?.code !== "23505") {
+          log("ERROR recording an auto-tip that aged out under a hold", { jobId, error: agedErr?.message });
+          defects.record(`held tip record ${jobId}: ${agedErr?.message ?? "no row returned"}`);
+        }
+        return;
+      }
+      results.heldAgedOut++;
+      // One notice per JOB (review of Q1224): a crew job has one candidate
+      // per member, and its members' rows are recorded in the same run.
+      if (agedOutNotified.has(jobId)) return;
+      agedOutNotified.add(jobId);
+      const { error: agedNotifyErr } = await supabase.from("notifications").insert({
+        user_id: c.customer_id,
+        job_id: c.job_id,
+        type: "payment",
+        title: "Your automatic tip wasn't sent",
+        message: posterMessage,
+        link: `/posts?job=${c.job_id}`,
+      });
+      if (agedNotifyErr) {
+        log("ERROR writing the aged-out tip notification", { jobId, error: agedNotifyErr.message });
+        defects.record(`held tip notification ${jobId}: ${agedNotifyErr.message}`);
+      }
+    };
+
     for (const c of candidates ?? []) {
       const jobId = c.job_id as string;
       if (frozenByBanReview(banReview, c as { customer_id?: string | null; helper_id?: string | null })) {
         // Stays a candidate: charged after a lift, inside the candidate window.
         log("Ban review open on the poster or Helpr — tip not charged", { jobId });
         results.held++;
+        // Q1415 (a): a review that outlasts the window ages the tip out like a
+        // payout hold does, told in words that never say whose account is
+        // under review (the poster may be the one).
+        const reviewTipCents = Math.round(Number(c.tip_amount) * 100);
+        if (Number.isFinite(reviewTipCents) && reviewTipCents > 0) {
+          await ageOutHeldTip(
+            c,
+            reviewTipCents / 100,
+            "ban_review: an account review held this job's payments for the whole automatic-tip window; nothing was charged",
+            "Your automatic tip for this job couldn't be sent in time, so it was not charged. Nothing was taken from your card.",
+          );
+        }
         continue;
       }
       let stripe: Stripe;
@@ -199,60 +278,14 @@ serve(async (req) => {
         results.held++;
         // Q1224: auto_tip_candidates offers a job for 14 days after it was
         // completed, so a hold longer than that dropped the tip with nobody
-        // told. On the window's last day the tip is recorded (a 'failed' auto
-        // row, which also ends its candidacy) and the poster is told. Nothing
-        // is charged either way.
-        const { data: heldJob, error: heldJobErr } = await supabase
-          .from("jobs")
-          .select("id, completed_at")
-          .eq("id", jobId)
-          .maybeSingle();
-        if (heldJobErr) {
-          log("ERROR reading a held tip's job — cannot tell whether its window is closing", { jobId, error: heldJobErr.message });
-          defects.record(`held tip job read ${jobId}: ${heldJobErr.message}`);
-          continue;
-        }
-        const completedMs = heldJob?.completed_at ? Date.parse(heldJob.completed_at as string) : NaN;
-        if (!Number.isFinite(completedMs) || Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue;
-        const { data: agedRow, error: agedErr } = await supabase
-          .from("tips")
-          .insert({
-            job_id: jobId,
-            tipper_id: c.customer_id,
-            helper_id: c.helper_id,
-            amount: tipDollars,
-            source: "auto",
-            payment_status: "failed",
-            failure_reason: "payout_hold: the Helpr's payouts were on hold for the whole automatic-tip window; nothing was charged",
-            auto_prompt_sent_at: new Date().toISOString(),
-          })
-          .select("id")
-          .single();
-        if (agedErr || !agedRow) {
-          // 23505: a row for this (job, member) already exists; it was recorded.
-          if ((agedErr as { code?: string } | null)?.code !== "23505") {
-            log("ERROR recording an auto-tip that aged out under a hold", { jobId, error: agedErr?.message });
-            defects.record(`held tip record ${jobId}: ${agedErr?.message ?? "no row returned"}`);
-          }
-          continue;
-        }
-        results.heldAgedOut++;
-        // One notice per JOB (review of Q1224): a crew job has one candidate
-        // per member, and its members' rows are recorded in the same run.
-        if (agedOutNotified.has(jobId)) continue;
-        agedOutNotified.add(jobId);
-        const { error: agedNotifyErr } = await supabase.from("notifications").insert({
-          user_id: c.customer_id,
-          job_id: c.job_id,
-          type: "payment",
-          title: "Your automatic tip wasn't sent",
-          message: "Your Helpr can't receive payments right now, so your automatic tip for this job was not charged. Nothing was taken from your card.",
-          link: `/posts?job=${c.job_id}`,
-        });
-        if (agedNotifyErr) {
-          log("ERROR writing the aged-out tip notification", { jobId, error: agedNotifyErr.message });
-          defects.record(`held tip notification ${jobId}: ${agedNotifyErr.message}`);
-        }
+        // told. On the window's last day the tip is recorded and the poster
+        // is told (ageOutHeldTip below).
+        await ageOutHeldTip(
+          c,
+          tipDollars,
+          "payout_hold: the Helpr's payouts were on hold for the whole automatic-tip window; nothing was charged",
+          "Your Helpr can't receive payments right now, so your automatic tip for this job was not charged. Nothing was taken from your card.",
+        );
         continue;
       }
 

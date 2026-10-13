@@ -330,7 +330,7 @@ function envEndpoint(): { url: string; key: string } | null {
  * fields" without sending, logging or reading anything. Any other answer means
  * an email would not go, and the sender stops before it claims or writes.
  */
-export async function outOfBandEndpointRefusal(ep: { url: string; key: string }): Promise<string | null> {
+async function outOfBandEndpointRefusal(ep: { url: string; key: string }): Promise<string | null> {
   try {
     const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
       method: "POST",

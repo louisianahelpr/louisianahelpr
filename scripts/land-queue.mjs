@@ -21,6 +21,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { BUDGET_FLOOR, readBudget } from "./lib/ghBudget.mjs";
 
 export const QUEUE_LABEL = "land-queue";
 export const FAILED_LABEL = "land-queue-failed";
@@ -160,6 +161,25 @@ export function mergeOrWait(run, log = console.log) {
   }
 }
 
+/**
+ * Read queued PRs oldest first, ONLY until the head is decided (lane B2,
+ * 2026-10-13: the shared GitHub token ran out twice in two days). Each PR costs
+ * a view and two checks reads (GraphQL), and this runs on every required-check
+ * completion of every PR, so reading the whole queue cost 2 + 9 x N calls a
+ * run (94 queued on 2026-10-12: ~850). planQueue never looks past the first PR
+ * it waits on, updates, merges or re-runs, so neither does this. Pure apart
+ * from `readOne`. Guard: src/test/landQueue.test.ts ("reads only up to the head").
+ */
+export function readUntilHead(list, readOne) {
+  const prs = [];
+  for (const item of list) {
+    prs.push(readOne(item));
+    const last = planQueue(prs).at(-1);
+    if (last && last.action !== "fail" && last.action !== "skip" && last.action !== "idle") break;
+  }
+  return prs;
+}
+
 function readQueue() {
   // The WHOLE queue (Q1693): gh lists newest first, so a cap below the queue's
   // length hid the oldest PRs, and the head became the oldest of the newest N,
@@ -167,8 +187,7 @@ function readQueue() {
   // for 3 h). Guard: src/test/ghListReadsWholeSet.test.ts.
   const list = JSON.parse(gh(["pr", "list", "--state", "open", "--label", QUEUE_LABEL, "--json", "number,isDraft", "--limit", String(GH_LIST_LIMIT)]));
   if (list.length >= GH_LIST_LIMIT) throw new Error(`land-queue: ${list.length} queued PRs reached the read limit ${GH_LIST_LIMIT}; refusing to pick a head from a partial queue`);
-  const prs = [];
-  for (const { number } of list.filter((p) => !p.isDraft).sort((a, b) => a.number - b.number)) {
+  return readUntilHead(list.filter((p) => !p.isDraft).sort((a, b) => a.number - b.number), ({ number }) => {
     const view = JSON.parse(gh(["pr", "view", String(number), "--json", "mergeStateStatus"]));
     let checks = checksFromGh(() => gh(["pr", "checks", String(number), "--required", "--json", "name,bucket,link"]));
     const all = checksFromGh(() => gh(["pr", "checks", String(number), "--json", "name,bucket,link"]));
@@ -181,9 +200,8 @@ function readQueue() {
       }
       return { name: c.name, bucket: c.bucket, runId, attempt };
     });
-    prs.push({ number, mergeStateStatus: view.mergeStateStatus, checks: withRuns });
-  }
-  return prs;
+    return { number, mergeStateStatus: view.mergeStateStatus, checks: withRuns };
+  });
 }
 
 function act(step) {
@@ -221,6 +239,20 @@ function describe(step) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const dry = process.argv.includes("--dry-run");
+  // BUDGET GATE (lane B2, 2026-10-13): this runs on the owner's shared token on
+  // every required-check completion. Under BUDGET_FLOOR left, skip cleanly:
+  // land.sh advances the queue from the Mac too, and the next event retries.
+  let budget = null;
+  try {
+    budget = readBudget();
+  } catch (e) {
+    // Unreadable budget: go on; a real exhaustion fails the reads below loudly.
+    console.log(`land-queue: GitHub budget unreadable (${String(e?.message ?? e).split("\n")[0]}); advancing anyway`);
+  }
+  if (budget && budget.remaining < BUDGET_FLOOR) {
+    console.log(`::notice::land-queue: skipped, ${budget.remaining} GitHub API calls left this hour (floor ${BUDGET_FLOOR})`);
+    process.exit(0);
+  }
   const prs = readQueue();
   const steps = planQueue(prs);
   const lines = [

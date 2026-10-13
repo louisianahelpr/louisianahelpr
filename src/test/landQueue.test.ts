@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh, mergeOrWait } from "../../scripts/land-queue.mjs";
+import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh, mergeOrWait, readUntilHead } from "../../scripts/land-queue.mjs";
 import { REQUIRED_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -204,5 +204,37 @@ describe("the queue's own merge refused as not mergeable is a wait, not a crash 
   it("act() routes the merge through mergeOrWait", () => {
     const src = readFileSync(join(process.cwd(), "scripts/land-queue.mjs"), "utf8");
     expect(src).toMatch(/case "merge":\s*mergeOrWait\(\(\) => gh\(\["pr", "merge", n, "--rebase"\]\)\);/);
+  });
+});
+
+// @mutate scripts/land-queue.mjs |     if (last && last.action !== "fail" && last.action !== "skip" && last.action !== "idle") break; |     void last;
+describe("the queue reads only up to the head (the shared 5000/h token, 2026-10-13)", () => {
+  it("reads PRs oldest first and stops at the first one the plan acts on", () => {
+    const shapes: Record<number, { mergeStateStatus: string; checks: typeof pass }> = {
+      1: { mergeStateStatus: "BLOCKED", checks: [{ name: "Test", bucket: "fail" }] },
+      2: { mergeStateStatus: "DIRTY", checks: pass },
+      3: { mergeStateStatus: "BEHIND", checks: pass },
+      4: { mergeStateStatus: "CLEAN", checks: pass },
+      5: { mergeStateStatus: "CLEAN", checks: pass },
+    };
+    const read: number[] = [];
+    const prs = readUntilHead([1, 2, 3, 4, 5].map((number) => ({ number })), ({ number }: { number: number }) => {
+      read.push(number);
+      return { number, ...shapes[number] };
+    });
+    // A dropped head (1) and a passed-over DIRTY one (2) are read; the BEHIND head (3) ends it.
+    expect(read).toEqual([1, 2, 3]);
+    expect(planQueue(prs).at(-1)).toEqual({ action: "update", number: 3 });
+  });
+  it("an all-failed queue is read to the end", () => {
+    const read: number[] = [];
+    readUntilHead([1, 2].map((number) => ({ number })), ({ number }: { number: number }) => {
+      read.push(number);
+      return { number, mergeStateStatus: "BLOCKED", checks: [{ name: "Test", bucket: "fail" }] };
+    });
+    expect(read).toEqual([1, 2]);
+  });
+  it("readQueue goes through readUntilHead", () => {
+    expect(read("scripts/land-queue.mjs")).toMatch(/return readUntilHead\(list\.filter/);
   });
 });

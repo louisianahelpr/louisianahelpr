@@ -25,9 +25,15 @@
  *
  * Deliberately NOT produced (see HONEST_GAPS below for the reason each):
  * payout_transfers, tips, gift_cards, referral_credits, admin_audit_log,
- * admin_user_notes, login_history, helper_verifications,
- * verification_exceptions, platform_settings, and any job status past `open`
- * that the real flow reaches only after funding.
+ * admin_user_notes, login_history, helper_verifications, platform_settings,
+ * and any job status past `open` that the real flow reaches only after funding.
+ *
+ * The four admin queues that were never seen POPULATED on prod (Q238) each get
+ * one row on an OWNED account: IDV review (denied: idv_status manual_review),
+ * ban review (banned: a pending_ban_review violation), exceptions (pending: an
+ * open verification_exceptions row) and expired subscriptions (heavy:
+ * subscription_tier NULL with a past subscription_expires_at, which the
+ * expire-subscriptions cron never selects: it reads non-null tiers only).
  *
  * SAFETY MODEL
  * ------------
@@ -203,7 +209,8 @@ const OWNED = {
   // `pending` / `denied` are historical KEYS only (their ids are fixture anchors
   // below): both approval states were retired in Q193, so both are approved.
   pending: { email: "helpr-seed-pending-0912@mailinator.com", full_name: "Seed Pending Tester", ban_status: "active" },
-  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", ban_status: "active" },
+  // idv_status manual_review: the one row /admin?view=idvreview shows (Q238).
+  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", ban_status: "active", profile: { idv_status: "manual_review" } },
   banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", ban_status: "permanently_banned" },
   restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", ban_status: "temp_banned" },
   // Profile deliberately INCOMPLETE (no city, not legacy) so /complete-profile
@@ -216,7 +223,10 @@ const OWNED = {
   // Admin role (one user_roles row, upserted on --apply, deleted on --teardown)
   // so the admin screens can be swept on prod. Owner-approved 2026-09-12.
   admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", ban_status: "active", role: "admin" },
-  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", ban_status: "active" },
+  // An EXPIRED membership for /admin?view=subscriptions (Q238): no tier, a past
+  // expiry. expire-subscriptions selects only non-null tiers, so no cron clears
+  // or emails it; AdminSubscriptions lists it as "expired".
+  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", ban_status: "active", profile: { subscription_tier: null, subscription_expires_at: "2026-09-01T00:00:00Z" } },
 };
 /**
  * THE HELPER'S WEEKLY HOURS — the SEEDER owns them, and it owns all SEVEN days.
@@ -393,7 +403,7 @@ const HONEST_GAPS = [
   ["gift_cards, referral_credits", "Spendable balances read by claim/cash-out functions — a fake row is fake money."],
   ["admin_audit_log, admin_user_notes", "Every row names an admin_id; the only admins are real people, so a row would be a fabricated admin action."],
   ["login_history, helper_verifications", "Written by real sign-ins / credential decisions; a fabricated row is false security telemetry."],
-  ["verification_exceptions, platform_settings", "Admin work queue and a single global settings row; no seed-scoped honest value."],
+  ["platform_settings", "A single global settings row; no seed-scoped honest value."],
 ];
 
 // ── Hallie Helper's avatar ───────────────────────────────────────────────────
@@ -885,6 +895,15 @@ async function apply() {
     { id: sid("viol:banned-1"), user_id: ids.banned, violation_type: "harassment", action_taken: "warning", description: "SEED audit fixture." },
     { id: sid("viol:banned-2"), user_id: ids.banned, violation_type: "harassment", action_taken: "permanent_ban", description: "SEED audit fixture." },
     { id: sid("viol:restricted"), user_id: ids.restricted, violation_type: "no_show", action_taken: "temp_ban", description: "SEED audit fixture." },
+    // The /admin?view=banreview case (Q238). On the already permanently banned
+    // account, and an admin_action type, so auto_restrict_repeat_violators
+    // returns before it counts, suspends or notifies anyone.
+    { id: sid("viol:ban-review"), user_id: ids.banned, violation_type: "admin_action", action_taken: "pending_ban_review", description: "SEED audit fixture: ban review case." },
+  ]);
+  // The /admin?view=exceptions row (Q238): one open exception on an owned
+  // account, no credential or check attached (both columns are nullable FKs).
+  await upsert("verification_exceptions", [
+    { id: sid("exception:pending"), user_id: ids.pending, exception_type: "other", status: "open", notes: "SEED audit fixture: exception queue row." },
   ]);
   await upsert("fraud_flags", [
     { id: sid("fraud:banned"), user_id: ids.banned, flag_type: "multi_reporter_flag", details: "SEED audit fixture.", resolved: false },
@@ -961,7 +980,7 @@ async function teardown() {
   const ownedIds = Object.values(owned);
   if (ownedIds.length) {
     await del("user_roles", `user_id=${inList(ownedIds)}`);
-    for (const t of ["user_bans", "user_violations", "fraud_flags", "notifications", "messages"]) {
+    for (const t of ["user_bans", "user_violations", "fraud_flags", "verification_exceptions", "notifications", "messages"]) {
       await del(t, `${t === "messages" ? "sender_id" : "user_id"}=${inList(ownedIds)}`);
     }
   }
@@ -1115,7 +1134,12 @@ async function verify() {
   await check("referrals by poster", `referrals?referrer_id=eq.${posterId}&select=id`, 2);
   await check("notifications (pair)", `notifications?user_id=${inList([posterId, helperId])}&select=id`, 14);
   await check("reports (seed parties)", `reports?id=${inList(["user", "job", "message", "support"].map((k) => sid(`report:${k}`)))}&select=id`, 4);
-  await check("user_violations (seed)", `user_violations?id=${inList(["banned-1", "banned-2", "restricted"].map((k) => sid(`viol:${k}`)))}&select=id`, 3);
+  await check("user_violations (seed)", `user_violations?id=${inList(["banned-1", "banned-2", "restricted", "ban-review"].map((k) => sid(`viol:${k}`)))}&select=id`, 4);
+  // Q238: one row in each admin queue that had never been seen populated.
+  await check("admin queue: IDV review (seed)", `profiles?email=eq.${encodeURIComponent(OWNED.denied.email)}&is_seed=eq.true&idv_status=eq.manual_review&select=user_id`, 1);
+  await check("admin queue: ban review (seed)", `user_violations?id=eq.${sid("viol:ban-review")}&action_taken=eq.pending_ban_review&select=id`, 1);
+  await check("admin queue: open exception (seed)", `verification_exceptions?id=eq.${sid("exception:pending")}&status=eq.open&select=id`, 1);
+  await check("admin queue: expired subscription (seed)", `profiles?email=eq.${encodeURIComponent(OWNED.heavy.email)}&is_seed=eq.true&subscription_tier=is.null&subscription_expires_at=lt.${new Date().toISOString()}&select=user_id`, 1);
   await check("fraud_flags (seed)", `fraud_flags?id=${inList([sid("fraud:banned"), sid("fraud:denied")])}&select=id`, 2);
   await check("user_bans (seed)", `user_bans?id=${inList([sid("ban:banned"), sid("ban:restricted")])}&select=id`, 2);
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {

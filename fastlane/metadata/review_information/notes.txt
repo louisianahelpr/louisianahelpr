@@ -1,1 +1,9 @@
-Helpr is a Louisiana-only marketplace connecting residents with local service providers (lawn care, cleaning, errands, handyman, etc.). Sign in with the demo reviewer credentials above to browse jobs, post a job, and message a helper. Payments use Stripe in test mode for the demo account.
+Louisiana Helpr is a local services marketplace for Louisiana. Every account can both post jobs and apply to jobs - there is no separate role or account switch, so the demo account exercises both sides.
+
+Sign in with the demo email and password in Sign-In Information. Sign in with Apple and Google also work natively.
+
+To see the core flow: browse open jobs on the home screen, open one and apply, or post a job from the bottom navigation, then message the other party.
+
+Payments are processed by Stripe and are live. You do not need to complete a payment to review the app; please do not enter a real card.
+
+Location is used to show nearby jobs and is optional; push notifications are optional and are requested with an explanation first.

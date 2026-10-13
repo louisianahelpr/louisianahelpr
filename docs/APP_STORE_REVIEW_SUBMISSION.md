@@ -16,15 +16,17 @@ Location pre-prompt — we now explain why we ask for location before iOS shows 
 
 ## Reviewer Notes (App Information → Notes)
 
+The text actually uploaded to App Store Connect is `fastlane/metadata/review_information/notes.txt` (ios-metadata.yml). The block below is the older draft; keep the two in agreement.
+
 ```
 Louisiana Helpr is a service marketplace for southern Louisiana. Every account can both POST jobs (as a customer) and APPLY to jobs (as a helper) — there is no separate role or account switch. The demo account below can exercise both sides.
 
 Demo account credentials are set in App Store Connect → App Information → Sign-In Information.
 
-The demo account's identity/verification is pre-approved so it can post and apply immediately. It does not have any jobs already posted or applied to — to see the full flow, post a job (bottom nav → Post) and separately apply to one of the open jobs already visible in Browse. Stripe is in test mode for this account; no real charges.
+The demo account's identity/verification is pre-approved so it can post and apply immediately. It does not have any jobs already posted or applied to — to see the full flow, post a job (bottom nav → Post) and separately apply to one of the open jobs already visible in Browse. Stripe is LIVE on prod (since 2026-09-27): the reviewer must not complete a payment.
 
 Notes for the reviewer:
-- Location and push notification permissions are required for the core flow.
+- Location and push notifications are optional (Apple guideline 5.1.1); never call them required.
 - Sign in with Apple and Google both work natively. The demo email/password also works.
 - After signing in, the home screen shows nearby open jobs — no separate mode or role switch is needed to apply to one.
 ```

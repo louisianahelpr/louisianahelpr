@@ -79,7 +79,6 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q701: "marker removed by the lead 2026-10-03: a full unpinned e2e-journeys run that actually runs the step",
   Q768: "not built yet: str-ical-sync still inserts a jobs row before payment; its class check does not exist",
   Q858: "one green prod-audit run, then signIns set from that measurement",
-  Q913: "the press spec run and a look at the six admin ✕s at 375 and 1440",
   Q1001: "a look after a real photo upload on prod once deployed; the upload is a storage POST the write-blocking harness refuses",
   Q965: "a browser look at /help and /support on native and the marketing Navbar while /legal and /help scroll",
   Q1158: "Vercel Speed Insights real-user P75 after deploy (no API a marker can read)",
@@ -87,13 +86,7 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q1172: "the lead's real-browser filmstrip and cwv-lab run",
   Q1399: "the owner looking at both offer cards on a phone",
   Q1464: "a screenshot of a re-listed crew (needs a booked, paid crew with a member gone: not on prod, Stripe live)",
-  Q1327: "reopened 2026-10-12 after the auto-tick closed it on its unit test: an admin look at 375 and 1440 on a re-filed dispute; prod has no disputes rows, so a seeded one is needed first",
-  Q1402: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a 375 look at an unconfirmed crew member's collapsed card on My Jobs, which the write-blocking browser harness cannot load",
-  Q1465: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a 375 look at a long-titled Recently Deleted row; the only archived seed thread has no messages, so no row renders",
-  Q1504: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a 375 look on prod, after the dismiss-on-open fix deploys, that a dialog opened over a showing nudge clears it",
-  Q1537: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a plain-open look at My Posts and My Jobs with Needs You empty; no test account has that state today",
   Q1558: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a look at My Jobs and Home empty states at 320, 375 and 1440, which read POST RPCs the harness blocks",
-  Q1326: "owner1012 double-booking lane: built and guarded; waits on a live grant check after deploy and a look at the card notice at 375 and 1440",
 };
 
 describe("[~] items say when they are done", () => {

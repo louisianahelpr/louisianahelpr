@@ -5457,6 +5457,30 @@ export type Database = {
           },
         ]
       }
+      series_platform_ends: {
+        Row: {
+          admin_id: string | null
+          ended_at: string
+          end_kind: string
+          parent_job_id: string
+          reason: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          ended_at?: string
+          end_kind: string
+          parent_job_id: string
+          reason?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          ended_at?: string
+          end_kind?: string
+          parent_job_id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       series_visit_holds: {
         Row: {
           claimed_at: string
@@ -7164,6 +7188,16 @@ export type Database = {
       cleanup_observability_tables: { Args: never; Returns: Json }
       cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
+      clear_test_mode_dispute_ledger: {
+        Args: {
+          _admin: string
+          _dispute_id: string
+          _reason: string
+          _refund_ids: string[]
+          _transfer_ids: string[]
+        }
+        Returns: Json
+      }
       clear_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean

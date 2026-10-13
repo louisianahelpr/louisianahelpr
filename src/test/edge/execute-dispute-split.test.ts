@@ -1681,7 +1681,7 @@ describe("execute-dispute-split edge function", () => {
       expect(cap.lines()).toEqual([]);
     });
 
-    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse(\n            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes)" },\n            409,\n          ); | void 0;
+    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse(\n            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes; when the books already record a test-mode refund or transfer, the admin presses Clear test-mode records and re-open)" },\n            409,\n          ); | void 0;
     it("a test-mode stamped transfer on a resume refuses 409 and moves nothing: a person decides (Q891 review)", async () => {
       // The stamp names a transfer minted under the test key. That run moved no
       // real money, but a fresh live transfer could pay a leg already settled

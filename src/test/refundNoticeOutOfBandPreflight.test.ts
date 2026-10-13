@@ -21,7 +21,7 @@
  * second half of this file holds that order in the function's source.
  *
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) return { status: "failed", error: refused }; |       void refused;
- * @mutate supabase/functions/_shared/refundNotice.ts |     if (res.status === 400 && /Missing required fields/.test(text)) return null; |     if (res.status === 400 \|\| res.status === 401) return null;
+ * @mutate supabase/functions/_shared/refundNotice.ts |     if (preflight.status === 400 && /Missing required fields/.test(text)) return null; |     if (preflight.status === 400 \|\| preflight.status === 401) return null;
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) {\n        out.problems.push(refused);\n        return out;\n      } |       if (refused) {\n        out.problems.push(refused);\n      }
  * @mutate supabase/functions/send-notification-email/index.ts |     const { notification_id, user_id, title, message, type, link, job_id } = await req.json() |     await supabase.rpc('log_notification', {}); const { notification_id, user_id, title, message, type, link, job_id } = await req.json()
  */

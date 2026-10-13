@@ -25,7 +25,7 @@
  *
  * @mutate supabase/functions/admin-user-actions/index.ts |       const { error: applyErr } = await admin.rpc('admin_apply_account_action', {\n        p_user_id: targetUserId,\n        p_admin_id: userData.user.id,\n        p_action: actionTaken | await admin.from('user_violations').insert({ user_id: targetUserId, violation_type: 'admin_warning', action_taken: actionTaken })\n      const { error: applyErr } = await admin.rpc('admin_apply_account_action', {\n        p_user_id: targetUserId,\n        p_admin_id: userData.user.id,\n        p_action: actionTaken
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     -- The strike's ladder trigger turned this on for the rest of the transaction.\n    PERFORM set_config('app.trusted_ladder_write', 'off', true); |     NULL;
- * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |   v_rung := public.ban_review_standing_rung(v_review.id, true); |   v_rung := NULL;
+ * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   v_rung := public.ban_review_standing_rung(v_review.id, true); |   v_rung := NULL;
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |                                              WHERE v.id = b.id::uuid)) | WHERE true))
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |                                   v.violation_type = n.violation_type |                                   true
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     v_lift := public.lift_ban_settlement_review(p_user_id, p_admin_id, v_status); |     v_lift := NULL;

@@ -270,6 +270,56 @@ export function sessionInit({ key, value, expired }) {
 }
 
 /**
+ * STRICT WRITE BLOCK (CLAUDE.md: a browser holding a test session against
+ * prod blocks every non-GET request to Supabase, edge functions included, and
+ * to Stripe, and proves the block fired). Installed on the context, so every
+ * page in it is covered. Aborted before the request leaves the browser; each
+ * one is recorded with the wall time it was issued (`at`, ms after `clock()`),
+ * so a run can say which write it would have made and when. HEAD and OPTIONS
+ * (CORS preflight) carry no body and pass. NOTE what this costs a measurement:
+ * supabase.rpc() reads are POSTs and the auth token refresh is a POST, so a
+ * first screen whose data comes from an RPC never receives it here.
+ */
+const WRITE_BLOCK_HOSTS = /(^|\.)supabase\.co$|(^|\.)stripe\.com$/;
+async function installWriteBlock(ctx, clock = () => 0) {
+  const blocked = [];
+  await ctx.route(
+    (url) => WRITE_BLOCK_HOSTS.test(url.hostname),
+    (route) => {
+      const req = route.request();
+      const m = req.method();
+      if (m === "GET" || m === "HEAD" || m === "OPTIONS") return route.continue();
+      const u = new URL(req.url());
+      blocked.push({ method: m, path: `${u.hostname.split(".")[0]}:${u.pathname}${u.searchParams.get("grant_type") ? "?grant_type=" + u.searchParams.get("grant_type") : ""}`, at: clock() });
+      return route.abort("blockedbyclient");
+    },
+  );
+  return blocked;
+}
+
+/**
+ * Proves the block is live in `ctx` before any measurement: a POST to the
+ * Supabase REST root from a blank page must fail in the browser AND show up in
+ * `blocked`. Throws otherwise, so no run measures with writes reaching prod.
+ */
+async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhdgfwzhsqa.supabase.co") {
+  const page = await ctx.newPage();
+  try {
+    const before = blocked.length;
+    const outcome = await page.evaluate(async (u) => {
+      try { await fetch(`${u}/rest/v1/rpc/__cwv_write_block_probe`, { method: "POST", body: "{}" }); return "reached"; }
+      catch { return "failed"; }
+    }, supabaseUrl);
+    if (outcome !== "failed" || blocked.length !== before + 1) {
+      throw new Error(`write block NOT live: probe POST ${outcome}, blocked ${before} -> ${blocked.length}`);
+    }
+    blocked.splice(before, 1);
+  } finally {
+    await page.close();
+  }
+}
+
+/**
  * Apply the profile's network and CPU throttling to `page` (Chromium only; no
  * CDP in WebKit). `cpuRate` is the calibrated rate (calibratedCpuRate) when the
  * caller measured one, else the profile's nominal rate.
@@ -420,6 +470,10 @@ async function main() {
               // --ihe: the way the Playwright spec loads (ignoreHTTPSErrors).
               ignoreHTTPSErrors: browserName === "webkit" || flag("ihe"),
             });
+            // Strict write block on EVERY context (signed in or not), proven live first.
+            let navWallNow = Date.now();
+            const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow);
+            await probeWriteBlock(ctx, blocked);
             await ctx.addInitScript(CWV_INIT);
             if (signedIn) await ctx.addInitScript(...sessionInit({ key: session.key, value: session.value, expired: flag("expired") }));
             // --return: a second load in the same context with the HTTP cache
@@ -451,6 +505,8 @@ async function main() {
                 await cast.send("Page.startScreencast", { format: "jpeg", quality: 70, everyNthFrame: 1 });
               }
               const navWall = Date.now();
+              navWallNow = navWall;
+              const blockedFrom = blocked.length;
               const t0 = Date.now();
               let error = null;
               try {
@@ -526,10 +582,11 @@ async function main() {
               if (flag("shots") && run === 0) {
                 await page.screenshot({ path: join(out, `${label}-${browserName}-${profileName}-${kind}${route.replace(/\//g, "_") || "_root"}.png`) }).catch(() => {});
               }
-              rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m });
+              rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m, blocked: blocked.slice(blockedFrom) });
               const r = rows[rows.length - 1];
               console.log(`${browserName.padEnd(8)} ${profileName.padEnd(7)} ${kind.padEnd(4)} ${route.padEnd(10)} ttfb=${String(r.ttfb).padStart(4)} fcp=${String(r.fcp).padStart(5)} lcp=${String(r.lcp).padStart(5)} cls=${String(r.cls).padEnd(6)} ${landed !== route ? "→" + landed + " " : ""}${error ?? ""}`);
               console.log(`    lcpEl: ${r.lcpEl}  breakdown: ${JSON.stringify(r.breakdown)}  appDrawn=${r.marks?.appDrawn} jsDone=${r.marks?.jsDone} js=${r.marks?.jsCountBeforeLcp}/${r.marks?.jsKBbeforeLcp}KB`);
+              if (r.blocked.length) console.log(`    BLOCKED ${r.blocked.length} non-GET: ${r.blocked.slice(0, 8).map((x) => `${x.method} ${x.path}@${x.at}`).join("  ")}`);
               if (r.marks?.data?.length) console.log(`    data: ${r.marks.data.slice(0, 12).map((d) => `${d.name}@${d.start}-${d.end}`).join("  ")}`);
               for (const s of r.clsWindow ?? []) console.log(`    shift t=${s.t} v=${s.v} ${s.srcs.slice(0, 2).join(" | ")}`);
               if (r.sessionRoute) console.log(`    SESSION CLS ${r.sessionCls} (billed to ${r.sessionRoute} at page hide)`);

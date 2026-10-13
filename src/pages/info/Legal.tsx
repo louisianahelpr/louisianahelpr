@@ -148,15 +148,9 @@ const Legal = () => {
   // already on screen — so it duplicated visible content and cost a 14rem
   // column. Removed along with its scrollspy.)
 
-  // WEB: the tab band pins just under the fixed marketing Navbar (a guest's
-  // page), or at the very top of the AppShell scroll box (signed in: no
-  // marketing nav). It used to pin at top 0 for everyone on the theory that
-  // the Navbar scrolled away inside the page-transition wrapper; measured on
-  // prod 2026-10-12 (proving Q965) the Navbar stays fixed at top 0 through a
-  // scroll, so the pinned band sat UNDER it (z-30 under z-50) and the Terms /
-  // Rules / Privacy tabs were hidden at 375 and 1440. The offset is the
-  // Navbar's own height, the same expression PublicLayout's spacer uses.
-  // src/test/legalBandClearsMarketingNav.test.ts.
+  // WEB: the band pins under the fixed marketing Navbar for a guest (its own height, as
+  // PublicLayout's spacer), at top 0 when signed in. Top 0 for a guest hid the tabs under the
+  // Navbar at 375 and 1440 (prod, 2026-10-12, Q965). src/test/legalBandClearsMarketingNav.test.ts.
   const webBandStickyTop = user ? "0px" : "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))";
 
   // Switching tabs is a fresh document: drop any active search and start the

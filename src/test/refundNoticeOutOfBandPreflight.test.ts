@@ -156,7 +156,7 @@ describe("Q1731: a refund notice sent from outside the edge runtime never leaves
 /**
  * The retry run (retryFailedRefundEmails) with an explicit endpoint: a script
  * re-sending failed refund emails from a Mac with .env's legacy key used to
- * claim every notice's try, get 401 each time, and after 3 runs page "gave up"
+ * claim every notice's try, get 401 each time, and after its last allowed try page "gave up"
  * for every one (lh-silent-failure review of the Q1731 preflight, LOW). It now
  * asks the email function ONCE, before its loop, and stops before any claim.
  */

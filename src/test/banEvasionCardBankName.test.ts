@@ -37,9 +37,9 @@
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |                 WHERE q.review_state = 'open' AND q.user_id IN (v_customer, v_helper, NEW.helper_id)) THEN | WHERE false) THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   AFTER UPDATE OF payment_status ON public.jobs
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
- * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
+ * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
- * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
+ * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n  THEN |   THEN
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
@@ -171,7 +171,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // while a review is open is kept on the review row and applied by the lift /
   // confirm, never dropped. Behaviour: banEvasionCardBankName.pglite.mjs
   // (NEW_MIGRATION=skip-strikes: 4 FAIL).
-  // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
+  // @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |             EXISTS (SELECT 1 FROM public.user_violations v\n                      WHERE v.user_id = r.user_id AND v.created_at >= r.created_at) |             true
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |        SET deferred_rungs = r.deferred_rungs \|\| jsonb_build_array(jsonb_build_object( |        SET deferred_rungs = '[]'::jsonb \|\| jsonb_build_array(jsonb_build_object(
   it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {

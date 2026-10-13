@@ -15,7 +15,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { formatPhone } from "@/pages/auth/signup/signupHelpers";
-import { isUnder18, UNDER_18_SAVED_COPY } from "@/lib/ageGate";
+import { ageInYears, isUnder18, under18ConfirmCopy, UNDER_18_SAVED_COPY, yearsAgoKey } from "@/lib/ageGate";
 import { toast } from "sonner";
 
 /**
@@ -30,7 +30,9 @@ import { toast } from "sonner";
  *
  * A birthday under 18 (Q1586(c), owner 2026-10-13): it is SAVED, never
  * refused, and the action does NOT go ahead, whether they tap Save & Continue,
- * Not Now or close the prompt. Refusing it left the birthday empty, so the
+ * Not Now or close the prompt. The first such tap only says what it means
+ * ("That makes you N ..."), since a saved one only support can change; the
+ * next one saves it. Refusing it left the birthday empty, so the
  * honest minor tapped Not Now and applied anyway (lh-authz-rls review of
  * 0f7786627, must-fix 1). Saved, the profiles lock holds it, useAgeGate greys
  * every Apply/Post out at once (the cached profile is updated here) and the
@@ -64,6 +66,11 @@ export function usePhotoPrompt() {
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
+  // The under-18 birthday typed now was shown back once ("That makes you N ...").
+  // A saved one only support can change, so it is never saved on the first tap
+  // (lh-authz-rls re-review of 44ca75e95, should-fix 4: an adult who mis-spins
+  // the wheel must get the chance to fix it). Changing the date resets it.
+  const [under18Confirmed, setUnder18Confirmed] = useState(false);
   // A ref, not state: the upload's completion and a "Not Now" tap during the
   // upload must not both run the same action (a second apply_to_job).
   const pendingRef = useRef<(() => void) | null>(null);
@@ -93,6 +100,7 @@ export function usePhotoPrompt() {
       setMissing(m);
       setPhotoAdded(false);
       setFieldError(null);
+      setUnder18Confirmed(false);
       pendingRef.current = go;
       setOpen(true);
     },
@@ -155,10 +163,23 @@ export function usePhotoPrompt() {
     toast.error(UNDER_18_SAVED_COPY, { id: "age-gate-saved" });
   };
 
+  /**
+   * The first tap with an under-18 birthday typed says what it means and stops
+   * (nothing saved, no action); the next tap saves it and stops.
+   */
+  const under18Tap = () => {
+    if (!under18Confirmed) {
+      setUnder18Confirmed(true);
+      setFieldError(under18ConfirmCopy(ageInYears(dob)));
+      return;
+    }
+    void saveUnder18AndStop();
+  };
+
   /** Not Now / close: the action goes ahead, unless an under-18 birthday was typed. */
   const decline = () => {
     if (busy) return;
-    if (typedUnder18) return void saveUnder18AndStop();
+    if (typedUnder18) return under18Tap();
     proceed();
   };
 
@@ -213,7 +234,7 @@ export function usePhotoPrompt() {
     // isUnder18: the same rule as the Apply/Post grey-out and the server (Q1586(c)).
     // Saved, never refused, and the action stops (see the header). The report
     // inside keeps the disclosure visible to an admin (code review, 2026-10-09).
-    if (typedUnder18) return saveUnder18AndStop();
+    if (typedUnder18) return under18Tap();
     // Undefined fields are dropped from the JSON body, so only what was typed is written.
     const savePhone = missing.phone && digits.length >= 10 ? phone.trim() : undefined;
     const saveDob = missing.dob && dob ? dob : undefined;
@@ -249,7 +270,8 @@ export function usePhotoPrompt() {
   };
 
   // Up to today, not today - 18 years: a birthday under 18 must be enterable,
-  // or the honest answer could never be given (Q1586(c), 2026-10-13).
+  // or the honest answer could never be given (Q1586(c), 2026-10-13). The
+  // wheel still OPENS 18 years back (openAt), as it did when that was the cap.
   const maxDob = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -321,7 +343,7 @@ export function usePhotoPrompt() {
             {missing.dob && (
               <div className="space-y-1.5">
                 <Label htmlFor="prompt-dob">Birthday</Label>
-                <DatePickerField wheel id="prompt-dob" value={dob} onChange={(v) => { setDob(v); setFieldError(null); }} min={minDob} max={maxDob} />
+                <DatePickerField wheel id="prompt-dob" value={dob} onChange={(v) => { setDob(v); setFieldError(null); setUnder18Confirmed(false); }} min={minDob} max={maxDob} openAt={yearsAgoKey(18)} />
               </div>
             )}
             {fieldError && (

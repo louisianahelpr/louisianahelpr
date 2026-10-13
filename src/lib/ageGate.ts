@@ -57,6 +57,25 @@ function localDateKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** Whole years old today for a YYYY-MM-DD birthday, or null when it is not a date. */
+export function ageInYears(dob: string | null | undefined, now: Date = new Date()): number | null {
+  if (typeof dob !== "string") return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dob.trim());
+  if (!m) return null;
+  const today = localDateKey(now);
+  const years = now.getFullYear() - Number(m[1]);
+  return today.slice(5) < `${m[2]}-${m[3]}` ? years - 1 : years;
+}
+
+/** YYYY-MM-DD exactly `years` before today on this device (a birthday wheel's start). */
+export function yearsAgoKey(years: number, now: Date = new Date()): string {
+  return `${now.getFullYear() - years}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** Said once before an under-18 birthday is saved: a saved one only support can change. */
+export const under18ConfirmCopy = (age: number | null, toSave = "tap again to save it") =>
+  `${age !== null ? `That makes you ${age}. ` : ""}Under 18 you can't apply for jobs or post a job until your 18th birthday, and only Louisiana Helpr support can change a saved birthday. If that's right, ${toSave}.`;
+
 /** True when a saved birthday makes the member under 18 today. No birthday: false. */
 export function isUnder18(dob: string | null | undefined, now: Date = new Date()): boolean {
   const turns18 = eighteenthBirthday(dob);

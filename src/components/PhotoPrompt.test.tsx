@@ -269,8 +269,9 @@ describe("browse first: the header's Get Started", () => {
  * must-fix 1). These drive the prompt's real save path: the profiles UPDATE the
  * server's lock_under_18_birthday then holds (proved for a member session in
  * src/test/pglite/under18CannotApplyOrPost.pglite.mjs, S1-S4).
- * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return void saveUnder18AndStop(); |     if (false) return void saveUnder18AndStop();
- * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return saveUnder18AndStop(); |     if (typedUnder18) return setFieldError("You'll need to be 18 or older to use Helpr.");
+ * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return under18Tap();\n    proceed(); |     proceed();
+ * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return under18Tap();\n    // Undefined fields |     if (typedUnder18) return setFieldError("You'll need to be 18 or older to use Helpr.");\n    // Undefined fields
+ * @mutate src/components/PhotoPrompt.tsx |     if (!under18Confirmed) { |     if (false) {
  * @mutate src/components/PhotoPrompt.tsx |       if (isUnder18(cached?.profile?.date_of_birth)) { |       if (false) {
  */
 describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
@@ -297,6 +298,10 @@ describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
     const go = vi.fn();
     await typeBirthday(go, MINOR_DOB);
     fireEvent.click(screen.getByText("Save & Continue"));
+    // The first tap says what it means and saves nothing (re-review should-fix 4).
+    expect((await screen.findByRole("alert")).textContent).toMatch(/That makes you 16\..*only Louisiana Helpr support can change/);
+    expect(updated).toEqual([]);
+    fireEvent.click(screen.getByText("Save & Continue"));
     await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
     await waitFor(() => expect(screen.queryByText("Finish your profile")).toBeNull());
     expect(go).not.toHaveBeenCalled();
@@ -308,6 +313,10 @@ describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
     const go = vi.fn();
     await typeBirthday(go, MINOR_DOB);
     fireEvent.click(screen.getByText("Not Now"));
+    await screen.findByRole("alert");
+    expect(go).not.toHaveBeenCalled();
+    expect(updated).toEqual([]);
+    fireEvent.click(screen.getByText("Not Now"));
     await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
     expect(go).not.toHaveBeenCalled();
   });
@@ -316,6 +325,9 @@ describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
     needsAll();
     const go = vi.fn();
     await typeBirthday(go, MINOR_DOB);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await screen.findByRole("alert");
+    expect(go).not.toHaveBeenCalled();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
     expect(go).not.toHaveBeenCalled();
@@ -327,8 +339,22 @@ describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
     const go = vi.fn();
     await typeBirthday(go, MINOR_DOB);
     fireEvent.click(screen.getByText("Save & Continue"));
-    expect((await screen.findByRole("alert")).textContent).toMatch(/birthday/i);
+    await screen.findByText(/That makes you 16/);
+    fireEvent.click(screen.getByText("Save & Continue"));
+    expect((await screen.findByText(/Couldn't save your birthday/))).toBeTruthy();
     expect(go).not.toHaveBeenCalled();
+  });
+
+  it("an adult who mis-spun the wheel sees the age, fixes the date, and nothing under 18 is ever saved", async () => {
+    needsAll();
+    const go = vi.fn();
+    await typeBirthday(go, MINOR_DOB);
+    fireEvent.click(screen.getByText("Save & Continue"));
+    await screen.findByText(/That makes you 16/);
+    fireEvent.change(screen.getByLabelText("Birthday"), { target: { value: yearsAgo(40) } });
+    fireEvent.click(screen.getByText("Save & Continue"));
+    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
+    expect(updated).toEqual([{ date_of_birth: yearsAgo(40) }]);
   });
 
   it("a saved under-18 birthday stops every later Apply/Post before any prompt", async () => {

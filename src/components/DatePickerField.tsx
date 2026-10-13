@@ -28,6 +28,8 @@ interface DatePickerFieldProps {
    * calendar one month at a time) and the popover opens at this month.
    */
   max?: string;
+  /** `YYYY-MM-DD`: where the wheel starts when no date is chosen (wheel only). */
+  openAt?: string;
   placeholder?: string;
   id?: string;
   className?: string;
@@ -85,6 +87,7 @@ export function DatePickerField({
   onChange,
   min,
   max,
+  openAt,
   placeholder = "Select a date",
   id,
   className,
@@ -186,6 +189,7 @@ export function DatePickerField({
               onChange={onChange}
               minDate={minDate}
               maxDate={maxDate}
+              openAt={openAt ? parseLocalDate(openAt) : undefined}
             />
           ) : (
           <Calendar

@@ -737,6 +737,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-auth.ts";`,
   );
 
+  // Crew block fees, read half (Q1390/Q1490): `_shared/crewBlockFeeRead.ts`
+  // has ZERO imports (the client is a parameter). It decides whether an admin
+  // full refund is refused and how much a cancelled crew's refund withholds,
+  // so the REAL module serves; the paying half (crewBlockFees.ts) is walked.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/crewBlockFeeRead\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/crewBlockFeeRead.ts";`,
+  );
+
   // Stripe mode (owner 2026-10-12, test mode for test accounts):
   // `_shared/stripeMode.ts` has ZERO imports and decides which Stripe key a
   // payment runs on. A stub would be the one gate between a test account and

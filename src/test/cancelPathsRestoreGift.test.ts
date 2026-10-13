@@ -171,9 +171,15 @@ describe("every path that cancels or refunds a job gives its gift card back", ()
       const code = blankComments(readSource(file) ?? "");
       for (const m of code.matchAll(/(?:async function (restore\w*Gift\w*)\(|const (restore\w*Gift\w*) = async \()/g)) {
         const name = m[1] ?? m[2];
-        const body = code.slice(m.index!, m.index! + 4000);
-        const rpc = body.search(/\.rpc\(\s*"restore_gift_card_for_job"/);
+        // 8000: void-cancelled-payments' restorePifGift sizes the restore with a
+        // dry run first (Q1490), which put its at-stake read ~5900 chars in.
+        const body = code.slice(m.index!, m.index! + 8000);
         const atStake = body.search(/\.in\("status", \["redeemed", "reserved"\]\)/);
+        // The REAL restore: the last call before the at-stake read, never a
+        // dry run (restorePifGift prices the restore with one first, Q1490).
+        const calls = [...body.matchAll(/\.rpc\(\s*"restore_gift_card_for_job",\s*\{([^}]*)\}/g)]
+          .filter((c) => (c.index ?? 0) < atStake && !/p_dry_run\s*:\s*true/.test(c[1]));
+        const rpc = calls.length > 0 ? calls[calls.length - 1].index! : -1;
         if (rpc === -1 || atStake === -1) continue;
         wrappers.push(`${rel}#${name}`);
         const already = body.indexOf('.eq("restored_from_job_id", ');

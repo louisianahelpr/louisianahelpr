@@ -14,7 +14,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { crewBlockFeeRefusal } from "../_shared/crewBlockFees.ts";
+import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds

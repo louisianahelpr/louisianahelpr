@@ -24,6 +24,7 @@ import { buildTurnoverPrefill } from "@/pages/post-job/turnoverPrefill";
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
 // @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
+// @mutate src/pages/post-job/turnoverPrefill.ts |     title: fitWords(`STR clean ${row.checkout_date} ${propName}`, 32), |     title: fit(`STR clean ${row.checkout_date} ${propName}`, 32),
 // @mutate src/pages/post-job/turnoverPrefill.ts |   return row.job_id != null && !!row.jobs && row.jobs.status !== "cancelled" && FUNDED.has(row.jobs.payment_status ?? ""); |   return row.job_id != null;
 // @mutate supabase/migrations/20261007145950_str_turnover_link_job.sql |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id) ON DELETE SET NULL; |   ADD CONSTRAINT str_processed_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id);
 
@@ -82,6 +83,10 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     const p = buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-09", job_id: null, str_calendar_connections: conn });
     expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
     expect(p.title.startsWith("STR clean 2026-10-09")).toBe(true);
+    // Never half a word (prod 2026-10-12: "STR clean 2026-10-17 Proof Cotta").
+    expect(p.title).toBe("STR clean 2026-10-09 The Very");
+    expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-17", job_id: null, str_calendar_connections: { ...conn, property_name: "Proof Cottage" } }).title).toBe("STR clean 2026-10-17 Proof");
+    expect(buildTurnoverPrefill({ id: "e1", checkout_date: "2026-10-17", job_id: null, str_calendar_connections: { ...conn, property_name: "Camp" } }).title).toBe("STR clean 2026-10-17 Camp");
     expect(p).toMatchObject({ budget: "95", dateNeeded: "2026-10-09", location: conn.property_address, alreadyPosted: false });
     expect(p.description).toContain("Standard turnover clean");
     // "Already posted" only when the linked job is FUNDED (lh-authz-rls review: an abandoned checkout is not a post).

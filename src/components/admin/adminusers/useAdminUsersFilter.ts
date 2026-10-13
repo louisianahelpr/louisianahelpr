@@ -175,3 +175,20 @@ export const getTabCounts = (
 
   return { awaitingEmailCount, bannedCount, approvedCount, allCount };
 };
+
+/**
+ * The Users list's empty-state line. A search that matches nobody says so (it
+ * used to read the tab's count label, so a no-match search on All said
+ * "Nothing is total right now", seen 2026-10-12 proving Q913); a search that
+ * matches only hidden test accounts says how to see them; an empty tab names
+ * itself. Pure: src/components/admin/adminusers/usersEmptyBody.test.ts.
+ */
+export const usersEmptyBody = ({ hiddenTestMatches, query, tab, tabLabel }: { hiddenTestMatches: number; query: string; tab: Tab; tabLabel: string }): string => {
+  if (hiddenTestMatches > 0) {
+    return `${hiddenTestMatches} test ${hiddenTestMatches === 1 ? "account matches" : "accounts match"}. Turn on Show test accounts to see ${hiddenTestMatches === 1 ? "it" : "them"}.`;
+  }
+  const q = query.trim();
+  if (q) return `No user matches "${q}". Try a different name or email.`;
+  if (tab === "all") return "No users yet.";
+  return `Nothing is ${tabLabel} right now. Try another tab above.`;
+};

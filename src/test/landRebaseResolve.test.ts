@@ -44,6 +44,10 @@ beforeEach(() => {
   git("config", "user.email", "t@example.com");
   git("config", "user.name", "t");
   git("config", "commit.gpgsign", "false");
+  // No detached auto-gc/maintenance: one still writing .git/objects made the
+  // cleanup below fail with ENOTEMPTY (PR #2921, job 115057386857).
+  git("config", "gc.auto", "0");
+  git("config", "maintenance.auto", "false");
   put("docs/OPEN.md", open("- [ ] **Q1 LOW alpha**", "- [ ] **Q2 LOW beta**"));
   put("docs/archive/OPEN-done-2026-10.md", archive("- [x] **Q0 LOW old**"));
   put("public/sitemap.xml", "<urlset>base</urlset>\n");
@@ -68,7 +72,7 @@ beforeEach(() => {
   git("checkout", "-q", "lane");
 });
 
-afterEach(() => rmSync(repo, { recursive: true, force: true }));
+afterEach(() => rmSync(repo, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
 
 function rebaseStops() {
   try {

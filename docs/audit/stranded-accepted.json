@@ -796,6 +796,12 @@
       "sha": "909cbc76b1e1e0e7841a22f9f6bf169ca781a2f6",
       "reason": "Superseded by ready/stripe-test-mode-r (landed in #2923, reviewed by lh-money-escrow and lh-authz-rls): the same feature rebuilt on main; this branch's leftover lines are the earlier version with stale @mutate registrations.",
       "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
+    },
+    {
+      "id": "pr:2805",
+      "sha": "3907a9888960ed380ff98e717d9c15ffc20ad6cb",
+      "reason": "Refund notice (owner report 2026-10-12): landed through money-h and money-n as item Q1731 (_shared/refundNotice.ts, every refund path calls sendRefundNotice, the e2e producer entry and the 04-admin-safety refund leg are on main). The leftover lines are this PR's earlier text: comments citing the old number Q1654 and the first version of the keptReason/sweep code main has since rewritten.",
+      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs after #2918; leftover lines read)"
     }
   ]
 }

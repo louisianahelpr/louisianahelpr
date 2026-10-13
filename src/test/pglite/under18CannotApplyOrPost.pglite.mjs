@@ -45,6 +45,11 @@ const MINOR = "5a1e0000-0000-4000-8000-000000000017";
 const NODOB = "5a1e0000-0000-4000-8000-0000000000aa";
 const TURNS_TODAY = "5a1e0000-0000-4000-8000-000000000018";
 const TURNS_TOMORROW = "5a1e0000-0000-4000-8000-000000000019";
+// Signed up with the 18+ box and no birthday, then types a real one under 18
+// into Finish your profile (PhotoPrompt / CompleteProfile): the member's OWN
+// profiles UPDATE, the exact write those screens send (owner 2026-10-13: saved,
+// never refused; lh-authz-rls review of 0f7786627, must-fix 1).
+const DISCLOSES = "5a1e0000-0000-4000-8000-0000000000d5";
 const id = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 // apply_to_job exactly as live (the newest definition before this migration).
@@ -83,9 +88,10 @@ SELECT '${ADULT}', DATE '1990-01-01' UNION ALL
 SELECT '${MINOR}', (SELECT d FROM t) - interval '16 years' UNION ALL
 SELECT '${NODOB}', NULL UNION ALL
 SELECT '${TURNS_TODAY}', ((SELECT d FROM t) - interval '18 years')::date UNION ALL
-SELECT '${TURNS_TOMORROW}', ((SELECT d FROM t) - interval '18 years' + interval '1 day')::date;
+SELECT '${TURNS_TOMORROW}', ((SELECT d FROM t) - interval '18 years' + interval '1 day')::date UNION ALL
+SELECT '${DISCLOSES}', NULL;
 INSERT INTO public.jobs (id, customer_id, status, payment_status)
-SELECT ('10000000-0000-4000-8000-' || lpad(g::text, 12, '0'))::uuid, '${POSTER}', 'open', 'escrow' FROM generate_series(1, 12) g;
+SELECT ('10000000-0000-4000-8000-' || lpad(g::text, 12, '0'))::uuid, '${POSTER}', 'open', 'escrow' FROM generate_series(1, 14) g;
 `);
 
 async function as(who, sql) {
@@ -184,6 +190,20 @@ const refusedUnavailable = (r) => !r.ok && /helper_unavailable/.test(r.err) && !
   check("L4 an adult's own birthday edit is untouched", adult.ok && adult.rows.length === 1, adult.ok ? "" : adult.err);
   const svc = await as("service", `UPDATE public.profiles SET date_of_birth = DATE '1999-09-09' WHERE user_id = '${TURNS_TOMORROW}' RETURNING id`);
   check("L5 support (a server path) can still correct a minor's birthday", svc.ok && svc.rows.length === 1, svc.ok ? "" : svc.err);
+}
+
+// ── a birthday under 18 the member types is saved through their own write ──
+{
+  const before = await apply(DISCLOSES, id(13));
+  check("S0 before telling us, the 18+ box is enough: the member applies", before.ok && before.rows[0]?.id, before.ok ? "" : before.err);
+  const save = await as(DISCLOSES, `UPDATE public.profiles SET date_of_birth = ((now() AT TIME ZONE 'America/Chicago')::date - interval '16 years')::date WHERE user_id = auth.uid() RETURNING id`);
+  check("S1 the member's own save of an under-18 birthday lands (PhotoPrompt/CompleteProfile's write; never refused)", save.ok && save.rows.length === 1, save.ok ? `${save.rows.length} row(s)` : save.err);
+  const after = await apply(DISCLOSES, id(14));
+  check("S2 ...and from that moment apply_to_job refuses them 'under_18'", refusedUnder18(after), after.ok ? "landed" : after.err);
+  const p = await post(DISCLOSES);
+  check("S3 ...and posting a job is refused 'under_18'", refusedUnder18(p), p.ok ? "landed" : p.err);
+  const undo = await as(DISCLOSES, `UPDATE public.profiles SET date_of_birth = NULL WHERE user_id = auth.uid() RETURNING id`);
+  check("S4 ...and they cannot take it back to get the box's pass again", !undo.ok && /under_18_birthday_locked/.test(undo.err), undo.ok ? "cleared" : undo.err);
 }
 
 // ── the helper does not leak anyone's age ───────────────────────────────────

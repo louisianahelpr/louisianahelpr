@@ -563,7 +563,7 @@ serve(async (req) => {
     // case the gate is satisfied by the explicit 18+ attestation checkbox the
     // signup form now forces (ageAttested). When a DOB *is* present (a
     // resubmission, or a user who filled it in), we still hard-validate that
-    // it's a real date and ≥18. A direct API call that skips the form — no DOB
+    // it's a real date; one under 18 is saved (below). A direct API call that skips the form — no DOB
     // AND no attestation — is refused, so no signup is recorded without
     // proof of age.
     // Q1586(c): a SAVED birthday that makes the member under 18 is not theirs
@@ -587,13 +587,14 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const cutoff = new Date();
-      cutoff.setFullYear(cutoff.getFullYear() - 18);
-      if (dob > cutoff) {
-        return new Response(
-          JSON.stringify({ error: "You must be at least 18 years old to use Helpr." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // A birthday under 18 is SAVED, never refused (owner, 2026-10-13,
+      // Q1586(c)): refusing it left the account with no birthday, so nothing
+      // greyed out and the database let the minor apply and post (lh-authz-rls
+      // review of 0f7786627, must-fix 1). Saved below, the profiles lock
+      // (lock_under_18_birthday) holds it and refuse_under_18_member stops
+      // every Apply and Post until the 18th birthday.
+      if (savedBirthdayUnder18(effectiveDob)) {
+        console.warn(`[COMPLETE-SIGNUP] birthday under 18 saved for ${userId}; Apply and Post stay off until 18`);
       }
     } else if (ageAttested !== true) {
       return new Response(

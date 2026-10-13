@@ -28,8 +28,8 @@
  *      birthday saved meaning no gate.
  *
  * Behaviour (live apply_to_job, real roles, migration applied 3x):
- *   node src/test/pglite/under18CannotApplyOrPost.pglite.mjs                     (32 PASS)
- *   NEW_MIGRATION=skip node src/test/pglite/under18CannotApplyOrPost.pglite.mjs  (14 FAIL)
+ *   node src/test/pglite/under18CannotApplyOrPost.pglite.mjs                     (37 PASS)
+ *   NEW_MIGRATION=skip node src/test/pglite/under18CannotApplyOrPost.pglite.mjs  (17 FAIL)
  *
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx |   const { gate, gatedProps } = useAgeGate(); |   const gate = (_k: string, go: () => void) => go; const gatedProps = (_k: string) => ({});
  * @mutate src/components/MobileNav.tsx |   const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate(); |   const underAge = false; const explainAgeGate = (_k: string) => {}; const ageGatedProps = (_k: string) => ({});

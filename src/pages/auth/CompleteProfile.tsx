@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { eighteenthBirthday, isUnder18 } from "@/lib/ageGate";
+import { eighteenthBirthday, isUnder18, UNDER_18_SAVED_COPY } from "@/lib/ageGate";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,10 +197,16 @@ const CompleteProfile = () => {
   // One rule with the Apply/Post grey-out and the server (src/lib/ageGate.ts,
   // Q1586(c)). `new Date("YYYY-MM-DD")` here parsed as UTC midnight, the
   // evening before in Louisiana, so a birthday one day short of 18 passed.
-  const ageOk = useMemo(
-    () => Boolean(dateOfBirth) && eighteenthBirthday(dateOfBirth) !== null && !isUnder18(dateOfBirth),
+  //
+  // A birthday under 18 is SAVED, never refused (owner, 2026-10-13): refusing
+  // it left the account with no birthday, so nothing greyed out and the server
+  // let the minor apply and post (lh-authz-rls review of 0f7786627, must-fix 1).
+  // The profile finishes; Apply and Post stay off until the 18th birthday.
+  const dobValid = useMemo(
+    () => Boolean(dateOfBirth) && eighteenthBirthday(dateOfBirth) !== null,
     [dateOfBirth],
   );
+  const dobUnder18 = dobValid && isUnder18(dateOfBirth);
 
   // Live checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
   // this said it did until 2026-09-10, and the divergence has a consequence.
@@ -227,7 +233,7 @@ const CompleteProfile = () => {
   const checklist = useMemo(() => {
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
-      { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
+      { label: "Date of birth", done: dobValid },
       { label: "City", done: location.trim().length > 0 },
       // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
       // screen than on email signup: Google/Apple sign-ins never see
@@ -247,7 +253,7 @@ const CompleteProfile = () => {
     firstName,
     lastName,
     dateOfBirth,
-    ageOk,
+    dobValid,
     location,
     // zipCode is load-bearing here, not tidiness: the checklist gates the
     // submit button, so omitting it would leave "ZIP code" permanently
@@ -267,13 +273,12 @@ const CompleteProfile = () => {
   // renders its own warning below, so a check beside it would contradict it.
   const zipValid = zipCode.length === 5 && !unknownZip && !!resolvedZipParish;
 
-  // Same bounds as Signup's DOB picker: today − 18y upper bound (blocks
-  // under-18 at the UI layer; the age check below is the backstop), today −
-  // 120y floor so the wheel has a sane range.
+  // Upper bound today, not today − 18y: a birthday under 18 must be enterable
+  // so it can be saved (Q1586(c), owner 2026-10-13); today − 120y floor so the
+  // wheel has a sane range.
   const maxDob = (() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().split("T")[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
   const minDob = (() => {
     const d = new Date();
@@ -319,7 +324,14 @@ const CompleteProfile = () => {
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
     if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
     if (!dateOfBirth) return fail("Add your date of birth to continue.");
-    if (!ageOk) return fail("You'll need to be 18 or older to join.");
+    if (!dobValid) return fail("Add a real date of birth to continue.");
+    if (dobUnder18) {
+      // Saved, not refused (see dobValid). Still a disclosure an admin should see.
+      report(new Error("Complete profile: birthday under 18"), {
+        severity: "warning",
+        tags: { source: "CompleteProfile.under18", user_id: user.id },
+      });
+    }
     // Phone is optional (owner, 2026-10-09); a number that is typed must be whole.
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
@@ -692,7 +704,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+              <Label htmlFor="dob">Date of birth <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
                   wheel, checkmark once a valid date is picked) — was a
                   separate three-Select picker here, reading as a different
@@ -707,8 +719,8 @@ const CompleteProfile = () => {
                 max={maxDob}
                 className="rounded-ds-md"
               />
-              {dateOfBirth && !ageOk && (
-                <p className="text-ds-11 text-[hsl(var(--destructive-ink))]">You'll need to be 18 or older to join Helpr.</p>
+              {dobUnder18 && (
+                <p data-testid="dob-under-18-note" className="text-ds-11 text-[hsl(var(--destructive-ink))]">{UNDER_18_SAVED_COPY}</p>
               )}
             </div>
 

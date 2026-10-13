@@ -118,7 +118,7 @@ jobs:
 
       - name: Setup Node
         if: steps.check-secrets.outputs.configured == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           # MUST match what Vercel actually builds with (confirmed via the
           # Vercel API 2026-09-04: this project's `nodeVersion` is "24.x") —
@@ -142,7 +142,7 @@ jobs:
 
       - name: Create Sentry release and upload source maps
         if: steps.check-secrets.outputs.configured == 'true'
-        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3.7.0
+        uses: getsentry/action-release@6fb9aeade7061441cf3864e34fbe11a1457ad7dc # v3.7.1
         with:
           # Use the commit SHA as the release name so it's unique per build
           # and matches what Sentry sees from the running client at runtime.

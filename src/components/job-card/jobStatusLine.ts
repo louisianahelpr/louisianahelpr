@@ -11,7 +11,8 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
-import { beforePhotoIsThePrimary } from "./primaryPhotoAsk";
+import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
+import { arrivalEstablished } from "@/lib/arrivalGate";
 import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
@@ -630,6 +631,9 @@ export type HelperWait =
   | "today"
   | "on_the_way"
   | "before_photo"
+  | "start_working"
+  | "arrival_unconfirmed"
+  | "after_photo"
   | "working"
   | "submitted"
   | "revision"
@@ -638,6 +642,9 @@ export type HelperWait =
   | "overdue_not_arrived"
   | "overdue_unfinished"
   | "overdue_before_photo"
+  | "overdue_start_working"
+  | "overdue_arrival_unconfirmed"
+  | "overdue_after_photo"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -687,6 +694,18 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      Photo", primaryPhotoAsk.ts): the line names that step, not the finish
      (seed job 90aa6c8b at 375, 2026-10-12, read "Finish and mark it done"). */
   before_photo: { detail: "Take the before photo", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  /* Arrived, on the on-site step (the tracking row says work has not
+     started), before photo taken or not owed: the expanded primary is the
+     tracker's "Start Working" (lane B, 2026-10-12: the line read "Finish and
+     mark it done"). Read only when the card passes its tracking progress. */
+  start_working: { detail: "Tap Start Working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  /* The same step while Start Working is still locked on the arrival rule
+     (no GPS match, no poster tap: arrivalEstablished). The tracker's amber
+     line names the poster's "Confirm They Arrived" as the one way out. */
+  arrival_unconfirmed: { detail: "Waiting on them to confirm you arrived", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
+  /* Working (tracking row), and the owed after photo is the working step's
+     primary ("Take After Photo", primaryPhotoAsk.ts). */
+  after_photo: { detail: "Take the after photo", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   working: { detail: "Finish and mark it done", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   submitted: { detail: "With them for approval" },
   /* The poster's note, when there is one, follows as the line's `suffix`. */
@@ -705,6 +724,11 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   overdue_unfinished: { detail: "Day passed — finish and mark it done" },
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
+  /* Past the day, at the job, work not started (tracking row): the next step is Start Working. */
+  overdue_start_working: { detail: "Day passed — tap Start Working" },
+  /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
+  overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
+  overdue_after_photo: { detail: "Day passed — take the after photo" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
   ...problemCopy(),
@@ -719,12 +743,37 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
 };
 
 /**
+ * What the card's tracking row adds to the jobs row: whether work has started
+ * (helperProgress, src/pages/jobs/appliedJobCard/steps/helperProgress.ts, the
+ * derivation the expanded card picks its step from). Absent = not known, and
+ * an arrived job reads as before ("working").
+ */
+export type HelperCardProgress = { workUnderway: boolean };
+
+/**
+ * An arrived Helpr's next step, named the way the expanded card names its
+ * primary: at the working step (tracking row) the owed after photo, else
+ * finishing; at the on-site step the owed before photo, else the tracker's
+ * Start Working, or its arrival lock (arrivalEstablished) while that is shut.
+ * Without the card's progress an arrived job reads as before: the before photo
+ * when it is owed (no photo, no Start Working: tracker_requires_before_photo),
+ * else "working".
+ */
+type ArrivedWait = "after_photo" | "working" | "before_photo" | "start_working" | "arrival_unconfirmed";
+function arrivedWait(job: Job, progress: HelperCardProgress | undefined): ArrivedWait {
+  if (progress?.workUnderway) return afterPhotoIsThePrimary(job) ? "after_photo" : "working";
+  if (beforePhotoIsThePrimary(job)) return "before_photo";
+  if (!progress || !job.helper_arrived_at) return "working";
+  return arrivalEstablished(job) ? "start_working" : "arrival_unconfirmed";
+}
+
+/**
  * Which sentence a job I APPLIED TO is owed.
  *
  * Same precedence as `appliedActivityBucket`, including its first rule: NO JOB
  * ROW MEANS THE JOB IS GONE, not "still waiting on a decision".
  */
-export function deriveHelperWait(app: AppliedApp): HelperWait {
+export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress): HelperWait {
   const job = app.job;
   if (!job) return "job_gone";
   // Q1207: the hourly sweep (expire_unanswered_offers) closes a lapsed offer
@@ -759,11 +808,10 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       // Submitted and sitting on the poster — the bucket says Waiting here too,
       // and stays Waiting even past the day: the Helpr has done everything.
       if (job.helper_completed_at && !job.poster_completed_at) return "submitted";
-      if (jobIsOverdue(job)) return helperOverdue(job);
+      if (jobIsOverdue(job)) return helperOverdue(job, progress);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
-      // The expanded card's primary is the before photo: say so (primaryPhotoAsk.ts).
-      if (beforePhotoIsThePrimary(job)) return "before_photo";
-      return "working";
+      // The expanded card's primary, photo or tracker step (primaryPhotoAsk.ts, helperProgress.ts).
+      return arrivedWait(job, progress);
     case "open":
     case "accepted": {
       // A pending DIRECT OFFER, or an accepted application the Helpr has not
@@ -777,7 +825,7 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       }
       if (app.status !== "accepted") return "applied";
       if (!job.helper_confirmed_at) return job.is_group_job ? "confirm_spot" : "confirm_booking";
-      if (jobIsOverdue(job)) return helperOverdue(job);
+      if (jobIsOverdue(job)) return helperOverdue(job, progress);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       const stage = agreedJobStage(job, "helper");
       if (stage === "confirm_owed") return "confirm_day";
@@ -790,12 +838,20 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
 }
 
 /**
- * Which step an overdue Helpr is stuck before. Arrived and working are one
- * answer here: the job row's stamps do not separate them (the tracking row
- * does), and the move owed is the same: finish and mark it done.
+ * Which step an overdue Helpr is stuck before. The job row's stamps do not
+ * separate arrived from working; the tracking row does, so with the card's
+ * progress an arrived Helpr who has not started is owed Start Working (or its
+ * arrival lock), and without it the answer stays finish and mark it done.
  */
-function helperOverdue(job: Job): HelperWait {
-  if (job.helper_arrived_at) return beforePhotoIsThePrimary(job) ? "overdue_before_photo" : "overdue_unfinished";
+const OVERDUE_ARRIVED: Record<ArrivedWait, HelperWait> = {
+  after_photo: "overdue_after_photo",
+  working: "overdue_unfinished",
+  before_photo: "overdue_before_photo",
+  start_working: "overdue_start_working",
+  arrival_unconfirmed: "overdue_arrival_unconfirmed",
+};
+function helperOverdue(job: Job, progress?: HelperCardProgress): HelperWait {
+  if (job.helper_arrived_at) return OVERDUE_ARRIVED[arrivedWait(job, progress)];
   if (job.helper_on_the_way_at) return "overdue_not_arrived";
   return job.status === "in_progress" ? "overdue_unfinished" : "overdue_not_started";
 }
@@ -804,8 +860,10 @@ export function helperStatusLine(
   app: AppliedApp,
   /** The poster's instant-release setting; see `posterStatusLine`. */
   posterInstantRelease = false,
+  /** The card's tracking progress (helperProgress); absent on a reader without one. */
+  progress?: HelperCardProgress,
 ): JobStatusLine {
-  const id = deriveHelperWait(app);
+  const id = deriveHelperWait(app, progress);
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
   const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
@@ -891,6 +949,7 @@ const HELPER_NAMED: Partial<Record<HelperWait, (name: string) => string>> = {
   submitted: (n) => `With ${n} for approval`,
   revision: (n) => `${n} asked for a fix`,
   revision_sent: (n) => `Your fix is with ${n}`,
+  arrival_unconfirmed: (n) => `Waiting on ${n} to confirm you arrived`,
 };
 
 /** Every id both tables define — the inventory the guard measures against. */

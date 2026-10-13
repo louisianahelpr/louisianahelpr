@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
-import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
+import type { TrackingData } from "@/components/JobTracking";
+import { helperProgress } from "./steps/helperProgress";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
 import { SosShareButton, SosShareSheet, sosOffered } from "@/components/SosShareButton";
 import { deriveHelperStep, type HelperStepProps } from "./steps/stepContract";
@@ -115,26 +116,9 @@ export function ActiveJobSection({
   // `deriveCurrentStatusIdx` is the same derivation the step rail is drawn
   // from, so the chip and the rail can never disagree about where the job is.
   // It is also what picks the step component below — one derivation, not two.
-  const trackerIdx =
-    deriveCurrentStatusIdx({
-      trackingStatus: initialTracking?.status ?? null,
-      jobStatus: job.status,
-      helperConfirmedAt: job.helper_confirmed_at,
-      helperDayofConfirmedAt: job.helper_dayof_confirmed_at,
-      jobDateNeeded: job.date_needed,
-      posterConfirmedAt: job.poster_confirmed_at,
-      helperOnTheWayAt: job.helper_on_the_way_at,
-      helperArrivedAt: job.helper_arrived_at,
-      helperArrivalVerifiedAt: job.helper_arrival_verified_at,
-      posterConfirmedArrivalAt: job.poster_confirmed_arrival_at,
-      helperArrivalNearMissAt: (job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at,
-      helperCompletedAt: job.helper_completed_at,
-      posterCompletedAt: job.poster_completed_at,
-    });
-  const workUnderway = trackerIdx >= STATUS_IDX.working;
-  const hasArrived = trackerIdx >= STATUS_IDX.arrived;
-  const onTheWay = trackerIdx >= STATUS_IDX.on_the_way;
-  const hasConfirmed = trackerIdx >= STATUS_IDX.confirmed;
+  // helperProgress (steps/helperProgress.ts) is the same derivation the
+  // collapsed line reads, so the card's two halves name one step.
+  const { workUnderway, hasArrived, onTheWay, hasConfirmed } = helperProgress(job, initialTracking?.status);
 
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike

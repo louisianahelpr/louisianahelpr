@@ -2,6 +2,7 @@
 // @mutate scripts/feature-switch-audience.mjs |   if (r.probeIsTester !== false) { |   if (r.probeIsTester === true) {
 // @mutate scripts/feature-switch-audience.mjs |     if (audience === "testers" && r.tester[key] !== true) { |     if (false) {
 // @mutate scripts/feature-switch-audience.mjs |   if (r.switches.length === 0) return | if (false) return
+// @mutate scripts/feature-switch-audience.mjs | "helpr-switch-probe-1013@mailinator.com" | "helpr-switch-probe-1013@louisianahelpr.com"
 /**
  * Guard (c) for hidden feature switches: the verdict of the nightly prod check
  * (scripts/feature-switch-audience.mjs, .github/workflows/feature-switch-audience.yml).
@@ -11,7 +12,8 @@
  * registry, a tester-or-unknown probe, or a non-boolean answer fails.
  */
 import { describe, expect, it } from "vitest";
-import { judge } from "../../scripts/feature-switch-audience.mjs";
+import { judge, PROBE_EMAIL } from "../../scripts/feature-switch-audience.mjs";
+import { mintRefusal } from "../../scripts/lib/adminSession.mjs";
 
 const healthy = () => ({
   switches: [
@@ -68,5 +70,15 @@ describe("feature-switch-audience verdict", () => {
     const b = healthy();
     b.probe.shipped = false;
     expect(judge(b)).not.toEqual([]);
+  });
+});
+
+// nightly-red #2978 (run 38446754274): the probe was a company-domain account,
+// which mintAdminSession refuses (Q1422), so every nightly run died before it
+// judged anything. The probe must be an account the minter will sign in.
+describe("the probe account can be signed in by the session minter", () => {
+  it("mintRefusal(PROBE_EMAIL) is null", () => {
+    expect(PROBE_EMAIL).toMatch(/@/);
+    expect(mintRefusal(PROBE_EMAIL)).toBeNull();
   });
 });

@@ -241,9 +241,13 @@ for (const { name, width, job } of [
           const w = el.getBoundingClientRect().width;
           const prev = (window as unknown as { __lhDlgW?: number }).__lhDlgW;
           (window as unknown as { __lhDlgW?: number }).__lhDlgW = w;
-          // Two consecutive identical widths, and no residual scale on the box.
+          // Two consecutive identical widths, no residual scale on the box, and
+          // its entry animation FINISHED. A 1% scale tolerance let WebKit
+          // measure the 44px Apply Now at 43.7-43.9px (0.993-0.998 of 44: the
+          // zoom-in-95 tail) in nightly-webkit run 38434750617.
           const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
-          return prev !== undefined && Math.abs(prev - w) < 0.5 && Math.abs(m.a - 1) < 0.01;
+          const running = el.getAnimations({ subtree: true }).some((a) => a.playState === "running");
+          return prev !== undefined && Math.abs(prev - w) < 0.5 && Math.abs(m.a - 1) < 0.001 && !running;
         },
         undefined,
         { timeout: 10_000, polling: 100 },

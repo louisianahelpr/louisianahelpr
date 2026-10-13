@@ -180,7 +180,7 @@ serve(async (req) => {
             message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.` +
               // Q1490 review #6: say what the gift kept, as the card path does.
               (keptForBlockFees > 0
-                ? ` $${formatExactDollars(keptForBlockFees / 100)} of it paid the cancellation fee for the crew spots you closed.`
+                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.`
                 : ""),
             type: "payment",
             link: "/profile?tab=gift_card",

@@ -9,7 +9,7 @@
  * and nobody picks it up. prune-stale-branches.mjs only reaches a branch after
  * 24 h; a claim is meant to live for one working session.
  *
- * Decision, per `claim/<token>` branch (REST only):
+ * Decision, per `claim/<token>` branch:
  *   - claimed (newest of: the tip commit's date, the ref's newest push or
  *     creation in the repository activity API) less than STALE_CLAIM_HOURS
  *     ago                                          -> KEEP (fresh)
@@ -22,6 +22,18 @@
  * Fails closed: any read that fails exits 2 BEFORE anything is deleted; a
  * claim re-pushed between the read and the delete is left alone (its tip is
  * read again just before the delete).
+ *
+ * READ COST, BOUNDED (lane B2, 2026-10-13): it used to make three REST calls
+ * PER CLAIM (commits/<sha>, activity?ref=, compare/main...<sha>). About 130
+ * claims made a run ~390 calls, and a local `until ... sleep 120` waiter on
+ * it spent ~100 calls a minute of the owner's shared 5000/h (measured with
+ * X-RateLimit-Used: 441 -> 779 between 01:52:39Z and 01:55:40Z), which is how
+ * the budget ran out at 01:44Z. Now the tip date and the commits ahead of main
+ * come from local git (the claims are fetched first), and the newest push per
+ * ref from ONE paginated read of the last day's repository activity: a claim
+ * with no activity in the last day was claimed over 6 h ago anyway. A run is a
+ * handful of calls whatever the number of claims.
+ * Guard: src/test/ghCallsNotPerItem.test.ts.
  *
  * Usage: node scripts/prune-stale-claims.mjs            # dry run, prints the table
  *        node scripts/prune-stale-claims.mjs --apply    # deletes DELETE rows
@@ -66,21 +78,38 @@ export function decideClaims(claims, openPrs, nowMs) {
 const api = (path, jq) => execFileSync("gh", ["api", ...(jq ? ["--jq", jq] : []), path], { encoding: "utf8" }).trim();
 const apiPaged = (path, jq) => execFileSync("gh", ["api", "--paginate", "--jq", jq, path], { encoding: "utf8" }).trim();
 
+const git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+
+/** ref -> newest push / creation timestamp in the last day, from ONE paginated activity read. */
+export function newestActivityByRef(tsv) {
+  const out = new Map();
+  for (const line of String(tsv).split("\n").filter(Boolean)) {
+    const [ref, ts] = line.split("\t");
+    if (!ref || !ts) continue;
+    if (!out.has(ref) || Date.parse(ts) > Date.parse(out.get(ref))) out.set(ref, ts);
+  }
+  return out;
+}
+
 function readClaims() {
   // The API refuses a trailing slash; "heads/claim" also matches claimX, so filter.
   const refs = apiPaged(`repos/{owner}/{repo}/git/matching-refs/heads/${CLAIM_PREFIX.replace(/\/$/, "")}`, '.[] | [.ref, .object.sha] | @tsv');
-  return refs.split("\n").filter((l) => l.startsWith(`refs/heads/${CLAIM_PREFIX}`)).map((line) => {
+  const claims = refs.split("\n").filter((l) => l.startsWith(`refs/heads/${CLAIM_PREFIX}`)).map((line) => {
     const [ref, sha] = line.split("\t");
-    const name = ref.replace(/^refs\/heads\//, "");
-    const enc = encodeURIComponent(`refs/heads/${name}`);
-    return {
-      name,
-      sha,
-      tipDate: api(`repos/{owner}/{repo}/commits/${sha}`, ".commit.committer.date"),
-      lastActivity: api(`repos/{owner}/{repo}/activity?ref=${enc}&per_page=1`, '.[0].timestamp // ""') || null,
-      aheadBy: Number(api(`repos/{owner}/{repo}/compare/main...${sha}`, ".ahead_by")),
-    };
+    return { name: ref.replace(/^refs\/heads\//, ""), sha };
   });
+  // Local git answers the tip date and the commits ahead of main (no API call
+  // per claim). One fetch brings every claim tip and main.
+  git(["fetch", "-q", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main", `+refs/heads/${CLAIM_PREFIX}*:refs/remotes/origin/${CLAIM_PREFIX}*`]);
+  // Newest push per ref over the last day: anything older is past STALE_CLAIM_HOURS by itself.
+  const activity = newestActivityByRef(apiPaged("repos/{owner}/{repo}/activity?time_period=day&per_page=100", '.[] | [.ref, .timestamp] | @tsv'));
+  return claims.map(({ name, sha }) => ({
+    name,
+    sha,
+    tipDate: git(["show", "-s", "--format=%cI", sha]),
+    lastActivity: activity.get(`refs/heads/${name}`) ?? null,
+    aheadBy: Number(git(["rev-list", "--count", `refs/remotes/origin/main..${sha}`])),
+  }));
 }
 
 function readOpenPrs() {

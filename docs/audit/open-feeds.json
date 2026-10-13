@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-12T19:21Z",
+  "measured_at": "2026-10-13T00:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -47,6 +47,26 @@
       {
         "number": 2894,
         "title": "nightly-red: vacuity",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2907,
+        "title": "nightly-red: open-done-when",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2910,
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
+        "label": "schedule-stalled"
+      },
+      {
+        "number": 2911,
+        "title": "nightly-red: schedule-heartbeat",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2912,
+        "title": "nightly-red: write-contract-refresh",
         "label": "nightly-red"
       }
     ]
@@ -119,28 +139,20 @@
         "issue": 2244
       },
       {
-        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
-        "source_kind": "workflow",
-        "source": "functions-deploy",
-        "status": "open",
-        "title": "functions-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-real-backend",
-        "issue": 2435
-      },
-      {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: e2e-journeys",
         "issue": 2436
+      },
+      {
+        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: schedule-heartbeat",
+        "issue": 2911
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -156,7 +168,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: open-done-when",
-        "issue": 2615
+        "issue": 2907
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -167,20 +179,12 @@
         "issue": 2366
       },
       {
-        "fingerprint": "764a6f7344b7ccc14d11519a279d69d4",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
+        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
+        "source_kind": "nightly_red",
+        "source": "schedule-stalled",
         "status": "open",
-        "title": "taxable job charged $# louisiana sales tax",
-        "issue": null
-      },
-      {
-        "fingerprint": "604d92b9bafbaf2e2fba56db7333bf1e",
-        "source_kind": "user-report",
-        "source": "contact-support-guest",
-        "status": "open",
-        "title": "a user report (read it on /admin?view=health)",
-        "issue": null
+        "title": "🔴 # scheduled workflow(s) have stopped running",
+        "issue": 2910
       },
       {
         "fingerprint": "06c124e99b6d17e98af7c353b5a8bd45",
@@ -252,14 +256,6 @@
         "source": "sentry:cu(assets/app-shared-DUoNbpYC)",
         "status": "open",
         "title": "error: permission denied for table jobs",
-        "issue": null
-      },
-      {
-        "fingerprint": "311dfd492bc28babdec51e51f5eb16ca",
-        "source_kind": "sentry",
-        "source": "sentry:Rd(assets/app-shared-DUoNbpYC)",
-        "status": "open",
-        "title": "error: zip # resolved to no louisiana parish",
         "issue": null
       },
       {
@@ -383,6 +379,14 @@
         "issue": null
       },
       {
+        "fingerprint": "afd194b74d95b70e66b19dbe6dc7a76c",
+        "source_kind": "sentry",
+        "source": "sentry:f.<anonymous>(assets/supabase-B9flpjD6)",
+        "status": "open",
+        "title": "functionshttperror: edge function returned a non-#xx status code",
+        "issue": null
+      },
+      {
         "fingerprint": "f3c752b3230f1eba7148311c26382a0d",
         "source_kind": "sentry",
         "source": "sentry:cu(assets/app-shared-CaUCxfK9)",
@@ -439,14 +443,6 @@
         "issue": null
       },
       {
-        "fingerprint": "02a88ee4875fd5744674856fec734f8f",
-        "source_kind": "sentry",
-        "source": "sentry:sendDataToNative(iabjs://navigation_performance_logger_android)",
-        "status": "open",
-        "title": "error: error invoking postmessage: java object is gone",
-        "issue": null
-      },
-      {
         "fingerprint": "40a33605c7c36df658412ded878cf858",
         "source_kind": "sentry",
         "source": "sentry:O(assets/sentry-ITVpS-gS)",
@@ -495,22 +491,6 @@
         "issue": null
       },
       {
-        "fingerprint": "6d012a67fd60f178de61961633922c03",
-        "source_kind": "sentry",
-        "source": "sentry:ze(assets/Signup-BYQ2_4ZN)",
-        "status": "open",
-        "title": "error: profile already completed. please log in.",
-        "issue": null
-      },
-      {
-        "fingerprint": "ed333dc86f4780c96dc5b20a2ec79581",
-        "source_kind": "sentry",
-        "source": "sentry:?(assets/ErrorState-DlIpaLwc)",
-        "status": "open",
-        "title": "error: error screen shown: nothing saved yet",
-        "issue": null
-      },
-      {
         "fingerprint": "a0597e872e21b8e38a6e743453dbb87a",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
@@ -519,20 +499,12 @@
         "issue": null
       },
       {
-        "fingerprint": "e36005f99c1554625ac10bc1169f4e2d",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
+        "fingerprint": "0bd7cd00f0604832825550ec97d3aadb",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "/ · boot stalled #s on the startup screen (/assets/main-djyfppgh.js, /assets/rolldown-runtime-hepw80vl.js, /assets/app-shared-cq7-dbtm.js, /assets/supabase-b9flpjd6.js, /assets/lucide-cojxtbrd.js, /as",
-        "issue": null
-      },
-      {
-        "fingerprint": "afd194b74d95b70e66b19dbe6dc7a76c",
-        "source_kind": "sentry",
-        "source": "sentry:f.<anonymous>(assets/supabase-B9flpjD6)",
-        "status": "open",
-        "title": "functionshttperror: edge function returned a non-#xx status code",
-        "issue": null
+        "title": "nightly-red: write-contract-refresh",
+        "issue": 2912
       }
     ]
   },
@@ -555,9 +527,13 @@
     "issue #2615": "Q1524",
     "issue #2660": "Q1507",
     "issue #2894": "Q1426",
-    "ledger 02a88ee4875f": "Q1634",
+    "issue #2907": "Q1524",
+    "issue #2910": "Q1741",
+    "issue #2911": "Q1742",
+    "issue #2912": "Q1743",
     "ledger 03faea228969": "Q1602",
     "ledger 06c124e99b6d": "Q1583",
+    "ledger 0bd7cd00f060": "Q1743",
     "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
@@ -572,6 +548,7 @@
     "ledger 40a33605c7c3": "Q1603",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
+    "ledger 4aa239aefeb6": "Q1742",
     "ledger 4b5ace7af165": "Q1621",
     "ledger 54b8c187374a": "Q1524",
     "ledger 5b3c79ac5eb7": "Q1581",
@@ -582,16 +559,14 @@
     "ledger 6389f98a9f66": "Q1427",
     "ledger 6471854dcd82": "Q1597",
     "ledger 65bd41ba4452": "Q1597",
-    "ledger 6d012a67fd60": "Q1643",
-    "ledger 764a6f7344b7": "Q1578",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
+    "ledger 8a2e802edbe7": "Q1741",
     "ledger 8ad756b6da76": "Q1630",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",
-    "ledger a75fb3fba970": "Q1622",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger ab736843373b": "Q1620",
     "ledger afd194b74d95": "Q1700",
@@ -618,7 +593,6 @@
     "ledger e81647556a56": "Q1609",
     "ledger ed333dc86f47": "Q1644",
     "ledger ed3f34acc0e1": "Q1598",
-    "ledger ed4c78a49f57": "Q1618",
     "ledger f3c752b3230f": "Q1609"
   }
 }

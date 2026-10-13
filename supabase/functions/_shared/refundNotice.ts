@@ -332,19 +332,19 @@ function envEndpoint(): { url: string; key: string } | null {
  */
 async function outOfBandEndpointRefusal(ep: { url: string; key: string }): Promise<string | null> {
   try {
-    const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
+    const preflight = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
       body: "{}",
       signal: AbortSignal.timeout(15_000),
     });
-    const text = await res.text().catch(() => "");
-    if (res.status === 400 && /Missing required fields/.test(text)) return null;
-    if (res.status === 401 || res.status === 403) {
-      return `send-notification-email refused this sender's key (${res.status}); nothing was written. ` +
+    const text = await preflight.text().catch(() => "");
+    if (preflight.status === 400 && /Missing required fields/.test(text)) return null;
+    if (preflight.status === 401 || preflight.status === 403) {
+      return `send-notification-email refused this sender's key (${preflight.status}); nothing was written. ` +
         "A local .env service key is the legacy JWT, which that function does not accept: send from the server instead";
     }
-    return `send-notification-email cannot send (preflight answered ${res.status}); nothing was written`;
+    return `send-notification-email cannot send (preflight answered ${preflight.status}); nothing was written`;
   } catch (e) {
     return `send-notification-email preflight failed: ${caughtMessage(e)}; nothing was written`;
   }

@@ -53,8 +53,7 @@ app_store:
 # parse them. Keys are synced in alphabetical order; add new ones here first.
 permission_strings:
   NSCameraUsageDescription: "Helpr needs camera access so you can take before and after job photos and upload verification documents."
-  NSContactsUsageDescription: "Helpr can access contacts only if you choose to invite a friend by phone or email."
-  NSFaceIDUsageDescription: "Helpr uses Face ID to confirm it's you before cashing out your earnings."
+  NSFaceIDUsageDescription: "Helpr uses Face ID to confirm it's you when you unlock the app and before sensitive actions like cashing out."
   NSLocationWhenInUseUsageDescription: "Helpr uses your location to show nearby jobs, and to share your position with the poster while you are on your way to a job — including when your screen is off — until you mark yourself arrived. Tracking stops there."
   # Present for TWO reasons, neither of which is that the app requests Always.
   # 1. App Store Connect rejected build 7101 (v1.0.4) with ITMS-90683 for its

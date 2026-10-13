@@ -81,6 +81,18 @@ interface EmptyStateProps {
 /** The body lines every main-tab empty page (Home, My Posts, My Jobs, Messages) reserves. */
 export const MAIN_TAB_EMPTY_BODY_LINES = 3;
 
+/**
+ * The action row of a main-tab empty page (one with `bodyLines`): a fixed
+ * 48px box, the height of the one BarkPillButton My Posts, My Jobs and
+ * Messages show. The content is centred, so a page with NO button (Home's
+ * saved-only "Nothing saved yet") sat its circle half a row (30px) lower than
+ * theirs. With the row fixed, a missing button leaves the same box, and a
+ * label that wraps to a second line hangs below it instead of lifting the
+ * circle (Q1558; measured on prod 2026-10-13: Home's saved-only empty at
+ * circle 310 / title 418 at 375 against 272 / 380 on the other three).
+ */
+export const EMPTY_ACTION_SLOT_CLASS = "h-12 w-full min-w-0 flex flex-col items-center";
+
 /** min-height = --body-lines lines of a leading-relaxed (1.625) paragraph; one more line below 360px. */
 export const EMPTY_BODY_RESERVE_CLASS =
   "min-h-[calc(var(--body-lines)*1.625em)] max-[359px]:min-h-[calc((var(--body-lines)_+_1)*1.625em)]";
@@ -283,7 +295,13 @@ export function EmptyState({
           </p>
         </div>
 
-        {action}
+        {bodyLines ? (
+          <div className={EMPTY_ACTION_SLOT_CLASS} data-action-slot>
+            {action}
+          </div>
+        ) : (
+          action
+        )}
 
         {footnote}
       </div>

@@ -54,6 +54,8 @@ const NO_FK_BY_DESIGN: Record<string, string> = {
   // Q448 (2026-10-07): person columns named by role, outside the old pattern.
   "admin_audit_log.admin_id":
     "compliance trail: who did a privileged action must outlive that admin's account (Q331's admin_audit_log decision; 839 of 1,574 rows already name a deleted admin, measured 2026-10-07)",
+  "series_platform_ends.admin_id":
+    "the admin who ended a recurring series (Q1735), kept with that record as part of the admin trail (same class as admin_audit_log.admin_id); server-only table",
   "admin_user_notes.admin_id":
     "the note's author, kept with the note as part of the admin trail (same class as admin_audit_log.admin_id)",
   "reports.reported_id":
@@ -180,7 +182,7 @@ describe("every person-id column (*user_id, *_by, *helper_id and the other perso
   // branch), with live FKs on every one except the 11 that
   // 20261007045539_person_fks_q448_named_columns.sql adds.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(135); // +refund_notices.user_id (Q1714, 2026-10-12, FK to auth.users ON DELETE CASCADE); +messages.team_thread_user_id (2026-10-09, admin Team thread, FK to auth.users ON DELETE CASCADE); +new_member_admin_notices.user_id (2026-10-09, FK to auth.users ON DELETE CASCADE); +backout_notices.user_id (Q1575, 2026-10-08, FK to auth.users ON DELETE CASCADE); +job_detail_change_requests.requested_by and job_detail_change_answers.helper_id (Q1254, 2026-10-07, FKs to auth.users ON DELETE CASCADE); +crew_block_fees.helper_id (Q1390, 2026-10-07, FK to auth.users ON DELETE SET NULL); +crew_confirm_pending.helper_id (#2523, FK added by 20261007045539, CASCADE); +test_accounts.user_id (Q552, 2026-10-07, FK to auth.users); +identity_soft_fingerprints.user_id (Q1416, 2026-10-07, FK to auth.users ON DELETE CASCADE); +job_refund_claims.actor_user_id (Q1323, 2026-10-05); +payment_fingerprints.user_id, ban_evasion_matches.user_id, ban_settlement_queue.user_id/.decided_by (Q1324), payout_schedule_freezes.requested_by (Q1221), 2026-10-06, each with a FK
+    expect(all.size).toBe(136); // +series_platform_ends.admin_id (Q1735, 2026-10-12, no FK by design: admin trail); +refund_notices.user_id (Q1714, 2026-10-12, FK to auth.users ON DELETE CASCADE); +messages.team_thread_user_id (2026-10-09, admin Team thread, FK to auth.users ON DELETE CASCADE); +new_member_admin_notices.user_id (2026-10-09, FK to auth.users ON DELETE CASCADE); +backout_notices.user_id (Q1575, 2026-10-08, FK to auth.users ON DELETE CASCADE); +job_detail_change_requests.requested_by and job_detail_change_answers.helper_id (Q1254, 2026-10-07, FKs to auth.users ON DELETE CASCADE); +crew_block_fees.helper_id (Q1390, 2026-10-07, FK to auth.users ON DELETE SET NULL); +crew_confirm_pending.helper_id (#2523, FK added by 20261007045539, CASCADE); +test_accounts.user_id (Q552, 2026-10-07, FK to auth.users); +identity_soft_fingerprints.user_id (Q1416, 2026-10-07, FK to auth.users ON DELETE CASCADE); +job_refund_claims.actor_user_id (Q1323, 2026-10-05); +payment_fingerprints.user_id, ban_evasion_matches.user_id, ban_settlement_queue.user_id/.decided_by (Q1324), payout_schedule_freezes.requested_by (Q1221), 2026-10-06, each with a FK
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id",

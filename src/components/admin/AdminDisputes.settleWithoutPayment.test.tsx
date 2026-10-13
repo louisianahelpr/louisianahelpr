@@ -1,6 +1,6 @@
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id; | const noPaymentOnFile = false;
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id; | const noPaymentOnFile = true;
-// @mutate src/components/admin/AdminDisputes.tsx | const ok = await requireBiometric("Confirm closing this settlement with no payment");\n    if (!ok) return; | const ok = true;
+// @mutate src/components/admin/adminDisputes/settlementEscapes.ts | const ok = await requireBiometric("Confirm closing this settlement with no payment");\n    if (!ok) return; | const ok = true;
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | IF _job.stripe_payment_intent_id IS NOT NULL\n     OR _job.stripe_session_id IS NOT NULL | IF false
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | execution_error        = 'closed by an admin, no payment on file: ' \|\| _note_clean | execution_error        = NULL
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |        SET payment_status = 'cancelled'\n     WHERE id = _job.id | SET payment_status = payment_status\n     WHERE id = _job.id
@@ -12,7 +12,7 @@
 // @mutate supabase/migrations/20261012231646_gift_settle_clears_card_fee_stamp.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
 // @mutate supabase/functions/create-payment/index.ts |       if (decidedDisputes && decidedDisputes.length > 0) { |       if (false) {
 // @mutate supabase/functions/create-payment/index.ts |           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`); | ;
-// @mutate src/components/admin/AdminDisputes.tsx |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again.")); | throw err;
+// @mutate src/components/admin/adminDisputes/settlementEscapes.ts |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again.")); | throw err;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { readFileSync, readdirSync } from "node:fs";

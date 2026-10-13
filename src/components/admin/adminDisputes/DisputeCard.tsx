@@ -61,6 +61,12 @@ interface DisputeCardProps {
   retrySettlement: (job: DisputedJob) => void;
   /** Close a decided dispute whose job has no payment on file (Q235). */
   closeWithoutPayment: (job: DisputedJob, note: string) => void;
+  /**
+   * Q1732: un-stick a decided dispute that ran in Stripe TEST mode: clear its
+   * test-mode refund/transfer records (each checked at Stripe server-side) and
+   * re-open it to decide again. Optional: the card renders without it.
+   */
+  clearTestModeRecords?: (job: DisputedJob, note: string) => void;
   /** job.id currently being retried, if any. */
   retrying: string | null;
 }
@@ -87,6 +93,7 @@ export const DisputeCard = ({
   decide,
   retrySettlement,
   closeWithoutPayment,
+  clearTestModeRecords,
   retrying,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
@@ -109,6 +116,11 @@ export const DisputeCard = ({
   // was a dead end (Q235). The server also refuses a gift-funded job.
   const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id;
   const [closeNote, setCloseNote] = useState("");
+  // Q1732: the split refused because this job's money ran in Stripe TEST mode
+  // (execute-dispute-split's refusals all say "Stripe test mode"). The server
+  // re-checks every recorded id at Stripe before clearing anything.
+  const ranInTestMode = unsettled && /Stripe test mode|test-mode records cleared by an admin/i.test(record?.execution_error ?? "");
+  const [testModeNote, setTestModeNote] = useState("");
   // What each side actually receives at the current slider position.
   const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
   const isActivePanel = activePanelJobId === job.id;
@@ -293,6 +305,30 @@ export const DisputeCard = ({
                     disabled={retrying === job.id || closeNote.trim().length === 0}
                   >
                     Close with no payment
+                  </Button>
+                </div>
+              )}
+              {ranInTestMode && clearTestModeRecords && (
+                <div className="space-y-1.5 border-t border-destructive/20 pt-2">
+                  <Label htmlFor={`test-mode-note-${job.id}`} className="text-ds-11">
+                    The split says this ran in Stripe test mode. Every record is checked at Stripe first; if any is live money, nothing is cleared. Otherwise they are cleared and the dispute re-opens. Say how you checked:
+                  </Label>
+                  <Textarea
+                    id={`test-mode-note-${job.id}`}
+                    value={testModeNote}
+                    onChange={(e) => setTestModeNote(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    placeholder="e.g. paid before Stripe went live on 2026-09-27"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => clearTestModeRecords(job, testModeNote)}
+                    disabled={retrying === job.id || testModeNote.trim().length < 10}
+                  >
+                    Clear test-mode records and re-open
                   </Button>
                 </div>
               )}

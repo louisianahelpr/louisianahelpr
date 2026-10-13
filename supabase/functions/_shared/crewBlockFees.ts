@@ -89,7 +89,7 @@ export async function crewBlockFeeRefusal(
   return {
     status: 409,
     cents,
-    error: `A crew member this poster blocked is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (the poster is refunded everything but that fee), or refund a partial amount.`,
+    error: `A crew member blocked by the person who posted this job is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (everything but that fee goes back to whoever paid), or refund a partial amount.`,
   };
 }
 

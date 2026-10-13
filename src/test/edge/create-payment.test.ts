@@ -1178,6 +1178,32 @@ describe("create-payment edge function", () => {
       expect(jobUpdate?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
     });
 
+    // Q1415 (b): an open ban settlement review refuses escrow -> payout_pending
+    // (trg_refuse_payout_pending_during_ban_review, 'ban_review_open'). The
+    // release used to answer "Failed to update the job status, please try
+    // again" forever; it now says, neutrally and finally, that the payment is
+    // on hold for a review, never whose account.
+    // @mutate supabase/functions/create-payment/index.ts |           if (/\bban_review_open\b/.test(String(updateError.message ?? ""))) { |           if (false) {
+    it("a release refused by an open ban review answers neutral, final copy (Q1415 b)", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "in_progress", budget: 100, urgent_fee: 0,
+          helper_fee_percent: 10, platform_fee_amount: 10, helper_confirmed_at: longAgo, poster_completed_at: null,
+          helper_completed_at: longAgo, stripe_payment_intent_id: "pi_123", payment_status: "escrow",
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_123", status: "succeeded" });
+      scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.payment_status === "payout_pending", error: { message: "ban_review_open", code: "23514" } }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "release", jobId: "job-1" } }));
+      const out = await json(res);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(String(out.error)).toContain("on hold while our team reviews it");
+      expect(String(out.error)).not.toMatch(/try again/i);
+      expect(String(out.error)).not.toMatch(/ban|banned|suspend/i);
+    });
+
     // Q1326: "mark complete" never read payment_status, so it scheduled a payout
     // over a refund in flight ('cancelling'), a refund, a chargeback or an
     // unpaid job, and the payout cron paid the Helpr ~3 days later.

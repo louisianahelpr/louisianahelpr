@@ -363,7 +363,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
  * other Stripe mode (a test account hired on a real poster's job) cannot be
  * paid from this escrow, so it is not withheld: the poster gets it back.
  *
- * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!(await feePayeesShareMode(feePayees))) { |         if (false) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!feeShareMode) { |         if (false) {
  */
 describe("void-cancelled-payments — a fee owed across Stripe modes goes back to the poster", () => {
   beforeEach(() => {
@@ -394,6 +394,42 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
     // cancellation fee goes back to the poster.
     expect(refundParams.amount).toBe(30000);
     expect((slackAlerts as Array<{ title?: string }>).some((a) => /other Stripe mode/.test(a.title ?? ""))).toBe(true);
+  });
+
+  // lh-money-escrow review of the rebuild, finding 3: the fee payees' mode
+  // read failing for ONE job used to throw to the run's catch, so every later
+  // job's refund (real posters included) waited for the next run. Now that job
+  // is a defect and skipped; the next job is still refunded.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (feeShareMode === null) continue; |         if (feeShareMode === null) throw new Error("fee payee mode unreadable");
+  it("a failed fee-payee mode read skips only that job: the next cancelled job is still refunded", async () => {
+    seed();
+    const job2 = { ...cancelledJob(), id: "job-2", stripe_payment_intent_id: "pi_2" };
+    scenario.reads.jobs.selectOverrides![0] = { includes: "cancelled_at", result: { rows: [cancelledJob(), job2] } };
+    scenario.reads.jobs.selectOverrides!.unshift({
+      includes: "customer_id, helper_id, stripe_session_id",
+      result: { rows: [{ customer_id: "poster-1", helper_id: "helper-1", stripe_session_id: null }] },
+    });
+    // Reads of test_accounts, in order: job-1's refund mode, job-1's fee
+    // payees (fails), job-2's refund mode, job-2's fee payees.
+    let testAccountReads = 0;
+    Object.defineProperty(scenario.reads, "test_accounts", {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        testAccountReads += 1;
+        return testAccountReads === 2 ? { error: { message: "connection reset" } } : { rows: [] };
+      },
+    });
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    // The run finished (a recorded defect, not the fatal catch).
+    const body = JSON.parse(await res.text()) as Record<string, unknown>;
+    expect(body.error).not.toBe("Internal server error");
+    expect(testAccountReads).toBeGreaterThanOrEqual(4);
+    const refunded = stripeMock.refunds.create.mock.calls.map(([, opts]) => (opts as { idempotencyKey?: string })?.idempotencyKey);
+    expect(refunded).toContain("cancel-refund-job-2");
+    expect(refunded).not.toContain("cancel-refund-job-1");
+    expect((body.defectReasons as string[]).some((r) => r.startsWith("stripe mode (fee payees) job-1: lookup_failed"))).toBe(true);
   });
 
   it("control: with a real Helpr the fee is withheld and transferred", async () => {

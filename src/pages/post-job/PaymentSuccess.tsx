@@ -39,6 +39,7 @@ import {
   type ConfirmState,
   type UnknownReason,
 } from "./paymentReturnCopy";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -112,6 +113,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
+  const { underAge, explain: explainAgeGate } = useAgeGate();
   const [searchParams] = useSearchParams();
   // The job id flows through either the success URL (Stripe-driven) or
   // the stashed `helpr_last_posted_job_id` (set right after job insert).
@@ -202,6 +204,12 @@ const PaymentSuccess = () => {
       // Silent by design: this only clears a convenience pointer to the job
       // just posted. A stale value is read defensively everywhere it is used,
       // and safeStorage already swallows the private-mode throw.
+    }
+    // Q1586(c): another post is greyed out under 18 (unreachable today: an
+    // under-18 member cannot post the first one).
+    if (underAge) {
+      explainAgeGate("post");
+      return;
     }
     if (resolvedJobId) {
       navigate(`/post-job?rebook=${resolvedJobId}`);

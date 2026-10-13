@@ -5,6 +5,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { formatName } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import type { SavedHelper } from "./types";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 interface SavedHelperCardProps {
   h: SavedHelper;
@@ -30,6 +31,8 @@ export function SavedHelperCard({
   handleRemove,
 }: SavedHelperCardProps) {
   const navigate = useNavigate();
+  // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   // The card must HUG its content. Three derived flags below decide whether a
   // block renders at all, instead of a block rendering empty and reserving the
   // height its content would have taken (owner, 2026-08-31: "a visible empty
@@ -278,7 +281,8 @@ export function SavedHelperCard({
         <Button
           variant="primary"
           size="sm"
-          onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
+          onClick={ageGate("post", () => navigate(`/post-job?offerTo=${h.helper_id}`))}
+          {...ageGatedProps("post")}
           // flex-1 on phones (a thumb-wide primary); from md the list is one
           // full-width column (VN-42), so the CTA sizes to its content
           // instead of stretching across the whole card.

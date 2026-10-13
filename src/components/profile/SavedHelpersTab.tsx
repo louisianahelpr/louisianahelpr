@@ -29,11 +29,14 @@ import { useSavedHelpers } from "@/components/profile/savedHelpersTab/useSavedHe
 import { SavedHelperCard } from "@/components/profile/savedHelpersTab/SavedHelperCard";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 const CATEGORY_FILTER_OPTIONS = Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][];
 
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
+  // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   // Closed by default — see the note on the header icon below.
   const [searchOpen, setSearchOpen] = useState(false);
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
@@ -399,7 +402,8 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/post-job")}
+                onClick={ageGate("post", () => navigate("/post-job"))}
+                {...ageGatedProps("post")}
                 className="text-ds-13"
               >
                 Post a Job Instead

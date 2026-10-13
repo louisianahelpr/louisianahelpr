@@ -523,6 +523,7 @@ export function JobActionChip({
    *  "Message Helpr" spoken). It is APPENDED to the visible label, never
    *  substituted for it — see composeAccessibleName. */
   ariaLabel,
+  ageGated,
 }: {
   icon: LucideIcon;
   label: string;
@@ -530,6 +531,9 @@ export function JobActionChip({
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   ariaLabel?: string;
+  /** Q1586(c): greyed out for a member under 18 (useAgeGate().gatedProps);
+   *  the caller's onClick still runs and says why. */
+  ageGated?: { "aria-disabled"?: true; "data-age-gated"?: "apply" | "post" };
 }) {
   return (
     <Button
@@ -548,6 +552,7 @@ export function JobActionChip({
       data-job-action-chip=""
       aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}
+      {...ageGated}
     >
       <Icon className="w-4 h-4" />
       <span className={JOB_ROW_LABEL_CLASS}>{label}</span>

@@ -10,6 +10,8 @@ import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPriceExact } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 import { detailsBlocker } from "./detailsBlocker";
+import { useAgeGate } from "@/hooks/useAgeGate";
+import { AgeGateNote } from "@/components/AgeGateNote";
 
 interface FormStepProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -32,7 +34,10 @@ export function FormStep({ form }: FormStepProps) {
   // gates the button so it can't be tapped before the basics are in.
   const formReady =
     form.detailsComplete && form.logisticsComplete && form.budgetComplete;
-  const submitDisabled = atOpenJobLimit || !formReady;
+  // Q1586(c): a saved birthday under 18 greys the button out, and the line at
+  // the top says why before any of the form is filled in.
+  const { underAge } = useAgeGate();
+  const submitDisabled = atOpenJobLimit || !formReady || underAge;
 
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
@@ -68,6 +73,8 @@ export function FormStep({ form }: FormStepProps) {
       )}
 
       {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
+
+      {underAge && <AgeGateNote kind="post" />}
 
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not

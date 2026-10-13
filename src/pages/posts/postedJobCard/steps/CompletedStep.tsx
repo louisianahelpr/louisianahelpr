@@ -6,6 +6,7 @@ import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { PosterStepCtx } from "./posterStepContract";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
  * POSTER STEP 4 — done.
@@ -33,6 +34,8 @@ export function CompletedStep({
   onReview,
 }: PosterStepCtx) {
   const [photosOpen, setPhotosOpen] = useState(false);
+  // Q1586(c): Hire Again / Re-Post start a post; greyed out under 18, a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const meta = completedJobMeta[job.id];
   const hasTipped = meta?.tipped;
   const hasReviewed = meta?.reviewed;
@@ -173,7 +176,8 @@ export function CompletedStep({
             label="Hire Again"
             ariaLabel={`Hire Again — hire ${helperName} for a new job`}
             tone="primary"
-            onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
+            onClick={ageGate("post", () => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`))}
+            ageGated={ageGatedProps("post")}
           />
         ) : (
           <JobActionChip
@@ -182,7 +186,8 @@ export function CompletedStep({
             label="Re-Post"
             ariaLabel="Re-Post — post this job again"
             tone="primary"
-            onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+            onClick={ageGate("post", () => navigate(`/post-job?rebook=${job.id}`))}
+            ageGated={ageGatedProps("post")}
           />
         ),
       ]}

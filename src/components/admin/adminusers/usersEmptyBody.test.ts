@@ -12,9 +12,12 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { usersEmptyBody } from "./useAdminUsersFilter";
 
+const TABS = ["all", "approved", "banned", "awaiting_email"] as const;
+
 describe("admin Users empty state names what is empty", () => {
   it("a search that matches nobody says so, on every tab", () => {
-    for (const tab of ["all", "approved", "banned", "awaiting_email"] as const) {
+    expect(TABS.length).toBeGreaterThan(3);
+    for (const tab of TABS) {
       const body = usersEmptyBody({ hiddenTestMatches: 0, query: "  zzz ", tab, tabLabel: "total" });
       expect(body).toBe('No user matches "zzz". Try a different name or email.');
       expect(body).not.toMatch(/total/);

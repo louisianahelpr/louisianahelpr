@@ -525,7 +525,7 @@ describe("tips honour the payout hold", () => {
       return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
     }
 
-    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue; | continue;
+    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) return; | return;
     it("on the last day: records a 'failed' auto tip and tells the poster, charging nothing", async () => {
       const res = await runHeldTip(13.5);
       expect(res.status).toBe(200);
@@ -538,7 +538,7 @@ describe("tips honour the payout hold", () => {
 
     // Review of Q1224 (should-fix): a crew job has one candidate per member;
     // the poster gets ONE notice for the job, and it names the job.
-    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (agedOutNotified.has(jobId)) continue; |
+    // @mutate supabase/functions/auto-tip-charge/index.ts |       if (agedOutNotified.has(jobId)) return; |
     it("a crew job with two held members: two recorded tips, ONE notice carrying job_id", async () => {
       setEnv({
         SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",

@@ -285,6 +285,31 @@ describe("auto-tip-charge: no auto-tip is charged on a frozen job", () => {
     expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
   });
 
+  // Q1415 (a): a review that outlasts the 14-day candidate window ages the
+  // tip out (recorded 'failed', the poster told once) like a payout hold
+  // does, in words that never say whose account is under review.
+  // @mutate supabase/functions/auto-tip-charge/index.ts |         if (Number.isFinite(reviewTipCents) && reviewTipCents > 0) { |         if (false) {
+  it("a review that outlasts the tip window: recorded, the poster told neutrally, nothing charged (Q1415 a)", async () => {
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: POSTER }] };
+    scenario.reads.jobs = { rows: [{ id: "job-t", completed_at: new Date(Date.now() - 13.5 * 86_400_000).toISOString() }] };
+    const res = await run();
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+    expect(tip?.payload).toMatchObject({ job_id: "job-t", source: "auto", payment_status: "failed" });
+    expect(String((tip?.payload as Record<string, unknown>).failure_reason)).toMatch(/^ban_review:/);
+    const note = scenario.writes.find((w) => w.table === "notifications")?.payload as Record<string, unknown> | undefined;
+    expect(note).toMatchObject({ user_id: POSTER, title: "Your automatic tip wasn't sent" });
+    expect(String(note?.message)).not.toMatch(/review|ban|Helpr can't/i);
+  });
+
+  it("earlier in the window a review just waits: nothing recorded, nobody told", async () => {
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: HELPR }] };
+    scenario.reads.jobs = { rows: [{ id: "job-t", completed_at: new Date(Date.now() - 2 * 86_400_000).toISOString() }] };
+    await run();
+    expect(scenario.writes.some((w) => w.table === "tips" || w.table === "notifications")).toBe(false);
+  });
+
   it("an unreadable review list charges nothing and the run reports an error (fail closed)", async () => {
     scenario.reads.ban_settlement_queue = { error: { message: "connection reset", code: "08006" } };
     const res = await run();

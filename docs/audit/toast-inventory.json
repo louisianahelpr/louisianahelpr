@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 614,
+    "calls": 616,
     "files": 159,
-    "rendering": 585,
+    "rendering": 587,
     "suppressedByPolicy": 29,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 482,
+      "toast.error": 484,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 35,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 325,
       "template": 79,
-      "dynamic": 251,
+      "dynamic": 253,
       "jsx": 0
     }
   },
@@ -812,7 +812,27 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 122,
+      "line": 89,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "UNDER_18_SAVED_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoPrompt.tsx",
+      "line": 163,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "UNDER_18_SAVED_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoPrompt.tsx",
+      "line": 209,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -832,7 +852,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 134,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -842,7 +862,7 @@
     },
     {
       "file": "src/components/PhotoPrompt.tsx",
-      "line": 136,
+      "line": 223,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4736,7 +4756,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 319,
+      "line": 314,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4749,7 +4769,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 425,
+      "line": 422,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4759,7 +4779,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 481,
+      "line": 478,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

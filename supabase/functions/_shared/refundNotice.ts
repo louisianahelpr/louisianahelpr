@@ -359,7 +359,7 @@ async function postRefundEmail(
 /** Email sends a notice gets in all (the first send is attempt 1). */
 export const REFUND_EMAIL_MAX_ATTEMPTS = 3;
 /** A notice older than this is not emailed again: a week-old "refund issued" email reads as a new refund. */
-export const REFUND_EMAIL_RETRY_DAYS = 7;
+const REFUND_EMAIL_RETRY_DAYS = 7;
 /** A notice younger than this may still be mid-send in its own sender. */
 const REFUND_EMAIL_RETRY_AFTER_MS = 15 * 60_000;
 /**
@@ -367,7 +367,7 @@ const REFUND_EMAIL_RETRY_AFTER_MS = 15 * 60_000;
  * after the first, the third (the last) 6 hours after, so one sender outage
  * of a couple of hours does not use up every try (silent-failure review #4).
  */
-export function refundEmailRetryDueMs(tried: number): number {
+function refundEmailRetryDueMs(tried: number): number {
   return tried <= 1 ? REFUND_EMAIL_RETRY_AFTER_MS : 6 * 3_600_000;
 }
 

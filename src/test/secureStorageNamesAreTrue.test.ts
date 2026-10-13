@@ -17,7 +17,10 @@
  * specifier matching SECURE_MODULE). A comment may still talk about the
  * Keychain; an identifier or file name may not claim it falsely.
  *
- * @mutate src/integrations/supabase/keychainStorageAdapter.ts | import { KeychainAccess, SecureStorage } from '@aparajita/capacitor-secure-storage'; | import { KeychainAccess, SecureStorage } from './notAKeychain';
+ * The mutant's module name must not itself match SECURE_MODULE: "./notAKeychain"
+ * did, so the mutation changed nothing the check reads and survived (vacuity,
+ * nightly-red #2894, 2026-10-13).
+ * @mutate src/integrations/supabase/keychainStorageAdapter.ts | import { KeychainAccess, SecureStorage } from '@aparajita/capacitor-secure-storage'; | import { KeychainAccess, SecureStorage } from './plainPrefsStore';
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

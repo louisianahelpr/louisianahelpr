@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-13T18:19Z",
+  "measured_at": "2026-10-13T18:41Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,16 +50,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2910,
-        "title": "🔴 1 scheduled workflow(s) have stopped running",
-        "label": "schedule-stalled"
-      },
-      {
-        "number": 2911,
-        "title": "nightly-red: schedule-heartbeat",
-        "label": "nightly-red"
-      },
-      {
         "number": 2932,
         "title": "nightly-red: scoreboard",
         "label": "nightly-red"
@@ -82,6 +72,11 @@
       {
         "number": 2962,
         "title": "nightly-red: nightly-webkit",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2978,
+        "title": "nightly-red: feature-switch-audience",
         "label": "nightly-red"
       }
     ]
@@ -571,6 +566,7 @@
     "issue #2940": "Q1778",
     "issue #2941": "Q1779",
     "issue #2962": "Q1780",
+    "issue #2978": "Q1781",
     "ledger 03faea228969": "Q1602",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 13c460ab330a": "Q1599",

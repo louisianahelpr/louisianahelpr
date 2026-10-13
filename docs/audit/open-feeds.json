@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-13T09:35Z",
+  "measured_at": "2026-10-13T15:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -67,6 +67,16 @@
       {
         "number": 2937,
         "title": "nightly-red: slow-network",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2940,
+        "title": "nightly-red: e2e-real-backend",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2941,
+        "title": "nightly-red: core-loop-canary",
         "label": "nightly-red"
       }
     ]
@@ -147,12 +157,28 @@
         "issue": 2244
       },
       {
+        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-real-backend",
+        "issue": 2940
+      },
+      {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: e2e-journeys",
         "issue": 2436
+      },
+      {
+        "fingerprint": "a8ceee56bbd5a688ee8eb2f4f8e41e69",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: slow-network",
+        "issue": 2937
       },
       {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
@@ -169,6 +195,14 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
+      },
+      {
+        "fingerprint": "18539240a894224e952b88b2b21bb927",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: core-loop-canary",
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -497,6 +531,14 @@
         "status": "open",
         "title": "job stalled — nobody marked it done",
         "issue": null
+      },
+      {
+        "fingerprint": "341247bd75499ca81fbf89df6319f75f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: scoreboard",
+        "issue": 2932
       }
     ]
   },
@@ -521,16 +563,21 @@
     "issue #2911": "Q1742",
     "issue #2932": "Q1774",
     "issue #2937": "Q1775",
+    "issue #2940": "Q1778",
+    "issue #2941": "Q1779",
     "ledger 03faea228969": "Q1602",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 18539240a894": "Q1779",
     "ledger 1b4eafb12222": "Q1636",
     "ledger 21cbec5b98d2": "Q1584",
     "ledger 27437b0c4f14": "Q1603",
     "ledger 27c479ef17f8": "Q1596",
+    "ledger 341247bd7549": "Q1774",
     "ledger 36bcfb8c2391": "Q1696",
+    "ledger 3a3460b71be7": "Q1778",
     "ledger 40a33605c7c3": "Q1603",
     "ledger 41f88aeb227f": "Q1777",
     "ledger 41fbf0358661": "Q1600",
@@ -552,6 +599,7 @@
     "ledger 8ad756b6da76": "Q1630",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",
+    "ledger a8ceee56bbd5": "Q1775",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger ab736843373b": "Q1620",
     "ledger afd194b74d95": "Q1700",

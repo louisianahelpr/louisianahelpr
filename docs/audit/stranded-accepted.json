@@ -772,6 +772,30 @@
       "sha": "12b49c19903f82a8ec966d35291cc9659bd70870",
       "reason": "land-fast: main's scripts/lib/landGh.mjs is a later rewrite (head-filtered open-PR lookup, mergeable_state verdicts); the 3 leftover lines are this branch's older listing loop, CLI entry and a @mutate on code main no longer has.",
       "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
+    },
+    {
+      "id": "remote:origin/ready/todo-b-1",
+      "sha": "39e0b953333937805386d3791b97d4627deef656",
+      "reason": "Duplicate of proof6-8 (landed in #2921): the same four parent-mount tests live on main as src/components/dashboard/jobDetailDialog/JobDetailDialogMountsPosterCard.test.tsx, src/pages/auth/completeProfile/CompleteProfileMountsIntro.test.tsx, src/pages/posts/postedJobs/PostedJobsTabMountsApplicantsPanel.test.tsx and src/pages/profile/strSettings/StrSettingsMountsReadyTurnovers.test.tsx; its leftover lines are the same tests at other paths.",
+      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
+    },
+    {
+      "id": "remote:origin/ready/todo-b-2",
+      "sha": "e162187a97686b279fb5207287336cf336fc7250",
+      "reason": "Parallel build of items small4c (#2922) already landed: the Fill Rate error state (Q1672), read deadline (Q1713), edge typecheck Deno (Q1718) and the Marketplace Health split. Its one new fix (4c373854d, the arrived Helpr's before-photo line) and its Q1648 note landed in #2921; the leftover lines are the other implementation.",
+      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
+    },
+    {
+      "id": "remote:origin/ready/items-b-money-small",
+      "sha": "3189100f618d149ab08c236bb37e72c2eb58baa1",
+      "reason": "Superseded: Q1489/Q1493 reached main through uncov-money, and the rest was rebuilt on main as ready/items-b-money-small-2 (landed in #2918: the second Stripe live-account wording and the charged-back visit check). The leftover lines are the earlier implementation.",
+      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
+    },
+    {
+      "id": "remote:origin/feat/stripe-test-mode-test-accounts",
+      "sha": "909cbc76b1e1e0e7841a22f9f6bf169ca781a2f6",
+      "reason": "Superseded by ready/stripe-test-mode-r (landed in #2923, reviewed by lh-money-escrow and lh-authz-rls): the same feature rebuilt on main; this branch's leftover lines are the earlier version with stale @mutate registrations.",
+      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
     }
   ]
 }

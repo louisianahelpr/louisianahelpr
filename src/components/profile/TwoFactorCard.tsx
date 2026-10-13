@@ -43,6 +43,8 @@ export function useVerifiedFactor() {
     queryFn: readSecurityAuthUser,
     select: verifiedTotpOf,
     staleTime: 30_000,
+    // The whole auth User (phone, metadata, factors) never goes to IndexedDB.
+    meta: { persist: false },
   });
 }
 

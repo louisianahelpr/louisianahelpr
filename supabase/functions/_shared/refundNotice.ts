@@ -77,7 +77,11 @@ export interface RefundNoticeInput {
    * only when no job was found and no recipient was given.
    */
   loadMetadata?: () => Promise<Record<string, string> | null>;
-  /** Where send-notification-email lives; read from Deno.env when absent. */
+  /**
+   * Where send-notification-email lives; read from Deno.env when absent.
+   * Only an out-of-band sender (a one-off script on a Mac) passes one, and
+   * that sender is preflighted before anything is written (Q1731).
+   */
   endpoint?: { url: string; key: string } | null;
 }
 
@@ -309,6 +313,43 @@ function envEndpoint(): { url: string; key: string } | null {
   return url && key ? { url, key } : null;
 }
 
+/**
+ * Q1731: why send-notification-email will refuse this endpoint's key, or null
+ * when it accepts it.
+ *
+ * Measured 2026-10-12 23:25Z: the owner-approved one-time notices for the two
+ * 10-11 refunds were sent by a local script with ~/louisianahelpr/.env's
+ * SUPABASE_SERVICE_ROLE_KEY, the legacy service_role JWT. PostgREST accepts
+ * that key, so the claim and both in-app notices were written; the email
+ * function compares the bearer to its own key and answered 401, so neither
+ * email went and the job was left half done for 19 hours.
+ *
+ * An explicit endpoint means a sender outside the edge runtime (no production
+ * caller passes one), so it is asked first, with an empty body: the function
+ * checks the bearer before anything else, then answers 400 "Missing required
+ * fields" without sending, logging or reading anything. Any other answer means
+ * an email would not go, and the sender stops before it claims or writes.
+ */
+export async function outOfBandEndpointRefusal(ep: { url: string; key: string }): Promise<string | null> {
+  try {
+    const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
+      body: "{}",
+      signal: AbortSignal.timeout(15_000),
+    });
+    const text = await res.text().catch(() => "");
+    if (res.status === 400 && /Missing required fields/.test(text)) return null;
+    if (res.status === 401 || res.status === 403) {
+      return `send-notification-email refused this sender's key (${res.status}); nothing was written. ` +
+        "A local .env service key is the legacy JWT, which that function does not accept: send from the server instead";
+    }
+    return `send-notification-email cannot send (preflight answered ${res.status}); nothing was written`;
+  } catch (e) {
+    return `send-notification-email preflight failed: ${caughtMessage(e)}; nothing was written`;
+  }
+}
+
 const isMissingTable = (e: { code?: string; message?: string } | null) =>
   !!e && (e.code === "42P01" || e.code === "PGRST205" || /refund_notices/.test(e.message ?? "") && /does not exist|schema cache/.test(e.message ?? ""));
 
@@ -468,6 +509,12 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
   try {
     if (!/^(refund|release):[A-Za-z0-9_]+$/.test(input.key)) return { status: "failed", error: `bad notice key ${input.key}` };
     if (!(input.amountCents > 0)) return { status: "no_recipient", error: "nothing went back" };
+    // Q1731: an out-of-band sender whose key the email function refuses stops
+    // here, before the claim, so it never leaves an in-app notice with no email.
+    if (input.endpoint) {
+      const refused = await outOfBandEndpointRefusal(input.endpoint);
+      if (refused) return { status: "failed", error: refused };
+    }
 
     // The job: by id when the caller has it, else by the payment it was funded
     // with, else by the job the payment's own metadata names (a second payment

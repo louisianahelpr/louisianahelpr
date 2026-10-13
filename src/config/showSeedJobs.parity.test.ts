@@ -251,6 +251,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // A service_role sweep that tells a series POSTER their own funded visit is
     // still empty tomorrow (20261012195747); it shows no job to anyone else.
     ["public.sweep_unfilled_series_visit_reminders", "service_role sweep notifying the poster of their own series visit; not a feed"],
+    // Q1732: an admin clears ONE dispute's test-mode stamps; it locks that
+    // dispute's job by id (service_role only). Not a list of jobs.
+    ["public.clear_test_mode_dispute_ledger", "service_role single-dispute admin repair; reads its one job by id"],
     // Owner 2026-10-08: reminds or reposts the CALLER-less sweep's own booked
     // jobs; the reposted job reaches browse through the gated surfaces.
     ["public.sweep_confirm_reminders_and_repost", "cron over booked jobs; writes, never lists them to anyone"],

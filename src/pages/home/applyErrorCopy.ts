@@ -88,6 +88,11 @@ const EXACT: Record<string, string> = {
   // C10 (Q341): helper and poster are blocked, in either direction. Worded so
   // it does not say who blocked whom — same line either way.
   applicant_blocked: "This job isn't available to you.",
+  // Q1586(c): a saved birthday under 18 (refuse_under_18_member, apply_to_job).
+  under_18: "You must be 18 or older to apply for jobs.",
+  // The same refusal told to anyone but the member (a poster seating or
+  // hiring a minor, a server finishing an accept): it never names the age.
+  helper_unavailable: "This job isn't available to you.",
   // enforce_ban_gate. Deliberately vague about WHY: the reason belongs in the
   // email and the account screen, not in a toast on a job card.
   account_restricted:

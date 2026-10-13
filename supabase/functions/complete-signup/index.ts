@@ -1,4 +1,5 @@
 import { serve } from "../_shared/buildStamp.ts";
+import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
@@ -36,8 +37,7 @@ function savedBirthdayUnder18(dob: string): boolean {
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const pad = (n: number) => String(n).padStart(2, "0");
   const turns18 = `${year}-${pad(month)}-${pad(Math.min(Number(m[3]), lastDay))}`;
-  const todayInLouisiana = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
-  return todayInLouisiana < turns18;
+  return louisianaToday() < turns18;
 }
 
 /**

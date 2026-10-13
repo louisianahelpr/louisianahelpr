@@ -303,9 +303,11 @@ describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
     expect(updated).toEqual([]);
     fireEvent.click(screen.getByText("Save & Continue"));
     await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
-    await waitFor(() => expect(screen.queryByText("Finish your profile")).toBeNull());
+    // The save's last steps: the cached profile carries it, then the prompt closes.
+    await waitFor(() => expect(cachedDob()).toBe(MINOR_DOB));
+    await act(async () => {});
+    expect(screen.queryByText("Finish your profile")).toBeNull();
     expect(go).not.toHaveBeenCalled();
-    expect(cachedDob()).toBe(MINOR_DOB);
   });
 
   it("Not Now after typing an under-18 birthday saves it and does NOT let the Apply through", async () => {

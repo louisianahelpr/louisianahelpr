@@ -194,7 +194,8 @@ describe("Q1586(c) the server refuses an under-18 member too", () => {
   it("complete-signup (a service-role write) refuses to replace a saved under-18 birthday", () => {
     const fn = blankComments(readFileSync(join(ROOT, "supabase/functions/complete-signup/index.ts"), "utf8"));
     expect(fn).toMatch(/savedDob\s*&&\s*dateOfBirth\s*&&\s*dateOfBirth\s*!==\s*savedDob\s*&&\s*savedBirthdayUnder18\(savedDob\)/);
-    expect(fn).toMatch(/timeZone:\s*"America\/Chicago"/);
+    // Louisiana's date, from the one shared formatter (louisianaDateClass).
+    expect(fn).toMatch(/louisianaToday\(\) < turns18/);
   });
 
   it("a saved under-18 birthday is locked against the member's own rewrite", () => {

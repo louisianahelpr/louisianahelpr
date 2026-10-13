@@ -44,6 +44,14 @@ vi.mock("@/lib/avatarStorage", () => ({
   replaceAvatarObject: async () => ({ path: "u1/avatar.jpg", publicUrl: "https://x/avatar.jpg", removed: [], staleRemaining: [] }),
 }));
 let authUser: { id: string } | null = { id: "u1" };
+// The wheel date picker is a native-feeling widget jsdom cannot spin; a plain
+// labelled input stands in so the tests type a birthday through the prompt's
+// own onChange (the save path under test is PhotoPrompt's, not the picker's).
+vi.mock("@/components/DatePickerField", () => ({
+  DatePickerField: ({ id, value, onChange }: { id?: string; value: string; onChange: (v: string) => void }) => (
+    <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+}));
 
 import { usePhotoPrompt, photoPromptDoneKey } from "./PhotoPrompt";
 import Navbar from "./Navbar";
@@ -241,12 +249,105 @@ describe("browse first: the header's Get Started", () => {
 // A profile not loaded yet must let the action through.
 // @mutate src/components/PhotoPrompt.tsx |       if (!cached?.profile) return go(); |       if (!cached?.profile) return;
 // Closing the prompt must not drop the action.
-// @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next && !busy) proceed(); }} | onOpenChange={(next) => { if (!next && !busy) setOpen(false); }}
+// @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next) decline(); }} | onOpenChange={(next) => { if (!next) setOpen(false); }}
 // A duplicate phone is said in words, not a generic retry.
 // @mutate src/components/PhotoPrompt.tsx |         if (!phoneResult.ok) { |         if (false) {
 // A typed phone must be saved.
 // @mutate src/components/PhotoPrompt.tsx |     const savePhone = missing.phone && digits.length >= 10 ? phone.trim() : undefined; |     const savePhone = undefined;
 // The pending action is taken exactly once.
-// @mutate src/components/PhotoPrompt.tsx |     pendingRef.current = null;\n    setOpen(false); |     setOpen(false);
+// @mutate src/components/PhotoPrompt.tsx |     const go = pendingRef.current;\n    pendingRef.current = null;\n    setOpen(false); |     const go = pendingRef.current;\n    setOpen(false);
 // Get Started opens the job list.
 // @mutate src/components/Navbar.tsx | ? "/signup" : "/browse"; | ? "/signup" : "/signup";
+
+/**
+ * Q1586(c), owner 2026-10-13: the 18+ box at sign-up is the requirement; a
+ * birthday under 18 typed here is SAVED, and the Apply/Post it was opened for
+ * does not run, by Save & Continue, Not Now or a close. Before this the prompt
+ * refused to save it ("You'll need to be 18 or older to use Helpr.") and Not
+ * Now then let the action through with the birthday still empty, so nothing
+ * greyed out and the server let it in (lh-authz-rls review of 0f7786627,
+ * must-fix 1). These drive the prompt's real save path: the profiles UPDATE the
+ * server's lock_under_18_birthday then holds (proved for a member session in
+ * src/test/pglite/under18CannotApplyOrPost.pglite.mjs, S1-S4).
+ * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return void saveUnder18AndStop(); |     if (false) return void saveUnder18AndStop();
+ * @mutate src/components/PhotoPrompt.tsx |     if (typedUnder18) return saveUnder18AndStop(); |     if (typedUnder18) return setFieldError("You'll need to be 18 or older to use Helpr.");
+ * @mutate src/components/PhotoPrompt.tsx |       if (isUnder18(cached?.profile?.date_of_birth)) { |       if (false) {
+ */
+describe("a birthday under 18 is saved and stops the action (Q1586(c))", () => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yearsAgo = (y: number) => {
+    const d = new Date();
+    return `${d.getFullYear() - y}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const MINOR_DOB = yearsAgo(16);
+  const needsAll = () =>
+    queryClient.setQueryData(queryKeys.currentUser.byId("u1"), { profile: { avatar_url: null, phone: null, date_of_birth: null } });
+  const cachedDob = () =>
+    (queryClient.getQueryData(queryKeys.currentUser.byId("u1")) as { profile?: { date_of_birth?: string | null } } | undefined)?.profile?.date_of_birth;
+
+  async function typeBirthday(go: () => void, dob: string) {
+    render(<Harness go={go} />);
+    fireEvent.click(screen.getByText("Apply Now"));
+    await screen.findByText("Finish your profile");
+    fireEvent.change(screen.getByLabelText("Birthday"), { target: { value: dob } });
+  }
+
+  it("Save & Continue saves the under-18 birthday, the action does not run, and the cached profile greys out at once", async () => {
+    needsAll();
+    const go = vi.fn();
+    await typeBirthday(go, MINOR_DOB);
+    fireEvent.click(screen.getByText("Save & Continue"));
+    await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
+    await waitFor(() => expect(screen.queryByText("Finish your profile")).toBeNull());
+    expect(go).not.toHaveBeenCalled();
+    expect(cachedDob()).toBe(MINOR_DOB);
+  });
+
+  it("Not Now after typing an under-18 birthday saves it and does NOT let the Apply through", async () => {
+    needsAll();
+    const go = vi.fn();
+    await typeBirthday(go, MINOR_DOB);
+    fireEvent.click(screen.getByText("Not Now"));
+    await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it("closing the prompt after typing an under-18 birthday is the same: saved, no action", async () => {
+    needsAll();
+    const go = vi.fn();
+    await typeBirthday(go, MINOR_DOB);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await waitFor(() => expect(updated).toEqual([{ date_of_birth: MINOR_DOB }]));
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it("a save that fails keeps the prompt open with the error, and the action still does not run", async () => {
+    needsAll();
+    updateResult.mockResolvedValue({ data: [], error: null });
+    const go = vi.fn();
+    await typeBirthday(go, MINOR_DOB);
+    fireEvent.click(screen.getByText("Save & Continue"));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/birthday/i);
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it("a saved under-18 birthday stops every later Apply/Post before any prompt", async () => {
+    queryClient.setQueryData(queryKeys.currentUser.byId("u1"), { profile: { avatar_url: "a", phone: "3375550142", date_of_birth: MINOR_DOB } });
+    safeStorage.setItem(photoPromptDoneKey("u1"), "1");
+    const go = vi.fn();
+    render(<Harness go={go} />);
+    fireEvent.click(screen.getByText("Apply Now"));
+    await act(async () => {});
+    expect(go).not.toHaveBeenCalled();
+    expect(screen.queryByText("Finish your profile")).toBeNull();
+  });
+
+  it("an adult birthday still saves and continues; no birthday at all still continues (the 18+ box is the requirement)", async () => {
+    needsAll();
+    const go = vi.fn();
+    await typeBirthday(go, yearsAgo(30));
+    fireEvent.click(screen.getByText("Save & Continue"));
+    await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
+    expect(updated).toEqual([{ date_of_birth: yearsAgo(30) }]);
+  });
+});

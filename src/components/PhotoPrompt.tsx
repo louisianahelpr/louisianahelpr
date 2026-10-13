@@ -15,7 +15,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { formatPhone } from "@/pages/auth/signup/signupHelpers";
-import { isUnder18 } from "@/lib/ageGate";
+import { isUnder18, UNDER_18_SAVED_COPY } from "@/lib/ageGate";
 import { toast } from "sonner";
 
 /**
@@ -26,7 +26,15 @@ import { toast } from "sonner";
  * whatever is still missing (photo, phone, birthday) at the moment it matters,
  * once per account on this device. "Not Now", closing the prompt, and a
  * profile that is not loaded all let the action through: this prompt must
- * never be the reason an Apply or a Post did not happen.
+ * never be the reason an Apply or a Post did not happen, with ONE exception.
+ *
+ * A birthday under 18 (Q1586(c), owner 2026-10-13): it is SAVED, never
+ * refused, and the action does NOT go ahead, whether they tap Save & Continue,
+ * Not Now or close the prompt. Refusing it left the birthday empty, so the
+ * honest minor tapped Not Now and applied anyway (lh-authz-rls review of
+ * 0f7786627, must-fix 1). Saved, the profiles lock holds it, useAgeGate greys
+ * every Apply/Post out at once (the cached profile is updated here) and the
+ * server refuses the rest. A saved under-18 birthday also stops `askThen`.
  *
  * A phone saved here goes through save_my_phone (src/lib/phoneSave.ts), which
  * runs trg_guard_profile_phone (a number another account has is refused) and
@@ -64,12 +72,18 @@ export function usePhotoPrompt() {
 
   const askThen = useCallback(
     async (go: () => void) => {
-      if (!userId || safeStorage.getItem(photoPromptDoneKey(userId))) return go();
-      if (typeof navigator !== "undefined" && navigator.onLine === false) return go();
+      if (!userId) return go();
       // Decided from the signed-in profile the app already holds (the route
       // guard loads it before any Apply or Post): no network wait on the tap.
       // Not loaded yet: fail open, the action goes ahead without the prompt.
       const cached = queryClient.getQueryData(queryKeys.currentUser.byId(userId)) as CachedUser;
+      // A saved birthday under 18: never the action (the server refuses it too).
+      if (isUnder18(cached?.profile?.date_of_birth)) {
+        toast.error(UNDER_18_SAVED_COPY, { id: "age-gate-saved" });
+        return;
+      }
+      if (safeStorage.getItem(photoPromptDoneKey(userId))) return go();
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return go();
       if (!cached?.profile) return go();
       const m: Missing = { photo: blank(cached.profile.avatar_url), phone: blank(cached.profile.phone), dob: blank(cached.profile.date_of_birth) };
       if (!m.photo && !m.phone && !m.dob) {
@@ -95,6 +109,58 @@ export function usePhotoPrompt() {
 
   const asksDetails = missing.phone || missing.dob;
   const busy = uploading || saving;
+  /** A birthday under 18 has been typed into this prompt. */
+  const typedUnder18 = missing.dob && Boolean(dob) && isUnder18(dob);
+
+  /**
+   * Save the typed under-18 birthday (and a typed phone) and stop: the action
+   * the prompt was opened for never runs. Runs for Save & Continue, Not Now and
+   * a close alike. If the save fails the prompt stays open with the error, and
+   * the action still does not run.
+   */
+  const saveUnder18AndStop = async () => {
+    if (!userId) return;
+    report(new Error("Finish your profile: birthday under 18"), {
+      severity: "warning",
+      tags: { source: "PhotoPrompt.under18", user_id: userId },
+    });
+    setSaving(true);
+    setFieldError(null);
+    try {
+      const digits = phone.replace(/\D/g, "");
+      if (missing.phone && digits.length >= 10) {
+        // A refused phone does not hold the birthday back: the birthday is what matters here.
+        const phoneResult = await saveMyPhone(userId, phone.trim());
+        if (!phoneResult.ok) report(new Error(`PhotoPrompt.under18 phone not saved: ${phoneResult.message}`), { severity: "info", tags: { source: "PhotoPrompt.under18" } });
+      }
+      unwrapMutation(
+        await supabase.from("profiles").update({ date_of_birth: dob }).eq("user_id", userId).select("id"),
+        { action: "save your birthday", context: { userId } },
+      );
+    } catch (err) {
+      report(err, { severity: "warning", tags: { source: "PhotoPrompt.saveUnder18" } });
+      setFieldError(mutationErrorMessage(err, "Couldn't save your birthday just now. Try again."));
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    // The grey-out reads this cache (useAgeGate): it starts now, not after a refetch.
+    queryClient.setQueryData(queryKeys.currentUser.byId(userId), (current: CachedUser) =>
+      current?.profile ? { ...current, profile: { ...current.profile, date_of_birth: dob } } : current,
+    );
+    void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(userId) });
+    pendingRef.current = null;
+    setOpen(false);
+    safeStorage.setItem(photoPromptDoneKey(userId), "1");
+    toast.error(UNDER_18_SAVED_COPY, { id: "age-gate-saved" });
+  };
+
+  /** Not Now / close: the action goes ahead, unless an under-18 birthday was typed. */
+  const decline = () => {
+    if (busy) return;
+    if (typedUnder18) return void saveUnder18AndStop();
+    proceed();
+  };
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0];
@@ -145,15 +211,9 @@ export function usePhotoPrompt() {
     const digits = phone.replace(/\D/g, "");
     if (missing.phone && phone.trim() && digits.length < 10) return setFieldError("Enter a 10-digit phone number, or leave it blank.");
     // isUnder18: the same rule as the Apply/Post grey-out and the server (Q1586(c)).
-    if (missing.dob && dob && isUnder18(dob)) {
-      // They ticked the 18+ box at sign-up; a birthday under 18 is a disclosure
-      // an admin should see, not just a field error (code review, 2026-10-09).
-      report(new Error("Finish your profile: birthday under 18"), {
-        severity: "warning",
-        tags: { source: "PhotoPrompt.under18", user_id: userId },
-      });
-      return setFieldError("You'll need to be 18 or older to use Helpr.");
-    }
+    // Saved, never refused, and the action stops (see the header). The report
+    // inside keeps the disclosure visible to an admin (code review, 2026-10-09).
+    if (typedUnder18) return saveUnder18AndStop();
     // Undefined fields are dropped from the JSON body, so only what was typed is written.
     const savePhone = missing.phone && digits.length >= 10 ? phone.trim() : undefined;
     const saveDob = missing.dob && dob ? dob : undefined;
@@ -188,10 +248,11 @@ export function usePhotoPrompt() {
     proceed();
   };
 
+  // Up to today, not today - 18 years: a birthday under 18 must be enterable,
+  // or the honest answer could never be given (Q1586(c), 2026-10-13).
   const maxDob = (() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().split("T")[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
   const minDob = (() => {
     const d = new Date();
@@ -204,7 +265,7 @@ export function usePhotoPrompt() {
       <BrandConfirmDialog
         open={open}
         // Closing it (Escape, tap outside, X) is a "Not Now", never a dropped action.
-        onOpenChange={(next) => { if (!next && !busy) proceed(); }}
+        onOpenChange={(next) => { if (!next) decline(); }}
         title={asksDetails ? "Finish your profile" : "Add a profile photo?"}
         description={
           asksDetails
@@ -219,7 +280,7 @@ export function usePhotoPrompt() {
           else inputRef.current?.click();
         }}
         secondaryLabel="Not Now"
-        onSecondary={() => { if (!busy) proceed(); }}
+        onSecondary={decline}
       >
         <input
           ref={inputRef}

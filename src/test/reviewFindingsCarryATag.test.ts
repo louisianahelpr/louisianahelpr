@@ -49,6 +49,9 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
  */
 // @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
 const NOT_FROM_A_REVIEW: Record<string, string> = {
+  Q1790: "Apple's App Review (the reviewer's demo password), found preparing the 1.0.4 resubmission; not a code reviewer's finding",
+  Q1791: "Apple's App Review rule 5.1.1(v), found preparing the 1.0.4 resubmission; not a code reviewer's finding",
+  Q1793: "Apple's App Review demo account, found preparing the 1.0.4 resubmission; not a code reviewer's finding",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

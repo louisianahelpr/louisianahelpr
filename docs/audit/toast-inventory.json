@@ -3880,7 +3880,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 54,
+      "line": 57,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3890,7 +3890,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 69,
+      "line": 72,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -3900,7 +3900,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 71,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3910,7 +3910,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 75,
+      "line": 78,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -3920,7 +3920,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 86,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3930,7 +3930,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 90,
+      "line": 93,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

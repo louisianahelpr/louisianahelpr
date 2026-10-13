@@ -28,6 +28,7 @@
  *
  * @mutate src/components/profile/SignInMethodsCard.tsx | queryKey: SECURITY_AUTH_USER_KEY, | queryKey: ["security", "identities"],
  * @mutate src/components/profile/TwoFactorCard.tsx | queryKey: SECURITY_AUTH_USER_KEY, | queryKey: ["security", "mfa-factor"],
+ * @mutate src/components/profile/SignInMethodsCard.tsx |   const unknown = isError && !identities; |   const unknown = false;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -137,5 +138,46 @@ describe("the Security tab costs one auth /user round trip (Q1648)", () => {
     // Let anything a late-mounting card would start get going, then count.
     await new Promise((r) => setTimeout(r, 50));
     expect(userReads, "auth/v1/user round trips the tab started").toBe(1);
+  });
+});
+
+/*
+ * Q1771 / Q1772 (lh-silent-failure review of the one-read change, 2026-10-13):
+ * when the one auth read FAILS, neither card may state a fact it does not
+ * know. Two-step says it could not check and offers Retry, never "Turn on";
+ * sign-in methods says it could not load and offers Retry, never "Not
+ * connected" on a row (it read `identities ?? []` under the error header).
+ */
+describe("a failed auth read is unknown on both cards, never a false 'off' (Q1771, Q1772)", () => {
+  it("two-step: couldn't check + Retry, no Turn on; sign-in methods: couldn't load + Retry, no 'Not connected'", async () => {
+    getUser.mockImplementation((async () => {
+      userReads++;
+      return { data: { user: null }, error: { message: "auth read failed", name: "AuthApiError", status: 500 } };
+    }) as never);
+    try {
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <MemoryRouter>
+          <QueryClientProvider client={qc}>
+            <SecurityTab email="helper@example.com" onBack={() => {}} />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+      await screen.findByRole("heading", { name: "Sign-in methods" });
+      await screen.findByText("We couldn't check your status.");
+      expect(screen.getByRole("button", { name: "Retry checking two-step verification status" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /turn on two-step/i })).toBeNull();
+      expect(screen.getAllByText("We couldn't load your sign-in methods.").length).toBeGreaterThan(0);
+      expect(screen.getByRole("button", { name: "Retry loading sign-in methods" })).toBeTruthy();
+      expect(screen.queryByText("Not connected")).toBeNull();
+      expect(screen.queryByRole("button", { name: /^connect /i })).toBeNull();
+    } finally {
+      getUser.mockReset();
+      getUser.mockImplementation(async () => {
+        userReads++;
+        await new Promise((r) => setTimeout(r, 5));
+        return { data: { user: USER }, error: null };
+      });
+    }
   });
 });

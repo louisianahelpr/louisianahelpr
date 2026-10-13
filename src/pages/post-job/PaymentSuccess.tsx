@@ -493,8 +493,14 @@ const PaymentSuccess = () => {
                 <UsersIcon className="w-4 h-4 mr-2" />
                 View Applicants
               </Button>
-              {/* Secondary CTA row — share + post-another-like-this. */}
-              <div className="grid grid-cols-2 gap-2.5">
+              {/* Secondary CTA row — share + post-another-like-this. Side by
+                  side only where both labels fit at full size (12rem a
+                  column), else stacked full width: in two forced columns
+                  "Post Another" ran through its button's right edge at 375
+                  (lead's look, 2026-10-13, Q1536). Same h-14 targets either
+                  way. Guard: e2e/prod-audit/clipped-labels.spec.ts
+                  ("no control's label runs past its own box"). */}
+              <div className="grid gap-2.5 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
                 <Button
                   type="button"
                   variant="outline"

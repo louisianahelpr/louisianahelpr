@@ -192,7 +192,7 @@ const refusedUnavailable = (r) => !r.ok && /helper_unavailable/.test(r.err) && !
   check("L5 support (a server path) can still correct a minor's birthday", svc.ok && svc.rows.length === 1, svc.ok ? "" : svc.err);
 }
 
-// ── a birthday under 18 the member types is saved through their own write ──
+// ── a typed under-18 birthday is saved through the member's own write ───
 {
   const before = await apply(DISCLOSES, id(13));
   check("S0 before telling us, the 18+ box is enough: the member applies", before.ok && before.rows[0]?.id, before.ok ? "" : before.err);

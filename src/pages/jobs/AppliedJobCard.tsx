@@ -849,7 +849,7 @@ function AppliedJobCardInner({
             </div>
           )}
           {!isMinimalCard && !isExpanded && (
-            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} />
+            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
           )}
         </JobCardShell>
         </div>

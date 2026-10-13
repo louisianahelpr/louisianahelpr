@@ -4,6 +4,8 @@ import { CollapsedStartClock } from "@/components/job-card/CollapsedStartClock";
 import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { CrewStatusStrip } from "./CrewMemberSection";
+import type { TrackingData } from "@/components/JobTracking";
+import { helperProgress } from "./steps/helperProgress";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, at the collapsed Jobs card's
@@ -25,7 +27,10 @@ import { CrewStatusStrip } from "./CrewMemberSection";
  * in, signal out.
  *
  * PURE RENDER — no query, no realtime channel, no tracker. It reads columns
- * the card already holds. That is also what the compact rail bought and this
+ * the card already holds, and the tracking row the list already fetched
+ * (`tracking`, the same `initialTracking` the expanded card's tracker gets):
+ * whether work has started lives there, and without it the line said "Finish
+ * and mark it done" over an expanded "Start Working" (lane B, 2026-10-12). That is also what the compact rail bought and this
  * keeps: the three expanded sections once mounted a full JobTracking on every
  * collapsed card, one subscription per row of the list. (A crew member's
  * strip reads their roster row through CrewMemberSection's query key, so it
@@ -47,6 +52,7 @@ export function HelperCollapsedStrip({
   showStartClock = false,
   hideStatus = false,
   reviewed = false,
+  tracking,
 }: {
   app: AppliedApp;
   job: Job;
@@ -61,6 +67,8 @@ export function HelperCollapsedStrip({
    *  ("Done · payout pending · Reviewed"), never as a second band above it
    *  (owner, 2026-10-08: "There should only be one section at the bottom"). */
   reviewed?: boolean;
+  /** The list's latest `job_tracking` row for this job (AppliedJobsTab `latestTracking`). */
+  tracking?: TrackingData | null;
 }) {
   // A crew member's strip has no clock rows of its own yet, so it keeps the
   // start pill above it. Everyone else: every time at the bottom, under the
@@ -69,7 +77,7 @@ export function HelperCollapsedStrip({
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
-    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
+    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app, false, { workUnderway: helperProgress(job, tracking?.status).workUnderway }), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} />;
   return <>{clock}{strip}</>;
 }
 

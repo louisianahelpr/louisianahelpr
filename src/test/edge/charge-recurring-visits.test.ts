@@ -84,43 +84,43 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.series_ended_on) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
 // Q415 (e): the mid-run refunds withhold Stripe's fee; a platform failure does not.
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (seriesEndedMidRun \|\| holderChangedMidRun) { |             if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (seriesEndedMidRun \|\| holderChangedMidRun) { |             if (true) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (true) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const refundCents = Math.max(0, captured - actualOrEstimatedFeeCents(pi, captured)); | const refundCents = captured;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce( |             ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     return;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
 // Q750 (3): Stripe's "charge_already_refunded" (past the 24h key) is a failed refund again.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  && code !== "charge_already_refunded") throw e; | ) throw e;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { | if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !platformEndUnknown && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { | if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | let capturedCents = paidRow ? paidRow.amount_cents : totalCents; | let capturedCents = NaN;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!(Number.isFinite(captured) && captured > 0 && Number.isFinite(refundCents))) { |   if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               refundParams.metadata = { fee_withheld: "true" }; |               refundParams.metadata = undefined;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               keptCents: Math.max(0, capturedCents - refundMade.cents), |               keptCents: 0,
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); |             if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | } after it was charged.`,\n            });\n            if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); | } after it was charged.`,\n            });\n            if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (live.length > 0) { |         if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| true) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| refunded >= owedCents) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| true)) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| refunded >= owedCents)) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };\n        }\n        const prior |         }\n        const prior
-// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | const withholdFee = false;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee =
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | const withholdFee = false;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee = !platformEnded && (
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const owedCents = withholdFee ? lessFeeCents : amountCents; | const owedCents = amountCents;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | await stripe.paymentIntents.update(intent.id, { metadata: { refund_withhold_fee: "true" } }); | void 0;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Refund ${pi} by hand: ${\n            refundParams.amount === undefined ? | Refund ${pi} by hand: ${\n            refundParams.amount !== undefined ?
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const kept = refundParams.amount !== undefined; | const kept = false;
-// @mutate supabase/functions/charge-recurring-visits/index.ts |           continue;\n        }\n        const withholdFee | \n        }\n        const withholdFee
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           continue;\n        }\n        // Q1735: an end | \n        }\n        // Q1735: an end
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled"); | const live = prior.data;
 // Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
-// @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) { |           if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) {\n            console.log( |           if (false) {\n            console.log(
 // Q808: a pre-read skip of a paid visit (ended series / unheld date) refunds in full again.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| dateUnheldCause;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| seriesEndedCause;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | === "true" \|\| dateUnheldCause);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | === "true" \|\| seriesEndedCause);
 // Q808 review: a date that changed hands to ANOTHER Helpr refunds in full again.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | !nowHolder \|\| (row.helper_id != null && nowHolder.helper_id !== row.helper_id); | !nowHolder;
 // Q808 review: the same Helpr still holding the date withholds the fee.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | nowHolder.helper_id !== row.helper_id); | nowHolder.helper_id === row.helper_id);
 // Q808: an unreadable cause is guessed instead of retried.
-// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (causeParent.error \|\| causeHold.error) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (causeParent.error \|\| causeHold.error \|\| causePlatform.error) { |       if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -1714,6 +1714,69 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.funded).toBe(0);
   });
 
+  // Q1735 (owner, 2026-10-12): a series the PLATFORM ended refunds in full.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               platformEndedMidRun = true; |               void 0;
+  it("Q1735: a series the PLATFORM ended after this run read it: the refused visit is refunded IN FULL", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_day1" });
+    expect(stripeMock.paymentIntents.update).not.toHaveBeenCalledWith("pi_day1", { metadata: { refund_withhold_fee: "true" } });
+    expect(b.errors).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (platformEndedMidRun && !alreadyRefunded && parent.customer_id && refundMade && refundMade.cents > 0) { |           if (false) {
+  it("Q1735: the poster is told a mid-run platform-end refund was in full", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", status: "succeeded", amount: 10000 });
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("Louisiana Helpr ended the series; we refunded it in full");
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1735: an unreadable platform-end record mid-run keeps the fee withheld and says what to do", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+    scenario.reads.series_platform_ends = { rows: [], error: { message: "boom" } };
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_day1", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(b.errors).toBeGreaterThan(0);
+    expect(JSON.stringify(b)).toContain("refund the remaining fee on pi_day1 by hand");
+    // Review #4a: the poster is not told "less the card fee" when an admin end may be why.
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toMatch(/card fee|card processor/);
+  });
+
   it("a series ended mid-run whose refund FAILS is still a defect", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
@@ -2000,6 +2063,32 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     expect(reasons(b)).toMatch(/pi_late carries a refund; nothing booked/);
   });
+
+  // Q1735 (money review of 389a4d210, #2): a PAID row refused mid-run as
+  // series_ended while the platform-end record cannot be read is refunded less
+  // the fee but NOT settled: it stays 'paid', so the stale-visit sweep reads the
+  // record again and either settles it or pages until the fee is refunded.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidRow && !platformEndUnknown) { |           if (paidRow) {
+  for (const unread of [true, false]) {
+    it(`Q1735: a paid row refused mid-run is ${unread ? "left 'paid' when the platform-end record is unreadable" : "settled refunded when the record reads (control)"}`, async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+      wireVisitPayments({ preflight: { rows: [paidToday] } });
+      scenario.writeErrors.jobs = {
+        message: `series_ended: the series ended on 2026-09-03; no new visit (${VISIT_DATE})`,
+        code: "23514",
+      };
+      scenario.reads.series_platform_ends = unread ? { rows: [], error: { message: "boom" } } : { rows: [] };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1", status: "succeeded", amount: 30000 });
+
+      await body(await runOn(fn, VISIT_DATE, { at: `${VISIT_DATE}T06:00:00Z`, parentJobId: NARROWED }));
+
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      const settled = visitPaymentWrites("update").filter((w) => (w.payload as { status?: string }).status === "refunded");
+      expect(settled).toHaveLength(unread ? 0 : 1);
+    });
+  }
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (paidRow && (liveNow.some((r) => r.metadata?.fee_withheld === "true") \|\| refundedInFull)) { |           if (false) {
   it("Q1493: a PAID row our own earlier run already refunded (fee withheld) is settled refunded, not booked, not paged", async () => {
@@ -2350,6 +2439,92 @@ describe("charge-recurring-visits edge function", () => {
   // A paid visit skipped BEFORE the charge re-read (series ended, date no
   // longer held) never had its intent tagged; the sweep reads the cause.
   const untaggedIntent = { ...taggedIntent, metadata: {} };
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && ( | const withholdFee = (
+  it("Q1735: a paid visit of a series the PLATFORM ended is refunded IN FULL (card fee included)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1735: a platform-ended series refunds in full even after its date was given up (unheld)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    scenario.reads.series_visit_holds = { rows: [] };
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(b.errors).toBe(0);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const owesTheFee = platformEnded && refunded < amountCents; | const owesTheFee = false;
+  it("Q1735 review #4b: a platform-ended visit already refunded LESS the fee is not settled; ops refund the rest", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_less", status: "succeeded", amount: 9680, metadata: { fee_withheld: "true" } }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(b.errors).toBeGreaterThan(0);
+    expect(JSON.stringify(b)).toContain("$96.80 of $100.00");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = !platformEnded && (piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee = (piObj?.metadata?.refund_withhold_fee === "true" \|\|
+  it("Q1735 review #4c: a fee-withheld TAG on the intent is ignored once an admin ended the series", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // Not ended by the read and the date still held: only the tag would withhold.
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: null, status: "open" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [{ parent_job_id: PARENT_ID }] };
+    scenario.reads.series_visit_holds = { rows: [{ id: "h1", helper_id: "helper-still" }] };
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q1735: an unreadable platform-end record refunds nothing this run (retried), never a guess", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.reads.series_platform_ends = { rows: [], error: { message: "boom" } };
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(b.errors).toBeGreaterThan(0);
+  });
 
   it("Q808: a paid visit of an ENDED series, skipped before the charge re-read (intent untagged), is refunded less the fee", async () => {
     const fn = await loadConfigured();

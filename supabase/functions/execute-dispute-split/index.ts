@@ -58,6 +58,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // this exact form when it bundles the function for vitest.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { CLEAR_TEST_MODE_ACTION, TEST_MODE_CLEARED_MARKER, clearTestModeRecords } from "./clearTestModeRecords.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
@@ -164,7 +165,7 @@ serve(async (req) => {
     return json({ error: (e as Error).message }, 401);
   }
 
-  let body: { dispute_id?: string };
+  let body: { dispute_id?: string; action?: string; reason?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -178,6 +179,28 @@ serve(async (req) => {
     // failed — retry" and send an admin round in circles retrying a request
     // that can never succeed.
     return json({ error: "dispute_id must be a uuid" }, 400);
+  }
+
+  // Q1732 (owner, 2026-10-12): the admin button that un-sticks a decided
+  // dispute whose Stripe TEST-mode refund or transfer is recorded in our
+  // books. Its own branch: it checks every recorded id at Stripe, clears only
+  // test-mode records (clear_test_mode_dispute_ledger) and supersedes as the
+  // admin; it never runs the split and never calls markFailed.
+  if (body.action !== undefined) {
+    if (body.action !== CLEAR_TEST_MODE_ACTION) return json({ error: "unknown action" }, 400);
+    const adminClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const out = await clearTestModeRecords({
+      supabaseAdmin,
+      adminClient,
+      // ALWAYS the LIVE key, never a per-job mode: the whole check is "does the
+      // LIVE key call this a test object". Under a test key every test id reads
+      // back and the clear would answer "LIVE money" (money review of 389a4d210, #3a).
+      stripe: new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", { apiVersion: "2025-08-27.basil" }),
+      adminUserId,
+      disputeId,
+      reason: body.reason,
+    });
+    return json(out.body, out.status);
   }
 
   /**
@@ -221,6 +244,17 @@ serve(async (req) => {
   if (dispute.status !== "decided") {
     return await refuse(
       { error: `dispute status is ${dispute.status}, expected decided`, dispute_status: dispute.status },
+      409,
+    );
+  }
+  // Q1732 (money review of 6b2434f20, #1): an admin cleared this decision's
+  // Stripe test-mode records, so the fail-closed "money already moved" rows
+  // and stamps are gone. It is never split again, only re-opened (the same
+  // button supersedes it). Plain json, not refuse(): markFailed would
+  // overwrite the marker this check reads.
+  if ((dispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) {
+    return json(
+      { error: "this decision's Stripe test-mode records were cleared, so it cannot be settled; press Clear test-mode records and re-open to re-open the dispute" },
       409,
     );
   }
@@ -766,7 +800,7 @@ serve(async (req) => {
           // Refuse and leave the decision to a person.
           logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "transfer", id: dispute.execution_transfer_id });
           return await refuse(
-            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes)" },
+            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamps with rpc_clear_test_mode_dispute_stamp and, for a refund stamp, rpc_clear_test_mode_dispute_refund_stamp, then supersedes; when the books already record a test-mode refund or transfer, the admin presses Clear test-mode records and re-open)" },
             409,
           );
         } else {

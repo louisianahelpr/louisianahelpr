@@ -183,6 +183,13 @@ interface DateWheelPickerProps {
   onChange: (value: string) => void;
   minDate: Date;
   maxDate: Date;
+  /**
+   * Where the wheels start when no date is chosen yet (default: maxDate).
+   * A birthday picker whose max is today opens 18 years back, so an adult who
+   * only spins the month and day never saves a minor's birthday by mistake
+   * (lh-authz-rls re-review of 44ca75e95, should-fix 4).
+   */
+  openAt?: Date;
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -197,11 +204,13 @@ const iso = (y: number, m: number, d: number) =>
  * and reaching 1987 means paging (or hunting two dropdowns), where a wheel
  * puts the year one flick away.
  */
-export function DateWheelPicker({ value, onChange, minDate, maxDate }: DateWheelPickerProps) {
+export function DateWheelPicker({ value, onChange, minDate, maxDate, openAt }: DateWheelPickerProps) {
   // With no value yet, start the wheels at the latest allowed date — for a
   // DOB that is the youngest eligible birthday, so a typical signup scrolls
   // a short distance rather than from year zero.
-  const base = value ? new Date(`${value}T00:00:00`) : maxDate;
+  const base = value
+    ? new Date(`${value}T00:00:00`)
+    : openAt && openAt >= minDate && openAt <= maxDate ? openAt : maxDate;
   const year = base.getFullYear();
   const month = base.getMonth();
   const day = base.getDate();

@@ -4053,7 +4053,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 268,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4063,7 +4063,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 393,
+      "line": 390,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4073,7 +4073,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 399,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5304,7 +5304,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 179,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5314,7 +5314,17 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 184,
+      "line": 168,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5325,16 +5335,6 @@
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
       "line": 187,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "copy"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 203,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",

@@ -43,7 +43,10 @@ function useIdentities() {
 
 export function SignInMethodsCard() {
   const queryClient = useQueryClient();
-  const { data: identities, isLoading, isError } = useIdentities();
+  const { data: identities, isLoading, isError, refetch } = useIdentities();
+  // Q1771: a failed read with nothing cached is UNKNOWN, not "no linked
+  // sign-ins". The rows (each would read "Not connected") give way to Retry.
+  const unknown = isError && !identities;
   const [params] = useSearchParams();
   const [busy, setBusy] = useState<SocialProvider | null>(null);
   const [removing, setRemoving] = useState<UserIdentity | null>(null);
@@ -105,6 +108,12 @@ export function SignInMethodsCard() {
           </p>
           {isError && <ReportErrorScreen source="SignInMethodsCard.identities" title="We couldn't load your sign-in methods." />}
         </div>
+        {/* Retry in the action slot, the two-step card's shape (TwoFactorCard). */}
+        {unknown && (
+          <Button size="sm" variant="outline" className="shrink-0" aria-label="Retry loading sign-in methods" onClick={() => void refetch()}>
+            Retry
+          </Button>
+        )}
       </div>
 
       {asked && !isLoading && !isError && CONNECTABLE_PROVIDERS.some((p) => (asked === p || asked === "any") && !has(p)) && (
@@ -113,6 +122,7 @@ export function SignInMethodsCard() {
         </p>
       )}
 
+      {!unknown && (
       <ul className="mt-3 space-y-2">
         <MethodRow label="Email and password" state={isLoading ? "loading" : hasEmail ? "on" : "off"} />
         {CONNECTABLE_PROVIDERS.map((p) => {
@@ -152,6 +162,7 @@ export function SignInMethodsCard() {
           );
         })}
       </ul>
+      )}
 
       <BrandConfirmDialog
         open={removing !== null}

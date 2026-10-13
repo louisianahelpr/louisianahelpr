@@ -194,18 +194,9 @@ const CompleteProfile = () => {
     }
   };
 
-  // One rule with the Apply/Post grey-out and the server (src/lib/ageGate.ts,
-  // Q1586(c)). `new Date("YYYY-MM-DD")` here parsed as UTC midnight, the
-  // evening before in Louisiana, so a birthday one day short of 18 passed.
-  //
-  // A birthday under 18 is SAVED, never refused (owner, 2026-10-13): refusing
-  // it left the account with no birthday, so nothing greyed out and the server
-  // let the minor apply and post (lh-authz-rls review of 0f7786627, must-fix 1).
-  // The profile finishes; Apply and Post stay off until the 18th birthday.
-  const dobValid = useMemo(
-    () => Boolean(dateOfBirth) && eighteenthBirthday(dateOfBirth) !== null,
-    [dateOfBirth],
-  );
+  // One date rule with the grey-out and the server (src/lib/ageGate.ts). Under 18 is SAVED, never
+  // refused (owner 2026-10-13, Q1586(c)): refused, it left no birthday and nothing greyed out.
+  const dobValid = Boolean(dateOfBirth) && eighteenthBirthday(dateOfBirth) !== null;
   const dobUnder18 = dobValid && isUnder18(dateOfBirth);
 
   // Live checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
@@ -273,11 +264,8 @@ const CompleteProfile = () => {
   // renders its own warning below, so a check beside it would contradict it.
   const zipValid = zipCode.length === 5 && !unknownZip && !!resolvedZipParish;
 
-  // Upper bound today, not today − 18y: a birthday under 18 must be enterable
-  // so it can be saved (Q1586(c), owner 2026-10-13); the wheel still OPENS 18
-  // years back (openAt) so a mis-spin does not land on a minor's birthday, and
-  // the line under the field says the age before the save. Today − 120y floor
-  // so the wheel has a sane range.
+  // Max today so an under-18 birthday can be entered (Q1586(c)); the wheel OPENS 18 years back
+  // (openAt) and the line under the field says the age before the save. Floor: today − 120y.
   const maxDob = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -327,13 +315,8 @@ const CompleteProfile = () => {
     if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
     if (!dateOfBirth) return fail("Add your date of birth to continue.");
     if (!dobValid) return fail("Add a real date of birth to continue.");
-    if (dobUnder18) {
-      // Saved, not refused (see dobValid). Still a disclosure an admin should see.
-      report(new Error("Complete profile: birthday under 18"), {
-        severity: "warning",
-        tags: { source: "CompleteProfile.under18", user_id: user.id },
-      });
-    }
+    // Saved, not refused (see dobValid); still a disclosure an admin should see.
+    if (dobUnder18) report(new Error("Complete profile: birthday under 18"), { severity: "warning", tags: { source: "CompleteProfile.under18", user_id: user.id } });
     // Phone is optional (owner, 2026-10-09); a number that is typed must be whole.
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");

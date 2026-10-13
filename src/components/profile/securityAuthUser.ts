@@ -25,7 +25,7 @@ import { unwrap } from "@/lib/supabaseResult";
 export const SECURITY_AUTH_USER_KEY = ["security", "auth-user"] as const;
 
 export async function readSecurityAuthUser(): Promise<User> {
-  const user = unwrap(await supabase.auth.getUser())?.user;
+  const user = unwrap<{ user: User | null }>(await supabase.auth.getUser()).user;
   // getUser pairs a null user with an error, which unwrap() has thrown; a
   // null here without one is still not "an account with no factors".
   if (!user) throw new Error("security: no signed-in user");

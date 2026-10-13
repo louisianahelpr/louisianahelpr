@@ -36,6 +36,8 @@ function useIdentities() {
     queryFn: readSecurityAuthUser,
     select: identitiesOf,
     staleTime: 30_000,
+    // The whole auth User (phone, metadata, factors) never goes to IndexedDB.
+    meta: { persist: false },
   });
 }
 

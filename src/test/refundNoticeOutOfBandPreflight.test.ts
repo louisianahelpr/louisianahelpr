@@ -22,12 +22,13 @@
  *
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) return { status: "failed", error: refused }; |       void refused;
  * @mutate supabase/functions/_shared/refundNotice.ts |     if (res.status === 400 && /Missing required fields/.test(text)) return null; |     if (res.status === 400 \|\| res.status === 401) return null;
+ * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) {\n        out.problems.push(refused);\n        return out;\n      } |       if (refused) {\n        out.problems.push(refused);\n      }
  * @mutate supabase/functions/send-notification-email/index.ts |     const { notification_id, user_id, title, message, type, link, job_id } = await req.json() |     await supabase.rpc('log_notification', {}); const { notification_id, user_id, title, message, type, link, job_id } = await req.json()
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sendRefundNotice } from "../../supabase/functions/_shared/refundNotice.ts";
+import { retryFailedRefundEmails, sendRefundNotice } from "../../supabase/functions/_shared/refundNotice.ts";
 import { blankComments } from "./helpers/blankNonCode";
 
 type Call = { table: string; op: string; payload?: unknown };
@@ -149,6 +150,67 @@ describe("Q1731: a refund notice sent from outside the edge runtime never leaves
     } finally {
       if (hadDeno) g.Deno = prevDeno; else delete g.Deno;
     }
+  });
+});
+
+/**
+ * The retry run (retryFailedRefundEmails) with an explicit endpoint: a script
+ * re-sending failed refund emails from a Mac with .env's legacy key used to
+ * claim every notice's try, get 401 each time, and after 3 runs page "gave up"
+ * for every one (lh-silent-failure review of the Q1731 preflight, LOW). It now
+ * asks the email function ONCE, before its loop, and stops before any claim.
+ */
+describe("Q1731: the failed-refund-email retry, run out of band, preflights once", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = realFetch; });
+
+  const ROWS = [1, 2, 3].map((i) => ({
+    notice_key: `refund:re_retry${i}`, user_id: "7f65ef12-1d3d-439b-b0a7-f42ce8bc176d", job_id: null,
+    notification_id: `6ab00306-d7aa-4c2a-a8a8-a2c25794653${i}`, email_attempts: 1, email_error: "send-notification-email answered 401",
+    created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+  }));
+  function retryClient() {
+    const writes: Call[] = [];
+    const client = {
+      from(table: string) {
+        let op = "select";
+        const b: Record<string, unknown> = {};
+        for (const m of ["select", "eq", "is", "ilike", "limit", "neq", "lt", "gte", "lte", "order", "not", "or"]) b[m] = () => b;
+        b.update = (p: unknown) => { op = "update"; writes.push({ table, op, payload: p }); return b; };
+        const answer = () => {
+          if (table === "refund_notices" && op === "select") return { data: ROWS, error: null };
+          if (table === "notifications") return { data: { id: "n", title: "Refund issued: $100", message: "We refunded $100.", link: null, job_id: null }, error: null };
+          return { data: [{ notice_key: "k" }], error: null };
+        };
+        b.maybeSingle = async () => answer();
+        b.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) => Promise.resolve(answer()).then(res, rej);
+        return b;
+      },
+    };
+    return { client, writes };
+  }
+
+  it("a refused key: ONE preflight, no claim on any notice, no email, no 'gave up', and it says why", async () => {
+    const { client, writes } = retryClient();
+    const email = emailFunction("sb_secret_the_edge_key");
+    globalThis.fetch = email.fn as unknown as typeof fetch;
+    const r = await retryFailedRefundEmails(client as never, { endpoint: INPUT.endpoint });
+    expect(email.fn).toHaveBeenCalledTimes(1);
+    expect(writes).toEqual([]);
+    expect(r.retried).toBe(0);
+    expect(r.gaveUp).toEqual([]);
+    expect(r.problems.join(" ")).toMatch(/refused this sender's key \(401\)/);
+  });
+
+  it("an accepted key: one preflight, then each notice is claimed and emailed", async () => {
+    const { client, writes } = retryClient();
+    const email = emailFunction(INPUT.endpoint.key);
+    globalThis.fetch = email.fn as unknown as typeof fetch;
+    const r = await retryFailedRefundEmails(client as never, { endpoint: INPUT.endpoint });
+    expect(email.fn).toHaveBeenCalledTimes(1 + ROWS.length);
+    expect(email.bodies).toHaveLength(ROWS.length);
+    expect(r.retried).toBe(ROWS.length);
+    expect(writes.filter((w) => w.op === "update").length).toBeGreaterThan(0);
   });
 });
 

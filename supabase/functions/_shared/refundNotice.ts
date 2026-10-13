@@ -455,6 +455,17 @@ export async function retryFailedRefundEmails(
     }
     type Row = { notice_key: string; user_id: string; job_id: string | null; notification_id: string | null; email_attempts: number | null; email_error: string | null; created_at: string };
     const ep = opts.endpoint ?? envEndpoint();
+    // Q1731: an out-of-band run (a script passing its own endpoint) whose key
+    // the email function refuses stops here, ONCE, before any claim: otherwise
+    // every notice would burn its 3 tries on 401s and then page "gave up"
+    // (lh-silent-failure review of the Q1731 preflight, LOW).
+    if (opts.endpoint && (data ?? []).length > 0) {
+      const refused = await outOfBandEndpointRefusal(opts.endpoint);
+      if (refused) {
+        out.problems.push(refused);
+        return out;
+      }
+    }
     for (const row of (data ?? []) as Row[]) {
       const tried = Number(row.email_attempts ?? 1);
       // The query says the same; read again here so a looser read never widens it.

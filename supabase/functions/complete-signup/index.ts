@@ -23,6 +23,24 @@ const corsHeaders = {
 };
 
 /**
+ * Q1586(c): does this saved YYYY-MM-DD birthday make the member under 18 today
+ * in Louisiana? The same rule as the database's member_under_18 (date +
+ * 18 years, a 29 February birthday turning 18 on 28 February) and the app's
+ * src/lib/ageGate.ts. An unreadable date is not judged here (false).
+ */
+function savedBirthdayUnder18(dob: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dob.trim());
+  if (!m) return false;
+  const year = Number(m[1]) + 18;
+  const month = Number(m[2]);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const turns18 = `${year}-${pad(month)}-${pad(Math.min(Number(m[3]), lastDay))}`;
+  const todayInLouisiana = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  return todayInLouisiana < turns18;
+}
+
+/**
  * The configured signup cap, or null when signups are uncapped.
  *
  * Read with the service role: `platform_settings` is admin-only under RLS and
@@ -548,7 +566,19 @@ serve(async (req) => {
     // it's a real date and ≥18. A direct API call that skips the form — no DOB
     // AND no attestation — is refused, so no signup is recorded without
     // proof of age.
-    const effectiveDob: string | null = dateOfBirth || currentProfile?.date_of_birth || null;
+    // Q1586(c): a SAVED birthday that makes the member under 18 is not theirs
+    // to replace. The profiles trigger lock_under_18_birthday refuses the
+    // member's own write, but this function writes with the service role, so
+    // without this check one POST here with an adult date undid the
+    // Apply/Post gate (lh-authz-rls review of 30e7034c4, must-fix 1).
+    const savedDob: string | null = currentProfile?.date_of_birth ?? null;
+    if (savedDob && dateOfBirth && dateOfBirth !== savedDob && savedBirthdayUnder18(savedDob)) {
+      return new Response(
+        JSON.stringify({ error: "Your saved birthday can only be corrected by Louisiana Helpr support." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const effectiveDob: string | null = dateOfBirth || savedDob || null;
     if (effectiveDob) {
       const dob = new Date(effectiveDob);
       if (isNaN(dob.getTime())) {
@@ -583,7 +613,11 @@ serve(async (req) => {
     // when posting / applying / accepting.
     const updateData: Record<string, unknown> = {};
 
-    if (phone) updateData.phone = phone;
+    // Q1586(a): the phone is NOT saved here. A member's phone is written only
+    // by save_my_phone, which counts and rate-limits the "already on another
+    // account" answer; this service-role write answered it without a limit
+    // (500 vs 200; lh-authz-rls review of d1d6337b0, must-fix 1). The app has
+    // not sent a phone to this function since sign-up stopped asking for one.
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
     // `zipCode` unlocks parish (helper-notification matching) and Louisiana

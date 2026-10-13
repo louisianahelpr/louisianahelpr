@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { useAgeGate } from "@/hooks/useAgeGate";
+import { AgeGateNote } from "@/components/AgeGateNote";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -30,16 +32,7 @@ import { hasTaxableLine } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_DESCRIPTION } from "@/lib/posterFees";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
-
-const isSafeBlobPreviewUrl = (value: string): boolean => {
-  if (!value) return false;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "blob:";
-  } catch {
-    return false;
-  }
-};
+import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
 
 interface CheckoutStepProps {
   title: string;
@@ -149,6 +142,9 @@ export function CheckoutStep({
   uploadProgress,
   onSubmit,
 }: CheckoutStepProps) {
+  // Q1586(c): a saved birthday under 18 greys the post button out (the server
+  // refuses the jobs insert too).
+  const { underAge } = useAgeGate();
   // The tax STRIPE WILL CHARGE, asked of Stripe rather than recomputed here.
   //
   // This used to read a rate out of our own `parish_tax_rates` and multiply it
@@ -791,7 +787,7 @@ export function CheckoutStep({
           className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}
-          disabled={saving || uploading || !confirmed || giftLoading}
+          disabled={saving || uploading || !confirmed || giftLoading || underAge}
         >
           {saving || uploading ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
@@ -820,6 +816,7 @@ export function CheckoutStep({
                       ? "Post Job — Covered by Your Gift"
                       : "Continue to Payment"}
         </Button>
+        {underAge && <AgeGateNote kind="post" className="text-center" />}
         {/* Escrow-trust microline — sits right under the pay CTA so the
             reassurance lands at the moment of commitment, in the poster's
             voice. This is now the ONLY escrow explanation on the screen (L4);

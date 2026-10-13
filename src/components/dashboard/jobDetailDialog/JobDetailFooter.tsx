@@ -4,6 +4,7 @@ import { IconActionButton } from "../IconActionButton";
 import type { EnrichedJob } from "../types";
 import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
 import { askQuestionCounterpart } from "./askQuestionCounterpart";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -26,6 +27,8 @@ export const JobDetailFooter = ({
   job, guest, onApply, navigate,
   viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
 }: JobDetailFooterProps) => {
+  // Q1586(c): a saved birthday under 18 greys Apply Now out; the tap says why.
+  const { gate, gatedProps } = useAgeGate();
   if (guest) {
     // Instant Book was dropped (20260904034410, dead-feature cut) — the CTA
     // always names the real action now, applying. (A third "Sign up to bid"
@@ -225,7 +228,8 @@ export const JobDetailFooter = ({
              exact position jump this flow was rebuilt to remove (owner,
              2026-08-28). Guests never reach this branch; the guest footer
              above navigates on its own. */
-          onClick={() => onApply(job.id)}
+          onClick={gate("apply", () => onApply(job.id))}
+          {...gatedProps("apply")}
           /* THE PAINT IS THE VARIANT'S, NOT THIS FILE'S.
              This used to carry an inline `background: linear-gradient(180deg,
              bark → bark/0.86)`, plus a bark border, a re-declared Montserrat,

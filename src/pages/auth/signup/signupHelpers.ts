@@ -285,22 +285,6 @@ export function passwordStrength(password: string): { score: number; label: stri
   return { score, label: ["", "Weak", "Fair", "Good", "Strong"][score] };
 }
 
-/**
- * Compute age in whole years from a YYYY-MM-DD date-of-birth string.
- * Used by the 18+ age gate; centralized here so any future age check
- * (e.g. mobile app) can call the same logic.
- */
-export function ageFromDob(dob: string): number {
-  const d = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - d.getFullYear();
-  const monthDiff = today.getMonth() - d.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d.getDate())) {
-    age--;
-  }
-  return age;
-}
-
 /** GoTrue's "this address already has an account" refusal from signUp. */
 export function isAlreadyRegistered(message: string | undefined): boolean {
   return !!message && (message.includes("already registered") || message.includes("already been registered"));

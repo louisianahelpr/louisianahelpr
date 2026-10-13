@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
  * src/test/schemaBreakBumpsClientFloor.test.ts holds the two equal and fails
  * any migration that narrows authenticated privileges without a bump.
  */
-export const CLIENT_COMPAT_EPOCH = 1;
+export const CLIENT_COMPAT_EPOCH = 2;
 
 /** The floor's "off" value: unknown, unreadable, or not deployed yet. */
 export const FLOOR_UNKNOWN = 0;

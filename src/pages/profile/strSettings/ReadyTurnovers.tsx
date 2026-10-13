@@ -6,6 +6,7 @@ import { todayYmd } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { cardStyle } from "./strSettingsHelpers";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
  * Q1521: "Ready to post" on /str-settings. Every imported guest checkout that
@@ -15,6 +16,8 @@ import { cardStyle } from "./strSettingsHelpers";
  * checkout. Nothing to post draws nothing; a failed read says so.
  */
 export function ReadyTurnovers() {
+  // Q1586(c): each row starts a post; greyed out under 18, a tap says why.
+  const { underAge, explain: explainAgeGate, gatedProps: ageGatedProps } = useAgeGate();
   const { data, isError, refetch } = useQuery({
     queryKey: ["str-ready-turnovers"],
     queryFn: () => fetchReadyTurnovers(todayYmd()),
@@ -51,6 +54,12 @@ export function ReadyTurnovers() {
               to={`/post-job?turnover=${t.id}`}
               className="flex items-center gap-3 px-4 py-3 min-h-[44px]"
               data-testid="ready-turnover"
+              onClick={(e) => {
+                if (!underAge) return;
+                e.preventDefault();
+                explainAgeGate("post");
+              }}
+              {...ageGatedProps("post")}
               aria-label={`Post the cleaning for ${t.propertyName}, checkout ${formatShortDate(t.checkoutDate)}`}
             >
               <CalendarCheck className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />

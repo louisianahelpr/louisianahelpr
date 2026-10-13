@@ -20,6 +20,8 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useAgeGate } from "@/hooks/useAgeGate";
+import { AgeGateNote } from "@/components/AgeGateNote";
 
 /**
  * DesktopSidebarNav — the persistent RIGHT-rail navigation shown ONLY on the
@@ -89,6 +91,8 @@ const DesktopSidebarNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useCurrentUser();
+  // Q1586(c): a saved birthday under 18 greys Post a Job out, with the line under it.
+  const { underAge, gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.
@@ -209,7 +213,8 @@ const DesktopSidebarNav = () => {
           places you can also reach from the bottom of the app. */}
       <div className="px-4 pt-1 pb-2">
         <button
-          onClick={() => navigate("/post-job")}
+          onClick={ageGate("post", () => navigate("/post-job"))}
+          {...ageGatedProps("post")}
           onMouseEnter={() => prefetchRoute("/post-job")}
           className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
           style={{
@@ -224,6 +229,7 @@ const DesktopSidebarNav = () => {
           <Plus className="h-5 w-5" strokeWidth={2.5} />
           Post a Job
         </button>
+        {underAge && <AgeGateNote kind="post" className="pt-1.5 text-center" />}
       </div>
 
       {/* Destinations */}

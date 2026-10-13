@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -531,6 +532,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       toast.error(
         leakRejection
           ? leakRejection
+          // Q1586(c): the server's under-18 refusal (also 42501) in its own words.
+          : isUnder18Refusal(error)
+            ? UNDER_18_POST_COPY
           : isPolicyRefusal
             ? "We couldn't post this job from your account. Refresh the page and try again."
             // Q270: never the raw text. A dropped connection gets connection

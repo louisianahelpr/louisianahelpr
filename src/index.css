@@ -2669,6 +2669,18 @@ button,
   );
 }
 
+/* UNDER 18: GREYED OUT, NOT GONE (owner, 2026-10-12, Q1586(c)). An Apply or
+   Post a Job entry point a member under 18 cannot use carries
+   `data-age-gated` + aria-disabled (useAgeGate().gatedProps): the same 50%
+   the shared <Button>'s `disabled:opacity-50` gives a disabled primary, so it
+   reads as the app's own disabled state, and the surface underneath (the
+   btn-grad-primary radial included) is untouched. Not a real `disabled`: the
+   tap still lands and shows the one plain line saying why. */
+[data-age-gated] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
 /* ── SEGMENTED CONTROL ────────────────────────────────────────────────────
    The app's ONE "pick one of N" language, worn by <SegmentedControl />

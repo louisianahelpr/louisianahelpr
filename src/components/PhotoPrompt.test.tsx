@@ -18,8 +18,15 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: authUser, 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 const updateResult = vi.fn<() => Promise<{ data: unknown; error: unknown }>>();
 const updated: unknown[] = [];
+// Q1586(a): the phone goes through save_my_phone, never a profiles UPDATE.
+const rpcResult = vi.fn<() => Promise<{ data: unknown; error: unknown }>>();
+const rpcCalls: { name: string; args: unknown }[] = [];
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    rpc: (name: string, args: unknown) => {
+      rpcCalls.push({ name, args });
+      return rpcResult();
+    },
     from: () => ({
       update: (row: unknown) => {
         updated.push(row);
@@ -56,6 +63,9 @@ function Harness({ go }: { go: () => void }) {
 
 beforeEach(() => {
   updated.length = 0;
+  rpcCalls.length = 0;
+  rpcResult.mockReset();
+  rpcResult.mockResolvedValue({ data: { ok: true }, error: null });
   updateResult.mockReset();
   updateResult.mockResolvedValue({ data: [{ id: "p1" }], error: null });
   authUser = { id: "u1" };
@@ -166,15 +176,14 @@ describe("finish your profile: phone and birthday are asked later (owner, 2026-1
     expect((screen.getByLabelText("Phone number") as HTMLInputElement).value).toBe("(337) 555-0142");
     fireEvent.click(screen.getByText("Save & Continue"));
     await waitFor(() => expect(go).toHaveBeenCalledTimes(1));
-    expect(JSON.parse(JSON.stringify(updated))).toEqual([{ phone: "(337) 555-0142" }]);
+    expect(rpcCalls).toEqual([{ name: "save_my_phone", args: { p_phone: "(337) 555-0142" } }]);
+    expect(updated).toEqual([]);
   });
 
   it("a phone another account has is refused in words, and the action waits", async () => {
     needsAll();
-    updateResult.mockResolvedValue({
-      data: null,
-      error: { code: "23505", message: "This phone number is already on another account. Log in to that account instead." },
-    });
+    // The RPC answers the refusal (and counts it) instead of raising it.
+    rpcResult.mockResolvedValue({ data: { ok: false, reason: "phone_in_use" }, error: null });
     const go = vi.fn();
     render(<Harness go={go} />);
     fireEvent.click(screen.getByText("Apply Now"));
@@ -234,7 +243,7 @@ describe("browse first: the header's Get Started", () => {
 // Closing the prompt must not drop the action.
 // @mutate src/components/PhotoPrompt.tsx | onOpenChange={(next) => { if (!next && !busy) proceed(); }} | onOpenChange={(next) => { if (!next && !busy) setOpen(false); }}
 // A duplicate phone is said in words, not a generic retry.
-// @mutate src/components/PhotoPrompt.tsx |       if (inUse) { |       if (false) {
+// @mutate src/components/PhotoPrompt.tsx |         if (!phoneResult.ok) { |         if (false) {
 // A typed phone must be saved.
 // @mutate src/components/PhotoPrompt.tsx |     const savePhone = missing.phone && digits.length >= 10 ? phone.trim() : undefined; |     const savePhone = undefined;
 // The pending action is taken exactly once.

@@ -15,7 +15,7 @@
  * guest-only surfaces), never an inline navigate to a bare /signup or to the
  * settings tab.
  *
- * @mutate src/components/dashboard/BrowseTasksFeed.tsx | onClick={notifyWhenWorkLands} | onClick={() => navigate("/signup")}
+ * @mutate src/components/dashboard/EmptyFeedActions.tsx | onClick={onNotify} | onClick={() => navigate("/signup")}
  * @mutate src/pages/home/DashboardGuest.tsx | onNotify={() => navigate(NOTIFY_SIGNUP_URL)} | onNotify={() => navigate("/signup")}
  * @mutate src/pages/home/DashboardGuest.tsx | onClick: () => navigate(NOTIFY_SIGNUP_URL), | onClick: () => navigate("/signup"),
  * @mutate src/lib/notifyWhenWorkLands.ts | export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const; | export const NOTIFY_PREF_PATCH = { push_enabled: false, job_matches: true } as const;
@@ -54,7 +54,7 @@ describe("Notify Me When Work Lands is push only (Q1313)", () => {
     expect(found.length).toBeGreaterThan(2);
     const files = found.map((f) => f.replace(/^.*src\//, "src/")).sort();
     expect(files).toEqual([
-      "src/components/dashboard/BrowseTasksFeed.tsx",
+      "src/components/dashboard/EmptyFeedActions.tsx",
       "src/components/dashboard/GuestEmptyStateActions.tsx",
       "src/pages/home/DashboardGuest.tsx",
     ]);

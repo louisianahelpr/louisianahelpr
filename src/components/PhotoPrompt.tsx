@@ -8,12 +8,14 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
-import { mutationErrorMessage, phoneInUseMessage, unwrapMutation } from "@/lib/mutationResult";
+import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
+import { saveMyPhone } from "@/lib/phoneSave";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
-import { ageFromDob, formatPhone } from "@/pages/auth/signup/signupHelpers";
+import { formatPhone } from "@/pages/auth/signup/signupHelpers";
+import { isUnder18 } from "@/lib/ageGate";
 import { toast } from "sonner";
 
 /**
@@ -26,9 +28,9 @@ import { toast } from "sonner";
  * profile that is not loaded all let the action through: this prompt must
  * never be the reason an Apply or a Post did not happen.
  *
- * A phone saved here goes through trg_guard_profile_phone (a number another
- * account has is refused) and the existing ban-evasion flag trigger
- * (20261009175007).
+ * A phone saved here goes through save_my_phone (src/lib/phoneSave.ts), which
+ * runs trg_guard_profile_phone (a number another account has is refused) and
+ * the ban-evasion triggers, and rate-limits the refusal (Q1586(a)).
  *
  * `askThen(go)` runs `go` straight away when nothing is missing, the member
  * was asked before, is offline, is signed out, or their profile is not loaded
@@ -142,7 +144,8 @@ export function usePhotoPrompt() {
     if (!userId) return proceed();
     const digits = phone.replace(/\D/g, "");
     if (missing.phone && phone.trim() && digits.length < 10) return setFieldError("Enter a 10-digit phone number, or leave it blank.");
-    if (missing.dob && dob && ageFromDob(dob) < 18) {
+    // isUnder18: the same rule as the Apply/Post grey-out and the server (Q1586(c)).
+    if (missing.dob && dob && isUnder18(dob)) {
       // They ticked the 18+ box at sign-up; a birthday under 18 is a disclosure
       // an admin should see, not just a field error (code review, 2026-10-09).
       report(new Error("Finish your profile: birthday under 18"), {
@@ -158,16 +161,22 @@ export function usePhotoPrompt() {
     setSaving(true);
     setFieldError(null);
     try {
-      const res = await supabase.from("profiles").update({ phone: savePhone, date_of_birth: saveDob }).eq("user_id", userId).select("id");
-      // A number another account already has is refused by the database
-      // (trg_guard_profile_phone, unique_violation).
-      const inUse = phoneInUseMessage(res.error);
-      if (inUse) {
-        setFieldError(inUse);
-        setSaving(false);
-        return;
+      // Q1586(a): the phone goes through save_my_phone (rate-limited; a number
+      // another account has comes back as an answer, not an error).
+      if (savePhone !== undefined) {
+        const phoneResult = await saveMyPhone(userId, savePhone);
+        if (!phoneResult.ok) {
+          setFieldError(phoneResult.message);
+          setSaving(false);
+          return;
+        }
       }
-      unwrapMutation(res, { action: "save your phone and birthday", context: { userId } });
+      if (saveDob !== undefined) {
+        unwrapMutation(
+          await supabase.from("profiles").update({ date_of_birth: saveDob }).eq("user_id", userId).select("id"),
+          { action: "save your birthday", context: { userId } },
+        );
+      }
     } catch (err) {
       report(err, { severity: "warning", tags: { source: "PhotoPrompt.saveDetails" } });
       setFieldError(mutationErrorMessage(err, "Couldn't save that just now. Try again, or tap Not Now."));

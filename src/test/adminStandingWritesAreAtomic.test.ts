@@ -30,6 +30,7 @@
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |                                   v.violation_type = n.violation_type |                                   true
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |     v_lift := public.lift_ban_settlement_review(p_user_id, p_admin_id, v_status); |     v_lift := NULL;
  */
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -38,7 +39,14 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { trackedFiles } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
-const sources = [...trackedFiles("src"), ...trackedFiles("supabase/functions")]
+// trackedFiles() lists the git index under src/ ONLY (it returns [] for any other
+// directory), so the edge functions are listed from the index here. Before this,
+// the supabase/functions half of the inventory was silently empty and a direct
+// strike insert in admin-user-actions survived the guard (vacuity, 2026-10-13).
+const edgeFunctionFiles = execFileSync("git", ["ls-files", "-z", "--", "supabase/functions"], { cwd: process.cwd(), encoding: "utf8", maxBuffer: 1 << 26 })
+  .split("\0")
+  .filter(Boolean);
+const sources = [...trackedFiles("src"), ...edgeFunctionFiles]
   .filter((f) => /^(src|supabase\/functions)\/.+\.(ts|tsx)$/.test(f))
   .filter((f) => !/\/test\/|\.test\.|\.spec\.|integrations\/supabase\/types/.test(f));
 
@@ -62,6 +70,11 @@ function directStrikeWrites(): string[] {
 describe("Q1494: an admin standing change is one transaction", () => {
   it("scans a real inventory (floor)", () => {
     expect(sources.length).toBeGreaterThan(500);
+    expect(
+      sources.filter((f) => f.startsWith("supabase/functions/")).length,
+      "edge function sources scanned (the half trackedFiles() cannot list)",
+    ).toBeGreaterThan(50);
+    expect(sources, "the edge function that holds the standing writes").toContain("supabase/functions/admin-user-actions/index.ts");
     const reads = sources.filter((f) => /\.from\(\s*["'`]user_violations["'`]\s*\)/.test(readFileSync(join(ROOT, f), "utf8")));
     expect(reads.length, "files that touch user_violations").toBeGreaterThan(3);
   });

@@ -26,7 +26,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                  AND public.job_offer_cutoff(j.date_needed, j.start_time) > now() + interval '15 minutes') |                  )
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |            WHEN j.is_group_job IS NOT TRUE OR j.parent_job_id IS NOT NULL THEN 0 |            WHEN j.is_group_job IS NOT TRUE THEN 0
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
+// @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;

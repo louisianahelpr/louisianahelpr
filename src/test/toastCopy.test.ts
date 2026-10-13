@@ -92,6 +92,10 @@ const FAILURE_KINDS = new Set(["toast.error", "toast.warning", "errorToast"]);
  */
 // @two-way src/test/toastCopy.test.ts:stale RAW_ERROR_EXEMPT entry
 const RAW_ERROR_EXEMPT: Record<string, string> = {
+  "src/pages/auth/CompleteProfile.tsx: phoneResult.message":
+    "saveMyPhone's refusal (src/lib/phoneSave.ts): phoneInUseMessage, rpcErrorMessage copy or PHONE_SAVE_COPY, all written by the app; an unknown error is thrown, never returned.",
+  "src/pages/profile/Profile.tsx: phoneResult.message":
+    "saveMyPhone's refusal (src/lib/phoneSave.ts): phoneInUseMessage, rpcErrorMessage copy or PHONE_SAVE_COPY, all written by the app; an unknown error is thrown, never returned.",
   "src/components/BrowseMap.tsx: geo.message":
     "useUserLocation's error state; every message is a failWith(\"…\") literal written in that hook, never a platform error.",
   "src/components/admin/marketing/MarketingQueue.tsx: issues[0].message":

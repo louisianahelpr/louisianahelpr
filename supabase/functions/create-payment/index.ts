@@ -14,6 +14,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
+import { crewBlockFeeRefusal } from "../_shared/crewBlockFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
@@ -2753,6 +2754,17 @@ serve(async (req) => {
         throw new PublicError(`Job is not under dispute (status: ${job.status}). Use a general refund for non-dispute cases.`);
       }
 
+      // Q1490: the same rule as a general full refund: a fee owed to a crew
+      // member the poster blocked stays on the charge. Refused, nothing moved.
+      {
+        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
+        if (blocked) {
+          return new Response(JSON.stringify({ error: blocked.error, crewBlockFeeCents: blocked.cents }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: blocked.status,
+          });
+        }
+      }
+
       // Refund the captured payment
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
@@ -3207,6 +3219,19 @@ serve(async (req) => {
       // twice. A PARTIAL goodwill refund is still allowed — that is the
       // platform choosing to eat a cost, not the escrow moving twice.
       const wantsFullRefund = typeof amountCents !== "number";
+      // Q1490: a crew member this poster blocked is owed a fee out of this
+      // escrow. A full refund would hand the poster that money too, and
+      // void-cancelled-payments Part F would then pay the member from the
+      // platform's balance. Refused, nothing moved (fails closed on a failed
+      // read). A partial refund stays the platform's choice, as above.
+      if (wantsFullRefund) {
+        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
+        if (blocked) {
+          return new Response(JSON.stringify({ error: blocked.error, crewBlockFeeCents: blocked.cents }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: blocked.status,
+          });
+        }
+      }
       // ── Q1290: take the JOB before reading the payout ledger ──────────────
       // The ledger read below and the payout claim (payoutClaim.claimPayout:
       // insert a 'pending' payout_transfers row, THEN re-read the job expecting

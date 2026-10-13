@@ -7,7 +7,16 @@
  * refuses the same member too (20261013010621: apply_to_job, every applications
  * and job_accept_pending insert, and their own jobs insert raise 'under_18').
  * They become available on the member's 18th birthday. No birthday saved yet:
- * nothing changes (the birthday is asked before the first Apply/Post).
+ * nothing changes: the sign-up 18+ box is the requirement (owner, 2026-10-13).
+ * The birthday is asked before the first Apply/Post and is required only of a
+ * Google/Apple sign-up, which never saw that box (ProtectedRoute).
+ *
+ * A birthday under 18 that the member types (PhotoPrompt, CompleteProfile,
+ * complete-signup) is SAVED, never refused (owner, 2026-10-13): refusing it
+ * left the birthday empty, so the honest minor tapped Not Now and went ahead
+ * (lh-authz-rls review of 0f7786627, must-fix 1). Saved, the profiles lock
+ * (lock_under_18_birthday) holds it and the grey-out and the server refusal
+ * start at once.
  *
  * Same rule as the server's member_under_18: 18 from the first minute of the
  * 18th birthday; a 29 February birthday turns 18 on 28 February in a non-leap
@@ -19,6 +28,9 @@
  */
 export const UNDER_18_APPLY_COPY = "You must be 18 or older to apply for jobs.";
 export const UNDER_18_POST_COPY = "You must be 18 or older to post a job.";
+/** Said when the member has just told us a birthday under 18 (PhotoPrompt, CompleteProfile). */
+export const UNDER_18_SAVED_COPY =
+  "Thanks for telling us. You must be 18 or older to apply for jobs or post a job, so those stay off until your 18th birthday.";
 
 export type AgeGateKind = "apply" | "post";
 

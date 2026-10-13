@@ -26,7 +26,7 @@
  * @mutate supabase/functions/create-payment/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(stripeMode), { |     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "", {
  * @mutate supabase/functions/_shared/stripeMode.ts |   const testActor = actor && tests.has(actor) ? [actor] : []; |   const testActor = [] as string[];
  * @mutate supabase/functions/create-payment/index.ts |   const jobCounts = isAdmin \|\| job.partyIds.includes(callerId); |   const jobCounts = true;
- * @mutate supabase/functions/_shared/stripeMode.ts | ...(opts.kind === "refund" ? [job.payerId] : job.partyIds), | ...job.partyIds,
+ * @mutate supabase/functions/_shared/stripeMode.ts | ...(refundByPayer ? [job.payerId] : job.partyIds), | ...job.partyIds,
  * @mutate supabase/functions/create-payment/index.ts |   let jobId: string \| null = typeof body?.jobId === "string" && body.jobId.length > 0 ? body.jobId : null; |   let jobId: string \| null = typeof body?.jobId === "string" && /^[0-9a-f]{8}-/i.test(body.jobId) ? body.jobId : null;
  * @mutate supabase/functions/create-payment/index.ts |     if (roleErr) throw new StripeModeRefused("lookup_failed", `admin role read failed: ${roleErr.message}`); |     if (roleErr) void roleErr;
  * @mutate supabase/functions/_shared/stripeMode.ts |   const off = mustMatch.filter((id) => tests.has(id) !== (mode === "test")); |   const off = [] as string[];
@@ -45,6 +45,8 @@ import {
   decideStripeMode,
   sessionIdMode,
   isTestModeKey,
+  jobMoneyMode,
+  StripeModeRefused,
 } from "../../../supabase/functions/_shared/stripeMode";
 
 const LIVE_KEY = "sk_live_real_money";
@@ -144,6 +146,38 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
       expect(isTestModeKey("sk_test_x")).toBe(true);
       expect(isTestModeKey("rk_test_x")).toBe(true);
       expect(isTestModeKey("sk_live_x")).toBe(false);
+    });
+
+    // lh-money-escrow review of cfb045d28, finding 4: a refund with no stored
+    // session on a job whose poster is gone was decided by the ACTOR alone, so
+    // the enrolled seed admin got TEST mode on a real gift-funded job.
+    // @mutate supabase/functions/_shared/stripeMode.ts |     if (testActor.length > 0 && decided.mode !== "test") { |     if (false) {
+    it("a refund on a job whose poster is gone is decided by the parties left, never by a test actor alone", async () => {
+      const db = (job: { helper_id: string | null }, testIds: string[]) => ({
+        from(table: string) {
+          const rows = table === "test_accounts" ? testIds.map((user_id) => ({ user_id }))
+            : table === "profiles" ? testIds.map((user_id) => ({ user_id, is_seed: true }))
+            : [];
+          const q = {
+            select: () => q,
+            eq: () => q,
+            in: () => q,
+            maybeSingle: async () => ({ data: { customer_id: null, helper_id: job.helper_id, stripe_session_id: null }, error: null }),
+            then: (resolve: (v: unknown) => unknown) => resolve({ data: rows, error: null }),
+          };
+          return q;
+        },
+      });
+      const refund = (job: { helper_id: string | null }, testIds: string[], actorId: string) =>
+        jobMoneyMode(db(job, testIds), JOB, { kind: "refund", actorId });
+      // Nobody left: the money is live, so the enrolled seed admin is refused and a real admin runs live.
+      await expect(refund({ helper_id: null }, [TEST_ADMIN], TEST_ADMIN)).rejects.toMatchObject({ reason: "mixed_parties" });
+      await expect(refund({ helper_id: null }, [TEST_ADMIN], REAL_ADMIN)).resolves.toBe("live");
+      // A real Helpr left: live; a test actor refused.
+      await expect(refund({ helper_id: REAL_HELPR }, [TEST_ADMIN], TEST_ADMIN)).rejects.toBeInstanceOf(StripeModeRefused);
+      // A test Helpr left (a test job whose test poster was deleted): test, for a test or real admin.
+      await expect(refund({ helper_id: TEST_HELPR }, [TEST_HELPR, TEST_ADMIN], TEST_ADMIN)).resolves.toBe("test");
+      await expect(refund({ helper_id: TEST_HELPR }, [TEST_HELPR], REAL_ADMIN)).resolves.toBe("test");
     });
   });
 

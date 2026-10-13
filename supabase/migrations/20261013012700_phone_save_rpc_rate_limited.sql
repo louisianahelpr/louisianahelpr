@@ -55,6 +55,16 @@ CREATE INDEX IF NOT EXISTS phone_save_attempts_user_created_idx
 ALTER TABLE public.phone_save_attempts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.phone_save_attempts FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.phone_save_attempts TO service_role;
+
+-- Q807: the unconfirmed-email gate goes on every public table through its own
+-- attacher (idempotent; it skips tables that already carry it).
+DO $gates$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gates$;
 REVOKE ALL ON SEQUENCE public.phone_save_attempts_id_seq FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.save_my_phone(p_phone text)

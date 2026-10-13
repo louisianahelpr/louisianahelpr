@@ -376,6 +376,9 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // card, reference) is an exported notification, and the refund is exported
   // through payment_refunds.
   "refund_notices.user_id": { reason: "dedupe claim for a refund notice, service role only; the notice is in the exported notifications and the refund in payment_refunds" },
+  // Q1586(a): save_my_phone's rate-limit counter (outcome + time only; the
+  // number itself is never stored here, it is the exported profiles.phone).
+  "phone_save_attempts.user_id": { reason: "rate-limit counter for save_my_phone, service role only; no number or content, the phone is in the exported profile" },
   "backout_notices.user_id": { reason: "UI state for the Needs You banner: whether a back-out notice was seen; the same news is in the exported notifications" },
   // 2026-10-09: the "Louisiana Helpr Team" thread key. Every such row has its
   // user as sender (their reply) or receiver (staff's message), so the

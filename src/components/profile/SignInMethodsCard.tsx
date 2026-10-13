@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { hapticError } from "@/lib/haptics";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
-import { unwrap } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UserIdentity } from "@supabase/supabase-js";
+import type { User, UserIdentity } from "@supabase/supabase-js";
+import { SECURITY_AUTH_USER_KEY, identitiesOf, readSecurityAuthUser } from "./securityAuthUser";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,12 @@ const CONNECTABLE_PROVIDERS: readonly SocialProvider[] = ["apple", "google"];
 
 const NAME: Record<SocialProvider, string> = { apple: "Apple", google: "Google" };
 
+/** The tab's one auth `/user` read (securityAuthUser.ts, Q1648), never a second getUserIdentities() round trip. */
 function useIdentities() {
-  return useQuery<UserIdentity[]>({
-    queryKey: ["security", "identities"],
-    queryFn: async () => {
-      return unwrap(await supabase.auth.getUserIdentities())?.identities ?? [];
-    },
+  return useQuery<User, Error, UserIdentity[]>({
+    queryKey: SECURITY_AUTH_USER_KEY,
+    queryFn: readSecurityAuthUser,
+    select: identitiesOf,
     staleTime: 30_000,
   });
 }
@@ -63,7 +63,7 @@ export function SignInMethodsCard() {
     if (result.kind === "redirecting") return; // browser leaves for the provider
     setBusy(null);
     if (result.kind === "success") {
-      await queryClient.invalidateQueries({ queryKey: ["security", "identities"] });
+      await queryClient.invalidateQueries({ queryKey: SECURITY_AUTH_USER_KEY });
       confirmConsequential(`${NAME[provider]} connected. It now opens this account.`);
     } else if (result.kind === "error") {
       toast.error(userFacingError(result.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
@@ -84,7 +84,7 @@ export function SignInMethodsCard() {
       toast.error("Couldn't remove that sign-in method — try again?", { id: "connect-provider" });
       return;
     }
-    await queryClient.invalidateQueries({ queryKey: ["security", "identities"] });
+    await queryClient.invalidateQueries({ queryKey: SECURITY_AUTH_USER_KEY });
     confirmConsequential("Sign-in method removed.");
   };
 

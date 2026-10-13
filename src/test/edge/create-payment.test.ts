@@ -2313,6 +2313,7 @@ describe("create-payment edge function", () => {
     });
 
     // Q1490: the same rule on a dispute's Quick Refund of a crew job.
+    // @mutate supabase/functions/_shared/crewBlockFees.ts |     error: action === "dispute" |     error: false
     // @mutate supabase/functions/create-payment/index.ts |       {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job); |       if (false) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
     it("admin_refund_dispute on a crew job with a fee owed to a blocked member is refused, nothing moved (Q1490)", async () => {
       seedAuth(scenario, ADMIN);
@@ -2325,6 +2326,8 @@ describe("create-payment edge function", () => {
       const fn = await load();
       const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
       expect(res.status).toBe(409);
+      // Review #5: the dispute's own way out, not a general refund's.
+      expect(String((await res.json()).error)).toContain("Decide the dispute for each crew member instead");
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
     });

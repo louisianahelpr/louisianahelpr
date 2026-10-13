@@ -114,6 +114,7 @@ serve(async (req) => {
       withholdCents = 0,
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
+      let keptForBlockFees = 0;
       if (withholdCents > 0) {
         // What the gift paid toward this job, read without restoring anything.
         const { data: dry, error: dryErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
@@ -133,6 +134,7 @@ serve(async (req) => {
           // overshoot the target, as process-scheduled-payouts sizes a crew's
           // gift share, so the gift never returns any of the withheld fee.
           shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
+          keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
           console.log(
             `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for crew block fees; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
           );
@@ -175,7 +177,11 @@ serve(async (req) => {
             user_id: result.recipient_id,
             job_id: job.id,
             title: "Your gift is back",
-            message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.`,
+            message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.` +
+              // Q1490 review #6: say what the gift kept, as the card path does.
+              (keptForBlockFees > 0
+                ? ` $${formatExactDollars(keptForBlockFees / 100)} of it paid the cancellation fee for the crew spots you closed.`
+                : ""),
             type: "payment",
             link: "/profile?tab=gift_card",
           });
@@ -1612,7 +1618,15 @@ serve(async (req) => {
         // a zero-row match here means the job left 'escrow' under us, and
         // silently reporting it settled is what keeps it in the hourly loop.
         // Q1490: a fully gift-funded crew has no card to withhold a block fee
-        // from, so the gift keeps it (Part F pays the member from it).
+        // from, so the gift keeps it. The fees are tried FIRST, as the card
+        // paths do (payBlockFees), from the platform's balance the gift paid
+        // into (no charge to link): a member whose account is gone is voided
+        // there and so is never withheld (review #7); one that cannot go now
+        // is withheld and Part F pays it later.
+        if (blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) {
+          const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null);
+          for (const p of paidFirst.problems) defects.record(p);
+        }
         const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found", crewBlockFeeCents(blockFeeRows));
         results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated });
         continue;

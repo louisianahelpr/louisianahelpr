@@ -19,6 +19,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import JobDetailDialog from "../JobDetailDialog";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const seen = vi.hoisted(() => ({ props: [] as Array<Record<string, unknown>> }));
 const repeatJobs = vi.hoisted(() => [{ id: "earlier-1" }]);
@@ -75,7 +76,7 @@ const job = {
   photos: [],
   is_group_job: false,
   helpers_needed: 1,
-  date_needed: "2030-05-02",
+  date_needed: jobLocalDateISO(30),
   created_at: "2030-04-01T00:00:00Z",
 };
 

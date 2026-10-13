@@ -66,6 +66,34 @@ export function crewBlockFeeCents(rows: CrewBlockFeeRow[]): number {
 }
 
 /**
+ * Q1490: why an admin FULL refund of this job must be refused, or null.
+ *
+ * A crew member the poster blocked is owed a fee out of this job's escrow
+ * (every row but a void one, paid ones included: that money already left to
+ * them from this charge). A full refund would give the poster that money too,
+ * and Part F of void-cancelled-payments would then pay an unpaid fee from the
+ * platform's balance. Cancelling the job instead withholds the fee from the
+ * refund (void-cancelled-payments). Fails CLOSED: a read error refuses too.
+ */
+export async function crewBlockFeeRefusal(
+  admin: Db,
+  job: { id: string; is_group_job?: boolean | null },
+): Promise<{ status: number; error: string; cents: number } | null> {
+  if (!job.is_group_job) return null;
+  const read = await readCrewBlockFees(admin, job.id);
+  if (!read.ok) {
+    return { status: 503, cents: 0, error: `Couldn't check whether a blocked crew member is owed a fee on this job (${read.error}). No money was moved; try again.` };
+  }
+  const cents = crewBlockFeeCents(read.rows);
+  if (cents <= 0) return null;
+  return {
+    status: 409,
+    cents,
+    error: `A crew member this poster blocked is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (the poster is refunded everything but that fee), or refund a partial amount.`,
+  };
+}
+
+/**
  * Pay every unpaid row. `allPaid` is true only when no row is left 'owed' or
  * 'failed'. `chargeId` links each transfer to the job's charge (null for a
  * gift-funded job, which pays from the platform balance).

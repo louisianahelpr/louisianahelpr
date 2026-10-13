@@ -2286,6 +2286,23 @@ describe("create-payment edge function", () => {
       );
     });
 
+    // Q1490: the same rule on a dispute's Quick Refund of a crew job.
+    // @mutate supabase/functions/create-payment/index.ts |       {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job); |       if (false) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
+    it("admin_refund_dispute on a crew job with a fee owed to a blocked member is refused, nothing moved (Q1490)", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "Crew job", is_group_job: true, helpers_needed: 3, stripe_payment_intent_id: "pi_rc", customer_fee_amount: 10 }],
+      };
+      scenario.reads.crew_block_fees = { rows: [{ id: "bf-1", job_id: "job-1", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_rc", status: "succeeded", amount: 30000, amount_received: 30000, latest_charge: { balance_transaction: { fee: 900 } } });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    });
+
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
     // the poster wins the dispute, and the refund notice says so.
     // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job); | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
@@ -3904,6 +3921,64 @@ describe("create-payment edge function", () => {
       const missClosingFlip = () => {
         scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.status === "cancelled", rows: [] }];
       };
+
+      // Q1490 (lh-money-escrow review of Q1390): a crew member the poster
+      // blocked is owed a fee out of this escrow; a FULL refund would hand the
+      // poster that money too and Part F would pay the member from the
+      // platform's balance. Refused, nothing moved; fails closed on a read error.
+      // @mutate supabase/functions/_shared/crewBlockFees.ts |   if (cents <= 0) return null; |   return null;
+      // @mutate supabase/functions/create-payment/index.ts |       if (wantsFullRefund) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job); |       if (false) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
+      // @mutate supabase/functions/_shared/crewBlockFees.ts |   if (!read.ok) {\n    return { status: 503, | if (false) {\n    return { status: 503,
+      describe("a crew job with a fee owed to a blocked member (Q1490)", () => {
+        const seedCrew = (blockRows: Array<Record<string, unknown>> | { error: { message: string } }) => {
+          seedFull();
+          scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], is_group_job: true, helpers_needed: 3 };
+          scenario.reads.crew_block_fees = Array.isArray(blockRows) ? { rows: blockRows } : (blockRows as never);
+          stripeMock.refunds.list.mockResolvedValue({ data: [] });
+        };
+        const BLOCK = { id: "bf-1", job_id: "job-1", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
+
+        it("a full refund is refused (409) and moves nothing", async () => {
+          seedCrew([BLOCK]);
+          const res = await call();
+          expect(res.status).toBe(409);
+          const body = await res.json();
+          expect(body.crewBlockFeeCents).toBe(2500);
+          expect(body.error).toContain("$25.00 cancellation fee");
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(claimWrite()).toBeUndefined();
+        });
+
+        it("a fee already paid to the member still stays on the charge (refused)", async () => {
+          seedCrew([{ ...BLOCK, status: "paid", stripe_transfer_id: "tr_bf" }]);
+          const res = await call();
+          expect(res.status).toBe(409);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        });
+
+        it("a void fee (the member is gone) does not stop the refund", async () => {
+          seedCrew([{ ...BLOCK, status: "void" }]);
+          const res = await call();
+          expect(res.status).toBe(200);
+          expect(stripeMock.refunds.create).toHaveBeenCalled();
+        });
+
+        it("an unreadable block-fee ledger refuses with 503 and moves nothing", async () => {
+          seedCrew({ error: { message: "boom" } });
+          const res = await call();
+          expect(res.status).toBe(503);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        });
+
+        it("a PARTIAL refund is still the platform's choice", async () => {
+          seedCrew([BLOCK]);
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 10000, amount_received: 10000 });
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill", amountCents: 1000 } }));
+          expect(res.status).toBe(200);
+          expect(stripeMock.refunds.create).toHaveBeenCalled();
+        });
+      });
 
       // Q1674 (owner, 2026-10-12, second pop-up): an admin's FULL refund keeps a
       // first job's $2 setup fee too; the ledger reason and the notice say so.

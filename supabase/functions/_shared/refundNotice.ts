@@ -332,7 +332,7 @@ function envEndpoint(): { url: string; key: string } | null {
  */
 async function outOfBandEndpointRefusal(ep: { url: string; key: string }): Promise<string | null> {
   try {
-    const res = await fetch(`${ep.url}/functions/v1/send-notification-email`, {
+    const res = await fetchFunction(`${ep.url}/functions/v1/send-notification-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${ep.key}` },
       body: "{}",

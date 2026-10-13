@@ -1,12 +1,10 @@
 {
-  "generated": "2026-10-12T18:30:46.504Z",
-  "guards": 1709,
-  "registered": 1709,
+  "generated": "2026-10-13T02:58:06.119Z",
+  "guards": 1805,
+  "registered": 1805,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/openAssignNumbers.test.ts",
-    "src/test/restoreChipInRowFlow.test.tsx"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -122,7 +120,8 @@
       "module": "src/components/dashboard/BrowseTasksFeed.tsx",
       "tests": [
         "src/test/browseFeedRendersEveryJob.test.tsx",
-        "src/test/failedListLoadShowsError.test.tsx"
+        "src/test/failedListLoadShowsError.test.tsx",
+        "src/test/savedOnlyFailedReadIsAnError.test.tsx"
       ],
       "parents": [
         "src/pages/home/Dashboard.tsx"
@@ -135,33 +134,6 @@
       ],
       "parents": [
         "src/pages/home/Dashboard.tsx"
-      ]
-    },
-    {
-      "module": "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx",
-      "tests": [
-        "src/components/dashboard/jobDetailDialog/JobDetailFooter.test.tsx"
-      ],
-      "parents": [
-        "src/components/dashboard/JobDetailDialog.tsx"
-      ]
-    },
-    {
-      "module": "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx",
-      "tests": [
-        "src/components/dashboard/jobDetailDialog/JobStatTiles.test.tsx"
-      ],
-      "parents": [
-        "src/components/dashboard/JobDetailDialog.tsx"
-      ]
-    },
-    {
-      "module": "src/components/dashboard/JobPosterCard.tsx",
-      "tests": [
-        "src/components/dashboard/JobPosterCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/dashboard/JobDetailDialog.tsx"
       ]
     },
     {
@@ -200,16 +172,6 @@
       ],
       "parents": [
         "src/components/profile/AvailabilityTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/job-card/ActivitySectionedView.tsx",
-      "tests": [
-        "src/components/job-card/PagedActivityList.test.tsx"
-      ],
-      "parents": [
-        "src/pages/posts/PostedJobsTab.tsx",
-        "src/pages/jobs/AppliedJobsTab.tsx"
       ]
     },
     {
@@ -254,7 +216,8 @@
         "src/test/messagesDesktopFilterTabsInline.test.tsx",
         "src/test/messagesNoSeparateTopPanel.test.tsx",
         "src/test/messagesSearchOwnLineBelow360.test.tsx",
-        "src/test/searchDismissAndOverlay.test.tsx"
+        "src/test/searchDismissAndOverlay.test.tsx",
+        "src/test/specialInboxViewsNeverBlank.test.tsx"
       ],
       "parents": [
         "src/pages/messages/Messages.tsx"
@@ -317,15 +280,6 @@
       ]
     },
     {
-      "module": "src/components/series/SeriesTermsLine.tsx",
-      "tests": [
-        "src/pages/post-job/seriesSplitChoice.test.tsx"
-      ],
-      "parents": [
-        "src/components/dashboard/JobDetailDialog.tsx"
-      ]
-    },
-    {
       "module": "src/pages/home/QuickApplyHandler.tsx",
       "tests": [
         "src/pages/home/QuickApplyHandler.test.tsx"
@@ -377,32 +331,6 @@
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/posts/PostedJobCard.tsx",
-      "tests": [
-        "src/test/collapsedJobCardIsASummary.test.tsx",
-        "src/test/collapsedStatusSentence.test.tsx",
-        "src/test/descriptionGroupsWithMeta.test.tsx",
-        "src/test/jobCardPersonTileAboveRow.test.tsx",
-        "src/test/offerCardHierarchy.test.tsx",
-        "src/pages/posts/PostedJobCard.contestedTracker.test.tsx",
-        "src/pages/posts/PostedJobCard.expandedOrder.test.tsx",
-        "src/pages/posts/PostedJobCard.helprTile.test.tsx",
-        "src/pages/posts/PostedJobCard.owesConfirmationBadge.test.tsx"
-      ],
-      "parents": [
-        "src/pages/posts/PostedJobsTab.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
-      "tests": [
-        "src/test/posterMessagesApplicants.test.tsx"
-      ],
-      "parents": [
-        "src/pages/posts/PostedJobsTab.tsx"
       ]
     },
     {

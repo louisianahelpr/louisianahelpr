@@ -44,6 +44,8 @@
  *            Speed Insights would bill to the route on screen at page hide)
  *   --soft /jobs [--soft-sel <selector>]   (one tap, its shifts)
  *   --ihe    (ignoreHTTPSErrors instead of the SPKI allow-list, as the spec loads)
+ *   --allow-reads <file>   (let STABLE RPC reads, the expired refresh and the
+ *            payout-status read through the write block: READ ALLOWANCE below)
  *
  * WebKit cannot be network- or CPU-throttled from Playwright (no CDP) and has
  * no layout-shift entries (Playwright WebKit 2026-10-03 lists event,
@@ -52,6 +54,7 @@
  * budget, so the audit table and the budget are one measurement.
  */
 import { chromium, webkit } from "@playwright/test";
+import { allowedRead } from "./readAllowance.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -278,10 +281,26 @@ export function sessionInit({ key, value, expired }) {
  * so a run can say which write it would have made and when. HEAD and OPTIONS
  * (CORS preflight) carry no body and pass. NOTE what this costs a measurement:
  * supabase.rpc() reads are POSTs and the auth token refresh is a POST, so a
- * first screen whose data comes from an RPC never receives it here.
+ * first screen whose data comes from an RPC never receives it here, and an
+ * --expired session is never refreshed.
+ *
+ * `--allow-reads <file>` (READ ALLOWANCE, Q1170/Q1172/Q1173): lets through
+ * ONLY the POSTs that are reads of the test account's own data, so a
+ * signed-in screen is measured with its data rather than its error state:
+ *   - POST /rest/v1/rpc/<fn> for an <fn> named in <file>, a comma list of the
+ *     public functions prod's pg_proc marks STABLE or IMMUTABLE (Postgres
+ *     refuses a write inside them), generated read-only right before the run;
+ *   - with --expired, POST /auth/v1/token?grant_type=refresh_token (the
+ *     session refresh the measurement is about; it touches only the test
+ *     account's own session);
+ *   - POST /functions/v1/stripe-connect whose JSON body is {action: "status"}
+ *     (the payout-status read the Profile landing makes; it re-syncs only the
+ *     test account's own cached gate from Stripe).
+ * Every other non-GET is still aborted, the probe (an RPC no list names) must
+ * still be blocked, and each allowed request is recorded on its row.
  */
 const WRITE_BLOCK_HOSTS = /(^|\.)supabase\.co$|(^|\.)stripe\.com$/;
-async function installWriteBlock(ctx, clock = () => 0) {
+async function installWriteBlock(ctx, clock = () => 0, reads = null, allowed = []) {
   const blocked = [];
   await ctx.route(
     (url) => WRITE_BLOCK_HOSTS.test(url.hostname),
@@ -289,6 +308,8 @@ async function installWriteBlock(ctx, clock = () => 0) {
       const req = route.request();
       const m = req.method();
       if (m === "GET" || m === "HEAD" || m === "OPTIONS") return route.continue();
+      const read = allowedRead(reads, m, req.url(), req.postData());
+      if (read) { allowed.push({ read, at: clock() }); return route.continue(); }
       const u = new URL(req.url());
       blocked.push({ method: m, path: `${u.hostname.split(".")[0]}:${u.pathname}${u.searchParams.get("grant_type") ? "?grant_type=" + u.searchParams.get("grant_type") : ""}`, at: clock() });
       return route.abort("blockedbyclient");
@@ -442,6 +463,13 @@ async function main() {
   const { sessions, unavailable } = await mintAccounts([persona]);
   if (unavailable[persona]) throw new Error(`no ${persona} session: ${unavailable[persona]}`);
   const session = sessions[persona];
+  // --allow-reads <file>: the READ ALLOWANCE (installWriteBlock).
+  const readsFile = arg("allow-reads", "");
+  const reads = readsFile
+    ? { rpcs: new Set(readFileSync(readsFile, "utf8").split(/[\s,]+/).filter(Boolean)), refresh: flag("expired") }
+    : null;
+  if (reads && reads.rpcs.size < 20) throw new Error(`--allow-reads ${readsFile}: ${reads.rpcs.size} names, expected the STABLE/IMMUTABLE function list`);
+  if (reads) console.log(`read allowance: ${reads.rpcs.size} STABLE/IMMUTABLE RPCs from ${readsFile}${reads.refresh ? ", the expired session's refresh" : ""}, stripe-connect status`);
   const PUBLIC = new Set(["/", "/browse", "/login", "/signup", "/about", "/terms", "/privacy", "/help", "/how-it-works"]);
 
   mkdirSync(out, { recursive: true });
@@ -472,7 +500,8 @@ async function main() {
             });
             // Strict write block on EVERY context (signed in or not), proven live first.
             let navWallNow = Date.now();
-            const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow);
+            const allowed = [];
+            const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow, reads, allowed);
             await probeWriteBlock(ctx, blocked);
             await ctx.addInitScript(CWV_INIT);
             if (signedIn) await ctx.addInitScript(...sessionInit({ key: session.key, value: session.value, expired: flag("expired") }));
@@ -507,6 +536,7 @@ async function main() {
               const navWall = Date.now();
               navWallNow = navWall;
               const blockedFrom = blocked.length;
+              const allowedFrom = allowed.length;
               const t0 = Date.now();
               let error = null;
               try {
@@ -582,10 +612,11 @@ async function main() {
               if (flag("shots") && run === 0) {
                 await page.screenshot({ path: join(out, `${label}-${browserName}-${profileName}-${kind}${route.replace(/\//g, "_") || "_root"}.png`) }).catch(() => {});
               }
-              rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m, blocked: blocked.slice(blockedFrom) });
+              rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m, blocked: blocked.slice(blockedFrom), allowedReads: allowed.slice(allowedFrom) });
               const r = rows[rows.length - 1];
               console.log(`${browserName.padEnd(8)} ${profileName.padEnd(7)} ${kind.padEnd(4)} ${route.padEnd(10)} ttfb=${String(r.ttfb).padStart(4)} fcp=${String(r.fcp).padStart(5)} lcp=${String(r.lcp).padStart(5)} cls=${String(r.cls).padEnd(6)} ${landed !== route ? "→" + landed + " " : ""}${error ?? ""}`);
               console.log(`    lcpEl: ${r.lcpEl}  breakdown: ${JSON.stringify(r.breakdown)}  appDrawn=${r.marks?.appDrawn} jsDone=${r.marks?.jsDone} js=${r.marks?.jsCountBeforeLcp}/${r.marks?.jsKBbeforeLcp}KB`);
+              if (r.allowedReads.length) console.log(`    ALLOWED ${r.allowedReads.length} reads: ${[...new Set(r.allowedReads.map((x) => x.read))].join("  ")}`);
               if (r.blocked.length) console.log(`    BLOCKED ${r.blocked.length} non-GET: ${r.blocked.slice(0, 8).map((x) => `${x.method} ${x.path}@${x.at}`).join("  ")}`);
               if (r.marks?.data?.length) console.log(`    data: ${r.marks.data.slice(0, 12).map((d) => `${d.name}@${d.start}-${d.end}`).join("  ")}`);
               for (const s of r.clsWindow ?? []) console.log(`    shift t=${s.t} v=${s.v} ${s.srcs.slice(0, 2).join(" | ")}`);

@@ -99,7 +99,6 @@ upsertPlistBool("ITSAppUsesNonExemptEncryption", metadata.usesNonExemptEncryptio
 // are preserved. Keys absent from the YAML are silently skipped.
 const PERMISSION_KEYS = [
   "NSCameraUsageDescription",
-  "NSContactsUsageDescription",
   "NSFaceIDUsageDescription",
   "NSLocationWhenInUseUsageDescription",
   "NSLocationAlwaysAndWhenInUseUsageDescription",

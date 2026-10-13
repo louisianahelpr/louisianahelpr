@@ -86,7 +86,7 @@ jobs:
           echo "Xcode project values now committed in this checkout:"
           grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|INFOPLIST_KEY_CFBundleDisplayName|INFOPLIST_KEY_LSApplicationCategoryType|PRODUCT_NAME|MARKETING_VERSION|CURRENT_PROJECT_VERSION|IPHONEOS_DEPLOYMENT_TARGET" ios/App/App.xcodeproj/project.pbxproj | sort -u
           echo "Info.plist values now committed in this checkout:"
-          grep -A1 -E "<key>(CFBundleDisplayName|LSApplicationCategoryType|ITSAppUsesNonExemptEncryption|NSCameraUsageDescription|NSLocationWhenInUseUsageDescription|NSPhotoLibraryUsageDescription|NSPhotoLibraryAddUsageDescription|NSContactsUsageDescription)</key>" ios/App/App/Info.plist
+          grep -A1 -E "<key>(CFBundleDisplayName|LSApplicationCategoryType|ITSAppUsesNonExemptEncryption|NSCameraUsageDescription|NSLocationWhenInUseUsageDescription|NSPhotoLibraryUsageDescription|NSPhotoLibraryAddUsageDescription|NSFaceIDUsageDescription)</key>" ios/App/App/Info.plist
 
       - name: Upload App Store Connect listing metadata
         env:

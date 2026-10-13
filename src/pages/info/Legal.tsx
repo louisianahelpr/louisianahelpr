@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import PageHeader from "@/components/PageHeader";
@@ -26,7 +25,6 @@ import {
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
 } from "./legal/legalSections";
-import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
 
 /* ─────────────────────────  PER-TAB TITLE  ───────────────────────── */
 // Per-tab H1 text for the NATIVE in-app header. Plain single-colour strings,
@@ -149,10 +147,6 @@ const Legal = () => {
   // sit immediately to its right — every PolicySection accordion header is
   // already on screen — so it duplicated visible content and cost a 14rem
   // column. Removed along with its scrollspy.)
-
-  // Users who ask the OS to reduce motion get the pill snapped into place
-  // rather than spring-sliding between tabs.
-  const reduceMotion = useReducedMotion();
 
   // WEB: the tab band pins to the very top of the viewport on scroll. We do
   // NOT offset by the marketing Navbar's height: that Navbar is `position:
@@ -350,14 +344,16 @@ const Legal = () => {
             className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
-            {/* A single lifted pill that slides between tabs via framer's
-                shared-layout (`layoutId`) — only the active trigger mounts it,
-                so switching tabs animates the pill across rather than hopping.
-                Gradient + inset highlight + soft drop shadow give it depth. */}
+            {/* The selected tab's lifted pill, drawn in place (owner, Q1719,
+                2026-10-13: a plain highlight that loads nothing extra). It used
+                to slide between tabs through framer-motion's shared layout,
+                which put ~39 KB gzip of framer on every legal page and on
+                guest `/` (routePrefetch warms /terms from the footer).
+                Gradient + inset highlight + soft drop shadow give it depth.
+                Guard: scripts/check-deferred-vendors.mjs (Legal root). */}
             {isActive && (
-              <SharedLayoutPill
-                layoutId="legalTabPill"
-                transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+              <span
+                aria-hidden="true"
                 className="absolute inset-0 rounded-ds-md btn-grad-primary"
                 style={{
                   // Reference the shared primary-CTA surface (`.btn-grad-primary`,
@@ -553,32 +549,26 @@ const Legal = () => {
 
   // Smooth cross-tab transition — each panel fades + slides in on mount.
   // Radix TabsContent unmounts inactive tabs, so switching tabs remounts
-  // the new panel, which triggers the `initial → animate` sequence. Also
-  // fades the hero copy (eyebrow/title/subhead/updated chip) via keyed
-  // motion.div wrapper further down.
-  const fadeMotion = reduceMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
-      };
+  // the new panel, which replays the CSS `fade-in` keyframe (12px rise, the
+  // same 350 ms curve framer ran; Q1719 moved it off framer-motion).
+  // `motion-safe:` keeps it off for Reduce Motion, as useReducedMotion did.
+  const panelFade = "motion-safe:animate-[fade-in_350ms_cubic-bezier(0.22,1,0.36,1)_both]";
   const panels = (
     <>
       <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <motion.div key="terms-panel" {...fadeMotion}>
+        <div key="terms-panel" className={panelFade}>
           <TermsContent />
-        </motion.div>
+        </div>
       </TabsContent>
       <TabsContent value="community" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <motion.div key="community-panel" {...fadeMotion}>
+        <div key="community-panel" className={panelFade}>
           <CommunityContent />
-        </motion.div>
+        </div>
       </TabsContent>
       <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <motion.div key="privacy-panel" {...fadeMotion}>
+        <div key="privacy-panel" className={panelFade}>
           <PrivacyContent />
-        </motion.div>
+        </div>
       </TabsContent>
     </>
   );

@@ -188,8 +188,11 @@ runs:
           # itself. Its auto-merge goes off, so a PR this bot opened earlier does
           # not merge mid-train either. Guard: src/test/refreshBotsWaitForTrains.test.ts.
           if [ "$HOLD_FOR_TRAINS" = "true" ]; then
+            # gh refuses --slurp with --jq ("not supported", write-contract-refresh
+            # run 38304998110, nightly-red #2912), so the pages go through jq itself.
+            # Guard: src/test/ghApiFlagCombos.test.ts.
             TRAINS=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
-              --jq '[.[][] | select((.head.ref | startswith("bot/refresh/") | not) and any(.labels[]; .name == "land-queue")) | .number] | length')
+              | jq '[.[][] | select((.head.ref | startswith("bot/refresh/") | not) and any(.labels[]; .name == "land-queue")) | .number] | length')
             if [ "$TRAINS" -gt 0 ]; then
               if [ -n "$PR" ]; then
                 # Off before waiting; a PR with none on already says so on stderr.

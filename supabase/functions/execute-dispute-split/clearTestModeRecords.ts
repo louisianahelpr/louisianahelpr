@@ -96,7 +96,7 @@ export async function clearTestModeRecords(args: {
   // account): its test-mode refunds and transfers ARE its books, and clearing
   // them would let a re-decided split move that escrow twice. Refused; such a
   // decision settles in test mode instead (money reviews of 389a4d210 #3b and
-  // 5152e5f3f #1; docs/OPEN.md Q1762). A genuinely stuck dispute has no test
+  // 5152e5f3f #1; docs/OPEN.md Q1770). A genuinely stuck dispute has no test
   // account on it, so it is never refused here. Any test_accounts row counts
   // (wider than the payment rule's row AND is_seed), so the doubt refuses.
   // A failed read refuses (fail closed).
@@ -167,7 +167,7 @@ export async function clearTestModeRecords(args: {
 
   // Nothing recorded and never cleared: re-opening would only loop, because a
   // decision on a Stripe test-mode payment can never execute (money review of
-  // 6b2434f20, #3; docs/OPEN.md Q1762).
+  // 6b2434f20, #3; docs/OPEN.md Q1770).
   if (refundIds.length === 0 && transferIds.length === 0 && !alreadyCleared) {
     return {
       status: 409,

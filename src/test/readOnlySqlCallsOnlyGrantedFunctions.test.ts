@@ -23,7 +23,8 @@
  * @mutate supabase/migrations/20261012233929_read_only_role_reads_the_alert_close_rule.sql |     GRANT EXECUTE ON FUNCTION public.ops_alert_normalise(text) TO supabase_read_only_user; |     NULL;
  * @mutate scripts/lib/opsAlertLedger.mjs | export const OPEN_ITEMS_SQL = ` | export const OPEN_ITEMS_SQL = `SELECT public.ops_alert_verify(NULL) AS x;
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

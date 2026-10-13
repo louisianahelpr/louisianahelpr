@@ -41,6 +41,8 @@ const CHAIN = [
   "20260923215732_cron_http_untagged_close_rule.sql",
   "20260925155922_admin_queue_alerts_close_themselves.sql",
   "20260926034740_route_probe_close_rule_hardening.sql",
+  // 20260926040011 restates ops_alert_condition with a call to cron_silent_rule(), which this one defines; without it every fold raised (watchdog-fold-harness).
+  "20260926035556_cron_silent_close_rule.sql",
 ];
 const NEW = "20260926040011_ops_alert_pending_watchdog.sql";
 

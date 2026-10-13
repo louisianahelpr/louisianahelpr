@@ -241,10 +241,20 @@ export async function jobMoneyMode(
   const testActor = actor && tests.has(actor) ? [actor] : [];
   const stored = opts.kind === "new" ? null : sessionIdMode(job.storedSessionId);
   if (!stored) {
-    const counted = uniqIds([...(opts.kind === "refund" ? [job.payerId] : job.partyIds), ...extra, ...testActor]);
+    // A refund is decided by the payer alone. With the payer's account gone
+    // there is no payer to ask, so the job's remaining parties decide.
+    const refundByPayer = opts.kind === "refund" && job.payerId !== null;
+    const counted = uniqIds([...(refundByPayer ? [job.payerId] : job.partyIds), ...extra]);
     const decided = decideStripeMode(counted.map((id) => ({ id, test: tests.has(id) })));
     if (!decided.ok) {
       throw new StripeModeRefused("mixed_parties", `job ${jobId ?? "none"} (${opts.kind}): ${counted.length} parties, ${tests.size} test`);
+    }
+    // The parties decide the mode; a test actor must then be of it. A test
+    // actor alone never picks TEST mode: on a job with nobody left to decide
+    // (poster gone, no Helpr) the money is LIVE and a test actor is refused
+    // (lh-money-escrow review of cfb045d28, finding 4).
+    if (testActor.length > 0 && decided.mode !== "test") {
+      throw new StripeModeRefused("mixed_parties", `job ${jobId ?? "none"} (${opts.kind}): a test account acting on live money`);
     }
     return decided.mode;
   }

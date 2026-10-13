@@ -18,33 +18,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 
-interface VerifiedFactor {
-  id: string;
-  friendlyName: string | null | undefined;
-}
+import type { User } from "@supabase/supabase-js";
+import { SECURITY_AUTH_USER_KEY, readSecurityAuthUser, verifiedTotpOf, type VerifiedFactor } from "./securityAuthUser";
 
 // Authenticator-app (TOTP) two-step verification, backed by Supabase's
 // native MFA — no SMS, no third-party vendor. A verified factor here is
 // what the login-time challenge gate (Login.tsx) enforces on sign-in.
 /**
  * The verified-factor read, shared by this card and SecurityTab's arrival gate
- * (Q169) — same key, so one request.
+ * (Q169) — same key, so one request. Since Q1648 that key is the tab's ONE
+ * auth `/user` read (securityAuthUser.ts), which SignInMethodsCard's identity
+ * list reads too: listFactors() was a second network getUser of the same row.
+ *
+ * THROW, don't return null: readSecurityAuthUser throws on a failed read.
+ * `null` here is indistinguishable from "this account has no TOTP factor", so
+ * a failed read rendered the card as "Two-factor authentication — Off / Turn
+ * on" to a user who HAS it on. A security control that misreports its own
+ * state is worse than one that admits it doesn't know. The enroll query below
+ * already throws for exactly this reason.
  */
 export function useVerifiedFactor() {
-  return useQuery<VerifiedFactor | null>({
-    queryKey: ["security", "mfa-factor"],
-    queryFn: async () => {
-      // THROW, don't return null. `null` here is indistinguishable from "this
-      // account has no TOTP factor", so a failed read rendered the card as
-      // "Two-factor authentication — Off / Turn on" to a user who HAS it on.
-      // A security control that misreports its own state is worse than one
-      // that admits it doesn't know. The enroll query below already throws for
-      // exactly this reason. (`!`: auth-js's RequestResult pairs `data: null`
-      // only with an error, which unwrap() has already thrown.)
-      const data = unwrap(await supabase.auth.mfa.listFactors())!;
-      const totp = data.totp.find((f) => f.status === "verified");
-      return totp ? { id: totp.id, friendlyName: totp.friendly_name } : null;
-    },
+  return useQuery<User, Error, VerifiedFactor | null>({
+    queryKey: SECURITY_AUTH_USER_KEY,
+    queryFn: readSecurityAuthUser,
+    select: verifiedTotpOf,
     staleTime: 30_000,
   });
 }
@@ -218,7 +215,7 @@ function EnrollDialog({
       await Promise.all(
         stale.map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })),
       );
-      // `!` as above: a null `data` only ever comes with the error unwrap() throws.
+      // `!`: a null `data` only ever comes with the error unwrap() throws.
       const enrolled = unwrap(
         await supabase.auth.mfa.enroll({
           factorType: "totp",

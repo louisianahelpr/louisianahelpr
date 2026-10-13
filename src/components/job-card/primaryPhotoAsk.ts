@@ -35,6 +35,23 @@ export function primaryPhotoAsk(args: {
 }
 
 /**
+ * The same question at the working step (work underway, which only the
+ * tracking row knows: the caller asks only then). The owed after photo is that
+ * step's primary on a one-Helpr job until it is taken.
+ */
+export function afterPhotoIsThePrimary(job: Job): boolean {
+  if (!photoProofRequired(job) || !job.helper_arrived_at) return false;
+  return (
+    primaryPhotoAsk({
+      crew: job.is_group_job === true,
+      step: "working",
+      beforeCount: (job.proof_before_urls ?? []).length,
+      afterCount: (job.proof_after_urls ?? []).length,
+    }) === "after"
+  );
+}
+
+/**
  * The collapsed line's question: is this arrived one-Helpr job's primary the
  * before photo? With no before photo the Helpr cannot be at the working step
  * (Start Working is refused server-side until it exists:

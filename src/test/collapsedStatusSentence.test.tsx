@@ -53,6 +53,7 @@
  * @mutate src/components/job-card/JobStatusStrip.tsx | className="px-4 py-2 flex items-center gap-1.5 flex-wrap" | className="px-4 py-2 flex items-center gap-1.5 flex-nowrap"
  * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <PosterStatusStrip | {(true) && (\n              <PosterStatusStrip
  * @mutate src/components/job-card/jobStatusLine.ts | return "done_both_open";\n      }\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | return "done_both_open";\n      }\n      return "done_paid";
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | reviewed={isFullyDone} tracking={initialTracking} /> | reviewed={isFullyDone} />
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -131,6 +132,8 @@ import {
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { deriveAppliedJobCardState } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
+import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
+import type { TrackingData } from "@/components/JobTracking";
 import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { glyphPx } from "./jobStepRowCases";
 import { Constants } from "@/integrations/supabase/types";
@@ -370,7 +373,7 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   }),
   working: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
-    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: ["before.jpg"],
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: ["before.jpg"], proof_after_urls: ["after.jpg"],
   }),
   submitted: makeApp({}, {
     status: "in_progress", helper_id: HELPER, date_needed: TODAY,
@@ -390,11 +393,37 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   }),
   overdue_unfinished: makeApp({}, {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
-    proof_before_urls: ["before.jpg"],
+    proof_before_urls: ["before.jpg"], proof_after_urls: ["after.jpg"],
   }),
   overdue_before_photo: makeApp({}, {
     status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
     proof_before_urls: [],
+  }),
+  /* The six states only the card's tracking row reaches (HELPER_TRACKING below). */
+  start_working: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, date_needed: TODAY,
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), helper_arrival_verified_at: ago(1), proof_before_urls: ["before.jpg"],
+  }),
+  arrival_unconfirmed: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, date_needed: TODAY,
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), proof_before_urls: ["before.jpg"],
+  }),
+  after_photo: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, date_needed: TODAY,
+    helper_confirmed_at: ago(20), helper_arrived_at: ago(1), helper_arrival_verified_at: ago(1),
+    proof_before_urls: ["before.jpg"], proof_after_urls: [],
+  }),
+  overdue_start_working: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+    helper_arrival_verified_at: ago(30), proof_before_urls: ["before.jpg"],
+  }),
+  overdue_arrival_unconfirmed: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+    proof_before_urls: ["before.jpg"],
+  }),
+  overdue_after_photo: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+    helper_arrival_verified_at: ago(30), proof_before_urls: ["before.jpg"], proof_after_urls: [],
   }),
   dispute: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "open" }),
   dispute_escalated: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "escalated" }),
@@ -406,6 +435,33 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   /* Q451: the helper's half of done_payout_pending. */
   done_payout_pending: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "payout_pending" }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
+};
+
+/* The `job_tracking.status` each tracking-dependent fixture's card holds.
+   (Mount wiring: "every collapsed state draws exactly one strip" renders the
+   real AppliedJobCard with it, so a card that stops passing it to the strip
+   reads after_photo's job as start_working and fails.) The
+   jobs row alone cannot say whether work began; AppliedJobCard passes the
+   list's tracking row to HelperCollapsedStrip (helperProgress). A fixture
+   not listed here has no tracking row, as on a list that holds none. */
+const HELPER_TRACKING: Partial<Record<HelperWait, string>> = {
+  working: "working",
+  overdue_unfinished: "working",
+  start_working: "arrived",
+  arrival_unconfirmed: "arrived",
+  after_photo: "working",
+  overdue_start_working: "arrived",
+  overdue_arrival_unconfirmed: "arrived",
+  overdue_after_photo: "working",
+};
+const trackingOf = (id: HelperWait): TrackingData | null => {
+  const status = HELPER_TRACKING[id];
+  return status ? { id: "t-1", status, latitude: null, longitude: null, eta_minutes: null, updated_at: ago(1) } : null;
+};
+/** The progress the collapsed strip derives from that row (null row = job-row evidence only). */
+const progressOf = (id: HelperWait) => {
+  const j = HELPER_FIXTURES[id].job;
+  return j ? { workUnderway: helperProgress(j, trackingOf(id)?.status).workUnderway } : undefined;
 };
 
 /* ═══════════════════════════ 1 — THE INVENTORY ══════════════════════════ */
@@ -446,14 +502,14 @@ describe("every state a collapsed card can be in has a sentence", () => {
   });
 
   it("Jobs: the fixtures REACH every id in the table", () => {
-    const reached = new Set(HELPER_WAIT_IDS.map((id) => deriveHelperWait(HELPER_FIXTURES[id])));
+    const reached = new Set(HELPER_WAIT_IDS.map((id) => deriveHelperWait(HELPER_FIXTURES[id], progressOf(id))));
     const missing = HELPER_WAIT_IDS.filter((id) => !reached.has(id));
     expect(missing, `unproven helper states: ${missing.join(", ")}`).toEqual([]);
   });
 
   it("Jobs: each fixture produces the id it is filed under", () => {
     for (const id of HELPER_WAIT_IDS) {
-      expect(deriveHelperWait(HELPER_FIXTURES[id]), `the ${id} fixture no longer derives ${id}`).toBe(id);
+      expect(deriveHelperWait(HELPER_FIXTURES[id], progressOf(id)), `the ${id} fixture no longer derives ${id}`).toBe(id);
     }
   });
 
@@ -645,7 +701,7 @@ describe("every sentence fits the collapsed card it sits in", () => {
       const f = POSTER_FIXTURES[id];
       return { side: "Posts", ...posterStatusLine(f.job, f.pending ?? 0) };
     }),
-    ...HELPER_WAIT_IDS.map((id) => ({ side: "Jobs", ...helperStatusLine(HELPER_FIXTURES[id]) })),
+    ...HELPER_WAIT_IDS.map((id) => ({ side: "Jobs", ...helperStatusLine(HELPER_FIXTURES[id], false, progressOf(id)) })),
   ];
 
   it("there are lines to measure — inventory floor", () => {
@@ -810,7 +866,7 @@ function renderPosted(
   );
 }
 
-function renderApplied(app: AppliedApp, expanded: boolean) {
+function renderApplied(app: AppliedApp, expanded: boolean, initialTracking?: TrackingData | null) {
   document.body.innerHTML = "";
   return wrap(
     <AppliedJobCard
@@ -819,6 +875,7 @@ function renderApplied(app: AppliedApp, expanded: boolean) {
       toggleExpandedJobId={noop}
       helperReviewedJobIds={new Set()}
       userId={HELPER}
+      initialTracking={initialTracking}
       onHelperResponse={noop} respondingHelperAppId={null}
       onComplete={noop} completingJobId={null}
       onResolveRevision={noop} onHelperReview={noop}
@@ -865,7 +922,7 @@ describe("BOTH cards mount it, collapsed only", () => {
       const minimal = id === "not_selected" || id === "cancelled" || id === "job_gone";
       const app = HELPER_FIXTURES[id];
       const offerCard = !minimal && !!app.job && deriveAppliedJobCardState(app, app.job, new Set(), new Set()).isOffered;
-      renderApplied(app, false);
+      renderApplied(app, false, trackingOf(id));
       const els = document.querySelectorAll("[data-job-status-strip]");
       expect(els, `Jobs/${id}: ${els.length} strips`).toHaveLength(minimal || offerCard ? 0 : 1);
       if (!minimal && !offerCard) expect((els[0] as HTMLElement).dataset.jobStatusStrip, `Jobs/${id}`).toBe(id);

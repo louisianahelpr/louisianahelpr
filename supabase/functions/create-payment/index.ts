@@ -15,6 +15,14 @@ import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFees.ts";
+
+/**
+ * Q1415 (b): what a release answers while an open ban settlement review holds
+ * the job's money. Final (a retry cannot pass the review) and neutral (it
+ * never says whose account is under review).
+ */
+const BAN_REVIEW_RELEASE_MESSAGE =
+  "This job's payment is on hold while our team reviews it, so it can't be released right now. You don't need to do anything: we'll finish it once the review is done.";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
@@ -1235,6 +1243,14 @@ serve(async (req) => {
         const { data, error: updateError } = await conditional.select("id");
         if (updateError) {
           console.error("Failed to update job:", updateError);
+          // Q1415 (b): an open ban settlement review on this job's poster or
+          // Helpr refuses escrow -> payout_pending
+          // (trg_refuse_payout_pending_during_ban_review). Retrying cannot
+          // help until an admin decides, so the answer is final and neutral:
+          // it never says whose account is under review.
+          if (/\bban_review_open\b/.test(String(updateError.message ?? ""))) {
+            throw new PublicError(BAN_REVIEW_RELEASE_MESSAGE);
+          }
           throw new PublicError("Failed to update the job status — please try again");
         }
         if (data && data.length > 0) {

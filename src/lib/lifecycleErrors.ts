@@ -437,6 +437,8 @@ export const RPC_ERROR_COPY = {
   },
   admin_release_payout_hold: {
     admin_only: "Only admins can release a payout hold.",
+    // Q1415 (d): the review decides the money; a hold release cannot pre-empt it.
+    ban_review_open: "This Helpr is under an open ban review, so their payouts stay held. Confirm or lift the review in the Ban review queue; that clears the hold.",
   },
   // AdminAnalytics → Sign-up leads card (Q1587, 20261012030524).
   admin_list_signup_leads: {

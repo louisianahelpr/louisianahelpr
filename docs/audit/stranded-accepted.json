@@ -802,6 +802,12 @@
       "sha": "3907a9888960ed380ff98e717d9c15ffc20ad6cb",
       "reason": "Refund notice (owner report 2026-10-12): landed through money-h and money-n as item Q1731 (_shared/refundNotice.ts, every refund path calls sendRefundNotice, the e2e producer entry and the 04-admin-safety refund leg are on main). The leftover lines are this PR's earlier text: comments citing the old number Q1654 and the first version of the keptReason/sweep code main has since rewritten.",
       "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs after #2918; leftover lines read)"
+    },
+    {
+      "id": "remote:origin/fixpr/2761-hidden-switches",
+      "sha": "51bd6b918e98eb14483f0cf020b444ad1f78cfd8",
+      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards all byte-identical on main). Leftover lines are this branch's OLDER FeeModelCard copy (poster pays a tier service fee), superseded by main's owner 2026-10-11 no-poster-fee copy; landing them would revert it (lead agreed 2026-10-13). Its untracked OPEN item (the Q140 PGlite twin crash) is filed on main as Q1784.",
+      "checked": "2026-10-13 (lander2, content-checked against origin/main 74a7b4555 with scripts/lib/strandedContent.mjs)"
     }
   ]
 }

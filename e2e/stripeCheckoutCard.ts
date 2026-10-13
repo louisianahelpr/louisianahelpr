@@ -83,11 +83,10 @@ export async function stripeLayoutReport(page: Page): Promise<string> {
  * Throws stripeLayoutReport on timeout, naming what the page rendered instead.
  */
 export async function waitForStripePaymentMethods(page: Page, timeout = 60_000): Promise<void> {
-  try {
-    await stripePaymentMethodControl(page).waitFor({ state: "visible", timeout });
-  } catch (err) {
-    throw new Error(`${await stripeLayoutReport(page)} (${String(err).split("\n")[0].slice(0, 120)})`, { cause: err });
-  }
+  const waited = await stripePaymentMethodControl(page)
+    .waitFor({ state: "visible", timeout })
+    .then(() => null, (err: unknown) => String(err).split("\n")[0].slice(0, 120));
+  if (waited !== null) throw new Error(`${await stripeLayoutReport(page)} (${waited})`);
 }
 
 export async function openCardFields(page: Page, attempts = 3): Promise<Locator> {

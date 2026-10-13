@@ -3,6 +3,7 @@ import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyStat
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import type { Tab } from "@/components/job-card/activityConstants";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
  * ActivityEmptyState — the empty / error / no-matches panel shown when the
@@ -62,6 +63,8 @@ export function ActivityEmptyState({
   onSelectStatusFilter,
   onClearSearch,
 }: ActivityEmptyStateProps) {
+  // Q1586(c): the "Post a Job" pointer is greyed out under 18; a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const isPosted = tab === "posted";
   const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
   // A failed fetch of THIS tab shows a recoverable ErrorState rather than a
@@ -203,7 +206,10 @@ export function ActivityEmptyState({
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
             </BarkPillButton>
           ) : (
-            <BarkPillButton onClick={() => onNavigate(ctaTo)}>
+            <BarkPillButton
+              onClick={ctaTo === "/post-job" ? ageGate("post", () => onNavigate(ctaTo)) : () => onNavigate(ctaTo)}
+              {...(ctaTo === "/post-job" ? ageGatedProps("post") : {})}
+            >
               {ctaLabel}
             </BarkPillButton>
           )

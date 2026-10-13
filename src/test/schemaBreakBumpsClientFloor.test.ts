@@ -31,7 +31,7 @@ import { migrationFiles, parseDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay";
 
-// @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 1; | export const CLIENT_COMPAT_EPOCH = 2;
+// @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 2; | export const CLIENT_COMPAT_EPOCH = 1;
 // @mutate supabase/migrations/20261005191110_client_compat_floor.sql | AS $$ SELECT 1 $$; | AS $$ SELECT 0 $$;
 // @mutate src/test/schemaBreakBumpsClientFloor.test.ts | client_compat_floor.sql";\n | payout_holds_server_side.sql";\n
 

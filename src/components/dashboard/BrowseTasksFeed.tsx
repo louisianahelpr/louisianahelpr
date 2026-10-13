@@ -1,8 +1,7 @@
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
-import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Search, Plus, Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -30,6 +29,7 @@ import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 import { partitionBrowseFeed } from "@/pages/home/browseFeedSections";
 import { BrowseMap } from "@/components/dashboard/lazyBrowseMap";
 import { CompactFeedCard, JobFeedCard, type CompactCardCommonProps, type JobCardCommonProps } from "@/components/dashboard/feedCards";
+import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
@@ -232,7 +232,6 @@ export function BrowseTasksFeed({
   const fallbackLoc = filterLoc ?? getCachedUserLocation();
   const userLat = fallbackLoc?.lat ?? null;
   const userLng = fallbackLoc?.lng ?? null;
-  const navigate = useNavigate();
   const notifyWhenWorkLands = useNotifyWhenWorkLands();
 
   // Stable per-card expand toggle. Previously an inline arrow was created
@@ -539,34 +538,8 @@ export function BrowseTasksFeed({
                 </Button>
               )
             ) : (
-              // Both actions used to be `ghost` at the same olivewood/80, so the
-              // screen's only real primary was an unlabelled floating "+" and
-              // the two visible options were indistinguishable. The old comment
-              // reasoned that keeping them quiet avoided duplicating the FAB —
-              // sound, but the outcome was a screen with no primary at all.
-              //
-              // The fork itself stays (every account can post AND work — this
-              // product has no roles). Equal importance does not require equal
-              // visual weight: an empty feed is itself proof there is no work to
-              // take, so posting leads and Notify is the quiet second line.
-              <div className="flex flex-col items-center gap-3">
-                <Button
-                  onClick={() => navigate("/post-job")}
-                  className="rounded-ds-md"
-                >
-                  <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
-                  Post Your First Job
-                </Button>
-                <Button
-                  variant="ghost" size="wrap"
-                  onClick={notifyWhenWorkLands}
-                  className="rounded-ds-md font-sans font-medium max-w-full"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
-                  Notify Me When One Lands
-                </Button>
-              </div>
+              // Post Your First Job + Notify Me (and the under-18 grey-out, Q1586(c)).
+              <EmptyFeedActions onNotify={notifyWhenWorkLands} />
             )
           }
         />

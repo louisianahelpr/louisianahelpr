@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { unwrap } from "@/lib/supabaseResult";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
@@ -128,7 +129,8 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
   const { data, error } = await supabase.rpc("claim_series_dates", { p_job_id: jobId, p_dates: dates });
   // The accept gate judges each visit the dates confirm, from a trigger, so
   // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
-  if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error));
+  // Q1586(c): a saved birthday under 18 is refused by the applications trigger too.
+  if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null));
   const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[] };
   return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [] };
 }

@@ -45,7 +45,10 @@ const refetchSaved = vi.fn();
 const savedAnswer: { data: string[] | undefined; isError: boolean; isFetching: boolean } = {
   data: undefined, isError: true, isFetching: false,
 };
-vi.mock("@tanstack/react-query", () => ({
+// importOriginal: the Browse feed's under-18 gate (Q1586(c)) reads the app's
+// one QueryClient (src/lib/queryClient.ts constructs it on import).
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQuery: (opts: { queryKey: unknown[] }) =>
     JSON.stringify(opts.queryKey).includes("aved")
       ? { ...savedAnswer, refetch: refetchSaved }

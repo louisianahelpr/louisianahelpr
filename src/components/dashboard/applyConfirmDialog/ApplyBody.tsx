@@ -15,6 +15,8 @@ import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePhotoPrompt } from "@/components/PhotoPrompt";
+import { useAgeGate } from "@/hooks/useAgeGate";
+import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 import {
@@ -97,6 +99,9 @@ export function ApplyBody({
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
   const { askThen: askPhotoThen, dialog: photoPrompt } = usePhotoPrompt();
+  // Q1586(c): a saved birthday under 18 greys Apply Now out (the server
+  // refuses apply_to_job too).
+  const { underAge } = useAgeGate();
   const draftKey = pitchDraftKey(userId, jobId);
   const templateKey = pitchTemplateKey(userId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -212,6 +217,7 @@ export function ApplyBody({
   }, [online]);
 
   const handleConfirm = () => {
+    if (underAge) return;
     hapticMedium();
     // SAME CONTRACT AS MESSAGES. The server scans this note exactly as it scans
     // a chat message and, when it trips a rule, stores the application with
@@ -469,6 +475,7 @@ export function ApplyBody({
           pulls the block up over whatever is above it — so a fitting sheet
           gets plain flow: no sticky, no negative margin, no shadow, and the
           row's own `pb` is the only thing under the button. */}
+      {underAge && <AgeGateNote kind="apply" className="pt-2" />}
       <div className="flex gap-1.5 pt-2">
         {/* Same primitive and surface as every other primary CTA in the app,
             JobDetailFooter's included — one button, one set of effects: the glossy
@@ -488,7 +495,7 @@ export function ApplyBody({
           size="lg"
           type="button"
           onClick={handleConfirm}
-          disabled={applyLoading}
+          disabled={applyLoading || underAge}
           className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group disabled:opacity-60"
         >
           <span>

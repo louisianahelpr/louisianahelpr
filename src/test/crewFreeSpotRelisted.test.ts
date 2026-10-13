@@ -47,6 +47,8 @@ const SEED_SWITCH = "20261007033530_seed_switch_hides_test_profiles.sql";
 const BLOCK_FEE = "20261007073145_crew_block_fee_ledger.sql";
 /** Q1401: the same bodies again, with the day test swapped for the listing's start (job_offer_cutoff). */
 const LISTING_START = "20261012185633_listing_closes_at_start.sql";
+/** Q1586(c): apply_to_job restated with the under-18 refusal first; the crew rule is unchanged. */
+const UNDER_18 = "20261013010621_under_18_cannot_apply_or_post.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
 
 /** Every place that decides whether a job takes applicants, and how it must read the rule. */
@@ -71,7 +73,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 

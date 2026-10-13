@@ -200,4 +200,4 @@ test.describe("helper browse-and-apply happy path", () => {
 // with this guard (measured, 2026-09-21). The control under test is ApplyBody's
 // own submit. Disabling it leaves a button that still renders and still reads
 // "Apply Now" — the dead-CTA shape the toBeEnabled assertion above exists for.
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | disabled={applyLoading} | disabled={true}
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | disabled={applyLoading \|\| underAge} | disabled={true}

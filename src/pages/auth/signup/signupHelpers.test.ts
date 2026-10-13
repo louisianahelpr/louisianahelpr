@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   formatPhone,
-  ageFromDob,
   suggestEmailCorrection,
   passwordStrength,
   PASSWORD_RULES,
@@ -40,29 +39,6 @@ describe("formatPhone", () => {
   });
 });
 
-describe("ageFromDob", () => {
-  it("returns whole years for a birthday already passed this year", () => {
-    const fortyYearsAgo = new Date();
-    fortyYearsAgo.setFullYear(fortyYearsAgo.getFullYear() - 40);
-    fortyYearsAgo.setDate(fortyYearsAgo.getDate() - 1); // yesterday relative
-    const dobStr = fortyYearsAgo.toISOString().split("T")[0];
-    expect(ageFromDob(dobStr)).toBe(40);
-  });
-
-  it("subtracts one year if birthday hasn't happened yet this year", () => {
-    const today = new Date();
-    const futureBirthdayThisYear = new Date(today);
-    futureBirthdayThisYear.setDate(today.getDate() + 30);
-    futureBirthdayThisYear.setFullYear(today.getFullYear() - 25);
-    const dobStr = futureBirthdayThisYear.toISOString().split("T")[0];
-    expect(ageFromDob(dobStr)).toBe(24);
-  });
-
-  it("returns 0 for a baby born today", () => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    expect(ageFromDob(todayStr)).toBe(0);
-  });
-});
 
 describe("suggestEmailCorrection", () => {
   it("corrects common domain typos", () => {

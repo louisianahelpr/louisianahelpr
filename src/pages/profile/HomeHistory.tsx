@@ -28,6 +28,7 @@ import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 // jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
 type Job = ReadableJobRow;
@@ -116,6 +117,8 @@ function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: Comp
  */
 const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
   const navigate = useNavigate();
+  // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const { user } = useAuthReady();
   const userId = user?.id;
 
@@ -340,7 +343,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
             title="No finished jobs yet"
             body="When a job is done it lands here for good — who came out, what it cost, and when. It's your home's permanent service history."
             action={
-              <BarkPillButton onClick={() => navigate("/post-job")}>
+              <BarkPillButton onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")}>
                 Post your first job
               </BarkPillButton>
             }

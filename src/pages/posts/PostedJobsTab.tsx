@@ -20,6 +20,7 @@ import { useApplicantSignals } from "./postedJobs/useApplicantSignals";
 import { useJobAnalytics } from "./postedJobs/useJobAnalytics";
 import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 import { RecurringVisitPayments } from "./postedJobs/RecurringVisitPayments";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 interface PostedJobsTabProps {
   jobs: Job[];
@@ -299,6 +300,8 @@ export const PostedJobsTab = ({
   statusFilter, statusCounts, statusLabels, onSelectStatusFilter,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
+  // Q1586(c): a saved birthday under 18 greys this Post entry out; a tap says why.
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -423,7 +426,7 @@ export const PostedJobsTab = ({
         title="No posts yet in this view"
         body="Post your first job and we'll match you with ID-verified Louisiana Helprs nearby."
         action={
-          <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
+          <Button onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")} className="rounded-ds-md btn-press">
             <Wrench className="w-4 h-4 mr-1.5" /> Post a Job
           </Button>
         }

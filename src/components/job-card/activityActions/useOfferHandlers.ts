@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
@@ -267,6 +268,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         (isGroupJob
           ? rpcErrorMessage("accept_group_application", error)
           : rpcErrorMessage("accept_application", error)) ??
+          // Q1586(c): the database refused this Helpr (trg_*_refuse_under_18);
+          // the poster is never told why (no age), and retrying cannot help.
+          (/helper_unavailable/.test(String((error as { message?: unknown }).message ?? ""))
+            ? "This Helpr can't take this job. Pick someone else."
+            : null) ??
           "Couldn't send the offer — please try again.",
       );
     }
@@ -371,6 +377,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       if (isUnfundedAwardRefusal(error)) {
         toast.error(UNFUNDED_AWARD_COPY);
         await refresh();
+        return;
+      }
+      // Q1586(c): a saved birthday under 18 (the applications trigger).
+      if (isUnder18Refusal(error)) {
+        toast.error(UNDER_18_APPLY_COPY);
         return;
       }
       report(error, { tags: { source: "useOfferHandlers.respondToDirectOffer" } });

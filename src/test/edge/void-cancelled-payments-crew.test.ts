@@ -586,7 +586,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   // platform balance (no charge to link); review #6: the gift notice says
   // what the gift kept.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(keptForBlockFees / 100)} of it paid the cancellation fee for the crew spots you closed.` |                 ? ""
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.` |                 ? ""
   it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
     seedGiftCrew([BLOCK]);
     const h = await load();
@@ -595,7 +595,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     expect(fee).toHaveLength(1);
     expect((fee[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
-    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$25(\.\d\d)? of it paid the cancellation fee for the crew spots you closed\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$25 of it paid the cancellation fee for the crew spots you closed\./);
   });
 
   it("a member whose account is gone is voided first, so the whole gift comes back", async () => {

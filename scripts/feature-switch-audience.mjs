@@ -23,8 +23,12 @@
  * confirmed, profile marked is_seed, no password: every session here is minted
  * with the service role, scripts/lib/adminSession.mjs, Q1314), and asserted NOT
  * admin and NOT a test account before
- * anything is judged (else the check would be vacuous). On the company domain,
- * not mailinator: a public inbox would let anyone reset its password.
+ * anything is judged (else the check would be vacuous). A @mailinator.com
+ * fixture inbox (2026-10-13): mintAdminSession signs in only the shared test
+ * accounts and mailinator fixture inboxes (Q1422), and the company-domain probe
+ * it first used was refused, so the nightly run went red (nightly-red #2978,
+ * run 38446754274). The account holds nothing (no password, is_seed, no role);
+ * someone who reset it through the public inbox would hold an empty member.
  *
  * Fails closed: any read that errors, an empty registry, a missing secret, or
  * a non-boolean answer exits 1. Read-only apart from the probe account itself.
@@ -37,7 +41,7 @@
  */
 import { pathToFileURL } from "node:url";
 
-export const PROBE_EMAIL = "helpr-switch-probe-1012@louisianahelpr.com";
+export const PROBE_EMAIL = "helpr-switch-probe-1013@mailinator.com";
 
 /**
  * @param {{

@@ -35,14 +35,20 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+  // The focus ring belongs to the whole field (icon + text + the caller's ✕),
+  // drawn INSET: the global unlayered `:focus-visible` outline (2px, offset
+  // 2px) used to land on the bare <input>, so it boxed the text without its
+  // search icon and Command's overflow-hidden clipped its top edge (admin Jump
+  // To palette, seen 2026-10-12 at 375 and 1440 proving Q913).
+  // src/test/commandInputFocusRing.test.ts.
+  <div className="flex items-center rounded-md border-b px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[hsl(var(--ring)/0.5)]" cmdk-input-wrapper="">
     {/* muted token, not opacity-50: the project bans opacity as a state/
         emphasis signal because it attenuates text. */}
     <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none focus-visible:!outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}

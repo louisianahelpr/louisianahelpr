@@ -103,13 +103,17 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
       ? { fetchpriority: "high" }
       : {};
 
-    // Fade-in: start transparent over a parchment tint, transition to opaque
-    // once the image reports loaded. Composed into the caller's own `style`
-    // so a passed `style` prop still wins for anything it sets.
+    // Fade-in: start (almost) transparent over a parchment tint, transition to
+    // opaque once the image reports loaded. Composed into the caller's own
+    // `style` so a passed `style` prop still wins for anything it sets.
+    // The first frame is 0.01, never 0: Chrome's LCP does not count an
+    // element painted at opacity 0, so a job photo that faded from 0 was
+    // reported as painting only when the fade ended (Q1172, same class as
+    // Q1158's page fades). src/test/optimizedImageFadeNotFromZero.test.tsx.
     const fadeStyle: React.CSSProperties = fadeIn
       ? {
           backgroundColor: loaded ? undefined : "hsl(var(--parchment) / 0.5)",
-          opacity: loaded ? 1 : 0,
+          opacity: loaded ? 1 : 0.01,
           transition: "opacity 320ms ease-out",
         }
       : {};

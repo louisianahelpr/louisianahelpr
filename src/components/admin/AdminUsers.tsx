@@ -18,7 +18,7 @@ import { type Profile } from "./adminUserHelpers";
 import { useAdminUserSummaries } from "./useAdminUserSummaries";
 import { makeOpenProfile, type AdminProfileBan, type AdminProfileJob, type AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { makeAdminUserActions } from "./adminusers/useAdminUserActions";
-import { filterAndSortProfiles, getTabCounts, isTestAccount, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
+import { filterAndSortProfiles, getTabCounts, isTestAccount, usersEmptyBody, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AdminUserRow } from "./adminusers/AdminUserRow";
@@ -472,11 +472,7 @@ const AdminUsers = () => {
           variant="inline"
           icon={Users}
           title="No users here"
-          body={
-            hiddenTestMatches > 0
-              ? `${hiddenTestMatches} test ${hiddenTestMatches === 1 ? "account matches" : "accounts match"}. Turn on Show test accounts to see ${hiddenTestMatches === 1 ? "it" : "them"}.`
-              : `Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`
-          }
+          body={usersEmptyBody({ hiddenTestMatches, query: trimmedQuery, tab, tabLabel: tabCountLabel[tab] })}
         />
       ) : (
         // aria-busy until every per-row summary has settled: a row read before

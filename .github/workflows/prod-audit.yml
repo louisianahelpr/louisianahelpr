@@ -878,7 +878,7 @@ jobs:
       # A `grep` dispatch that names only one of the two projects finds no
       # test in the other, hence --pass-with-no-tests on both grep branches.
       - name: Run the first-screen Web Vitals lab budget
-        timeout-minutes: 14 # leg 4: 28 + 14 = 42 of its 55
+        timeout-minutes: 24 # leg 4: 28 + 24 = 52 of its 55 (+10: Q1170's returning-visitor check, ~5 min of expired-token loads)
         if: ${{ !cancelled() && inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}

@@ -63,6 +63,8 @@ const PORT = 4394;
 const BASE = `https://127.0.0.1:${PORT}`;
 /** Cold loads per screen and profile; the median is judged. */
 const RUNS = 3;
+/** Q1170: the first test's signed-in mobile LCPs (fresh session) per path, reused by the returning-visitor test. */
+const FRESH_MOBILE_LCP = new Map<string, (number | null)[]>();
 /** A tap's own jump (page-settle's cold-load budget) and the session's (Speed Insights' GOOD). */
 const WALK_HOP_CLS = 0.02;
 const WALK = ["Posts", "Jobs", "Messages", "Profile", "@Earnings", "Jobs", "Home"] as const;
@@ -182,6 +184,10 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
         landed: [...new Set(runs.map((r) => r.landed))],
         runs: runs.map((r) => `FCP ${r.fcp} LCP ${r.lcp} drawn ${r.marks.appDrawn}`),
       };
+      // Q1170: the signed-in mobile cold loads are the fresh-session side of
+      // the returning-visitor check below; it reuses them instead of loading
+      // every screen three more times (the CI step has 14 minutes for both).
+      if (profileName === "mobile" && screen.signedIn) FRESH_MOBILE_LCP.set(screen.path, runs.map((x) => x.lcp));
       const r = results[key];
       console.log(`[web-vitals] ${key.padEnd(18)} FCP ${r.fcp} LCP ${r.lcp} CLS ${r.cls}  ${(r.lcpEl ?? "").slice(0, 70)}  [${r.runs.join(" | ")}]`);
     }
@@ -216,6 +222,73 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
   }
   expect(fails, "first screens outside their lab budget").toEqual([]);
   expect(stale, "KNOWN entries now inside GOOD or far under their ceiling: delete or lower them").toEqual([]);
+});
+
+/**
+ * Q1170: A RETURNING VISITOR LOADS AS FAST AS A FRESH ONE. A real returning
+ * visitor's access token has always expired (it lives an hour), and supabase-js
+ * refreshed it only once the whole app had downloaded, so every first-screen
+ * read waited on it: /jobs LCP 4924 -> 5672 ms, /home 6396 -> 6996 at 375 (lab,
+ * 2026-10-03). src/entry.ts now starts the refresh beside the download
+ * (src/boot/entryAuthRefresh.ts). This loads every signed-in first screen at
+ * 375 (Slow 4G + calibrated CPU) with a fresh token and with an expired one,
+ * interleaved so drift hits both alike, and compares the median LCPs: the
+ * expired-token gap must stay under EXPIRED_MEAN_SLACK_MS averaged over every
+ * signed-in first screen, and under EXPIRED_SCREEN_SLACK_MS on any one of
+ * them. Two bars because one screen's lab LCP is bimodal (/post-job's median
+ * moves ~500 ms between runs with nothing changed), so a tight per-screen bar
+ * would flake while the mean stays steady.
+ * Measured 2026-10-12 (local Mac, prod data, medians of 3, write firewall on):
+ * this build: gaps /home 4, /messages 196, /jobs 8, /posts -304, /post-job 0,
+ * /profile -164 (mean -43, max 196): green. The same build with the entry
+ * refresh removed: -168, 692, 700, -360, 512, 348 (mean 287, max 700): red.
+ */
+// @mutate src/entry.ts | startEntryAuthRefresh();\n | \n
+const EXPIRED_MEAN_SLACK_MS = 150;
+const EXPIRED_SCREEN_SLACK_MS = 600;
+test("a returning visitor (expired token): signed-in first screens' LCP as fast as a fresh session's", async ({ browser, request }) => {
+  test.setTimeout(30 * 60_000);
+  const screens = firstScreens().filter((s) => s.signedIn);
+  // Floor: /home, /jobs, /posts, /messages, /profile, /post-job when this landed.
+  expect(screens.length).toBeGreaterThan(4);
+  const session = await getSession(request, "poster");
+  const profile = PROFILES.mobile;
+  const rate = calibratedCpuRate(profile.cpu, await cpuBenchmarkMs(browser));
+  const fails: string[] = [];
+  const gaps: number[] = [];
+  for (const screen of screens) {
+    // Fresh side: the first test's own cold loads of this screen when it ran
+    // just before in this worker (CI), else measured here, interleaved with
+    // the expired loads (a -g run of this test alone).
+    const reused = FRESH_MOBILE_LCP.get(screen.path);
+    const lcp: Record<"fresh" | "expired", (number | null)[]> = { fresh: reused ? [...reused] : [], expired: [] };
+    for (let i = 0; i < RUNS; i++) {
+      for (const kind of (reused ? ["expired"] : ["fresh", "expired"]) as ("fresh" | "expired")[]) {
+        const ctx = await labContext(browser, profile, null);
+        await ctx.addInitScript(...sessionInit({ key: AUTH_STORAGE_KEY, value: JSON.stringify(session), expired: kind === "expired" }));
+        const page = await ctx.newPage();
+        await applyThrottle(ctx, page, profile, "chromium", rate);
+        await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 60_000 });
+        await settle(page, { quietMs: 4000, maxMs: 45_000 });
+        const landed = new URL(page.url()).pathname;
+        if (landed !== screen.path) fails.push(`${screen.path} (${kind}): landed on ${landed}`);
+        lcp[kind].push((await readCwv(page)).lcp);
+        await ctx.close();
+      }
+    }
+    const fresh = median(lcp.fresh);
+    const expired = median(lcp.expired);
+    console.log(`[web-vitals] expired-token ${screen.path.padEnd(10)} fresh LCP ${fresh} expired LCP ${expired} gap ${fresh != null && expired != null ? expired - fresh : "?"}  [fresh ${lcp.fresh.join(", ")} | expired ${lcp.expired.join(", ")}]`);
+    if (fresh == null || expired == null) fails.push(`${screen.path}: no LCP recorded (fresh ${fresh}, expired ${expired})`);
+    else {
+      gaps.push(expired - fresh);
+      if (expired - fresh > EXPIRED_SCREEN_SLACK_MS) fails.push(`${screen.path}: expired-token LCP ${expired} ms is ${expired - fresh} ms over the fresh session's ${fresh} ms (screen slack ${EXPIRED_SCREEN_SLACK_MS})`);
+    }
+  }
+  const mean = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : 0;
+  console.log(`[web-vitals] expired-token mean gap ${mean} ms over ${gaps.length} screens (slack ${EXPIRED_MEAN_SLACK_MS})`);
+  if (mean > EXPIRED_MEAN_SLACK_MS) fails.push(`expired-token LCP is ${mean} ms over a fresh session's on average across ${gaps.length} signed-in first screens (slack ${EXPIRED_MEAN_SLACK_MS})`);
+  expect(fails, "first screens a returning visitor waits longer for").toEqual([]);
 });
 
 test("a tap never leads to a jump: walk the dock / rail, per-tap CLS < 0.02, session CLS <= 0.1", async ({ browser, request }) => {

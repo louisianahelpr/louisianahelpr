@@ -148,14 +148,16 @@ const Legal = () => {
   // already on screen — so it duplicated visible content and cost a 14rem
   // column. Removed along with its scrollspy.)
 
-  // WEB: the tab band pins to the very top of the viewport on scroll. We do
-  // NOT offset by the marketing Navbar's height: that Navbar is `position:
-  // fixed`, but the global Framer page-transition wrapper sets `will-change:
-  // transform`, which makes the wrapper a containing block — so the Navbar
-  // anchors to it and scrolls away with the page instead of staying pinned.
-  // Offsetting by 3.5rem therefore left an empty strip above the band where
-  // later content (search / tagline) leaked through. top: 0 closes that gap.
-  const webBandStickyTop = "0px";
+  // WEB: the tab band pins just under the fixed marketing Navbar (a guest's
+  // page), or at the very top of the AppShell scroll box (signed in: no
+  // marketing nav). It used to pin at top 0 for everyone on the theory that
+  // the Navbar scrolled away inside the page-transition wrapper; measured on
+  // prod 2026-10-12 (proving Q965) the Navbar stays fixed at top 0 through a
+  // scroll, so the pinned band sat UNDER it (z-30 under z-50) and the Terms /
+  // Rules / Privacy tabs were hidden at 375 and 1440. The offset is the
+  // Navbar's own height, the same expression PublicLayout's spacer uses.
+  // src/test/legalBandClearsMarketingNav.test.ts.
+  const webBandStickyTop = user ? "0px" : "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))";
 
   // Switching tabs is a fresh document: drop any active search and start the
   // new policy at its beginning rather than wherever the old one happened to
@@ -200,13 +202,17 @@ const Legal = () => {
     // box is the document, so the container terms fall away to `scrollY`.
     const containerTop = container ? container.getBoundingClientRect().top : 0;
     const current = container ? container.scrollTop : window.scrollY;
-    const bandOffset = naturalTop - containerTop + current;
+    // Pinned means `stickyTop` below the scroll box's top (the marketing
+    // Navbar's height for a guest on the web), so the band is pinned exactly
+    // when the box has scrolled to bandOffset - stickyTop.
+    const stickyTop = Number.parseFloat(getComputedStyle(row).top) || 0;
+    const pinAt = Math.max(0, naturalTop - containerTop + current - stickyTop);
 
-    if (current > bandOffset) {
+    if (current > pinAt) {
       if (container) {
-        container.scrollTo({ top: bandOffset });
+        container.scrollTo({ top: pinAt });
       } else {
-        window.scrollTo({ top: bandOffset });
+        window.scrollTo({ top: pinAt });
       }
     }
   }, [tab]);
@@ -658,9 +664,8 @@ const Legal = () => {
   // chrome (PublicLayout → Navbar + Footer + page-warmth/mesh-gradient
   // background) so /legal matches every other public page instead of drifting
   // on its own bg-premium-page surface. PublicLayout supplies the nav spacer,
-  // so we drop the manual navbar top-padding; the tab band still pins to the
-  // viewport top on scroll (the marketing Navbar scrolls away with the Framer
-  // page-transition wrapper — see webBandStickyTop note above).
+  // so we drop the manual navbar top-padding; the tab band pins just under the
+  // fixed marketing Navbar on scroll (see the webBandStickyTop note above).
   //
   // This page renders the canonical in-content <BackButton /> next to its H1,
   // which is its only back affordance.

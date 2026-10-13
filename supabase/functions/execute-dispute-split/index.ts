@@ -195,7 +195,7 @@ serve(async (req) => {
       // ALWAYS the LIVE key, never a per-job mode: the whole check is "does the
       // LIVE key call this a test object". Under a test key every test id reads
       // back and the clear would answer "LIVE money" (money review of 389a4d210, #3a).
-      stripe: new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", { apiVersion: "2025-08-27.basil" }),
+      stripe: new Stripe(stripeSecretKeyFor("live"), { apiVersion: "2025-08-27.basil" }),
       adminUserId,
       disputeId,
       reason: body.reason,

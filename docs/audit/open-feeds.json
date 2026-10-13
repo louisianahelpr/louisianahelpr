@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-13T17:06Z",
+  "measured_at": "2026-10-13T17:11Z",
   "issues": {
     "readable": true,
     "open": [
@@ -77,6 +77,11 @@
       {
         "number": 2941,
         "title": "nightly-red: core-loop-canary",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2962,
+        "title": "nightly-red: nightly-webkit",
         "label": "nightly-red"
       }
     ]
@@ -565,6 +570,7 @@
     "issue #2937": "Q1775",
     "issue #2940": "Q1778",
     "issue #2941": "Q1779",
+    "issue #2962": "Q1780",
     "ledger 03faea228969": "Q1602",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 13c460ab330a": "Q1599",

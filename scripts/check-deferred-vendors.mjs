@@ -282,6 +282,11 @@ ROUTE_ROOTS.push({ label: "components/PageTransition", name: "PageTransition" })
 ROUTE_ROOTS.push({ label: "components/ScrollToTop", name: "ScrollToTop" });
 // The win-beat host mounts on every route too; SuccessMoment itself loads on the first fire.
 ROUTE_ROOTS.push({ label: "components/feedback/SuccessMomentHost", name: "SuccessMomentHost" });
+// Q1719 (owner, 2026-10-13: a plain tab highlight that loads nothing extra):
+// /terms, /rules and /privacy, which src/lib/routePrefetch.ts warms from the
+// guest landing's footer links, so guest `/` fetched this page's closure once
+// it settled. Its sliding tab pill and panel fade carried framer-motion.
+ROUTE_ROOTS.push({ label: "pages/info/Legal", name: "Legal" });
 if (ROUTE_ROOTS.length < 8) {
   fail(`read only ${ROUTE_ROOTS.length} first-screen roots from routePreload.ts (expected 8+). The scan is blind; fix it.`);
 }

@@ -21,7 +21,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  * Inventory is every .tsx under src/ (the app's own source, not a list typed
  * here); comments are blanked so prose about `layoutId` is not a hit.
  *
- * @mutate src/pages/info/Legal.tsx | <SharedLayoutPill | <motion.span
+ * @mutate src/components/profile/LegalTab.tsx | <SharedLayoutPill | <motion.span
  */
 
 const REPO = resolve(__dirname, "../..");
@@ -68,7 +68,7 @@ describe("every framer layoutId goes through SharedLayoutPill (PD-009)", () => {
   it("the pills that exist use the primitive (inventory floor)", () => {
     let uses = 0;
     for (const [f, src] of code) if (f !== PRIMITIVE) uses += (src.match(/<(?:SharedLayoutPill|DockPill)\b/g) ?? []).length;
-    // Legal, LegalTab, SubscriptionTab, MobileNav's two DockPills and the one SharedLayoutPill inside DockPill.
+    // LegalTab, SubscriptionTab, MobileNav's two DockPills and the one SharedLayoutPill inside DockPill (the /legal page draws a plain pill since Q1719).
     expect(uses).toBeGreaterThan(4);
   });
 });

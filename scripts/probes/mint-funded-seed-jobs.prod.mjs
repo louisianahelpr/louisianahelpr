@@ -218,10 +218,18 @@ try {
     const page = await browser.newPage();
     try {
       await page.goto(url, { waitUntil: "domcontentloaded" });
+      // Same three layouts e2e/stripeCheckoutCard.ts knows (this .mjs cannot
+      // import that .ts): open card fields, the Card method BUTTON (Stripe
+      // Sandbox since 2026-10-13: the radio is a decorative aria-hidden span),
+      // or the older radio accordion.
       const card = page.locator("#cardNumber");
+      const cardButton = page.getByTestId("card-accordion-item-button");
       const radio = page.getByRole("radio").first();
-      await card.or(radio).first().waitFor({ state: "visible", timeout: 60_000 });
-      if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
+      await card.or(cardButton).or(radio).first().waitFor({ state: "visible", timeout: 60_000 });
+      if (!(await card.isVisible().catch(() => false))) {
+        if (await cardButton.count()) await cardButton.first().click({ force: true });
+        else await radio.click({ force: true });
+      }
       await card.waitFor({ state: "visible", timeout: 30_000 });
       await card.fill("4242 4242 4242 4242");
       await page.locator("#cardExpiry").fill("12 / 34");

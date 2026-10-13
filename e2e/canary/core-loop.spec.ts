@@ -66,6 +66,7 @@ import {
 } from "../prod-audit/harness";
 import { centralDatePlus } from "../prod-audit/fundedOpenJob";
 import { FUNDED_FIXTURE_TITLE } from "../prod-audit/fundedOpenJobPlan";
+import { waitForStripePaymentMethods } from "../stripeCheckoutCard";
 
 /** Every row this spec writes carries it; the pre-sweep finds a killed run's rows by it. Not any sweeper's marker. */
 export const MARKER = "[E2E-CANARY]";
@@ -331,10 +332,9 @@ test.describe("core-loop canary", () => {
         const sp = await browser.newPage();
         try {
           await sp.goto(url!, { waitUntil: "domcontentloaded" });
-          await expect(
-            sp.locator("#cardNumber").or(sp.getByRole("radio").first()),
-            "Stripe's hosted checkout page rendered no payment method",
-          ).toBeVisible({ timeout: 60_000 });
+          // Any layout Stripe renders (open card fields, the Card method
+          // button, a radio); names the page's buttons if it is none of them.
+          await waitForStripePaymentMethods(sp);
         } finally {
           await sp.close();
         }

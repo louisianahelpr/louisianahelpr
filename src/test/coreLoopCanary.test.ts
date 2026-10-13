@@ -140,7 +140,7 @@ describe("core-loop canary: it cleans up what it creates", () => {
   it("the checkout leg refuses a live Stripe session and never pays", () => {
     const co = stepBody(spec, "checkout start");
     expect(co).toMatch(/cs_test_/);
-    expect(co, "the canary must never submit a payment").not.toMatch(/hosted-payment-submit-button|payOnStripeCheckout|#cardNumber"\)\.fill/);
+    expect(co, "the canary must never submit a payment").not.toMatch(/hosted-payment-submit-button|payOnStripeCheckout|payWithTestCard|#cardNumber"\)\.fill/);
   });
 });
 

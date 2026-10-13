@@ -25,7 +25,8 @@ import { paymentMethodFromCharge, refundDollars, refundNoticeProblem, sendRefund
  */
 const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
-import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts";
+import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
+import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 serve(async (req) => {

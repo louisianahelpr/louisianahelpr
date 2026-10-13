@@ -23,7 +23,8 @@ import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewSh
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
-import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFees.ts";
+import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
+import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRead.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 

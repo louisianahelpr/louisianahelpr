@@ -2313,7 +2313,7 @@ describe("create-payment edge function", () => {
     });
 
     // Q1490: the same rule on a dispute's Quick Refund of a crew job.
-    // @mutate supabase/functions/_shared/crewBlockFees.ts |     error: action === "dispute" |     error: false
+    // @mutate supabase/functions/_shared/crewBlockFeeRead.ts |     error: action === "dispute" |     error: false
     // @mutate supabase/functions/create-payment/index.ts |       {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job); |       if (false) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
     it("admin_refund_dispute on a crew job with a fee owed to a blocked member is refused, nothing moved (Q1490)", async () => {
       seedAuth(scenario, ADMIN);
@@ -3955,9 +3955,9 @@ describe("create-payment edge function", () => {
       // blocked is owed a fee out of this escrow; a FULL refund would hand the
       // poster that money too and Part F would pay the member from the
       // platform's balance. Refused, nothing moved; fails closed on a read error.
-      // @mutate supabase/functions/_shared/crewBlockFees.ts |   if (cents <= 0) return null; |   return null;
+      // @mutate supabase/functions/_shared/crewBlockFeeRead.ts |   if (cents <= 0) return null; |   return null;
       // @mutate supabase/functions/create-payment/index.ts |       if (wantsFullRefund) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job); |       if (false) {\n        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
-      // @mutate supabase/functions/_shared/crewBlockFees.ts |   if (!read.ok) {\n    return { status: 503, | if (false) {\n    return { status: 503,
+      // @mutate supabase/functions/_shared/crewBlockFeeRead.ts |   if (!read.ok) {\n    return { status: 503, | if (false) {\n    return { status: 503,
       describe("a crew job with a fee owed to a blocked member (Q1490)", () => {
         const seedCrew = (blockRows: Array<Record<string, unknown>> | { error: { message: string } }) => {
           seedFull();

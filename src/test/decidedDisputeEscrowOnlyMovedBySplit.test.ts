@@ -67,7 +67,9 @@ import { blankComments, blankNonCode } from "./helpers/blankNonCode";
 // Shared module (Q1390): an importer's call outside its guard, or an importer that is not a guarded path.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | if (feeSettlement.blocked) { | if (feeSettlement.readError) {
 // @mutate supabase/functions/money-reconciliation/index.ts | import { boundedFetch } from "../_shared/boundedFetch.ts"; | import { boundedFetch } from "../_shared/boundedFetch.ts";\nimport { payCrewBlockFees } from "../_shared/crewBlockFees.ts";\nvoid payCrewBlockFees;
-// @mutate supabase/functions/void-cancelled-payments/index.ts | import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts"; | import * as cbf from "../_shared/crewBlockFees.ts";\nconst { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } = cbf;\ntype CrewBlockFeeRow = cbf.CrewBlockFeeRow;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | import { payCrewBlockFees } from "../_shared/crewBlockFees.ts"; | import * as cbf from "../_shared/crewBlockFees.ts";\nconst { payCrewBlockFees } = cbf;
+// The read-only half was split out (crewBlockFeeRead.ts) so create-payment never imports the payer:
+// @mutate supabase/functions/create-payment/index.ts | import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts"; | import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";\nimport { payCrewBlockFees } from "../_shared/crewBlockFees.ts";\nvoid payCrewBlockFees;
 
 const MONEY_SRC =
   String.raw`\.\s*(?:transfers\s*\.\s*(?:create|createReversal)|refunds\s*\.\s*create|paymentIntents\s*\.\s*(?:cancel|capture)|payouts\s*\.\s*create|disputes\s*\.\s*close)\s*\(` +

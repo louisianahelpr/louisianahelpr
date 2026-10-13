@@ -2,7 +2,7 @@
  * THE SECURITY TAB COSTS ONE AUTH `/user` ROUND TRIP (docs/OPEN.md Q1648).
  *
  * e2e-journeys 37996630522 (iphone-webkit slow-heavy, settings-signout): Active
- * sessions and Sign-in methods were still skeletons when the 15 s health check
+ * sessions and Sign-in methods were still skeletons when the 15 s health check (measured 2026-10-09)
  * gave up ("3 skeleton bones": Sign-in methods' three rows). The trace's network
  * log: auth/v1/user and login_history both start at 22:04:51.35, login_history
  * answers in 7931 ms, auth/v1/user in 8042 ms, and a SECOND auth/v1/user starts

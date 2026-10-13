@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-13T00:17Z",
+  "measured_at": "2026-10-13T09:27Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,11 +50,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2907,
-        "title": "nightly-red: open-done-when",
-        "label": "nightly-red"
-      },
-      {
         "number": 2910,
         "title": "🔴 1 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
@@ -65,8 +60,13 @@
         "label": "nightly-red"
       },
       {
-        "number": 2912,
-        "title": "nightly-red: write-contract-refresh",
+        "number": 2932,
+        "title": "nightly-red: scoreboard",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2937,
+        "title": "nightly-red: slow-network",
         "label": "nightly-red"
       }
     ]
@@ -115,6 +115,14 @@
         "issue": 2601
       },
       {
+        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
         "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
         "source_kind": "error_logs",
         "source": "push-tokens-empty",
@@ -128,7 +136,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": null
+        "issue": 2894
       },
       {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
@@ -163,14 +171,6 @@
         "issue": 2375
       },
       {
-        "fingerprint": "54b8c187374af47410a43e9dedb4f4df",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: open-done-when",
-        "issue": 2907
-      },
-      {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -187,11 +187,11 @@
         "issue": 2910
       },
       {
-        "fingerprint": "06c124e99b6d17e98af7c353b5a8bd45",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:support_request",
+        "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
+        "source_kind": "error_logs",
+        "source": "cron-http",
         "status": "open",
-        "title": "support: other",
+        "title": "cron http failure: auto-expire-jobs returned 500 (# defect(s) reported)",
         "issue": null
       },
       {
@@ -497,14 +497,6 @@
         "status": "open",
         "title": "job stalled — nobody marked it done",
         "issue": null
-      },
-      {
-        "fingerprint": "0bd7cd00f0604832825550ec97d3aadb",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: write-contract-refresh",
-        "issue": 2912
       }
     ]
   },
@@ -531,21 +523,23 @@
     "issue #2910": "Q1741",
     "issue #2911": "Q1742",
     "issue #2912": "Q1743",
+    "issue #2932": "Q1774",
+    "issue #2937": "Q1775",
     "ledger 03faea228969": "Q1602",
     "ledger 06c124e99b6d": "Q1583",
     "ledger 0bd7cd00f060": "Q1743",
+    "ledger 0fa6c60d7a29": "Q1776",
     "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1b4eafb12222": "Q1636",
-    "ledger 1bbb3f41bbe7": "Q1697",
     "ledger 21cbec5b98d2": "Q1584",
     "ledger 27437b0c4f14": "Q1603",
     "ledger 27c479ef17f8": "Q1596",
-    "ledger 311dfd492bc2": "Q1604",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 40a33605c7c3": "Q1603",
+    "ledger 41f88aeb227f": "Q1777",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
     "ledger 4aa239aefeb6": "Q1742",
@@ -553,7 +547,6 @@
     "ledger 54b8c187374a": "Q1524",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1610",
-    "ledger 604d92b9bafb": "Q1582",
     "ledger 60afeab5c360": "Q1636",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
@@ -588,7 +581,6 @@
     "ledger de37efb6fa8e": "Q1599",
     "ledger e06748071241": "Q1603",
     "ledger e306dea6b044": "Q1601",
-    "ledger e36005f99c15": "Q1699",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1609",
     "ledger ed333dc86f47": "Q1644",

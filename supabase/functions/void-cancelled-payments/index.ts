@@ -104,9 +104,43 @@ serve(async (req) => {
     const restorePifGift = async (
       job: { id: string; title: string },
       stage: string,
+      /**
+       * Q1490: cents of the gift that stay with the platform because they pay
+       * a fee the poster owes out of this escrow (a crew member they blocked).
+       * A fully gift-funded crew has no card to withhold it from, so without
+       * this the whole gift came back and Part F paid the member from the
+       * platform's balance.
+       */
+      withholdCents = 0,
     ): Promise<{ ok: boolean; outcome: string | null }> => {
+      let shareBps: number | undefined;
+      if (withholdCents > 0) {
+        // What the gift paid toward this job, read without restoring anything.
+        const { data: dry, error: dryErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
+          p_job_id: job.id,
+          p_dry_run: true,
+        });
+        const d = (dry ?? null) as { outcome?: string; applied_cents?: number } | null;
+        if (dryErr) {
+          // Fail closed: the job stays in escrow and the next run retries.
+          defects.record(`gift restore dry run ${job.id} (${stage}): ${dryErr.message}`);
+          return { ok: false, outcome: null };
+        }
+        if (d?.outcome === "would_restore") {
+          const applied = Math.max(0, Math.floor(Number(d.applied_cents ?? 0)));
+          const target = Math.max(0, applied - withholdCents);
+          // The RPC floors applied * bps / 10000: the largest bps that does not
+          // overshoot the target, as process-scheduled-payouts sizes a crew's
+          // gift share, so the gift never returns any of the withheld fee.
+          shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
+          console.log(
+            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for crew block fees; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
+          );
+        }
+      }
       const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: job.id,
+        ...(shareBps !== undefined ? { p_share_bps: shareBps } : {}),
       });
 
       // A null `error` is not proof the restore happened — read the outcome
@@ -284,6 +318,8 @@ serve(async (req) => {
       job: { id: string; title: string },
       patch: Record<string, unknown>,
       stage: string,
+      /** Q1490: gift cents kept to pay what the poster owes (see restorePifGift). */
+      withholdGiftCents = 0,
     ): Promise<boolean> => {
       // Return the gift BEFORE the job leaves escrow. Ordering matters: the
       // selection query at the top of this run is
@@ -291,7 +327,7 @@ serve(async (req) => {
       // been flipped is never handed back. Restoring first means a restore
       // that succeeds and a flip that fails still leaves the recipient
       // whole, and the restore is idempotent so the retry is a no-op.
-      if (!(await restorePifGift(job, stage)).ok) return false;
+      if (!(await restorePifGift(job, stage, withholdGiftCents)).ok) return false;
 
       const { data, error: flipErr } = await supabaseAdmin
         .from("jobs")
@@ -1587,7 +1623,9 @@ serve(async (req) => {
         // No payment was ever made — just update status. Guarded like the rest:
         // a zero-row match here means the job left 'escrow' under us, and
         // silently reporting it settled is what keeps it in the hourly loop.
-        const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found");
+        // Q1490: a fully gift-funded crew has no card to withhold a block fee
+        // from, so the gift keeps it (Part F pays the member from it).
+        const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found", crewBlockFeeCents(blockFeeRows));
         results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated });
         continue;
       }

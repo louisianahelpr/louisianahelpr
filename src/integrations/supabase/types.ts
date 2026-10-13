@@ -7050,6 +7050,10 @@ export type Database = {
         Returns: string
       }
       ban_fingerprint_salt: { Args: never; Returns: string }
+      ban_review_retained_floor: {
+        Args: { p_since: string; p_user_id: string }
+        Returns: Json
+      }
       ban_review_standing_rung: {
         Args: { p_review_id: string; p_skip_spent: boolean }
         Returns: Json

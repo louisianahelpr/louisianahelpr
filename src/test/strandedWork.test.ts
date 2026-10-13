@@ -17,9 +17,11 @@
 // @mutate scripts/lib/strandedContent.mjs |   /^docs\/OPEN\.md$/, |
 // @mutate scripts/stranded-work.mjs |     stale: accepted.filter((a) => !itemKeys.has(key(a)) && !freshIds.has(a.id)), |     stale: [],
 // @mutate scripts/stranded-work.mjs |     if (status.some((l) => !l.startsWith("?? "))) { |     if (false) {
-// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = false;
+// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS \|\| |     const fresh = false \|\|
 // @mutate scripts/stranded-work.mjs |     unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))), |     unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),
-// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = true;
+// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS \|\| |     const fresh = true \|\|
+// @mutate scripts/stranded-work.mjs |  \|\| waitingForTrain(name.replace( |  && waitingForTrain(name.replace(
+// @mutate scripts/stranded-work.mjs |     if (carriedByOpenPr(r)) continue; |
 // @mutate scripts/stranded-work.mjs | .filter((l) => l.trim()).map((l) => JSON.parse(l)); | .filter((l) => l.trim()).slice(0, 1).map((l) => JSON.parse(l));
 // @mutate scripts/stranded-work.mjs |   const out = gh(["api", "--paginate", | const out = gh(["api", "--search",
 // @mutate scripts/stranded-work.mjs | select(.merged_at == null and .closed_at >= "${since}") | select(.merged_at == null)
@@ -179,7 +181,8 @@ describe("stranded-work: every place work sits", () => {
   });
   it("remote: origin branches and PRs closed without merging; merged, dependabot and open-PR branches are not", () => {
     const index = buildMainIndex(git, "origin/main");
-    sh(repo, "push", "-q", "origin", "unlanded:refs/heads/in-flight");
+    // The open PR carries OTHER work, so it does not cover cloud-session's line.
+    sh(repo, "push", "-q", "origin", "deletion:refs/heads/in-flight");
     sh(repo, "fetch", "-q", "origin");
     const gh = (argv: string[], o?: { raw?: boolean }) => argv.includes("open")
       ? [{ number: 10, headRefOid: "w", headRefName: "in-flight", createdAt: new Date().toISOString(), title: "landing now", author: { login: "louisianahelpr" } }]
@@ -199,6 +202,37 @@ describe("stranded-work: every place work sits", () => {
       "remote-branch remote:origin/cloud-session",
     ]);
     expect(items.some((i: { fresh?: boolean }) => i.fresh)).toBe(false);
+  });
+  it("one landing path (2026-10-13): a ready/* branch waits 24 h for the train, and content an open train PR carries is not stranded", () => {
+    const index = buildMainIndex(git, "origin/main");
+    sh(repo, "push", "-q", "origin", "unlanded:refs/heads/ready/lane-1");
+    sh(repo, "fetch", "-q", "origin");
+    const noPrs = (_argv: string[], o?: { raw?: boolean }) => (o?.raw ? "" : []);
+    const at = (h: number) => remoteInventory(git, index, noPrs, { now: Date.now() + h * 3_600_000 });
+    const lane = (items: { id: string; fresh?: boolean }[]) => items.find((i) => i.id === "remote:origin/ready/lane-1");
+    // Two hours after the push: past STRANDED_AFTER_HOURS, still inside the train's 24 h.
+    expect(lane(at(2))?.fresh).toBe(true);
+    expect(judge(at(2), []).unaccepted.map((i: { id: string }) => i.id)).not.toContain("remote:origin/ready/lane-1");
+    // A queue that stalled a day IS a finding.
+    expect(lane(at(25))?.fresh).toBeUndefined();
+    expect(judge(at(25), []).unaccepted.map((i: { id: string }) => i.id)).toContain("remote:origin/ready/lane-1");
+    // An open train PR carrying the same content: the train lands it; neither branch is listed.
+    sh(repo, "push", "-q", "origin", "unlanded:refs/heads/land/train-x");
+    sh(repo, "fetch", "-q", "origin");
+    const trainOpen = (argv: string[], o?: { raw?: boolean }) => argv.includes("open")
+      ? [{ number: 11, headRefOid: "t", headRefName: "land/train-x", createdAt: new Date().toISOString(), title: "train", author: { login: "louisianahelpr" } }]
+      : (o?.raw ? "" : []);
+    const items = remoteInventory(git, index, trainOpen, { now: Date.now() + 25 * 3_600_000 });
+    const ids = items.map((i: { id: string }) => i.id);
+    expect(ids).not.toContain("remote:origin/ready/lane-1");
+    expect(ids).not.toContain("remote:origin/cloud-session");
+    // ...while other work the train does not carry still is (deletion's six removed lines).
+    sh(repo, "push", "-q", "origin", "deletion:refs/heads/ready/lane-2");
+    sh(repo, "fetch", "-q", "origin");
+    const after = remoteInventory(git, index, trainOpen, { now: Date.now() + 25 * 3_600_000 }).map((i: { id: string }) => i.id);
+    expect(after).toContain("remote:origin/ready/lane-2");
+    for (const ref of ["ready/lane-1", "ready/lane-2", "land/train-x"]) sh(repo, "push", "-q", "origin", `:refs/heads/${ref}`);
+    sh(repo, "fetch", "-q", "--prune", "origin");
   });
   it("closed PRs come from the REST pulls list, every page, never GitHub search (Q1376: search left out 14 of 130, #2444 and #2385 among them)", () => {
     const calls: string[][] = [];

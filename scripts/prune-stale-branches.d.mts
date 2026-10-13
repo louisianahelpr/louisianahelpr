@@ -24,11 +24,7 @@ export function findStranded(
   contentInOpenPrOf?: (name: string) => boolean,
 ): { stranded: StrandedRow[]; contentOnMain: StrandedRow[]; inOpenPr: StrandedRow[] };
 export function readAcceptedTips(file?: string): Map<string, string>;
-export const AUTO_LAND_PREFIX: string;
-export const AUTO_LAND_STUCK_HOURS: number;
-export function autoLandTitle(name: string): string;
-export function stuckAutoLandPrs<T extends { title: string; createdAt: string; headRefName: string }>(prs: T[], nowMs: number): T[];
-export const NEVER_AUTO_LAND_PREFIXES: string[];
-export const MAX_AUTO_LAND_PER_RUN: number;
-export const MAX_OPEN_AUTO_LAND: number;
-export function autoLandBudget(openPrs: { title: string }[]): number;
+export const NEVER_STRANDED_PREFIXES: string[];
+export const READY_QUEUE_PREFIX: string;
+export const READY_QUEUE_GRACE_HOURS: number;
+export function waitingForTrain(name: string, ageHours: number): boolean;

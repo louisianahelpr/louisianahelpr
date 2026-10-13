@@ -7,17 +7,15 @@
  *     land (#2814 claim/Q1357, #2815 claim/Q1500, #2848 claim/Q1344, #2849);
  *   - branches whose content another open PR already carried: the land
  *     queue's fix-land/q1287 rebuild got #2818 while local/q1287 had #2771.
- * Now neither gets one (content compared with scripts/lib/strandedContent.mjs,
- * pooled over every open PR head), and a run opens at most
- * MAX_AUTO_LAND_PER_RUN, none while MAX_OPEN_AUTO_LAND are open.
+ * Now neither is stranded (content compared with scripts/lib/strandedContent.mjs,
+ * pooled over every open PR head). Since 2026-10-13 the script opens no PR at
+ * all (report only, one landing path: src/test/pruneStaleBranches.test.ts).
  *
  * Red first: on origin/main's script, findStranded() returns claim/Q1357 and
  * fix-land/rebuilt as stranded, and the budget does not exist.
  */
-// @mutate scripts/prune-stale-branches.mjs |   if (NEVER_AUTO_LAND_PREFIXES.some((p) => name.startsWith(p))) return false; |
+// @mutate scripts/prune-stale-branches.mjs |   if (NEVER_STRANDED_PREFIXES.some((p) => name.startsWith(p))) return false; |
 // @mutate scripts/prune-stale-branches.mjs |   if (contentInOpenPr) return false; |
-// @mutate scripts/prune-stale-branches.mjs |   return Math.max(0, Math.min(MAX_AUTO_LAND_PER_RUN, MAX_OPEN_AUTO_LAND - open)); |   return MAX_AUTO_LAND_PER_RUN;
-// @mutate scripts/prune-stale-branches.mjs |     for (const b of toOpen) { |     for (const b of stranded) {
 // @mutate scripts/lib/strandedContent.mjs |     if (f.missing.some((s) => !idx.added.has(s))) return false; |
 // @mutate scripts/lib/strandedContent.mjs |       if (l.startsWith("+")) added.add(s); |       if (false) added.add(s);
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -32,14 +30,7 @@ import {
   gitRunner,
   unlandedContent,
 } from "../../scripts/lib/strandedContent.mjs";
-import {
-  autoLandBudget,
-  autoLandTitle,
-  findStranded,
-  isStranded,
-  MAX_AUTO_LAND_PER_RUN,
-  MAX_OPEN_AUTO_LAND,
-} from "../../scripts/prune-stale-branches.mjs";
+import { findStranded, isStranded } from "../../scripts/prune-stale-branches.mjs";
 
 let root = "";
 let repo = "";
@@ -125,7 +116,7 @@ function judge(openHeads: Set<string>) {
 const branches = () => BRANCHES.map((name) => ({ name, sha: git(repo, "rev-parse", `origin/${name}`), ageHours: 5 }));
 const gitFn = (args: string[]) => git(repo, ...args);
 
-describe("branch-prune opens no duplicate auto-land PR", () => {
+describe("branch-prune reports no duplicate stranded work (once: opened no duplicate auto-land PR)", () => {
   it("the fixture holds every shape (inventory floor)", () => {
     expect(branches().length).toBeGreaterThan(4);
     // Every branch but main's own work is content-stranded vs main, so only
@@ -154,23 +145,8 @@ describe("branch-prune opens no duplicate auto-land PR", () => {
     expect(r.inOpenPr).toEqual([]);
   });
 
-  it("a run opens at most MAX_AUTO_LAND_PER_RUN, and none once MAX_OPEN_AUTO_LAND are open", () => {
-    const pr = (title: string) => ({ title });
-    expect(MAX_AUTO_LAND_PER_RUN).toBeLessThanOrEqual(3);
-    expect(autoLandBudget([])).toBe(MAX_AUTO_LAND_PER_RUN);
-    expect(autoLandBudget([pr("fix(x): a human PR"), pr("chore: refresh")])).toBe(MAX_AUTO_LAND_PER_RUN);
-    const open = (n: number) => Array.from({ length: n }, (_, i) => pr(autoLandTitle(`b${i}`)));
-    expect(autoLandBudget(open(MAX_OPEN_AUTO_LAND - 1))).toBe(1);
-    expect(autoLandBudget(open(MAX_OPEN_AUTO_LAND))).toBe(0);
-    expect(autoLandBudget(open(MAX_OPEN_AUTO_LAND + 40))).toBe(0);
-  });
-
-  it("main() opens PRs only for the budgeted slice and passes the open-PR content check", () => {
+  it("main() passes the open-PR content check", () => {
     const src = readFileSync(resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
     expect(src).toMatch(/findStranded\(git, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\)/);
-    expect(src).toMatch(/const toOpen = stranded\.slice\(0, budget\);/);
-    const loop = src.slice(src.indexOf("if (apply) {"), src.indexOf("autoOpened.push"));
-    expect(loop).toContain("for (const b of toOpen) {");
-    expect(loop).toContain('"pr", "create"');
   });
 });

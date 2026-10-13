@@ -37,12 +37,19 @@
  * land/* branches count too: a land PR closed unmerged strands its head.
  * Resolve one by landing it (bash scripts/land.sh) or deleting the branch.
  *
- * AUTO-LAND (2026-10-02, owner: "fix this for good"): reporting alone left the
- * stranded work sitting for days. With --apply, every STRANDED branch now gets
- * a PR titled AUTO_LAND_PREFIX + branch, with rebase auto-merge on, so the
- * required checks decide and it lands with nobody in the loop. An auto-land
- * PR still open after AUTO_LAND_STUCK_HOURS (conflict or red check) makes
- * this exit 1, so a stalled one cannot hide behind "it has a PR".
+ * REPORT ONLY (lead, 2026-10-12/13; supersedes AUTO-LAND of 2026-10-02).
+ * This job used to open an "auto-land: <branch>" PR with rebase auto-merge for
+ * every stranded branch. That made it one of THREE paths opening PRs for the
+ * same work (lanes via land.sh, this, a PR supervisor): 144 open PRs and 448
+ * queued runs on 2026-10-12, nothing landing. The owner's rule since then: ONE
+ * path, the landing train (lanes push ready/* and queue them). The workflow was
+ * disabled_manually at ~14:46Z that day, which turned schedule-heartbeat red
+ * (nightly-red #2910/#2911). Now it opens no PR at all: it deletes branches
+ * whose every patch is on main and REPORTS stranded work; the `stranded` job
+ * (scripts/stranded-work.mjs) is the red. A ready/* branch is the train's
+ * queue, so it is not stranded until READY_QUEUE_GRACE_HOURS old (a queue that
+ * stalled that long IS a finding). Guard: src/test/pruneStaleBranches.test.ts
+ * ("report only").
  *
  * Fails closed: if the open-PR list or any cherry cannot be read, it exits
  * non-zero before deleting anything. Each delete is leased on the tip it
@@ -57,45 +64,24 @@ export const PROTECTED = new Set(["main", "HEAD"]);
 export const PROTECTED_PREFIXES = ["land/"];
 export const MIN_AGE_HOURS = 24;
 export const STRANDED_AFTER_HOURS = 1;
-export const AUTO_LAND_PREFIX = "auto-land: ";
-export const AUTO_LAND_STUCK_HOURS = 6;
 
 /**
- * DUPLICATE FLOOD (2026-10-12: 144 open PRs, the same change in 2-4 of them).
- * This job runs on every push to main, and it opened an auto-land PR for:
- *   - claim/* branches, which only mark a lane's claim on a queue item
- *     (#2814 claim/Q1357, #2815 claim/Q1500, #2848, #2849), never work to land;
- *   - branches whose content another open PR already carries (a land-queue
- *     fix-land/* rebuild of a branch that had its own PR: #2818 beside #2771).
- * Neither gets one now, and a run opens at most MAX_AUTO_LAND_PER_RUN, and
- * none while MAX_OPEN_AUTO_LAND auto-land PRs are already open. The rest wait
- * for a later run (the stranded job still reports them).
+ * A lane's claim marker on a queue item, never work to land (2026-10-12: the
+ * old auto-land opened #2814 claim/Q1357, #2815 claim/Q1500, #2848, #2849).
  */
-export const NEVER_AUTO_LAND_PREFIXES = ["claim/"];
-export const MAX_AUTO_LAND_PER_RUN = 3;
-export const MAX_OPEN_AUTO_LAND = 6;
-
-/** How many auto-land PRs this run may open, given the open PR list. */
-export function autoLandBudget(openPrs) {
-  const open = openPrs.filter((p) => String(p.title).startsWith(AUTO_LAND_PREFIX)).length;
-  return Math.max(0, Math.min(MAX_AUTO_LAND_PER_RUN, MAX_OPEN_AUTO_LAND - open));
-}
-
-export function autoLandTitle(name) {
-  return `${AUTO_LAND_PREFIX}${name}`;
-}
+export const NEVER_STRANDED_PREFIXES = ["claim/"];
 
 /**
- * Pure: auto-land PRs open long enough that they must be stuck.
- * @param {{ title: string, createdAt: string, headRefName: string }[]} prs
- * @param {number} nowMs
+ * The landing train's queue (lanes push ready/* and append it to
+ * ~/.lh-landq/queue.txt; AGENT-BRIEF). Waiting there is not stranded, for a
+ * day: a ready/* branch older than this means the queue stalled, which is.
  */
-export function stuckAutoLandPrs(prs, nowMs) {
-  return prs.filter(
-    (p) =>
-      String(p.title).startsWith(AUTO_LAND_PREFIX) &&
-      (nowMs - Date.parse(p.createdAt)) / 3_600_000 >= AUTO_LAND_STUCK_HOURS,
-  );
+export const READY_QUEUE_PREFIX = "ready/";
+export const READY_QUEUE_GRACE_HOURS = 24;
+
+/** A ready/* branch still inside its grace window: queued for the train, not judged yet. */
+export function waitingForTrain(name, ageHours) {
+  return String(name).startsWith(READY_QUEUE_PREFIX) && !(ageHours >= READY_QUEUE_GRACE_HOURS);
 }
 
 export function isProtected(name) {
@@ -151,7 +137,7 @@ export function uncoveredCommits(cherryVerbose, covered) {
 }
 
 /**
- * A deliberately broken branch is never auto-landed. A red proof (a guard's
+ * A deliberately broken branch is never reported as work to land. A red proof (a guard's
  * check removed to show the guard can fail) is pushed only so CI can run it;
  * on 2026-10-06 this script opened auto-land #2444 for q975-red-proof WITH
  * auto-merge on, and its only change (a weakened CI race runner) would have
@@ -172,7 +158,9 @@ export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = fa
   if (PROTECTED.has(name)) return false;
   if (hasOpenPr) return false;
   // A lane's claim marker, never work to land (#2814, #2815).
-  if (NEVER_AUTO_LAND_PREFIXES.some((p) => name.startsWith(p))) return false;
+  if (NEVER_STRANDED_PREFIXES.some((p) => name.startsWith(p))) return false;
+  // Queued for the landing train, inside its grace window.
+  if (waitingForTrain(name, ageHours)) return false;
   // Its unlanded content is already in another open PR: that PR lands it.
   if (contentInOpenPr) return false;
   // Its CONTENT is on main (scripts/lib/strandedContent.mjs, the test
@@ -182,8 +170,8 @@ export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = fa
   // "+" in git cherry, so every run re-opened an auto-land PR (#2696, #2707, #2712).
   if (contentOnMain) return false;
   // Content-checked and recorded as deliberately not landed (its work went to
-  // main another way): never re-open an auto-land PR for it (2026-10-04: the
-  // closed cloud PRs came back as #2277-#2280 every run).
+  // main another way): never reported again (2026-10-04: the closed cloud PRs
+  // came back as auto-land #2277-#2280 every run).
   if (accepted) return false;
   if (neverLand(name, uncovered)) return false;
   if (!(ageHours >= STRANDED_AFTER_HOURS)) return false;
@@ -199,7 +187,7 @@ export function readAcceptedTips(file = "docs/audit/stranded-accepted.json") {
 }
 
 /**
- * Which remote branches are STRANDED (each gets an auto-land PR with --apply).
+ * Which remote branches are STRANDED (reported; nothing is opened for them).
  * Commit identity (patch + subject) shortlists; CONTENT decides: a shortlisted
  * branch whose content is on main goes to `contentOnMain`, never `stranded`.
  * @param {(args: string[]) => string} gitFn runs git in the repo
@@ -271,10 +259,6 @@ function listOpenPrs() {
   return rows;
 }
 
-function gh(args) {
-  return execFileSync("gh", args, { encoding: "utf8" });
-}
-
 function main() {
   const apply = process.argv.includes("--apply");
   const openPrs = listOpenPrs();
@@ -323,19 +307,13 @@ function main() {
 
   const { stranded, contentOnMain, inOpenPr } = findStranded(git, branches, openHeads, readAcceptedTips(), contentStrandedOf, contentInOpenPrOf);
   for (const b of contentOnMain) {
-    console.log(`content on main, no auto-land PR: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
+    console.log(`content on main, not stranded: ${b.name} (${b.uncovered.length} commit(s) left by identity: ${b.uncovered.map((c) => c.subject).join("; ")})`);
   }
   for (const b of inOpenPr) {
-    console.log(`content already in an open PR, no auto-land PR: ${b.name}`);
-  }
-  const budget = autoLandBudget(openPrs);
-  const toOpen = stranded.slice(0, budget);
-  const deferred = stranded.slice(budget);
-  for (const b of deferred) {
-    console.log(`auto-land deferred to a later run (cap ${MAX_AUTO_LAND_PER_RUN} per run, ${MAX_OPEN_AUTO_LAND} open): ${b.name}`);
+    console.log(`content already in an open PR, not stranded: ${b.name}`);
   }
   if (stranded.length) {
-    console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (land it or delete it):`);
+    console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (queue it for the landing train, or delete it):`);
     for (const b of stranded) {
       console.log(`  ${b.name} (${Math.round(b.ageHours)}h old, ${b.uncovered.length} commit(s))`);
       for (const c of b.uncovered) console.log(`    ${c.sha.slice(0, 9)} ${c.subject}`);
@@ -344,24 +322,9 @@ function main() {
     console.log("\nSTRANDED: none.");
   }
 
+  // REPORT ONLY: nothing here opens a PR (one landing path, the train).
   let failed = 0;
-  const autoOpened = [];
   if (apply) {
-    for (const b of toOpen) {
-      try {
-        const body =
-          `Opened by branch-prune: \`${b.name}\` held ${b.uncovered.length} commit(s) on neither main nor an open PR ` +
-          `for ${Math.round(b.ageHours)}h.\n\n${b.uncovered.map((c) => `- ${c.sha.slice(0, 9)} ${c.subject}`).join("\n")}\n\n` +
-          `Rebase auto-merge is on; the required checks decide. Still open after ${AUTO_LAND_STUCK_HOURS}h turns branch-prune red.`;
-        const url = gh(["pr", "create", "--base", "main", "--head", b.name, "--title", autoLandTitle(b.name), "--body", body]).trim();
-        gh(["pr", "merge", url, "--rebase", "--auto"]);
-        autoOpened.push({ name: b.name, url });
-        console.log(`auto-land PR ${url} for ${b.name}`);
-      } catch (e) {
-        failed++;
-        console.error(`FAILED to open auto-land PR for ${b.name}: ${e.message}`);
-      }
-    }
     for (const r of rows.filter((x) => x.action === "DELETE")) {
       try {
         // Leased on the tip we measured: a push since then makes this fail, not delete.
@@ -374,11 +337,6 @@ function main() {
     }
   }
 
-  const stuck = stuckAutoLandPrs(openPrs, Date.now());
-  for (const p of stuck) {
-    console.log(`STUCK: auto-land PR #${p.number} (${p.headRefName}) open over ${AUTO_LAND_STUCK_HOURS}h: fix its conflict or red check`);
-  }
-
   const summary = process.env.GITHUB_STEP_SUMMARY;
   if (summary) {
     const unl = rows.filter((r) => r.action === "UNLANDED");
@@ -388,26 +346,17 @@ function main() {
       for (const r of unl) md += `| \`${r.name}\` | ${r.reason} |\n`;
     }
     if (stranded.length) {
-      md += `\n### STRANDED (red): work on neither main nor an open PR\n\nLand each with \`bash scripts/land.sh\` or delete the branch.\n\n| branch | age | commits |\n|---|---|---|\n`;
+      md += `\n### STRANDED: work on neither main nor an open PR\n\nQueue each for the landing train, or delete the branch (the \`stranded\` job is the red).\n\n| branch | age | commits |\n|---|---|---|\n`;
       for (const b of stranded) md += `| \`${b.name}\` | ${Math.round(b.ageHours)}h | ${b.uncovered.map((c) => c.subject).join("<br>")} |\n`;
     }
-    if (autoOpened.length) {
-      md += `\n### Auto-land PRs opened\n\n${autoOpened.map((a) => `- \`${a.name}\`: ${a.url}`).join("\n")}\n`;
-    }
-    if (deferred.length) {
-      md += `\n### Auto-land deferred (cap ${MAX_AUTO_LAND_PER_RUN} per run, ${MAX_OPEN_AUTO_LAND} open)\n\n${deferred.map((b) => `- \`${b.name}\``).join("\n")}\n`;
-    }
     if (inOpenPr.length) {
-      md += `\n### Content already in an open PR (no auto-land PR)\n\n${inOpenPr.map((b) => `- \`${b.name}\``).join("\n")}\n`;
-    }
-    if (stuck.length) {
-      md += `\n### STUCK auto-land PRs (red)\n\n${stuck.map((p) => `- #${p.number} \`${p.headRefName}\``).join("\n")}\n`;
+      md += `\n### Content already in an open PR (not stranded)\n\n${inOpenPr.map((b) => `- \`${b.name}\``).join("\n")}\n`;
     }
     appendFileSync(summary, md);
   }
-  // With --apply a stranded branch now has an auto-land PR, so it is handled;
-  // a dry run still exits 1 on it. A stuck auto-land PR is always red.
-  if (failed || stuck.length || (!apply && stranded.length)) process.exit(1);
+  // A failed delete is red here; stranded work is red in the `stranded` job
+  // (scripts/stranded-work.mjs), and a dry run still exits 1 on it.
+  if (failed || (!apply && stranded.length)) process.exit(1);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

@@ -30,8 +30,8 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { buildMainIndex, unlandedContent } from "./lib/strandedContent.mjs";
-import { STRANDED_AFTER_HOURS } from "./prune-stale-branches.mjs";
+import { buildMainIndex, buildRefsContentIndex, contentCoveredBy, unlandedContent } from "./lib/strandedContent.mjs";
+import { STRANDED_AFTER_HOURS, waitingForTrain } from "./prune-stale-branches.mjs";
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const args = process.argv.slice(2);
@@ -106,13 +106,27 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
   const open = gh(["pr", "list", "--state", "open", "--limit", "1000", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
   // A branch an open PR carries is tracked by that PR (and by the stale-PR check below).
   const openHeads = new Set(open.map((p) => `origin/${p.headRefName}`));
+  // ONE landing path (lead, 2026-10-13): lanes push ready/* and the landing
+  // train lands them in a batch PR (land/train-*). A branch whose unlanded
+  // content an open PR (a train) already carries is that PR's to land, not
+  // stranded; the pooled index of every open PR head is built once, on first use.
+  let openPrIndex = null;
+  const carriedByOpenPr = (r) => {
+    openPrIndex ??= buildRefsContentIndex(git, MAIN_REF(), [...openHeads].filter((h) => {
+      try { git(["rev-parse", "--verify", "-q", h]); return true; } catch { return false; }
+    }));
+    return contentCoveredBy(r, openPrIndex);
+  };
   for (const name of git(["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]).split("\n").filter(Boolean)) {
     if (/^origin(\/HEAD|\/main)?$/.test(name) || openHeads.has(name)) continue;
     if (Number(git(["rev-list", "--count", `${MAIN_REF()}..${name}`]).trim()) === 0) continue;
     const r = unlandedContent(git, name, MAIN_REF(), mainIndex);
     if (!r.stranded) continue;
+    if (carriedByOpenPr(r)) continue;
     const tipHours = (now - Number(git(["log", "-1", "--format=%ct", name]).trim()) * 1000) / 3_600_000;
-    const fresh = tipHours < STRANDED_AFTER_HOURS;
+    // A ready/* branch is the train's queue: judged once it has waited
+    // READY_QUEUE_GRACE_HOURS (a stalled queue IS a finding), not before.
+    const fresh = tipHours < STRANDED_AFTER_HOURS || waitingForTrain(name.replace(/^origin\//, ""), tipHours);
     out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), ...(fresh ? { fresh: true } : {}) });
   }
   const closed = closedPullRequests(gh);

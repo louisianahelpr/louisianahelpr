@@ -12,13 +12,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import {
-  AUTO_LAND_STUCK_HOURS,
-  autoLandTitle,
   decideBranch,
   isStranded,
-  stuckAutoLandPrs,
+  READY_QUEUE_GRACE_HOURS,
   uncoveredCommits,
+  waitingForTrain,
 } from "../../scripts/prune-stale-branches.mjs";
+import { blankComments, blankHashComments } from "./helpers/blankNonCode";
 
 /**
  * Stale remote branches kept piling up: delete_branch_on_merge only fires on a
@@ -124,37 +124,49 @@ describe("prune-stale-branches stranded work", () => {
 });
 
 /**
- * AUTO-LAND (2026-10-02): reporting stranded branches left them sitting for
- * days. --apply now opens an auto-land PR (rebase auto-merge) per stranded
- * branch, and one still open after AUTO_LAND_STUCK_HOURS turns the job red.
+ * REPORT ONLY (lead, 2026-10-13; nightly-red #2910/#2911). branch-prune used to
+ * open an "auto-land: <branch>" PR with rebase auto-merge for every stranded
+ * branch: one of three paths opening PRs for the same work (144 open PRs on
+ * 2026-10-12), so the workflow was disabled by hand and schedule-heartbeat went
+ * red. The owner's rule is ONE landing path, the landing train. Now the script
+ * and the workflow open no PR and turn on no auto-merge (comments ignored), the
+ * workflow holds no PR-writing token, and a ready/* branch (the train's queue)
+ * is stranded only once it has waited READY_QUEUE_GRACE_HOURS.
+ *
+ * Red first: the old script carried `gh(["pr", "create", ...])` and
+ * `"--rebase", "--auto"`, and the workflow ran it with REFRESH_PR_TOKEN and
+ * pull-requests: write.
  */
-describe("prune-stale-branches auto-land", () => {
-  const now = Date.parse("2026-10-02T20:00:00Z");
-  const pr = (title: string, createdAt: string) => ({ number: 1, headRefName: "agent/x", title, createdAt });
+// @mutate scripts/prune-stale-branches.mjs |   // REPORT ONLY: nothing here opens a PR (one landing path, the train).\n | \n  if (stranded.length) execFileSync("gh", ["pr", "create", "--head", stranded[0].name]);\n
+// @mutate scripts/prune-stale-branches.mjs |   if (waitingForTrain(name, ageHours)) return false; |
+describe("prune-stale-branches is report only: it opens no PR", () => {
+  const src = blankComments(fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8"));
+  const wf = blankHashComments(fs.readFileSync(path.resolve(__dirname, "../../.github/workflows/branch-prune.yml"), "utf8"));
 
-  it("an auto-land PR open past the limit is stuck; a fresh one or a human PR is not", () => {
-    const stuck = stuckAutoLandPrs(
-      [
-        pr(autoLandTitle("agent/x"), "2026-10-02T10:00:00Z"),
-        pr(autoLandTitle("agent/y"), "2026-10-02T19:00:00Z"),
-        pr("fix(x): human PR", "2026-09-01T00:00:00Z"),
-      ],
-      now,
-    );
-    expect(stuck.map((p) => p.createdAt)).toEqual(["2026-10-02T10:00:00Z"]);
-    expect(AUTO_LAND_STUCK_HOURS).toBe(6);
+  it("the files are read (inventory floor)", () => {
+    expect(src).toContain("findStranded(");
+    expect(src).toContain('"--delete"');
+    expect(wf).toContain("node scripts/prune-stale-branches.mjs --apply");
   });
 
-  it("--apply opens a PR and turns on rebase auto-merge for every stranded branch", () => {
-    const src = fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
-    const loop = src.slice(src.indexOf("for (const b of stranded)"), src.indexOf("autoOpened.push"));
-    expect(loop).toContain('"pr", "create"');
-    expect(loop).toContain('"--rebase", "--auto"');
+  it("the script never opens a PR, merges one or turns on auto-merge", () => {
+    expect(src).not.toMatch(/["'`]pr["'`]\s*,\s*["'`](create|merge)["'`]/);
+    expect(src).not.toMatch(/gh\s+pr\s+(create|merge)/);
+    expect(src).not.toMatch(/["'`]--auto["'`]/);
+    expect(src).not.toMatch(/\/pulls["'`]?\s*,\s*["'`]-X["'`]|-X["'`]?\s*,?\s*["'`]POST/);
   });
 
-  it("the workflow opens those PRs with REFRESH_PR_TOKEN, so required checks run", () => {
-    const wf = fs.readFileSync(path.resolve(__dirname, "../../.github/workflows/branch-prune.yml"), "utf8");
-    expect(wf).toMatch(/GH_TOKEN: \$\{\{ secrets\.REFRESH_PR_TOKEN/);
-    expect(wf).toContain("pull-requests: write");
+  it("the workflow holds no PR-writing token for it", () => {
+    expect(wf).not.toContain("REFRESH_PR_TOKEN");
+    expect(wf).not.toMatch(/pull-requests:\s*write/);
+  });
+
+  it("a ready/* branch is the train's queue: not stranded for READY_QUEUE_GRACE_HOURS, stranded after", () => {
+    expect(READY_QUEUE_GRACE_HOURS).toBe(24);
+    expect(waitingForTrain("ready/todo-b2-1", 5)).toBe(true);
+    expect(waitingForTrain("ready/todo-b2-1", 25)).toBe(false);
+    expect(waitingForTrain("fix/ready-thing", 5)).toBe(false);
+    expect(isStranded({ name: "ready/todo-b2-1", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
+    expect(isStranded({ name: "ready/todo-b2-1", hasOpenPr: false, ageHours: 25, uncovered: [{}] })).toBe(true);
   });
 });

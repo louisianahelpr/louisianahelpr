@@ -67,6 +67,8 @@ vi.mock("@/integrations/supabase/client", () => ({
       }),
     }),
     auth: {
+      // The tab's one auth /user read (securityAuthUser.ts, Q1648): no factors, email only.
+      getUser: vi.fn(async () => ({ data: { user: { id: "user-1", factors: [], identities: [] } }, error: null })),
       updateUser: vi.fn(async () => ({ error: null })),
       resetPasswordForEmail: vi.fn(async () => ({ error: null })),
       mfa: {

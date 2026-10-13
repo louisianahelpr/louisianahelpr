@@ -70,6 +70,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),
   ('is_off_job',                    'deny',     'TRUE: the person is off the job, so messaging on it closes both ways (can_message_in_job / can_send_message_to_in_job use NOT; Q419/Q420)'),
+  ('member_under_18',               'deny',     'TRUE refuses Apply/Post (apply_to_job, refuse_under_18_member; Q1586(c)); NULL or no birthday is FALSE by design: the sign-up 18+ box is the requirement (owner 2026-10-13), and a NULL uid is a server writer with no member session'),
   ('job_posted_by_seed',            'deny',     'TRUE exempts a test poster''s job from the step-order and repost rules; NULL customer -> false (judged)'),
   ('job_has_crew',                  'deny',     'TRUE locks a job''s date and start time to clients (20260927012805)'),
   ('admin_notification_crosses_seed_boundary','deny', 'TRUE: the admin client skips the notification (Q157)'),

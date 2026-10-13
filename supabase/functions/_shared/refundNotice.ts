@@ -31,6 +31,7 @@
 import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
 import { setupFeeKeptCents } from "./posterFees.ts";
+import { stripeModeForParties } from "./stripeMode.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = any;
@@ -79,6 +80,13 @@ export interface RefundNoticeInput {
   loadMetadata?: () => Promise<Record<string, string> | null>;
   /** Where send-notification-email lives; read from Deno.env when absent. */
   endpoint?: { url: string; key: string } | null;
+  /**
+   * Q1761: the money moved in Stripe's TEST mode (a webhook event with
+   * livemode false). Sandbox money is only ever told to a test account: a
+   * recipient picked from a payment's metadata that is a real person is not
+   * told (status 'dropped', by design, like the seed boundary).
+   */
+  testMode?: boolean;
 }
 
 type RefundNoticeStatus =
@@ -365,6 +373,21 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       recipient = ((data ?? [])[0] as Record<string, string> | undefined)?.[col] ?? null;
     }
     if (!recipient) return { status: "no_recipient" };
+    // Q1761 (lh-authz-rls + lh-money-escrow reviews of the test-mode branch):
+    // a sandbox refund of an old charge whose PaymentIntent names a real user
+    // must never tell that person (in the app or by email) about test money.
+    if (input.testMode === true) {
+      let mode: string;
+      try {
+        mode = await stripeModeForParties(supabase, [recipient]);
+      } catch (modeErr) {
+        return { status: "failed", error: `test-account read: ${caughtMessage(modeErr)}` };
+      }
+      if (mode !== "test") {
+        console.warn("[refundNotice] test-mode money names a real account; not told", { key: input.key });
+        return { status: "dropped", error: "test-mode money names a real account" };
+      }
+    }
 
     const ref = input.key.slice(input.key.indexOf(":") + 1);
     const link = input.link ??

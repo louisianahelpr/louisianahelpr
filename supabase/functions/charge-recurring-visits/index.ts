@@ -83,7 +83,7 @@ import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 /**
  * The client type these helpers accept.
@@ -731,10 +731,24 @@ serve(async (req) => {
       }
     }
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
+    // Q1759 (lh-money-escrow review of the test-mode branch): closing a visit's
+    // open Checkout or refunding a PAID visit moves money ALREADY taken, so it
+    // runs where that money sits: the row's own Checkout Session (cs_test_ /
+    // cs_live_), else its payer alone (a refund needs only the payer). It used
+    // to be decided as NEW money from every party on the series plus the
+    // visit's Helpr, so a real payer's series with a test Helpr on a visit was
+    // skipped as a mix instead of refunded, every run. Sandbox money of a real
+    // payer stays on the live key, as jobMoneyMode decides for a job.
+    const visitMoneyClient = async (row: Record<string, unknown>) => {
+      const payerMode = await stripes.modeForParties([row.payer_id as string | null]);
+      const stored = sessionIdMode(row.stripe_session_id as string | null);
+      const mode = stored === "test" && payerMode === "live" ? "live" : stored ?? payerMode;
+      return { mode, stripe: stripes.clientFor(mode) };
+    };
     for (const row of [...(stale ?? []), ...seriesOverRows]) {
       let stripe: Stripe;
       try {
-        ({ stripe } = await stripes.clientForJob(String(row.parent_job_id), "new", [row.payer_id, row.helper_id]));
+        ({ stripe } = await visitMoneyClient(row));
       } catch (modeErr) {
         if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
         fail(`visit payment ${row.id}: stripe mode ${modeErr.reason}: ${modeErr.message}`);

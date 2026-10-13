@@ -550,10 +550,21 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     resetSharedMocks();
   });
 
-  const seedGiftCrew = (blockRows: Array<Record<string, unknown>>) => {
-    seedCancelledCrew();
+  /**
+   * `late`: cancelled 1 hour before the start (the 50% tier: $50.00 a member,
+   * Q1781); otherwise five days early, so no member is owed a late fee and the
+   * Q1490 cases see the block fee alone.
+   */
+  const seedGiftCrew = (blockRows: Array<Record<string, unknown>>, late = false) => {
+    seedCancelledCrew(late ? undefined : MEMBERS.map((m, i) => ({
+      id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: "0.00", status: "pending", stripe_transfer_id: null,
+    })));
     const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
     jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
+    if (!late) {
+      jobs.selectOverrides[0].result.rows[0].cancelled_at = "2024-06-20T14:00:00Z";
+      jobs.selectOverrides[0].result.rows[0].cancellation_fee = 0;
+    }
     // Copies: the fee payer marks its rows in place (paid, void).
     scenario.reads.crew_block_fees = { rows: blockRows.map((r) => ({ ...r })) };
     scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
@@ -566,7 +577,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
   const BLOCK = { id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | "no payment found", crewBlockFeeCents(blockFeeRows)); | "no payment found");
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           crewBlockFeeCents(blockFeeRows) + giftFeeCents, |           giftFeeCents,
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const target = Math.max(0, applied - withholdCents); |           const target = applied;
   it("restores the gift less the block fee, never a cent of the fee", async () => {
     seedGiftCrew([BLOCK]);
@@ -586,7 +597,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   // platform balance (no charge to link); review #6: the gift notice says
   // what the gift kept.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.` |                 ? ""
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${ |                 ? "" && `${
   it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
     seedGiftCrew([BLOCK]);
     const h = await load();
@@ -618,6 +629,46 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     const h = await load();
     await h.fetch(cronReq());
     expect(restoreCalls()).toEqual([{ p_job_id: "job-crew" }]);
+  });
+
+  /**
+   * Q1781 (found doing Q1490): a fully gift-funded crew cancelled LATE owed
+   * each member their late-cancellation share, and none was ever paid: the
+   * no-payment branch dropped it and gave the whole gift back. Each member is
+   * now paid from the platform balance (no charge to link), the shares are
+   * kept from the gift, and Part D can retry a share that could not go.
+   *
+   * @mutate supabase/functions/void-cancelled-payments/index.ts |           if (crewShares) await payCrewCancellationFees(job, crewShares, null, stripe); |           if (crewShares) { void 0; }
+   * @mutate supabase/functions/void-cancelled-payments/index.ts |         const giftFeeCents = Math.round(jobCancellationFee * 100); |         const giftFeeCents = 0;
+   */
+  it("Q1781: a late-cancelled gift-funded crew pays each member's share from the platform balance and keeps it from the gift", async () => {
+    seedGiftCrew([], true);
+    const h = await load();
+    await h.fetch(cronReq());
+    const shares = stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "cancellation_fee");
+    expect(shares).toHaveLength(3);
+    for (const [p] of shares) expect((p as Record<string, unknown>).source_transaction).toBeUndefined();
+    const calls = restoreCalls();
+    expect(calls[0]).toEqual({ p_job_id: "job-crew", p_dry_run: true });
+    const mint = calls.find((c) => !c.p_dry_run)!;
+    const restored = Math.floor((30000 * Number(mint.p_share_bps)) / 10000);
+    expect(restored).toBeLessThanOrEqual(30000 - 15000);
+    expect(restored).toBeGreaterThan(30000 - 15000 - 5);
+    const settle = scenario.writes.find((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled");
+    expect((settle?.payload as Record<string, unknown>)?.cancellation_fee_status).toBe("charged");
+    const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid the late-cancellation fee owed for this job\./);
+  });
+
+  it("Q1781: a late-cancelled gift-funded crew with a block fee too keeps both, and the notice names both", async () => {
+    seedGiftCrew([BLOCK], true);
+    const h = await load();
+    await h.fetch(cronReq());
+    const mint = restoreCalls().find((c) => !c.p_dry_run)!;
+    const restored = Math.floor((30000 * Number(mint.p_share_bps)) / 10000);
+    expect(restored).toBeLessThanOrEqual(30000 - 15000 - 2500);
+    const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/paid the late-cancellation fee owed for this job and the fee for the crew spots you closed\./);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (dryErr) { |         if (false) {

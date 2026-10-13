@@ -188,6 +188,62 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     expect(n[0]).toMatchObject({ user_id: "payer-9", title: "Refund issued: $100" });
   });
 
+  /**
+   * Q1761 (lh-authz-rls + lh-money-escrow reviews of the test-mode branch,
+   * 2026-10-12): a refund from Stripe's TEST endpoint names nobody on its own
+   * object, so it passes the event's scope check, and the handler then picks
+   * the recipient from the PaymentIntent's metadata. Sandbox money is told
+   * only to a test account: a real person named there hears nothing.
+   *
+   * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |         testMode: event.livemode === false, |         testMode: false,
+   * @mutate supabase/functions/_shared/refundNotice.ts |       if (mode !== "test") { |       if (false) {
+   */
+  const deliverTestModeRefund = async () => {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      STRIPE_SECRET_KEY: "sk_live_real_money",
+      STRIPE_TEST_SECRET_KEY: "sk_test_sandbox",
+      STRIPE_WEBHOOK_SECRET: "whsec_live",
+      STRIPE_TEST_WEBHOOK_SECRET: "whsec_sandbox",
+    });
+    const fn = await loadEdgeFunction("stripe-webhook");
+    const ev = {
+      id: `evt_test_${Math.random()}`,
+      type: "charge.refunded",
+      livemode: false,
+      created: Math.floor(Date.now() / 1000),
+      data: { object: { id: "ch_sandbox", payment_intent: "pi_sandbox", amount: 11200, amount_refunded: 10000, currency: "usd", refunds: null, payment_method_details: VISA_4242 } },
+    };
+    stripeMock.webhooks.constructEventAsync.mockImplementation(async (_b: string, _s: string, secret: string) => {
+      if (secret === "whsec_sandbox") return ev;
+      throw new Error("No signatures found matching the expected signature for payload");
+    });
+    return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=abc" } }));
+  };
+  const allNotices = () =>
+    scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert").map((w) => w.payload as Record<string, unknown>);
+
+  it("Q1761: a TEST-mode refund whose PaymentIntent names a REAL person tells nobody", async () => {
+    scenario.reads.jobs = { rows: [] };
+    scenario.reads.test_accounts = { rows: [] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_sandbox", metadata: { payer_id: "real-person-1" } });
+    const res = await deliverTestModeRefund();
+    expect(res.status).toBe(200);
+    expect(allNotices()).toHaveLength(0);
+    expect(notificationEmails).toHaveLength(0);
+  });
+
+  it("Q1761: the same TEST-mode refund to a TEST account is still told", async () => {
+    scenario.reads.jobs = { rows: [] };
+    scenario.reads.test_accounts = { rows: [{ user_id: "test-payer-1" }] };
+    scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "user_id, is_seed", result: { rows: [{ user_id: "test-payer-1", is_seed: true }] } }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_sandbox", metadata: { payer_id: "test-payer-1" } });
+    const res = await deliverTestModeRefund();
+    expect(res.status).toBe(200);
+    expect(allNotices().map((n) => n.user_id)).toEqual(["test-payer-1"]);
+  });
+
   it("a refund nobody can be told about pages ops instead of passing silently", async () => {
     scenario.reads.jobs = { rows: [] };
     stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_x", metadata: {} });

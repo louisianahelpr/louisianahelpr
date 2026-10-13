@@ -365,6 +365,69 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
  *
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!(await feePayeesShareMode(feePayees))) { |         if (false) {
  */
+/**
+ * Q1781 (found doing Q1490): a FULLY gift-funded single job cancelled late
+ * owed its Helpr the late-cancellation fee, and nobody paid it: the job has no
+ * PaymentIntent, so it settled on the "no payment found" branch with the whole
+ * gift given back. The fee is now paid from the platform balance the gift paid
+ * into (same ledger row, same key, no charge to link), kept from the gift, and
+ * a fee that could not go is retried by Part E on the settled job.
+ *
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |           else await payHelperCancellationFee(job, jobCancellationFee, null, singleFeePercent, stripe); |           else void singleFeePercent;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         const giftFunded = !job.stripe_payment_intent_id && job.payment_status === "cancelled";\n        if (!job.stripe_payment_intent_id && !giftFunded) {\n          defects.record(`cancellation fee retry | const giftFunded = false;\n        if (!job.stripe_payment_intent_id && !giftFunded) {\n          defects.record(`cancellation fee retry
+ */
+describe("void-cancelled-payments — a fully gift-funded job's late-cancellation fee is paid (Q1781)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+  const giftRpc = () => {
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+      if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: 30000, restore_cents: 30000 };
+      const bps = a.p_share_bps ?? 10000;
+      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: 30000, restore_cents: Math.floor((30000 * bps) / 10000) };
+    };
+  };
+  const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
+
+  it("Part A: the fee is paid from the platform balance, kept from the gift, and the job settles 'charged'", async () => {
+    seed();
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ includes: string; result: { rows: Array<Record<string, unknown>> } }> };
+    jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
+    giftRpc();
+    const h = await load();
+    await h.fetch(cronReq());
+    const calls = feeTransferCalls();
+    expect(calls).toHaveLength(1);
+    expect((calls[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
+    expect(feeWrites("insert")[0].payload).toMatchObject({ job_id: "job-1", helper_id: "helper-1", status: "pending" });
+    const mint = restoreCalls().find((c) => !c.p_dry_run)!;
+    const restored = Math.floor((30000 * Number(mint.p_share_bps)) / 10000);
+    expect(restored).toBeLessThanOrEqual(30000 - 15000);
+    expect(restored).toBeGreaterThan(30000 - 15000 - 5);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    const settle = scenario.writes.find((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled");
+    expect((settle?.payload as Record<string, unknown>)?.cancellation_fee_status).toBe("charged");
+  });
+
+  it("Part E: a fee row left open on a gift-funded job (no PaymentIntent, settled 'cancelled') is retried, not paged as having no payment", async () => {
+    const failed = ledgerRow({ status: "failed", created_at: OLD });
+    seed({ partA: false, existing: failed, retry: [failed] });
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ includes: string; result: { rows: Array<Record<string, unknown>> } }> };
+    Object.assign(jobs.selectOverrides[1].result.rows[0], { stripe_payment_intent_id: null, payment_status: "cancelled" });
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const calls = feeTransferCalls();
+    expect(calls).toHaveLength(1);
+    expect((calls[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(JSON.stringify(await res.json())).not.toMatch(/no payment intent to draw the fee from/);
+  });
+});
+
 describe("void-cancelled-payments — a fee owed across Stripe modes goes back to the poster", () => {
   beforeEach(() => {
     resetEnv();

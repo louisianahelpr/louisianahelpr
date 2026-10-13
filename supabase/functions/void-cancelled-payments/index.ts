@@ -113,6 +113,8 @@ serve(async (req) => {
        * platform's balance.
        */
       withholdCents = 0,
+      /** Q1781: how much of `withholdCents` is the late-cancellation fee owed to the Helpr(s), for the notice. */
+      lateFeeCents = 0,
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
       let keptForBlockFees = 0;
@@ -137,7 +139,7 @@ serve(async (req) => {
           shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
           keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
           console.log(
-            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for crew block fees; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
+            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
           );
         }
       }
@@ -181,7 +183,13 @@ serve(async (req) => {
             message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.` +
               // Q1490 review #6: say what the gift kept, as the card path does.
               (keptForBlockFees > 0
-                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.`
+                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${
+                  lateFeeCents <= 0
+                    ? "the cancellation fee for the crew spots you closed"
+                    : lateFeeCents >= withholdCents
+                      ? "the late-cancellation fee owed for this job"
+                      : "the late-cancellation fee owed for this job and the fee for the crew spots you closed"
+                }.`
                 : ""),
             type: "payment",
             link: "/profile?tab=gift_card",
@@ -327,6 +335,8 @@ serve(async (req) => {
       stage: string,
       /** Q1490: gift cents kept to pay what the poster owes (see restorePifGift). */
       withholdGiftCents = 0,
+      /** Q1781: the late-cancellation fee's part of withholdGiftCents. */
+      lateFeeCents = 0,
     ): Promise<boolean> => {
       // Return the gift BEFORE the job leaves escrow. Ordering matters: the
       // selection query at the top of this run is
@@ -334,7 +344,7 @@ serve(async (req) => {
       // been flipped is never handed back. Restoring first means a restore
       // that succeeds and a flip that fails still leaves the recipient
       // whole, and the restore is idempotent so the retry is a no-op.
-      if (!(await restorePifGift(job, stage, withholdGiftCents)).ok) return false;
+      if (!(await restorePifGift(job, stage, withholdGiftCents, lateFeeCents)).ok) return false;
 
       const { data, error: flipErr } = await supabaseAdmin
         .from("jobs")
@@ -451,7 +461,8 @@ serve(async (req) => {
     const payHelperCancellationFee = async (
       job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
       cancellationFee: number,
-      pi: Stripe.PaymentIntent,
+      /** null: a fully gift-funded job (Q1781), paid from the platform balance the gift paid into. */
+      pi: Stripe.PaymentIntent | null,
       // Q1358: Part A resolves the rate BEFORE any money moves (a failed read
       // there leaves the job in escrow for the next run) and hands it in here.
       preResolvedPercent: number | undefined,
@@ -666,7 +677,7 @@ serve(async (req) => {
           },
         };
         // Link to the source charge so the transfer draws from these funds.
-        if (pi.latest_charge) {
+        if (pi?.latest_charge) {
           transferParams.source_transaction = typeof pi.latest_charge === "string"
             ? pi.latest_charge
             : pi.latest_charge.id;
@@ -750,7 +761,8 @@ serve(async (req) => {
     const payCrewCancellationFees = async (
       job: { id: string; title: string; helper_fee_percent?: number | string | null },
       shares: CrewShare[],
-      pi: Stripe.PaymentIntent,
+      /** null: a fully gift-funded crew (Q1781), paid from the platform balance. */
+      pi: Stripe.PaymentIntent | null,
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe,
     ) => {
@@ -880,7 +892,7 @@ serve(async (req) => {
             transfer_group: feeGroup,
             metadata: { job_id: job.id, helper_id: share.helper_id, share_id: share.id, type: "cancellation_fee", platform_cut: platformCut },
           };
-          if (pi.latest_charge) {
+          if (pi?.latest_charge) {
             transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
           }
           const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
@@ -1188,7 +1200,8 @@ serve(async (req) => {
           .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...crewRetryShares.keys()])
           // Only a job whose fee Part A captured: one still in escrow is Part A's own.
-          .eq("payment_status", "refunded")
+          // 'cancelled': a fully gift-funded crew, its fee kept from the gift (Q1781).
+          .in("payment_status", ["refunded", "cancelled"])
           .eq("cancellation_fee_status", "charged");
         if (settledErr) {
           defects.record(`crew share retry job read: ${settledErr.message}`);
@@ -1229,7 +1242,8 @@ serve(async (req) => {
           .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...feeRetryRows.keys()])
           // Only a job Part A already settled: one still in escrow is Part A's own.
-          .eq("payment_status", "refunded")
+          // 'cancelled': a fully gift-funded job, its fee kept from the gift (Q1781).
+          .in("payment_status", ["refunded", "cancelled"])
           .eq("cancellation_fee_status", "charged");
         if (feeJobsErr) {
           defects.record(`cancellation fee retry job read: ${feeJobsErr.message}`);
@@ -1288,7 +1302,10 @@ serve(async (req) => {
       // this loop applies to it (its escrow already left 'escrow').
       if (job.crew_share_retry) {
         const shares = crewRetryShares.get(job.id) ?? [];
-        if (!job.stripe_payment_intent_id) {
+        // No PaymentIntent: a fully gift-funded crew (Q1781), paid from the
+        // platform balance the gift paid into.
+        const giftFunded = !job.stripe_payment_intent_id && job.payment_status === "cancelled";
+        if (!job.stripe_payment_intent_id && !giftFunded) {
           defects.record(`crew share retry ${job.id}: no payment intent to draw the fee from`);
           continue;
         }
@@ -1297,7 +1314,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          const retryPi = giftFunded ? null : await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
           await payCrewCancellationFees(job, shares, retryPi, stripe);
           crewSharesRetried += shares.length;
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
@@ -1315,7 +1332,10 @@ serve(async (req) => {
       if (job.fee_transfer_retry) {
         const owed = feeRetryRows.get(job.id);
         if (!owed) continue;
-        if (!job.stripe_payment_intent_id) {
+        // No PaymentIntent: a fully gift-funded job (Q1781), paid from the
+        // platform balance the gift paid into.
+        const giftFunded = !job.stripe_payment_intent_id && job.payment_status === "cancelled";
+        if (!job.stripe_payment_intent_id && !giftFunded) {
           defects.record(`cancellation fee retry ${job.id}: no payment intent to draw the fee from`);
           continue;
         }
@@ -1324,7 +1344,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          const retryPi = giftFunded ? null : await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
           await payHelperCancellationFee(
             { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent },
             Number(owed.fee_amount),
@@ -1628,7 +1648,25 @@ serve(async (req) => {
           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null);
           for (const p of paidFirst.problems) defects.record(p);
         }
-        const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found", crewBlockFeeCents(blockFeeRows));
+        // Q1781 (found doing Q1490): a fully gift-funded job's late-cancellation
+        // fee was never paid: priced above, then dropped here with the whole
+        // gift given back. It is paid now, the same way the card paths pay it
+        // (the same no-fee rules, payout hold, ledger row and transfer group),
+        // from the platform balance the gift paid into, and withheld from the
+        // gift restore. A fee that cannot go now (a hold, no payout account)
+        // keeps its open ledger row and Part D/E retry it on the settled job.
+        const giftFeeCents = Math.round(jobCancellationFee * 100);
+        if (giftFeeCents > 0) {
+          if (crewShares) await payCrewCancellationFees(job, crewShares, null, stripe);
+          else await payHelperCancellationFee(job, jobCancellationFee, null, singleFeePercent, stripe);
+        }
+        const updated = await settleCancelledJob(
+          job,
+          giftFeeCents > 0 ? { payment_status: "cancelled", cancellation_fee_status: "charged" } : { payment_status: "cancelled" },
+          "no payment found",
+          crewBlockFeeCents(blockFeeRows) + giftFeeCents,
+          giftFeeCents,
+        );
         results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated });
         continue;
       }

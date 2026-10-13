@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { eighteenthBirthday, isUnder18, UNDER_18_SAVED_COPY } from "@/lib/ageGate";
+import { ageInYears, eighteenthBirthday, isUnder18, under18ConfirmCopy, yearsAgoKey } from "@/lib/ageGate";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,8 +274,10 @@ const CompleteProfile = () => {
   const zipValid = zipCode.length === 5 && !unknownZip && !!resolvedZipParish;
 
   // Upper bound today, not today − 18y: a birthday under 18 must be enterable
-  // so it can be saved (Q1586(c), owner 2026-10-13); today − 120y floor so the
-  // wheel has a sane range.
+  // so it can be saved (Q1586(c), owner 2026-10-13); the wheel still OPENS 18
+  // years back (openAt) so a mis-spin does not land on a minor's birthday, and
+  // the line under the field says the age before the save. Today − 120y floor
+  // so the wheel has a sane range.
   const maxDob = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -717,10 +719,11 @@ const CompleteProfile = () => {
                 onChange={setDateOfBirth}
                 min={minDob}
                 max={maxDob}
+                openAt={yearsAgoKey(18)}
                 className="rounded-ds-md"
               />
               {dobUnder18 && (
-                <p data-testid="dob-under-18-note" className="text-ds-11 text-[hsl(var(--destructive-ink))]">{UNDER_18_SAVED_COPY}</p>
+                <p data-testid="dob-under-18-note" className="text-ds-11 text-[hsl(var(--destructive-ink))]">{under18ConfirmCopy(ageInYears(dateOfBirth), "finish your profile to save it")}</p>
               )}
             </div>
 

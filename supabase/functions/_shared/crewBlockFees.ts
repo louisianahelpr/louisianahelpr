@@ -78,6 +78,8 @@ export function crewBlockFeeCents(rows: CrewBlockFeeRow[]): number {
 export async function crewBlockFeeRefusal(
   admin: Db,
   job: { id: string; is_group_job?: boolean | null },
+  /** Which admin action asked: its way out differs (review of Q1490 #5). */
+  action: "general" | "dispute" = "general",
 ): Promise<{ status: number; error: string; cents: number } | null> {
   if (!job.is_group_job) return null;
   const read = await readCrewBlockFees(admin, job.id);
@@ -89,7 +91,9 @@ export async function crewBlockFeeRefusal(
   return {
     status: 409,
     cents,
-    error: `A crew member blocked by the person who posted this job is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (everything but that fee goes back to whoever paid), or refund a partial amount.`,
+    error: action === "dispute"
+      ? `A crew member blocked by the person who posted this job is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so this dispute can't be refunded in full. No money was moved. Decide the dispute for each crew member instead.`
+      : `A crew member blocked by the person who posted this job is owed a $${(cents / 100).toFixed(2)} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (everything but that fee goes back to whoever paid), or refund a partial amount.`,
   };
 }
 

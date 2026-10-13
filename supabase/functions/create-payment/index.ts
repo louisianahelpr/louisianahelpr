@@ -2773,7 +2773,7 @@ serve(async (req) => {
       // Q1490: the same rule as a general full refund: a fee owed to a crew
       // member the poster blocked stays on the charge. Refused, nothing moved.
       {
-        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job);
+        const blocked = await crewBlockFeeRefusal(supabaseAdmin, job, "dispute");
         if (blocked) {
           return new Response(JSON.stringify({ error: blocked.error, crewBlockFeeCents: blocked.cents }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }, status: blocked.status,

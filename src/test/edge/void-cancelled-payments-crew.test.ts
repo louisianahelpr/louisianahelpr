@@ -554,7 +554,8 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     seedCancelledCrew();
     const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
     jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
-    scenario.reads.crew_block_fees = { rows: blockRows };
+    // Copies: the fee payer marks its rows in place (paid, void).
+    scenario.reads.crew_block_fees = { rows: blockRows.map((r) => ({ ...r })) };
     scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
       const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
       if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: 30000, restore_cents: 30000 };
@@ -579,6 +580,30 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     expect(restored).toBeGreaterThan(30000 - 2500 - 5);
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(true);
+  });
+
+  // Review #7: the fees are tried first, as the card paths do, from the
+  // platform balance (no charge to link); review #6: the gift notice says
+  // what the gift kept.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(keptForBlockFees / 100)} of it paid the cancellation fee for the crew spots you closed.` |                 ? ""
+  it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
+    seedGiftCrew([BLOCK]);
+    const h = await load();
+    await h.fetch(cronReq());
+    const fee = stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
+    expect(fee).toHaveLength(1);
+    expect((fee[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
+    const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$25(\.\d\d)? of it paid the cancellation fee for the crew spots you closed\./);
+  });
+
+  it("a member whose account is gone is voided first, so the whole gift comes back", async () => {
+    seedGiftCrew([{ ...BLOCK, helper_id: null }]);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "void")).toBe(true);
+    expect(restoreCalls()).toEqual([{ p_job_id: "job-crew" }]);
   });
 
   it("a void block fee (member gone) is not kept: the whole gift comes back, no dry run", async () => {

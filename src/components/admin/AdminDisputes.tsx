@@ -32,7 +32,8 @@ import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
+import { settlementEscapes } from "./adminDisputes/settlementEscapes";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -415,43 +416,8 @@ const AdminDisputes = () => {
     }
   };
 
-  /**
-   * Close a decided dispute whose job has NO payment on file (Q235). The split
-   * refuses such a job ("no payment intent on file"), so "Retry settlement"
-   * can only fail again; this records the settlement as moving nothing, with
-   * the admin's reason, through rpc_settle_dispute_without_payment. The RPC
-   * re-checks every condition under row locks and raises on anything it did
-   * not write, so a null error here means the dispute row changed.
-   */
-  const closeWithoutPayment = async (job: DisputedJob, note: string) => {
-    const disputeId = disputeRecords[job.id]?.id ?? null;
-    if (!disputeId) {
-      toast.error("This dispute has no formal record to close.");
-      return;
-    }
-    const ok = await requireBiometric("Confirm closing this settlement with no payment");
-    if (!ok) return;
-    setRetrying(job.id);
-    try {
-      const { error } = await supabase.rpc(
-        "rpc_settle_dispute_without_payment",
-        { _dispute_id: disputeId, _note: note.trim() },
-      );
-      if (error) {
-        toast.error(rpcErrorMessage("rpc_settle_dispute_without_payment", error) ?? userFacingError(error, "Couldn't close that settlement — try again."));
-        return;
-      }
-      confirmConsequential("Settlement closed. No payment was on file, so nothing moved.");
-    } catch (err: unknown) {
-      // A thrown call (network drop, client fault) never reached the RPC's
-      // refusals above: say so, and report it, instead of an unhandled rejection.
-      report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });
-      toast.error(userFacingError(err, "Couldn't close that settlement — try again."));
-    } finally {
-      setRetrying(null);
-      loadDisputes();
-    }
-  };
+  // Q235 close-without-payment and Q1732 clear-test-mode (adminDisputes/settlementEscapes.ts).
+  const { closeWithoutPayment, clearTestModeRecords } = settlementEscapes({ disputeRecords, setRetrying, loadDisputes });
 
   // Record the formal decision (text + split), then EXECUTE it: the recorded
   // split now moves real money via the `execute-dispute-split` edge function —
@@ -762,6 +728,7 @@ const AdminDisputes = () => {
               decide={decide}
               retrySettlement={retrySettlement}
               closeWithoutPayment={closeWithoutPayment}
+              clearTestModeRecords={clearTestModeRecords}
               retrying={retrying}
             />
           ))

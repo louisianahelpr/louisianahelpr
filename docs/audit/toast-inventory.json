@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 611,
-    "files": 158,
-    "rendering": 582,
+    "calls": 615,
+    "files": 159,
+    "rendering": 586,
     "suppressedByPolicy": 29,
     "byKind": {
-      "confirmConsequential": 25,
+      "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 479,
+      "toast.error": 482,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 35,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 325,
+      "literal": 326,
       "template": 79,
-      "dynamic": 248,
+      "dynamic": 251,
       "jsx": 0
     }
   },
@@ -1486,7 +1486,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 101,
+      "line": 102,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1496,7 +1496,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 138,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1506,7 +1506,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1516,7 +1516,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 310,
+      "line": 311,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1526,7 +1526,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 333,
+      "line": 334,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1536,7 +1536,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 370,
+      "line": 371,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1546,7 +1546,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 379,
+      "line": 380,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1556,7 +1556,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 392,
+      "line": 393,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1566,7 +1566,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 401,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1576,7 +1576,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 411,
+      "line": 412,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1586,47 +1586,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 429,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "This dispute has no formal record to close."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 441,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rpcErrorMessage(\"rpc_settle_dispute_without_payment\", error) ?? userFacingError(error, \"Couldn't close that settlement — try again.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 444,
-      "kind": "confirmConsequential",
-      "title": {
-        "form": "literal",
-        "text": "Settlement closed. No payment was on file, so nothing moved."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 449,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "userFacingError(err, \"Couldn't close that settlement — try again.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 474,
+      "line": 440,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1636,7 +1596,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 553,
+      "line": 519,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2683,6 +2643,106 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't apply that restriction — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This dispute has no formal record to close."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 52,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"rpc_settle_dispute_without_payment\", error) ?? userFacingError(error, \"Couldn't close that settlement — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 55,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Settlement closed. No payment was on file, so nothing moved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't close that settlement — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This dispute has no formal record to clear."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "error ? await functionErrorMessage(error, \"Couldn't clear the test-mode records — nothing was changed; try again.\") : String(data.error)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "await functionErrorMessage(error, \"Couldn't clear the test-mode records — nothing was changed; try again.\")"
+          },
+          {
+            "form": "dynamic",
+            "text": "String(data.error)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 101,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "(data as { action?: string } | null)?.action === \"already_superseded\" ? \"Already done: this decision was re-opened earlier.\" : \"Test-mode records cleared. The dispute is open again to decide.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Already done: this decision was re-opened earlier."
+          },
+          {
+            "form": "literal",
+            "text": "Test-mode records cleared. The dispute is open again to decide."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 108,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't clear the test-mode records — try again.\")"
       },
       "renders": true
     },

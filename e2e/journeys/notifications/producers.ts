@@ -47,7 +47,7 @@ const ADMIN_ONLY = (what: string) =>
 const GAP = (door: string) =>
   `GAP — reachable with the two shared accounts via ${door}, but no journey leg asserts the notification row it writes`;
 const FANOUT =
-  "fans a funded job out to real Helprs (by parish, or by location for an urgent job); seed jobs are visible publicly (seed_jobs_hidden_publicly() = false on prod, measured 2026-09-26), so a journey job that carried a parish or location would notify real users. The journeys keep parish null on purpose";
+  "fans a funded job out to real Helprs (by parish, or by location for an urgent job); seed jobs were visible publicly when this was written (seed_jobs_hidden_publicly() = false on prod, measured 2026-09-26; true since 2026-10-06, measured 2026-10-14, which also stops the fan-out for is_seed jobs), so a journey job that carried a parish or location could notify real users whenever the switch is off. The journeys keep parish null on purpose";
 const SERIES =
   "GAP — a recurring series; no journey posts one between the two shared accounts, and every visit of a funded series is its own Stripe test charge, so the series doors and the notification rows they write are not driven";
 const BAN_SETTLE =
@@ -101,7 +101,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:decline_job_offer": { uncovered: STRIKE },
   "sql:deliver_job_match": { uncovered: FANOUT },
   "sql:deliver_parish_match_alert": { uncovered: FANOUT },
-  "sql:deliver_saved_search_alert": { driven: { spec: MONEY, evidence: "type=eq.job_match" } },
+  "sql:deliver_saved_search_alert": {
+    uncovered:
+      "every journey job is is_seed and seed_jobs_hidden_publicly() is true on prod (since 2026-10-06 19:26Z, measured 2026-10-14), so notify_saved_searches_on_new_job never queues a saved-search alert for one; 04-money-outcomes asserts the alert is NOT sent while the switch is on and asserts it sent only when the switch is off. The sent alert is proven in src/test/pglite (savedSearchAlertsWaitForEarlyAccess.test.ts)",
+  },
   "sql:detect_stuck_payments": { uncovered: CRON("detect-stuck-payments") },
   "sql:end_recurring_series": { uncovered: SERIES },
   "sql:end_series_for_banned_account": { uncovered: BAN_SETTLE },
@@ -189,7 +192,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered: "writes on a Pro subscription state change; the shared accounts are free tier and a Pro checkout is a recurring charge the journeys do not start",
   },
   "edge:create-notification": { driven: { spec: NOTIF, evidence: 'template: "test"' } },
-  "edge:create-payment": { driven: { spec: MONEY, evidence: '"Refund issued"' } },
+  "edge:create-payment": { driven: { spec: MONEY, evidence: '"Refund issued: $*"' } },
   "edge:daily-match-digest": { uncovered: SCHEDULED_EDGE },
   "edge:execute-dispute-split": { uncovered: DISPUTE },
   "edge:expire-subscriptions": { uncovered: SCHEDULED_EDGE },

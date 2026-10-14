@@ -2,10 +2,12 @@ import Capacitor
 import UIKit
 
 /**
- The app's root view controller. Main.storyboard names it by its Objective-C
- name (customClass="HelprBridgeViewController", no customModule): the App
- target's PRODUCT_NAME is "Louisiana Helpr", so its Swift module is not "App",
- and the explicit @objc name makes the storyboard lookup independent of that.
+ The app's root view controller. Main.storyboard names it with
+ customClass="HelprBridgeViewController" customModuleProvider="target", so the
+ storyboard resolves it in the App target's own module ("Louisiana_Helpr").
+ Measured 2026-10-14: with the @objc name alone and no module the Release
+ build logged "Unknown class HelprBridgeViewController" and launched to a
+ black screen.
 
  WHY IT EXISTS. Capacitor 8 auto-registers only the classes named in
  `packageClassList` of the generated capacitor.config.json, which

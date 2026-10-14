@@ -100,9 +100,19 @@ function apply(snap, { dryRun }) {
   if (!dryRun) {
     writeFileSync(join(ROOT, OPEN), res.md);
     const snapPath = join(ROOT, SNAPSHOT);
-    writeFileSync(snapPath, snapshotText(existsSync(snapPath) ? readFileSync(snapPath, "utf8") : null, out));
+    writeFileSync(snapPath, snapshotText(readIfPresent(snapPath), out));
   }
   return snap.issues.readable && snap.ledger.readable && !res.ambiguous.length;
+}
+
+/** The file's text, or null when it does not exist (one read, no exists-then-read race). */
+function readIfPresent(p) {
+  try {
+    return readFileSync(p, "utf8");
+  } catch (e) {
+    if (e?.code === "ENOENT") return null;
+    throw e;
+  }
 }
 
 async function main() {
@@ -118,7 +128,7 @@ async function main() {
   }
   if (argv.includes("--measure-only")) {
     const out = opt("out") ?? join(ROOT, SNAPSHOT);
-    writeFileSync(out, snapshotText(existsSync(out) ? readFileSync(out, "utf8") : null, snap));
+    writeFileSync(out, snapshotText(readIfPresent(out), snap));
     console.log(`measured ${snap.issues.open.length} issue(s), ${snap.ledger.open.length} ledger row(s) -> ${out}`);
     process.exit(snap.issues.readable && snap.ledger.readable ? 0 : 1);
   }

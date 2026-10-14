@@ -1,5 +1,6 @@
 export const FINDINGS: string;
 export const SNAPSHOT: string;
+export function snapshotText(prevText: string | null, snap: Record<string, unknown>): string;
 export const FEEDS_HEADING: string;
 export interface FeedSource { keys: string[]; title: string; origin: string; markers: string[]; tier?: "HIGH" | "MEDIUM" | "LOW" }
 export function tierOf(severity: unknown): "HIGH" | "MEDIUM" | "LOW";

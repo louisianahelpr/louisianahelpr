@@ -1,6 +1,6 @@
 // @mutate scripts/lib/openFeeds.mjs | if (JSON.stringify(prev) === JSON.stringify(cur)) return prevText; | if (false) return prevText;
 // @mutate scripts/lib/openFeeds.mjs | const { measured_at: _b, ...cur } = snap; | const cur = snap;
-// @mutate scripts/open-sync-trackers.mjs | writeFileSync(snapPath, snapshotText(existsSync(snapPath) ? readFileSync(snapPath, "utf8") : null, out)); | writeFileSync(snapPath, JSON.stringify(out, null, 2) + "\n");
+// @mutate scripts/open-sync-trackers.mjs | writeFileSync(snapPath, snapshotText(readIfPresent(snapPath), out)); | writeFileSync(snapPath, JSON.stringify(out, null, 2) + "\n");
 /**
  * Bot churn (owner, 2026-10-14: "i feel like we are getting no wheres again").
  * open-auto-tick runs after every prod deploy and opens a refresh PR whenever

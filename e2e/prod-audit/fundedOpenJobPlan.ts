@@ -67,6 +67,62 @@ export function isPreLive(row: { stripe_session_id?: string | null }, mode: Stri
   return mode !== "test" && /^cs_test_/.test(row.stripe_session_id ?? "");
 }
 
+/** Logged for a cs_test_ fixture held while this run's Stripe mode is still unknown: reused, never retired blind. */
+export const UNKNOWN_MODE_HOLD_WHY = "Stripe mode not known yet this run: a cs_test_ fixture is reused, never cancel_escrow'd blind";
+
+/**
+ * Q1779: a cs_test_ row while the mode is still UNKNOWN (no session minted
+ * this run yet, i.e. every fresh process). Since 2026-10-12 the shared test
+ * accounts run on the TEST key, so such a row is a current fixture: REUSING
+ * it moves no money and is always safe. Treating it as pre-live (as before)
+ * made every fresh run mint another funded fixture and never retire one,
+ * until poster-e2e hit the 5-open-jobs cap (core-loop-canary 38619494580).
+ * Only RETIRING it (cancel_escrow) still waits for a known mode.
+ */
+export function isUnknownModeTestRow(row: { stripe_session_id?: string | null }, mode: StripeMode): boolean {
+  return mode === "unknown" && /^cs_test_/.test(row.stripe_session_id ?? "");
+}
+
+/**
+ * Q1779: the open-job cap budget of the shared poster account.
+ *
+ * enforce_open_job_limit (live pg_get_functiondef 2026-10-14) refuses a 6th
+ * job while the poster holds 5 rows with status 'open' and a payment_status
+ * outside ('unpaid','abandoned','failed'). By design poster-e2e holds two of
+ * those for good (the browse fixture, scripts/e2e/browseFixture.mjs, and ONE
+ * funded open fixture) plus at most one in passing (an accepted or dispute
+ * fixture back at open, retired by the next run). Anything more is a leak
+ * (fixtures minted and never retired), and it is caught here, by name, while
+ * two slots are still free: not by a canary that dies on the cap's own error.
+ */
+export const OPEN_JOB_CAP = 5;
+export const POSTER_OPEN_JOB_BUDGET = 3;
+const NOT_COUNTED = new Set(["unpaid", "abandoned", "failed"]);
+
+export interface CapRow { id: string; title: string; status: string; payment_status: string | null; created_at: string }
+
+/** The rows enforce_open_job_limit counts. Mirrors its WHERE: status open AND COALESCE(payment_status,'') NOT IN (...). */
+export function capCountedOpenJobs(rows: readonly CapRow[]): CapRow[] {
+  return rows.filter((r) => r.status === "open" && !NOT_COUNTED.has(r.payment_status ?? ""));
+}
+
+/** Null while the poster is within budget; otherwise the failure message, naming every counted job. */
+export function openJobBudgetProblem(rows: readonly CapRow[], who = "poster-e2e"): string | null {
+  const counted = capCountedOpenJobs(rows);
+  if (counted.length <= POSTER_OPEN_JOB_BUDGET) return null;
+  const list = counted
+    .slice()
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((r) => `${r.id} "${r.title}" ${r.payment_status} ${r.created_at}`)
+    .join("; ");
+  return `test account ${who} is accumulating open jobs (Q1779): ${counted.length} count toward the ${OPEN_JOB_CAP}-open-job cap, budget ${POSTER_OPEN_JOB_BUDGET}. ` +
+    `Some run minted fixtures it never retired. Retire the extras (test-owned only) and fix the leak: ${list}`;
+}
+
+/** Left untouched entirely (neither reused, retired nor paid): a cs_test_ row once the run KNOWS it is live. */
+const isPreLiveForPlan = (row: { stripe_session_id?: string | null }, mode: StripeMode) =>
+  mode === "live" && /^cs_test_/.test(row.stripe_session_id ?? "");
+
 export interface FixturePlan {
   /** The funded row to hand to the specs, as-is. */
   reuse: FixtureRow | null;
@@ -110,19 +166,24 @@ export function planFundedOpenJob(
   const all = rows
     .filter((r) => r.title.startsWith(FUNDED_FIXTURE_TITLE) && r.status === "open" && !r.helper_id)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const preLive = all.filter((r) => isPreLive(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
-  const mine = all.filter((r) => !isPreLive(r, mode));
-  const extra = preLive.length ? { preLive } : {};
+  const preLive = all.filter((r) => isPreLiveForPlan(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
+  const mine = all.filter((r) => !isPreLiveForPlan(r, mode));
   const retire: FixturePlan["retire"] = [];
+  // Q1779: while the mode is unknown a cs_test_ row is never retired blind; it is held (logged) instead.
+  const retireOrHold = (row: FixtureRow, why: string) => {
+    if (isUnknownModeTestRow(row, mode)) preLive.push({ row, why: `${UNKNOWN_MODE_HOLD_WHY} (would retire: ${why})` });
+    else retire.push({ row, why });
+  };
   let reuse: FixtureRow | null = null;
   for (const r of mine.filter((x) => FUNDED.has(x.payment_status ?? ""))) {
     const runway = daysBetween(opts.today, r.date_needed);
-    if (r.payment_status === "cancelling") retire.push({ row: r, why: "stuck in cancelling — finish the refund" });
-    else if (runway < MIN_RUNWAY_DAYS) retire.push({ row: r, why: `only ${runway}d of runway (< ${MIN_RUNWAY_DAYS}); auto-expire would cancel it without a refund` });
-    else if (opts.appliedJobIds.has(r.id)) retire.push({ row: r, why: "helper-e2e has an application on it" });
-    else if (reuse) retire.push({ row: r, why: `duplicate of ${reuse.id}` });
+    if (r.payment_status === "cancelling") retireOrHold(r, "stuck in cancelling — finish the refund");
+    else if (runway < MIN_RUNWAY_DAYS) retireOrHold(r, `only ${runway}d of runway (< ${MIN_RUNWAY_DAYS}); auto-expire would cancel it without a refund`);
+    else if (opts.appliedJobIds.has(r.id)) retireOrHold(r, "helper-e2e has an application on it");
+    else if (reuse) retireOrHold(r, `duplicate of ${reuse.id}`);
     else reuse = r;
   }
+  const extra = preLive.length ? { preLive } : {};
   if (reuse) return { reuse, pay: null, retire, ...extra };
   if (mode === "live") return { reuse: null, pay: null, retire, ...extra, skip: LIVE_PAY_SKIP };
   const repayable = mine.find(
@@ -243,12 +304,11 @@ export function planAcceptedJob(
   const all = rows
     .filter((r) => r.title.startsWith(ACCEPTED_FIXTURE_TITLE))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const preLive = all.filter((r) => isPreLive(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
-  const mine = all.filter((r) => !isPreLive(r, mode));
-  const extra = preLive.length ? { preLive } : {};
+  const preLive = all.filter((r) => isPreLiveForPlan(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
+  const mine = all.filter((r) => !isPreLiveForPlan(r, mode));
   const runway = (r: FixtureRow) => daysBetween(opts.today, r.date_needed);
   const openAll = mine.filter((r) => r.status === "open" && !r.helper_id);
-  const retire: AcceptedPlan["retire"] = openAll
+  const retireAll: AcceptedPlan["retire"] = openAll
     .filter((r) => FUNDED.has(r.payment_status ?? ""))
     .flatMap((row) =>
       runway(row) < MIN_RUNWAY_DAYS
@@ -257,6 +317,12 @@ export function planAcceptedJob(
           ? [{ row, why: `helper-e2e's application on it is ${opts.applications.get(row.id)}: apply_to_job refuses a second, release its escrow` }]
           : [],
     );
+  // Q1779: while the mode is unknown a cs_test_ row is never retired blind; it is held (logged) instead.
+  const retire = retireAll.filter(({ row }) => !isUnknownModeTestRow(row, mode));
+  for (const { row, why } of retireAll) {
+    if (isUnknownModeTestRow(row, mode)) preLive.push({ row, why: `${UNKNOWN_MODE_HOLD_WHY} (would retire: ${why})` });
+  }
+  const extra = preLive.length ? { preLive } : {};
   const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id));
   const accepted = mine.find(
     (r) => r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS,

@@ -18,8 +18,8 @@
  * $GITHUB_OUTPUT when set.
  */
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
-import { decide, summarize } from "./lib/prodDeployDebounce.mjs";
+import { appendFileSync, readdirSync } from "node:fs";
+import { decide, summarize, pendingMigrationVersions } from "./lib/prodDeployDebounce.mjs";
 
 const TEAM_ID = "team_UQHppAVoPIPQbyh2b43y21BG";
 const PROJECT_ID = "prj_pDcXQcTz4zPMNwewE9wmz09PvNag";
@@ -69,21 +69,57 @@ function deployPathsChanged(base, head) {
   }
 }
 
+/**
+ * Q1824: migrations on HEAD that prod has not applied, each with the time its
+ * file reached main. null = cannot tell (decide() then holds the deploy, red).
+ */
+async function pendingMigrations() {
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  const ref = process.env.SUPABASE_PROJECT_REF;
+  if (!token || !ref) {
+    console.error("::error::SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF not set: cannot check that prod has applied main's migrations (Q1824).");
+    return null;
+  }
+  try {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "select version from supabase_migrations.schema_migrations" }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!res.ok) throw new Error(`Management API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error(`schema_migrations read returned no rows: ${JSON.stringify(rows).slice(0, 200)}`);
+    const files = readdirSync("supabase/migrations");
+    return pendingMigrationVersions(files, rows.map((r) => r.version)).map((version) => {
+      const file = files.find((f) => f.startsWith(`${version}_`));
+      const ct = Number(sh("git", ["log", "-1", "--format=%ct", "origin/main", "--", `supabase/migrations/${file}`])) * 1000;
+      return { version, committedAt: ct || Date.now() };
+    });
+  } catch (e) {
+    console.error(`::error::could not read prod's applied migrations (Q1824): ${e.message}`);
+    return null;
+  }
+}
+
 async function main() {
   const head = sh("git", ["rev-parse", "origin/main"]);
   const list = await api(`/v6/deployments?projectId=${PROJECT_ID}&target=production&limit=50`);
   if (!Array.isArray(list.deployments)) throw new Error(`deployments list has no array: ${JSON.stringify(list).slice(0, 300)}`);
   const { newest, base } = summarize(list.deployments);
   const changed = base ? deployPathsChanged(base.sha, head) : null;
-  const d = decide({ head, now: Date.now(), newest, base, deployPathsChanged: changed });
+  const pending = await pendingMigrations();
+  const d = decide({ head, now: Date.now(), newest, base, deployPathsChanged: changed, pendingMigrations: pending });
 
   console.log(`main HEAD:            ${head}`);
   console.log(`newest prod deploy:   ${newest ? `${newest.id} ${newest.state} ${newest.sha} ${new Date(newest.created).toISOString()}` : "none"}`);
   console.log(`prod serves/will:     ${base ? `${base.id} ${base.state} ${base.sha}` : "none"}`);
   console.log(`deploy paths changed: ${changed}`);
+  console.log(`unapplied migrations: ${pending === null ? "cannot tell" : pending.length ? pending.map((m) => m.version).join(", ") : "none"}`);
   console.log(`decision:             ${d.action} (${d.reason})`);
   out("action", d.action);
   out("sha", head);
+  if (d.fail) throw new Error(`deploy held: ${d.reason}`);
   if (d.action === "skip" || DRY) return;
 
   const created = await api(`/v13/deployments`, {

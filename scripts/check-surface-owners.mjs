@@ -88,6 +88,10 @@ const OWNERS = {
   "/profile": ["lh-input-boundary"],
   "/user/:userId": ["lh-trust-safety"],
   "/admin": ["lh-admin-moderation"],
+  // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).
+  "/declutter": ["lh-long-tail-features"],
+  "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],
+  "/declutter/item/:id": ["lh-long-tail-features", "lh-trust-safety"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
   "?tab=profile": ["lh-input-boundary"],

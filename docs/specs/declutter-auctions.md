@@ -185,6 +185,55 @@ where no owner row decides. Each picks the option most consistent with the rows 
   the hidden floor (rate-limit offers per buyer per item, make every decline look the same); photos of a
   rejected/removed item stay public by URL.
 
+### Slice 2 build decisions (agent declutter-2, 2026-10-14; migration 20261014200728)
+- B18. Draft edit: `declutter_update_draft` takes every field create takes (seller's own draft only). Changing the
+  title, description or category voids the AI check and deletes the four tax confirmations (asked again at publish).
+- B19. AI (row 32/34): edge function `declutter-ai-draft` (behind requireFeature + confirmed email + per-IP limit),
+  two modes. `draft`: suggestions from the first 4 photos for the seller to edit, nothing saved. `check`: judges every
+  photo plus the SAVED text and records the verdict only through `declutter_record_ai_check` (service role only;
+  refuses `ai_check_stale` unless the judged photo set and text are still exactly the listing's, under the items row
+  lock). The app runs `check` right before publishing. Publish sends a listing to an admin when the seller has < 3
+  approved listings (row 33) OR the AI never checked it OR flagged it (fail-safe: a Gemini outage means review, never
+  live). A photo added/removed voids the check (trigger). The model's verdict fails closed (anything but an explicit
+  "not banned" is a flag). The flag reason is withheld from the seller (RPC returns a boolean; export strips it) so a
+  seller cannot learn how to word around the check; the admin sees it. Known limit: a seller can re-run `check` until
+  the model says "allowed" (6/min per IP); an admin sees nothing of earlier verdicts.
+- B20. Taking a listing down: `declutter_withdraw_item`. A draft is deleted outright; pending/live become `withdrawn`;
+  rejected/removed/ended keep their status. In every case the photo rows are detached and their storage paths returned
+  for the app to delete (policy below). Not age- or strike-gated (anyone may take their own listing down); reserved and
+  later states refuse (`item_not_editable`).
+- B5 done: storage DELETE policy "Sellers delete own unattached declutter photos" (job-photos, `<uid>/declutter/`, no
+  `declutter_item_photos` row points at the object).
+- B4 done: account deletion purges `job-photos/<uid>/declutter/` (IDENTITY_SUBFOLDERS in
+  supabase/functions/_shared/purgeBuckets.ts; listed, removed, re-listed to verify).
+- B8 done: `declutter_admin_pending_items` + `declutter_admin_review_item` (admin role, switch on, audited). An admin
+  never reviews their own listing (`own_listing`); approval re-checks the seller (ban, 3 strikes, under 18, payouts:
+  `seller_not_eligible`); a rejection needs a reason the seller reads (`declutter_my_item_review`).
+- B9 done: export_my_data has nine Declutter sections (staff ids and the AI flag reason dropped; questions include the
+  ones on the seller's own items, so the seller's answers are exported).
+- B16 done: `declutter_items.is_seed`, set at birth from the seller's profile (trigger); fixture scanner covers it.
+- Area label (review note) done: `declutter_area_label_problem` refuses a house number followed by a street word, the
+  pickup address's first line (spaces ignored) and its street name; a plain road or town ("River Road area",
+  "70005 Metairie", "St. Francisville") passes.
+- B21. Placement (row 1, "own tab"): `/declutter` (Browse + My listings), `/declutter/sell`, `/declutter/item/:id`, each
+  the 404 unless the switch is on. Entry: a "Declutter" destination in the desktop rail and a "Declutter" row on the
+  Profile landing. NOT yet a sixth tab in the phone dock: the dock holds 5 tabs + the post button at 375 and a sixth
+  needs a look at 375 before it ships (owner/lead visual call).
+- B22. Browse: live items of other sellers, nearest first by straight-line miles from the member's known location to the
+  item's coarse public point, distance filter 5/10/25/50/any; without a location the list is newest first with no miles.
+- B23. The admin review queue lives in Admin -> Settings beside the 'declutter' switch, shown only while it is on.
+- B24. Offers/checkout are slice 3: the item page says "Making offers is coming soon" in words, no button.
+- Photos: the app re-encodes every photo to JPEG (EXIF/GPS stripped), refuses one where the re-encode handed back the
+  original (HEIC, no canvas, empty blob) or where an EXIF/XMP block survives (src/lib/declutter/photos.ts).
+
+### Open after slice 2 (for the lead to file; owner order 10-13: no new OPEN.md items from agents)
+- A ban does not hide a seller's live listings (items read policy has no seller-ban filter; withdraw refuses a banned
+  seller): hide them in the read policy or withdraw them in the ban path before the switch goes past testers (lh-authz-rls
+  should-fix 3).
+- Uploaded-but-never-attached photos (app killed between upload and attach) are only removed by account deletion: add a
+  sweep for unattached `<uid>/declutter/` objects older than ~24 h (should-fix 4).
+- Visual verification at 375/1440 of the three screens is pending the switch being on for test accounts.
+
 ### For slice 2 (screens)
 - Create switch audience testers (Admin -> Settings) after the screens land; describe Declutter in App Review notes (row 51).
 - Draft editing RPC (title/price/etc. on a draft) is not built; slice 1 has create, photos, confirmations,

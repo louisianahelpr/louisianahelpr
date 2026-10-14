@@ -260,6 +260,12 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // user's own profile with no photo and no legacy bypass, so the gate renders.
   { name: "complete-profile-incomplete", url: "/complete-profile", rules: [incompleteOwnProfile()] },
   { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
+  // Declutter (hidden switch 'declutter', created OFF): while it is off for the
+  // sweep account each renders the NotFound page; once testers include it, the
+  // real screens. Either way the route is visited.
+  { name: "declutter", url: "/declutter" },
+  { name: "declutter-sell", url: "/declutter/sell" },
+  { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },
   { name: "profile-edit", url: "/profile?tab=profile" },

@@ -50,6 +50,7 @@ const FUNCTIONS = resolve(__dirname, "../../../supabase/functions");
 /** Gated: resolves its caller with getUser() and refuses an unconfirmed one. EXACT. */
 const GATED = [
   "ai-job-builder",
+  "declutter-ai-draft",
   "calculate-tax",
   "cash-out-credits",
   "check-pro-subscription",

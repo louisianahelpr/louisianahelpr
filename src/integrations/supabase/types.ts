@@ -1038,29 +1038,38 @@ export type Database = {
       }
       declutter_item_private: {
         Row: {
+          ai_checked_at: string | null
+          ai_flag_reason: string | null
           floor_price_cents: number
           item_id: string
           pickup_address: string
           pickup_lat: number
           pickup_lng: number
+          review_note: string | null
           seller_id: string
           updated_at: string
         }
         Insert: {
+          ai_checked_at?: string | null
+          ai_flag_reason?: string | null
           floor_price_cents: number
           item_id: string
           pickup_address: string
           pickup_lat: number
           pickup_lng: number
+          review_note?: string | null
           seller_id: string
           updated_at?: string
         }
         Update: {
+          ai_checked_at?: string | null
+          ai_flag_reason?: string | null
           floor_price_cents?: number
           item_id?: string
           pickup_address?: string
           pickup_lat?: number
           pickup_lng?: number
+          review_note?: string | null
           seller_id?: string
           updated_at?: string
         }
@@ -1088,6 +1097,7 @@ export type Database = {
           description: string
           ends_at: string | null
           id: string
+          is_seed: boolean
           live_at: string | null
           price_cents: number
           relist_count: number
@@ -1111,6 +1121,7 @@ export type Database = {
           description?: string
           ends_at?: string | null
           id?: string
+          is_seed?: boolean
           live_at?: string | null
           price_cents: number
           relist_count?: number
@@ -1134,6 +1145,7 @@ export type Database = {
           description?: string
           ends_at?: string | null
           id?: string
+          is_seed?: boolean
           live_at?: string | null
           price_cents?: number
           relist_count?: number
@@ -7488,6 +7500,33 @@ export type Database = {
         Args: { p_item_id: string; p_user_id: string }
         Returns: string
       }
+      declutter_admin_pending_items: {
+        Args: never
+        Returns: {
+          ai_checked_at: string
+          ai_flag_reason: string
+          approved_listings: number
+          area_label: string
+          category: string
+          condition_stars: number
+          delivery_size: string
+          description: string
+          item_id: string
+          photo_paths: string[]
+          price_cents: number
+          seller_id: string
+          submitted_at: string
+          title: string
+        }[]
+      }
+      declutter_admin_review_item: {
+        Args: { p_approve: boolean; p_item_id: string; p_note: string }
+        Returns: string
+      }
+      declutter_area_label_problem: {
+        Args: { p_area: string; p_pickup_address: string }
+        Returns: string
+      }
       declutter_answer_question: {
         Args: { p_answer: string; p_question_id: string }
         Returns: string
@@ -7531,7 +7570,26 @@ export type Database = {
           pickup_lng: number
         }[]
       }
+      declutter_my_item_review: {
+        Args: { p_item_id: string }
+        Returns: {
+          ai_flagged: boolean
+          review_note: string
+        }[]
+      }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
+      declutter_record_ai_check: {
+        Args: {
+          p_flag_reason: string
+          p_item_id: string
+          p_judged_category: string
+          p_judged_description: string
+          p_judged_photo_ids: string[]
+          p_judged_title: string
+          p_seller_id: string
+        }
+        Returns: string
+      }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
       declutter_seller_item_private: {
         Args: { p_item_id: string }
@@ -7547,6 +7605,24 @@ export type Database = {
         Args: { p_item_id: string; p_watch: boolean }
         Returns: string
       }
+      declutter_update_draft: {
+        Args: {
+          p_area_label: string
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_floor_price_cents: number
+          p_item_id: string
+          p_pickup_address: string
+          p_pickup_lat: number
+          p_pickup_lng: number
+          p_price_cents: number
+          p_title: string
+        }
+        Returns: string
+      }
+      declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       end_recurring_series_by_platform: {
         Args: {
           p_admin?: string

@@ -24,8 +24,6 @@
 
 /** @type {RefColumn[]} */
 export const STORAGE_REFERENCE_COLUMNS = [
-  { table: "declutter_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "declutter_add_item_photo RPC (path <uid>/declutter/<item>/<file>; Declutter slice 2 uploads it)" },
-  { table: "declutter_strikes", column: "appeal_photo_path", array: false, bucket: "job-photos", writer: "none yet: the Declutter strike-appeal RPC (a later slice) writes a job-photos path" },
   { table: "applications", column: "attachment_urls", array: true, bucket: "application-attachments", writer: "src/pages/jobs/AppliedJobsTab.tsx (path)" },
   { table: "disputes", column: "evidence_urls", array: true, bucket: "proof-photos", writer: "src/components/DisputeTimelineDialog.tsx (path)" },
   { table: "group_job_helpers", column: "proof_before_urls", array: true, bucket: "proof-photos", writer: "group-job proof upload (path)" },
@@ -45,6 +43,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "profiles", column: "license_url", array: false, bucket: "user-documents", writer: "src/components/profile/CredentialsTab.tsx, complete-signup (path)" },
   { table: "profiles", column: "insurance_url", array: false, bucket: "user-documents", writer: "src/components/profile/CredentialsTab.tsx, complete-signup (path)" },
   { table: "reviews", column: "photo_urls", array: true, bucket: "job-photos", writer: "src/components/reviewPanel/ReviewForm.tsx (public URL)" },
+  { table: "declutter_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "declutter_add_item_photo RPC (path <uid>/declutter/<item>/<file>; Declutter slice 2 uploads it)" },
+  { table: "declutter_strikes", column: "appeal_photo_path", array: false, bucket: "job-photos", writer: "none yet: the Declutter strike-appeal RPC (a later slice) writes a job-photos path" },
 ];
 
 /**

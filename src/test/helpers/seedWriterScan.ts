@@ -35,7 +35,7 @@ export type SeedSite = {
 /** The tables that carry is_seed. fixtureWritersSetIsSeed.test.ts derives the set from the migrations and fails when they differ. */
 // deleted_jobs_log (Q1149) records a deleted job's seed flag; only its AFTER
 // DELETE trigger writes it, so the scan finds no fixture writer to check.
-export const SEED_TABLES = ["deleted_jobs_log", "jobs", "profiles"] as const;
+export const SEED_TABLES = ["declutter_items", "deleted_jobs_log", "jobs", "profiles"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

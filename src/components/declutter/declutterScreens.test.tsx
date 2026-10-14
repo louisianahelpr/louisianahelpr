@@ -1,0 +1,162 @@
+/**
+ * The Declutter screens (second slice): the states a member can reach, in plain words
+ * (docs/specs/declutter-auctions.md). The Declutter API module and the
+ * account hooks are stubbed: these tests check what each STATE renders, not
+ * the backend (the backend proof is src/test/pglite/declutterSlice2.pglite.mjs).
+ *
+ * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
+ * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
+ * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
+ */
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const state = {
+  feature: true,
+  underAge: false,
+  payoutBlock: null as string | null,
+  mine: [] as unknown[],
+  item: null as unknown,
+};
+
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
+vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
+vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => state.payoutBlock }));
+vi.mock("@/hooks/useUserLocation", () => ({ useUserLocation: () => ({ status: "idle" }) }));
+vi.mock("@/components/AppPage", () => ({
+  default: ({ title, children, titleActions }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode }) => (
+    <main>
+      <h1>{title}</h1>
+      {titleActions}
+      {children}
+    </main>
+  ),
+}));
+vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
+vi.mock("@/lib/declutter/api", () => ({
+  fetchLiveItems: async () => [],
+  fetchMyItems: async () => state.mine,
+  fetchPhotos: async () => [],
+  fetchQuestions: async () => [],
+  fetchSellerRating: async () => ({ avg: 4.8, count: 12 }),
+  fetchWatching: async () => new Set(),
+  fetchItem: async () => state.item,
+  fetchMyItemReview: async () => ({ review_note: "Used car seats cannot be sold.", ai_flagged: true }),
+  fetchMyItemPrivate: async () => null,
+  fetchMyPickupWindows: async () => [],
+  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  withdrawItem: async () => undefined,
+  setWatch: async () => "watching",
+  askQuestion: async () => "q",
+  answerQuestion: async () => "a",
+}));
+
+import DeclutterPage from "@/pages/declutter/DeclutterPage";
+import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
+import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
+import { dollarsToCents, formProblem } from "./DeclutterSellView";
+
+function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // What useFeature's own query would hold once the server answered.
+  qc.setQueryData(["feature-enabled", "declutter", "u1"], state.feature);
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path={route} element={el} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+const ITEM = {
+  id: "i1", seller_id: "u1", status: "pending_review", title: "Oak rocking chair", description: "Solid oak.",
+  category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 4000, current_price_cents: 4000,
+  area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null,
+};
+
+describe("Declutter screens", () => {
+  beforeEach(() => {
+    state.feature = true;
+    state.underAge = false;
+    state.payoutBlock = null;
+    state.mine = [];
+    state.item = null;
+  });
+
+  it("switch off: every Declutter route is the 404", () => {
+    state.feature = false;
+    at("/declutter", <DeclutterPage />);
+    expect(screen.getByText("Page not found")).toBeInTheDocument();
+    expect(screen.queryByText("Declutter")).toBeNull();
+  });
+
+  it("switch on: Browse with a Sell button, and an empty state in plain words", async () => {
+    at("/declutter", <DeclutterPage />);
+    expect(screen.getByRole("heading", { name: "Declutter" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sell an item" })).toBeInTheDocument();
+    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+  });
+
+  it("My listings shows each status in plain words, incl. waiting for a review", async () => {
+    state.mine = [ITEM, { ...ITEM, id: "i2", status: "draft", title: "Lamp" }];
+    at("/declutter?view=mine", <DeclutterPage />);
+    expect(await screen.findByText("Waiting for a review")).toBeInTheDocument();
+    expect(screen.getByText("Not listed yet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Finish listing" })).toBeInTheDocument();
+    expect(screen.queryByText("pending_review")).toBeNull();
+  });
+
+  it("under 18: selling is a plain block, not a form", () => {
+    state.underAge = true;
+    at("/declutter/sell", <DeclutterSellPage />);
+    expect(screen.getByText("You must be 18 or older to sell on Declutter.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).toBeNull();
+  });
+
+  it("no payout setup: a plain block with the way to fix it, the form still usable", () => {
+    state.payoutBlock = "payouts_not_ready";
+    at("/declutter/sell", <DeclutterSellPage />);
+    expect(screen.getByText("Set up payouts before you list.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
+  it("the seller of a rejected listing reads the admin's reason; no offer button exists", async () => {
+    state.item = { ...ITEM, status: "rejected" };
+    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(await screen.findByText("Your listing: Not approved")).toBeInTheDocument();
+    expect(await screen.findByText("Reason: Used car seats cannot be sold.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /offer/i })).toBeNull();
+  });
+
+  it("a buyer sees area + miles wording, the watch heart and that offers come later", async () => {
+    state.item = { ...ITEM, seller_id: "u2", status: "live" };
+    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(await screen.findByText("Pickup in Mid-City, Baton Rouge")).toBeInTheDocument();
+    expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
+    expect(screen.getByText("Making offers is coming soon.")).toBeInTheDocument();
+    expect(await screen.findByText(/4\.8 stars from 12 reviews/)).toBeInTheDocument();
+  });
+});
+
+describe("Sell form checks mirror the server", () => {
+  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large" as const, price: "40", floor: "20", areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" };
+  it("accepts a complete form and converts dollars to cents", () => {
+    expect(formProblem(ok)).toBeNull();
+    expect(dollarsToCents("$1,250.50")).toBe(125050);
+  });
+  it("refuses a floor above the price, a street address as the area, and a missing name", () => {
+    expect(formProblem({ ...ok, floor: "50" })).toMatch(/lowest price/);
+    expect(formProblem({ ...ok, areaLabel: "1234 Example St" })).toMatch(/not a street address/);
+    expect(formProblem({ ...ok, areaLabel: "70005 Metairie" })).toBeNull();
+    expect(formProblem({ ...ok, title: "ab" })).toMatch(/name/);
+  });
+});

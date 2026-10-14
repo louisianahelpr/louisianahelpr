@@ -40,6 +40,23 @@ export const IDENTITY_BUCKETS = [
   "application-attachments",
 ] as const;
 
+/**
+ * Per-user FOLDERS inside an otherwise job-keyed bucket that hold the person's
+ * own media and are erased with the account. Declutter listing photos
+ * (docs/specs/declutter-auctions.md B4) live at `job-photos/<uid>/declutter/`:
+ * they belong to the seller's listings, which CASCADE away with the account,
+ * so nothing survives that would need them as evidence. The rest of
+ * job-photos stays out, for the reason above.
+ */
+export const IDENTITY_SUBFOLDERS = [
+  { bucket: "job-photos", folder: "declutter" },
+] as const;
+
+/** `<uid>/<folder>` for each IDENTITY_SUBFOLDERS entry. */
+export function identitySubfolderPrefixes(userId: string): { bucket: string; prefix: string }[] {
+  return IDENTITY_SUBFOLDERS.map(({ bucket, folder }) => ({ bucket, prefix: `${userId}/${folder}` }));
+}
+
 /** The one Storage call this module needs. */
 export interface BucketListingClient {
   storage: {

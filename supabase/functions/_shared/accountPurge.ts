@@ -42,7 +42,8 @@
  */
 
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
-import { IDENTITY_BUCKETS, missingBuckets } from "./purgeBuckets.ts";
+import { IDENTITY_BUCKETS, identitySubfolderPrefixes, missingBuckets } from "./purgeBuckets.ts";
+import { caughtMessage } from "./caughtMessage.ts";
 import { recurringVisitDates } from "./recurringSchedule.ts";
 import { louisianaToday } from "./louisianaDate.ts";
 
@@ -559,6 +560,24 @@ async function purgeIdentityStorage(
   // "missing" reads as "empty" and the step would report ok while erasing
   // nothing. Ask Storage which buckets exist, and fail on any we do not know.
   let present: string[] = [];
+  // Per-user folders inside job-keyed buckets (Declutter photos, B4): listed
+  // and verified by their <uid>/<folder> prefix, never the whole bucket.
+  const subfolders = identitySubfolderPrefixes(userId);
+  let presentSubfolders: { bucket: string; prefix: string }[] = [];
+  try {
+    const missingSub = await missingBuckets(admin, [...new Set(subfolders.map((s) => s.bucket))]);
+    for (const bucket of missingSub) {
+      console.error(`[accountPurge] identity subfolder bucket ${bucket} does not exist`);
+      failures.push(`${bucket}: bucket does not exist — nothing there could be erased`);
+      allOk = false;
+    }
+    presentSubfolders = subfolders.filter((s) => !missingSub.includes(s.bucket));
+  } catch (err) {
+    const msg = caughtMessage(err);
+    console.error(`[accountPurge] could not check identity subfolder buckets exist:`, msg);
+    failures.push(`subfolder buckets: ${msg}`);
+    allOk = false;
+  }
   try {
     const missing = await missingBuckets(admin, IDENTITY_BUCKETS);
     for (const bucket of missing) {
@@ -581,6 +600,16 @@ async function purgeIdentityStorage(
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[accountPurge] list ${bucket}/${userId} failed:`, msg);
       failures.push(`${bucket}: ${msg}`);
+      allOk = false;
+    }
+  }
+  for (const { bucket, prefix } of presentSubfolders) {
+    try {
+      targets.push({ bucket, paths: await listAllObjects(admin, bucket, prefix) });
+    } catch (err) {
+      const msg = caughtMessage(err);
+      console.error(`[accountPurge] list ${bucket}/${prefix} failed:`, msg);
+      failures.push(`${bucket}/${prefix}: ${msg}`);
       allOk = false;
     }
   }
@@ -616,6 +645,20 @@ async function purgeIdentityStorage(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       failures.push(`${bucket}: could not verify removal (${msg})`);
+      allOk = false;
+    }
+  }
+
+  for (const { bucket, prefix } of presentSubfolders) {
+    try {
+      const left = await listAllObjects(admin, bucket, prefix);
+      if (left.length > 0) {
+        failures.push(`${bucket}/${prefix}: ${left.length} object(s) still present after remove`);
+        allOk = false;
+      }
+    } catch (err) {
+      const msg = caughtMessage(err);
+      failures.push(`${bucket}/${prefix}: could not verify removal (${msg})`);
       allOk = false;
     }
   }

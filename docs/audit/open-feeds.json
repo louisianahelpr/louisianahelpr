@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T22:23Z",
+  "measured_at": "2026-10-14T23:14Z",
   "issues": {
     "readable": true,
     "open": [
@@ -82,13 +82,6 @@
         "runTruncated": false
       },
       {
-        "number": 2941,
-        "title": "nightly-red: core-loop-canary",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619494580",
-        "runTruncated": false
-      },
-      {
         "number": 2962,
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
@@ -100,13 +93,6 @@
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645451894",
-        "runTruncated": false
-      },
-      {
-        "number": 2995,
-        "title": "nightly-red: prod-errors",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619651057",
         "runTruncated": false
       },
       {
@@ -144,14 +130,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 3007
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -234,14 +212,6 @@
         "issue": 2937
       },
       {
-        "fingerprint": "f8483bba3b3aa9964dc4fc7dbcacfbf5",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: expiry-monitor",
-        "issue": 2993
-      },
-      {
         "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -279,7 +249,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 2941
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -481,10 +451,8 @@
     "issue #2894": "Q1816",
     "issue #2937": "Q1816",
     "issue #2940": "Q1816",
-    "issue #2941": "Q1816",
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
-    "issue #2995": "Q1816",
     "issue #3096": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
@@ -570,8 +538,6 @@
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
-    "ledger f3c752b3230f": "Q1596",
-    "ledger f8483bba3b3a": "Q1816"
+    "ledger f3c752b3230f": "Q1596"
   }
 }

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 151** (131 to do, 20 fixed with protection pending; 1320 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 17 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 151** (131 to do, 20 fixed with protection pending; 1320 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 16 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 16 red, 12 stale, 0 unknown, 47 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-14T22:20Z)_
@@ -690,7 +690,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q1777 MEDIUM cron http failure: auto-expire-jobs returned 500 (# defect(s) reported).** Mirrored 2026-10-13 from alert-ledger row 41f88aeb227f (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 41f88aeb227f. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '41f88aeb227f0f23692853cc857a3f79'` => closed
 - [ ] **Q1810 MEDIUM error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.** Mirrored 2026-10-14 from alert-ledger row 0411d219f410 (sentry: sentry:?(assets/Signup-DIXUrngk); `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0411d219f410. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3c0d6b003e080de5479e1faf4a1df45a'` => closed **2026-10-14:** the Sentry fold (supabase/migrations/20261014184909_sentry_alerts_fold_bundle_hashes.sql) re-keys this row without its bundle hash: feed: ledger 3c0d6b003e08.
 - [ ] **Q1813 MEDIUM a credential or certificate expires within # days.** Mirrored 2026-10-14 from alert-ledger row 8114e0acbcb0 (workflow: expiry-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 8114e0acbcb0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '8114e0acbcb0b5370d95baf9346598cb'` => closed
-- [ ] **Q1816 MEDIUM Fix the test robots: 17 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
+- [ ] **Q1816 MEDIUM Fix the test robots: 16 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
   - nightly-red-age: issue #2244, newest red run: see the issue's latest comment. notes: Q1275. feed: issue #2244 · feed: ledger ab6fdbe8c882
   - prod-audit: issue #2245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38199842917. notes: Q785. feed: issue #2245 · feed: ledger 16e6e91f6701
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38536821617. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
@@ -702,12 +702,11 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38643451247. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38364628121. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - e2e-real-backend: issue #2940, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527096325. notes: Q1778. feed: issue #2940 · feed: ledger 3a3460b71be7
-  - core-loop-canary: issue #2941, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619494580. notes: Q1779. feed: issue #2941 · feed: ledger 18539240a894
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38434750617. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
-  - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645451894. notes: Q1807. feed: issue #2993 · feed: ledger f8483bba3b3a
-  - prod-errors: issue #2995, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619651057. notes: Q1808. feed: issue #2995 · feed: ledger 1ef4b10bb74a
+  - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645451894. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3096, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645447224. notes: Q1815. feed: issue #3096 · feed: ledger 8018e82cb167
-  - main: vitest: no open issue. feed: ledger f22e3275d50d
+  - core-loop-canary: no open issue. feed: ledger 18539240a894
+  - prod-errors: no open issue. feed: ledger 1ef4b10bb74a
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

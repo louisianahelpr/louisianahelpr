@@ -60,6 +60,7 @@ const EXEMPT: Record<string, { maxCents: number; why: string }> = {
     why: "membership prices, largest is the annual top tier",
   },
   "pay-onboarding-fee": { maxCents: ONBOARDING_FEE_CENTS, why: "one-time $2 onboarding fee" },
+  "declutter-card": { maxCents: 0, why: "Declutter SETUP page: saves a card, charges nothing (row 36)" },
 };
 
 /**

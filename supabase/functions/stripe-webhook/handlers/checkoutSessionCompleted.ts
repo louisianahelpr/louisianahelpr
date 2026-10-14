@@ -25,6 +25,7 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
+import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -41,6 +42,12 @@ async function settleCheckoutSession(
   { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {
   const session = event.data.object as Stripe.Checkout.Session;
+  // Declutter (slice 3b): a saved card or a paid order. Shares nothing with
+  // the job / Pro / gift branches below, which match by email and job id.
+  if (isDeclutterSession(session)) {
+    await settleDeclutterSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
   // Q210(b): a $300+ recurring visit paid on-session. Settled before the
   // email/tier logic below, which it shares nothing with and must not depend on.
   if ((session.metadata as Record<string, string> | null)?.kind === "recurring_visit") {

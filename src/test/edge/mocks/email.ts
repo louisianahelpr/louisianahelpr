@@ -24,9 +24,19 @@ export const FROM_DEFAULT = "Louisiana Helpr <hello@louisianahelpr.com>";
 /** Every `renderEmail(...)` call, in order, with the element it was given. */
 export const emailRenders: unknown[] = [];
 
+/** Every `queueEmail(supabase, email)` call's email, in order (Declutter money emails, slice 3b). */
+export const queuedEmails: Array<Record<string, unknown>> = [];
+
 export function resetEmailMocks() {
   emailRenders.length = 0;
+  queuedEmails.length = 0;
 }
+
+/** `_shared/resend.ts` queueEmail: records the email and reports it queued. */
+export const queueEmail = vi.fn(async (_supabase: unknown, email: Record<string, unknown>) => {
+  queuedEmails.push(email);
+  return { ok: true, messageId: "queued-mock-id" };
+});
 
 export const buildUnsubscribeUrl = vi.fn(
   async (email: string): Promise<string | null> =>

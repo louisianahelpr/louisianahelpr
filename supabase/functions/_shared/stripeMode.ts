@@ -381,19 +381,24 @@ export async function testEventScope(
 }
 
 /** The metadata.kind of every checkout a mode-routed function creates. */
-const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit"]);
+const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order"]);
 
 /**
  * True when a Checkout Session came from a function that decides its Stripe
  * mode (create-payment escrow / tip / recurring visit, create-boost-payment,
- * pay-onboarding-fee, create-bgc-payment), so a TEST-mode event about it may
+ * pay-onboarding-fee, create-bgc-payment, declutter-checkout, declutter-card),
+ * so a TEST-mode event about it may
  * run. Anything else is refused: a subscription or Pro pass (metadata.tier,
  * billing_cycle), a gift card (gift_card_purchase), or a kind nobody routes.
  */
 // deno-lint-ignore no-explicit-any
 export function isRoutedTestCheckout(session: any): boolean {
-  if (!session || typeof session !== "object" || session.mode !== "payment") return false;
+  if (!session || typeof session !== "object") return false;
   const meta = (session.metadata && typeof session.metadata === "object" ? session.metadata : {}) as Record<string, unknown>;
+  // Declutter's card-saving page (declutter-card) is the one SETUP-mode
+  // checkout a mode-routed function creates; it moves no money.
+  if (session.mode === "setup") return meta.kind === "declutter_card";
+  if (session.mode !== "payment") return false;
   if (meta.tier !== undefined || meta.billing_cycle !== undefined) return false;
   if (meta.type === "tip") return true;
   if (typeof meta.kind === "string") return ROUTED_TEST_CHECKOUT_KINDS.has(meta.kind);

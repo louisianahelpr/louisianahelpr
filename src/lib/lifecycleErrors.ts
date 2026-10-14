@@ -621,7 +621,6 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   declutter_my_cart: {
-    feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
   },
   declutter_my_item_review: {
@@ -629,7 +628,6 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
   },
   declutter_my_offers: {
-    feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
   },
   declutter_publish_item: {
@@ -673,14 +671,6 @@ export const RPC_ERROR_COPY = {
     offer_too_low: DC.offer_too_low,
     other_side_unavailable: DC.other_side_unavailable,
     under_18: DC.under_18,
-  },
-  declutter_seller_cancel_sale: {
-    account_restricted: DC.account_restricted,
-    feature_disabled: DC.feature_disabled,
-    item_not_found: DC.item_not_found,
-    no_sale_to_cancel: DC.no_sale_to_cancel,
-    not_authenticated: DC.not_authenticated,
-    sale_already_paid: DC.sale_already_paid,
   },
   declutter_seller_item_private: {
     feature_disabled: DC.feature_disabled,

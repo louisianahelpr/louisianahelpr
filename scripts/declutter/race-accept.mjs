@@ -15,10 +15,16 @@
  *   A  seller accepts two different buyers' offers at once  -> exactly one sale
  *   B  two buyers press Buy at once                         -> exactly one sale
  *   C  seller accepts an offer while another buyer Buys     -> exactly one sale
- *   D  webhook marks the order paid while the deadline sweep misses it
- *                                       -> paid XOR missed (never a paid line with a strike)
+ *   D  webhook marks the order paid (paid IN TIME, recorded late) while the
+ *      deadline sweep misses it          -> always paid in the end, no strike left (B41)
+ *   D2 the same, but paid AFTER deadline + 1 h -> paid XOR (refunded + missed + 1 strike)
  *   E  the same payment webhook delivered twice at once     -> one 'paid', one 'already_paid'
  *   F  the buyer starts checkout twice at once              -> one payable order
+ *   G  two payouts take from one seller fee debt at once    -> never more than owed (B43)
+ *   H  the same paid order refunded twice at once (row 60)  -> one refund, one debt
+ *
+ * Slice 3b (20261014224914) is applied on top (3x); MIGRATION_PATH_3B plants a
+ * copy of it instead.
  */
 import os from "node:os";
 import { mkdirSync, rmSync } from "node:fs";
@@ -43,7 +49,8 @@ try {
   const conn = () => new pg.Client({ host: "127.0.0.1", port: PORT, user: "postgres", password: "race", database: "race" });
   const admin = conn();
   await admin.connect();
-  for (const sql of setupStatements({ times: 3, slice3Path: process.env.MIGRATION_PATH })) await admin.query(sql);
+  for (const sql of setupStatements({ times: 3, slice3Path: process.env.MIGRATION_PATH, times3b: 3, slice3bPath: process.env.MIGRATION_PATH_3B })) await admin.query(sql);
+  await admin.query(`CREATE OR REPLACE FUNCTION public.log_cron_defect(a text, b text, c text) RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE WARNING 'cron defect % % %', a, b, c; END $f$;`);
   await admin.query(CARDS_SQL);
 
   /** A session acting as `uid` (role authenticated), or the service (uid null). */
@@ -112,26 +119,31 @@ try {
       const buyLine = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_cart_items WHERE item_id = $1 AND source = 'buy'`, [id])).n);
       tally("C", n === 1 && offerAccepted + buyLine === 1, `${outcome(st)} sales=${n}`);
     }
-    // D: paid vs missed. A line past its deadline + grace, its order still awaiting payment.
-    {
-      const id = item(r, "D");
-      await admin.query(liveItemSql({ id, seller: USERS.SELLER2, title: `Race D ${r}` }));
+    // D / D2: paid vs missed. A line past its deadline + grace, its order still
+    // awaiting payment. D: the payment's own Stripe time is IN time (B41);
+    // D2: it is after the deadline + 1 h.
+    for (const variant of ["D", "D2"]) {
+      const id = item(r, variant === "D" ? "D" : "d");
+      await admin.query(liveItemSql({ id, seller: USERS.SELLER2, title: `Race ${variant} ${r}` }));
       await S.b2.query(`SELECT public.declutter_buy_now($1, 4000)`, [id]);
       const order = await q1(S.b2, `SELECT * FROM public.declutter_start_checkout($1, 'porch')`, [USERS.SELLER2]);
       await admin.query(`UPDATE public.declutter_cart_items SET checkout_by = now() - interval '61 minutes' WHERE item_id = $1`, [id]);
-      const strikesBefore = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_strikes WHERE user_id = $1`, [BUYER2])).n);
+      const paidAt = variant === "D" ? "now() - interval '65 minutes'" : "now()";
       // Alternate who is sent first, so both orders are exercised.
-      const mark = () => S.svcA.query(`SELECT public.declutter_mark_order_paid($1, $2, $3) AS r`, [order.order_id, `pi_D${r}`, order.total_cents]);
+      const mark = () => S.svcA.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, ${paidAt}, 163) AS r`, [order.order_id, `pi_${variant}${r}`, order.total_cents]);
       const sweep = () => S.svcB.query(`SELECT public.declutter_deadline_sweep()`);
       const st = r % 2 === 0 ? await Promise.allSettled([mark(), sweep()]) : (await Promise.allSettled([sweep(), mark()])).reverse();
-      const paidRes = st[0].status === "fulfilled" ? st[0].value.rows[0].r : "error";
+      const res = st[0].status === "fulfilled" ? st[0].value.rows[0].r : null;
+      const paidRes = res?.result ?? (st[0].status === "rejected" ? `error:${st[0].reason?.message}` : "error");
       const line = await q1(admin, `SELECT c.status AS line, i.status AS item, o.status AS ord FROM public.declutter_cart_items c
         JOIN public.declutter_items i ON i.id = c.item_id JOIN public.declutter_orders o ON o.id = $2 WHERE c.item_id = $1`, [id, order.order_id]);
-      const struck = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_strikes WHERE user_id = $1`, [BUYER2])).n) - strikesBefore;
-      const consistent =
-        (paidRes === "paid" && line.line === "paid" && line.item === "sold" && line.ord === "paid" && struck === 0)
-        || (paidRes === "refund_in_full" && line.line === "missed" && line.item === "live" && line.ord === "expired" && struck === 1);
-      tally("D", consistent, `mark=${paidRes} line=${line.line} strikes+${struck}`);
+      const struck = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_strikes WHERE user_id = $1 AND removed_at IS NULL`, [BUYER2])).n);
+      const consistent = variant === "D"
+        ? (paidRes === "paid" && line.line === "paid" && line.item === "sold" && line.ord === "paid" && struck === 0)
+        : ((paidRes === "paid" && line.line === "paid" && line.item === "sold" && line.ord === "paid" && struck === 0)
+           || (paidRes === "refund" && res.reason === "order_closed" && res.refund_cents === order.total_cents
+               && line.line === "missed" && line.item === "live" && line.ord === "expired" && struck === 1));
+      tally(variant, consistent, `mark=${paidRes}${res?.reason ? `:${res.reason}` : ""} line=${line.line} activeStrikes=${struck}`);
       // Clear BUYER2's strikes so 3 never block later rounds.
       await admin.query(`DELETE FROM public.declutter_strikes WHERE user_id = $1`, [BUYER2]);
     }
@@ -142,10 +154,10 @@ try {
       await S.b3.query(`SELECT public.declutter_buy_now($1, 4000)`, [id]);
       const order = await q1(S.b3, `SELECT * FROM public.declutter_start_checkout($1, 'porch')`, [USERS.SELLER2]);
       const st = await Promise.allSettled([
-        S.svcA.query(`SELECT public.declutter_mark_order_paid($1, $2, $3) AS r`, [order.order_id, `pi_E${r}`, order.total_cents]),
-        S.svcB.query(`SELECT public.declutter_mark_order_paid($1, $2, $3) AS r`, [order.order_id, `pi_E${r}`, order.total_cents]),
+        S.svcA.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, now(), 163) AS r`, [order.order_id, `pi_E${r}`, order.total_cents]),
+        S.svcB.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, now(), 163) AS r`, [order.order_id, `pi_E${r}`, order.total_cents]),
       ]);
-      const rs = st.map((s) => (s.status === "fulfilled" ? s.value.rows[0].r : "error")).sort().join("+");
+      const rs = st.map((s) => (s.status === "fulfilled" ? s.value.rows[0].r.result : "error")).sort().join("+");
       tally("E", rs === "already_paid+paid", rs);
     }
     // F: checkout started twice at once.
@@ -165,7 +177,50 @@ try {
       tally("F", awaiting === 1 && linesInAwaiting === 1, `${outcome(st)} awaiting=${awaiting}`);
       // Pay it so the next round starts with an empty cart for this pair.
       const o = await q1(admin, `SELECT id, total_cents FROM public.declutter_orders WHERE buyer_id = $1 AND seller_id = $2 AND status = 'awaiting_payment'`, [BUYER, USERS.SELLER2]);
-      if (o) await admin.query(`SELECT public.declutter_mark_order_paid($1, $2, $3)`, [o.id, `pi_F${r}`, o.total_cents]);
+      if (o) await admin.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, now(), 163)`, [o.id, `pi_F${r}`, o.total_cents]);
+    }
+    // G: two payouts take from one seller's card-fee debt at once (B43).
+    {
+      const seller = USERS.SELLER;
+      await admin.query(`UPDATE public.declutter_seller_fee_debts SET remaining_cents = 0 WHERE seller_id = $1`, [seller]);
+      const id = item(r, "G");
+      await admin.query(liveItemSql({ id, title: `Race G ${r}` }));
+      await S.b3.query(`SELECT public.declutter_buy_now($1, 4000)`, [id]);
+      const order = await q1(S.b3, `SELECT * FROM public.declutter_start_checkout($1, 'porch')`, [seller]);
+      await admin.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, now(), 163)`, [order.order_id, `pi_G${r}`, order.total_cents]);
+      await admin.query(`SELECT public.declutter_refund_paid_order($1, 'seller_backed_out')`, [order.order_id]);
+      const sameRef = r % 2 === 0;
+      const st = await Promise.allSettled([
+        S.svcA.query(`SELECT public.declutter_consume_fee_debt($1, $2, 100) AS n`, [seller, `payout_G${r}_a`]),
+        S.svcB.query(`SELECT public.declutter_consume_fee_debt($1, $2, 100) AS n`, [seller, sameRef ? `payout_G${r}_a` : `payout_G${r}_b`]),
+      ]);
+      const took = st.map((x) => (x.status === "fulfilled" ? Number(x.value.rows[0].n) : NaN));
+      const left = Number((await q1(admin, `SELECT COALESCE(sum(remaining_cents), 0) AS n FROM public.declutter_seller_fee_debts WHERE seller_id = $1`, [seller])).n);
+      const deducted = Number((await q1(admin, `SELECT COALESCE(sum(x.deducted_cents), 0) AS n FROM public.declutter_fee_debt_deductions x
+        JOIN public.declutter_seller_fee_debts d ON d.id = x.debt_id WHERE d.seller_id = $1 AND x.payout_ref LIKE $2`, [seller, `payout_G${r}_%`])).n);
+      const ok = sameRef
+        ? took[0] === 100 && took[1] === 100 && deducted === 100 && left === 63
+        : took.sort((a, b) => a - b).join(",") === "63,100" && deducted === 163 && left === 0;
+      tally("G", ok, `${sameRef ? "same" : "two"} payouts took ${took.join("+")} left=${left}`);
+      await admin.query(`DELETE FROM public.declutter_strikes WHERE user_id = $1`, [seller]);
+    }
+    // H: the same paid order refunded twice at once (row 60).
+    {
+      const id = item(r, "H");
+      await admin.query(liveItemSql({ id, seller: USERS.SELLER2, title: `Race H ${r}` }));
+      await S.b3.query(`SELECT public.declutter_buy_now($1, 4000)`, [id]);
+      const order = await q1(S.b3, `SELECT * FROM public.declutter_start_checkout($1, 'porch')`, [USERS.SELLER2]);
+      await admin.query(`SELECT public.declutter_mark_order_paid($1, $2, $3, now(), 163)`, [order.order_id, `pi_H${r}`, order.total_cents]);
+      const st = await Promise.allSettled([
+        S.svcA.query(`SELECT public.declutter_refund_paid_order($1, 'seller_backed_out') AS r`, [order.order_id]),
+        S.svcB.query(`SELECT public.declutter_refund_paid_order($1, 'seller_backed_out') AS r`, [order.order_id]),
+      ]);
+      const ids = st.map((x) => (x.status === "fulfilled" ? x.value.rows[0].r.refund_id : "error"));
+      const refunds = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_refunds WHERE order_id = $1`, [order.order_id])).n);
+      const debts = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_seller_fee_debts d JOIN public.declutter_refunds f ON f.id = d.refund_id WHERE f.order_id = $1`, [order.order_id])).n);
+      const sellerStrikes = Number((await q1(admin, `SELECT count(*) AS n FROM public.declutter_strikes WHERE user_id = $1 AND item_id = $2`, [USERS.SELLER2, id])).n);
+      tally("H", ids[0] === ids[1] && ids[0] !== "error" && refunds === 1 && debts === 1 && sellerStrikes === 1, `${outcome(st)} refunds=${refunds} debts=${debts} strikes=${sellerStrikes}`);
+      await admin.query(`DELETE FROM public.declutter_strikes WHERE user_id = $1`, [USERS.SELLER2]);
     }
   }
   for (const c of Object.values(S)) await c.end();

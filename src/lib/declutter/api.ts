@@ -10,6 +10,10 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { isNativePlatform } from "@/lib/nativeInit";
+
+/** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
+export type Handover = "pickup_home" | "porch";
 
 const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
@@ -393,9 +397,54 @@ export async function buyNow(itemId: string, seenPriceCents: number): Promise<st
   ) as string;
 }
 
-/** The seller backs out of an accepted, unpaid sale. Gives the seller a strike (row 19). */
+/**
+ * A Declutter edge function's answer, or its refusal CODE as the error message
+ * (declutterErrorMessage maps the code to plain words). The functions answer
+ * `{ error: "<code>" }` on a refusal.
+ */
+async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout", body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke(fn, { body: { ...body, native: isNativePlatform } });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    const parsed: { error?: unknown } | null = ctx && typeof ctx.json === "function"
+      ? await ctx.clone().json().catch((parseErr: unknown) => {
+          // A body that is not JSON carries no code: fall through to the generic message.
+          console.warn(`[declutter] ${fn} error body was not JSON`, parseErr);
+          return null;
+        })
+      : null;
+    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+  }
+  return (data ?? {}) as Record<string, unknown>;
+}
+
+/** Stripe's card-saving page (row 36; nothing is charged). Returns its URL. */
+export async function startCardSave(): Promise<string> {
+  const data = await invokeDeclutter("declutter-card", {});
+  if (typeof data.url !== "string") throw new Error("payment_unavailable");
+  return data.url;
+}
+
+/** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */
+export async function startCheckoutPayment(sellerId: string, handover: Handover): Promise<{ url: string | null; paid: boolean }> {
+  const data = await invokeDeclutter("declutter-checkout", { action: "pay", seller_id: sellerId, handover });
+  return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
+}
+
+/**
+ * The seller backs out of an accepted, unpaid sale. Gives the seller a strike
+ * (row 19). Through declutter-checkout, which also closes the buyer's open
+ * payment page (B45) so the cancelled sale cannot be paid.
+ */
 export async function sellerCancelSale(itemId: string): Promise<number> {
-  return rpcData(await supabase.rpc("declutter_seller_cancel_sale", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_seller_cancel_sale", e)) as number;
+  const data = await invokeDeclutter("declutter-checkout", { action: "cancel_sale", item_id: itemId });
+  return typeof data.strikes === "number" ? data.strikes : 0;
+}
+
+/** Row 62: has the member a sale in flight (so the cart opens even with the switch off)? */
+export async function fetchHasAgreedSales(): Promise<boolean> {
+  // It raises nothing of its own (no switch gate, row 62): a failure is the generic message.
+  return rpcData(await supabase.rpc("declutter_has_agreed_sales"), () => null) === true;
 }
 
 export async function fetchMyOffers(): Promise<MyOffer[]> {

@@ -841,6 +841,8 @@ export const STRIPE_WRITE_FUNCTIONS = new Set([
   "charge-recurring-visits",
   "create-bgc-payment",
   "create-boost-payment",
+  "declutter-card", // Checkout (setup) + customers.create
+  "declutter-checkout", // Checkout sessions create / expire
   "create-gift-card-checkout",
   "create-payment",
   "create-pro-checkout",

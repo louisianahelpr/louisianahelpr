@@ -69,6 +69,10 @@ export interface StripeMock {
   paymentMethods: {
     list: ReturnType<typeof vi.fn>;
   };
+  /** Declutter card on file: the webhook reads the saved card off the setup page's SetupIntent. */
+  setupIntents: {
+    retrieve: ReturnType<typeof vi.fn>;
+  };
   refunds: {
     create: ReturnType<typeof vi.fn>;
     /** Used to derive the partial-refund idempotency sequence (see
@@ -184,6 +188,9 @@ export const stripeMock: StripeMock = {
   paymentMethods: {
     list: vi.fn(),
   },
+  setupIntents: {
+    retrieve: vi.fn(),
+  },
   refunds: {
     create: vi.fn(),
     // Default to "no prior refunds" so the partial-refund sequence starts at 0.
@@ -261,6 +268,7 @@ export function resetStripeMock() {
     stripeMock.checkout.sessions,
     stripeMock.paymentIntents,
     stripeMock.paymentMethods,
+    stripeMock.setupIntents,
     stripeMock.refunds,
     stripeMock.transfers,
     stripeMock.accounts,

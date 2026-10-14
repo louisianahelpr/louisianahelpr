@@ -780,6 +780,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeMode.ts";`,
   );
 
+  // Hidden feature switch (Declutter, slice 3b): `_shared/featureSwitch.ts`
+  // imports only caughtMessage, so the REAL fail-closed gate serves; the
+  // decision itself is the `feature_enabled_for_user` rpc the scenario answers.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/featureSwitch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/featureSwitch.ts";`,
+  );
+
   // Arrival rule: `_shared/arrivalRule.ts` has ZERO imports and is the one
   // predicate (GPS verified AND poster confirmed, VN-33) that create-payment's
   // helper release and the app's completion gate both read.

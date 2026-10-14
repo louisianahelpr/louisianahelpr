@@ -135,6 +135,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_orders: { by: ["buyer_id", "seller_id"] },
   declutter_cart_items: { by: ["buyer_id", "seller_id"] },
   declutter_buyer_cards: { by: ["user_id"] },
+  // Declutter slice 3b (20261014224914): a seller's card-fee debts (row 60).
+  declutter_seller_fee_debts: { by: ["seller_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },

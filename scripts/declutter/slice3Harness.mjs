@@ -12,7 +12,11 @@
  * definitions of the helpers the migrations call (read out of
  * supabase/migrations, any dollar tag), the hidden-switch migration,
  * slice 1 and slice 2 once (as prod will hold them), the switch at 'testers',
- * then the slice 3 migration `times` times (0 = the RED baseline).
+ * then the slice 3 migration `times` times (0 = the RED baseline), then the
+ * slice 3b migration `times3b` times (default 0: slice 3 alone; the 3b proofs
+ * pass 3, or 0 for their RED baseline), then the $1,000 price cap (row 70)
+ * `timesCap` times (default: as many times as slice 3b, so the 3b proofs run
+ * on the cap too).
  */
 import { readFileSync, readdirSync } from "node:fs";
 
@@ -20,7 +24,9 @@ const MIG_DIR = new URL("../../supabase/migrations/", import.meta.url).pathname;
 const SLICE1_FILE = "20261014193955_declutter_foundation.sql";
 const SLICE2_FILE = "20261014200728_declutter_slice2_followups.sql";
 export const SLICE3_FILE = "20261014210518_declutter_slice3_offers_checkout.sql";
-const LOADED_BY_HAND = [SLICE1_FILE, SLICE2_FILE, SLICE3_FILE].map((f) => f.slice(0, 14));
+export const SLICE3B_FILE = "20261014224914_declutter_slice3b_payments.sql";
+export const PRICE_CAP_FILE = "20261014230342_declutter_price_cap_1000.sql";
+const LOADED_BY_HAND = [SLICE1_FILE, SLICE2_FILE, SLICE3_FILE, SLICE3B_FILE, PRICE_CAP_FILE].map((f) => f.slice(0, 14));
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 export function newestDefinition(name) {
@@ -112,7 +118,7 @@ const PEOPLE = `
   INSERT INTO public.test_accounts (user_id)
     SELECT id FROM auth.users WHERE id <> '${OUTSIDER}';`;
 
-export function setupStatements({ times = 3, slice3Path } = {}) {
+export function setupStatements({ times = 3, slice3Path, times3b = 0, slice3bPath, timesCap = times3b, capPath } = {}) {
   const read = (f) => readFileSync(`${MIG_DIR}${f}`, "utf8");
   const out = [SCHEMA];
   for (const name of ["is_caller_banned", "member_under_18", "helper_award_block_reason", "contact_leak_reason", "are_users_blocked"]) {
@@ -126,6 +132,10 @@ export function setupStatements({ times = 3, slice3Path } = {}) {
   out.push(read(SLICE2_FILE));
   const slice3 = readFileSync(slice3Path ?? `${MIG_DIR}${SLICE3_FILE}`, "utf8");
   for (let i = 0; i < times; i++) out.push(slice3);
+  const slice3b = readFileSync(slice3bPath ?? `${MIG_DIR}${SLICE3B_FILE}`, "utf8");
+  for (let i = 0; i < times3b; i++) out.push(slice3b);
+  const cap = readFileSync(capPath ?? `${MIG_DIR}${PRICE_CAP_FILE}`, "utf8");
+  for (let i = 0; i < timesCap; i++) out.push(cap);
   return out;
 }
 

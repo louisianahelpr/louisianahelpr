@@ -242,6 +242,110 @@ where no owner row decides. Each picks the option most consistent with the rows 
   `ROUTES=/declutter,/declutter/sell,/declutter/item/<real id> node scripts/audit/measure-loading-states.mjs` (a ROUTES
   run merges into the file), then fix or baseline any skeleton breach it finds.
 
+### Slice 3 build decisions (agent declutter-3, 2026-10-14; migration 20261014210518)
+- B25. Offers are threads: one row per (item, buyer) in `declutter_offers` holding the CURRENT amount and whose turn it
+  is (`awaiting` seller|buyer); every step (offer, counter, accept, decline, withdraw, expire, void) is kept in
+  `declutter_offer_events`. The side whose turn it is has 48 h; each counter resets the 48 h (row 57: unlimited counters).
+  One open thread per buyer per item (unique index). A buyer may withdraw an open offer at any time.
+- B26. Hidden floor (review note "binary-search oracle"): an offer under the floor is NOT auto-declined. It reaches the
+  seller, whose Offers screen says "under your lowest price" (only the seller sees it). Nothing the server tells a buyer
+  depends on the floor, and every decline reads the same ("Your offer was declined"). The only automatic refusal is row
+  58's 50% of the CURRENT (public) price.
+- B27. Rate limit: at most 3 offer threads per buyer per item per 24 h (`offer_rate_limited`).
+- B28. A seller's counter may be any amount from $1 to the current price (the seller may go under their own floor); a
+  buyer's counter must still be >= half the current price. Accepting charges least(agreed amount, today's price), so an
+  accept never costs more than Buy (money review). Buy = instant accept at the current price; it refuses
+  (`price_changed`) only if the price is now ABOVE what the buyer saw (prices only drop).
+- B29. Race safety: every path that takes an item off sale (accept by either side, Buy) locks the item row FOR UPDATE and
+  goes through `declutter_take_item`, which flips live -> reserved with a status predicate, voids every other open thread
+  (those buyers are told, nothing charged) and creates the cart line. Backstops: unique (item) where an offer is accepted;
+  unique (item) where a cart line is in_cart/paid; unique (buyer, seller) where an order awaits payment. Lock order
+  everywhere: items (by id) -> orders -> lines/offers. Proven with two real concurrent sessions
+  (scripts/declutter/race-accept.mjs, 6 races x 20 rounds; a planted unlocked copy double-sells).
+- B30. Cart: an accepted offer / Buy is one cart line with `checkout_by` = +48 h. `declutter_start_checkout(seller,
+  handover)` groups the buyer's lines for that seller into ONE order and freezes items + premium + total (row 38).
+  Restarting checkout supersedes the previous order (its Stripe session id is returned so the edge function can expire
+  it); a payment that still lands on a superseded / expired / wrong-amount order is refunded IN FULL (our mistake, owner
+  10-14 ~3:25 AM). The premium rule is a table CHECK (`premium = greatest(round(items * 15%), $1)`), so no path can store
+  another number. Handover choices now: pickup at the seller's home or porch pickup; Helpr delivery is refused
+  (`handover_unavailable`) until slice 5 and the cart says "coming later".
+- B31. Card on file (row 36): there was no saved-card store for members (only businesses had one), so
+  `declutter_buyer_cards` holds the Stripe customer + payment method, written ONLY by service_role (slice 3b's SetupIntent
+  webhook). Members can read brand + last 4 of their own card (column grant), never the Stripe ids. Offering, accepting
+  (as or for the buyer) and Buy all require a card. No code path reads payment_method_id to charge it (rows 6/59).
+- B32. Under 18 (row 53): offer, counter, accept, Buy and checkout run `declutter_assert_member(true)`; a seller
+  accepting an under-18 buyer's offer is refused too (`other_side_unavailable`). The member error copy now says "buy or sell".
+- B33. Sales tax hook (row 54 (2)): a seller with `declutter_seller_flags.business_like = true` is refused at checkout
+  (`seller_tax_not_ready`) until the tax slice computes Stripe Tax for them, so a business sale is never taken untaxed.
+  Casual sellers' orders carry tax_cents = 0. TODO (tax slice): who sets business_like, Stripe Tax marketplace mode on
+  item + premium, parish rates, and the $100k facilitator tracker.
+- B34. Missed checkout (rows 7, 13, 59): the deadline sweep (cron `declutter-deadlines`, every 10 min) expires offers past
+  48 h, sends the 24 h and 2 h checkout reminders once each, and on a line past `checkout_by` gives the buyer a
+  `missed_checkout` strike and puts the item back on sale (or `ended` if the seller can no longer sell). A line whose
+  order is awaiting payment gets 1 h of grace past the deadline (a Stripe page opened just before it). Row 13's
+  "runner-up offer" is an AUCTION rule: in offers mode the item simply goes back up for sale (the voided offers stay closed).
+- B35. Price drops (row 56): cron `declutter-price-drops` at 23:00 UTC (6 PM CDT / 5 PM CST); 5% of the current price,
+  rounded DOWN to the cent, never below the floor; once per Louisiana calendar day (`last_price_drop_on`); an item live
+  for less than 12 h is skipped that evening; reserved/sold items never drop. Watchers get "Price dropped". Open offers
+  keep their amounts when the price drops. Both crons are in cron_work_expectations (dead-cron monitor).
+- B36. Banned / 3-strike sellers (lh-authz-rls should-fix 3 from slice 2): the items read policy hides their live and
+  reserved listings from everyone but themselves (`declutter_seller_hidden`), and every buyer path refuses their items.
+  A seller who backs out of an accepted, unpaid sale (`declutter_seller_cancel_sale`) gets a `cancelled_after_offers`
+  strike (row 19) and the item is withdrawn; a PAID sale cannot be cancelled there (slice 4's refund path).
+- B37. Screens live inside /declutter as views (no new routes): Browse, My listings, Offers (offers on your items with
+  Accept / Answer with a price / Say no; your offers with Take back; your sales waiting for payment with Cancel sale),
+  Cart (one checkout per seller with items, 15% fee (at least $1), total, deadline). The item page has Buy for $X and
+  Make an offer, the price-drop line ("was $X"), and the strike count "You have N of 3 strikes" sits on /declutter.
+  Readers `declutter_my_offers()` / `declutter_my_cart()` return the item title with each row (a sold item is no longer
+  readable through the items policy). Notifications link to `/declutter?view=offers|cart`.
+- B38. NOT in slice 3 (slice 3b): the Stripe step. Until it lands the item page says "Saving a card opens in the next test
+  round" and the cart says "Paying opens in the next test round" (no dead buttons). Slice 3b builds: (1) a
+  `declutter-card` edge function (Checkout Session mode=setup or SetupIntent, customer reuse) whose webhook writes
+  `declutter_buyer_cards`; (2) a `declutter-checkout` edge function that calls `declutter_start_checkout` as the buyer,
+  creates a Checkout Session for exactly total_cents (expires_at 30 min, metadata order id), expires any superseded
+  session, and records it with `declutter_attach_checkout_session`; (3) the webhook branch for those sessions calling
+  `declutter_mark_order_paid` and refunding in full on 'refund_in_full', plus the paid receipt email (row 44: email only
+  for money events). Separate charges and transfers: the money stays on the platform until slice 4 transfers
+  items_cents to the seller at handover. Stripe is LIVE: test to the Stripe page only, never pay.
+- Notifications (row 44): written as `public.notifications` rows inside the RPCs/sweeps (push + bell through the
+  existing fan-out trigger), the SQL-cron pattern; types used: new_offers, payment, expired, info (price drop),
+  warning (strike). They are not create-notification edge templates, so there is no per-template 409 test.
+
+### Open after slice 3 (for the lead; owner order 10-13: no new OPEN.md items from agents)
+- Slice 3b: the Stripe step (B38) incl. the webhook branch, receipt email, and a live check to the Stripe page with a
+  test account (never pay).
+- Orphan-photo sweep (slice 2 should-fix 4) is NOT built: deleting storage objects needs the Storage API (an edge
+  function on a cron), not SQL; list unattached `job-photos/<uid>/declutter/` objects older than 24 h and remove them.
+- The concurrent race proof runs on a local embedded PostgreSQL 17 (installed outside the repo in ~/.lh-embedded-pg);
+  re-run `node scripts/declutter/race-accept.mjs` after any change to the take/checkout/pay paths.
+- Visual check of the new views at 375 and 1440 once the switch is on for test accounts.
+- Strike appeals (row 49) and the admin strike queue are still not built.
+- Reviews of slice 3 (2026-10-14, lh-money-escrow + lh-authz-rls, both approve-with-fixes). FIXED in the slice: account
+  deletion refused while a Declutter sale is in flight (findActiveWork); a seller who blocks the buyer after the sale takes
+  the strike (sweep), a seller who can no longer sell strikes nobody and the item ends; checkout is idempotent (a double
+  tap returns the open order and its session, never supersedes it); an empty cart says nothing about a seller (no
+  ban/strike/tax oracle); an under-18 or business-like seller is hidden and cannot sell (`declutter_seller_out`); an
+  accepted counter above today's price is charged at today's price (B28 changed: accept never costs more than Buy);
+  order Stripe ids are not client-readable (column grant); $999,999.99 total ceiling; payment re-checks items and seller;
+  seller cancel locks the whole order's items; a failing sweep line is filed with log_cron_defect and the rest go on;
+  the cart preview drops lines past their deadline; Q137: a seed (test) counterpart never notifies a real member.
+- NOT fixed, for slice 3b / the owner:
+  - `refund_in_full` is one answer for every non-payable order; owner rule (10-14) keeps the card fee except on OUR
+    mistakes. Slice 3b needs a reason code (superseded / expired / seller_cancelled / amount_mismatch / second payment)
+    and an owner answer for "seller cancelled while the buyer was paying".
+  - A payment made before the deadline but whose webhook lands after the 1 h grace is refunded AND the buyer was struck:
+    3b should pass the payment time and revoke the strike / honour the order.
+  - `declutter_seller_cancel_sale` and the sweep expire an order but do not hand back its Stripe session id: 3b must
+    expire sessions of expired orders (sweep them) so a dead order's page cannot be paid.
+  - Slice 2's `declutter_withdraw_item` leaves open offers on the item open (buyers later read "the seller did not
+    answer"): void them on withdraw.
+  - Once the price reaches the floor it stops dropping, so a watcher can infer the floor (row 56 makes this inherent;
+    `last_price_drop_on`/`price_dropped_at` are readable). Owner call; the two columns could be made seller-only.
+  - A buyer whose switch is turned off after an accept cannot check out and would be struck: decide with the rollout.
+  - Offer limits are per item (B27): many items x unlimited counters is a push-spam path (trust-safety lane).
+  - The deadline/price-drop sweeps have PGlite proofs that move row timestamps, not a fixed-clock probe
+    (clockFunctionsProven NOT_PROVEN).
+
 ### For slice 2 (screens)
 - Create switch audience testers (Admin -> Settings) after the screens land; describe Declutter in App Review notes (row 51).
 - Draft editing RPC (title/price/etc. on a draft) is not built; slice 1 has create, photos, confirmations,

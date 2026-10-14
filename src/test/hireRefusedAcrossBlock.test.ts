@@ -55,6 +55,11 @@ const NOT_HIRES: Record<string, string> = {
   // 20261007113957 (Q1254): sets job_detail_change_requests.status =
   // 'accepted' (the outcome of an agreed change to a booked job's details);
   // it hires no one and writes no application or roster row.
+  // 20261014210518 (Declutter slice 3): marks a Declutter OFFER accepted (a
+  // sale of a used item, not a job hire); its callers refuse a blocked pair
+  // first (declutter_lock_buyable_item / declutter_respond_offer:
+  // are_users_blocked -> item_not_found).
+  declutter_take_item: "accepts a Declutter offer (an item sale); hires no one",
   settle_job_detail_change: "applies an agreed detail-change REQUEST (Q1500); hires no one",
   // 20260925154606 (Q407): an under-filled crew whose every HIRED member is
   // done is closed for staffing (open -> accepted) before the roll-up stamps

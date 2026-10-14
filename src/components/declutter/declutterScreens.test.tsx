@@ -62,6 +62,14 @@ vi.mock("@/lib/declutter/api", () => ({
   setWatch: async () => "watching",
   askQuestion: async () => "q",
   answerQuestion: async () => "a",
+  fetchMyCard: async () => null,
+  fetchMyActiveStrikes: async () => 0,
+  fetchMyOffers: async () => [],
+  fetchMyCart: async () => [],
+  makeOffer: async () => "o",
+  respondOffer: async () => "declined",
+  buyNow: async () => "l",
+  sellerCancelSale: async () => 1,
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
@@ -147,13 +155,14 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: /offer/i })).toBeNull();
   });
 
-  it("a buyer sees area + miles wording, the watch heart and that offers come later", async () => {
+  it("a buyer sees area + miles wording, the watch heart, and (no saved card) why they can't offer yet", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByText("Pickup in Mid-City, Baton Rouge")).toBeInTheDocument();
     expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
-    expect(screen.getByText("Making offers is coming soon.")).toBeInTheDocument();
+    expect(await screen.findByText("Save a card to buy or make offers.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Buy for/ })).toBeNull();
     expect(await screen.findByText(/4\.8 stars from 12 reviews/)).toBeInTheDocument();
   });
 });

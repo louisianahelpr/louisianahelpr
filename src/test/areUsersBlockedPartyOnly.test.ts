@@ -58,7 +58,15 @@ const EXPECTED_CALLERS = [
   // Declutter slice 1 (20261014193955): v_uid := auth.uid() is one argument,
   // the item's seller the other (a blocked pair cannot watch or ask, B17).
   "declutter_ask_question",
+  // Declutter slice 3 (20261014210518): lock_buyable_item gets p_buyer =
+  // v_uid := declutter_assert_member() (auth.uid()) from make_offer / buy_now;
+  // respond_offer passes the thread's two parties, one of whom is v_uid
+  // (the thread is found by buyer_id = v_uid OR seller_id = v_uid);
+  // start_checkout passes (p_seller_id, v_uid).
+  "declutter_lock_buyable_item",
+  "declutter_respond_offer",
   "declutter_set_watch",
+  "declutter_start_checkout",
   "direct_accept_block_reason",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",

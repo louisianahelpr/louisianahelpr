@@ -2,8 +2,7 @@
  * /declutter/item/:id — one Declutter item: photos, condition stars, size,
  * price, area + miles (rows 5, 27), the seller and their rating, the watch
  * heart (row 46) and the public Q&A (row 35, through the contact-leak
- * filter server-side). Offers are not in this slice: the page says so in
- * plain words instead of showing a dead button.
+ * filter server-side), and Buy / Make an offer (slice 3, OfferPanel).
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -39,6 +38,7 @@ import {
   STATUS_HELP,
   STATUS_LABEL,
 } from "./declutterUi";
+import { OfferPanel } from "./DeclutterTradeViews";
 
 function SellerLine({ sellerId }: { sellerId: string }) {
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
@@ -186,7 +186,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
       <section className="rounded-2xl border border-border bg-card p-4 space-y-2">
         <p className="text-2xl font-bold">{formatPrice(it.current_price_cents)}</p>
         {it.current_price_cents < it.price_cents && (
-          <p className="text-xs text-muted-foreground">Was {formatPrice(it.price_cents)}</p>
+          <p className="text-xs text-muted-foreground">Price dropped · was {formatPrice(it.price_cents)}. The price can drop again in the evening.</p>
         )}
         <ConditionStars stars={it.condition_stars} />
         <p className="text-sm">{SIZE_LABEL[it.delivery_size]}</p>
@@ -213,11 +213,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         </section>
       )}
 
-      {canAct && (
-        <DeclutterNotice title="Making offers is coming soon.">
-          Testers can look and ask questions now. Offers and checkout open in the next test round.
-        </DeclutterNotice>
-      )}
+      {canAct && user && <OfferPanel item={it} userId={user.id} />}
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold">Questions</h2>

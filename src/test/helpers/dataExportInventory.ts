@@ -130,6 +130,11 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_seller_flags: { by: ["user_id"] },
   // "Suggest a category" (20261015051141 + 20261015052622, I1).
   category_suggestions: { by: ["user_id"] },
+  // Declutter slice 3 (20261014210518): both sides of a trade.
+  declutter_offers: { by: ["buyer_id", "seller_id"] },
+  declutter_orders: { by: ["buyer_id", "seller_id"] },
+  declutter_cart_items: { by: ["buyer_id", "seller_id"] },
+  declutter_buyer_cards: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -381,6 +386,8 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
+  "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },
+  "declutter_cart_items.checkout_by": { reason: "a deadline timestamp (when checkout must happen), not a person; the line is exported by declutter_cart_items.buyer_id/seller_id (20261014210518)" },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.

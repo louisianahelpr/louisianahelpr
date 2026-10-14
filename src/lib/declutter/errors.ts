@@ -17,7 +17,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   account_restricted: "Your account is restricted, so Declutter is not available right now.",
   declutter_strikes_blocked:
     "You have 3 Declutter strikes, so Declutter is paused for you. It opens again when one of them expires.",
-  under_18: "You must be 18 or older to sell on Declutter.",
+  under_18: "You must be 18 or older to buy or sell on Declutter.",
   payout_setup_incomplete: "Set up your payouts first, so we can pay you when your item sells.",
   photos_required: "Add at least 3 photos of the item (up to 12).",
   attestation_required: "Confirm the four statements about this item before you list it.",
@@ -45,6 +45,27 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   own_listing: "Another admin has to review your own listing.",
   seller_not_eligible: "This seller can't sell right now (account restricted, strikes, age or payouts). Reject it instead.",
   ai_check_stale: "The listing changed while it was being checked. Try again.",
+  // Slice 3: offers, Buy, checkout, strikes (20261014210518).
+  card_required: "Save a card first. It is never charged until you check out.",
+  item_not_available: "Someone else got this item first.",
+  invalid_offer_amount: "Offer less than the price. To pay the price, tap Buy.",
+  offer_too_low: "Offers must be at least half the current price.",
+  offer_already_open: "You already have an offer on this item. Change it under Offers.",
+  offer_rate_limited: "You can make 3 offers a day on one item. Try again tomorrow.",
+  invalid_action: "That can't be done to this offer.",
+  offer_not_found: "That offer isn't available.",
+  offer_not_open: "This offer is already closed.",
+  not_your_turn: "Waiting for the other side to answer.",
+  offer_expired: "This offer ran out of time.",
+  other_side_unavailable: "The other side can't trade on Declutter right now, so this can't go ahead.",
+  counter_same_amount: "That's the same amount. To agree to it, tap Accept.",
+  price_changed: "The price changed. Check the new price and try again.",
+  handover_unavailable: "Choose pickup at the seller's home or porch pickup. Helpr delivery is coming later.",
+  seller_tax_not_ready: "Checkout for this seller isn't available yet.",
+  cart_empty: "Nothing from this seller is waiting for checkout.",
+  order_not_payable: "This checkout is no longer open. Start checkout again.",
+  no_sale_to_cancel: "There's no sale to cancel on this item.",
+  sale_already_paid: "The buyer already paid. Contact support to cancel.",
 };
 
 /**

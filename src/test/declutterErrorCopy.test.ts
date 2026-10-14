@@ -19,7 +19,11 @@ import { DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY, ListingPhotoError, d
 import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
 
 const DIR = join(process.cwd(), "supabase/migrations");
-const DECLUTTER_FILES = ["20261014193955_declutter_foundation.sql", "20261014200728_declutter_slice2_followups.sql"];
+const DECLUTTER_FILES = [
+  "20261014193955_declutter_foundation.sql",
+  "20261014200728_declutter_slice2_followups.sql",
+  "20261014210518_declutter_slice3_offers_checkout.sql",
+];
 // require_feature (20261012031120) raises feature_disabled on every RPC.
 const SHARED = ["feature_disabled"];
 
@@ -38,7 +42,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(2);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(3);
     expect(codes.size).toBeGreaterThan(25);
   });
 

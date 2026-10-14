@@ -68,6 +68,8 @@ const NOT_PROVEN: Record<string, string> = {
   check_ops_alert_pending: "named by opsAlertPendingWatchdog.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
   check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",
   check_user_reports_reach_ledger: "named by userReportsReachTheLedgerCheck.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
+  declutter_deadline_sweep: "named by declutterSlice3.pglite.mjs (it moves row timestamps, not the clock); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Declutter slice 3, 2026-10-14).",
+  declutter_price_drop_sweep: "named by declutterSlice3.pglite.mjs (it moves last_price_drop_on / live_at, not the clock); no probe runs it on fixedClock.mjs across a Louisiana midnight (2026-10-14).",
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",

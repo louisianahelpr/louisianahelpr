@@ -16,7 +16,7 @@
  *
  * @mutate src/pages/home/useDashboardSideQueries.ts | failed: savedJobsError && savedJobsData === undefined, | failed: false,
  * @mutate src/pages/home/useDashboardSideQueries.ts | failed: savedJobsError && savedJobsData === undefined, | failed: savedJobsError,
- * @mutate src/components/dashboard/SavedOnlyState.tsx | {savedRead?.failed ? ( | {false ? (
+ * @mutate src/components/dashboard/SavedOnlyState.tsx |   if (!savedRead?.failed) { |   if (true) {
  * @mutate src/components/dashboard/SavedOnlyState.tsx | retryDisabled={savedRead.retrying} | retryDisabled={false}
  * @mutate src/pages/home/optimisticSavedIds.ts |   if (prev === undefined) return undefined; |   if (prev === undefined) prev = [];
  */

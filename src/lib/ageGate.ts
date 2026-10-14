@@ -7,14 +7,16 @@
  * refuses the same member too (20261013010621: apply_to_job, every applications
  * and job_accept_pending insert, and their own jobs insert raise 'under_18').
  * They become available on the member's 18th birthday. No birthday saved yet:
- * nothing changes: the sign-up 18+ box is the requirement (owner, 2026-10-13).
- * The birthday is asked before the first Apply/Post and is required only of a
- * Google/Apple sign-up, which never saw that box (ProtectedRoute).
+ * nothing changes: the 18+ box is the requirement (owner, 2026-10-13), on
+ * sign-up step 1 for an email sign-up and on Complete Profile for a
+ * Google/Apple one (owner, 2026-10-14: no birthday and no phone asked there
+ * either; ProtectedRoute). Nothing asks for a birthday before an Apply or a
+ * Post (owner, 2026-10-14: "no later prompt").
  *
- * A birthday under 18 that the member types (PhotoPrompt, CompleteProfile,
- * complete-signup) is SAVED, never refused (owner, 2026-10-13): refusing it
- * left the birthday empty, so the honest minor tapped Not Now and went ahead
- * (lh-authz-rls review of 0f7786627, must-fix 1). Saved, the profiles lock
+ * A birthday under 18 that a member gives (complete-signup; Complete Profile
+ * until 2026-10-14) is SAVED, never refused (owner, 2026-10-13): refusing it left the birthday
+ * empty, so the honest minor went ahead (lh-authz-rls review of 0f7786627,
+ * must-fix 1). Saved, the profiles lock
  * (lock_under_18_birthday) holds it and the grey-out and the server refusal
  * start at once.
  *
@@ -23,14 +25,11 @@
  * year (Postgres's date + interval '18 years' clamps the same way). The date is
  * read from its YYYY-MM-DD parts, never `new Date("YYYY-MM-DD")`: that parses
  * as UTC midnight, which is the evening BEFORE in Louisiana, and would let a
- * member through a day early (CompleteProfile, PhotoPrompt and signupHelpers'
- * ageFromDob all had that slip; they read this rule now, and ageFromDob is gone).
+ * member through a day early (CompleteProfile, the old PhotoPrompt and
+ * signupHelpers' ageFromDob all had that slip; ageFromDob is gone).
  */
 export const UNDER_18_APPLY_COPY = "You must be 18 or older to apply for jobs.";
 export const UNDER_18_POST_COPY = "You must be 18 or older to post a job.";
-/** Said when the member has just told us a birthday under 18 (PhotoPrompt, CompleteProfile). */
-export const UNDER_18_SAVED_COPY =
-  "Thanks for telling us. You must be 18 or older to apply for jobs or post a job, so those stay off until your 18th birthday.";
 
 export type AgeGateKind = "apply" | "post";
 
@@ -56,25 +55,6 @@ export function eighteenthBirthday(dob: string | null | undefined): string | nul
 function localDateKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
-
-/** Whole years old today for a YYYY-MM-DD birthday, or null when it is not a date. */
-export function ageInYears(dob: string | null | undefined, now: Date = new Date()): number | null {
-  if (typeof dob !== "string") return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dob.trim());
-  if (!m) return null;
-  const today = localDateKey(now);
-  const years = now.getFullYear() - Number(m[1]);
-  return today.slice(5) < `${m[2]}-${m[3]}` ? years - 1 : years;
-}
-
-/** YYYY-MM-DD exactly `years` before today on this device (a birthday wheel's start). */
-export function yearsAgoKey(years: number, now: Date = new Date()): string {
-  return `${now.getFullYear() - years}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
-/** Said once before an under-18 birthday is saved: a saved one only support can change. */
-export const under18ConfirmCopy = (age: number | null, toSave = "tap again to save it") =>
-  `${age !== null ? `That makes you ${age}. ` : ""}Under 18 you can't apply for jobs or post a job until your 18th birthday, and only Louisiana Helpr support can change a saved birthday. If that's right, ${toSave}.`;
 
 /** True when a saved birthday makes the member under 18 today. No birthday: false. */
 export function isUnder18(dob: string | null | undefined, now: Date = new Date()): boolean {

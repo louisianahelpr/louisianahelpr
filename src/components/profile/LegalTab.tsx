@@ -36,7 +36,7 @@ import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
  * and there is a third account state that can reach neither.
  *
  * `ProtectedRoute`'s completeness gate (PROFILE_GATE_FIELDS: full_name and
- * location, plus date_of_birth for a Google/Apple sign-up) runs on every
+ * location, plus the 18+ box for a Google/Apple sign-up) runs on every
  * protected route. `/profile` is
  * no exception: it is bounced to `/complete-profile` when any of
  * those is blank. The only escape is `isProfileGateAllowed()`, which

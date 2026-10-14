@@ -6,13 +6,17 @@
  */
 export interface ProfileCompletionUpdates {
   full_name: string;
-  phone: string;
   bio: string;
   location: string;
   /** Optional — unlocks parish-based helper notifications + LA sales tax. */
   zip_code?: string;
   parish?: string | null;
-  date_of_birth: string;
+  /**
+   * When the member ticked the 18+ box on this screen (owner, 2026-10-14: a
+   * Google/Apple sign-up gets the same box as sign-up step 1, and this screen
+   * asks no birthday and no phone). Sent only on the first tick.
+   */
+  age_attested_at?: string;
   /**
    * FIRST-EVER acceptance of the Terms / Privacy / Platform Rules. The client
    * always sends `now()`; `tr_preserve_first_consent` (migration

@@ -78,7 +78,7 @@ describe("JobDetailFooter Apply Now under 18 (Q1586(c))", () => {
     expect(onApply).toHaveBeenCalledWith("job-1");
   });
 
-  it("is unchanged with no birthday saved yet (it is asked before the first Apply)", () => {
+  it("is unchanged with no birthday saved (the sign-up 18+ box is the age check)", () => {
     setBirthday(null);
     const { onApply, button } = renderFooter();
     expect(button.getAttribute("data-age-gated")).toBeNull();

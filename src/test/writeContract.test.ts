@@ -7,8 +7,10 @@ import { join } from "node:path";
 // pins.
 // @mutate src/pages/home/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
 // @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
-// @mutate scripts/audit/write-contract.mjs | if (!col) { reject("unknown_column" | if (!col) { if (false) reject("unknown_column"
+// @mutate scripts/audit/write-contract.mjs | else reject("unknown_column" | else if (false) reject("unknown_column"
 // @mutate scripts/audit/write-contract.mjs | if (by) warn("rpc_pending" | if (false) warn("rpc_pending"
+// @mutate scripts/audit/write-contract.mjs | if (by) warn("column_pending" | if (false) warn("column_pending"
+// @mutate scripts/audit/write-contract.mjs |         if (!/^(constraint\|primary\|unique\|foreign\|check\|exclude)$/i.test(a[1])) columns.set( |         columns.set(
 // @mutate scripts/audit/write-contract.mjs | if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none; | if (false) return none;
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
@@ -193,6 +195,32 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
     expect(p.functions.has("ghost_fn")).toBe(false);
     const problems = contract.checkWrite(tableWrite, s, p).map((x: any) => x.code);
     expect(problems).toEqual(["table_pending"]);
+  });
+
+  it("a column added by a pending migration is a pending warning; the same column with nothing adding it is still a reject", () => {
+    // A real write with a resolved payload against a table in the snapshot.
+    const w = report.writes.find((x: any) => x.kind === "update" && x.payload?.resolved && Object.keys(x.payload.keys).length > 0 && snapshot.tables[x.target]);
+    expect(w).toBeTruthy();
+    const col = Object.keys(w.payload.keys).find((k) => snapshot.tables[w.target].columns[k])!;
+    const dir = mkdtempSync(join(tmpdir(), "wc-pending-col-"));
+    writeFileSync(
+      join(dir, "20990101000000_a.sql"),
+      `ALTER TABLE public.${w.target}\n  ADD COLUMN IF NOT EXISTS ${col} timestamptz,\n  ADD CONSTRAINT some_check CHECK (true);\n-- ALTER TABLE public.${w.target} ADD COLUMN ghost_col text;\n`,
+    );
+    const s: any = clone();
+    s.appliedMigrations = { latest: "20990100000000", count: 0 };
+    delete s.tables[w.target].columns[col];
+    const p = contract.pendingDefinitions(s, dir);
+    expect(p.columns.get(`${w.target}.${col}`)).toBe("20990101000000_a.sql");
+    // ADD CONSTRAINT adds no column (neither "constraint" nor its name).
+    expect([...p.columns.keys()].filter((k) => k.startsWith(`${w.target}.`))).toEqual([`${w.target}.${col}`]);
+    expect(p.columns.has(`${w.target}.ghost_col`)).toBe(false);
+    const codesWith = contract.checkWrite(w, s, p).map((x: any) => x.code);
+    expect(codesWith).toContain("column_pending");
+    expect(codesWith).not.toContain("unknown_column");
+    const empty = mkdtempSync(join(tmpdir(), "wc-pending-none-"));
+    const codesWithout = contract.checkWrite(w, s, contract.pendingDefinitions(s, empty)).map((x: any) => x.code);
+    expect(codesWithout).toContain("unknown_column");
   });
 });
 

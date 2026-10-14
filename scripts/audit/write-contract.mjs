@@ -366,13 +366,15 @@ function stripSqlComments(sql) {
 /** Objects created by migrations the snapshot's prod had not applied yet. */
 export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   const meta = snapshot.appliedMigrations;
-  const none = { exact: false, latest: meta?.latest ?? null, functions: new Map(), tables: new Map() };
+  const none = { exact: false, latest: meta?.latest ?? null, functions: new Map(), tables: new Map(), columns: new Map() };
   if (!meta || typeof meta.latest !== "string" || typeof meta.count !== "number") return none;
   if (!fs.existsSync(migrationsDir)) return none;
   const files = fs.readdirSync(migrationsDir).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
   if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
   const functions = new Map();
   const tables = new Map();
+  // "table.column" -> file, for columns a pending ALTER TABLE ... ADD COLUMN adds.
+  const columns = new Map();
   for (const f of files.filter((x) => x.slice(0, 14) > meta.latest)) {
     const sql = stripSqlComments(fs.readFileSync(path.join(migrationsDir, f), "utf8"));
     for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
@@ -381,8 +383,13 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
     for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?(?:unlogged\s+)?(?:table|view|materialized\s+view)\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?/gi)) {
       tables.set(m[1].toLowerCase(), f);
     }
+    for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s+([^;]*)/gi)) {
+      for (const a of m[2].matchAll(/(?:^|,)\s*add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+        if (!/^(constraint|primary|unique|foreign|check|exclude)$/i.test(a[1])) columns.set(`${m[1].toLowerCase()}.${a[1].toLowerCase()}`, f);
+      }
+    }
   }
-  return { exact: true, latest: meta.latest, functions, tables };
+  return { exact: true, latest: meta.latest, functions, tables, columns };
 }
 
 export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) {
@@ -464,7 +471,12 @@ export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) 
   const p = w.payload;
   for (const [key, vals] of Object.entries(p.keys)) {
     const col = cols[key];
-    if (!col) { reject("unknown_column", `column ${w.target}.${key} does not exist`); continue; }
+    if (!col) {
+      const by = pending.columns?.get(`${w.target}.${key}`);
+      if (by) warn("column_pending", `column ${w.target}.${key} is added by ${by}, which prod had not applied when the snapshot was read (latest applied ${pending.latest})`);
+      else reject("unknown_column", `column ${w.target}.${key} does not exist`);
+      continue;
+    }
     if (col.generated) reject("generated_column", `column ${w.target}.${key} is GENERATED and cannot be written`);
     if (vals) {
       for (const v of vals) {

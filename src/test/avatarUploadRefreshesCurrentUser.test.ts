@@ -36,7 +36,9 @@ describe("an avatar upload refreshes the signed-in user's cache", () => {
 
   it("finds the callers (floor)", () => {
     expect(files.length).toBeGreaterThan(500);
-    expect(callers.length).toBeGreaterThanOrEqual(3);
+    // 2: Profile.tsx and uploadProfileFiles.ts (PhotoPrompt.tsx was the third
+    // until the owner removed that prompt, 2026-10-14).
+    expect(callers.length).toBeGreaterThanOrEqual(2);
   });
 
   it("every caller refreshes queryKeys.currentUser, itself or through its listed caller", () => {

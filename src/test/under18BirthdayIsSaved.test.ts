@@ -12,13 +12,16 @@
  * blanked) writes date_of_birth, or renders a birthday picker, is one of the
  * EXACT list below, and none of them refuses an under-18 date.
  *
- * Behaviour: src/components/PhotoPrompt.test.tsx ("a birthday under 18 is
- * saved and stops the action"), and for the member's own save on the server,
- * src/test/pglite/under18CannotApplyOrPost.pglite.mjs S0-S4.
+ * Behaviour: the member's own save on the server,
+ * src/test/pglite/under18CannotApplyOrPost.pglite.mjs S0-S4. (The prompt that
+ * also asked for a birthday before the first Apply or Post, PhotoPrompt.tsx,
+ * was removed on 2026-10-14, owner: "no later prompt". Complete Profile's
+ * birthday field went the same day: a Google/Apple sign-up ticks the 18+ box
+ * there instead, src/test/socialSignupPassesThe18Box.test.tsx. No screen asks
+ * a birthday now; one a member sends complete-signup is still saved, under 18
+ * included.)
  *
- * @mutate src/pages/auth/CompleteProfile.tsx |     if (!dobValid) return fail("Add a real date of birth to continue."); |     if (!dobValid \|\| dobUnder18) return fail("You'll need to be 18 or older to join.");
  * @mutate supabase/functions/complete-signup/index.ts |       if (savedBirthdayUnder18(effectiveDob)) {\n        console.warn( |       if (savedBirthdayUnder18(effectiveDob)) {\n        return new Response(JSON.stringify({ error: "You must be at least 18 years old to use Helpr." }), { status: 403 });\n        console.warn(
- * @mutate src/components/PhotoPrompt.tsx |     d.setFullYear(d.getFullYear() - 120); |     d.setFullYear(d.getFullYear() - 120); void (() => { const x = new Date(); x.setFullYear(x.getFullYear() - 18); })();
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -31,14 +34,11 @@ const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"
 
 /** Every screen or function where a member's own birthday is typed or written. */
 const BIRTHDAY_ENTRY = [
-  "src/components/PhotoPrompt.tsx",
-  "src/pages/auth/CompleteProfile.tsx",
   "supabase/functions/complete-signup/index.ts",
 ];
 /** Writes date_of_birth but is not a member typing a birthday (with why). */
 const NOT_ENTRY: Record<string, string> = {
   "src/integrations/supabase/types.ts": "generated column types, no write",
-  "src/pages/auth/completeProfile/types.ts": "the CompleteProfile update's type, no write of its own",
   "src/pages/profile/Profile.tsx": "re-sends the birthday it loaded (no birthday field); the lock keeps an under-18 one",
 };
 

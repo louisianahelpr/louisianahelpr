@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { ageInYears, eighteenthBirthday, isUnder18, under18ConfirmCopy, yearsAgoKey } from "@/lib/ageGate";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +15,12 @@ import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contac
 import { FieldError } from "@/components/ui/FieldError";
 import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, Trash2, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
-import { unwrapMutationRow, isWriteRejected, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
+import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { safeInternalRedirect } from "@/lib/authRedirects";
@@ -38,7 +36,6 @@ import {
   ALLOWED_IMAGE_TYPES,
   MAX_FILE_SIZE,
   withTimeout,
-  formatPhone,
 } from "./completeProfile/constants";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
@@ -80,8 +77,15 @@ const CompleteProfile = () => {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [phone, setPhone] = useState("");
+  // The 18+ box, the same one sign-up step 1 shows an email sign-up (owner,
+  // 2026-10-14 ~3 PM CT): a Google/Apple sign-up never sees step 1, so it ticks
+  // it here, and this screen asks no birthday and no phone. UNCHECKED by
+  // default; hydrated from profiles.age_attested_at. An email sign-up ticked it
+  // on step 1 (complete-signup refuses it otherwise), so it is not asked twice:
+  // the same rule as ProtectedRoute's isProfileComplete.
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const ageBoxShown = user?.app_metadata?.provider !== "email";
+  const ageDone = ageConfirmed || !ageBoxShown;
   const [location, setLocation] = useState("");
   // Optional — mirrors the same field on Signup.tsx's email path (S-001).
   const [zipCode, setZipCode] = useState("");
@@ -128,8 +132,7 @@ const CompleteProfile = () => {
     const { firstName: parsedFirst, lastName: parsedLast } = splitName(profile.full_name);
     if (parsedFirst && !firstName) setFirstName(parsedFirst);
     if (parsedLast && !lastName) setLastName(parsedLast);
-    if (profile.date_of_birth && !dateOfBirth) setDateOfBirth(profile.date_of_birth);
-    if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
+    if (profile.age_attested_at) setAgeConfirmed(true);
     if (profile.location && !location) setLocation(profile.location);
     if (profile.zip_code && !zipCode) setZipCode(profile.zip_code);
     if (profile.bio && !bio) setBio(profile.bio);
@@ -193,11 +196,6 @@ const CompleteProfile = () => {
     }
   };
 
-  // One date rule with the grey-out and the server (src/lib/ageGate.ts). Under 18 is SAVED, never
-  // refused (owner 2026-10-13, Q1586(c)): refused, it left no birthday and nothing greyed out.
-  const dobValid = Boolean(dateOfBirth) && eighteenthBirthday(dateOfBirth) !== null;
-  const dobUnder18 = dobValid && isUnder18(dateOfBirth);
-
   // Live checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
   // this said it did until 2026-09-10, and the divergence has a consequence.
   //
@@ -223,7 +221,7 @@ const CompleteProfile = () => {
   const checklist = useMemo(() => {
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
-      { label: "Date of birth", done: dobValid },
+      ...(ageBoxShown ? [{ label: "Confirm you're 18 or older", done: ageConfirmed }] : []),
       { label: "City", done: location.trim().length > 0 },
       // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
       // screen than on email signup: Google/Apple sign-ins never see
@@ -242,8 +240,8 @@ const CompleteProfile = () => {
   }, [
     firstName,
     lastName,
-    dateOfBirth,
-    dobValid,
+    ageBoxShown,
+    ageConfirmed,
     location,
     // zipCode is load-bearing here, not tidiness: the checklist gates the
     // submit button, so omitting it would leave "ZIP code" permanently
@@ -257,24 +255,10 @@ const CompleteProfile = () => {
 
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
-  const phoneValid = phone.replace(/\D/g, "").length === 10;
   const cityValid = location.trim().length > 0;
   // The ✓ means "recognised", not "five digits". An unrecognised ZIP already
   // renders its own warning below, so a check beside it would contradict it.
   const zipValid = zipCode.length === 5 && !unknownZip && !!resolvedZipParish;
-
-  // Max today so an under-18 birthday can be entered (Q1586(c)); the wheel OPENS 18 years back
-  // (openAt) and the line under the field says the age before the save. Floor: today − 120y.
-  const maxDob = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
-  const minDob = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 120);
-    return d.toISOString().split("T")[0];
-  })();
-
 
   useEffect(() => {
     if (!user?.id || profile || isLoading) return;
@@ -312,12 +296,8 @@ const CompleteProfile = () => {
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
     if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
-    if (!dateOfBirth) return fail("Add your date of birth to continue.");
-    if (!dobValid) return fail("Add a real date of birth to continue.");
-    // Saved, not refused (see dobValid); still a disclosure an admin should see.
-    if (dobUnder18) report(new Error("Complete profile: birthday under 18"), { severity: "warning", tags: { source: "CompleteProfile.under18", user_id: user.id } });
-    // Phone is optional (owner, 2026-10-09); a number that is typed must be whole.
-    if (phone.trim() && phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
+    // The same words Signup.tsx says when step 1's 18+ box is left empty.
+    if (!ageDone) return fail("Check the box to confirm you're 18 or older.");
     if (!location.trim()) return fail("Tell us your city to continue.");
     if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
     // Government-issued ID is no longer required here — it's optional at
@@ -341,13 +321,14 @@ const CompleteProfile = () => {
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
         full_name: fullName,
-        phone: phone.trim(),
         bio: bio.trim(),
         location: location.trim(),
         // Required now — the checklist and submit guard both enforce 5 digits.
         zip_code: zipCode.trim(),
         ...(resolvedZipParish ? { parish: resolvedZipParish } : {}), // the live effect's value
-        date_of_birth: dateOfBirth,
+        // The 18+ box (checked above): the record ProtectedRoute's gate reads
+        // for a Google/Apple sign-up. The first tick's moment is kept.
+        ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}),
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
         //
@@ -465,7 +446,7 @@ const CompleteProfile = () => {
       hapticSuccess();
       navigate(nextDestination, { replace: true });
     } catch (err: unknown) {
-      const recovered = phoneInUseMessage(err) ? false : await recoverCompletedProfile(); // a refused phone is never "recovered"
+      const recovered = await recoverCompletedProfile();
       if (!recovered) {
         hapticError();
         // A silently-rejected write gets its own sentence (the row wasn't
@@ -474,7 +455,7 @@ const CompleteProfile = () => {
         // The contact-leak trigger's message is the one server text shown
         // verbatim: written for the user, names the field.
         toast.error(
-          contactLeakRejectionMessage(err) ?? phoneInUseMessage(err)
+          contactLeakRejectionMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
               : userFacingError(err, "We couldn't save your profile just yet — give it another try.")),
@@ -686,47 +667,6 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
-              {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
-                  wheel, checkmark once a valid date is picked) — was a
-                  separate three-Select picker here, reading as a different
-                  control for the same kind of field. */}
-              <DatePickerField
-                wheel
-                showCompleteCheck
-                id="dob"
-                value={dateOfBirth}
-                onChange={setDateOfBirth}
-                min={minDob}
-                max={maxDob}
-                openAt={yearsAgoKey(18)}
-                className="rounded-ds-md"
-              />
-              {dobUnder18 && (
-                <p data-testid="dob-under-18-note" className="text-ds-11 text-[hsl(var(--destructive-ink))]">{under18ConfirmCopy(ageInYears(dateOfBirth), "finish your profile to save it")}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone <span className="font-normal text-muted-foreground">(optional)</span></Label>
-              <div className="relative">
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  maxLength={14}
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  className={`rounded-ds-md text-ellipsis ${phoneValid ? "pr-8" : ""}`}
-                />
-                {phoneValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-                )}
-              </div>
-            </div>
-
             {/* City takes what is left; ZIP is a fixed 7rem so five digits
                 plus the valid ✓ fit at 320-430 (a third of the row was 85px at 375,
                 and with the check's padding the value read "705", 2026-09-12). */}
@@ -757,7 +697,7 @@ const CompleteProfile = () => {
                 <Label htmlFor="zipCode">
                   ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
                 </Label>
-                {/* Same valid ✓ as Phone and City beside it (owner, 2026-09-12:
+                {/* Same valid ✓ as City beside it (owner, 2026-09-12:
                     "missing the check even though the zip is entered"). */}
                 <div className="relative">
                   <Input
@@ -834,6 +774,24 @@ const CompleteProfile = () => {
                 <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
               </span>
             </label>
+
+            {/* The 18+ box: the same sentence sign-up step 1 shows an email
+                sign-up (owner, 2026-10-14), laid out like the consent row
+                above it. Required, UNCHECKED by default. */}
+            {ageBoxShown && (
+              <label htmlFor="age-confirm" className="flex items-start gap-2.5 text-ds-11 cursor-pointer -mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <Checkbox
+                  id="age-confirm"
+                  aria-labelledby="age-confirm-label"
+                  checked={ageConfirmed}
+                  onCheckedChange={(v) => setAgeConfirmed(v === true)}
+                  className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
+                />
+                <span id="age-confirm-label" className="leading-relaxed">
+                  I confirm I am 18 years of age or older. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
+                </span>
+              </label>
+            )}
 
             {/* WHAT IS STILL MISSING — the whole point of this screen.
                 The `checklist` above has existed since the gate shipped and was

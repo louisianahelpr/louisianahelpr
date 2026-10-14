@@ -215,8 +215,9 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
-        {/* Birthday and phone left this step on 2026-10-09 (owner: asked later,
-            before the first Apply or Post). Step 1's 18+ box is the age gate
+        {/* Birthday and phone left this step on 2026-10-09, and nothing asks
+            for them before an Apply or a Post (owner, 2026-10-14: "no later
+            prompt"). Step 1's 18+ box is the age gate
             complete-signup accepts (ageAttested) when no birthday is sent. */}
         {/* City is REQUIRED (owner decision 2026-08-29, reversing the prior
             2026-08-22 removal). It was pulled once as free text — any string

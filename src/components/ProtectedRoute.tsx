@@ -77,6 +77,7 @@ type GateProfile = {
   avatar_url?: string | null;
   bio?: string | null;
   date_of_birth?: string | null;
+  age_attested_at?: string | null;
   phone?: string | null;
   location?: string | null;
   is_legacy_user?: boolean | null;
@@ -90,10 +91,12 @@ type GateProfile = {
  */
 const PROFILE_GATE_FIELDS = [
   { key: "full_name", label: "Full name" },
-  // avatar_url is NOT a gate field (owner, 2026-10-09): the photo is optional
-  // at sign-up and asked for before the first Apply or Post.
-  // phone left the gate 2026-10-09 (owner: asked later). date_of_birth is
-  // required for Google/Apple sign-ups only: see isProfileComplete.
+  // avatar_url is NOT a gate field (owner, 2026-10-09): the photo is optional,
+  // and nothing asks for it before an Apply or a Post (owner, 2026-10-14).
+  // phone left the gate 2026-10-09 and is asked nowhere (owner, 2026-10-14:
+  // "we don't use" it). date_of_birth is not a gate field either (owner,
+  // 2026-10-14 ~3 PM CT): Google/Apple sign-ups tick the 18+ box on Complete
+  // Profile instead; see isProfileComplete.
   { key: "location", label: "City" },
   // Government-issued ID is intentionally NOT a gate field. CompleteProfile
   // makes it optional (identity verification is deferred to first-post / IDV),
@@ -120,20 +123,28 @@ const isFieldComplete = (
   return true;
 };
 
-/** Who signed up how: only an email sign-up passed step 1's 18+ box. */
+/** Who signed up how: only an email sign-up passed sign-up step 1's 18+ box. */
 export type GateUser = { app_metadata?: { provider?: string } } | null | undefined;
 
+const filled = (v: string | null | undefined): boolean => typeof v === "string" && v.trim() !== "";
+
 /**
- * Google/Apple sign-ups never see sign-up step 1's 18+ box (the age gate an
- * email sign-up gives complete-signup as ageAttested), so for them the
- * birthday Complete Profile collects is the age check, and the gate keeps
- * requiring it (code review, 2026-10-09). An email sign-up does not need it.
+ * Every account reaches the app only through an 18+ box (owner, 2026-10-14
+ * ~3 PM CT: Google/Apple sign-ups get the same box, and Complete Profile asks
+ * no birthday and no phone).
+ *   - An email sign-up ticked it on sign-up step 1; complete-signup refuses
+ *     the completion without it (ageAttested), so the provider is the record.
+ *   - A Google/Apple sign-up never sees step 1, so it ticks the box on
+ *     Complete Profile, which saves profiles.age_attested_at.
+ *   - A Google/Apple account that finished Complete Profile BEFORE 2026-10-14
+ *     gave a birthday there instead, and is not sent back to tick a box.
+ * A saved birthday under 18 still greys out Apply and Post (useAgeGate).
  */
 export const isProfileComplete = (profile: GateProfile | null, user: GateUser): boolean => {
   if (!profile) return false;
   if (!PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key))) return false;
-  const emailSignup = user?.app_metadata?.provider === "email";
-  return emailSignup || (typeof profile.date_of_birth === "string" && profile.date_of_birth.trim() !== "");
+  if (user?.app_metadata?.provider === "email") return true;
+  return filled(profile.age_attested_at) || filled(profile.date_of_birth);
 };
 
 const ProtectedRoute = ({

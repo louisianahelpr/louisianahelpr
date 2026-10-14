@@ -61,26 +61,18 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // a marker that holds before that is done would auto-tick it (the lead removed
 // seven such markers on 2026-10-03). Give an item a marker, or tick it, and
 // delete its line here in the same commit.
+// 13 on 2026-10-14 (lead, one-problem-one-item cleanup): Q206, Q380, Q421, Q593, Q701, Q1170 and Q1172 were merged into Q824/Q654/Q416/Q1158 and ticked; Q427 and Q1158 were reopened to [ ] as merge survivors. All nine left the markerless set.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q44: "closes when Vacuity's push runs on main are green for a whole day; no marker kind reads a workflow's run history over a window",
   Q52: "area 1 waits on a full vacuity sweep that finishes and reports the e2e registrations conclusively; no marker kind reads a vacuity report's verdicts",
   Q71: "marker removed by the lead 2026-10-03; what is left is the owner's VoiceOver pass on a device each release",
   Q104: "per-test budgets calibrated from nightly summaries, repeated-GET trims and a re-measure of prod REST from the CI origin (edge_logs by run window)",
-  Q206: "(a) is open: shrink the boot graph and tighten scripts/perf/critical-path-budget.json, a code change not a state to read",
   Q238: "the live half: seed the four admin queue states as is_seed rows, assert counts in admin-views.spec.ts and look at the screenshots",
   Q334: "a live two-account delete-mid-thread send plus a screenshot of the read-only thread",
-  Q380: "marker removed by the lead 2026-10-03: the slow-network 1440 hire-and-message step has not run since (LIVE_PAY skips it)",
   Q416: "marker removed by the lead 2026-10-03: the BORROWED statuses still need an owner, which no marker kind can read",
-  Q421: "marker removed by the lead 2026-10-03: needs a green e2e-journeys run AND a sweep log showing the escrow rows settled",
-  Q427: "a device or simulator check of cold-start and warm deep links (code fix only)",
-  Q593: "marker removed by the lead 2026-10-03: the reserved accepted fixture was never built and cannot be minted with Stripe live",
   Q654: "the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse after deploy",
-  Q701: "marker removed by the lead 2026-10-03: a full unpinned e2e-journeys run that actually runs the step",
   Q858: "one green prod-audit run, then signIns set from that measurement",
   Q965: "a browser look at /help and /support on native and the marketing Navbar while /legal and /help scroll",
-  Q1158: "Vercel Speed Insights real-user P75 after deploy (no API a marker can read)",
-  Q1170: "not built yet: the --expired lab run must match the fresh-token run, with a budget in e2e/web-vitals/first-screens.spec.ts",
-  Q1172: "the lead's real-browser filmstrip and cwv-lab run",
   Q1399: "the owner looking at both offer cards on a phone",
   Q1464: "a screenshot of a re-listed crew (needs a booked, paid crew with a member gone: not on prod, Stripe live)",
   Q1558: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a look at My Jobs and Home empty states at 320, 375 and 1440, which read POST RPCs the harness blocks",
@@ -90,7 +82,8 @@ describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);
 
   it("reads the real queue (floor)", () => {
-    expect(items.length).toBeGreaterThan(20);
+    // A parse floor, not a count: it proves the real queue was read. 20 [~] items on 2026-10-14 after the cleanup merged 13 away.
+    expect(items.length).toBeGreaterThan(10);
   });
 
   it("every [~] item has a done-when marker, or is on the exact markerless list (two-way)", () => {

@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react"
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
-import { saveMyPhone } from "@/lib/phoneSave";
+import { unwrapMutation, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
@@ -416,12 +415,10 @@ const ProfilePage = () => {
     const submitted = { phone, location, zipCode, bio, skills };
     let saved: Pick<Profile, "full_name" | "phone" | "location" | "bio" | "skills" | "date_of_birth" | "zip_code" | "parish">;
     try {
-      const phoneResult = phone.trim() === (profile?.phone ?? "") ? null : await saveMyPhone(user.id, phone.trim()); // Q1586(a): never in the UPDATE
-      if (phoneResult && !phoneResult.ok) { setSaving(false); hapticError(); toast.error(phoneResult.message); return; }
       // `.select(...)` + unwrapMutation: a null `error` is not a write; the row is the new baseline.
       [saved] = unwrapMutation(
         await supabase.from("profiles").update({
-          full_name: merged, location: location.trim(), bio: bio.trim(), skills: skills.trim(),
+          full_name: merged, phone: phone.trim(), location: location.trim(), bio: bio.trim(), skills: skills.trim(),
           ...(dateOfBirth ? { date_of_birth: dateOfBirth } : {}), // never blank a saved birthday
           zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
           parish: parish,
@@ -432,7 +429,7 @@ const ProfilePage = () => {
     } catch (err) {
       setSaving(false);
       hapticError();
-      toast.error(contactLeakRejectionMessage(err) ?? mutationErrorMessage(err, "We couldn't save your profile — please try again."));
+      toast.error(contactLeakRejectionMessage(err) ?? phoneInUseMessage(err) ?? mutationErrorMessage(err, "We couldn't save your profile — please try again."));
       return;
     }
     setSaving(false);

@@ -6,6 +6,7 @@
  */
 export interface ProfileCompletionUpdates {
   full_name: string;
+  phone: string;
   bio: string;
   location: string;
   /** Optional — unlocks parish-based helper notifications + LA sales tax. */

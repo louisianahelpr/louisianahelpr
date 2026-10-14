@@ -8,8 +8,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
-import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
-import { saveMyPhone } from "@/lib/phoneSave";
+import { mutationErrorMessage, phoneInUseMessage, unwrapMutation } from "@/lib/mutationResult";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
@@ -38,9 +37,9 @@ import { toast } from "sonner";
  * every Apply/Post out at once (the cached profile is updated here) and the
  * server refuses the rest. A saved under-18 birthday also stops `askThen`.
  *
- * A phone saved here goes through save_my_phone (src/lib/phoneSave.ts), which
- * runs trg_guard_profile_phone (a number another account has is refused) and
- * the ban-evasion triggers, and rate-limits the refusal (Q1586(a)).
+ * A phone saved here goes through trg_guard_profile_phone (a number another
+ * account has is refused) and the existing ban-evasion flag trigger
+ * (20261009175007).
  *
  * `askThen(go)` runs `go` straight away when nothing is missing, the member
  * was asked before, is offline, is signed out, or their profile is not loaded
@@ -138,8 +137,8 @@ export function usePhotoPrompt() {
       const digits = phone.replace(/\D/g, "");
       if (missing.phone && digits.length >= 10) {
         // A refused phone does not hold the birthday back: the birthday is what matters here.
-        const phoneResult = await saveMyPhone(userId, phone.trim());
-        if (!phoneResult.ok) report(new Error(`PhotoPrompt.under18 phone not saved: ${phoneResult.message}`), { severity: "info", tags: { source: "PhotoPrompt.under18" } });
+        const phoneRes = await supabase.from("profiles").update({ phone: phone.trim() }).eq("user_id", userId).select("id");
+        if (phoneRes.error) report(new Error(`PhotoPrompt.under18 phone not saved: ${phoneInUseMessage(phoneRes.error) ?? phoneRes.error.message}`), { severity: "info", tags: { source: "PhotoPrompt.under18" } });
       }
       unwrapMutation(
         await supabase.from("profiles").update({ date_of_birth: dob }).eq("user_id", userId).select("id"),
@@ -242,22 +241,16 @@ export function usePhotoPrompt() {
     setSaving(true);
     setFieldError(null);
     try {
-      // Q1586(a): the phone goes through save_my_phone (rate-limited; a number
-      // another account has comes back as an answer, not an error).
-      if (savePhone !== undefined) {
-        const phoneResult = await saveMyPhone(userId, savePhone);
-        if (!phoneResult.ok) {
-          setFieldError(phoneResult.message);
-          setSaving(false);
-          return;
-        }
+      const res = await supabase.from("profiles").update({ phone: savePhone, date_of_birth: saveDob }).eq("user_id", userId).select("id");
+      // A number another account already has is refused by the database
+      // (trg_guard_profile_phone, unique_violation).
+      const inUse = phoneInUseMessage(res.error);
+      if (inUse) {
+        setFieldError(inUse);
+        setSaving(false);
+        return;
       }
-      if (saveDob !== undefined) {
-        unwrapMutation(
-          await supabase.from("profiles").update({ date_of_birth: saveDob }).eq("user_id", userId).select("id"),
-          { action: "save your birthday", context: { userId } },
-        );
-      }
+      unwrapMutation(res, { action: "save your phone and birthday", context: { userId } });
     } catch (err) {
       report(err, { severity: "warning", tags: { source: "PhotoPrompt.saveDetails" } });
       setFieldError(mutationErrorMessage(err, "Couldn't save that just now. Try again, or tap Not Now."));

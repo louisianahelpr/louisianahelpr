@@ -281,7 +281,10 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // can_read_job_detail_change (Q1254): the poster who asked and the Helprs
     // the request asked (their answer rows), for job_detail_change_requests and
     // _answers; both policies spell the person's own column out beside it.
-    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "has_role", "is_series_party", "seed_review_hidden", "user_may_see_job_address"]);
+    // feature_enabled_for (Declutter, 20261014193955): the hidden-switch audience
+    // check for the CALLER; it only narrows (switch off -> no live listing), and
+    // the declutter_items policy spells the seller's own column out beside it.
+    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "feature_enabled_for", "has_role", "is_series_party", "seed_review_hidden", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

@@ -19,6 +19,10 @@ export const FEATURE_SWITCH_KEYS = [
   // that hidden switches reach them; the nightly feature-switch-audience check
   // uses it as its positive control.
   "switch_canary",
+  // Declutter (docs/specs/declutter-auctions.md): selling and buying used
+  // household items. Created OFF by 20261014193955; every declutter_* RPC
+  // refuses without it (require_feature).
+  "declutter",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

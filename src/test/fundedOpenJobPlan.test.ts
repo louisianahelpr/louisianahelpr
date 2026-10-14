@@ -27,6 +27,7 @@ import {
   LIVE_PAY_SKIP,
   MIN_RUNWAY_DAYS,
   PRE_LIVE_WHY,
+  UNKNOWN_MODE_HOLD_WHY,
   planAcceptedJob,
   planFundedOpenJob,
   type FixtureRow,
@@ -180,6 +181,42 @@ describe("Stripe LIVE: no pay step, and pre-live test-mode fixtures are left alo
     // The same row in test mode is still retired (the pre-fix behaviour, kept where it is right).
     const t = planAcceptedJob([fixture], { today: TODAY, helperId: "h", applications: new Map(), mode: "test" });
     expect(t.retire.map((x) => x.row.id)).toEqual([fixture.id]);
+  });
+
+  // Q1779: every fresh process starts with mode "unknown". Treating its cs_test_
+  // fixtures as pre-live made each canary / prod-audit run pay for a NEW
+  // funded fixture and retire none, until poster-e2e hit the 5-open-jobs cap
+  // (core-loop-canary 38619494580: 3 funded + 1 accepted fixture open+escrow).
+  // @mutate e2e/prod-audit/fundedOpenJobPlan.ts | mode === "live" && /^cs_test_/.test(row.stripe_session_id ?? ""); | mode !== "test" && /^cs_test_/.test(row.stripe_session_id ?? "");
+  it("Q1779: an UNKNOWN mode REUSES a funded cs_test_ fixture instead of paying for a new one", () => {
+    const held = preLive();
+    const p = planIn("unknown", [held]);
+    expect(p.reuse).toBe(held);
+    expect(p.pay).toBeNull();
+    expect(p.retire).toEqual([]);
+  });
+
+  // @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (isUnknownModeTestRow(row, mode)) preLive.push({ row, why: `${UNKNOWN_MODE_HOLD_WHY} (would retire: ${why})` });\n    else retire.push({ row, why }); | retire.push({ row, why });
+  it("Q1779: an UNKNOWN mode never retires a cs_test_ duplicate blind; it is held and logged", () => {
+    const a = preLive({ created_at: "2020-01-10T00:00:00Z" });
+    const b = preLive({ created_at: "2020-01-09T00:00:00Z" });
+    const p = planIn("unknown", [a, b]);
+    expect(p.reuse).toBe(a);
+    expect(p.retire).toEqual([]);
+    expect(p.preLive?.map((x) => x.row.id)).toEqual([b.id]);
+    expect(p.preLive?.[0].why).toContain(UNKNOWN_MODE_HOLD_WHY);
+    // The same duplicate in a KNOWN test mode is retired as before.
+    expect(planIn("test", [a, b]).retire.map((x) => x.row.id)).toEqual([b.id]);
+  });
+
+  // @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const retire = retireAll.filter(({ row }) => !isUnknownModeTestRow(row, mode)); | const retire = retireAll;
+  it("Q1779: planAcceptedJob in an UNKNOWN mode resumes a funded cs_test_ accepted fixture (no new one) and retires nothing blind", () => {
+    const funded = row({ title: `${ACCEPTED_FIXTURE_TITLE}: move a couch`, stripe_session_id: "cs_test_acc1" });
+    const short = row({ title: `${ACCEPTED_FIXTURE_TITLE}: old`, stripe_session_id: "cs_test_acc2", date_needed: "2020-01-17" });
+    const p = planAcceptedJob([funded, short], { today: TODAY, helperId: "h", applications: new Map(), mode: "unknown" });
+    expect(p.kind).toBe("resume");
+    expect(p.retire).toEqual([]);
+    expect(p.preLive?.map((x) => x.row.id)).toEqual([short.id]);
   });
 });
 

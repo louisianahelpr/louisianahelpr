@@ -2100,6 +2100,9 @@ async function main() {
       undocumented += unpressed;
       rec.net = summarizeTimings(reqTimings);
       console.log(`[${route.url} ${persona}] net=${rec.net.requests}req api=${rec.net.apiRequests} p95=${rec.net.p95Ms}ms max=${rec.net.maxMs}ms${rec.net.failed ? ` failed=${rec.net.failed}` : ""}${rec.status === "error-on-load" ? " slowest: " + rec.net.slowest.join(" | ") : ""}`);
+      // PublicObjectCache's effect, per row: answered from memory vs fetched.
+      rec.objectCache = { served: objectCache.served, filled: objectCache.filled };
+      if (objectCache.served) console.log(`[${route.url} ${persona}] public-object cache: served=${objectCache.served} filled=${objectCache.filled}`);
       console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped} undocumented=${unpressed}`);
       // Every failure and every undocumented skip, one line each (#1582: the
       // artifacts are not readable where the red is triaged; see rowDetailLines).

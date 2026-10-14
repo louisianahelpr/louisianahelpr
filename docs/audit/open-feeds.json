@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T18:35Z",
+  "measured_at": "2026-10-14T19:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -175,6 +175,14 @@
         "issue": 2244
       },
       {
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-drift-detect",
+        "issue": 3096
+      },
+      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -236,7 +244,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 2941
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -559,14 +567,6 @@
         "issue": null
       },
       {
-        "fingerprint": "a13c4edc69832354d5e579c068462874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: feature-switch-audience",
-        "issue": 2978
-      },
-      {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -604,6 +604,14 @@
         "source": "expiry-monitor",
         "status": "open",
         "title": "a credential or certificate expires within # days",
+        "issue": null
+      },
+      {
+        "fingerprint": "9078a39b33041fb407551509563a8709",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/supabase-D-x-fSSl)",
+        "status": "open",
+        "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
       }
     ]
@@ -665,10 +673,12 @@
     "ledger 70e7b0decb9a": "Q1780",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
+    "ledger 8018e82cb167": "Q1815",
     "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
     "ledger 8ad756b6da76": "Q1630",
+    "ledger 9078a39b3304": "Q1816",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",
     "ledger a13c4edc6983": "Q1781",

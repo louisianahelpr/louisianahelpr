@@ -74,6 +74,9 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 57 | Private offers | Seller has 48 h to answer each offer; unlimited counters both ways; several buyers can offer; first one the seller accepts gets it | 2026-10-14 |
 | 58 | Lowest offer | At least 50% of the current price (seller's hidden floor still applies) | 2026-10-14 |
 | 59 | After accept / Buy | Same as winning: into the cart, 48 h checkout (pickup or delivery, pay), miss it = 1 strike and the item goes back up for sale; never charged automatically | 2026-10-14 |
+| 60 | Seller backs out after the buyer paid | Buyer gets EVERYTHING back (item price + premium + card fee); the card fee Stripe kept is charged to the SELLER, taken from their future Declutter payouts; seller gets a strike | 2026-10-14 |
+| 61 | Price drops near the hidden floor | Drops stop at a random point slightly ABOVE the hidden floor, so a watcher can't work out the floor (seller may sell for a little more than their lowest) | 2026-10-14 |
+| 62 | Switch turned off mid-sale | Sales already agreed (offer accepted / paid) may still check out and hand over; no strike for a sale the switch interrupted; nothing new can start | 2026-10-14 |
 
 ## Owner to-dos before launch
 - Call the board ((225) 295-8420, admin@lalb.org): (1) does a single-member LLC count as "sole owner" so the owner's auctioneer license is enough? (2) confirm offers + daily price drops is outside the auction law; (3) next meeting / application deadline.

@@ -248,7 +248,7 @@ export const TWO_WAY = {
   "src/test/controlInteractionLedger.json": "src/test/controlInteractionSameness.test.ts (no-longer-a-violation fails)",
   "docs/audit/loading-states/baseline.json": "scripts/check-loading-state-shape.mjs (entry that no longer breaches fails)",
   "scripts/stated-counts-baseline.json": "scripts/check-stated-counts.mjs (an entry nothing matches fails; a new undated count fails)",
-  "scripts/ci/performance-advisor-baseline.json": "scripts/check-performance-advisor.mjs, nightly in db-drift-detect.yml (a class below its baseline fails; Q1321)",
+  "scripts/ci/performance-advisor-baseline.json": "scripts/check-performance-advisor.mjs, nightly in db-drift-detect.yml (a code-driven class below its count fails; an unused_index name a migration dropped fails in src/test/performanceAdvisorBaseline.test.ts; Q1321, Q1816)",
 };
 
 /**

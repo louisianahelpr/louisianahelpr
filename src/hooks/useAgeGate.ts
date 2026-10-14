@@ -11,9 +11,9 @@ type CachedUser = { profile?: { date_of_birth?: string | null } | null } | undef
  * holds: useCurrentUser's ["currentUser", <id>] query, which every signed-in
  * route loads before an Apply or a Post. Sign-out clears the whole cache
  * (signOutWithPushCleanup -> queryClient.clear()), so the newest profile under
- * that prefix is the signed-in member's. Read from the app's one QueryClient,
- * the way PhotoPrompt does: no fetch, no provider and no auth bootstrap, so the
- * nav and every card can call it for free.
+ * that prefix is the signed-in member's. Read from the app's one QueryClient:
+ * no fetch, no provider and no auth bootstrap, so the nav and every card can
+ * call it for free.
  */
 function signedInBirthday(): string | null {
   let newest: { at: number; dob: string | null } | null = null;

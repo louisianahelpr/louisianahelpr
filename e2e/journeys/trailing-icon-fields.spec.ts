@@ -93,7 +93,8 @@ test(guestTitle, async ({ browser, journey }) => {
     await page.locator("#firstName").fill("Marguerite");
     await page.locator("#lastName").fill("Thibodeaux-Broussard");
     // No phone here since c34c5fee5 (owner, 2026-10-09): step 2 is name, city
-    // and ZIP; phone and birthday are asked later, in Finish your profile.
+    // and ZIP; phone and birthday are not asked before Apply or Post either
+    // (owner, 2026-10-14: the later prompt was removed).
     await page.locator("#location").fill("Lafayette, LA");
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();

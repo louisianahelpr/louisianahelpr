@@ -18,7 +18,10 @@ describe("phoneInUseMessage", () => {
     expect(phoneInUseMessage(null)).toBeNull();
   });
   it("every screen that saves a phone uses it (inventory)", () => {
-    for (const f of ["src/pages/profile/Profile.tsx", "src/pages/auth/CompleteProfile.tsx", "src/components/PhotoPrompt.tsx"]) {
+    // PhotoPrompt.tsx and CompleteProfile.tsx also saved a phone until the
+    // owner removed both asks (2026-10-14: "no later prompt"; Complete
+    // Profile asks no phone).
+    for (const f of ["src/pages/profile/Profile.tsx"]) {
       expect(readFileSync(f, "utf8"), f).toMatch(/phoneInUseMessage\(/);
     }
   });

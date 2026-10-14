@@ -173,9 +173,9 @@ const Signup = () => {
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
     // Photo, phone and birthday are NOT collected here (owner, 2026-10-09:
-    // sign-ups were stopping at step 2). The photo is asked before the first
-    // Apply or Post (src/components/PhotoPrompt.tsx); phone and birthday are on
-    // the profile. Step 1's 18+ box is the age gate (ageAttested).
+    // sign-ups were stopping at step 2), and nothing asks for them before an
+    // Apply or a Post (owner, 2026-10-14: "no later prompt"); they are optional
+    // on the profile. Step 1's 18+ box is the age gate (ageAttested).
     // City is REQUIRED (owner decision 2026-08-29) — collecting it here means
     // an email signup satisfies the full CompleteProfile gate (name, city;
     // photo, phone and birthday left the gate 2026-10-09) and skips /complete-profile entirely; only Google/

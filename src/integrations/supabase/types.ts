@@ -4419,6 +4419,7 @@ export type Database = {
       profiles: {
         Row: {
           accepted_terms_at: string | null
+          age_attested_at: string | null
           anonymized_at: string | null
           apple_original_transaction_id: string | null
           application_count: number
@@ -4522,6 +4523,7 @@ export type Database = {
         }
         Insert: {
           accepted_terms_at?: string | null
+          age_attested_at?: string | null
           anonymized_at?: string | null
           apple_original_transaction_id?: string | null
           application_count?: number
@@ -4625,6 +4627,7 @@ export type Database = {
         }
         Update: {
           accepted_terms_at?: string | null
+          age_attested_at?: string | null
           anonymized_at?: string | null
           apple_original_transaction_id?: string | null
           application_count?: number

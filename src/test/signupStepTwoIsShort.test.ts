@@ -3,10 +3,12 @@
  * 1 that day never finished; every step-2 failure was a required field). Step 2
  * asks name, city and ZIP only: no photo requirement, no phone, no birthday.
  * Step 1's 18+ box is the age gate complete-signup accepts (ageAttested).
+ * Google/Apple sign-ups tick the same box on Complete Profile, which asks no
+ * birthday and no phone either (owner, 2026-10-14;
+ * src/test/socialSignupPassesThe18Box.test.tsx).
  *
  * @mutate src/pages/auth/Signup.tsx |         ageAttested: ageConfirmed, |         ageAttested: false,
- * @mutate src/pages/auth/CompleteProfile.tsx |     if (!dateOfBirth) return fail( |     if (false) return fail(
- * @mutate src/pages/auth/CompleteProfile.tsx |     if (!dobValid) return fail( |     if (false) return fail(
+ * @mutate src/pages/auth/CompleteProfile.tsx |     if (!ageDone) return fail( |     if (false) return fail(
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -18,11 +20,10 @@ const signup = blankComments(readFileSync("src/pages/auth/Signup.tsx", "utf8"));
 const completeProfile = blankComments(readFileSync("src/pages/auth/CompleteProfile.tsx", "utf8"));
 
 describe("sign-up step 2 asks only name, city and ZIP", () => {
-  // A birthday under 18 is saved, not refused, and greys Apply/Post out
-  // (owner 2026-10-13, Q1586(c); src/test/under18BirthdayIsSaved.test.ts).
-  it("Complete Profile (Google/Apple sign-ups: no step-1 18+ box) still requires a real birthday", () => {
-    expect(completeProfile).toMatch(/if \(!dateOfBirth\) return fail\(/);
-    expect(completeProfile).toMatch(/if \(!dobValid\) return fail\(/);
+  it("Complete Profile (Google/Apple sign-ups) requires the 18+ box, not a birthday", () => {
+    expect(completeProfile).toMatch(/if \(!ageDone\) return fail\(/);
+    expect(completeProfile).not.toMatch(/id="dob"/);
+    expect(completeProfile).not.toMatch(/id="phone"/);
   });
   it("renders no phone or birthday field", () => {
     expect(step2).not.toMatch(/id="phone"/);

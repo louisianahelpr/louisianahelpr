@@ -14,7 +14,6 @@ import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { usePhotoPrompt } from "@/components/PhotoPrompt";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
@@ -98,7 +97,6 @@ export function ApplyBody({
   const jobId = confirmApplyJob?.id ?? null;
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
-  const { askThen: askPhotoThen, dialog: photoPrompt } = usePhotoPrompt();
   // Q1586(c): a saved birthday under 18 greys Apply Now out (the server
   // refuses apply_to_job too).
   const { underAge } = useAgeGate();
@@ -253,21 +251,19 @@ export function ApplyBody({
       });
       return;
     }
-    // No photo yet: ask for one first (skippable, fails open). PhotoPrompt.tsx.
-    void askPhotoThen(() => {
-      if (draftKey) safeStorage.removeItem(draftKey);
-      if (saveAsTemplate && templateKey && applyMessage.trim()) {
-        safeStorage.setItem(templateKey, applyMessage.trim());
-      }
-      setSaveAsTemplate(false);
-      handleApplyConfirm();
-    });
+    // Straight through: no photo, phone or birthday prompt first (owner,
+    // 2026-10-14, "no later prompt"; src/test/applyAndPostAskNoProfileDetails.test.tsx).
+    if (draftKey) safeStorage.removeItem(draftKey);
+    if (saveAsTemplate && templateKey && applyMessage.trim()) {
+      safeStorage.setItem(templateKey, applyMessage.trim());
+    }
+    setSaveAsTemplate(false);
+    handleApplyConfirm();
   };
 
   return (
     <div className="min-w-0 flex flex-col gap-3.5">
       <ViolationDialog violations={pendingViolations} onOpenChange={(o) => { if (!o) setPendingViolations(null); }} />
-      {photoPrompt}
       {!confirmApplyJob && (
         <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Are you sure you want to proceed?

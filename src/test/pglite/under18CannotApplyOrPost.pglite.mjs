@@ -46,7 +46,7 @@ const NODOB = "5a1e0000-0000-4000-8000-0000000000aa";
 const TURNS_TODAY = "5a1e0000-0000-4000-8000-000000000018";
 const TURNS_TOMORROW = "5a1e0000-0000-4000-8000-000000000019";
 // Signed up with the 18+ box and no birthday, then types a real one under 18
-// into Finish your profile (PhotoPrompt / CompleteProfile): the member's OWN
+// into Complete Profile (and, until 2026-10-14, the PhotoPrompt): the member's OWN
 // profiles UPDATE, the exact write those screens send (owner 2026-10-13: saved,
 // never refused; lh-authz-rls review of 0f7786627, must-fix 1).
 const DISCLOSES = "5a1e0000-0000-4000-8000-0000000000d5";
@@ -197,7 +197,7 @@ const refusedUnavailable = (r) => !r.ok && /helper_unavailable/.test(r.err) && !
   const before = await apply(DISCLOSES, id(13));
   check("S0 before telling us, the 18+ box is enough: the member applies", before.ok && before.rows[0]?.id, before.ok ? "" : before.err);
   const save = await as(DISCLOSES, `UPDATE public.profiles SET date_of_birth = ((now() AT TIME ZONE 'America/Chicago')::date - interval '16 years')::date WHERE user_id = auth.uid() RETURNING id`);
-  check("S1 the member's own save of an under-18 birthday lands (PhotoPrompt/CompleteProfile's write; never refused)", save.ok && save.rows.length === 1, save.ok ? `${save.rows.length} row(s)` : save.err);
+  check("S1 the member's own save of an under-18 birthday lands (CompleteProfile's write; never refused)", save.ok && save.rows.length === 1, save.ok ? `${save.rows.length} row(s)` : save.err);
   const after = await apply(DISCLOSES, id(14));
   check("S2 ...and from that moment apply_to_job refuses them 'under_18'", refusedUnder18(after), after.ok ? "landed" : after.err);
   const p = await post(DISCLOSES);

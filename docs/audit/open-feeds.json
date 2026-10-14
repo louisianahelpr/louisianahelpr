@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T09:47Z",
+  "measured_at": "2026-10-14T09:53Z",
   "issues": {
     "readable": true,
     "open": [
@@ -83,6 +83,11 @@
         "number": 2995,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red"
+      },
+      {
+        "number": 3007,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red"
       }
     ]
   },
@@ -112,6 +117,14 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -611,6 +624,7 @@
     "issue #2978": "Q1781",
     "issue #2993": "Q1807",
     "issue #2995": "Q1808",
+    "issue #3007": "Q1814",
     "ledger 03faea228969": "Q1602",
     "ledger 0411d219f410": "Q1810",
     "ledger 0fa6c60d7a29": "Q1776",
@@ -674,6 +688,7 @@
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1609",
     "ledger ed3f34acc0e1": "Q1598",
+    "ledger f22e3275d50d": "Q1814",
     "ledger f3c752b3230f": "Q1609",
     "ledger f8483bba3b3a": "Q1807"
   }

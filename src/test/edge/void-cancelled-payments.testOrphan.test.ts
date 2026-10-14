@@ -16,7 +16,7 @@
  *
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           if (await refundTestOrphan(job, session)) testOrphansRefunded++; |           void refundTestOrphan;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if ((e as { code?: string })?.code !== "charge_already_refunded") { |         if (true) {
- * @mutate supabase/functions/void-cancelled-payments/index.ts |         .update({ payment_status: "refunded" })\n        .eq("id", job.id)\n        .eq("payment_status", "unpaid") |         .update({ payment_status: "refunded" })\n        .eq("id", job.id)
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         .eq("status", "cancelled")\n        .eq("payment_status", "unpaid") |         .eq("status", "cancelled")
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         severity: "warning",\n        title: "TEST-mode checkout | severity: "critical",\n        title: "TEST-mode checkout
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         } else if (jobMode === "test") { |         } else if (job.stripe_session_id!.startsWith("cs_test_")) {
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           if (orphanSettlement.blocked) { |           if (false) {

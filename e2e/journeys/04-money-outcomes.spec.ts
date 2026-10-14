@@ -47,12 +47,13 @@ import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
  * on Stripe TEST mode with 4242 4242 4242 4242, and nothing else:
  *
  *   cancelled  poster funds, a saved search of the helper's matches it (the
- *              saved-search alert is asserted), the poster cancels
- *              (create-payment cancel_escrow: refund, cancelled/refunded since Q86).
+ *              saved-search alert is asserted SENT while seed jobs are visible,
+ *              NOT SENT while seed_jobs_hidden_publicly() hides them), the poster
+ *              cancels (create-payment cancel_escrow: refund, cancelled/refunded since Q86).
  *   refunded   poster funds; the poster is REFUSED every create-payment admin
  *              action on it; the ADMIN issues a full Quick Refund
  *              (admin_refund_general) — cancelled/refunded plus the poster's
- *              "Refund issued" row. Admin credentials exist only in CI
+ *              one "Refund issued: $<amount>" row (Q1714). Admin credentials exist only in CI
  *              (PLAYWRIGHT_ADMIN_*), so this leg cannot run on a laptop.
  *   tip        poster funds, helper applies, poster hires, the job is settled
  *              forward down the product's own doors (scripts/e2e/settleForward),
@@ -153,6 +154,19 @@ async function waitForNotification(api: APIRequestContext, who: Session, filter:
   return rows;
 }
 
+/** The saved-search sweep runs every minute; two ticks plus slack. */
+const HIDDEN_FIXTURE_WAIT_MS = 150_000;
+
+/** The launch switch that hides is_seed jobs (and so every journey job) from feeds and alerts. */
+async function seedJobsHiddenPublicly(api: APIRequestContext, who: Session): Promise<boolean> {
+  const hidden = await readJson<boolean>(
+    await api.post(`${SUPABASE_URL}/rest/v1/rpc/seed_jobs_hidden_publicly`, { headers: rest(who), data: {} }),
+    "read seed_jobs_hidden_publicly()",
+  );
+  expect(typeof hidden, "seed_jobs_hidden_publicly() did not answer a boolean").toBe("boolean");
+  return hidden;
+}
+
 /** Mark read, then delete, the notification rows a leg asserted (own read row DELETE is allowed). */
 async function dropNotifications(api: APIRequestContext, who: Session, rows: NotificationRow[]) {
   for (const row of rows) {
@@ -237,9 +251,32 @@ test.describe("money outcomes", () => {
     //    (notify_saved_searches_on_new_job), sent by the per-minute
     //    saved-search-alert-queue sweep once the job is in the helper's feed
     //    (deliver_saved_search_alert: type job_match, link /home?job=<id>).
-    const alert = await waitForNotification(request, helper, `type=eq.job_match&link=eq.${encodeURIComponent(`/home?job=${jobId}`)}`, "the helper's saved-search alert", 4 * 60_000);
-    expect(alert, "one funded job must produce exactly one saved-search alert").toHaveLength(1);
-    journey.cleanup("drop the saved-search alert", () => dropNotifications(request, helper, alert));
+    //
+    //    Both functions drop a HIDDEN FIXTURE first: an is_seed job while
+    //    seed_jobs_hidden_publicly() is true (the launch switch, true on prod
+    //    since 2026-10-06 19:26Z). Every job a journey posts is is_seed (the
+    //    shared poster is a test account), so while the switch is on the
+    //    product's answer is NO alert, and that is what is asserted: the
+    //    absence, past two sweep ticks. Run 38527058685 waited 240 s for an
+    //    alert the trigger had refused to queue.
+    const alertFilter = `type=eq.job_match&link=eq.${encodeURIComponent(`/home?job=${jobId}`)}`;
+    if (await seedJobsHiddenPublicly(request, helper)) {
+      announceUncovered(
+        "Saved-search alert not sendable to a journey job",
+        "seed_jobs_hidden_publicly() is true, so notify_saved_searches_on_new_job and deliver_saved_search_alert drop every is_seed job; this leg asserts the alert is NOT sent. The sent alert is proven in src/test/pglite (savedSearchAlertsWaitForEarlyAccess).",
+      );
+      await new Promise((resolve) => setTimeout(resolve, HIDDEN_FIXTURE_WAIT_MS));
+      const leaked = await readJson<NotificationRow[]>(
+        await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${helper.user.id}&${alertFilter}&select=id,title,type,link,job_id`, { headers: rest(helper) }),
+        "read the helper's saved-search alerts",
+      );
+      journey.cleanup("drop any leaked saved-search alert", () => dropNotifications(request, helper, leaked));
+      expect(leaked, "a hidden fixture (is_seed job, seed_jobs_hidden_publicly() on) sent a saved-search alert").toHaveLength(0);
+    } else {
+      const alert = await waitForNotification(request, helper, alertFilter, "the helper's saved-search alert", 4 * 60_000);
+      expect(alert, "one funded job must produce exactly one saved-search alert").toHaveLength(1);
+      journey.cleanup("drop the saved-search alert", () => dropNotifications(request, helper, alert));
+    }
 
     // 4. OUTCOME cancelled: the poster cancels the funded, unhired job through
     //    the app's own door, and the row — not the 200 — says it landed.
@@ -282,14 +319,33 @@ test.describe("money outcomes", () => {
     expect(`${after.status}/${after.payment_status}`, "the Quick Refund answered 200 but the job did not land refunded").toBe("cancelled/refunded");
 
     // 3. The poster is told, with the server's words and a link to the job.
+    //    Q1714's one refund notice (supabase/functions/_shared/refundNotice.ts)
+    //    is titled "Refund issued: $<amount>" and links /posts?job=<id>&refund=<re_id>;
+    //    the old exact "Refund issued" + /posts?job=<id> filter could never
+    //    match it (run 38527058685: the row landed 0.7 s after the refund, the
+    //    poll looked for 60 s at the wrong title and link).
     const told = await waitForNotification(
       request,
       poster,
-      `title=eq.${encodeURIComponent("Refund issued")}&link=eq.${encodeURIComponent(`/posts?job=${jobId}`)}&created_at=gte.${encodeURIComponent(since)}`,
-      "the poster's \"Refund issued\" notification",
+      `title=like.${encodeURIComponent("Refund issued: $*")}&link=like.${encodeURIComponent(`/posts?job=${jobId}&refund=re_*`)}&created_at=gte.${encodeURIComponent(since)}`,
+      "the poster's \"Refund issued: $\" notification",
       60_000,
     );
     journey.cleanup("drop the refund notification", () => dropNotifications(request, poster, told));
+    expect(told[0].type, "the refund notice is a payment notice").toBe("payment");
+    // Exactly once per refund: create-payment sends it and the test-mode
+    // charge.refunded webhook (measured 2.5 s behind it) tries again, both
+    // claiming one refund_notices key. Re-read once the webhook has had time.
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+    const toldAgain = await readJson<NotificationRow[]>(
+      await request.get(
+        `${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&job_id=eq.${jobId}&title=like.${encodeURIComponent("Refund*")}&select=id,title,type,link,job_id`,
+        { headers: rest(poster) },
+      ),
+      "re-read the poster's refund notices",
+    );
+    journey.cleanup("drop any second refund notification", () => dropNotifications(request, poster, toldAgain));
+    expect(toldAgain.map((n) => `${n.title} ${n.link}`), "one refund must tell the poster exactly once").toHaveLength(1);
     test.info().annotations.push({ type: "outcome", description: `refunded: ${jobId} cancelled/refunded by admin_refund_general` });
   });
 

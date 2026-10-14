@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T21:24Z",
+  "measured_at": "2026-10-14T22:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -64,7 +64,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38638554743",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38643451247",
         "runTruncated": false
       },
       {
@@ -99,7 +99,7 @@
         "number": 2993,
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38489254188",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645451894",
         "runTruncated": false
       },
       {
@@ -113,7 +113,7 @@
         "number": 3096,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38611385251",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38645447224",
         "runTruncated": false
       }
     ]

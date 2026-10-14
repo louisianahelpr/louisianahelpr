@@ -173,7 +173,15 @@
     "subscription_purchase_eligibility(text)": "client",
     "suggest_category(text, text)": "client",
     "toggle_thread_mute(uuid, uuid)": "client",
-    "user_may_see_job_address(uuid, uuid)": "policy"
+    "user_may_see_job_address(uuid, uuid)": "policy",
+    "declutter_buy_now(uuid, integer)": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first, then the member gates incl. under 18); buys for auth.uid() only at the item's current price, item row locked FOR UPDATE; never charges a card",
+    "declutter_make_offer(uuid, integer)": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first, then the member gates incl. under 18); offers as auth.uid() only, >= half the current price, item row locked; never charges a card",
+    "declutter_my_cart()": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first); reads only cart lines where auth.uid() is the buyer or the seller",
+    "declutter_my_offers()": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first); reads only offer threads where auth.uid() is the buyer or the seller; the hidden floor only on the seller's own rows",
+    "declutter_respond_offer(uuid, text, integer)": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first, then the member gates); answers only a thread where auth.uid() is a party and it is their turn; accept goes through the locked take-item path",
+    "declutter_seller_cancel_sale(uuid)": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first); only the item's seller (seller_id = auth.uid()), only an unpaid sale; gives the caller a strike",
+    "declutter_seller_hidden(uuid)": "reviewed 2026-10-14 (Q14): Declutter slice 3 helper the declutter_items read policy calls as the reader; answers only whether a seller is banned or has 3 Declutter strikes, which the policy already reveals by hiding the listing",
+    "declutter_start_checkout(uuid, text)": "reviewed 2026-10-14 (Q14): Declutter slice 3 RPC behind the hidden 'declutter' switch (require_feature first, then the member gates incl. under 18); groups only auth.uid()'s own cart lines into an order, amounts computed server-side; creates no Stripe object and charges nothing"
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",

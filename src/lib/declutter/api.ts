@@ -334,3 +334,93 @@ export async function reviewListing(itemId: string, approve: boolean, note: stri
   return rpcData(
     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }), (e) => rpcErrorMessage("declutter_admin_review_item", e)) as string;
 }
+
+/* ------------------------------------------------------------------------ *
+ * Slice 3: offers, Buy, cart, strikes (20261014210518; spec rows 13, 20-22,
+ * 36, 38, 56-59, build decisions B25-B37). Nothing here charges a card.
+ * ------------------------------------------------------------------------ */
+
+export type OfferAction = "accept" | "decline" | "counter" | "withdraw";
+
+export interface MyOffer {
+  offer_id: string;
+  item_id: string;
+  item_title: string;
+  my_side: "buyer" | "seller";
+  amount_cents: number;
+  awaiting: "buyer" | "seller";
+  status: "open" | "accepted" | "declined" | "expired" | "withdrawn" | "voided";
+  respond_by: string;
+  counter_count: number;
+  current_price_cents: number;
+  /** The seller's own hidden floor; always null on the buyer's rows (B26). */
+  floor_price_cents: number | null;
+  updated_at: string;
+}
+
+export interface CartLine {
+  line_id: string;
+  item_id: string;
+  item_title: string;
+  my_side: "buyer" | "seller";
+  seller_id: string;
+  price_cents: number;
+  status: "in_cart" | "paid" | "missed" | "cancelled_by_seller";
+  checkout_by: string;
+  order_id: string | null;
+  order_status: string | null;
+  handover: string | null;
+  premium_cents: number | null;
+  total_cents: number | null;
+}
+
+export async function makeOffer(itemId: string, amountCents: number): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_make_offer", { p_item_id: itemId, p_amount_cents: amountCents }), (e) => rpcErrorMessage("declutter_make_offer", e)) as string;
+}
+
+export async function respondOffer(offerId: string, action: OfferAction, amountCents: number | null = null): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_respond_offer", { p_offer_id: offerId, p_action: action, p_amount_cents: amountCents }),
+    (e) => rpcErrorMessage("declutter_respond_offer", e),
+  ) as string;
+}
+
+/** Buy at the price the member SAW; the server refuses if it is higher now. */
+export async function buyNow(itemId: string, seenPriceCents: number): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_buy_now", { p_item_id: itemId, p_expected_price_cents: seenPriceCents }),
+    (e) => rpcErrorMessage("declutter_buy_now", e),
+  ) as string;
+}
+
+/** The seller backs out of an accepted, unpaid sale. Gives the seller a strike (row 19). */
+export async function sellerCancelSale(itemId: string): Promise<number> {
+  return rpcData(await supabase.rpc("declutter_seller_cancel_sale", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_seller_cancel_sale", e)) as number;
+}
+
+export async function fetchMyOffers(): Promise<MyOffer[]> {
+  return (rpcData(await supabase.rpc("declutter_my_offers"), (e) => rpcErrorMessage("declutter_my_offers", e)) ?? []) as MyOffer[];
+}
+
+export async function fetchMyCart(): Promise<CartLine[]> {
+  return (rpcData(await supabase.rpc("declutter_my_cart"), (e) => rpcErrorMessage("declutter_my_cart", e)) ?? []) as CartLine[];
+}
+
+/** Brand + last 4 of the member's saved card (row 36), or null. Never the Stripe ids. */
+export async function fetchMyCard(userId: string): Promise<{ brand: string | null; last4: string | null } | null> {
+  const row = unwrap(await supabase.from("declutter_buyer_cards").select("brand, last4").eq("user_id", userId).maybeSingle());
+  return (row ?? null) as { brand: string | null; last4: string | null } | null;
+}
+
+/** Active Declutter strikes (rows 7, 16, 17): not removed, not expired. */
+export async function fetchMyActiveStrikes(userId: string): Promise<number> {
+  const rows = unwrap(
+    await supabase
+      .from("declutter_strikes")
+      .select("id")
+      .eq("user_id", userId)
+      .is("removed_at", null)
+      .gt("expires_at", new Date().toISOString()),
+  );
+  return (rows ?? []).length;
+}

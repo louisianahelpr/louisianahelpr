@@ -105,6 +105,7 @@ export const EXPORT_SECTIONS = [
   "declutter_items", "declutter_item_private", "declutter_item_photos", "declutter_pickup_windows",
   "declutter_questions", "declutter_watchlist", "declutter_tax_attestations", "declutter_strikes", "declutter_seller_flags",
   "category_suggestions",
+  "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
   "storage_objects",
 ];
 

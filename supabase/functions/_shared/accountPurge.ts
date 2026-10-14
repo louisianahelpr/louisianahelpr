@@ -150,7 +150,7 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series";
+  reason?: "job" | "series" | "declutter";
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -308,6 +308,13 @@ export async function findActiveWork(
   const series = await findRunningSeries(admin, userId);
   if (!series.ok || series.active) return series;
 
+  // 1c. Declutter money in flight (20261014210518, money review of slice 3):
+  //     a cart line waiting for checkout or PAID (money held on the platform
+  //     until handover), on either side. Its rows cascade with the account, so
+  //     deleting now would erase the only record of what is owed to whom.
+  const declutter = await findDeclutterInFlight(admin, userId);
+  if (!declutter.ok || declutter.active) return declutter;
+
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
   // that was truncated, and silently truncating this read would hand back
@@ -359,6 +366,28 @@ export async function findActiveWork(
     return { ok: true, active: true, detail: `group job ${grouped.data[0].id}`, reason: "job" };
   }
 
+  return { ok: true, active: false };
+}
+
+/** A Declutter sale this member is a party to that is not settled yet (fail closed on a read error). */
+async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  const lines: PostgrestLike<{ id: string }[]> = await admin
+    .from("declutter_cart_items")
+    .select("id")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .in("status", ["in_cart", "paid"])
+    .limit(1);
+  if (lines.error) {
+    // Before the Declutter migration is live the table does not exist: no sale can be in flight.
+    if (/does not exist|42P01|PGRST205/i.test(`${lines.error.code ?? ""} ${lines.error.message}`)) {
+      return { ok: true, active: false, detail: "declutter_cart_items absent" };
+    }
+    console.error(`[accountPurge] Declutter check failed for ${userId}:`, lines.error.message);
+    return { ok: false, active: false, detail: lines.error.message };
+  }
+  if (lines.data && lines.data.length > 0) {
+    return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id}`, reason: "declutter" };
+  }
   return { ok: true, active: false };
 }
 

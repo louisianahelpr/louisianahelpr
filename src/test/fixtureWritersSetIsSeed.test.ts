@@ -60,6 +60,9 @@ const MIG = join(ROOT, "supabase", "migrations");
 const NOT_PROD_WRITERS: Record<string, RegExp> = {
   "scripts/ci/race-runner.mjs": /\["localhost", "127\.0\.0\.1", "::1"\]\.includes\(process\.env\.PGHOST/,
   "scripts/probes/auto-restrict-race.embedded-pg.mjs": /import\(`\$\{DIR\}\/node_modules\/embedded-postgres\/dist\/index\.js`\)/,
+  // Declutter slice 3 proofs: the SQL it hands out starts by CREATING auth.users,
+  // which fails on any real Supabase database before a single row is written.
+  "scripts/declutter/slice3Harness.mjs": /CREATE TABLE auth\.users \(id uuid PRIMARY KEY\);/,
 };
 
 // ── migrations (newest state) ──────────────────────────────────────────────

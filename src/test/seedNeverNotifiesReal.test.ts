@@ -243,6 +243,10 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:admin_reverse_violation#1": "own warning removed",
   "sql:enforce_retained_payment_ban#1": "operator broadcast to every admin: a ban settlement review opened (Q1324)",
   "sql:sweep_open_ban_settlement_reviews#1": "operator broadcast to every admin: a ban settlement review still waiting (Q1324)",
+  // Declutter (20261014210518): no job_id exists for an item sale, so the
+  // trigger cannot judge the row; the producers apply Q137 themselves.
+  "sql:declutter_notify#1": "Declutter notice: the counterpart is passed as p_other and the insert is skipped when p_other is seed and the recipient is not (the Q137 rule inside the producer; PGlite: declutterSlice3 'a seed (test) seller's sale never notifies a real buyer')",
+  "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for
 // non-seed recipients itself (asserted below).

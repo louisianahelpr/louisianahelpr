@@ -26,8 +26,10 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
+import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
 
-type View = "browse" | "mine";
+type View = "browse" | "mine" | "offers" | "cart";
+const VIEWS: View[] = ["browse", "mine", "offers", "cart"];
 
 function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -49,7 +51,15 @@ function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?:
       </div>
       <div className="p-3 space-y-1 min-w-0">
         <p className="font-semibold text-sm truncate" title={item.title}>{item.title}</p>
-        <p className="text-base font-bold">{formatPrice(item.current_price_cents)}</p>
+        <p className="text-base font-bold">
+          {formatPrice(item.current_price_cents)}
+          {item.current_price_cents < item.price_cents && (
+            <span className="ml-1.5 text-xs font-medium text-muted-foreground">
+              <span className="sr-only">Price dropped, was </span>
+              <s aria-hidden>{formatPrice(item.price_cents)}</s>
+            </span>
+          )}
+        </p>
         <ConditionStars stars={item.condition_stars} showLabel={false} />
         <p className="text-xs text-muted-foreground truncate" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
           {item.area_label}
@@ -232,7 +242,8 @@ export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const view: View = params.get("view") === "mine" ? "mine" : "browse";
+  const asked = params.get("view") as View | null;
+  const view: View = asked && VIEWS.includes(asked) ? asked : "browse";
   if (!user) return null;
   return (
     <AppPage
@@ -248,13 +259,20 @@ export default function DeclutterHome() {
         ariaLabel="Declutter view"
         semantics="tab"
         value={view}
-        onChange={(v) => setParams(v === "mine" ? { view: "mine" } : {}, { replace: true })}
+        layout="wrap"
+        onChange={(v) => setParams(v === "browse" ? {} : { view: v }, { replace: true })}
         options={[
           { value: "browse", label: "Browse" },
           { value: "mine", label: "My listings" },
+          { value: "offers", label: "Offers" },
+          { value: "cart", label: "Cart" },
         ]}
       />
-      {view === "browse" ? <BrowseView userId={user.id} /> : <MyListingsView userId={user.id} />}
+      <StrikeCount userId={user.id} />
+      {view === "browse" ? <BrowseView userId={user.id} />
+        : view === "mine" ? <MyListingsView userId={user.id} />
+          : view === "offers" ? <OffersView />
+            : <CartView />}
     </AppPage>
   );
 }

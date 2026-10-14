@@ -212,6 +212,35 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  wait-accounts-sweep:
+    name: Wait for the shared accounts (queue, chromium sweep)
+    # A LOCKED LEG AFTER A LOCKED LEG RE-QUEUES. The run's first waiter finished
+    # long before this leg, so without its own waiter this leg entered the group
+    # the second the previous leg let go and CANCELLED whatever other run was
+    # pending there (e2e-real-backend 38527096325's money loop, 2026-10-14
+    # 07:42:25Z, bumped the same way by journeys-webkit; this workflow's own
+    # fixtures and chromium sweep were cancelled 2026-10-13 18:44Z, run
+    # 38447501565). Guard: src/test/sharedAccountLockQueues.test.ts.
+    needs: [preflight, wait-accounts, fixtures]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   sweep:
     name: Sweep prod (chromium)
     # After the fixtures, whatever they did: a red fixtures job is its own
@@ -219,8 +248,8 @@ jobs:
     # other screen is still worth having. wait-accounts must have succeeded:
     # `!cancelled()` alone would walk a timed-out waiter into the lock
     # (sharedAccountLockQueues.test.ts).
-    needs: [preflight, wait-accounts, fixtures]
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' }}
+    needs: [preflight, wait-accounts, fixtures, wait-accounts-sweep]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' && needs.wait-accounts-sweep.result == 'success' }}
     runs-on: ubuntu-latest
     # Holds the shared accounts for its leg (Q550), so <= 60 min
     # (sharedAccountLockJobsAreShort.test.ts). ONE ENGINE PER JOB since
@@ -351,6 +380,35 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+  wait-accounts-sweep-webkit:
+    name: Wait for the shared accounts (queue, webkit sweep)
+    # A LOCKED LEG AFTER A LOCKED LEG RE-QUEUES. The run's first waiter finished
+    # long before this leg, so without its own waiter this leg entered the group
+    # the second the previous leg let go and CANCELLED whatever other run was
+    # pending there (e2e-real-backend 38527096325's money loop, 2026-10-14
+    # 07:42:25Z, bumped the same way by journeys-webkit; this workflow's own
+    # fixtures and chromium sweep were cancelled 2026-10-13 18:44Z, run
+    # 38447501565). Guard: src/test/sharedAccountLockQueues.test.ts.
+    needs: [preflight, wait-accounts, fixtures, sweep]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   sweep-webkit:
     name: Sweep prod (webkit)
     # After the chromium leg, whatever it did: a red chromium leg must not
@@ -359,8 +417,8 @@ jobs:
     # this run sits between its two locked legs, wait-shared-accounts.mjs
     # holds every other run's waiter back (FIFO), so the accounts pass from
     # one leg to the next with no other suite in between.
-    needs: [preflight, wait-accounts, fixtures, sweep]
-    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' }}
+    needs: [preflight, wait-accounts, fixtures, sweep, wait-accounts-sweep-webkit]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' && needs.wait-accounts-sweep-webkit.result == 'success' }}
     runs-on: ubuntu-latest
     # Its own leg under the lock, <= 60 min (sharedAccountLockJobsAreShort).
     timeout-minutes: 60

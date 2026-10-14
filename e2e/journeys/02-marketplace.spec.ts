@@ -504,7 +504,11 @@ test.describe.serial("marketplace chain", () => {
       const deadline = Date.parse(job.response_deadline);
       await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
         const c = await card(page, "/jobs", "Needs You");
-        await expect(c.getByText("1m remaining").first(), "90s before the deadline the offer does not read 1m remaining").toBeVisible({ timeout: 45_000 });
+        // OfferedActions' answer clock reads "<time> left to answer" since the
+        // owner's one-format countdown (2026-10-07, Q1399); "remaining" is
+        // DeadlineCountdown's word, not the offer's (e2e-journeys 38527058685).
+        // Guard: src/test/journeyOfferCountdownCopy.test.ts.
+        await expect(c.getByText("1m left to answer").first(), "90s before the deadline the offer does not read 1m left to answer").toBeVisible({ timeout: 45_000 });
         await expect(c.getByText(/If you don't answer in time, the job reopens to everyone\. No strike\./).first(), "the offer does not say what silence does").toBeVisible();
         expect(await findChip(page, c, /^Accept\b/, 20_000), "Accept is not offered before the deadline").not.toBeNull();
         await assertHealthy(page, "offer 90s before its deadline");

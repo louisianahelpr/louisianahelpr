@@ -644,12 +644,46 @@ jobs:
   # so two jobs of one run queued on it could cancel each other's slot.
   # `always()` so a red loop does not hide the gift card's result.
   # ---------------------------------------------------------------------
+  wait-accounts-gift:
+    name: Wait for the shared accounts (queue, gift card leg)
+    # A LOCKED LEG AFTER A LOCKED LEG RE-QUEUES. The run's first waiter finished
+    # long before this leg, so without its own waiter this leg entered the group
+    # the second the previous leg let go and CANCELLED whatever other run was
+    # pending there: e2e-real-backend 38527096325's money loop, 2026-10-14
+    # 07:42:25Z, the same second journeys-webkit entered ("higher priority
+    # waiting request"). Guard: src/test/sharedAccountLockQueues.test.ts
+    # (every locked leg's waiter runs after every locked leg it follows).
+    needs: [preflight, prod-lifecycle, wait-accounts]
+    if: >-
+      !cancelled() &&
+      needs.wait-accounts.result == 'success' &&
+      needs.preflight.outputs.have_lifecycle == 'true' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch))
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   gift-card-journey:
     name: Gift card journey (production, Stripe test mode)
-    needs: [preflight, prod-lifecycle, wait-accounts]
+    needs: [preflight, prod-lifecycle, wait-accounts, wait-accounts-gift]
     if: >-
       always() &&
       needs.wait-accounts.result == 'success' &&
+      needs.wait-accounts-gift.result == 'success' &&
       needs.preflight.outputs.have_lifecycle == 'true' &&
       (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch))
     runs-on: ubuntu-latest

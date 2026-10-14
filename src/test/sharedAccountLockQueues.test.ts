@@ -19,7 +19,9 @@
  * re-prove that in the vacuity run.
  */
 // @mutate .github/workflows/prod-audit.yml |     needs: [preflight, wait-accounts]\n    if: needs.preflight.outputs.have_accounts == 'true' |     needs: preflight\n    if: needs.preflight.outputs.have_accounts == 'true'
-// @mutate .github/workflows/e2e-journeys.yml | if: always() && needs.wait-accounts.result == 'success' && needs.preflight | if: always() && needs.preflight
+// @mutate .github/workflows/e2e-journeys.yml | if: always() && needs.wait-accounts-webkit.result == 'success' && needs.wait-accounts.result == 'success' && needs.preflight | if: always() && needs.preflight
+// @mutate .github/workflows/e2e-journeys.yml |     needs: [preflight, journeys, wait-accounts, wait-accounts-webkit] |     needs: [preflight, journeys, wait-accounts]
+// @mutate .github/workflows/e2e-real-backend.yml |     needs: [preflight, prod-lifecycle, wait-accounts, wait-accounts-gift] |     needs: [preflight, prod-lifecycle, wait-accounts]
 // @mutate .github/workflows/press-every-control.yml |     timeout-minutes: 350 # waiter, leg 1\n    permissions:\n      actions: read |     timeout-minutes: 350 # waiter, leg 1\n    permissions:\n      actions: none
 // @mutate scripts/e2e/wait-shared-accounts.mjs | lockJobs.length < locked.length && !YIELDS_BETWEEN_LEGS.has(run.path) | lockJobs.length < locked.length
 // @mutate scripts/e2e/wait-shared-accounts.mjs | /rate limit/i.test(body)) return 5 * 60_000; | false) return 5 * 60_000;
@@ -52,6 +54,16 @@ const groupOf = (j: Job) => (typeof j.concurrency === "string" ? j.concurrency :
 const needsOf = (j: Job) => (j.needs === undefined ? [] : Array.isArray(j.needs) ? j.needs : [j.needs]);
 const isWaiter = (j: Job) => (j.steps ?? []).some((s) => String(s.run ?? "").includes(WAITER));
 
+/** Every job `key` depends on, directly or through others. */
+function ancestors(jobs: Record<string, Job>, key: string, seen = new Set<string>()): Set<string> {
+  for (const n of needsOf(jobs[key] ?? {})) {
+    if (seen.has(n)) continue;
+    seen.add(n);
+    ancestors(jobs, n, seen);
+  }
+  return seen;
+}
+
 export function lockQueueViolations(dir = WF_DIR): string[] {
   const out: string[] = [];
   for (const file of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort()) {
@@ -66,6 +78,17 @@ export function lockQueueViolations(dir = WF_DIR): string[] {
       // `always()` ignores a failed/timed-out waiter and would walk into the lock anyway.
       if (/always\(\)/.test(String(job.if ?? "")) && !waiters.some((w) => String(job.if).includes(`needs.${w}.result == 'success'`)))
         out.push(`${file}:${key} runs on always() without requiring needs.<waiter>.result == 'success'`);
+      // A LOCKED LEG AFTER A LOCKED LEG (journeys -> journeys-webkit) must
+      // queue again: a waiter that finished before the previous leg started
+      // says nothing about who is pending in the group when this leg arrives.
+      // Without one, the leg enters the group the second the previous leg lets
+      // go and cancels the run waiting there (e2e-real-backend 38527096325's
+      // money loop, 2026-10-14 07:42:25Z, bumped by journeys-webkit).
+      const anc = ancestors(jobs, key);
+      for (const prev of [...anc].filter((a) => jobs[a] && groupOf(jobs[a]) === LOCK)) {
+        if (!waiters.some((w) => ancestors(jobs, w).has(prev)))
+          out.push(`${file}:${key} follows locked leg ${prev} but none of its waiters runs after ${prev}`);
+      }
       for (const w of waiters) {
         const wj = jobs[w];
         if (groupOf(wj)) out.push(`${file}:${w} (the waiter) must hold no concurrency group; it would itself be bumped`);
@@ -80,6 +103,22 @@ export function lockQueueViolations(dir = WF_DIR): string[] {
 }
 
 describe("Q743: the shared-accounts lock is entered through a FIFO queue", () => {
+  it("can fail: a second locked leg reusing the run's first waiter (the 2026-10-14 journeys-webkit shape) is red", () => {
+    const tmp = resolve(__dirname, "../../node_modules/.cache/q743-legs-guard");
+    rmSync(tmp, { recursive: true, force: true });
+    mkdirSync(tmp, { recursive: true });
+    const src = readFileSync(join(WF_DIR, "e2e-journeys.yml"), "utf8");
+    const old = src
+      .replace("needs: [preflight, journeys, wait-accounts, wait-accounts-webkit]", "needs: [preflight, journeys, wait-accounts]")
+      .replace("needs.wait-accounts-webkit.result == 'success' && ", "");
+    expect(old).not.toBe(src);
+    writeFileSync(join(tmp, "e2e-journeys.yml"), old);
+    expect(lockQueueViolations(tmp)).toEqual([
+      "e2e-journeys.yml:journeys-webkit follows locked leg journeys but none of its waiters runs after journeys",
+    ]);
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
   it("every job holding the lock needs a lock-free waiter (and cannot bypass it)", () => {
     expect(lockQueueViolations()).toEqual([]);
   });

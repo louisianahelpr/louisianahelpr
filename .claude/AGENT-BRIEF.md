@@ -57,6 +57,11 @@ says more.
   scan every test file; each turned main red at least once on 2026-09-23
   because a lane ran only its own test:
   `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts src/test/e2eImportsInAppTsconfig.test.ts src/test/noConflictMarkers.test.ts`
+- If you change code that a `@mutate` line or a guard quotes (any money or
+  migration change does), ALSO run the guards that re-read every registration;
+  on 2026-10-14 each turned a landing red after a lane reported "all green":
+  `npx vitest run src/test/mutateRegistrationsResolve.test.ts src/test/mutateTargetsTheNewestDefinition.test.ts src/test/raceClassGuard.test.ts src/test/openPartlyDoneItemsSayDoneWhen.test.ts`
+  A stale `@mutate` is rewritten to break the NEW code the same way, never deleted.
 
 ## Data and prod
 - Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;

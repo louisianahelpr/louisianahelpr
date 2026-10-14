@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T08:22Z",
+  "measured_at": "2026-10-14T09:20Z",
   "issues": {
     "readable": true,
     "open": [
@@ -604,9 +604,6 @@
     "issue #2601": "Q1427",
     "issue #2660": "Q1507",
     "issue #2894": "Q1426",
-    "issue #2910": "Q1741",
-    "issue #2911": "Q1742",
-    "issue #2932": "Q1774",
     "issue #2937": "Q1775",
     "issue #2940": "Q1778",
     "issue #2941": "Q1779",
@@ -625,7 +622,6 @@
     "ledger 21cbec5b98d2": "Q1584",
     "ledger 27437b0c4f14": "Q1603",
     "ledger 27c479ef17f8": "Q1596",
-    "ledger 341247bd7549": "Q1774",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1812",
     "ledger 3a3460b71be7": "Q1778",
@@ -633,7 +629,6 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 41fbf0358661": "Q1600",
     "ledger 43d77e26f272": "Q1429",
-    "ledger 4aa239aefeb6": "Q1742",
     "ledger 4b5ace7af165": "Q1621",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1610",
@@ -649,7 +644,6 @@
     "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
-    "ledger 8a2e802edbe7": "Q1741",
     "ledger 8ad756b6da76": "Q1630",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",

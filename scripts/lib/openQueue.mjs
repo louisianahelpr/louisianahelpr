@@ -168,6 +168,57 @@ export function duplicateItems(md) {
 }
 
 /**
+ * THE SAME PROBLEM IS ONE OPEN ITEM (owner 2026-10-14: "make sure this a rule
+ * that the same item merges if it already has an item open. remove duplicate
+ * items"). itemOriginKey above keys a feed item on its mirror DATE, so the same
+ * alert firing again later was filed as a new number while the first was still
+ * open: Q1596 and Q1811 were both "error: permission denied for table
+ * profiles", Q1636/Q1812 "session lost on a signed-in screen", Q1610/Q1700
+ * "functionshttperror ..." (measured on docs/OPEN.md 2026-10-14).
+ *
+ * itemTitleKey is an item's TITLE with everything that changes between two
+ * sightings of one problem taken out: its number and tier, bold, dates, Vite
+ * content hashes (`-CkIDj-oG`: 8 characters with a capital or a digit),
+ * every digit run, punctuation and case. The title is the first sentence of
+ * the item's line (the "Mirrored <date> from ..." tail comes after it). A key
+ * under 12 characters says too little to call two items one.
+ *
+ * openTitleDuplicates lists the OPEN ([ ] or [~]) items that share a key.
+ * A ticked item is history and out of scope: the same problem may come back
+ * under a new number once the old one is done.
+ * Guard: src/test/openNoDuplicateItems.test.ts (exact zero on docs/OPEN.md).
+ */
+const VITE_HASH = /-(?=[A-Za-z0-9_-]{0,7}[A-Z0-9])[A-Za-z0-9_-]{8}(?=\.m?js\b|\)|$|[\s.,;:])/g;
+
+export function itemTitleKey(line) {
+  const m = QUEUE_HEAD.exec(line);
+  if (!m) return null;
+  const sentence = m[3].replace(/\*\*/g, "").split(/\.(?:\s|$)/)[0];
+  const key = sentence
+    .replace(/^\s*(CRITICAL|URGENT|HIGH|MEDIUM|LOW)\b/i, "")
+    .replace(VITE_HASH, "")
+    .toLowerCase()
+    .replace(/\d{4}-\d{2}-\d{2}(t[\d:.]+z?)?/g, "")
+    .replace(/\d+/g, "#")
+    .replace(/[^\p{L}\p{N}#]+/gu, " ")
+    .trim();
+  return key.length >= 12 ? key : null;
+}
+
+/** Open items ([ ] / [~]) that share an itemTitleKey: [{ key, ids }]. */
+export function openTitleDuplicates(md) {
+  const by = new Map();
+  for (const line of String(md).split("\n")) {
+    const m = QUEUE_HEAD.exec(line);
+    if (!m || m[1] === "x") continue;
+    const key = itemTitleKey(line);
+    if (!key) continue;
+    by.set(key, [...(by.get(key) ?? []), m[2]]);
+  }
+  return [...by].filter(([, ids]) => ids.length > 1).map(([key, ids]) => ({ key, ids }));
+}
+
+/**
  * Hand-written lines inside a generated block are deleted by the next refresh
  * (2026-10-03: 8f3dae96a, land.sh's refresh after a rebase, deleted the nine
  * questions held for the owner, written between the queue-count markers, and

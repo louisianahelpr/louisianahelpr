@@ -48,7 +48,7 @@ async function measure() {
   const snap = { note: "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts", measured_at: new Date().toISOString().slice(0, 16) + "Z" };
   try {
     // Every alert label (scripts/lib/alertIssueLabels.mjs), not only nightly-red.
-    const list = (label) => JSON.parse(execFileSync("gh", ["issue", "list", "--label", label, "--state", "open", "--limit", "1000", "--json", "number,title"], { encoding: "utf8", timeout: 30000, cwd: ROOT }));
+    const list = (label) => JSON.parse(execFileSync("gh", ["issue", "list", "--label", label, "--state", "open", "--limit", "1000", "--json", label === "nightly-red" ? "number,title,body,comments" : "number,title"], { encoding: "utf8", timeout: 60000, maxBuffer: 1 << 26, cwd: ROOT }));
     snap.issues = { readable: true, open: openAlertIssues(list) };
   } catch (e) {
     snap.issues = { readable: false, error: String(e.message).split("\n")[0], open: [] };
@@ -86,17 +86,18 @@ function apply(snap, { dryRun }) {
   // Next free from the one allocator (this tree AND origin/main): the nightly
   // refresh PR numbered from its base and collided with lanes that landed
   // meanwhile (Q909/Q914; #2372's Q1378-Q1380, 2026-10-05).
-  const res = applyFeeds(md, usable, { status, nextFree: nextFreeNumber(ROOT), today: new Date().toISOString().slice(0, 10) });
+  const res = applyFeeds(md, usable, { status, nextFree: nextFreeNumber(ROOT), today: new Date().toISOString().slice(0, 10), robotsReadable: snap.issues.readable && snap.ledger.readable });
   const by = mirrored(res.md);
   const keys = Object.fromEntries([...by].map(([k, ids]) => [k, ids[0]]).sort());
   const out = { ...snap, mirrored: keys };
   const counts = feedCounts(res.md);
   console.log(`sources open: ${issues.length} alert issue(s)${snap.issues.readable ? "" : " (UNREADABLE)"}, ${ledger.length} ledger row(s)${snap.ledger.readable ? "" : " (UNREADABLE)"}, ${[...bus.values()].filter((s) => s === "open").length - (bus.get("bus V-001") === "open" ? 1 : 0)} bus finding(s)`);
   for (const c of res.created) console.log(`  created ${c.id}  ${c.keys.join(" + ")}`);
-  for (const a of res.attached) console.log(`  attached to ${a.id}  ${a.keys.join(" + ")}`);
+  for (const a of res.attached) console.log(`  ${a.seenAgain ? "seen again, merged into" : "attached to"} ${a.id}  ${a.keys.join(" + ")}`);
   for (const f of res.flipped) console.log(`  source closed -> [~] ${f}`);
+  for (const r of res.robots) console.log(`  test robots ${r.id}: ${r.members} red overnight check(s)${r.created ? " (new item)" : ""}`);
   for (const a of res.ambiguous) console.error(`  AMBIGUOUS ${a.keys.join(" + ")}: first line of ${a.ids.join(", ")} — add \`feed: ${a.keys[0]}\` to the ONE item that owns it`);
-  console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} alert issue, ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
+  console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} alert issue (the test-robots item lists ${counts.robots} red check(s)), ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
   if (!dryRun) {
     writeFileSync(join(ROOT, OPEN), res.md);
     const snapPath = join(ROOT, SNAPSHOT);

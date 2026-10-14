@@ -1001,6 +1001,372 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_item_photos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          position: number
+          seller_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          position: number
+          seller_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          position?: number
+          seller_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_item_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_item_private: {
+        Row: {
+          floor_price_cents: number
+          item_id: string
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          floor_price_cents: number
+          item_id: string
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          floor_price_cents?: number
+          item_id?: string
+          pickup_address?: string
+          pickup_lat?: number
+          pickup_lng?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_item_private_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_items: {
+        Row: {
+          admin_approved_at: string | null
+          area_label: string
+          area_lat: number
+          area_lng: number
+          category: string
+          condition_stars: number
+          created_at: string
+          current_price_cents: number
+          delivery_size: string
+          description: string
+          ends_at: string | null
+          id: string
+          live_at: string | null
+          price_cents: number
+          relist_count: number
+          sale_mode: string
+          seller_id: string
+          status: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_approved_at?: string | null
+          area_label: string
+          area_lat: number
+          area_lng: number
+          category: string
+          condition_stars: number
+          created_at?: string
+          current_price_cents: number
+          delivery_size: string
+          description?: string
+          ends_at?: string | null
+          id?: string
+          live_at?: string | null
+          price_cents: number
+          relist_count?: number
+          sale_mode?: string
+          seller_id: string
+          status?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_approved_at?: string | null
+          area_label?: string
+          area_lat?: number
+          area_lng?: number
+          category?: string
+          condition_stars?: number
+          created_at?: string
+          current_price_cents?: number
+          delivery_size?: string
+          description?: string
+          ends_at?: string | null
+          id?: string
+          live_at?: string | null
+          price_cents?: number
+          relist_count?: number
+          sale_mode?: string
+          seller_id?: string
+          status?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      declutter_pickup_windows: {
+        Row: {
+          created_at: string
+          ends_local: string
+          id: string
+          seller_id: string
+          starts_local: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          ends_local: string
+          id?: string
+          seller_id: string
+          starts_local: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          ends_local?: string
+          id?: string
+          seller_id?: string
+          starts_local?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
+      declutter_questions: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          asker_id: string
+          created_at: string
+          id: string
+          item_id: string
+          question: string
+          removed_at: string | null
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          asker_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          question: string
+          removed_at?: string | null
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          asker_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          question?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_questions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_seller_flags: {
+        Row: {
+          business_like: boolean
+          reason: string | null
+          set_at: string
+          set_by: string | null
+          user_id: string
+        }
+        Insert: {
+          business_like?: boolean
+          reason?: string | null
+          set_at?: string
+          set_by?: string | null
+          user_id: string
+        }
+        Update: {
+          business_like?: boolean
+          reason?: string | null
+          set_at?: string
+          set_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      declutter_strikes: {
+        Row: {
+          appeal_decided_at: string | null
+          appeal_decided_by: string | null
+          appeal_decision: string | null
+          appeal_note: string | null
+          appeal_photo_path: string | null
+          appealed_at: string | null
+          expires_at: string
+          given_at: string
+          id: string
+          item_id: string | null
+          offender_side: string
+          reason: string
+          removed_at: string | null
+          removed_by: string | null
+          user_id: string
+        }
+        Insert: {
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision?: string | null
+          appeal_note?: string | null
+          appeal_photo_path?: string | null
+          appealed_at?: string | null
+          expires_at: string
+          given_at?: string
+          id?: string
+          item_id?: string | null
+          offender_side: string
+          reason: string
+          removed_at?: string | null
+          removed_by?: string | null
+          user_id: string
+        }
+        Update: {
+          appeal_decided_at?: string | null
+          appeal_decided_by?: string | null
+          appeal_decision?: string | null
+          appeal_note?: string | null
+          appeal_photo_path?: string | null
+          appealed_at?: string | null
+          expires_at?: string
+          given_at?: string
+          id?: string
+          item_id?: string | null
+          offender_side?: string
+          reason?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_strikes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_tax_attestations: {
+        Row: {
+          attested_at: string
+          bought_for_personal_use: boolean
+          item_id: string
+          keeps_item_until_handover: boolean
+          not_a_frequent_seller: boolean
+          not_in_the_business: boolean
+          seller_id: string
+          wording_version: string
+        }
+        Insert: {
+          attested_at?: string
+          bought_for_personal_use: boolean
+          item_id: string
+          keeps_item_until_handover: boolean
+          not_a_frequent_seller: boolean
+          not_in_the_business: boolean
+          seller_id: string
+          wording_version?: string
+        }
+        Update: {
+          attested_at?: string
+          bought_for_personal_use?: boolean
+          item_id?: string
+          keeps_item_until_handover?: boolean
+          not_a_frequent_seller?: boolean
+          not_in_the_business?: boolean
+          seller_id?: string
+          wording_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_tax_attestations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_watchlist: {
+        Row: {
+          created_at: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_watchlist_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deleted_jobs_log: {
         Row: {
           deleted_at: string
@@ -7113,6 +7479,74 @@ export type Database = {
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       check_user_reports_reach_ledger: { Args: never; Returns: number }
       client_compat_floor: { Args: never; Returns: number }
+      declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
+      declutter_add_item_photo: {
+        Args: { p_item_id: string; p_storage_path: string }
+        Returns: string
+      }
+      declutter_address_access: {
+        Args: { p_item_id: string; p_user_id: string }
+        Returns: string
+      }
+      declutter_answer_question: {
+        Args: { p_answer: string; p_question_id: string }
+        Returns: string
+      }
+      declutter_ask_question: {
+        Args: { p_item_id: string; p_question: string }
+        Returns: string
+      }
+      declutter_assert_member: { Args: { p_selling: boolean }; Returns: string }
+      declutter_attest_item: {
+        Args: {
+          p_bought_for_personal_use: boolean
+          p_item_id: string
+          p_keeps_item_until_handover: boolean
+          p_not_a_frequent_seller: boolean
+          p_not_in_the_business: boolean
+        }
+        Returns: string
+      }
+      declutter_create_item: {
+        Args: {
+          p_area_label: string
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_floor_price_cents: number
+          p_pickup_address: string
+          p_pickup_lat: number
+          p_pickup_lng: number
+          p_price_cents: number
+          p_title: string
+        }
+        Returns: string
+      }
+      declutter_item_address: {
+        Args: { p_item_id: string }
+        Returns: {
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+        }[]
+      }
+      declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
+      declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
+      declutter_seller_item_private: {
+        Args: { p_item_id: string }
+        Returns: {
+          floor_price_cents: number
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+        }[]
+      }
+      declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
+      declutter_set_watch: {
+        Args: { p_item_id: string; p_watch: boolean }
+        Returns: string
+      }
       end_recurring_series_by_platform: {
         Args: {
           p_admin?: string

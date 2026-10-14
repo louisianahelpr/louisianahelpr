@@ -119,3 +119,78 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 - Agent report (not re-verified): Act 786 of 2024 passed (eff. 1/1/2025): current (A)(8) wording, qualifying party, $25k business bond; LA-licensed: Copart, Manheim, CarMax, Ten-X, Xome, NOLA Estate Auctions, LA Auction Online LLC, BidEz, NexBid; ShopGoodwill = charity exemption; Nellis/BidFTA/BidRL not in LA; Mercari no US auctions; eBay/Whatnot/Poshmark LA license unknown, no enforcement found; registry https://lalb.certemy.com/public-registry/c366ace7-89b6-4324-b267-a2f6407dc77a ; next board meeting reportedly Nov 9 2026, applications ~2 weeks before; licensed-partner rules LAC 46:III.1701-1705 (licensee's name/number on ads, in-state trust account, seller paid within 30 days, fee-sharing with non-licensees "unprofessional" 1703.B.3).
 - 2026-10-14, owner: "Can I change to non profit" — VERIFIED R.S. 37:3104(3) exempts "A sale conducted by a charitable or nonprofit organization"; LAC 46:III.1101.D(3) conditions: IRS-recognized nonprofit/charity (or the State recognized the sale as for a charitable benefit) AND "the person conducting the auction as the auctioneer is not paid for his services". Doesn't fit Declutter: a nonprofit has no owner and can't pass the 15% premium to the owner; IRS exemption for a fee-taking marketplace of private sales is very unlikely (private benefit); the jobs business stays for-profit. Only a donate-your-items charity model (ShopGoodwill-style) fits.
 - 2026-10-14 school comparison (each school's own site; board list = lalb.org/approved_schools.php, "live and online" schools only): Continental Auctioneers School $1,790 ($100 off paid in full; $500 + 3x$430), fully online, self-paced, start anytime, final exam + assignment [RECOMMENDED: fastest/cheapest/no travel; confirm the online program alone qualifies for Louisiana and that they file the LA online pre-licensing agreement]; Nashville Auction School $1,995 (format unclear, Nov 13-20 in person); Reppert hybrid $2,499 (48+ h online + 5 days in Auburn IN, next Dec 9-13); Western College 85 h hybrid w/ 4 days in person, price not listed; Missouri Auction School online w/ live Zoom, starts Jan 4, price by state; Freddie Lee Phillips (Baton Rouge) price not online, site certificate expired, call 225-229-3341; Southeastern's domain has expired.
+
+## Build decisions (agent)
+Choices slice 1 (migration 20261014193955_declutter_foundation, agent declutter-1, 2026-10-14) had to make
+where no owner row decides. Each picks the option most consistent with the rows above; the owner may overturn any.
+- B1. The 'declutter' switch is created OFF, not testers: the 1.0.4 review freeze is on, and row 51 says a
+  build with Declutter must be described to Apple and switched on for the reviewer account. An admin flips it to
+  Testers in Admin -> Settings once slice 2 screens exist (the Settings card shows "On/Off for this account").
+- B2. Launch is offers only (row 55): `sale_mode` is 'offers' | 'auction'; the server creates and publishes
+  'offers' only ('sale_mode_unavailable'). No bidding code exists.
+- B3. Floor price is REQUIRED in offers mode, $1 <= floor <= price (row 56 says the price drops "until sold or at
+  the floor"; with no floor it would drop forever). A seller who wants no drops sets floor = price.
+  Prices are whole cents, $1 to $10,000 per item (a sanity cap; not an owner number).
+- B4. Photos reuse the existing PUBLIC job-photos bucket under `<seller uid>/declutter/<item id>/<file>`: its
+  owner-folder upload policy (`(storage.foldername(name))[1] = auth.uid()`), size/type limits and the nightly
+  backup (every bucket but id-documents) already cover that folder, so no new bucket. NOT covered (measured
+  2026-10-14 in supabase/functions/_shared/purgeBuckets.ts): account deletion purges `<uid>/` only in avatars,
+  user-documents and application-attachments, so slice 2 must add `job-photos/<uid>/declutter/` to the purge. Public because listing photos are shown to every buyer, like job photos. The server
+  only accepts a photo row whose object exists and was uploaded by the seller. Slice 2 must strip EXIF/GPS
+  before upload (the photo is public; the address is not).
+- B5. Removing a draft photo returns its storage path for the app to delete, BUT (lh-authz-rls review, measured on
+  prod) no job-photos DELETE policy lets a member delete under `<uid>/`, so that delete is a silent no-op today and
+  a removed photo stays public by URL. Slice 2 must, before shipping photo removal, add a storage DELETE policy for
+  `job-photos/<uid>/declutter/` objects not attached to any declutter_item_photos row (or delete server-side).
+  Deleting a whole item's objects, and an account's (see B4), is slice 2 work. Photos must be images
+  (jpeg/png/webp, at most 15 MB): job-photos also takes video, and a video keeps its GPS.
+- B6. Pickup times (row 52) are the SELLER's usual weekly times (weekday + start/end, Louisiana time), not per
+  item; at least one is required to publish. Exact address is per ITEM (stored privately with the item).
+- B7. Public location = area label + coordinates rounded to 2 decimals (~1 km) for "nearest first"; the exact
+  coordinates stay in the private table.
+- B8. Row 33: a listing waits for an admin while the seller has fewer than 3 listings with an admin's OK
+  (`admin_approved_at`); a rejected listing does not count toward the 3. Relisting the same item needs no new
+  review. The admin approve/reject RPC + queue are NOT built yet (slice 3): until then a pending listing stays
+  pending.
+- B9. GO-LIVE BLOCKER: "Download My Data" (export_my_data) does not include the Declutter tables yet; they are
+  EXEMPT in src/test/helpers/dataExportInventory.ts with that reason. Add the sections before the switch goes past
+  testers.
+- B10. Who is gated where: every Declutter write needs the switch, a signed-in unbanned member with fewer than 3
+  active Declutter strikes. Under 18 (row 53) is refused on every SELLER call now, answering a question included;
+  buyer calls that exist now (watch, ask) are not age-gated (row 53 names buy/offer/bid/sell; offer and checkout RPCs come later and
+  must call `declutter_assert_member(true)`). 3 strikes block watching and asking too ("all of Declutter").
+- B11. Browsing: signed-in members the switch is on for read live + reserved items, their photos and public Q&A;
+  signed-out visitors read nothing while the switch is not 'everyone' (no anon grant). Revisit anon browsing at
+  go-live.
+- B12. Public Q&A: the asker's id is visible with the question (like a job's poster); questions and answers go
+  through contact_leak_reason (rejected, never hidden), as do item title, description and area label. At most
+  20 questions a day per asker.
+- B13. Offers-mode listings have no end time (`ends_at` NULL); row 4's 24 h and row 47's relists are auction
+  rules. `relist_count` (max 3) is kept for when bidding switches on.
+- B14. Strikes: `expires_at` is always `given_at + 1 year` (trigger); reasons are the offences rows 7/13/15/18/19/48
+  name. Issuing strikes and the appeal RPC/queue (row 49) come with the slices that create those offences.
+- B15. Business-like seller flag: `declutter_seller_flags` (server/admin only). Who sets it and the tax it
+  triggers (row 54 (2)) are a later slice.
+- B16. No `is_seed` column yet: the fixture-writer guard (src/test/fixtureWritersSetIsSeed.test.ts) requires
+  every is_seed table to be covered by its scanner. The slice that adds Declutter test fixtures adds the column
+  and the scanner entry together. Photo paths and the appeal photo are registered storage references
+  (scripts/lib/storageRefs.mjs).
+- B17. A member blocked with the seller (either way, user_blocks) cannot watch or ask on the seller's items
+  (item_not_found). The 20-questions-a-day cap is serialized per asker.
+- Review notes kept for later slices (lh-authz-rls, 2026-10-14): area_label is free text shown to every buyer and
+  nothing stops a seller typing the exact address there (derive it server-side or refuse a match with the pickup
+  address); a struck member's own strike rows show which admin removed/decided them (column grant if staff identity
+  should stay hidden); accounts deleted CASCADE their Declutter rows incl. strikes (revisit before money lands, the
+  "a job can outlive its poster" rule); the offers slice's below-floor auto-decline is a binary-search oracle for
+  the hidden floor (rate-limit offers per buyer per item, make every decline look the same); photos of a
+  rejected/removed item stay public by URL.
+
+### For slice 2 (screens)
+- Create switch audience testers (Admin -> Settings) after the screens land; describe Declutter in App Review notes (row 51).
+- Draft editing RPC (title/price/etc. on a draft) is not built; slice 1 has create, photos, confirmations,
+  pickup times, publish, watch, ask/answer, and the two private readers.
+- Error codes the UI must map: feature_disabled, not_authenticated, account_restricted, declutter_strikes_blocked,
+  under_18, payout_setup_incomplete, photos_required, attestation_required, attestation_incomplete,
+  pickup_windows_required, invalid_pickup_windows, invalid_floor_price, item_not_found, item_not_a_draft,
+  item_not_editable, photo_not_uploaded, too_many_photos, own_item, question_rate_limited, sale_mode_unavailable,
+  plus the contact-leak check_violation message.

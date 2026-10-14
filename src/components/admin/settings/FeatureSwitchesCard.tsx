@@ -14,7 +14,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { useFeature } from "@/hooks/useFeature";
-import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience } from "@/config/featureSwitches";
+import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
@@ -35,6 +35,12 @@ const AUDIENCE_CONSEQUENCE: Record<FeatureAudience, string> = {
 export function FeatureSwitchesCard() {
   const queryClient = useQueryClient();
   const canaryReachesMe = useFeature("switch_canary");
+  // What the SERVER says about this account, per switch (feature_enabled_for):
+  // the proof that flipping a switch reached you, before any screen uses it.
+  const reachesMe: Partial<Record<FeatureKey, boolean>> = {
+    switch_canary: canaryReachesMe,
+    declutter: useFeature("declutter"),
+  };
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -105,6 +111,11 @@ export function FeatureSwitchesCard() {
                 <Badge variant="outline">{FEATURE_AUDIENCE_LABEL[s.audience as FeatureAudience] ?? `Unknown (${s.audience}) — off`}</Badge>
               </div>
               <p className="text-ds-11 text-muted-foreground leading-snug">{s.description}</p>
+              {s.key in reachesMe && (
+                <p className="text-ds-11 text-muted-foreground">
+                  {reachesMe[s.key as FeatureKey] ? "On for this account." : "Off for this account."}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2" role="group" aria-label={`Audience for ${s.key}`}>
                 {FEATURE_AUDIENCES.map((aud) => (
                   <Button

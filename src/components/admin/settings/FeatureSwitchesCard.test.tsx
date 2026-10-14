@@ -22,15 +22,21 @@ const toastSuccess = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: (...a: unknown[]) => toastSuccess(...a) } }));
 
 let audience = "testers";
+let withDeclutter = false;
+let declutterOn = false;
 const rpc = vi.fn(async (fn: string, args?: { p_key?: string; p_audience?: string }) => {
   if (fn === "admin_list_feature_switches") {
-    return { data: [{ key: "switch_canary", audience, description: "Gates no feature.", created_at: "", updated_at: "" }], error: null };
+    const rows = [{ key: "switch_canary", audience, description: "Gates no feature.", created_at: "", updated_at: "" }];
+    if (withDeclutter) rows.push({ key: "declutter", audience: "off", description: "Declutter.", created_at: "", updated_at: "" });
+    return { data: rows, error: null };
   }
   if (fn === "admin_set_feature_switch") {
     audience = args!.p_audience!;
     return { data: audience, error: null };
   }
-  if (fn === "feature_enabled_for") return { data: audience !== "off", error: null };
+  if (fn === "feature_enabled_for") {
+    return { data: args?.p_key === "declutter" ? declutterOn : audience !== "off", error: null };
+  }
   return { data: null, error: { message: `unexpected ${fn}` } };
 });
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (fn: string, args?: never) => rpc(fn, args) } }));
@@ -44,6 +50,8 @@ const setCalls = () => rpc.mock.calls.filter(([fn]) => fn === "admin_set_feature
 
 beforeEach(() => {
   audience = "testers";
+  withDeclutter = false;
+  declutterOn = false;
   rpc.mockClear();
   requireBiometricMock.mockReset();
   toastError.mockReset();
@@ -57,6 +65,18 @@ async function askForEveryone() {
 }
 
 describe("FeatureSwitchesCard", () => {
+  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     declutter: useFeature("declutter"), |     declutter: canaryReachesMe,
+  it("says, per switch, what the SERVER answers for this account (declutter off, canary on)", async () => {
+    withDeclutter = true;
+    render(wrap(<FeatureSwitchesCard />));
+    expect(await screen.findByText("declutter")).toBeTruthy();
+    const declutterItem = screen.getByText("declutter").closest("li")!;
+    const canaryItem = screen.getByText("switch_canary").closest("li")!;
+    await waitFor(() => expect(canaryItem.textContent).toContain("On for this account."));
+    expect(declutterItem.textContent).toContain("Off for this account.");
+    expect(rpc.mock.calls.some(([fn, a]) => fn === "feature_enabled_for" && a?.p_key === "declutter")).toBe(true);
+  });
+
   it("lists each switch with its audience; the current one is pressed and disabled", async () => {
     render(wrap(<FeatureSwitchesCard />));
     expect(await screen.findByText("switch_canary")).toBeTruthy();

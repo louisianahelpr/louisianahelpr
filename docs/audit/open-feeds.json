@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T17:58Z",
+  "measured_at": "2026-10-14T18:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -70,11 +70,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2978,
-        "title": "nightly-red: feature-switch-audience",
-        "label": "nightly-red"
-      },
-      {
         "number": 2993,
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red"
@@ -87,6 +82,11 @@
       {
         "number": 3007,
         "title": "nightly-red: main: Vitest",
+        "label": "nightly-red"
+      },
+      {
+        "number": 3096,
+        "title": "nightly-red: db-drift-detect",
         "label": "nightly-red"
       }
     ]
@@ -633,6 +633,7 @@
     "issue #2993": "Q1807",
     "issue #2995": "Q1808",
     "issue #3007": "Q1814",
+    "issue #3096": "Q1815",
     "ledger 03faea228969": "Q1602",
     "ledger 0411d219f410": "Q1810",
     "ledger 0fa6c60d7a29": "Q1776",

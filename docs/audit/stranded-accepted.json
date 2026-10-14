@@ -2194,6 +2194,198 @@
       "sha": "677b8bcd626e113ae97f46e98b5e8e1313fe8c20",
       "reason": "Reviewer-notes branch that landed through #2983 (release1). Its one leftover line is the older review_information/notes.txt wording; main rewrote that line to explain background location use (603c520ef, Q1790-Q1793).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/todo-a-2",
+      "sha": "775a8c43f4ea08f2f5d0cf233f91cd7ca573dcbf",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The refund email retry (e77a5c66b, 1b60c5da1); its two leftover lines are an older doc comment on the endpoint field in refundNotice.ts.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a-2",
+      "sha": "775a8c43f4ea08f2f5d0cf233f91cd7ca573dcbf",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The refund email retry (e77a5c66b, 1b60c5da1); its two leftover lines are an older doc comment on the endpoint field in refundNotice.ts.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/todo-a-4",
+      "sha": "602c70d26868c891cdd78fd0d0f4a72a1d527fa6",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a-4",
+      "sha": "602c70d26868c891cdd78fd0d0f4a72a1d527fa6",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/todo-a-5",
+      "sha": "8a8e9b78ca8c0859c76fc5d900eef02b1b19602b",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a-5",
+      "sha": "8a8e9b78ca8c0859c76fc5d900eef02b1b19602b",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:train/2026-10-13-money-p",
+      "sha": "c97ced27c034541f6b4d872d31dedf66fcd3b529",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:train/2026-10-13-money-p-pre",
+      "sha": "8966ae454ce89923d9f99315f42556df74f0f100",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:train/2026-10-13-money-p2",
+      "sha": "fa96f6839463f711b6882d24d55b7acfc3f6c114",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:train/2026-10-13-money-p3",
+      "sha": "d34884adf5f040b0bcdcc539d22313ee3f7e301e",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:train/2026-10-13-money-q2",
+      "sha": "383c1ee637c06879bc2ee31e0bda88fa3201a341",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/train-2026-10-13-money-p-3bd9928c",
+      "sha": "c97ced27c034541f6b4d872d31dedf66fcd3b529",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/train-2026-10-13-money-p2-3bd9928c",
+      "sha": "3f634f89c7ba2cd2f892deda9229866efce47295",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/train-2026-10-13-money-p3-8e34fb2a",
+      "sha": "d34884adf5f040b0bcdcc539d22313ee3f7e301e",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:sr3",
+      "sha": "a8e02a44162b78bb48e0bc463c7f1bb0648dc991",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/items-a-series-refund-r2",
+      "sha": "a8e02a44162b78bb48e0bc463c7f1bb0648dc991",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "pr:2924",
+      "sha": "c97ced27c034541f6b4d872d31dedf66fcd3b529",
+      "reason": "Closed PR 'chore(types): types.ts lists ban_review_retained_floor' (land/train-2026-10-13-money-p, closed when todo-a-4/5 went back to lane A2): Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/items-a-series-admin-full-refund",
+      "sha": "be8e22aab4e870fd213cf451015693256b3c5fda",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/wip/handoff-ready/items-a-series-admin-full-refund",
+      "sha": "be8e22aab4e870fd213cf451015693256b3c5fda",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/items-a-series-refund-r",
+      "sha": "ce9929a77538023562b47149d6386fa985d4ab30",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/wip/limit-ac3c1fa4a7fe48006",
+      "sha": "ce9929a77538023562b47149d6386fa985d4ab30",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:sr2",
+      "sha": "5152e5f3f4195b3e56c2e34224ca44f143d04227",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording. Its 'refuse only when EVERY party is a test account' rule was replaced in review by main's stricter 'refuse when ANY party is a test account' (clearTestModeRecords.ts, money reviews of 389a4d210 #3b and 5152e5f3f #1).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/refund-email-1013",
+      "sha": "35ee0a9e7a52d49f0fbfa4a649838b34c9e49c22",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The out-of-band refund-notice preflight (Q1731) landed as d528fa1d3 and its follow-ups; leftover lines are older wording of refundNotice.ts and its test.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/refund-email-1013",
+      "sha": "35ee0a9e7a52d49f0fbfa4a649838b34c9e49c22",
+      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The out-of-band refund-notice preflight (Q1731) landed as d528fa1d3 and its follow-ups; leftover lines are older wording of refundNotice.ts and its test.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/claude-q1418-gift-loose-ends-6e15e405",
+      "sha": "6698bedd3be23b8d129d1cabe7ecad7f19667720",
+      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/lane1-Q1418-6acb599a",
+      "sha": "2138826eecc0f76a2a6350fc8285f865fc06d58a",
+      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/land/lane1-Q1418-6acb599a-v2",
+      "sha": "f1dad3dda0ea8b72449edc9c7f35c538436d2e2c",
+      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "pr:2831",
+      "sha": "6698bedd3be23b8d129d1cabe7ecad7f19667720",
+      "reason": "Closed PR (head land/claude-q1418-gift-loose-ends): Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "pr:2853",
+      "sha": "2138826eecc0f76a2a6350fc8285f865fc06d58a",
+      "reason": "Closed PR (head land/lane1-Q1418-6acb599a): Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "pr:2884",
+      "sha": "f1dad3dda0ea8b72449edc9c7f35c538436d2e2c",
+      "reason": "Closed PR (head land/lane1-Q1418-6acb599a-v2): Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/ready/items-a-dispute-refund-stamp",
+      "sha": "a0ecf760b01885d26968da551dfee85951849e67",
+      "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "branch:ready/items-a-dispute-refund-stamp",
+      "sha": "a0ecf760b01885d26968da551dfee85951849e67",
+      "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
+      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     }
   ]
 }

@@ -46,7 +46,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ListingPhotoError } from "@/lib/declutter/photos";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, WEEKDAYS } from "./declutterUi";
 
-export const TAX_STATEMENTS = [
+const TAX_STATEMENTS = [
   "I bought this item for my own personal or household use.",
   "I'm not in the business of selling items like this.",
   "I don't sell things often. This is an occasional sale.",

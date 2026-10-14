@@ -40,6 +40,8 @@ import {
   DISPUTE_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
   isPreLive,
+  openJobBudgetProblem,
+  type CapRow,
   LIVE_PAY_SKIP,
   NEW_FIXTURE_DAYS,
   PRE_LIVE_WHY,
@@ -290,6 +292,17 @@ export async function ensureFundedOpenJob(
   helper: Session,
 ): Promise<{ job: { id: string; title: string }; log: string[] }> {
   const log: string[] = [];
+  // Q1779: every run (the hourly canary included) first proves the shared
+  // poster is not accumulating open jobs, and fails by name while slots remain.
+  const capRows = await readJson<CapRow[]>(
+    await api.get(
+      `${SUPABASE_URL}/rest/v1/jobs?select=id,title,status,payment_status,created_at&customer_id=eq.${poster.user.id}&status=eq.open&limit=200`,
+      { headers: headers(poster) },
+    ),
+    "list poster-e2e open jobs (cap budget)",
+  );
+  const overBudget = openJobBudgetProblem(capRows);
+  if (overBudget) throw new Error(overBudget);
   const rows = await readJson<Row[]>(
     await api.get(
       `${SUPABASE_URL}/rest/v1/jobs?select=${COLS}&customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +

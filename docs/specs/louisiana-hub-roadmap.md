@@ -29,3 +29,15 @@ Owner said "launch agent on each": prep agents run per section now; building wai
 Not chosen: parish home pages. Ruled out by Claude as high legal risk (not offered): ride sharing, childcare.
 
 Declutter's own growth features (rows 71-90) live in docs/specs/declutter-auctions.md.
+
+## Hub-wide decisions (owner pop-ups 2026-10-14)
+| # | Question | Decision |
+|---|----------|----------|
+| G1 | Name | Keep "Louisiana Helpr" for the whole hub; sections are plain names (Declutter, Rentals, Local Shops...) |
+| G2 | Navigation | Home is the central page. Bottom bar: Home · Jobs · Declutter · Shops · More (Rentals, Events, Storm Hub, Pros, Hiring, Deals, Community; promote a section to the bar when it gets popular). Order chosen by Claude per owner ("however you think") |
+| G3 | Messages + Profile | Move to top-right corner icons on every screen (unread badge on Messages) |
+| G4 | Home screen | Mixed "near you" feed: your own items first (jobs, sales, pickups), then new jobs, items, events, shops near you |
+| G5 | Launch focus | City/area with most users, app stays open statewide. MEASURED 2026-10-14 (prod, non-seed): 34 members, 30 in Acadiana (Vermilion 10, Iberia 7, Lafayette 6, Acadia 3, St. Landry 3, St. Martin 1); jobs last 90 days: Vermilion 8, Iberia 4 -> focus ACADIANA (Vermilion/Iberia/Lafayette) |
+| G6 | Ad budget | $0 for now: free posts, Facebook groups, flyers, word of mouth |
+| G7 | Ambassadors | Yes: a few well-known locals per parish with personal invite links, paid in app credit per sign-up that completes something |
+| G8 | First partners | Churches, local businesses (free profile + first boost free + window sticker), landlords & property managers, schools & teams |

@@ -272,13 +272,44 @@ jobs:
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             bash scripts/e2e/sweep-both-seats.sh
 
+  wait-accounts-webkit:
+    name: Wait for the shared accounts (queue, webkit leg)
+    # A LOCKED LEG AFTER A LOCKED LEG RE-QUEUES. The run's first waiter finished
+    # long before this leg, so without its own waiter this leg entered the group
+    # the second the previous leg let go and CANCELLED whatever other run was
+    # pending there: e2e-real-backend 38527096325's money loop, 2026-10-14
+    # 07:42:25Z, the same second journeys-webkit entered ("higher priority
+    # waiting request"). Guard: src/test/sharedAccountLockQueues.test.ts
+    # (every locked leg's waiter runs after every locked leg it follows).
+    # Runs whatever chromium's result was (a red leg never leaves webkit
+    # unproved), unless the run was cancelled or the first waiter failed.
+    needs: [preflight, journeys, wait-accounts]
+    if: ${{ !cancelled() && needs.wait-accounts.result == 'success' && needs.preflight.outputs.have_accounts == 'true' }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   journeys-webkit:
     name: Journeys (journeys-webkit)
     # After chromium, never beside it: both drive the same two accounts.
-    # wait-accounts too: `always()` would otherwise run this leg into the lock
-    # after a waiter that timed out, jumping the queue.
-    needs: [preflight, journeys, wait-accounts]
-    if: always() && needs.wait-accounts.result == 'success' && needs.preflight.outputs.have_accounts == 'true'
+    # wait-accounts-webkit too: `always()` would otherwise run this leg into the
+    # lock after a waiter that timed out, jumping the queue.
+    needs: [preflight, journeys, wait-accounts, wait-accounts-webkit]
+    if: always() && needs.wait-accounts-webkit.result == 'success' && needs.wait-accounts.result == 'success' && needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
     # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
     # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max

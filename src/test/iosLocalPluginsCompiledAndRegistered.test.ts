@@ -19,8 +19,12 @@
  *     build file is in the Sources phase of the "App" native target;
  *  2. Main.storyboard's initial view controller is a class declared in those
  *     files that subclasses CAPBridgeViewController, and is resolvable by the
- *     storyboard (an explicit @objc(Name), since the target's module is
- *     "Louisiana_Helpr", not "App");
+ *     storyboard: its tag carries customModuleProvider="target". MEASURED
+ *     2026-10-14 on a Release iPad simulator build: customClass with an
+ *     explicit @objc(Name) and NO module logged "Unknown class
+ *     HelprBridgeViewController in Interface Builder file" and launched to a
+ *     BLACK SCREEN; adding customModuleProvider="target" loaded it and the app
+ *     rendered. A source-level check cannot see that, so the rule is the tag;
  *  3. that class's capacitorDidLoad() calls registerPluginInstance(<Plugin>())
  *     for EVERY local CAPPlugin subclass;
  *  4. each local plugin's jsName is the name src/ passes to registerPlugin, and
@@ -29,6 +33,7 @@
 // @mutate ios/App/App.xcodeproj/project.pbxproj | 0A1B2C3D4E5F600000000011 /* BackgroundLocationPlugin.swift in Sources */, | /* removed from Sources */
 // @mutate ios/App/App/HelprBridgeViewController.swift | bridge?.registerPluginInstance(BackgroundLocationPlugin()) | _ = BackgroundLocationPlugin.self
 // @mutate ios/App/App/Base.lproj/Main.storyboard | customClass="HelprBridgeViewController" | customClass="CAPBridgeViewController" customModule="Capacitor"
+// @mutate ios/App/App/Base.lproj/Main.storyboard | customModuleProvider="target" | customModuleProvider="none"
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
@@ -124,16 +129,15 @@ describe("every local Capacitor plugin is registered with the bridge", () => {
   const initial = STORYBOARD.match(/initialViewController="([^"]+)"/)?.[1] ?? "";
   const vcTag = STORYBOARD.match(new RegExp(`<viewController[^>]*\\bid="${initial}"[^>]*>`))?.[0] ?? "";
   const customClass = vcTag.match(/customClass="(\w+)"/)?.[1] ?? "";
-  const customModule = vcTag.match(/customModule="(\w+)"/)?.[1] ?? null;
+  const moduleProvider = vcTag.match(/customModuleProvider="(\w+)"/)?.[1] ?? null;
   const vcFile = SWIFT.find((f) => new RegExp(`class\\s+${customClass}\\s*:\\s*CAPBridgeViewController\\b`).test(f.code));
 
   it("Main.storyboard's root view controller is the app's own CAPBridgeViewController subclass", () => {
     expect(customClass, "initial view controller has no customClass").not.toBe("");
     expect(vcFile, `${customClass} is not declared as a CAPBridgeViewController subclass in ios/App/App`).toBeDefined();
-    // Resolvable without a module prefix only through an explicit ObjC name.
-    if (customModule === null) {
-      expect(vcFile!.code).toMatch(new RegExp(`@objc\\(${customClass}\\)\\s*(?:\\w+\\s+)*class\\s+${customClass}\\b`));
-    }
+    // Without customModuleProvider="target" the class is looked up in no module
+    // and iOS falls back to a plain UIViewController: a black screen at launch.
+    expect(moduleProvider, `${customClass} needs customModuleProvider="target" in Main.storyboard or the app launches to a black screen`).toBe("target");
   });
 
   it("registers every local plugin in capacitorDidLoad()", () => {

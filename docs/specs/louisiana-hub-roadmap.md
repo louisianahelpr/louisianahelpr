@@ -41,3 +41,7 @@ Declutter's own growth features (rows 71-90) live in docs/specs/declutter-auctio
 | G6 | Ad budget | $0 for now: free posts, Facebook groups, flyers, word of mouth |
 | G7 | Ambassadors | Yes: a few well-known locals per parish with personal invite links, paid in app credit per sign-up that completes something |
 | G8 | First partners | Churches, local businesses (free profile + first boost free + window sticker), landlords & property managers, schools & teams |
+| G9 | Wallet | NO wallet: earnings always pay out to the bank via Stripe; only credit we give (rewards, referrals, ambassadors) is spendable in the app (avoids money-transmitter licensing) |
+| G10 | ID checks | Required (Stripe Identity) for every money role: Helprs, shop owners, landlords, Declutter sellers; optional "ID-verified" badge for buyers |
+| G11 | Ratings | One overall star rating everywhere + per-section breakdown on the profile |
+| G12 | Support | Help center articles + AI helper answering from them + "Talk to a person" button reaching the owner |

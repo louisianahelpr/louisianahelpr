@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ReactNode } from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
@@ -64,6 +64,15 @@ async function askForEveryone() {
   fireEvent.click(await screen.findByRole("button", { name: "Everyone" }));
   fireEvent.click(await screen.findByRole("button", { name: "Set to Everyone" }));
 }
+
+// The confirm dialog's Radix FocusScope schedules a 0 ms focus event on
+// unmount; under a loaded full run it could fire after jsdom was torn down
+// ("dispatchEvent ... parameter 1 is not of type 'Event'", an unhandled error
+// that fails land.sh). Unmount here and let that timer run while jsdom lives.
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 describe("FeatureSwitchesCard", () => {
   // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     declutter: useFeature("declutter"), |     declutter: canaryReachesMe,

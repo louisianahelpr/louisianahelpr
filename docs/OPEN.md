@@ -696,17 +696,17 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38580933416. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527058685. notes: Q1429. feed: issue #2436 · feed: ledger 43d77e26f272
-  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38473531873. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
+  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38634100446. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - staleness-watch: issue #2660, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38592882166. notes: Q1507. feed: issue #2660 · feed: ledger db0fb15c4ec3
-  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38556677178. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
+  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38638554743. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38364628121. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - e2e-real-backend: issue #2940, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527096325. notes: Q1778. feed: issue #2940 · feed: ledger 3a3460b71be7
   - core-loop-canary: issue #2941, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619494580. notes: Q1779. feed: issue #2941 · feed: ledger 18539240a894
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38434750617. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38489254188. notes: Q1807. feed: issue #2993 · feed: ledger f8483bba3b3a
   - prod-errors: issue #2995, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619651057. notes: Q1808. feed: issue #2995 · feed: ledger 1ef4b10bb74a
-  - main: Vitest: issue #3007, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38556677248. notes: Q1814. feed: issue #3007 · feed: ledger f22e3275d50d
   - db-drift-detect: issue #3096, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38611385251. notes: Q1815. feed: issue #3096 · feed: ledger 8018e82cb167
+  - main: vitest: no open issue. feed: ledger f22e3275d50d
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

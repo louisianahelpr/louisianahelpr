@@ -33,6 +33,7 @@ vi.mock("@/integrations/supabase/client", () => {
     select: () => applicationsBuilder,
     eq: () => applicationsBuilder,
     is: () => applicationsBuilder,
+    or: () => applicationsBuilder,
     then: (resolve: (r: { count: number; error: null }) => unknown) => {
       rig.applicationsReads++;
       return resolve({ count: 0, error: null });

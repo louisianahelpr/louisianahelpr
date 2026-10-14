@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { safeStorage } from "@/lib/safeStorage";
+
+/**
+ * Q1734: My Posts hides every never-paid job (jobIsUnfundedDraft), so the
+ * Posts badge must not count an application on one: a badge that says 1 over
+ * five empty buckets points at nothing (measured 2026-10-12, prod, helper-e2e).
+ * Same list as My Posts (NEVER_PAID_STATUSES); a NULL status stays counted,
+ * matching jobIsUnfundedDraft.
+ */
+const PAID_JOBS_ONLY = `payment_status.is.null,payment_status.not.in.(${NEVER_PAID_STATUSES.join(",")})`;
 
 /**
  * Lightweight "actionable activity" counts for the bottom-nav badges.
@@ -141,6 +151,7 @@ function openStore(userId: string): BadgeStore {
       .is("poster_viewed_at", null)
       .eq("jobs.customer_id", userId)
       .eq("jobs.status", "open")
+      .or(PAID_JOBS_ONLY, { referencedTable: "jobs" })
       .then(({ count, error }) => {
         // Never zero the badge on a failed/offline read — the cache is the
         // floor, matching the Messages badge's behaviour.
@@ -155,6 +166,7 @@ function openStore(userId: string): BadgeStore {
               .eq("status", "pending")
               .eq("jobs.customer_id", userId)
               .eq("jobs.status", "open")
+              .or(PAID_JOBS_ONLY, { referencedTable: "jobs" })
               .then(({ count: fallbackCount, error: fallbackError }) => {
                 if (fallbackError) return;
                 const next = fallbackCount || 0;

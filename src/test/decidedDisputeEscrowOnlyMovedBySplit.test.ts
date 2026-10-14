@@ -51,10 +51,16 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { posix } from "node:path";
 import { blankComments, blankNonCode } from "./helpers/blankNonCode";
+import { sameRegion } from "./helpers/sameRegion";
 
 // Shown able to fail — each line alone reds this test:
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const settlement = await checkUnsettledDispute(supabaseAdmin, job.id); | const settlement = { blocked: false } as { blocked: boolean; readError?: string; dispute?: { id: string } };
 // @mutate supabase/functions/void-cancelled-payments/index.ts | if (settlement.blocked) { | if (false) {
+// The second gate (Q1809): Part B2's TEST-mode orphan refund is guarded in its own loop.
+// A later gate covers only its own region (the synthetic handler-level case goes red):
+// @mutate src/test/helpers/sameRegion.ts | return a[0] === b[0] && a[1] === b[1]; | return a.length === b.length;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | if (orphanSettlement.blocked) { | if (false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts | const orphanSettlement = await checkUnsettledDispute(supabaseAdmin, job.id); | const orphanSettlement = { blocked: false } as { blocked: boolean; readError?: string };
 // @mutate supabase/functions/release-payout/index.ts | const settlement = await checkUnsettledDispute(supabaseAdmin, job.id); | const settlement = { blocked: false } as never;
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (settlement.blocked) { | if (settlement.readError) {
 // @mutate supabase/functions/create-payment/index.ts | const generalSettlement = await checkUnsettledDispute(supabaseAdmin, jobId); | const generalSettlement = { blocked: false } as never;
@@ -452,6 +458,50 @@ export function sharedGuardedProblems(
   return { bad, calls, importers: importers.sort() };
 }
 
+/**
+ * The money sites of one unsettled-check file that no acted-on gate covers, or
+ * the gate error; `sites` is how many money sites were judged. Every site must
+ * sit after an ACTED-ON check in its own region: the file's first gate, or a
+ * later gate whose region is the site's own (or its helper's caller's).
+ */
+function unguardedInFile(code: string): { error?: string; miss: string[]; sites: number } {
+  const bare = blankNonCode(code);
+  const g = gateEnd(code, bare, 0, "unsettled-check");
+  if (typeof g === "string") return { error: g, miss: [], sites: 0 };
+  const fns = functions(code, bare);
+  const sites = moneySites(code, fns, moneyFunctions(code, fns));
+  // A file may guard more than one loop (void-cancelled-payments: Part A's
+  // escrow refunds and Part B2's TEST-mode orphan refunds, Q1809). Every
+  // money site must still sit after an ACTED-ON check in its OWN region:
+  // the file's first gate as before, or a later gate whose region is the
+  // site's own (or its helper's caller's). A gate that is not acted on is
+  // not in the list.
+  const gates = allUnsettledGates(code, bare);
+  const miss = sites.flatMap((site) => {
+    const first = unguardedSites(code, bare, [site], fns, g, region(bare, g));
+    if (first.length === 0) return [];
+    // A later gate counts only for a site in ITS OWN region: the site's
+    // innermost loop/function, or for a site inside a helper, the region of
+    // one of the helper's call sites (lh-money-escrow review of a2dd38334:
+    // otherwise a gate whose region is the whole handler would cover every
+    // later loop's money).
+    const regionsOf = (at: number): Array<[number, number]> => {
+      const owner = fns.filter((f) => f.at < at && at < f.end).sort((a, b) => b.at - a.at)[0];
+      if (!owner) return [region(bare, at)];
+      const calls = [...code.matchAll(new RegExp(String.raw`\b${owner.name}\s*\(`, "g"))]
+        .map((c) => c.index ?? 0)
+        .filter((i) => i < owner.at || i >= owner.end);
+      return [region(bare, at), ...calls.map((i) => region(bare, i))];
+    };
+    const own = regionsOf(site.at);
+    const ok = gates.some(
+      (gt) => own.some((r) => sameRegion(r, gt.reg)) && unguardedSites(code, bare, [site], fns, gt.allow, gt.reg).length === 0,
+    );
+    return ok ? [] : first;
+  });
+  return { miss, sites: sites.length };
+}
+
 describe("Q231: only execute-dispute-split moves a decided dispute's escrow", () => {
   const all = functionFiles();
   const files = moneyFiles(all);
@@ -468,16 +518,13 @@ describe("Q231: only execute-dispute-split moves a decided dispute's escrow", ()
     for (const [f, p] of Object.entries(PATHS)) {
       if (p.kind !== "unsettled-check") continue;
       const code = files[f] ?? "";
-      const bare = blankNonCode(code);
-      const g = gateEnd(code, bare, 0, "unsettled-check");
-      if (typeof g === "string") {
-        bad.push(`${f}: ${g}`);
+      const r = unguardedInFile(code);
+      if (r.error) {
+        bad.push(`${f}: ${r.error}`);
         continue;
       }
-      const fns = functions(code, bare);
-      const sites = moneySites(code, fns, moneyFunctions(code, fns));
-      checked += sites.length;
-      const miss = unguardedSites(code, bare, sites, fns, g, region(bare, g));
+      checked += r.sites;
+      const miss = r.miss;
       if (miss.length) bad.push(`${f}: money outside the guarded region: ${miss.join(", ")}`);
     }
     expect(checked).toBeGreaterThan(3);
@@ -575,6 +622,13 @@ describe("Q231: only execute-dispute-split moves a decided dispute's escrow", ()
     expect(run(`await payIt();\n${loop("async function payIt() { await s.transfers.create({}); }")}`).length).toBeGreaterThan(0);
     // .blocked computed but ignored.
     expect(run(loop("").replace("if (settlement.blocked) { continue; }", ""))).toEqual(["settlement.blocked is never acted on"]);
+    // Two loops, each with its own acted-on gate (void-cancelled-payments since Q1809).
+    const second = "for (const j of other) {\n const s2 = await checkUnsettledDispute(a, j.id);\n if (s2.blocked) { continue; }\n await stripe.refunds.create({});\n}\n";
+    expect(unguardedInFile(loop(second)).miss).toEqual([]);
+    // ...but a later gate covers only its OWN region: a handler-level gate does
+    // not cover another loop's money (lh-money-escrow review of a2dd38334).
+    const wide = "const s3 = await checkUnsettledDispute(a, x);\nif (s3.blocked) { return; }\nfor (const j of other) { await stripe.refunds.create({}); }\n";
+    expect(unguardedInFile(loop(wide)).miss).toHaveLength(1);
     expect(MONEY.test(blankComments("// await stripe.refunds.create({})"))).toBe(false);
     expect(MONEY.test('fetch("https://api.stripe.com/v1/refunds")')).toBe(true);
   });

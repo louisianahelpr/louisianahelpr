@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T14:01Z",
+  "measured_at": "2026-10-14T14:07Z",
   "issues": {
     "readable": true,
     "open": [
@@ -124,7 +124,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 3007
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -205,6 +205,14 @@
         "status": "open",
         "title": "nightly-red: expiry-monitor",
         "issue": 2993
+      },
+      {
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-errors",
+        "issue": 2995
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -575,19 +583,19 @@
         "issue": null
       },
       {
-        "fingerprint": "caab19e71ae99b285e20eb42a5be1291",
-        "source_kind": "sentry",
-        "source": "sentry:Ku(assets/app-shared-CkIDj-oG)",
-        "status": "open",
-        "title": "error: permission denied for table profiles",
-        "issue": null
-      },
-      {
         "fingerprint": "379653db0e8db581556265801c81fe87",
         "source_kind": "sentry",
         "source": "sentry:?(assets/ProtectedRoute-BOkAU22A)",
         "status": "open",
         "title": "error: session lost on a signed-in screen",
+        "issue": null
+      },
+      {
+        "fingerprint": "caab19e71ae99b285e20eb42a5be1291",
+        "source_kind": "sentry",
+        "source": "sentry:Ku(assets/app-shared-CkIDj-oG)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
         "issue": null
       },
       {
@@ -633,6 +641,7 @@
     "ledger 16e6e91f6701": "Q785",
     "ledger 18539240a894": "Q1779",
     "ledger 1b4eafb12222": "Q1636",
+    "ledger 1ef4b10bb74a": "Q1808",
     "ledger 21cbec5b98d2": "Q1584",
     "ledger 27437b0c4f14": "Q1603",
     "ledger 27c479ef17f8": "Q1596",

@@ -1093,11 +1093,106 @@ serve(async (req) => {
       defects.record(`cancelled-unpaid lookup: ${cuErr.message}`);
     }
     let expiredSessions = 0;
+    let testOrphansRefunded = 0;
+    /**
+     * A PAID TEST-mode checkout on a cancelled + unpaid job (2026-10-13, ledger
+     * 60298a019ea3): a test account's journey paid a sandbox checkout, the
+     * job was torn down before any webhook settled it, and no test-mode
+     * webhook endpoint delivers to prod (all three are disabled in Stripe), so
+     * it can never settle. It is sandbox money, so it is not "money at risk":
+     * paging it as critical and counting it a defect made this cron 500 on
+     * every run, for ever. Here the sandbox payment is refunded on the TEST
+     * key and the job marked refunded, which takes it out of this query, so it
+     * is reported exactly once (one warning). A LIVE paid orphan keeps the
+     * critical page below. Returns whether the job was settled.
+     */
+    const refundTestOrphan = async (
+      job: { id: string; title: string | null; stripe_session_id: string | null; is_seed: boolean | null },
+      session: Stripe.Checkout.Session,
+    ): Promise<boolean> => {
+      const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
+      if (!pi) {
+        defects.record(`cancelled job ${job.id}: PAID test-mode checkout ${job.stripe_session_id} names no PaymentIntent; not refunded`);
+        return false;
+      }
+      // Belt and braces (lh-money-escrow review, finding 2): only a session
+      // Stripe itself says is sandbox is ever refunded here.
+      if (session.livemode !== false) {
+        defects.record(`cancelled job ${job.id}: test-mode job but session ${job.stripe_session_id} is not livemode=false; not refunded`);
+        return false;
+      }
+      let refundStripe: Stripe;
+      try {
+        // Resolved for the refund itself. The stored cs_test_ session decides
+        // the mode for every kind but "new", so this is the TEST client; a
+        // live one could not see the sandbox PaymentIntent and would fail as
+        // a defect below, never touching live money.
+        ({ stripe: refundStripe } = await stripes.clientForJob(job.id, "refund"));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        defects.record(`stripe mode (refund) ${job.id}: ${modeErr.reason}: ${modeErr.message}`);
+        return false;
+      }
+      let refundId: string | null = null;
+      try {
+        const refund = await refundStripe.refunds.create(
+          { payment_intent: pi, metadata: { job_id: job.id, reason: "test_mode_orphan_on_cancelled_job" } },
+          { idempotencyKey: `test-orphan-refund:${job.id}` },
+        );
+        refundId = refund.id;
+      } catch (e) {
+        // Already refunded (a previous run refunded, then its job write
+        // failed): the money is back, so settle the job now.
+        if ((e as { code?: string })?.code !== "charge_already_refunded") {
+          defects.record(`cancelled job ${job.id}: test-mode refund of ${pi} failed: ${(e as Error).message}`);
+          return false;
+        }
+      }
+      const { data: rows, error: updErr } = await supabaseAdmin
+        .from("jobs")
+        .update({ payment_status: "refunded" })
+        .eq("id", job.id)
+        .eq("payment_status", "unpaid")
+        .select("id");
+      if (updErr) {
+        defects.record(`cancelled job ${job.id}: test-mode orphan refunded (${refundId ?? "already"}) but the job write failed: ${updErr.message}`);
+        return false;
+      }
+      const settled = (rows ?? []).length > 0;
+      if (!settled) {
+        // The job left 'unpaid' between the read and this write (lh-money-escrow
+        // review, finding 1). Already 'refunded' is this same outcome; anything
+        // else (escrow over a refunded PaymentIntent) is a defect, and no
+        // warning claims the job was settled.
+        const { data: now, error: nowErr } = await supabaseAdmin
+          .from("jobs").select("payment_status").eq("id", job.id).maybeSingle();
+        const status = (now as { payment_status?: string } | null)?.payment_status ?? null;
+        if (nowErr || status !== "refunded") {
+          defects.record(`cancelled job ${job.id}: test-mode orphan refunded (${refundId ?? "already"}) but the job is ${nowErr ? `unreadable (${nowErr.message})` : `now '${status}'`}, not refunded`);
+        }
+        return false;
+      }
+      console.log(JSON.stringify({
+        event: "test_mode_paid_orphan_refunded", fn: "void-cancelled-payments", job_id: job.id,
+        session_id: job.stripe_session_id, payment_intent: pi, refund_id: refundId,
+      }));
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "warning",
+        title: "TEST-mode checkout paid on a cancelled job: refunded in test mode",
+        message: `Job ${job.id} ("${job.title}") was cancelled while its TEST-mode checkout ${job.stripe_session_id} was paid and never settled (no test-mode webhook reached prod). Sandbox money only: refunded on the test key${refundId ? ` (${refundId})` : " (it was already refunded)"} and the job marked refunded.`,
+        fields: { job_id: job.id, session_id: job.stripe_session_id },
+        oncePerDayKey: `test-orphan-refunded:${job.id}`,
+        seed: job.is_seed === true,
+      });
+      return true;
+    };
     for (const job of (cancelledUnpaid || [])) {
       // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
       let stripe: Stripe;
+      let jobMode: "live" | "test";
       try {
-        ({ stripe } = await stripes.clientForJob(job.id, "read"));
+        ({ stripe, mode: jobMode } = await stripes.clientForJob(job.id, "read"));
       } catch (modeErr) {
         if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
         defects.record(`stripe mode ${job.id}: ${modeErr.reason}: ${modeErr.message}`);
@@ -1111,6 +1206,24 @@ serve(async (req) => {
         }
         if (session.payment_status === "unpaid" && session.status !== "complete") {
           if (await markAbandoned(job, "cancelled, checkout never paid")) abandonedCount++;
+        } else if (jobMode === "test") {
+          // The same rule as every money path here (Q231): an unexecuted
+          // dispute decision owns a job's money, and a failed read refunds
+          // nothing. A cancelled + unpaid job should never carry one; checked
+          // anyway, so this refund can only run after the guard.
+          const orphanSettlement = await checkUnsettledDispute(supabaseAdmin, job.id);
+          if (orphanSettlement.blocked) {
+            // Never silent: a decided, unexecuted dispute on a cancelled +
+            // unpaid job should be impossible, and this job stays a paid
+            // orphan until someone looks (lh-money-escrow review, finding 3).
+            defects.record(
+              orphanSettlement.readError
+                ? `dispute check ${job.id}: ${orphanSettlement.readError} — test-mode orphan not refunded`
+                : `cancelled job ${job.id}: test-mode orphan held by unexecuted dispute ${orphanSettlement.dispute?.id ?? "?"}; not refunded`,
+            );
+            continue;
+          }
+          if (await refundTestOrphan(job, session)) testOrphansRefunded++;
         } else {
           // Stripe says this checkout TOOK MONEY on a job the DB has as
           // cancelled + unpaid: the webhook never settled it. Page it here,
@@ -2169,6 +2282,7 @@ serve(async (req) => {
         voided,
         refunded,
         abandoned: abandonedCount,
+        test_orphans_refunded: testOrphansRefunded,
         gifts_unfrozen: giftsUnfrozen,
         crew_shares_retried: crewSharesRetried,
         block_fees_retried: blockFeesRetried,

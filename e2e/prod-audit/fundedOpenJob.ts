@@ -30,7 +30,7 @@
  * key (500 "No such payment_intent", 36eebad4, every run until this fix).
  */
 import { type APIRequestContext, type Browser } from "@playwright/test";
-import { test } from "../prodTest";
+import { chromium, test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields, waitForStripePaymentMethods } from "../stripeCheckoutCard";
@@ -195,10 +195,31 @@ export async function createFixtureRow(api: APIRequestContext, poster: Session, 
   return rows[0];
 }
 
-/** Pay a Checkout Session on Stripe's hosted page. Throws; never skips. */
+/**
+ * Pay a Checkout Session on Stripe's hosted page. Throws; never skips.
+ *
+ * ALWAYS IN CHROMIUM. The app never shows Stripe inside its WKWebView (native
+ * hands Checkout to SFSafariViewController), and Stripe's hosted page renders
+ * nothing usable in Playwright's Linux WebKit: journeys-webkit 38527058685,
+ * 04-admin-safety admin-refund, found "#cardNumber x0, role=radio x0, buttons
+ * []" on a cs_test_ session Chromium paid minutes earlier in the same run. The
+ * journeys' own payer already does this (e2e/journeys/stripeInChromium.ts);
+ * this fixture is the one the 04-* journeys fund through. Guard:
+ * src/test/journeyStripeEngine.test.ts.
+ */
 async function payCheckout(browser: Browser, url: string): Promise<void> {
   if (!/\/cs_test_[A-Za-z0-9]+/.test(url)) throw new Error(`funded fixture: refusing to pay ${url.slice(0, 80)} — not a cs_test_ session`);
-  const ctx = await browser.newContext();
+  // A job that installed only WebKit (no Chromium binary) keeps the old
+  // behaviour, said out loud, rather than failing on the launch itself.
+  const launched = browser.browserType().name() === "chromium"
+    ? null
+    : await chromium.launch().catch((err: unknown) => {
+        console.log(`funded fixture: no Chromium to pay Stripe in (${String(err).split("\n")[0].slice(0, 120)}); paying in ${browser.browserType().name()}`);
+        return null;
+      });
+  const own = launched === null;
+  const engine = launched ?? browser;
+  const ctx = await engine.newContext();
   const page = await ctx.newPage();
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
@@ -229,6 +250,7 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
     throw new Error("funded fixture: Stripe Checkout never submitted after 3 Pay taps");
   } finally {
     await ctx.close().catch(() => {});
+    if (!own) await engine.close().catch(() => {});
   }
 }
 

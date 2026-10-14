@@ -20,12 +20,17 @@
  *      (e2e/journeys/stripeInChromium.ts), which launches `chromium`.
  *   3. Every e2e-journeys.yml job that runs a journeys project installs the
  *      chromium browser, so rule 2 has an engine to launch.
+ *   4. The funded-job fixture the 04-* journeys fund through
+ *      (e2e/prod-audit/fundedOpenJob.ts payCheckout) pays in Chromium too when
+ *      handed a WebKit browser: journeys-webkit 38527058685 admin-refund found
+ *      "#cardNumber x0, role=radio x0, buttons []" on Stripe's page in WebKit.
  */
 
 // @mutate e2e/journeys/02-marketplace.spec.ts | await payCheckoutSession(page); | await payOnStripeCheckout(page);
 // @mutate e2e/journeys/fixtures.ts | if (engineOf(page) === "chromium") { | if (engineOf(page) !== "") {
 // @mutate .github/workflows/e2e-journeys.yml | playwright-install.sh webkit chromium | playwright-install.sh webkit
 // @mutate e2e/journeys/stripeInChromium.ts | const browser = await chromium.launch(); | const browser = await webkit.launch();
+// @mutate e2e/prod-audit/fundedOpenJob.ts |   const engine = launched ?? browser; |   const engine = browser;
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -98,5 +103,14 @@ describe("journeys pay Stripe in the engine the product shows it in", () => {
       const install = /scripts\/ci\/playwright-install\.sh ([^\n]+)/.exec(job)?.[1] ?? "";
       expect(install.split(/\s+/), `${name} does not install chromium, which payCheckoutSession launches`).toContain("chromium");
     }
+  });
+  it("the funded-job fixture pays Stripe in Chromium when handed another engine (rule 4)", () => {
+    const src = blankComments(readFileSync(join(root, "e2e/prod-audit/fundedOpenJob.ts"), "utf8"));
+    const body = /async function payCheckout\([\s\S]*?\n}\n/.exec(src)?.[0] ?? "";
+    expect(body.length, "payCheckout not found in fundedOpenJob.ts").toBeGreaterThan(200);
+    expect(body).toMatch(/browserType\(\)\.name\(\) === "chromium"/);
+    expect(body).toMatch(/await chromium\.launch\(\)/);
+    expect(body).toMatch(/const engine = launched \?\? browser;/);
+    expect(body).toMatch(/await engine\.newContext\(\)/);
   });
 });

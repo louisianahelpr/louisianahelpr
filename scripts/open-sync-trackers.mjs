@@ -39,7 +39,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { nextFreeNumber } from "./lib/queueAllocator.mjs";
-import { FINDINGS, SNAPSHOT, LEDGER_SQL, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts, openAlertIssues } from "./lib/openFeeds.mjs";
+import { FINDINGS, SNAPSHOT, LEDGER_SQL, snapshotText, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts, openAlertIssues } from "./lib/openFeeds.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPEN = "docs/OPEN.md";
@@ -99,7 +99,8 @@ function apply(snap, { dryRun }) {
   console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} alert issue, ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
   if (!dryRun) {
     writeFileSync(join(ROOT, OPEN), res.md);
-    writeFileSync(join(ROOT, SNAPSHOT), JSON.stringify(out, null, 2) + "\n");
+    const snapPath = join(ROOT, SNAPSHOT);
+    writeFileSync(snapPath, snapshotText(existsSync(snapPath) ? readFileSync(snapPath, "utf8") : null, out));
   }
   return snap.issues.readable && snap.ledger.readable && !res.ambiguous.length;
 }
@@ -117,7 +118,7 @@ async function main() {
   }
   if (argv.includes("--measure-only")) {
     const out = opt("out") ?? join(ROOT, SNAPSHOT);
-    writeFileSync(out, JSON.stringify(snap, null, 2) + "\n");
+    writeFileSync(out, snapshotText(existsSync(out) ? readFileSync(out, "utf8") : null, snap));
     console.log(`measured ${snap.issues.open.length} issue(s), ${snap.ledger.open.length} ledger row(s) -> ${out}`);
     process.exit(snap.issues.readable && snap.ledger.readable ? 0 : 1);
   }

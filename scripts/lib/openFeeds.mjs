@@ -24,6 +24,26 @@ export const FINDINGS = "docs/audit/launch-2026-09/findings.jsonl";
 export const SNAPSHOT = "docs/audit/open-feeds.json";
 export const FEEDS_HEADING = "## FEEDS — mirrored from the alert ledger, nightly-red issues and the audit bus (node scripts/open-sync-trackers.mjs)";
 
+/**
+ * The text to write for the feeds snapshot. When nothing but `measured_at`
+ * changed, the previous text is kept byte for byte: a fresh timestamp alone
+ * made every open-auto-tick run open a PR, whose merge re-deployed prod, whose
+ * finished deploy re-ran open-auto-tick (a PR every ~5 min, #3089-#3102,
+ * 2026-10-14). Nothing reads measured_at for freshness.
+ */
+export function snapshotText(prevText, snap) {
+  const next = JSON.stringify(snap, null, 2) + "\n";
+  if (prevText == null) return next;
+  try {
+    const { measured_at: _a, ...prev } = JSON.parse(prevText);
+    const { measured_at: _b, ...cur } = snap;
+    if (JSON.stringify(prev) === JSON.stringify(cur)) return prevText;
+  } catch {
+    // An unreadable previous snapshot is replaced.
+  }
+  return next;
+}
+
 const TAG = /feed: (issue #\d+|ledger [0-9a-f]{12}|bus [A-Z]+-\d+(?:#[\w-]+)?)/g;
 const ITEM = /^- \[([ x~])\] \*\*(Q\d+)\b/;
 const ITEM_START = /^(- \[|#)/;

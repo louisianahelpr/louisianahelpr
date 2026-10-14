@@ -16,15 +16,15 @@ lawyer, a CPA, the owner, or a slice that is not built yet, the text says so in 
 
 ## Every [OWNER/LAWYER TO CONFIRM] item in this draft
 1. **Auction law (lawyer + board).** That fixed price + private offers + slow daily price drops is outside Louisiana's auction law (La. R.S. 37:3103). The record lists this as an owner to-do: call the Louisiana Auctioneers Licensing Board. The terms say "this is not an auction"; a lawyer should approve that sentence. (Sections 1, 5)
-2. **Who counts as "in Louisiana" (owner/lawyer).** The record says Declutter covers "all of Louisiana" but does not say whether the BUYER must live in Louisiana, or only that the item and the handover are in Louisiana. (Section 2)
-3. **Per-item price limit (owner).** $1 to $10,000 per item is a sanity cap the build agent chose (B3), not an owner number. (Section 3)
+2. ~~**Who counts as "in Louisiana"**~~ DECIDED (owner row 69, 2026-10-14): anyone may buy; the item and pickup stay in Louisiana. The record says Declutter covers "all of Louisiana" but does not say whether the BUYER must live in Louisiana, or only that the item and the handover are in Louisiana. (Section 2)
+3. ~~**Per-item price limit**~~ DECIDED (owner row 70): $1,000 per item. $1 to $10,000 per item is a sanity cap the build agent chose (B3), not an owner number. (Section 3)
 4. **Where price drops stop (owner, build mismatch).** Row 61 says drops stop at a random point slightly ABOVE the seller's lowest price, but the built price-drop job (B35) stops AT the lowest price. The draft follows row 61; the build must match before launch. (Section 5)
 5. **Taking a listing down while offers are open (owner).** Row 19 says cancelling after bids is a strike (0 bids = free). In offers mode the build only gives a strike once the seller has ACCEPTED an offer; withdrawing with open, unanswered offers is free. The draft follows the build. (Sections 3, 11)
 6. **Refund when the seller cancels while the buyer is paying, and when a payment lands late (owner).** Both are open in the record ("NOT fixed, for slice 3b"). (Section 10)
 7. **Card fee on our-mistake refunds vs other refunds in Declutter (owner).** The record's general rule is: our mistake = full refund; every other refund keeps the card fee. Rows 18 and 60 cover two Declutter cases; the record says slice 3b still needs a reason code for each refund kind. (Section 10)
-8. **Disputes after handover (owner/lawyer).** The record says Declutter needs its own version of disputes (job disputes are job-only today), and it does not say who decides when the buyer and seller disagree (for example, each says the other missed the pickup, or a porch-pickup "problem" report). (Sections 7, 9, 10)
+8. ~~**Disputes after handover**~~ DECIDED (owner row 67): "Report a problem" holds the money; Louisiana Helpr decides from both sides' photos and messages. The record says Declutter needs its own version of disputes (job disputes are job-only today), and it does not say who decides when the buyer and seller disagree (for example, each says the other missed the pickup, or a porch-pickup "problem" report). (Sections 7, 9, 10)
 9. **Strike appeals are not built yet (owner).** Row 49 decides the rule; the record says appeals and the admin strike queue are still not built. (Section 11)
-10. **Off-app payments inside Declutter (owner).** The main Terms already ban off-platform payments and the Community Rules make them an immediate-ban offense for jobs. The record does not say whether a Declutter off-app payment also earns a Declutter strike or follows the job rule as is. (Section 12)
+10. ~~**Off-app payments inside Declutter**~~ DECIDED (owner row 68): same rule as jobs. The main Terms already ban off-platform payments and the Community Rules make them an immediate-ban offense for jobs. The record does not say whether a Declutter off-app payment also earns a Declutter strike or follows the job rule as is. (Section 12)
 11. **Storm pause is not built yet (owner).** Row 39 decides the rule; the record says the pause switch "doesn't exist yet". (Section 15)
 12. **Switch turned off mid-sale (owner, build mismatch).** Row 62 says agreed sales may still finish with no strike, but the record notes a buyer whose access is switched off after an accept currently cannot check out and would be struck. (Section 16)
 13. **"Not an escrow" wording (lawyer).** The record's Stripe note says not to call Declutter payments "escrow"; the main Terms use "escrow" for jobs. The draft avoids the word for Declutter. (Sections 8, 17)
@@ -81,7 +81,7 @@ Delivery by a Helpr and shipping are not available yet.
 To buy, make offers, or sell in Declutter you must:
 - **Be 18 or older.** Members under 18 can't buy, make offers or sell; the buttons are greyed out and our server refuses the request too. This is the same rule as jobs.
 - **Have a Louisiana Helpr account in good standing**, signed in, not banned, with fewer than 3 active Declutter strikes (see section 11).
-- **Be dealing in items located in Louisiana.** Declutter covers all of Louisiana, nearest items first. **[OWNER/LAWYER TO CONFIRM #2: must the buyer also live in Louisiana?]**
+- **Be dealing in items located in Louisiana.** Declutter covers all of Louisiana, nearest items first. Items and pickups must be in Louisiana; buyers may live anywhere.
 
 Sellers must also **set up payouts with Stripe before their first listing**, the same step Helprs take before
 getting paid (see Terms → Payouts & Stripe Connect).
@@ -117,8 +117,8 @@ banned items.
 Helpr admin to approve them. If an admin rejects a listing, you see the reason. We may also remove any
 listing that breaks these terms.
 
-**Price.** You set a price and a lowest price you'll accept (kept private). Prices are from $1 to $10,000 per
-item. **[OWNER/LAWYER TO CONFIRM #3: the $10,000 cap was chosen by the build, not by the owner.]** If you
+**Price.** You set a price and a lowest price you'll accept (kept private). Prices are from $1 to $1,000 per
+item. If you
 don't want your price to drop, set your lowest price equal to your price.
 
 **Location.** You give your pickup address (kept private) and a public area name like "River Road area" or
@@ -249,7 +249,7 @@ at handover. You get a **full refund** (item price and buyer's fee) and the sell
 **Once you confirm, the sale is final.** When you confirm the handover, the seller is paid and the item is
 yours **as is**. There are no returns after that.
 
-**[OWNER/LAWYER TO CONFIRM #8 applies: the record does not yet describe a Declutter dispute process.]**
+**Problems after a sale.** If something goes wrong (a missed pickup, an item that wasn't on the porch, an item not as described), either of you can tap "Report a problem" on the sale. The money stays held while Louisiana Helpr looks at both sides' photos and messages and decides: a refund, payment to the seller, or a split, and whether anyone gets a strike.
 
 *Source: rows 15, 19, 28.*
 
@@ -303,7 +303,7 @@ and either removes the strike or keeps it. **[OWNER/LAWYER TO CONFIRM #9: appeal
 ## 12. Fair play
 - **No offers on your own items.** Offers from someone who shares the seller's household, phone or card are flagged to an admin. **A member proven to have made fake offers is removed from Declutter.**
 - **No self-dealing or fake activity** of any kind to push a price or test a seller's lowest price.
-- **No off-app payments.** Pay only through checkout. Asking for or arranging payment outside Louisiana Helpr is already banned by the Terms (Prohibited conduct) and the Community Rules. **[OWNER/LAWYER TO CONFIRM #10: whether a Declutter off-app payment also earns a Declutter strike or follows the job rule as is.]**
+- **No off-app payments.** Pay only through checkout. Asking for or arranging payment outside Louisiana Helpr is already banned by the Terms (Prohibited conduct) and the Community Rules. On Declutter it is handled exactly as it is for jobs.
 - Everything in Community Rules → The basics (respect, honesty, safety, reporting) applies here too.
 
 *Source: rows 35, 48; B27; main Terms "Prohibited conduct"; Community Rules.*

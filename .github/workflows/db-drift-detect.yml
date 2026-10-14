@@ -239,11 +239,13 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
-      # Q1321: the Supabase PERFORMANCE advisor (unused indexes, overlapping
-      # permissive policies, Auth's connection strategy) held to an EXACT
-      # per-class count in scripts/ci/performance-advisor-baseline.json, both
-      # ways: a new finding and a fixed one whose baseline was not lowered are
-      # both red. Management API only (no SQL load). Same shape as above.
+      # Q1321, Q1816: the Supabase PERFORMANCE advisor held to an EXACT
+      # baseline in scripts/ci/performance-advisor-baseline.json. Overlapping
+      # permissive policies and Auth's connection strategy are exact COUNTS,
+      # both ways. Unused indexes are an exact SET of names: a new one is red;
+      # one that leaves (real traffic scanned it) is a notice naming the line
+      # to remove, never red, because that is traffic, not code. Management
+      # API only (no SQL load). Same shape as above.
       - name: The performance advisor is at its exact baseline
         id: performance_advisor
         continue-on-error: true
@@ -647,8 +649,8 @@ jobs:
             failed=1
           fi
           if [ "${PERFORMANCE_ADVISOR:-success}" = "failure" ]; then
-            echo "::error::The Supabase performance advisor is off its exact baseline (a new finding, or a fixed one whose baseline was not lowered) — or it could not be read. See 'The performance advisor is at its exact baseline' above (docs/OPEN.md Q1321)."
-            echo "::error::FIX: fix the new finding, or set scripts/ci/performance-advisor-baseline.json to the measured count in the change that moved it."
+            echo "::error::The Supabase performance advisor is off its exact baseline (a new unused index name, a code-driven class above or below its count) — or it could not be read. See 'The performance advisor is at its exact baseline' above (docs/OPEN.md Q1321, Q1816)."
+            echo "::error::FIX: drop the new unused index (or add its name with the reason), or set the class's count in scripts/ci/performance-advisor-baseline.json in the change that moved it."
             failed=1
           fi
           if [ "${DEPLOYED_FUNCTIONS:-success}" = "failure" ]; then

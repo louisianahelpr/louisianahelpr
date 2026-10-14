@@ -156,8 +156,14 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/audit/a11y-webkit-known.json": {
     "[]": "scripts/audit/a11y-engine-diff.mjs:const stale = known.filter((k) => !seen.has(k.key))",
   },
+  // PARTIAL by design (Q1816), like overlay-sweep above: an unused_index name
+  // leaves the advisor when real traffic first scans the index, so "not seen
+  // tonight" is not a fix and only prints the line to remove. The
+  // deterministic way a name leaves (a migration drops or renames the index or
+  // its table) is what fails, on every push. `counts` is exact both ways.
   "scripts/ci/performance-advisor-baseline.json": {
     counts: "scripts/check-performance-advisor.mjs:else if (n < b) out.under.push(",
+    unused_index: "src/test/performanceAdvisorBaseline.test.ts:expect(droppedByMigration(b.unused_index, all)).toEqual([]);",
   },
   "scripts/audit/function-body-drift.baseline.json": {
     accepted: "scripts/audit/function-body-drift.mjs:const staleEntries =",

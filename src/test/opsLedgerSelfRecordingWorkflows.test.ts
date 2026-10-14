@@ -160,6 +160,55 @@ describe("deploy workflows' failure steps: one red, one ledger item (#2463)", ()
     expect(failureStepRecorders(yml)).toEqual(["x.yml"]);
   });
 
+  // Q1808 (prod-errors red on all 3 runs of 2026-10-14): expiry-monitor's
+  // "Tell Slack" step recorded a9b910cf workflow/expiry-monitor WITHOUT
+  // --fails-run while its notify job opened a nightly-red issue for the same
+  // red run (f2e7fb6e), and `list --fail-on-dupes` failed every prod-errors run.
+  // The class: a workflow that reports to the nightly-red label and records a
+  // `--source-kind workflow` item verified by ITSELF must record it with
+  // --fails-run (so the item covers its red run), unless that record sits on a
+  // path where the run stays green. Those are listed here, EXACT, with why.
+  // @mutate .github/workflows/expiry-monitor.yml | --verify-ref "expiry-monitor.yml" --fails-run \ | --verify-ref "expiry-monitor.yml" \
+  it("a nightly-red workflow's own workflow item covers its red run (--fails-run), or is a listed green-path record", () => {
+    const GREEN_PATH: Record<string, string> = {
+      // Tell Slack runs on warn == 'true' with an implied success(): the usage
+      // step exits 0 on a warning, so the run is green and no nightly-red item exists.
+      "supabase-usage.yml": "warning recorded on a green run",
+    };
+    const nightlyRed = (text: string) =>
+      [...text.matchAll(/uses:\s*\.\/\.github\/actions\/nightly-issue-sync\b([\s\S]*?)(?=\n\s*-\s+(?:name|uses|run):|\n\s{0,2}\S|$)/g)]
+        .some((m) => !/\n\s*label:\s*(?!["']?nightly-red\b)/.test(m[1]));
+    const found: string[] = [];
+    let recorders = 0;
+    for (const { file, text } of FILES) {
+      if (!nightlyRed(text)) continue;
+      const joined = text.replace(/\\\r?\n\s*/g, " ");
+      for (const m of joined.matchAll(/^[^\n#]*ops-alert-ledger\.mjs record\b[^\n]*$/gm)) {
+        const line = m[0];
+        if (!/--source-kind\s+["']?workflow\b/.test(line)) continue;
+        const ref = /\s--verify-ref\s+["']?([\w.-]+\.ya?ml)/.exec(line)?.[1];
+        if (ref !== file) continue;
+        recorders++;
+        if (!/\s--fails-run\b/.test(line)) found.push(file);
+      }
+    }
+    // Floor: expiry-monitor and supabase-usage both record their own workflow item.
+    expect(recorders).toBeGreaterThanOrEqual(2);
+    expect(found.sort()).toEqual(Object.keys(GREEN_PATH).sort());
+  });
+
+  it("expiry-monitor is derived as self-recording, and its record step only runs on a red run", () => {
+    expect([...SELF]).toContain("expiry-monitor");
+    const yml = FILES.find((f) => f.file === "expiry-monitor.yml")!.text;
+    expect(yml).toMatch(/if: \$\{\{ failure\(\) && steps\.expiry\.outputs\.warn == 'true' \}\}/);
+    // expiry-check exits 1 whenever warn is true, so failure() never hides a due item.
+    const cli = blankComments(readFileSync(join(ROOT, "scripts/expiry-check.mjs"), "utf8"));
+    expect(cli).toMatch(/warn=\$\{v\.due\.length \? "true" : "false"\}/);
+    expect(cli).toMatch(/process\.exit\(v\.fail \? 1 : 0\)/);
+    const lib = blankComments(readFileSync(join(ROOT, "scripts/lib/expiryMonitor.mjs"), "utf8"));
+    expect(lib).toMatch(/fail: due\.length > 0 \|\|/);
+  });
+
   it("the CLI gives a --fails-run item its run and job (failingRunRef)", () => {
     const cli = blankComments(readFileSync(join(ROOT, "scripts/ops-alert-ledger.mjs"), "utf8"));
     expect(cli).toMatch(/sampleRef: flag\("fails-run"\) \? \{ \.\.\.failingRunRef\(\),/);

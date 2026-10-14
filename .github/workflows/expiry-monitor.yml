@@ -105,9 +105,14 @@ jobs:
         run: node scripts/expiry-check.mjs --ci --warn-days "$WARN_DAYS"
 
       # Only when something is inside the window. A missing webhook fails
-      # loudly rather than skipping (the run is already red either way).
+      # loudly rather than skipping (the run is already red either way:
+      # expiry-check exits 1 whenever warn is true, so failure() holds here).
+      # Q1808: --fails-run makes this item cover its own red run, so the
+      # notify job's nightly-red issue is not a SECOND ledger item for the
+      # same red (the pair f2e7fb6e + a9b910cf turned prod-errors red on
+      # every run of 2026-10-14). --fails-run belongs only in a failure() step.
       - name: Tell Slack
-        if: ${{ !cancelled() && steps.expiry.outputs.warn == 'true' }}
+        if: ${{ failure() && steps.expiry.outputs.warn == 'true' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -119,7 +124,7 @@ jobs:
           # ledger item stays open until this workflow's own re-run is green.
           # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
           node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "expiry-monitor" \
-            --title "A credential or certificate expires within 30 days" --severity error --verify-ref "expiry-monitor.yml" \
+            --title "A credential or certificate expires within 30 days" --severity error --verify-ref "expiry-monitor.yml" --fails-run \
             --sample "${SUMMARY}" --run-url "${RUN_URL}" || true
           set -euo pipefail
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then

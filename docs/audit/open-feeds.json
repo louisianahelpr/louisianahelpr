@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-13T18:41Z",
+  "measured_at": "2026-10-14T08:22Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,11 +50,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2932,
-        "title": "nightly-red: scoreboard",
-        "label": "nightly-red"
-      },
-      {
         "number": 2937,
         "title": "nightly-red: slow-network",
         "label": "nightly-red"
@@ -77,6 +72,16 @@
       {
         "number": 2978,
         "title": "nightly-red: feature-switch-audience",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2993,
+        "title": "nightly-red: expiry-monitor",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2995,
+        "title": "nightly-red: prod-errors",
         "label": "nightly-red"
       }
     ]
@@ -181,12 +186,12 @@
         "issue": 2937
       },
       {
-        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "fingerprint": "f8483bba3b3aa9964dc4fc7dbcacfbf5",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: schedule-heartbeat",
-        "issue": 2911
+        "title": "nightly-red: expiry-monitor",
+        "issue": 2993
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -197,12 +202,20 @@
         "issue": 2375
       },
       {
+        "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: nightly-webkit",
+        "issue": 2962
+      },
+      {
         "fingerprint": "18539240a894224e952b88b2b21bb927",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 2941
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -211,14 +224,6 @@
         "status": "open",
         "title": "nightly-red: branch-prune",
         "issue": 2366
-      },
-      {
-        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
-        "source_kind": "nightly_red",
-        "source": "schedule-stalled",
-        "status": "open",
-        "title": "🔴 # scheduled workflow(s) have stopped running",
-        "issue": 2910
       },
       {
         "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
@@ -533,12 +538,52 @@
         "issue": null
       },
       {
-        "fingerprint": "341247bd75499ca81fbf89df6319f75f",
+        "fingerprint": "a13c4edc69832354d5e579c068462874",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: scoreboard",
-        "issue": 2932
+        "title": "nightly-red: feature-switch-audience",
+        "issue": 2978
+      },
+      {
+        "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: void-cancelled-payments returned 500 (# defect(s) reported)",
+        "issue": null
+      },
+      {
+        "fingerprint": "0411d219f4108f09536badb924b77406",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/Signup-DIXUrngk)",
+        "status": "open",
+        "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
+        "issue": null
+      },
+      {
+        "fingerprint": "caab19e71ae99b285e20eb42a5be1291",
+        "source_kind": "sentry",
+        "source": "sentry:Ku(assets/app-shared-CkIDj-oG)",
+        "status": "open",
+        "title": "error: permission denied for table profiles",
+        "issue": null
+      },
+      {
+        "fingerprint": "379653db0e8db581556265801c81fe87",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/ProtectedRoute-BOkAU22A)",
+        "status": "open",
+        "title": "error: session lost on a signed-in screen",
+        "issue": null
+      },
+      {
+        "fingerprint": "8114e0acbcb0b5370d95baf9346598cb",
+        "source_kind": "workflow",
+        "source": "expiry-monitor",
+        "status": "open",
+        "title": "a credential or certificate expires within # days",
+        "issue": null
       }
     ]
   },
@@ -567,7 +612,10 @@
     "issue #2941": "Q1779",
     "issue #2962": "Q1780",
     "issue #2978": "Q1781",
+    "issue #2993": "Q1807",
+    "issue #2995": "Q1808",
     "ledger 03faea228969": "Q1602",
+    "ledger 0411d219f410": "Q1810",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 13c460ab330a": "Q1599",
     "ledger 144d5faeaf8f": "Q1598",
@@ -579,6 +627,7 @@
     "ledger 27c479ef17f8": "Q1596",
     "ledger 341247bd7549": "Q1774",
     "ledger 36bcfb8c2391": "Q1696",
+    "ledger 379653db0e8d": "Q1812",
     "ledger 3a3460b71be7": "Q1778",
     "ledger 40a33605c7c3": "Q1603",
     "ledger 41f88aeb227f": "Q1777",
@@ -588,19 +637,23 @@
     "ledger 4b5ace7af165": "Q1621",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1610",
+    "ledger 60298a019ea3": "Q1809",
     "ledger 60afeab5c360": "Q1636",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
     "ledger 6471854dcd82": "Q1597",
     "ledger 65bd41ba4452": "Q1597",
+    "ledger 70e7b0decb9a": "Q1780",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
+    "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 88ecf6e765df": "Q1426",
     "ledger 8a2e802edbe7": "Q1741",
     "ledger 8ad756b6da76": "Q1630",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q1698",
+    "ledger a13c4edc6983": "Q1781",
     "ledger a8ceee56bbd5": "Q1775",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger ab736843373b": "Q1620",
@@ -612,6 +665,7 @@
     "ledger bd4c3063280b": "Q1600",
     "ledger c1ad0c081216": "Q1603",
     "ledger c31b9a387af0": "Q1638",
+    "ledger caab19e71ae9": "Q1811",
     "ledger cd2127b53ee7": "Q1597",
     "ledger d1585655d567": "Q1601",
     "ledger d1f8391b44ec": "Q1631",
@@ -625,8 +679,8 @@
     "ledger e306dea6b044": "Q1601",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1609",
-    "ledger ed333dc86f47": "Q1644",
     "ledger ed3f34acc0e1": "Q1598",
-    "ledger f3c752b3230f": "Q1609"
+    "ledger f3c752b3230f": "Q1609",
+    "ledger f8483bba3b3a": "Q1807"
   }
 }

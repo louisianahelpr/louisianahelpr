@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 156 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 611 (across 158 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 615 (across 159 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 23 |
 | Multi-step flows — probable | flow | 16 |
 | Back/next navigation only | flow | 39 |
 | Forms (submittable) | form | 42 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 128 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 129 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **484** |
-| **Copy surfaces** (strings a person may read) | mixed | **649** |
-| **Total auditable surface** | mixed | **1133** |
+| **Navigable surfaces** (places a person can stand) | mixed | **485** |
+| **Copy surfaces** (strings a person may read) | mixed | **653** |
+| **Total auditable surface** | mixed | **1138** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing

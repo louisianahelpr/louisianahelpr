@@ -57,7 +57,7 @@ vi.mock("@/integrations/supabase/client", () => {
   };
   const chainFor = (table: string) => {
     const chain: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "is", "order", "limit", "not", "update", "in"]) chain[m] = () => chain;
+    for (const m of ["select", "eq", "is", "order", "limit", "not", "update", "in", "or"]) chain[m] = () => chain;
     chain.then = (res: (v: unknown) => unknown) => res(result(table));
     return chain;
   };

@@ -157,7 +157,7 @@ describe("every label a workflow files issues under reaches the ledger and OPEN.
     expect(asked).toEqual(ALERT_LABELS);
     expect(got).toEqual([
       { number: 2196, title: "🔴 3 scheduled workflow(s) have stopped running", label: "schedule-stalled" },
-      { number: 2197, title: "nightly-red: schedule-heartbeat", label: "nightly-red" },
+      { number: 2197, title: "nightly-red: schedule-heartbeat", label: "nightly-red", run: null, runTruncated: false },
     ]);
     expect(blankComments(read("scripts/open-sync-trackers.mjs"))).toMatch(/snap\.issues = \{ readable: true, open: openAlertIssues\(list\) \}/);
     // The issue and its ledger row are ONE source: one item, both tags, the issue's done-when.
@@ -168,7 +168,10 @@ describe("every label a workflow files issues under reaches the ledger and OPEN.
     expect(g?.title).toBe("schedule-stalled: 3 scheduled workflow(s) have stopped running");
     expect(g?.origin).toMatch(/^schedule-stalled issue #2196 and alert-ledger row abcdef012345$/);
     expect(g?.markers[0]).toBe("done-when: issue #2196 closed");
-    expect(groups.find((x) => x.keys.includes("issue #2197"))?.title).toBe("nightly-red: schedule-heartbeat is red");
+    // A nightly-red issue is one member of the ONE test-robots item (src/test/openRobotsRollup.test.ts).
+    const robots = groups.find((x) => x.keys.includes("issue #2197"));
+    expect(robots?.title).toBe("Fix the test robots: 1 overnight check red");
+    expect(robots?.robots?.map((m) => m.workflow)).toEqual(["schedule-heartbeat"]);
   });
 
   it("the done-when checker holds every alert label's issue to its own green run", () => {

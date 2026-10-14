@@ -941,7 +941,7 @@ export function renderOpenBlock(local, liveBlock, openText = "") {
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).${launchLine}
+- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from alert issues (ONE "Fix the test robots" item lists all ${f.robots} red overnight checks), ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).${launchLine}
 ${LIVE_START}
 ${(liveBlock ?? "- **Live (workflows, branches): never measured** — run `node scripts/scoreboard.mjs --write`.").split("\n").filter((l) => !/^- \*\*(Ops alert ledger|nightly-red issues):/.test(l)).join("\n")}
 ${LIVE_END}

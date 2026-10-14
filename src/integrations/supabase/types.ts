@@ -8348,6 +8348,7 @@ export type Database = {
         Args: { p_report_id: string }
         Returns: string
       }
+      ops_alert_sentry_source: { Args: { p_source: string }; Returns: string }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
       poster_cancel_job: {

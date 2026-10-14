@@ -1,5 +1,6 @@
-import { registerPlugin } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { report } from "@/lib/errorLogger";
 
 /**
  * EN-ROUTE LOCATION WATCH — the one place that knows how to follow a helper
@@ -85,6 +86,42 @@ type BackgroundLocationPluginShape = {
  * (CLAUDE.md). Only ever await its METHODS.
  */
 const BackgroundLocation = registerPlugin<BackgroundLocationPluginShape>("BackgroundLocation");
+
+/**
+ * The iOS fallback is reported ONCE per app process, not once per job: a
+ * helper who taps "On My Way" on five jobs is one broken build, not five rows.
+ */
+let iosFallbackReported = false;
+
+/** Test seam: forget that the fallback was reported. */
+export function _resetIosFallbackReportForTests() {
+  iosFallbackReported = false;
+}
+
+/**
+ * LOUD, not silent. On iOS the native plugin is part of the app target
+ * (ios/App/App/BackgroundLocationPlugin.swift, registered by
+ * HelprBridgeViewController), so reaching the fallback there means the build
+ * is missing it or it failed to start. 1.0.4 build 7119 shipped exactly that
+ * way, unnoticed, because this path only degraded the mode. The helper still
+ * gets the foreground watch; error_logs gets one row saying why.
+ * Android has no native implementation, so the fallback there is expected and
+ * not reported.
+ */
+function reportIosFallback(e: unknown) {
+  if (iosFallbackReported || Capacitor.getPlatform() !== "ios") return;
+  iosFallbackReported = true;
+  const code = (e as { code?: string } | null)?.code ?? null;
+  const what =
+    code === "UNIMPLEMENTED"
+      ? "BackgroundLocation plugin is missing from this iOS build"
+      : "BackgroundLocation plugin failed to start on iOS";
+  report(new Error(`${what}: en-route tracking fell back to foreground-only`), {
+    severity: "error",
+    tags: { source: "enRouteLocation.iosFallback" },
+    context: { code, detail: e instanceof Error ? e.message : String((e as { message?: unknown } | null)?.message ?? e) },
+  });
+}
 
 /** Metres between writes. Matches the native default; passed explicitly so the
  *  web watch and the native watch agree on what "moved" means. */
@@ -255,7 +292,9 @@ export function startEnRouteWatch({ onPosition, onMode }: EnRouteWatchOptions): 
       }
       // UNIMPLEMENTED (an installed build older than this plugin), or anything
       // else we did not anticipate: fall back to a watch that at least works
-      // while the app is open, and report it as exactly that.
+      // while the app is open, and report it as exactly that. On iOS this is a
+      // defect in the build, so it is also logged (once per process).
+      reportIosFallback(e);
       if (!stopped) startWebNativeFallback();
     }
   };

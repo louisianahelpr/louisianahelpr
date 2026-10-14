@@ -30,7 +30,7 @@ interface PendingRow {
   photo_paths: string[];
 }
 
-export function whyWaiting(row: Pick<PendingRow, "ai_checked_at" | "ai_flag_reason" | "approved_listings">): string {
+function whyWaiting(row: Pick<PendingRow, "ai_checked_at" | "ai_flag_reason" | "approved_listings">): string {
   if (row.ai_flag_reason) return `Photo check flagged it: ${row.ai_flag_reason}`;
   if (row.approved_listings < 3) return `New seller (${row.approved_listings} of 3 approved listings)`;
   if (!row.ai_checked_at) return "The photo check did not run";

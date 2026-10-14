@@ -34,7 +34,7 @@ function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   return out;
 }
 
-export function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?: string; miles: number | null }) {
+function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?: string; miles: number | null }) {
   const away = milesLabel(miles);
   return (
     <Link

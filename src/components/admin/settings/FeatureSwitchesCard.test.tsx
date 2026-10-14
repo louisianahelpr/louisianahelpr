@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       if (stored !== change.to) throw | if (false) throw
 
 const requireBiometricMock = vi.fn<(reason: string) => Promise<boolean>>();
+vi.mock("./DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (reason: string) => requireBiometricMock(reason),
 }));

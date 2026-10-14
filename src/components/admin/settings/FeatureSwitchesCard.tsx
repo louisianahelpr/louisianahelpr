@@ -16,6 +16,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { useFeature } from "@/hooks/useFeature";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
+import { DeclutterReviewCard } from "./DeclutterReviewCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -79,7 +80,9 @@ export function FeatureSwitchesCard() {
     }
   };
 
+  // The Declutter review queue sits beside its switch (spec B23).
   return (
+    <>
     <AdminCard
       title={<span className="flex items-center gap-2"><ToggleRight className="w-4 h-4 text-primary" /> Hidden Feature Switches</span>}
       subtitle="New features ship switched to Testers only (admins and test accounts), then you flip them to Everyone. Every change is logged."
@@ -150,5 +153,7 @@ export function FeatureSwitchesCard() {
         secondaryLabel="Cancel"
       />
     </AdminCard>
+    <DeclutterReviewCard />
+    </>
   );
 }

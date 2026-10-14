@@ -7,7 +7,7 @@ import { whenPageSettled } from "@/lib/routePrefetch";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
 import { Analytics } from "@vercel/analytics/react";
 
-import { persistOptions } from "@/lib/queryPersister";
+import QueryCacheHydrator from "@/components/QueryCacheHydrator";
 // Shared singleton so the SIGNED_OUT handler in main.tsx can wipe the
 // same cache the provider wraps. See src/lib/queryClient.ts.
 import { queryClient } from "@/lib/queryClient";
@@ -540,49 +540,6 @@ const SessionManager = () => {
 };
 
 /**
- * Kicks off React Query cache hydration from IndexedDB AFTER first paint.
- *
- * The standard `PersistQueryClientProvider` wraps children in an
- * `IsRestoringProvider` that flips `isRestoring: true` until the async IDB
- * read finishes — that pauses every `useQuery` on the page (they sit at
- * `isLoading: true`) and effectively delays the *data* on first paint by
- * ~200-800ms even though the layout renders. By calling
- * `persistQueryClient` ourselves from a post-mount effect, queries fire
- * against the network immediately; cached entries fold in silently once
- * IDB finishes restoring. The worst case is a one-paint flicker on a
- * route that had cached data — still much better than a stalled spinner.
- *
- * The import is dynamic so the persist-client chunk (~3KB + idb-keyval)
- * stays off the entry bundle alongside the persister itself.
- */
-const QueryCacheHydrator = () => {
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { persistQueryClient } = await import(
-          "@tanstack/react-query-persist-client"
-        );
-        if (cancelled) return;
-        const [unsub] = persistQueryClient({
-          queryClient,
-          ...persistOptions,
-        });
-        unsubscribe = unsub;
-      } catch {
-        /* persistence is best-effort — never break the app */
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unsubscribe?.();
-    };
-  }, []);
-  return null;
-};
-
-/**
  * Mounts `<Toaster />` and `<Sonner />` only AFTER first paint.
  *
  * Even though both are `lazy()`-wrapped above, React still asks for their
@@ -642,7 +599,7 @@ const DeferredToasters = () => {
 
 const App = () => (
   <ErrorBoundary>
-    {/* Plain QueryClientProvider — see QueryCacheHydrator below for why we
+    {/* Plain QueryClientProvider — see components/QueryCacheHydrator.tsx for why we
         don't use PersistQueryClientProvider. Returning users still see
         last-known dashboard/jobs/messages once IDB hydrates, but queries
         no longer wait on IDB before firing against the network. See

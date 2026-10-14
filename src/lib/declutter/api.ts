@@ -11,7 +11,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 
-export const DECLUTTER_PHOTO_BUCKET = "job-photos";
+const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
 /**
  * A Declutter RPC's data, or a throw carrying the plain words for its refusal

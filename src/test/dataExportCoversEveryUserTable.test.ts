@@ -11,29 +11,29 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
  * Q1232: the applicant's own application rows keep flag_reason again.
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
  * Q1233: a renamed live policy, and a read policy calling an unclassified function.
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties read" ON public.disputes
  * Q1329: a replayed policy whose roles (or PERMISSIVE) differ from prod's, and an unmodelled role loop.
@@ -43,8 +43,8 @@
  * @mutate src/test/helpers/dataExportInventory.ts |   "20260506000000_scope_service_role_policies_to_service_role.sql": { |   "20260506000000_no_such_migration.sql": {
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | (lower(recipient_email) = lower(( SELECT auth.email() AS email))) | public.zz_mail_owner(recipient_email)
  * Q1235: a Helpr-side job sub-select on the poster's refunds.
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
- * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
+ * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -150,9 +150,10 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         // "(SELECT ... v_uid ...)" strip also swallowed `... = v_uid OR true)`, a
         // section handed to every caller (lh-authz-rls review of Q739).
         .replace(
-          /\(SELECT j\.id FROM public\.jobs j WHERE j\.(?:customer_id|helper_id) = v_uid(?: OR j\.(?:customer_id|helper_id) = v_uid)?\)|\(SELECT g\.job_id FROM public\.group_job_helpers g WHERE g\.helper_id = v_uid\)/g,
+          /\(SELECT j\.id FROM public\.jobs j WHERE j\.(?:customer_id|helper_id) = v_uid(?: OR j\.(?:customer_id|helper_id) = v_uid)?\)|\(SELECT g\.job_id FROM public\.group_job_helpers g WHERE g\.helper_id = v_uid\)|\(SELECT i\.id FROM public\.declutter_items i WHERE i\.seller_id = v_uid\)/g,
           "",
         )
+        // declutter_questions: the seller's answers on their own items (20261014200728).
         // applications: the poster's branch mirrors its policy's block rule.
         .replace(/AND NOT public\.are_users_blocked\(t\.helper_id, v_uid\)/g, "")
         .replace(/(?:lower\()?\bt\.\w+\)?\s*=\s*v_(?:uid|email)\b/g, "")
@@ -160,7 +161,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         .replace(/AND t\.created_at >= v_created/g, "")
         .replace(/AND t\.(?:user_id|recipient_id) IS NULL/g, "")
         .replace(/AND t\.status = 'published'\s+AND t\.feedback_visible_at IS NOT NULL AND t\.feedback_visible_at <= now\(\)/g, "")
-        .replace(/\bt\.(?:id|job_id|parent_job_id) IN\b/g, "");
+        .replace(/\bt\.(?:id|job_id|parent_job_id|item_id) IN\b/g, "");
       // Every legitimate sub-select was stripped above, so a SELECT left over is
       // unknown (`t.job_id IN (SELECT j.id ... WHERE j.status = 'open')` would
       // hand every caller those rows).

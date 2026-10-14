@@ -14,6 +14,7 @@ import { Gauge, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus 
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { AdminUserSearchField } from "./settings/AdminUserSearchField";
 import { FeatureSwitchesCard } from "./settings/FeatureSwitchesCard";
+import { DeclutterReviewCard } from "./settings/DeclutterReviewCard";
 import { FeeModelCard } from "./settings/FeeModelCard";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -560,6 +561,7 @@ const AdminSettings = () => {
       </AdminCard>
 
       <FeatureSwitchesCard />
+      <DeclutterReviewCard />
       {/* Admin Management */}
       {/* surface="none": each admin below is its own `liquid-glass` row, so the
           default card put white bordered rows inside a white bordered card.

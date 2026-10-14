@@ -134,6 +134,9 @@
     // Account-deletion bucket list + existence check (Q219);
     // src/test/purgeBucketsAreDeclared.test.ts runs it.
     "supabase/functions/_shared/purgeBuckets.ts",
+    // Declutter's AI answer sanitizer: dependency-free, imported by
+    // src/test/declutterAiDraftSanitize.test.ts.
+    "supabase/functions/declutter-ai-draft/sanitize.ts",
     // Apple IAP. appleAppStore.ts is imported by src/test/appleIap.test.ts to
     // test the product registry and entitlement maths directly; jwt.ts comes
     // with it because appleAppStore mints the App Store Server API bearer

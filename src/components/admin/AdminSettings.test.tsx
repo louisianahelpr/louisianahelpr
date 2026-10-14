@@ -27,6 +27,8 @@ vi.mock("@/lib/biometricGate", () => ({
 // QueryClientProvider this file does not mount) and has its own test,
 // settings/FeatureSwitchesCard.test.tsx; stubbed out here.
 vi.mock("./settings/FeatureSwitchesCard", () => ({ FeatureSwitchesCard: () => null }));
+// The Declutter review card (hidden switch) has its own test; stubbed the same way.
+vi.mock("./settings/DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
 
 const ADMIN_USER_ID = "admin-user-1";
 const ADMIN_ROLE_ID = "role-1";

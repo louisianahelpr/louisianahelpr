@@ -10,8 +10,10 @@ import {
   Plus,
   ShieldAlert,
   ChevronDown,
+  Sofa,
   type LucideIcon,
 } from "lucide-react";
+import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
@@ -93,6 +95,13 @@ const DesktopSidebarNav = () => {
   const { user, isAdmin } = useCurrentUser();
   // Q1586(c): a saved birthday under 18 greys Post a Job out, with the line under it.
   const { underAge, gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
+  // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
+  // destinations after Messages only while the hidden switch is on for this
+  // member; for everyone else the panel is unchanged.
+  const declutterOn = useFeature("declutter");
+  const navItems = declutterOn
+    ? [...NAV_ITEMS.slice(0, 4), { path: "/declutter", icon: Sofa, label: "Declutter" }, ...NAV_ITEMS.slice(4)]
+    : NAV_ITEMS;
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.
@@ -243,7 +252,7 @@ const DesktopSidebarNav = () => {
           `overflow-y-auto` never has anything to scroll — the list just grows
           past the bottom of the panel instead. */}
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
-        {NAV_ITEMS.map(({ path, icon: Icon, label, badgeKey }) => {
+        {navItems.map(({ path, icon: Icon, label, badgeKey }) => {
           const active = isActive(path);
           const count = badgeFor(badgeKey);
           return (

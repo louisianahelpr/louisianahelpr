@@ -145,6 +145,11 @@ const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsPage"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
+// Declutter (docs/specs/declutter-auctions.md): each page renders the 404
+// unless the hidden 'declutter' switch is on for the member (DeclutterGate).
+const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
+const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
+const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
 
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
@@ -254,6 +259,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

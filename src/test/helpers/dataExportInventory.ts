@@ -118,6 +118,16 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   user_strikes: { by: ["user_id"] },
   user_violations: { by: ["user_id"] },
   user_roles: { by: ["user_id"] },
+  // Declutter (20261014200728, build decision B9 in docs/specs/declutter-auctions.md).
+  declutter_items: { by: ["seller_id"] },
+  declutter_item_private: { by: ["seller_id"] },
+  declutter_item_photos: { by: ["seller_id"] },
+  declutter_pickup_windows: { by: ["seller_id"] },
+  declutter_questions: { by: ["asker_id"] },
+  declutter_watchlist: { by: ["user_id"] },
+  declutter_tax_attestations: { by: ["seller_id"] },
+  declutter_strikes: { by: ["user_id"] },
+  declutter_seller_flags: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -367,18 +377,9 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
-  "declutter_items.seller_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_item_private.seller_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_item_photos.seller_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_pickup_windows.seller_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_questions.asker_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_watchlist.user_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_tax_attestations.seller_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_strikes.user_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_seller_flags.user_id": { reason: "Declutter slice 1 (20261014193955), behind the hidden 'declutter' switch created OFF: no member outside the test accounts can hold a row. Adding the Declutter sections to export_my_data is a go-live blocker in docs/specs/declutter-auctions.md (build decision B9)" },
-  "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (exported with declutter_strikes.user_id when the Declutter sections land, B9)" },
-  "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (exported with declutter_strikes.user_id when the Declutter sections land, B9)" },
-  "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (exported with declutter_seller_flags.user_id when the Declutter sections land, B9)" },
+  "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
+  "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
+  "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.
   "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },

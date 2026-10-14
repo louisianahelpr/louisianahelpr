@@ -102,6 +102,8 @@ export const EXPORT_SECTIONS = [
   "application_rate_log", "profile_search_rate_log", "job_pets", "job_access_notes",
   "crew_dispute_member_outcomes", "job_schedule_change_requests", "job_detail_change_requests", "job_detail_change_answers",
   "series_date_offers", "series_visit_holds",
+  "declutter_items", "declutter_item_private", "declutter_item_photos", "declutter_pickup_windows",
+  "declutter_questions", "declutter_watchlist", "declutter_tax_attestations", "declutter_strikes", "declutter_seller_flags",
   "storage_objects",
 ];
 

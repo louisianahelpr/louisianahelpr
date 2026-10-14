@@ -55,6 +55,10 @@ const EXPECTED_CALLERS = [
   // trigger that completes a pending accept it is a server context at trigger
   // depth, which the party rule answers for (PGlite D6).
   "complete_direct_offer_accept",
+  // Declutter slice 1 (20261014193955): v_uid := auth.uid() is one argument,
+  // the item's seller the other (a blocked pair cannot watch or ask, B17).
+  "declutter_ask_question",
+  "declutter_set_watch",
   "direct_accept_block_reason",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",

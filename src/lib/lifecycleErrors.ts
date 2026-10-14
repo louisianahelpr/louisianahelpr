@@ -17,6 +17,7 @@
 import { isWriteRejected } from "./mutationResult";
 import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
+import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -522,6 +523,139 @@ export const RPC_ERROR_COPY = {
     dispute_evidence_invalid_url: "Only photos you uploaded to this dispute can be attached. Remove that photo and try again.",
     dispute_evidence_limit: "This dispute already holds as much evidence as it can take, so no more photos can be added.",
     dispute_evidence_not_allowed: "This dispute isn't taking new evidence any more — it may already have been decided. Refresh to see where it stands.",
+  },
+  // Declutter (docs/specs/declutter-auctions.md): the words live in
+  // src/lib/declutter/errors.ts (DECLUTTER_ERROR_COPY, exact against the
+  // migrations); each RPC maps exactly the codes it can raise.
+  declutter_add_item_photo: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    too_many_photos: DC.too_many_photos,
+    under_18: DC.under_18,
+  },
+  declutter_admin_pending_items: {
+    feature_disabled: DC.feature_disabled,
+    not_admin: DC.not_admin,
+  },
+  declutter_admin_review_item: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    invalid_decision: DC.invalid_decision,
+    item_not_pending: DC.item_not_pending,
+    not_admin: DC.not_admin,
+    own_listing: DC.own_listing,
+    review_note_required: DC.review_note_required,
+    review_note_too_long: DC.review_note_too_long,
+    seller_not_eligible: DC.seller_not_eligible,
+  },
+  declutter_answer_question: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    question_not_found: DC.question_not_found,
+    under_18: DC.under_18,
+  },
+  declutter_ask_question: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    own_item: DC.own_item,
+    question_rate_limited: DC.question_rate_limited,
+    under_18: DC.under_18,
+  },
+  declutter_attest_item: {
+    account_restricted: DC.account_restricted,
+    attestation_incomplete: DC.attestation_incomplete,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_create_item: {
+    account_restricted: DC.account_restricted,
+    area_looks_like_address: DC.area_looks_like_address,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_location: DC.invalid_location,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_my_item_review: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+  },
+  declutter_publish_item: {
+    account_restricted: DC.account_restricted,
+    attestation_required: DC.attestation_required,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    photos_required: DC.photos_required,
+    pickup_windows_required: DC.pickup_windows_required,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    under_18: DC.under_18,
+  },
+  declutter_remove_item_photo: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    photo_not_found: DC.photo_not_found,
+    under_18: DC.under_18,
+  },
+  declutter_seller_item_private: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+  },
+  declutter_set_pickup_windows: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_pickup_windows: DC.invalid_pickup_windows,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_set_watch: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    own_item: DC.own_item,
+    under_18: DC.under_18,
+  },
+  declutter_update_draft: {
+    account_restricted: DC.account_restricted,
+    area_looks_like_address: DC.area_looks_like_address,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_location: DC.invalid_location,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_withdraw_item: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
   },
 } satisfies Record<string, Record<string, string>>;
 

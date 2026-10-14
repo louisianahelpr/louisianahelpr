@@ -138,6 +138,7 @@ const JOB_COLUMNS = [
   "proof_before_urls",
   "proof_after_urls",
   "helper_arrived_at",
+  "helper_confirmed_at",
   "poster_confirmed_arrival_at",
   "poster_confirmed_working_at",
   "helper_completed_at",

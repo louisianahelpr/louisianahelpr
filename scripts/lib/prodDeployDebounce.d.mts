@@ -15,6 +15,12 @@ export interface VercelDeployment {
 }
 export const DEBOUNCE_MS: number;
 export const LIVE_OR_COMING: Set<string>;
+export const MIGRATION_STUCK_MS: number;
+export interface PendingMigration {
+  version: string;
+  committedAt: number;
+}
+export function pendingMigrationVersions(repoFiles: string[], applied: Iterable<string>): string[];
 export function summarize(deployments: VercelDeployment[]): { newest: DeploymentRow | null; base: DeploymentRow | null };
 export function decide(input: {
   head: string;
@@ -22,5 +28,6 @@ export function decide(input: {
   newest: DeploymentRow | null;
   base: DeploymentRow | null;
   deployPathsChanged: boolean | null;
+  pendingMigrations: PendingMigration[] | null;
   debounceMs?: number;
-}): { action: "deploy" | "skip"; reason: string };
+}): { action: "deploy" | "skip"; reason: string; fail?: boolean };

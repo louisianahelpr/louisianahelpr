@@ -8,6 +8,13 @@
 // @mutate .github/workflows/prod-deploy.yml | - cron: "*/20 * * * *" | - cron: "0 * * * *"
 // @mutate .github/workflows/prod-deploy.yml | cancel-in-progress: false | cancel-in-progress: true
 // @mutate .github/workflows/prod-deploy.yml | run: node scripts/prod-deploy.mjs | run: node scripts/prod-deploy.mjs --dry-run
+// @mutate scripts/lib/prodDeployDebounce.mjs | if (pendingMigrations.length > 0) { | if (false) {
+// @mutate scripts/lib/prodDeployDebounce.mjs | if (!Array.isArray(pendingMigrations)) { | if (false) {
+// @mutate scripts/lib/prodDeployDebounce.mjs | const stuck = now - oldest >= MIGRATION_STUCK_MS; | const stuck = false;
+// @mutate scripts/lib/prodDeployDebounce.mjs | .filter((v) => v && !have.has(v)) | .filter((v) => v && have.has(v))
+// @mutate scripts/prod-deploy.mjs | if (d.fail) throw | if (false) throw
+// @mutate scripts/prod-deploy.mjs | pendingMigrations: pending }); | pendingMigrations: [] });
+// @mutate .github/workflows/prod-deploy.yml | SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} | SUPABASE_ACCESS_TOKEN_OFF: x
 // @mutate .github/workflows/prod-freshness.yml | if: github.event_name != 'push' | if: always()
 
 /*
@@ -29,7 +36,13 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { decide, summarize, DEBOUNCE_MS } from "../../scripts/lib/prodDeployDebounce.mjs";
+import {
+  decide as decideRaw,
+  summarize,
+  pendingMigrationVersions,
+  DEBOUNCE_MS,
+  MIGRATION_STUCK_MS,
+} from "../../scripts/lib/prodDeployDebounce.mjs";
 
 const root = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -38,6 +51,9 @@ const HEAD = "a".repeat(40);
 const OLD = "b".repeat(40);
 const NOW = Date.parse("2026-09-23T18:00:00Z");
 const MIN = 60_000;
+// The Q271 cases below are about the debounce: prod has applied every migration.
+const decide = (input: Omit<Parameters<typeof decideRaw>[0], "pendingMigrations">) =>
+  decideRaw({ pendingMigrations: [], ...input });
 const row = (sha: string, agoMin: number, state = "READY", id = `dpl_${sha.slice(0, 3)}${agoMin}`) => ({
   id,
   created: NOW - agoMin * MIN,
@@ -113,6 +129,59 @@ describe("prod deploy debounce rules (Q271)", () => {
   });
 });
 
+/*
+ * GUARD (docs/OPEN.md Q1824): the web app never goes live before the migration
+ * it needs. On 2026-10-14 one push's prod-deploy finished 19:52:53Z and its
+ * db-deploy 19:55:30Z (gh run list), so a client writing a column the same
+ * merge added failed on prod in that window. prod-deploy now reads
+ * supabase_migrations.schema_migrations and holds while any migration on HEAD
+ * is unapplied; it goes red when that lasts an hour or prod cannot be read.
+ */
+describe("prod deploy waits for main's migrations (Q1824)", () => {
+  const base = row(OLD, 90);
+  const ready = { head: HEAD, now: NOW, newest: base, base, deployPathsChanged: true };
+
+  it("deploys when prod has applied every migration on HEAD", () => {
+    expect(decideRaw({ ...ready, pendingMigrations: [] }).action).toBe("deploy");
+  });
+
+  it("HOLDS (without failing) while a migration on HEAD is not applied on prod yet", () => {
+    const d = decideRaw({ ...ready, pendingMigrations: [{ version: "20261014205016", committedAt: NOW - 5 * MIN }] });
+    expect(d.action).toBe("skip");
+    expect(d.fail).toBe(false);
+    expect(d.reason).toMatch(/waiting for db-deploy.*20261014205016/);
+  });
+
+  it("goes RED when a migration has sat unapplied for an hour (db-deploy stuck)", () => {
+    expect(MIGRATION_STUCK_MS).toBe(60 * MIN);
+    const d = decideRaw({ ...ready, pendingMigrations: [{ version: "20261014205016", committedAt: NOW - 61 * MIN }] });
+    expect(d.action).toBe("skip");
+    expect(d.fail).toBe(true);
+  });
+
+  it("does NOT ship when prod's applied migrations cannot be read (fail closed, red)", () => {
+    const d = decideRaw({ ...ready, pendingMigrations: null });
+    expect(d.action).toBe("skip");
+    expect(d.fail).toBe(true);
+  });
+
+  it("pendingMigrationVersions: repo versions prod lacks, ignoring non-migration files", () => {
+    const files = ["20261014184909_a.sql", "20261014205016_b.sql", "README.md", "20261015000000_c.sql"];
+    expect(pendingMigrationVersions(files, ["20261014184909"])).toEqual(["20261014205016", "20261015000000"]);
+    expect(pendingMigrationVersions(files, ["20261014184909", "20261014205016", "20261015000000"])).toEqual([]);
+  });
+
+  it("the script and workflow wire the check in (prod read with the Management API, a held deploy fails red)", () => {
+    const src = read("scripts/prod-deploy.mjs");
+    expect(src).toMatch(/select version from supabase_migrations\.schema_migrations/);
+    expect(src).toMatch(/pendingMigrations: pending \}\);/);
+    expect(src).toMatch(/if \(d\.fail\) throw/);
+    const wfSrc = read(".github/workflows/prod-deploy.yml");
+    expect(wfSrc).toMatch(/SUPABASE_ACCESS_TOKEN: \$\{\{ secrets\.SUPABASE_ACCESS_TOKEN \}\}/);
+    expect(wfSrc).toMatch(/SUPABASE_PROJECT_REF: \$\{\{ secrets\.SUPABASE_PROJECT_REF \}\}/);
+  });
+});
+
 describe("the wiring around the rules (Q271)", () => {
   it("vercel.json turns off per-push Git deployments for every branch", () => {
     const cfg = JSON.parse(read("vercel.json"));
@@ -140,7 +209,7 @@ describe("the wiring around the rules (Q271)", () => {
 
   it("the script creates a production deployment of main through the API, using the pure rules", () => {
     const src = read("scripts/prod-deploy.mjs");
-    expect(src).toMatch(/import \{ decide, summarize \} from "\.\/lib\/prodDeployDebounce\.mjs"/);
+    expect(src).toMatch(/import \{ decide, summarize, pendingMigrationVersions \} from "\.\/lib\/prodDeployDebounce\.mjs"/);
     expect(src).toMatch(/target: "production"/);
     expect(src).toMatch(/gitSource: \{ type: "github", org: ORG, repo: REPO, ref: "main", sha: head \}/);
     expect(src).toMatch(/bash", \["scripts\/deploy-paths\.sh"\]/);
@@ -160,6 +229,6 @@ describe("the wiring around the rules (Q271)", () => {
   it("inventory floor: the rules file has every rule this suite pins", () => {
     const lib = read("scripts/lib/prodDeployDebounce.mjs");
     const rules = (lib.match(/return \{\s*action: "skip"/g) ?? []).length;
-    expect(rules).toBeGreaterThan(2);
+    expect(rules).toBeGreaterThan(4);
   });
 });

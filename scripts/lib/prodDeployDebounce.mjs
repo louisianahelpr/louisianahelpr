@@ -20,6 +20,32 @@
 
 export const DEBOUNCE_MS = 20 * 60 * 1000;
 
+/**
+ * Q1824: how long a migration may sit on main unapplied before prod-deploy
+ * turns red instead of quietly waiting. db-deploy took 13-15 min per run on
+ * 2026-10-14 (gh run list), so an hour means db-deploy is stuck or red.
+ */
+export const MIGRATION_STUCK_MS = 60 * 60 * 1000;
+
+/**
+ * Q1824: the migrations on the commit about to ship that prod has not applied.
+ * The web app can need a column or RPC a migration in the same merge adds;
+ * shipping it before db-deploy applies that migration breaks the client on
+ * prod for the whole window (prod-deploy finished 19:52:53Z, db-deploy
+ * 19:55:30Z on one push, 2026-10-14).
+ *
+ * @param {string[]} repoFiles     file names in supabase/migrations at HEAD
+ * @param {Iterable<string>} applied versions in supabase_migrations.schema_migrations on prod
+ * @returns {string[]} versions in the repo that prod has not applied, ascending
+ */
+export function pendingMigrationVersions(repoFiles, applied) {
+  const have = new Set([...applied].map(String));
+  return repoFiles
+    .map((f) => /^(\d{14})_.*\.sql$/.exec(f)?.[1])
+    .filter((v) => v && !have.has(v))
+    .sort();
+}
+
 /** States of a deployment whose commit prod is serving or about to serve. */
 export const LIVE_OR_COMING = new Set(["READY", "BUILDING", "QUEUED", "INITIALIZING"]);
 
@@ -53,11 +79,12 @@ export function summarize(deployments) {
  *   newest: { id: string, created: number, state: string, sha: string | null } | null,
  *   base: { id: string, created: number, state: string, sha: string | null } | null,
  *   deployPathsChanged: boolean | null,        // base.sha..head touched scripts/deploy-paths.sh? null = cannot tell
+ *   pendingMigrations: Array<{ version: string, committedAt: number }> | null, // Q1824: on HEAD, not applied on prod; null = cannot tell
  *   debounceMs?: number,
  * }} input
- * @returns {{ action: "deploy" | "skip", reason: string }}
+ * @returns {{ action: "deploy" | "skip", reason: string, fail?: boolean }}
  */
-export function decide({ head, now, newest, base, deployPathsChanged, debounceMs = DEBOUNCE_MS }) {
+export function decide({ head, now, newest, base, deployPathsChanged, pendingMigrations, debounceMs = DEBOUNCE_MS }) {
   if (!head) throw new Error("decide: no main HEAD sha");
   if (base && base.sha === head) {
     return { action: "skip", reason: `prod is already at main HEAD (${base.id}, ${base.state})` };
@@ -67,6 +94,25 @@ export function decide({ head, now, newest, base, deployPathsChanged, debounceMs
   // a wasted build is cheap, a missing deploy is not.
   if (base && deployPathsChanged === false) {
     return { action: "skip", reason: `no deploy path changed since ${base.sha} (${base.id})` };
+  }
+  // Q1824: never ship a client before the migrations on its commit are live.
+  // Unlike the deploy-path check, "cannot tell" does NOT ship here: a client
+  // ahead of its schema is broken on prod, a deploy 20 minutes late is not.
+  // It goes red (fail) so the nightly-red sync reports it.
+  if (!Array.isArray(pendingMigrations)) {
+    return { action: "skip", fail: true, reason: "cannot read which migrations prod has applied, so the build may need one that is not live yet" };
+  }
+  if (pendingMigrations.length > 0) {
+    const oldest = Math.min(...pendingMigrations.map((m) => m.committedAt));
+    const names = pendingMigrations.map((m) => m.version).join(", ");
+    const stuck = now - oldest >= MIGRATION_STUCK_MS;
+    return {
+      action: "skip",
+      fail: stuck,
+      reason: stuck
+        ? `${pendingMigrations.length} migration(s) on main HEAD are still not applied on prod after ${Math.round((now - oldest) / 60000)} min (${names}): db-deploy is stuck or red`
+        : `waiting for db-deploy: ${pendingMigrations.length} migration(s) on main HEAD not applied on prod yet (${names}); the 20-minute schedule ships main once they are`,
+    };
   }
   if (newest && now - newest.created < debounceMs) {
     const mins = Math.round((now - newest.created) / 60000);

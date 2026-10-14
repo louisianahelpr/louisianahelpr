@@ -720,18 +720,6 @@
       "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
     },
     {
-      "id": "remote:origin/feat/signup-leads",
-      "sha": "b163dbea06b1eb9697fa90ef20a2d209ae70e84c",
-      "reason": "Landed as #2688 (b536e9126 + the useSignupLeadCapture refactor 51061e9eb), with the migration restamped to 20261009223714_signup_leads.sql; every leftover line names the old 20261009173906 timestamp or the pre-refactor Signup.tsx call.",
-      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
-    },
-    {
-      "id": "remote:origin/fix/new-member-on-confirm-and-stuck-payment",
-      "sha": "7479d3b34ab8c0637594f0a161246de1e553c0be",
-      "reason": "Landed with its migrations restamped (20261009223353_new_member_notice_on_email_confirm.sql, 20261009223355_stuck_payment_needs_stripe_proof.sql); every leftover line names the old 20261009142753/4 timestamps or a FK count main has since moved on.",
-      "checked": "2026-10-12 (lane 2, Q1376; content-checked against origin/main 9f99b6e35 with scripts/lib/strandedContent.mjs on a full clone)"
-    },
-    {
       "id": "pr:2875",
       "sha": "1250cd9c4f1566fa33e931f3855a7b900990f7f4",
       "reason": "Q1590 team-thread spec: both leftover lines are on main in e2e/prod-audit/team-thread.spec.ts in a newer form (the scrollWidth fit check at :60, and the service-role DELETE at :123, which now adds &select=id).",
@@ -760,24 +748,6 @@
       "sha": "12b49c19903f82a8ec966d35291cc9659bd70870",
       "reason": "land-fast: main's scripts/lib/landGh.mjs is a later rewrite (head-filtered open-PR lookup, mergeable_state verdicts); the 3 leftover lines are this branch's older listing loop, CLI entry and a @mutate on code main no longer has.",
       "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
-    },
-    {
-      "id": "remote:origin/ready/todo-b-1",
-      "sha": "39e0b953333937805386d3791b97d4627deef656",
-      "reason": "Duplicate of proof6-8 (landed in #2921): the same four parent-mount tests live on main as src/components/dashboard/jobDetailDialog/JobDetailDialogMountsPosterCard.test.tsx, src/pages/auth/completeProfile/CompleteProfileMountsIntro.test.tsx, src/pages/posts/postedJobs/PostedJobsTabMountsApplicantsPanel.test.tsx and src/pages/profile/strSettings/StrSettingsMountsReadyTurnovers.test.tsx; its leftover lines are the same tests at other paths.",
-      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
-    },
-    {
-      "id": "remote:origin/ready/todo-b-2",
-      "sha": "e162187a97686b279fb5207287336cf336fc7250",
-      "reason": "Parallel build of items small4c (#2922) already landed: the Fill Rate error state (Q1672), read deadline (Q1713), edge typecheck Deno (Q1718) and the Marketplace Health split. Its one new fix (4c373854d, the arrived Helpr's before-photo line) and its Q1648 note landed in #2921; the leftover lines are the other implementation.",
-      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
-    },
-    {
-      "id": "remote:origin/ready/items-b-money-small",
-      "sha": "3189100f618d149ab08c236bb37e72c2eb58baa1",
-      "reason": "Superseded: Q1489/Q1493 reached main through uncov-money, and the rest was rebuilt on main as ready/items-b-money-small-2 (landed in #2918: the second Stripe live-account wording and the charged-back visit check). The leftover lines are the earlier implementation.",
-      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
     },
     {
       "id": "remote:origin/feat/stripe-test-mode-test-accounts",
@@ -1500,12 +1470,6 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/chore/hygiene-by-content",
-      "sha": "c49c8a2b0c5c9b3ae8841fd1cdf0ea33ee4041dd",
-      "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in f760dadb3) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/claim/Q1327",
       "sha": "c88854955dcf2a01f07561c52e7738798f9e88b6",
       "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in 478f07d18) and later reworded or removed there. What is left is older wording of landed work, not new work.",
@@ -1560,24 +1524,6 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/claude/refund-notice",
-      "sha": "34571d1323c2a594902e086383609cabda46e603",
-      "reason": "Superseded on main: the refund notice landed (refundNotice.ts, refundNoticeCopy with jobOwnsCharge); leftover is older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/feat/chat-shows-application",
-      "sha": "23bada017a62c3de3e816fed84260d8c63419936",
-      "reason": "Older copy of work that already landed: each of its 13 added line(s) not on main now was added on main earlier (newest additions in f3f86819f, e015c1f08) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/feat/leads-card-land",
-      "sha": "472e19e4365dfe73ac1573ed35cd858def286583",
-      "reason": "Superseded on main: the leads card landed; the Q1652/Q1653 lines name items that were renumbered (main's Q1652/Q1653 are different items).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/feat/leads-card-team-block",
       "sha": "398968175d47666918ad5876230bda4a1cd2d257",
       "reason": "Superseded on main: the leads card landed; the Q1652/Q1653 lines name items that were renumbered (main's Q1652/Q1653 are different items).",
@@ -1596,87 +1542,15 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/feat/no-poster-fee-reviewed",
-      "sha": "b40e11402af630f3e771f0d673fdb1a26e63db52",
-      "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in 3ad4cbc90) and later reworded or removed there; 21 of its 21 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix-land/chat-shows-application",
-      "sha": "1bfda443dc5df887b457edb20ed0b3562a2be19e",
-      "reason": "Older copy of work that already landed: each of its 12 added line(s) not on main now was added on main earlier (newest additions in f3f86819f, e015c1f08, d31a2bb68) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix-land/leads-card",
-      "sha": "c289c11b8bfb3028a1321baef4852d628c5efbd5",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in b4ff913b4) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix-land/message-applicants",
-      "sha": "5c2b8ad7e9cf9dfadb130c14f33402b952e5edfc",
-      "reason": "Older copy of work that already landed: each of its 9 added line(s) not on main now was added on main earlier (newest additions in f3f86819f, d31a2bb68) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix-land/no-poster-fee",
-      "sha": "404a09c571a03b3e6f50c46d1d88ba9de12843e4",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in 806db7b58, 3ad4cbc90) and later reworded or removed there; 21 of its 21 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/fix-land/q1287",
       "sha": "f530c17c3655b9d893bca23f5154270aecef1b72",
       "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 9de317e9f) and later reworded or removed there; 4 of its 4 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/fix/db-backup-table-coverage",
-      "sha": "fe342f2d27f2e3d896f20e6e5d173df6ca4adf5a",
-      "reason": "Superseded: header comment wording in scripts/backup-coverage.mjs.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/fix/journeys-last-three",
       "sha": "5b8ff6b1b50ae43150c1441952faaed95354d1cd",
       "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 66b1c96cf, bd9dbb278) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2711-journeys",
-      "sha": "9370369d55322a29a5eca99096d44b123f6ce73e",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 66b1c96cf, bd9dbb278) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2734-autotick-holds",
-      "sha": "6c98bd96c27e99e9fa59d12bd721f449f80a29a4",
-      "reason": "Superseded on main: openAutoTick.test.ts already imports heldBySnapshot/heldForNoGuard/tickReady; reviewFindingsCarryATag uses isFeedMirrored.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2758-automate-ticking",
-      "sha": "c664e4b0fb78b630c130884680b673b39ede8e18",
-      "reason": "Superseded on main: Q936 done (src/test/uptimeHeartbeat.test.ts).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2762-refund-notice",
-      "sha": "3907a9888960ed380ff98e717d9c15ffc20ad6cb",
-      "reason": "Superseded on main: the refund notice landed (refundNotice.ts, refundNoticeCopy with jobOwnsCharge); leftover is older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2763-chat-application",
-      "sha": "2b3a3bba1c4be3683c2b1040d67b02328cbf48dc",
-      "reason": "Superseded: comment wording; the chat application note is on main.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2771-admin-health",
-      "sha": "a72ec00ab29cb75c9fbd2a3c7b5fc57e783451f6",
-      "reason": "Superseded: comment wording in AdminHealth.coldLoad.test.tsx.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
@@ -1692,225 +1566,9 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/fixpr/2774-q1463-v2",
-      "sha": "93d24cd59a415873f6eeac60fe8849f8e407b83c",
-      "reason": "Superseded: comment wording; main's MobileNav carries the reworded note.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/fixpr/2775-profile-rows",
       "sha": "72184eb62993d3d879af5b34407cd8fce649a973",
       "reason": "Superseded on main: loadingStateShape asserts title={profileTabTitle(tab, ...)}.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2776-empty-align",
-      "sha": "d0fe16cbaa9e20ee82297cd544db16669dceb963",
-      "reason": "Superseded on main: the Messages header classes stay in ConversationList.tsx and main meets the size ratchet its own way.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2809-rebuild",
-      "sha": "f28202681eff499bc17a22ceee9e4508b55c5a15",
-      "reason": "Superseded: comment wording; main's MobileNav carries the reworded note.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2818-q1287",
-      "sha": "27297c6e5bc0b7dce8fa05da663150d86b0b7205",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 9de317e9f) and later reworded or removed there; 4 of its 4 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/gh-hygiene/advisor",
-      "sha": "65d6ac011b24a45c4af085e5c481d1f3a06d33de",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in #2685) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/gh-hygiene/review-tag-feed-mirrors",
-      "sha": "cd9a33908f1a16af899abaef2ba0c533163ab1f8",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in #2705) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/claude-land-fast-6e15e405",
-      "sha": "12b49c19903f82a8ec966d35291cc9659bd70870",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 60d76bb0f) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane1-Q1345-fcab0b0d",
-      "sha": "84c44cfb523b579c9faac111e202750f6163d06d",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in b4dc2f1d3) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane1-Q1345-fcab0b0d-v2",
-      "sha": "877eb3bfa7aa527ced320692cce23f2fa9261813",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in b4dc2f1d3) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-autotick-holds-6e15e405",
-      "sha": "2e65688b61588b4dc462fd5592173c915f7b1589",
-      "reason": "Superseded on main: openAutoTick.test.ts already imports heldBySnapshot/heldForNoGuard/tickReady; reviewFindingsCarryATag uses isFeedMirrored.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-gh-list-whole-6e15e405",
-      "sha": "2060009de0b0d8855c9811a750ed074c804bdd66",
-      "reason": "Superseded on main: the Q1429 name-heading fix lives in e2e via profileLanding/headingContract (PROFILE_NAME_HEADING_LEVEL); stranded-work reads closed PRs through the REST list (closedPullRequests). Leftover is the older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-q1357-6e15e405",
-      "sha": "b0d0e1d1b8bb5303a721e9b0b7c546748c9b96f8",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 6f610ac64) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-q1376-6e15e405",
-      "sha": "9b1adef876948dcef4f397b65d37d1bcfb760ab2",
-      "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in 223db3e23) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-q1634-iabjs-ed225828",
-      "sha": "404c89edcece43a5283927607bf123259c362f41",
-      "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in 2c70aa7db) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane2-q1644-saved-empty-6e15e405",
-      "sha": "10b52d991272e8db4fdf087b6f8d037d5ef0050e",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 29639b75e) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane3-q1554",
-      "sha": "66c08817c851ca36a74e9e4915ce868641154856",
-      "reason": "Superseded on main: Q1554 done with src/test/helperScheduledCardConfirmFirst.test.tsx.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane3-q1585-11f05260",
-      "sha": "9493d224e04589ab0043ada99d5e02b6f7e6d7a9",
-      "reason": "Older copy of work that already landed: 16 of its 16 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane3-q1590-6e15e405",
-      "sha": "1250cd9c4f1566fa33e931f3855a7b900990f7f4",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in 5d94741c4) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane4-q1465-6e15e405",
-      "sha": "f4b701ac6d87acfae066f4d86fe37af44801f23b",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 1228f5f22) and later reworded or removed there; 4 of its 4 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane4-q1465-r2",
-      "sha": "472ee190c07a0e520696f9c8ff83cc48b1a2f4c4",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 1228f5f22) and later reworded or removed there; 4 of its 4 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane4-q1502-q1501-q1504-6e15e405",
-      "sha": "fc8113a8806cd870b0e16bc41bc7a509afe77e8d",
-      "reason": "Superseded on main: Q1499-Q1502 done (20261012045427_change_request_daily_cap.sql and its tests); leftover is this lane's earlier migration/proof (20261012044739).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane4-q1587-29242e26",
-      "sha": "b780b6943b898b621c945f39acc10dc5512bb54c",
-      "reason": "Superseded on main: Q1587 sign-up leads card landed (SignupLeadsCard.tsx, 20261012030524_admin_list_signup_leads.sql). Leftover lines are this lane's own version.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5-alerts-1d28bbcc",
-      "sha": "a7b835696cc3af362e422e0b85f8e4f869e49737",
-      "reason": "Superseded on main: the saved-only empty state moved to SavedOnlyState (Q1701).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5-q1329-6e15e405",
-      "sha": "6cb99101a45b3dbd4a2efef9132cfdec4e19219e",
-      "reason": "Superseded on main: Q1651's lost-mint re-mint is on main as VOIDED_BY_ANOTHER_MINT in scripts/lib/adminSession.mjs.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5-q1429-6e15e405",
-      "sha": "bc748ea11b4187576f6a86edd3bf0f210425addf",
-      "reason": "Superseded on main: the Q1429 name-heading fix lives in e2e via profileLanding/headingContract (PROFILE_NAME_HEADING_LEVEL); stranded-work reads closed PRs through the REST list (closedPullRequests). Leftover is the older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5-q1466-6e15e405",
-      "sha": "cba96ad6ae00658344611fa0fcc1e0addb75a860",
-      "reason": "Older copy of work that already landed: each of its 8 added line(s) not on main now was added on main earlier (newest additions in 56ac92c46) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5b-6e15e405",
-      "sha": "8410f6619bccf5abf234e75133fe184b39168ccb",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 8f0990fba) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5c-6e15e405",
-      "sha": "57c911024a41f51525b30e13aa34869ae89d3f2f",
-      "reason": "Superseded on main: Q1650 done (src/test/testAccountIdsLiveInOnePlace.test.ts).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lane5d-6e15e405",
-      "sha": "b10cf979c1aa4017f47d5084727cae44ef77a412",
-      "reason": "Superseded on main: Q1651 done (scripts/lib/adminSession.mjs VOIDED_BY_ANOTHER_MINT and its test).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lq-gh-hygiene-advisor-b649a618",
-      "sha": "f6dbee6530b20b48c04bbaad32133a6e0a2c7aec",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in #2685) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/lq-train-2026-10-12-1-2aee1467",
-      "sha": "0dad0a0aaabe1d3874faca1745247dc414a240ac",
-      "reason": "Older copy of work that already landed: each of its 75 added line(s) not on main now was added on main earlier (newest additions in 2a3b9b389, 9b51253db, 9de317e9f, d7b37fa01) and later reworded or removed there; 10 of its 10 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/train-2026-10-12-big-9b711e06",
-      "sha": "bb4e646d920e984cb33aa75296576cd3cdcfbc9a",
-      "reason": "Older copy of work that already landed: each of its 24 added line(s) not on main now was added on main earlier (newest additions in 56ac92c46, 70ff0910a, 29639b75e, 8f0990fba) and later reworded or removed there; 30 of its 30 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/train-2026-10-12-small3-e4c5726a",
-      "sha": "fff55fda9ed49b854f2265faf8e46965171b6ebc",
-      "reason": "Older copy of work that already landed: each of its 7 added line(s) not on main now was added on main earlier (newest additions in 10ac72ac1, df59d7520, 7cc461591) and later reworded or removed there; 16 of its 16 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/land/train-2026-10-12-small3b-3bd9928c",
-      "sha": "b63ae59cac191453f26e280a4e355d7b14c8f52b",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in df59d7520, 7cc461591) and later reworded or removed there; 16 of its 16 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/lane2/q1357",
-      "sha": "37934b0d60b6b9c17c4b1ae89a38001b324b807e",
-      "reason": "Superseded on main: Q1357 done; src/test/sweepClockProofs.test.ts on main is the landed version.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/lane3/q1585",
-      "sha": "57aea077bd55d8e60af125fde4faa8fcc87a6847",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in c569b6385) and later reworded or removed there; 16 of its 16 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
@@ -1920,63 +1578,9 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/local-mac/q252",
-      "sha": "386210b0798f2ae69a34cf004dbba4ae16ad57cf",
-      "reason": "Older copy of work that already landed: each of its 7 added line(s) not on main now was added on main earlier (newest additions in f520a48a8) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/local/q1287",
-      "sha": "531007ce4c319edfffcba8b1551800cd911cd2e5",
-      "reason": "Older copy of work that already landed: each of its 7 added line(s) not on main now was added on main earlier (newest additions in 9de317e9f) and later reworded or removed there; 3 of its 3 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/local/q1412",
-      "sha": "080f1a00d557eefdf0f7351bb69f09a4b15ce04f",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 3ca88f2a6) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/local/q1463",
-      "sha": "2ea128b1938345cb2e884b4abbb809e62c534052",
-      "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in 9b51253db) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-a-listing-closes-at-start",
-      "sha": "2ead0813ba82ea0f48c912f3ca5fa7154d9d5360",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 64ed67c93) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-a-series-end-2",
-      "sha": "395e3adc34cd304454a3c2f78fe84743fbf5d564",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 31af48134) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/ready/items-a-series-end-by-platform",
       "sha": "166e0d70c94d9eadbf7c0a2bab4044d77fc91ba7",
       "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in 31af48134) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-b-ban-review",
-      "sha": "00eeeb1446cca9808e48cc747710246a8f680716",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in df59d7520) and later reworded or removed there; 13 of its 13 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-b-ban-review-2",
-      "sha": "18ff4509eeec55a76ebfc8cc20fcd791562ce772",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in df59d7520) and later reworded or removed there; 13 of its 13 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-c-silent",
-      "sha": "465216dc54bdd9419df63c79dfd07783b0fd049b",
-      "reason": "Older copy of work that already landed: each of its 8 added line(s) not on main now was added on main earlier (newest additions in 7a55b409a, 5d0675a21) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
@@ -1998,93 +1602,9 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/ready/money-items-2",
-      "sha": "048e3e46ba32d2ad02de97d2a80f47e69fd3be84",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in 5096fcc77) and later reworded or removed there; 3 of its 3 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/owner1012-double-booking",
-      "sha": "a5e8aa277d8636fef7d0d2bcccf295dd362ce7df",
-      "reason": "Superseded: markerless [~] ratchet comments; main's own counts moved on.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/owner1012-screens",
-      "sha": "26422a7d0ee49e06d78e6074c385cc98124f556a",
-      "reason": "Superseded: markerless [~] ratchet comments; main's own counts moved on.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/owner1012-setup-fee-kept",
-      "sha": "30106d7be98c257e8cb65fda72cc3f39b891d565",
-      "reason": "Superseded on main: the kept $2 setup fee notice landed as 6bcc1185c inside the refund notice (refundNotice.ts keptSentence, Q1674), replacing setupFeeKeptSentence.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/owner1012-setup-fee-kept-r",
-      "sha": "79633deee042b25cbb5389b57daa681514f0d450",
-      "reason": "Superseded on main: the kept $2 setup fee notice landed as 6bcc1185c inside the refund notice (refundNotice.ts keptSentence, Q1674), replacing setupFeeKeptSentence.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/owner1012-setup-fee-spent",
-      "sha": "8192ff47c60c181eef321ca35c8e413fdee131ef",
-      "reason": "Older copy of work that already landed: each of its 9 added line(s) not on main now was added on main earlier (newest additions in 59ef75712, a26df85df) and later reworded or removed there; 3 of its 3 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/proof3-2",
-      "sha": "c8846577f37774efce4cc44ad4672c218c02d187",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in 2eec60461) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/proof3-4",
-      "sha": "d822750efd36b4ab4dd63c3c232a80056863eebe",
-      "reason": "Superseded on main: safeSlackLink in _shared/alertPolicy.ts holds the same origin check inside its Q1715 branch.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/proof6-8",
-      "sha": "6ead1c1c3bf7fa8f96efc3ba19e6bc14fb28a78a",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 8d7eddf1c) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/ready/seed-fixtures",
       "sha": "4c2bdcb7e68a7e11a32635bcacfda7b0f25455ed",
       "reason": "Older copy of work that already landed: each of its 12 added line(s) not on main now was added on main earlier (newest additions in 10ac72ac1) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/todo-b2-5",
-      "sha": "0c6c102218bdc34752555bc95e53854b5934c85a",
-      "reason": "Older copy of work that already landed: each of its 20 added line(s) not on main now was added on main earlier (newest additions in 1541893f1) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/uncov-money",
-      "sha": "77170fdee1e2c4ab77883bcabd88b27d02d47a40",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in d1e98b100) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/uncov-wip",
-      "sha": "0916d3c61178116a5c55216e4ae4edc6ea7e56f0",
-      "reason": "Older copy of work that already landed: each of its 22 added line(s) not on main now was added on main earlier (newest additions in f64698a4b) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-1",
-      "sha": "1ec91b5790a4094029f7d458e0fccfadeffca5df",
-      "reason": "Older copy of work that already landed: each of its 75 added line(s) not on main now was added on main earlier (newest additions in 2a3b9b389, 9b51253db, 9de317e9f, d7b37fa01) and later reworded or removed there; 10 of its 10 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-1b",
-      "sha": "5528799dc8d781c9a474977567133d53e00522c4",
-      "reason": "Older copy of work that already landed: each of its 75 added line(s) not on main now was added on main earlier (newest additions in 2a3b9b389, 9b51253db, 9de317e9f, d7b37fa01) and later reworded or removed there; 10 of its 10 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
@@ -2094,111 +1614,15 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-2b",
-      "sha": "cf2e681b2ec02b3ff53269f47b14de26cbc0e512",
-      "reason": "Older copy of work that already landed: each of its 84 added line(s) not on main now was added on main earlier (newest additions in 2a3b9b389, 9b51253db, 61002be6f, 9de317e9f) and later reworded or removed there; 11 of its 11 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-2c",
-      "sha": "eb76874544dd00fdc0e20505fdb963e436b91d99",
-      "reason": "Older copy of work that already landed: each of its 11 added line(s) not on main now was added on main earlier (newest additions in 61002be6f, 66b1c96cf, 893371c4e, bd9dbb278) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-2d",
-      "sha": "bd3e6f908da2035371643eed6fcd985235bdacf7",
-      "reason": "Older copy of work that already landed: each of its 9 added line(s) not on main now was added on main earlier (newest additions in 61002be6f, 893371c4e, bd9dbb278) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-2e",
-      "sha": "0b6741c207d50d8c10afbf68727a0e8418852628",
-      "reason": "Older copy of work that already landed: each of its 9 added line(s) not on main now was added on main earlier (newest additions in 61002be6f, 893371c4e, bd9dbb278) and later reworded or removed there; 1 of its 1 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/train/2026-10-12-4",
       "sha": "a95374579e7bef8f1c6662a6702d21bc5565decd",
       "reason": "Superseded on main: the Q1429 name-heading fix lives in e2e via profileLanding/headingContract (PROFILE_NAME_HEADING_LEVEL); stranded-work reads closed PRs through the REST list (closedPullRequests). Leftover is the older wording.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-5",
-      "sha": "ee0c4420f222a312ead5fe51cd423239cec50183",
-      "reason": "Superseded: markerless [~] ratchet comments; main's own counts moved on.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-big",
-      "sha": "bbe2a7d418c9d3b6e8abcacd8b647e15bef8d30c",
-      "reason": "Older copy of work that already landed: each of its 26 added line(s) not on main now was added on main earlier (newest additions in 56ac92c46, 70ff0910a, 29639b75e, 8f0990fba) and later reworded or removed there; 30 of its 30 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-big2",
-      "sha": "bb9c3ad88d0fef535aa4b8ba9e61857d80e7ec15",
-      "reason": "Older copy of work that already landed: each of its 21 added line(s) not on main now was added on main earlier (newest additions in 56ac92c46, 684baa36b, 29639b75e, 8f0990fba) and later reworded or removed there; 30 of its 30 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-big3",
-      "sha": "d20c13788c1aa271728a26a7f265bfedb58a9316",
-      "reason": "Older copy of work that already landed: each of its 21 added line(s) not on main now was added on main earlier (newest additions in 56ac92c46, 684baa36b, 29639b75e, 8f0990fba) and later reworded or removed there; 30 of its 30 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-fee",
-      "sha": "29d0b8069e2ed8361fc3a51ae847e47f652dddff",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in 806db7b58, 3ad4cbc90) and later reworded or removed there; 21 of its 21 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money",
-      "sha": "267122fad2b5be3835affae5191f98b376d3b144",
-      "reason": "Superseded on main: the refund notice landed (refundNotice.ts, refundNoticeCopy with jobOwnsCharge); leftover is older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/train/2026-10-12-money-b",
       "sha": "049b1afa592ebe2561dbdbcbe25f93ce49b695b7",
       "reason": "Older copy of work that already landed: each of its 84 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 806db7b58, b4dc2f1d3, 3ad4cbc90) and later reworded or removed there; 26 of its 26 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-c",
-      "sha": "b74e21de3dfc1a77163b5398dec745f72271031b",
-      "reason": "Older copy of work that already landed: each of its 184 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 2a3b9b389, 9b51253db, 56ac92c46) and later reworded or removed there; 62 of its 62 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-d",
-      "sha": "0b61b6d2e44736a076f18b85007f88ef0682531b",
-      "reason": "Older copy of work that already landed: each of its 36 added line(s) not on main now was added on main earlier (newest additions in 59ef75712, d56d78ab1, b4dc2f1d3) and later reworded or removed there; 6 of its 6 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-e",
-      "sha": "464c5e5d72b37012b0897eb1c05e947aadc2bd33",
-      "reason": "Older copy of work that already landed: each of its 28 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 59ef75712, b4dc2f1d3, a26df85df) and later reworded or removed there; 9 of its 9 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-f",
-      "sha": "a3a20d79dfbc3287390f51f23afa27df372eaa2a",
-      "reason": "Older copy of work that already landed: each of its 28 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 59ef75712, b4dc2f1d3, a26df85df) and later reworded or removed there; 9 of its 9 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-g",
-      "sha": "85ef1d764e49ab1d8ded5b5f42cd4d286a81488f",
-      "reason": "Older copy of work that already landed: each of its 29 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 59ef75712, b4dc2f1d3, a26df85df) and later reworded or removed there; 11 of its 11 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-i",
-      "sha": "537629df5c9f7878513a12913111a2de8d475685",
-      "reason": "Superseded on main by the rebuilt Stripe test mode 8feeeb629 (money-o #2923) and realPayoutTransfers.ts (seed payouts); the two review fixes it carried that main lacked (e6b31b848, 000ca9c1e) are re-landed by ready/stranded-1013-1.",
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {

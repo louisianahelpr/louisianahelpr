@@ -1,6 +1,7 @@
 import { posterPaidDollars, type PosterChargedJob } from "@/lib/posterJobCost";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
+import { cardCostFeeCents } from "@/lib/refundAmount";
 
 /**
  * WHAT A POSTER REALLY SPENT on the jobs they posted: what left their card,
@@ -213,7 +214,7 @@ export const spentTotalCents = (rows: readonly { cents: number }[]) => rows.redu
  * every job with no fee.
  */
 export function setupFeeReceiptNote(
-  job: PosterChargedJob & { onboarding_fee_amount?: number | null; dispute_status?: string | null },
+  job: PosterChargedJob & { onboarding_fee_amount?: number | null; dispute_status?: string | null; platform_fee_percent?: number | string | null },
   refundedCents: number,
   adminRefunded = false,
 ): string {
@@ -228,8 +229,17 @@ export function setupFeeReceiptNote(
   // get no line (lh-money-escrow review).
   const chargedCents = cents(posterPaidDollars(job));
   const stripeCents = stripeProcessingCostCents(chargedCents);
-  // An admin's full refund keeps ONLY the fee (owner, 2026-10-12, second
-  // pop-up; lh-money-escrow review N2).
-  const otherKeptCents = adminRefunded ? 0 : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
+  // An admin's full refund keeps the CARD fee as well as the setup fee (owner,
+  // 2026-10-14: "if admin refunds we keep the fee also"; it used to keep only
+  // the setup fee, owner 2026-10-12, Q1674 review N2). The card fee it keeps is
+  // max(cardCostFeeCents(job), Stripe's real fee) (create-payment
+  // admin_refund_general, _shared/refundAmount.ts); the client cannot read
+  // Stripe's real fee, so it counts the part it can know: the card cost the
+  // poster paid on a no-service-fee job (platform_fee_percent 0), and nothing
+  // on a legacy 12% job (owner pop-up 2026-10-14: an admin refund never keeps
+  // the old 12%). No admin refund on prod predates this with a setup fee
+  // (measured 2026-10-14: 11 admin_refund_general rows, all is_seed, none on a
+  // job with onboarding_fee_amount).
+  const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents);
   return chargedCents - refundedCents + 1 >= feeCents + otherKeptCents ? ` · ${amount} one-time setup fee kept (not refundable)` : "";
 }

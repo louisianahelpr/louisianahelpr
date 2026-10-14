@@ -10,6 +10,7 @@ import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
+import { refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
@@ -1855,13 +1856,24 @@ serve(async (req) => {
           // Q407 (12), 2026-09-25).
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
-          const nonRefundableCents = (fullSeriesRefund
-            ? actualOrEstimatedFeeCents(pi, capturedCents)
-            : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents))) + setupFeeKeptCents(job);
           // Q1390: the crew's block fees are tried first and withheld from the refund.
           await payBlockFees(pi);
           const blockFeeCents = crewBlockFeeCents(blockFeeRows);
-          const refundAmount = capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents;
+          // THE refund amount (owner, 2026-10-14: never absorb a fee), from
+          // _shared/refundAmount.ts, the definition every refund path uses.
+          const voidSplit = refundToPayerCents({
+            capturedCents,
+            actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+            customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents,
+            setupFeeCents: setupFeeKeptCents(job),
+            otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents,
+          });
+          const nonRefundableCents = voidSplit.nonRefundableCents;
+          // Signed on purpose (not floored): the $0 branch below reports the
+          // raw shortfall to ops, as it did before the shared helper.
+          const refundAmount = voidSplit.refundCents > 0
+            ? voidSplit.refundCents
+            : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents;
           // ── Ledger guard against a SECOND real refund ────────────────────
           // The idempotency key below is permanent and unsalted. That protects
           // an overlapping run within Stripe's ~24h replay window and nothing

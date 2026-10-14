@@ -127,6 +127,9 @@ export async function settleOnboardingFee(
       // duplicate charge.
       try {
         const ONBOARDING_FEE_CENTS = parseInt((session.metadata as any)?.onboarding_fee_cents || "200", 10);
+        // own-mistake full refund (owner, 2026-10-14): we charged the one-time
+        // setup fee a second time, so the duplicate $2 goes back in full; the
+        // card fee rule (_shared/refundAmount.ts) does not apply to our errors.
         const refund = await stripe.refunds.create(
           {
             payment_intent: piId,

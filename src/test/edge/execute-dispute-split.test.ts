@@ -474,6 +474,27 @@ describe("execute-dispute-split edge function", () => {
       expect(body.payment_status).toBe("refunded");
     });
 
+    // Owner, 2026-10-14 (never absorb a fee), with the lead's ruling: the
+    // poster's leg keeps the CARD cost only, as admin_refund_dispute does, so
+    // a 0/100 split and a Quick Refund return the same cents. A legacy job's
+    // $10 service fee (platform_fee_percent 12) is NOT kept; a no-service-fee
+    // job's card cost (customer_fee_amount, platform_fee_percent 0) is kept
+    // when it is larger than the estimate.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     customerFeeCents: pi ? cardCostFeeCents(job) : 0, |     customerFeeCents: 0,
+    it("a 0/100 split on a LEGACY job keeps the card cost only, never its $10 service fee", async () => {
+      seedExecutable(scenario, { helperShare: 0, posterShare: 1, job: { customer_fee_amount: 10, platform_fee_percent: 12 } });
+      const fn = await load();
+      const body = await json(await invoke(fn));
+      expect(body.refund_cents).toBe(CAPTURED_CENTS - STRIPE_COST_CENTS);
+    });
+
+    it("a 0/100 split on a no-service-fee job keeps the $4.00 card fee the poster paid (larger than the estimate)", async () => {
+      seedExecutable(scenario, { helperShare: 0, posterShare: 1, job: { customer_fee_amount: 4, platform_fee_percent: 0 } });
+      const fn = await load();
+      const body = await json(await invoke(fn));
+      expect(body.refund_cents).toBe(CAPTURED_CENTS - 400);
+    });
+
     it("pays the Helpr their share of the urgent fee too", async () => {
       // $20 urgent fee, paid WHOLE (Q362: the poster paid its card fee on
       // top); at 60% the Helpr's share is $12 → folded in before the rounding.

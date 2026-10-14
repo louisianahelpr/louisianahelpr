@@ -14,6 +14,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
+import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 
 /**
@@ -2153,8 +2154,16 @@ serve(async (req) => {
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
           const setupFeeCents = setupFeeKeptCents(job);
-          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeCents;
-          const refundAmount = capturedCents - nonRefundableCents;
+          // THE refund amount (owner, 2026-10-14: never absorb a fee):
+          // _shared/refundAmount.ts, the same definition every refund path uses.
+          const cancelSplit = refundToPayerCents({
+            capturedCents,
+            actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+            customerFeeCents: serviceFeeCents,
+            setupFeeCents,
+          });
+          const nonRefundableCents = cancelSplit.nonRefundableCents;
+          const refundAmount = cancelSplit.ceilingCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
           // the payment_status flip below makes the second 409 out.
@@ -2843,8 +2852,22 @@ serve(async (req) => {
             }
 
             // Q1674: the first job's $2 setup fee is kept here too.
-            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job);
-            const refundAmount = capturedCents - nonRefundableCents;
+            // THE refund amount (owner, 2026-10-14: never absorb a fee), from
+            // _shared/refundAmount.ts. The poster WON, so only the CARD cost is
+            // kept, never a legacy service fee: cardCostFeeCents counts
+            // customer_fee_amount only on a job priced with no service fee
+            // (platform_fee_percent = 0), where that fee IS the card cost; on a
+            // legacy 12% job Stripe's real fee is what is kept. execute-dispute-
+            // split computes its poster leg the same way, so a 0/100 split and
+            // this Quick Refund return the same cents.
+            const disputeSplit = refundToPayerCents({
+              capturedCents,
+              actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+              customerFeeCents: cardCostFeeCents(job),
+              setupFeeCents: setupFeeKeptCents(job),
+            });
+            const nonRefundableCents = disputeSplit.nonRefundableCents;
+            const refundAmount = disputeSplit.ceilingCents;
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
             // is rejected by Stripe with charge_already_refunded — still loud.
@@ -3385,6 +3408,11 @@ serve(async (req) => {
       let generalRefundForNotice: { id: string; amountCents: number; keptCents: number } | null = null;
       // Q1674: what a full refund kept (the setup fee) and sent, for the audit row.
       let generalKeptSetupCents = 0;
+      // Owner 2026-10-14: what a full refund kept as the card fee, for the notice and audit row.
+      let generalKeptFeeCents = 0;
+      // A full refund that found nothing left to send (earlier refunds already
+      // returned everything refundable, or more): the job is still cancelled.
+      let generalNothingLeft = false;
       let generalRefundCents: number | null = null;
       let paymentIntentId = job.stripe_payment_intent_id;
       try {
@@ -3398,7 +3426,11 @@ serve(async (req) => {
       if (!paymentIntentId) {
         throw new PublicError("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
       }
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        // The fee Stripe kept is read from the charge's own balance
+        // transaction (owner, 2026-10-14: an admin refund keeps the card fee too).
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+          expand: ["latest_charge.balance_transaction"],
+        });
         if (pi.status === "succeeded") {
           // MS-6: bound a partial refund against what Stripe ACTUALLY captured
           // (budget + poster service fee + urgent fee + tax), not `job.budget`.
@@ -3407,11 +3439,12 @@ serve(async (req) => {
           // returns the WHOLE capture is refused too (Q1320, below): it would
           // leave the job payable on a fully refunded charge. Only an omitted
           // `amountCents` cancels the job.
-          // capturedCents is only consulted for a PARTIAL (it is the ceiling and
-          // the full-capture test below). A full refund sends no `amount` and
-          // refunds the whole charge on Stripe's side, so it neither needs nor
-          // reads this — keep these checks partial-only so a full refund on a PI
-          // whose amount fields are absent stays unaffected.
+          // capturedCents is the base of EVERY admin refund since 2026-10-14: a
+          // full refund sends the charge less the kept card and setup fees, a
+          // partial is capped by the same ceiling (generalSplit below). The
+          // degenerate-capture checks here are partial-only; a full refund on an
+          // unreadable or too-small capture is refused by its own check below
+          // (captured <= the kept fees), so no amount ever reaches Stripe from it.
           const capturedCents = Math.round(Number(pi.amount_received ?? pi.amount ?? 0));
           if (isPartial) {
             // Degenerate capture: a non-finite or non-positive captured amount
@@ -3468,6 +3501,26 @@ serve(async (req) => {
           const generalAlreadyRefundedCents = priorRefunds.data
             .filter((r) => r.status === "succeeded" || r.status === "pending")
             .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+          // THE refund amount (owner, 2026-10-14: "if admin refunds we keep the
+          // fee also. we should never absorb any fee"), from
+          // _shared/refundAmount.ts: the charge less the CARD fee only, less a
+          // first job's kept $2 setup fee (Q1674), less what earlier refunds
+          // returned. A full refund sends exactly that; a partial is capped by
+          // it. Tax is not withheld.
+          // Owner, 2026-10-14 pop-up: on a legacy job priced with the old 12%
+          // poster service fee (platform_fee_percent > 0; prod had 3 funded:
+          // 7440a72d, 11f8b084, 9c6ff2de) an admin full refund keeps ONLY the
+          // card fee, like the dispute paths, never the old 12%. cardCostFeeCents
+          // counts customer_fee_amount only when it IS the card cost
+          // (platform_fee_percent = 0); otherwise Stripe's real fee is kept.
+          const generalSplit = refundToPayerCents({
+            capturedCents,
+            actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+            customerFeeCents: cardCostFeeCents(job),
+            setupFeeCents: setupFeeKeptCents(job),
+            alreadyRefundedCents: generalAlreadyRefundedCents,
+            requestedCents: isPartial ? requestedCents : null,
+          });
           // Q1320: a partial that, with the refunds already on this charge,
           // returns the WHOLE capture is a full refund in disguise. A partial
           // takes no job claim and flips nothing, and the single-Helpr payout
@@ -3475,44 +3528,69 @@ serve(async (req) => {
           // payout could pay the Helpr on top of the poster's full refund.
           // Refused (nothing moved): the full refund cancels the job and stops
           // its payout, and is the action to use.
-          if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) {
+          // Since 2026-10-14 the whole charge is never refundable (the card fee
+          // is kept), so "everything refundable" is the line: a partial that
+          // reaches the ceiling (or passes it) is refused the same way.
+          if (isPartial && generalAlreadyRefundedCents + requestedCents! >= generalSplit.ceilingCents) {
+            const keptWords = generalSplit.setupKeptCents > 0
+              ? `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee and the one-time $${(generalSplit.setupKeptCents / 100).toFixed(2)} setup fee are kept`
+              : `the $${(generalSplit.feeKeptCents / 100).toFixed(2)} card processing fee is kept`;
             return new Response(JSON.stringify({
-              error: `This partial refund would return the whole charge ($${(capturedCents / 100).toFixed(2)}${generalAlreadyRefundedCents > 0 ? `, counting $${(generalAlreadyRefundedCents / 100).toFixed(2)} already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
+              error: `This partial refund would return everything refundable on the $${(capturedCents / 100).toFixed(2)} charge ($${(generalSplit.ceilingCents / 100).toFixed(2)}: ${keptWords}${generalAlreadyRefundedCents > 0 ? `; $${(generalAlreadyRefundedCents / 100).toFixed(2)} was already refunded` : ""}). Use a full refund instead: it cancels the job and stops its payout (it is refused if the Helpr was already paid). No money was moved.`,
               useFullRefund: true,
+              refundableCents: generalSplit.remainingCents,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
           }
           // Q1674 (owner, 2026-10-12): an admin's FULL refund keeps a first
-          // job's $2 setup fee too, so the rule is the same on every refund
-          // path. The refund is then everything left on the charge but the
-          // fee (Stripe sees a partial; this path still cancels the job).
-          const keptSetupCents = isPartial ? 0 : setupFeeKeptCents(job);
-          if (keptSetupCents > 0 && (!Number.isFinite(capturedCents) || capturedCents <= keptSetupCents)) {
+          // job's $2 setup fee too, and since 2026-10-14 the card fee as well
+          // (generalSplit above). The refund is then everything left on the
+          // charge but those fees (Stripe sees a partial; this path still
+          // cancels the job).
+          const keptSetupCents = isPartial ? 0 : generalSplit.setupKeptCents;
+          const keptFeeCents = isPartial ? 0 : generalSplit.feeKeptCents;
+          if (!isPartial && (!Number.isFinite(capturedCents) || capturedCents <= generalSplit.nonRefundableCents)) {
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "critical",
-              title: "General refund aborted — captured amount unreadable or not above the setup fee",
-              message: `admin_refund_general could not keep the $2 setup fee on job ${jobId}: the captured amount (${String(capturedCents)}) is unreadable or not above it. No refund issued.`,
-              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents) },
+              title: "General refund aborted — captured amount unreadable or not above the kept fees",
+              message: `admin_refund_general could not keep the card fee${keptSetupCents > 0 ? " and the $2 setup fee" : ""} on job ${jobId}: the captured amount (${String(capturedCents)}) is unreadable or not above them (${generalSplit.nonRefundableCents}c). No refund issued.`,
+              fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents), non_refundable_cents: generalSplit.nonRefundableCents },
             });
             throw new PublicError(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
           }
-          const fullTargetCents = capturedCents - keptSetupCents;
+          const fullTargetCents = generalSplit.ceilingCents;
           const reused = !isPartial
-            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, keptSetupCents > 0 ? fullTargetCents : capturedCents, "admin_refund_general", priorRefunds.data)
+            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, fullTargetCents, "admin_refund_general", priorRefunds.data)
             : null;
-          const keptFullAmountCents = fullTargetCents - generalAlreadyRefundedCents;
+          const keptFullAmountCents = generalSplit.remainingCents;
           generalKeptSetupCents = keptSetupCents;
+          generalKeptFeeCents = keptFeeCents;
+          // What a full refund KEPT is read from the money, not from the rule:
+          // a refund made before 2026-10-14 (reused on a retry) or one made
+          // outside this path (a Stripe Dashboard refund) may have returned the
+          // card fee or the setup fee too, and the ledger row, the audit row and
+          // the poster's notice must not claim a fee was kept when it went back
+          // (lh-silent-failure review of 79e9a6bb5, #2 and #3). The setup fee
+          // is counted first, then the card fee, each capped by what stayed.
+          const keptFromMoney = (stayedCents: number) => {
+            if (isPartial || !Number.isFinite(stayedCents)) return;
+            const stayed = Math.max(0, stayedCents);
+            generalKeptSetupCents = Math.min(keptSetupCents, stayed);
+            generalKeptFeeCents = Math.min(keptFeeCents, stayed - generalKeptSetupCents);
+          };
           // Earlier admin partials already returned everything but the kept
-          // fee: nothing is left to send, but the full refund still CANCELS
+          // fees: nothing is left to send, but the full refund still CANCELS
           // the job, so no payout can be made over a near-full refund (Q1320;
           // lh-money-escrow review N1). Mirrors cancel_escrow's $0 branch.
-          const nothingLeftToSend = keptSetupCents > 0 && !reused && keptFullAmountCents <= 0;
+          const nothingLeftToSend = !isPartial && !reused && keptFullAmountCents <= 0;
           if (nothingLeftToSend) {
+            generalNothingLeft = true;
+            keptFromMoney(capturedCents - generalAlreadyRefundedCents);
             await postSlackOpsAlert({
               kind: "custom",
               severity: "info",
-              title: "Full refund sent nothing: only the kept setup fee was left",
-              message: `admin_refund_general on job ${jobId}: earlier refunds already returned everything but the kept $2 setup fee, so no Stripe refund was sent; the job is cancelled.`,
+              title: "Full refund sent nothing: only the kept fees were left",
+              message: `admin_refund_general on job ${jobId}: earlier refunds already returned everything but ${capturedCents - generalAlreadyRefundedCents > 0 ? `$${((capturedCents - generalAlreadyRefundedCents) / 100).toFixed(2)} (the kept card fee${generalKeptSetupCents > 0 ? " and setup fee" : ""})` : "nothing (the whole charge is already refunded)"}, so no Stripe refund was sent; the job is cancelled.`,
               fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: capturedCents, already_refunded_cents: generalAlreadyRefundedCents },
             });
           }
@@ -3524,7 +3602,8 @@ serve(async (req) => {
           generalRefundSent = true;
           const refund = reused ?? await stripe.refunds.create({
             payment_intent: paymentIntentId,
-            ...(isPartial ? { amount: requestedCents } : keptSetupCents > 0 ? { amount: keptFullAmountCents } : {}),
+            // Partial or full, the amount is generalSplit's (never the card fee).
+            amount: generalSplit.refundCents,
             metadata: {
               reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
               admin_user_id: user.id,
@@ -3534,6 +3613,7 @@ serve(async (req) => {
               source: "admin_refund_general",
               // Always written ("0" when none): a creator never spreads metadata (Q343).
               kept_setup_fee_cents: String(keptSetupCents),
+              kept_card_fee_cents: String(keptFeeCents),
             },
           }, {
             // Full refund: deduped within Stripe's ~24h key lifetime; after
@@ -3546,7 +3626,7 @@ serve(async (req) => {
               : `refund-general-${jobId}-full`,
           });
           if (refund?.id) {
-            const refundedCents = Math.round(Number(refund.amount ?? (isPartial ? requestedCents : capturedCents - generalAlreadyRefundedCents)));
+            const refundedCents = Math.round(Number(refund.amount ?? generalSplit.refundCents));
             generalRefundForNotice = {
               id: refund.id,
               amountCents: refundedCents,
@@ -3557,6 +3637,7 @@ serve(async (req) => {
                 ? Math.max(0, capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents))
                 : 0,
             };
+            keptFromMoney(capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents));
           }
           await recordRefund(supabaseAdmin, {
             refund,
@@ -3564,8 +3645,19 @@ serve(async (req) => {
             customerId: job.customer_id,
             paymentIntentId,
             source: "admin_refund_general",
-            isPartial: isPartial || keptSetupCents > 0,
-            reason: [reason || null, keptSetupCents > 0 ? "full refund less the kept $2 setup fee" : null].filter(Boolean).join(" — ") || null,
+            isPartial: isPartial || generalKeptSetupCents > 0 || generalKeptFeeCents > 0,
+            reason: [
+              reason || null,
+              isPartial
+                ? null
+                : generalKeptSetupCents > 0 && generalKeptFeeCents > 0
+                  ? "full refund less the card processing fee and the kept $2 setup fee"
+                  : generalKeptSetupCents > 0
+                    ? "full refund less the kept $2 setup fee"
+                    : generalKeptFeeCents > 0
+                      ? "full refund less the card processing fee"
+                      : null,
+            ].filter(Boolean).join(" — ") || null,
             initiatedByUserId: user.id,
           });
           generalRefundCents = Math.round(Number(refund.amount ?? 0));
@@ -3695,6 +3787,7 @@ serve(async (req) => {
           partial_amount_dollars: isPartial ? (requestedCents! / 100).toFixed(2) : null,
           refund_cents: generalRefundCents,
           kept_setup_fee_cents: generalKeptSetupCents,
+          kept_card_fee_cents: generalKeptFeeCents,
           gift_restored_cents: generalGift.restoredCents,
           gift_restore_failed: generalGift.failed,
           payment_intent_id: paymentIntentId,
@@ -3716,7 +3809,8 @@ serve(async (req) => {
           // A partial refund leaves the rest paying for the job: nothing "kept".
           keptCents: isPartial ? 0 : generalRefundForNotice.keptCents,
           // Q1674: a full refund of a first job also keeps its one-time $2
-          // setup fee; the notice names it after the card fee (if any).
+          // setup fee; the notice names it after the card fee, which every
+          // full refund keeps (owner, 2026-10-14).
           keptReason: !isPartial && generalRefundForNotice.keptCents > 0
             ? setupFeeKeptReason(generalRefundForNotice.keptCents > generalKeptSetupCents ? "the card processing fee, which can't be returned" : null, generalKeptSetupCents)
             : null,
@@ -3724,7 +3818,7 @@ serve(async (req) => {
           jobId: job.id,
           extra: [reason ? `Reason: ${reason}.` : "", generalGift.posterSentence.trim()].filter(Boolean).join(" ") || null,
         });
-      } else if (!isPartial && generalRefundCents === null && generalKeptSetupCents > 0) {
+      } else if (!isPartial && generalRefundCents === null && generalNothingLeft) {
         // Q1674: earlier partials already returned everything but the kept
         // setup fee, so no refund was sent and there is no refund notice to
         // claim; the poster is still told the job is cancelled and why the $2
@@ -3732,7 +3826,16 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Refund issued",
-          message: `"${job.title}" has been cancelled.${reason ? ` Reason: ${reason}` : ""} The earlier refunds already returned everything except the one-time $${(generalKeptSetupCents / 100).toFixed(2)} account setup fee, which is paid once and never refunded.`,
+          // Worded from what actually stayed on the charge (keptFromMoney), so
+          // it never claims a fee was kept that an earlier refund returned.
+          message: `"${job.title}" has been cancelled.${reason ? ` Reason: ${reason}` : ""} ${
+            generalKeptSetupCents > 0 || generalKeptFeeCents > 0
+              ? `The earlier refunds already returned everything except ${[
+                generalKeptFeeCents > 0 ? "the card processing fee, which can't be returned" : null,
+                generalKeptSetupCents > 0 ? `the one-time $${(generalKeptSetupCents / 100).toFixed(2)} account setup fee, which is paid once and never refunded` : null,
+              ].filter(Boolean).join(", and ")}.`
+              : "The earlier refunds already returned the whole charge."
+          }`,
           type: "payment",
           link: `/posts?job=${job.id}`,
         });

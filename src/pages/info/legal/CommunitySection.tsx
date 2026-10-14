@@ -148,7 +148,7 @@ export const CommunityContent = () => (
         icon={Ban}
         title="No-show — final warning, then admin review"
         body={
-          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
+          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The person who posted the job gets their money back, less the card processing fee. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
         }
         warning
       />
@@ -257,7 +257,7 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={Shield}
         title="Step 3 — Admin resolution (final)"
-        body={<p>An admin reviews evidence from both parties and makes a final, binding decision: full release, partial refund, or full refund.</p>}
+        body={<p>An admin reviews evidence from both parties and makes a final, binding decision: full release, partial refund, or a refund of everything paid except the card processing fee.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}

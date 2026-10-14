@@ -62,6 +62,7 @@ import { CLEAR_TEST_MODE_ACTION, TEST_MODE_CLEARED_MARKER, clearTestModeRecords 
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
+import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -279,7 +280,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, onboarding_fee_amount",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, onboarding_fee_amount, customer_fee_amount, platform_fee_percent",
     )
     .eq("id", dispute.job_id)
     .maybeSingle();
@@ -626,10 +627,20 @@ serve(async (req) => {
   // The gift leg has none: create-gift-card-checkout already charged the DONOR that
   // cost when the gift was bought, so withholding it again here would take the
   // same cut twice out of one dollar.
-  const nonRefundableCents = pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
   // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept ("paid and
   // done"), so it is not part of what the poster's share is drawn from.
-  const refundableCents = Math.max(0, capturedCents - nonRefundableCents - (pi ? setupFeeKeptCents(job) : 0));
+  // THE refund amount (owner, 2026-10-14: never absorb a fee), from
+  // _shared/refundAmount.ts, exactly as admin_refund_dispute computes it: the
+  // card cost only (Stripe's real fee, or customer_fee_amount on a job priced
+  // with no service fee), never a legacy service fee from a poster who won.
+  const posterBase = refundToPayerCents({
+    capturedCents,
+    actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0,
+    customerFeeCents: pi ? cardCostFeeCents(job) : 0,
+    setupFeeCents: pi ? setupFeeKeptCents(job) : 0,
+  });
+  const nonRefundableCents = posterBase.feeKeptCents;
+  const refundableCents = posterBase.ceilingCents;
   const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
 
   // Gift leg. Basis points, not dollars: the amount is computed inside

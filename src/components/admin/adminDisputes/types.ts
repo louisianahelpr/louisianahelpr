@@ -28,6 +28,7 @@ export interface DisputedJob {
   payment_status?: string | null;
   /** Poster-paid service fee — part of what Stripe actually captured. */
   customer_fee_amount?: number | null;
+  platform_fee_percent?: number | null;
   /** Sales tax added on top of the charge, refundable pro rata. */
   sales_tax_amount?: number | null;
   /** Q368: a seed row, listed with a Test tag. */

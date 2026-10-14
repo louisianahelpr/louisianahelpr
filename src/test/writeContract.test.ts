@@ -9,8 +9,10 @@ import { join } from "node:path";
 // @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
 // @mutate scripts/audit/write-contract.mjs | else reject("unknown_column" | else if (false) reject("unknown_column"
 // @mutate scripts/audit/write-contract.mjs | if (by) warn("rpc_pending" | if (false) warn("rpc_pending"
-// @mutate scripts/audit/write-contract.mjs | if (by) warn("column_pending" | if (false) warn("column_pending"
+// @mutate scripts/audit/write-contract.mjs | if (by) { | if (false) {
 // @mutate scripts/audit/write-contract.mjs |         if (!/^(constraint\|primary\|unique\|foreign\|check\|exclude)$/i.test(a[1])) columns.set( |         columns.set(
+// @mutate scripts/audit/write-contract.mjs | if (!ok) reject("no_column_grant", `${role} has no ${priv} privilege on pending column | if (false) reject("no_column_grant", `${role} has no ${priv} privilege on pending column
+// @mutate scripts/audit/write-contract.mjs | if (cols) for (const c of cols) grants.add(`${role}:${priv}:${table}.${c}`); | if (cols) for (const c of cols) grants.add(`${role}:${priv}:${table}`);
 // @mutate scripts/audit/write-contract.mjs | if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none; | if (false) return none;
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
@@ -221,6 +223,44 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
     const empty = mkdtempSync(join(tmpdir(), "wc-pending-none-"));
     const codesWithout = contract.checkWrite(w, s, contract.pendingDefinitions(s, empty)).map((x: any) => x.code);
     expect(codesWithout).toContain("unknown_column");
+  });
+
+  // Q1825 (lh-authz-rls@9d35e9f18#3): column_pending used to `continue` before
+  // any grant check, so a pending column on a per-column-granted table
+  // (profiles UPDATE) passed as a warning even when no migration granted it.
+  it("a pending column on a per-column-granted table needs a pending GRANT, else no_column_grant", () => {
+    const w = report.writes.find(
+      (x: any) =>
+        x.kind === "update" &&
+        x.target === "profiles" &&
+        x.roles.includes("authenticated") &&
+        x.payload?.resolved &&
+        Object.keys(x.payload.keys).some((k) => snapshot.tables.profiles.columns[k]),
+    );
+    expect(w).toBeTruthy();
+    expect(snapshot.tables.profiles.grants.authenticated ?? []).not.toContain("UPDATE");
+    expect((snapshot.tables.profiles.columnGrants?.authenticated?.UPDATE ?? []).length).toBeGreaterThan(10);
+    const col = Object.keys(w.payload.keys).find((k) => snapshot.tables.profiles.columns[k])!;
+    const run = (sql: string) => {
+      const dir = mkdtempSync(join(tmpdir(), "wc-pending-grant-"));
+      writeFileSync(join(dir, "20990101000000_a.sql"), sql);
+      const s: any = clone();
+      s.appliedMigrations = { latest: "20990100000000", count: 0 };
+      delete s.tables.profiles.columns[col];
+      s.tables.profiles.columnGrants.authenticated.UPDATE = s.tables.profiles.columnGrants.authenticated.UPDATE.filter((c: string) => c !== col);
+      return contract.checkWrite(w, s, contract.pendingDefinitions(s, dir)).map((x: any) => x.code);
+    };
+    const add = `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ${col} text;\n`;
+    // No grant: the write will be refused on prod once the migration deploys.
+    expect(run(add)).toContain("no_column_grant");
+    // A commented-out grant is not a grant.
+    expect(run(add + `-- GRANT UPDATE (${col}) ON public.profiles TO authenticated;\n`)).toContain("no_column_grant");
+    // A grant on another column does not cover this one.
+    expect(run(add + `GRANT UPDATE (some_other_col) ON public.profiles TO authenticated;\n`)).toContain("no_column_grant");
+    // The matching per-column grant (in any privilege list position) covers it.
+    const ok = run(add + `GRANT SELECT (${col}), UPDATE (bio, ${col}) ON TABLE public.profiles TO anon, authenticated;\n`);
+    expect(ok).toContain("column_pending");
+    expect(ok).not.toContain("no_column_grant");
   });
 });
 

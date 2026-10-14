@@ -95,7 +95,7 @@ export function formProblem(f: FormState): string | null {
   if (f.title.trim().length < 3) return "Give the item a name of at least 3 characters.";
   const price = dollarsToCents(f.price);
   const floor = dollarsToCents(f.floor);
-  if (price === null || price < 100 || price > 1_000_000) return "Set a price between $1 and $10,000.";
+  if (price === null || price < 100 || price > 100_000) return "Set a price between $1 and $1,000.";
   if (floor === null || floor < 100 || floor > price) {
     return "Set your lowest price: at least $1 and no more than your price.";
   }

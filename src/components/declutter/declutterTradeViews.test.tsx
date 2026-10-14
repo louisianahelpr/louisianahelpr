@@ -4,10 +4,14 @@
  * API module is stubbed; the backend proof is
  * src/test/pglite/declutterSlice3.pglite.mjs and scripts/declutter/race-accept.mjs.
  *
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (!card.data) { |   if (false) {
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (!card.data) return <SaveCardPrompt |   if (false) return <SaveCardPrompt
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents; | o.floor_price_cents !== null;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
+ * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             await openExternalUrl(await startCardSave(), | await openExternalUrl("https://example.invalid",
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, handover); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <SalesWaiting />\n    </AppPage> |       <SalesWaiting />\n    </AppPage>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -21,6 +25,8 @@ const state = {
   offers: [] as unknown[],
   cart: [] as unknown[],
   sent: [] as unknown[],
+  paid: [] as unknown[],
+  opened: [] as string[],
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
@@ -37,9 +43,16 @@ vi.mock("@/lib/declutter/api", () => ({
   respondOffer: async () => "declined",
   buyNow: async () => "l1",
   sellerCancelSale: async () => 1,
+  startCardSave: async () => "https://checkout.stripe.test/setup",
+  startCheckoutPayment: async (sellerId: string, handover: string) => {
+    state.paid.push({ sellerId, handover });
+    return { url: "https://checkout.stripe.test/pay", paid: false };
+  },
 }));
+vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.opened.push(url); } }));
+vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 
-import { CartView, OfferPanel, OffersView, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
+import { CartView, FinishSalesView, OfferPanel, OffersView, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
 
 function show(el: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -69,13 +82,17 @@ describe("Declutter slice 3 screens", () => {
     state.offers = [];
     state.cart = [];
     state.sent = [];
+    state.paid = [];
+    state.opened = [];
   });
 
-  it("no saved card: says why, shows no Buy or offer button (row 36)", async () => {
+  it("no saved card: says why, shows no Buy or offer button, and Save a card opens Stripe's page (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("Save a card to buy or make offers.")).toBeInTheDocument();
     expect(screen.getByText(/never charged until you check out/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Buy for/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/setup"]));
   });
 
   it("under 18: buying is a plain block (row 53)", async () => {
@@ -123,7 +140,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });
 
-  it("cart: one checkout per seller with one $1-minimum fee, delivery later, no dead Pay button (rows 20-22, 24, 38)", async () => {
+  it("cart: one checkout per seller with one $1-minimum fee, delivery later, and a Pay button for the total (rows 20-22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
@@ -133,8 +150,22 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("$1.05")).toBeInTheDocument();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
     expect(screen.getByText("Delivery by a Helpr is coming later.")).toBeInTheDocument();
-    expect(screen.getByText("Paying opens in the next test round.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /pay/i })).toBeNull();
+    expect(screen.queryByText(/next test round/)).toBeNull();
+    fireEvent.click(screen.getByLabelText(/Porch pickup/));
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]));
+    expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
+  });
+
+  it("switch off with a sale agreed: the cart and the member's sales, nothing new (row 62)", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l9", item_id: "i9", item_title: "Chair", my_side: "seller", seller_id: "me" }];
+    show(<FinishSalesView />);
+    expect(await screen.findByText("Declutter is closed for now.")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Pay $4" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel sale" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Buy for|Make an offer|Sell an item/ })).toBeNull();
   });
 
   it("strike count reads 'You have N of 3 strikes' and is absent at 0", async () => {

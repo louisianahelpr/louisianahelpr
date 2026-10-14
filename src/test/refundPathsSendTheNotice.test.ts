@@ -85,6 +85,8 @@ const REFUND_OWN_NOTICE: Record<string, string> = {
     "a duplicate onboarding-fee correction (metadata.reason duplicate_onboarding_fee) is announced as \"Duplicate fee refunded\"; handleChargeRefunded skips it as a correction",
   "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts":
     "refunds a second payment inside the webhook itself; the charge.refunded it raises sends the notice (recipient from the payment's metadata)",
+  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
+    "Declutter (slice 3b): refunds carry metadata.kind declutter_refund (pathAnnouncesRefund) and are announced by this path itself: a money email once Stripe took the refund, plus the SQL bell notice; charge.refunded leaves them alone",
 };
 
 /**
@@ -122,7 +124,7 @@ function refundWordsInNotices(): Map<string, number> {
 describe("Q1714: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(11);
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(12);
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(3);
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

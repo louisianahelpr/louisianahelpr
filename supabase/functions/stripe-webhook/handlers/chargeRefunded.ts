@@ -101,6 +101,14 @@ export async function handleChargeRefunded(
     (r?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
   const liveRefunds = allRefunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled");
   const ordinaryRefunds = liveRefunds.filter((r) => !isCorrection(r));
+  // Declutter (slice 3b): its refunds are made, recorded (declutter_refunds)
+  // and announced by its own webhook path; a Declutter charge is not a job, so
+  // nothing below applies (no job ledger row, no second generic notice;
+  // lh-money-escrow review 3b #3).
+  if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "declutter_refund")) {
+    logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
   // Only a FULL refund flips the job to "refunded". A partial refund (e.g. a
   // one-off duplicate-onboarding-fee correction, or a partial-dispute payout)
   // leaves the bulk of escrow in place, so marking the whole job refunded would

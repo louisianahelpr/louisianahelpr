@@ -10,6 +10,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx |             <Button type="submit" size="sm" disabled={ask.isPending \|\| question.trim().length < 2}> |             <Button type="submit" size="sm" className="btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| question.trim().length < 2}>
  * @mutate src/components/declutter/DeclutterItemView.tsx | <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: | <p className="text-sm font-medium">Q:
  * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
+ * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -24,6 +25,7 @@ const state = {
   item: null as unknown,
   photos: [] as unknown[],
   questions: [] as unknown[],
+  agreed: false,
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
@@ -70,6 +72,7 @@ vi.mock("@/lib/declutter/api", () => ({
   respondOffer: async () => "declined",
   buyNow: async () => "l",
   sellerCancelSale: async () => 1,
+  fetchHasAgreedSales: async () => state.agreed,
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
@@ -107,13 +110,23 @@ describe("Declutter screens", () => {
     state.item = null;
     state.photos = [];
     state.questions = [];
+    state.agreed = false;
   });
 
-  it("switch off: every Declutter route is the 404", () => {
+  it("switch off: every Declutter route is the 404", async () => {
     state.feature = false;
     at("/declutter", <DeclutterPage />);
-    expect(screen.getByText("Page not found")).toBeInTheDocument();
+    expect(await screen.findByText("Page not found")).toBeInTheDocument();
     expect(screen.queryByText("Declutter")).toBeNull();
+  });
+
+  it("switch off with a sale already agreed: the member can still finish it (row 62)", async () => {
+    state.feature = false;
+    state.agreed = true;
+    at("/declutter", <DeclutterPage />);
+    expect(await screen.findByText("Declutter is closed for now.")).toBeInTheDocument();
+    expect(screen.queryByText("Page not found")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 
   it("switch on: Browse with a Sell button, and an empty state in plain words", async () => {

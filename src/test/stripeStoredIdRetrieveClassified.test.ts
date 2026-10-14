@@ -187,6 +187,10 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
 /** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
+  // Declutter (slice 3b): ids from the webhook event itself, read on the client of the event's own mode
+  // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
+  "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "the paid session's own PaymentIntent, from the event, on the event's mode",
+  "stripe-webhook/handlers/declutterCheckout.ts::stripe.setupIntents.retrieve(setupIntentId)": "the setup session's own SetupIntent, from the event, on the event's mode",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

@@ -54,6 +54,8 @@ const ROUTED = [
   "create-bgc-payment/index.ts",
   "create-boost-payment/index.ts",
   "create-payment/index.ts",
+  "declutter-card/index.ts",
+  "declutter-checkout/index.ts",
   "execute-dispute-split/index.ts",
   "instant-payout/index.ts",
   "pay-onboarding-fee/index.ts",

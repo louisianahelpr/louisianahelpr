@@ -128,7 +128,7 @@ export function refundNoticeProblem(r: RefundNoticeResult): string | null {
 export function pathAnnouncesRefund(md: Record<string, string> | null | undefined): boolean {
   if (!md) return false;
   return !!md.dispute_id || md.source === "admin_refund_dispute" || md.source === "admin_refund_general" ||
-    md.fee_withheld === "true";
+    md.fee_withheld === "true" || md.kind === "declutter_refund";
 }
 
 /**

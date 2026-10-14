@@ -68,6 +68,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),
   ('declutter_member_out',          'deny',     'TRUE = banned or 3 Declutter strikes: the trade is refused (20261014210518)'),
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
+  ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
+  ('declutter_retire_order',        'deny',     'TRUE = the order was retired (its Stripe page timed out); service only, a NULL argument matches no order and answers FALSE (20261014224914)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),

@@ -37,7 +37,7 @@ export type SeedSite = {
 // DELETE trigger writes it, so the scan finds no fixture writer to check.
 // The Declutter trade tables (20261014210518) are seed at birth from either
 // party's profile (trigger declutter_trade_rows_seed); only RPCs write them.
-export const SEED_TABLES = ["declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "deleted_jobs_log", "jobs", "profiles"] as const;
+export const SEED_TABLES = ["declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_refunds", "declutter_seller_fee_debts", "deleted_jobs_log", "jobs", "profiles"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

@@ -13,10 +13,10 @@
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | greatest(p.floor_price_cents, floor(i.current_price_cents * 0.95)::integer) | floor(i.current_price_cents * 0.95)::integer
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
+ * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        SET current_price_cents = greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), |        SET current_price_cents = greatest(
+ * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |         AND NOT public.declutter_seller_hidden(seller_id)) |         AND true)
  */
@@ -47,8 +47,14 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     expect(MIG.length).toBeGreaterThan(20_000);
   });
 
-  it("every client RPC needs the switch; every write names is_caller_banned(); buyer writes are age-gated (row 53)", () => {
-    for (const fn of [...CLIENT_WRITES, ...CLIENT_READS]) expect(body(fn), fn).toMatch(/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);/);
+  it("every client RPC that STARTS something needs the switch; every write names is_caller_banned(); buyer writes are age-gated (row 53)", () => {
+    // Row 62 (slice 3b, 20261014224914, B44): finishing an agreed sale (checkout,
+    // seller cancel, reading your cart and offers) works with the switch off.
+    const FINISHING = ["declutter_start_checkout", "declutter_seller_cancel_sale", "declutter_my_offers", "declutter_my_cart"];
+    for (const fn of [...CLIENT_WRITES, ...CLIENT_READS].filter((f) => !FINISHING.includes(f))) {
+      expect(body(fn), fn).toMatch(/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);/);
+    }
+    for (const fn of FINISHING) expect(body(fn), fn).not.toMatch(/require_feature/);
     for (const fn of CLIENT_WRITES) expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
     for (const fn of ["declutter_make_offer", "declutter_respond_offer", "declutter_buy_now", "declutter_start_checkout"]) {
       expect(body(fn), fn).toContain("public.declutter_assert_member(true)");
@@ -83,13 +89,15 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
   it("the webhook path is service-only, idempotent, and refunds in full what it cannot honour", () => {
     const paid = flat(body("declutter_mark_order_paid"));
     expect(paid).toContain("SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;");
-    expect(paid).toContain("THEN 'already_paid' ELSE 'refund_in_full' END");
-    expect(paid).toContain("IF o.status <> 'awaiting_payment' OR p_amount_cents IS DISTINCT FROM o.total_cents OR p_payment_intent_id IS NULL THEN RETURN 'refund_in_full';");
+    // Slice 3b (B40): every refund now carries a reason that fixes who bears the card fee.
+    expect(paid).toContain("RETURN jsonb_build_object('result', 'already_paid');");
+    expect(paid).toContain("IF p_amount_cents IS DISTINCT FROM o.total_cents THEN RETURN public.declutter_refund_answer( public.declutter_record_refund(o.id, p_payment_intent_id, 'amount_mismatch'");
   });
 
   it("row 56: the evening drop is 5%, never below the floor, once per Louisiana day; both crons are watched", () => {
     const drop = flat(body("declutter_price_drop_sweep"));
-    expect(drop).toContain("greatest(p.floor_price_cents, floor(i.current_price_cents * 0.95)::integer)");
+    // Slice 3b (row 61, B42): never below the private stop point, which is above the floor.
+    expect(drop).toContain("greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), floor(i.current_price_cents * 0.95)::integer)");
     expect(drop).toContain("AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today)");
     expect(drop).toContain("(now() AT TIME ZONE 'America/Chicago')::date");
     for (const job of ["declutter-deadlines", "declutter-price-drops"]) {

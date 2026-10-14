@@ -285,6 +285,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/admin-update-email/index.ts": "own email changed by an admin",
   "supabase/functions/admin-user-actions/index.ts": "own verification / ID re-upload / password reset / formal warning",
   "supabase/functions/_shared/giftCardEmail.ts": "names the donor: its one caller asks giftEmailCrossesSeedBoundary first (Q139, asserted below)",
+  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts": "own money: the Declutter buyer's own receipt / refund; names no other person",
 };
 
 describe("Q137: a seed subject never notifies a real person", () => {

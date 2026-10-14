@@ -50,7 +50,9 @@ describe("tips are final", () => {
     // 8 (2026-10-06): stripe-webhook/handlers/refundDuplicateFunding.ts (Q1419) refunds a
     // job-funding checkout that landed on an already-funded job; the escrow block that calls
     // it excludes tip sessions (sessionType "tip"), so it cannot reach a tip.
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(8);
+    // 9 (2026-10-14): stripe-webhook/handlers/declutterCheckout.ts refunds only a Declutter
+    // order's own PaymentIntent (metadata.kind declutter_order); a tip is never a Declutter order.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(9);
   });
 
   it("no refund path reads the tips table", () => {

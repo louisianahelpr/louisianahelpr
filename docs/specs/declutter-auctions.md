@@ -77,6 +77,40 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 60 | Seller backs out after the buyer paid | Buyer gets EVERYTHING back (item price + premium + card fee); the card fee Stripe kept is charged to the SELLER, taken from their future Declutter payouts; seller gets a strike | 2026-10-14 |
 | 61 | Price drops near the hidden floor | Drops stop at a random point slightly ABOVE the hidden floor, so a watcher can't work out the floor (seller may sell for a little more than their lowest) | 2026-10-14 |
 | 62 | Switch turned off mid-sale | Sales already agreed (offer accepted / paid) may still check out and hand over; no strike for a sale the switch interrupted; nothing new can start | 2026-10-14 |
+| 63 | Launch without Helpr delivery | Public launch = pickup at seller's home + porch pickup only; Helpr delivery (slice 5) added right after; checkout keeps saying delivery is coming later | 2026-10-14 |
+| 64 | Web first | Declutter goes live on the website (incl. phone browser) first; the iPhone app gets it in the next build after Apple's review of 1.0.4, described in review notes (row 51) | 2026-10-14 |
+| 65 | Terms | Claude drafts plain-English Declutter terms from the spec for the owner to approve (lawyer look advised before public launch) | 2026-10-14 |
+| 66 | First testers | Owner + test accounts first (real items, pickup only, real card, small amounts); friends added as testers later | 2026-10-14 |
+| 67 | Disputes | Either side taps "Report a problem" on a sale; money stays held; the owner/admin decides with both sides' photos and messages (refund, pay the seller, or split, and who gets a strike); reuse the existing job disputes admin screen (slice 4) | 2026-10-14 |
+| 68 | Off-app payment on a Declutter sale | Same rule as jobs (existing off-platform ladder), one rule app-wide | 2026-10-14 |
+| 69 | Who can buy | Anyone; the item and pickup stay in Louisiana; buyer need not live in Louisiana | 2026-10-14 |
+| 70 | Price cap | Highest price per item $1,000 (was $10,000 in B3); floor/offers/price drops all within it | 2026-10-14 |
+
+## Approved for later slices (details still to ask the owner)
+Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give to a local charity".
+
+| # | Feature | What the owner approved | When |
+|---|---------|-------------------------|------|
+| 71 | "Declutter it for me" | Book a Helpr who comes over, photographs, lists the items for the owner, and hands them over at pickup | 2026-10-14 |
+| 72 | "Sold it? Get help" | After a sale, offer the buyer a Helpr job to carry/assemble/install it | 2026-10-14 |
+| 73 | Unsold next step | After the 3rd relist, one tap to have a Helpr haul it to donation or post it as a free giveaway | 2026-10-14 |
+| 74 | Move-out + storm pushes | "Moving sale" bundle for a whole house; storm-season help clearing damaged furniture | 2026-10-14 |
+| 75 | ID-verified seller badge | Badge from the existing Stripe identity check | 2026-10-14 |
+| 76 | "Wanted" posts | Buyers post what they're looking for; sellers listing a match and the buyer both get alerts | 2026-10-14 |
+| 77 | Saturday Declutter Day | Weekly citywide "yard sale": that week's listings get a Saturday spotlight + Saturday pickups | 2026-10-14 |
+| 78 | Share to Facebook | One tap shares a listing (photo link preview) to the seller's Facebook groups | 2026-10-14 |
+| 79 | First purchase, no fee | A new buyer's first Declutter purchase has no 15% buyer's fee; Louisiana Helpr pays the card cost | 2026-10-14 |
+| 80 | "What's it worth?" | AI suggests a fair starting price and lowest price from the photos | 2026-10-14 |
+| 81 | Bundles / lots | Sell several items as one ("bag of 15 kids' shirts"), or a seller-set discount when a buyer combines items | 2026-10-14 |
+| 82 | Refer a friend | Both get Declutter credit when the friend makes a first purchase (existing referral credit ledger) | 2026-10-14 |
+| 83 | "On my way" + live ETA | Buyer taps On my way at pickup time; seller sees them on the map (reuse the Helpr-arrival GPS); "Running late" button | 2026-10-14 |
+| 84 | Same-day seller payout | Seller paid the same day the QR is scanned, via the existing instant-payout feature | 2026-10-14 |
+| 85 | Fast-reply badge | Sellers who answer questions/offers quickly get a badge and rank higher | 2026-10-14 |
+| 86 | Saved searches + instant alerts | Push alert when a matching item is listed nearby (reuse job saved-search alerts) | 2026-10-14 |
+| 87 | "Good deal" tags | Items priced below similar past Declutter sales get a tag | 2026-10-14 |
+| 88 | Better-looking photos | One-tap brighten/straighten; may need a paid photo service — Claude checks the cost with the owner first | 2026-10-14 |
+| 89 | Louisiana seasons | Seasonal sections: back-to-school, Mardi Gras, game-day/tailgate, hurricane prep | 2026-10-14 |
+| 90 | Decluttering stats | "You cleared N items and made $X this year" + space/landfill saved, shareable (like Helpr Wrapped) | 2026-10-14 |
 
 ## Owner to-dos before launch
 - Call the board ((225) 295-8420, admin@lalb.org): (1) does a single-member LLC count as "sole owner" so the owner's auctioneer license is enough? (2) confirm offers + daily price drops is outside the auction law; (3) next meeting / application deadline.
@@ -301,7 +335,7 @@ where no owner row decides. Each picks the option most consistent with the rows 
   Make an offer, the price-drop line ("was $X"), and the strike count "You have N of 3 strikes" sits on /declutter.
   Readers `declutter_my_offers()` / `declutter_my_cart()` return the item title with each row (a sold item is no longer
   readable through the items policy). Notifications link to `/declutter?view=offers|cart`.
-- B38. NOT in slice 3 (slice 3b): the Stripe step. Until it lands the item page says "Saving a card opens in the next test
+- B38. (DONE in slice 3b, B39-B45.) NOT in slice 3 (slice 3b): the Stripe step. Until it lands the item page says "Saving a card opens in the next test
   round" and the cart says "Paying opens in the next test round" (no dead buttons). Slice 3b builds: (1) a
   `declutter-card` edge function (Checkout Session mode=setup or SetupIntent, customer reuse) whose webhook writes
   `declutter_buyer_cards`; (2) a `declutter-checkout` edge function that calls `declutter_start_checkout` as the buyer,
@@ -348,6 +382,68 @@ where no owner row decides. Each picks the option most consistent with the rows 
   - Offer limits are per item (B27): many items x unlimited counters is a push-spam path (trust-safety lane).
   - The deadline/price-drop sweeps have PGlite proofs that move row timestamps, not a fixed-clock probe
     (clockFunctionsProven NOT_PROVEN).
+
+### Slice 3b build decisions (agent declutter-3b, 2026-10-14; migrations 20261014224914 + 20261014230342)
+- B39. Card on file (row 36): edge function `declutter-card` opens Stripe Checkout in SETUP mode (nothing charged) for the
+  verified caller (switch + confirmed email + rate limit); the stripe-webhook branch reads the card off the SetupIntent and
+  stores it with `declutter_save_card` (service only), with the Stripe mode it was saved in (`card_mode`). A test account
+  saves on the TEST key (stripeModeForParties); a customer is reused only in the same mode.
+- B40. Refund reasons decide who bears the card fee (a table CHECK ties reason -> policy -> amount, so no caller can pick):
+  OUR MISTAKE, full refund, fee absorbed: `superseded` (a page Stripe itself timed out), `order_closed`, `amount_mismatch`,
+  `duplicate_payment`, `order_missing`, `sold_elsewhere`. ROW 60, full refund + the card fee booked to the seller:
+  `seller_backed_out` (seller cancelled or blocked the buyer, whenever the payment landed: a cancel made around the app
+  leaves the page open, so the seller caused it). BUYER-CAUSED, the card fee is kept: `buyer_cancelled` (incl. the buyer
+  blocking the seller mid-payment, authz review #1) and `buyer_restarted_checkout` (a payment on an order the buyer
+  replaced: the app closes the old page before replacing it and refuses to replace a paid one, so this only happens
+  around the app; money review #2). OWNER TO CONFIRM: the last one (restarted checkout keeps the fee) and that a seller
+  who becomes unable to sell (banned / 3 strikes) mid-payment is `order_closed` (we absorb).
+- B41. Late record, in-time payment (slice 3 leftover): the webhook passes the CHARGE's own Stripe time (event time as
+  fallback). Paid by the deadline + 1 h grace: the missed-checkout strike is removed (strikes now record their cart line)
+  and, if every item is still unsold and the seller can still sell to the buyer, the order goes straight to paid (never back
+  through awaiting payment, money review #1); otherwise a full refund (`sold_elsewhere`), still no strike.
+- B42. Row 61: each item gets a private stop point 2-8% above its floor (random, chosen once; re-picked when the floor
+  changes), in `declutter_item_private.drop_stop_cents` (no client privilege, no reader returns it). The evening drop never
+  goes below it, so a watcher can at most learn the stop point, never the floor.
+- B43. Seller card-fee debt (row 60): `declutter_seller_fee_debts` (one per refund, `remaining_cents` 0..amount by CHECK) +
+  `declutter_fee_debt_deductions` (one per payout per debt). `declutter_consume_fee_debt(seller, payout_ref, max)` returns
+  the cents to keep back from one payout: never more than the payout or than is owed, the same payout_ref twice deducts
+  once; serialized per seller (advisory lock + row locks; race G).
+- B44. Row 62: `declutter_start_checkout`, `declutter_seller_cancel_sale`, `declutter_my_cart`, `declutter_my_offers` no
+  longer need the switch (an agreed sale can be paid, read, or cancelled); offer / Buy / accept / save a card still do. The
+  deadline sweep gives NO missed-checkout strike to a buyer the switch is off for. `/declutter` shows a member with a sale in
+  flight (`declutter_has_agreed_sales()`) a "Declutter is closed for now" page with only the cart and their sales.
+- B45. Dead orders' pages: `declutter-checkout` closes the old page before a restarted checkout replaces it, refuses to
+  replace a paid page, retires an order whose page Stripe timed out and makes a fresh one, and expires the buyer's page
+  when the seller cancels through the app (the app's Cancel sale now goes through `declutter-checkout`). Pages live 31 min
+  (Stripe's minimum is 30), so a page opened before the deadline is dead before the sweep's 1 h grace ends. A payment that
+  lands on a dead order anyway is refunded by reason (B40).
+- B46. Withdrawing a listing voids its open offers and tells each buyer (slice 3 leftover).
+- B47. Row 70: $1,000 per item (CHECKs on price, current price, floor, offers, offer steps, cart lines). Existing listings
+  over it are brought to $1,000 (pending/live ones taken down, seller told); an agreed sale / cart line / offer over it stops
+  the migration (never a silent rewrite of money).
+- Payment page: card only, line items = items + buyer's fee (both `txcd_00000000`, no tax line: B33 refuses business-like
+  sellers until the tax slice), 3D Secure from $300 (Q202), metadata kind/order/buyer/payer/seller, `transfer_group`
+  `declutter_order_<id>`, no `transfer_data` (money stays on the platform until slice 4). The webhook refuses to apply a
+  payment whose page names other people than its order (authz review #2). Emails only for money (row 44): receipt when
+  paid, refund notice only when Stripe took the refund; `charge.refunded` leaves Declutter refunds to this path.
+
+### Open after slice 3b (for the lead; owner order 10-13: no new OPEN.md items from agents)
+- Owner to confirm the two B40 calls marked OWNER TO CONFIRM.
+- Slice 4: execute `declutter_refund_paid_order` refunds with Stripe (idempotency key = refund id) and call
+  `declutter_refund_executed`; call `declutter_consume_fee_debt` on every payout; a sweep that retries `pending`/`failed`
+  refund rows (none reads them yet, money review #7) and reflects `charge.refund.updated` failures; payouts must hold on a
+  Declutter dispute (dispute handlers key on jobs today); a payout_ref that took 0 cents leaves no row, so its answer is not
+  stable if a debt appears later (money review #8: record the zero or key idempotency on a payout table).
+- Slice 4: `declutter_item_address` / `declutter_seller_item_private` still require the switch: row 62's handover with the
+  switch off needs them too (authz NOTE 5).
+- The banned-card fingerprint check (Q1324) runs on payments, not on SETUP pages, so a banned person's card can be saved; it
+  is caught when they pay (authz NOTE 6).
+- `declutter_start_checkout` stays callable by members directly (the app goes through `declutter-checkout`); a payment on a
+  page the member replaced around the app keeps the card fee (B40). Making it service-only needs the member gates re-stated
+  for a passed buyer id.
+- Live check to the Stripe page with a test account (TEST mode routing) is still to do; never pay on live.
+- Pre-existing on the slice 3 base (measured 2026-10-14 in a clean worktree at 9d90c9977): loadingStateShape (the three
+  /declutter routes were never measured) and rpcCastsOnDeclaredRpcs (api.ts set_pickup_windows cast) are red.
 
 ### For slice 2 (screens)
 - Create switch audience testers (Admin -> Settings) after the screens land; describe Declutter in App Review notes (row 51).

@@ -6,13 +6,18 @@
  * the strike count. Plain words only. Every rule is enforced by the server
  * (20261014210518); the app only explains it.
  *
- * Saving a card and paying open with the Stripe step (slice 3b, B38): until
- * then the screens say so in words and show no button that cannot work.
+ * Saving a card and paying (slice 3b, B39/B45): "Save a card" opens Stripe's
+ * card-saving page (nothing is charged); "Pay" opens Stripe's payment page for
+ * one seller's order. Both come back to /declutter; the webhook is the only
+ * source of truth for what happened, so the screens just refetch.
+ * Row 62: with the switch off, a member with an agreed sale still gets the
+ * cart and their sales (FinishSalesView), nothing else.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import {
@@ -24,13 +29,17 @@ import {
   makeOffer,
   respondOffer,
   sellerCancelSale,
+  startCardSave,
+  startCheckoutPayment,
   type CartLine,
+  type Handover,
   type DeclutterItem,
   type MyOffer,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { checkoutAmounts, minOfferCents } from "@/lib/declutter/money";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
@@ -64,6 +73,32 @@ export function StrikeCount({ userId }: { userId: string }) {
       {n >= 3
         ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
         : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}
+    </DeclutterNotice>
+  );
+}
+
+/** Row 36: save a card on Stripe's own page. Nothing is charged. */
+function SaveCardPrompt({ onBack }: { onBack: () => void }) {
+  const [opening, setOpening] = useState(false);
+  return (
+    <DeclutterNotice title="Save a card to buy or make offers.">
+      <p>Your card is never charged until you check out and pay.</p>
+      <button
+        type="button"
+        className="btn-grad-primary mt-3 rounded-full px-5 py-2.5 text-sm font-semibold"
+        disabled={opening}
+        onClick={async () => {
+          setOpening(true);
+          try {
+            await openExternalUrl(await startCardSave(), () => { setOpening(false); onBack(); });
+          } catch (err) {
+            toast.error(declutterErrorMessage(err));
+            setOpening(false);
+          }
+        }}
+      >
+        {opening ? "Opening…" : "Save a card"}
+      </button>
     </DeclutterNotice>
   );
 }
@@ -111,13 +146,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   if (card.isError) {
     return <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />;
   }
-  if (!card.data) {
-    return (
-      <DeclutterNotice title="Save a card to buy or make offers.">
-        Your card is never charged until you check out and pay. Saving a card opens in the next test round.
-      </DeclutterNotice>
-    );
-  }
+  if (!card.data) return <SaveCardPrompt onBack={() => void card.refetch()} />;
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Buy or make an offer">
       <div className="flex flex-wrap gap-2">
@@ -365,6 +394,69 @@ function SalesWaiting() {
   );
 }
 
+const HANDOVER_WORDS: Record<Handover, string> = {
+  pickup_home: "Pickup at the seller's home",
+  porch: "Porch pickup (the seller sets it out for you)",
+};
+
+/** Row 24 (63: no Helpr delivery yet) + B30: choose how you get it, then pay on Stripe's page. */
+function PayForSeller({ sellerId, totalCents, onBack }: { sellerId: string; totalCents: number; onBack: () => void }) {
+  const qc = useQueryClient();
+  const [handover, setHandover] = useState<Handover>("pickup_home");
+  const [opening, setOpening] = useState(false);
+  return (
+    <>
+      <fieldset className="space-y-1">
+        <legend className="text-sm font-medium">How you get it</legend>
+        {(Object.keys(HANDOVER_WORDS) as Handover[]).map((h) => (
+          <label key={h} className="flex items-center gap-2 text-sm">
+            <input type="radio" name={`handover-${sellerId}`} value={h} checked={handover === h} onChange={() => setHandover(h)} />
+            {HANDOVER_WORDS[h]}
+          </label>
+        ))}
+        <p className="text-xs text-muted-foreground">Delivery by a Helpr is coming later.</p>
+      </fieldset>
+      <button
+        type="button"
+        className="btn-grad-primary rounded-full px-5 py-2.5 text-sm font-semibold"
+        disabled={opening}
+        onClick={async () => {
+          setOpening(true);
+          try {
+            const res = await startCheckoutPayment(sellerId, handover);
+            if (res.paid || !res.url) {
+              toast.success("This order is already paid.");
+              invalidateTrades(qc);
+              setOpening(false);
+              return;
+            }
+            await openExternalUrl(res.url, () => { setOpening(false); invalidateTrades(qc); onBack(); });
+          } catch (err) {
+            toast.error(declutterErrorMessage(err));
+            setOpening(false);
+          }
+        }}
+      >
+        {opening ? "Opening…" : `Pay ${formatPrice(totalCents)}`}
+      </button>
+      <p className="text-xs text-muted-foreground">You pay on Stripe's secure page. The money is held until you have your items.</p>
+    </>
+  );
+}
+
+/** Row 62 (B44): the switch is off for this member, but they agreed a sale: finish it here. */
+export function FinishSalesView() {
+  return (
+    <AppPage title="Declutter">
+      <DeclutterNotice title="Declutter is closed for now.">
+        You can still pay for, hand over or cancel the sales you already agreed to. Nothing new can start.
+      </DeclutterNotice>
+      <CartView />
+      <SalesWaiting />
+    </AppPage>
+  );
+}
+
 /** The buyer's cart (rows 13, 20-22, 24, 38, 59): one checkout per seller. */
 export function CartView() {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
@@ -403,13 +495,8 @@ export function CartView() {
                 <div className="flex justify-between"><dt>Buyer's fee (15%, at least $1)</dt><dd>{formatPrice(amounts.premiumCents)}</dd></div>
                 <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatPrice(amounts.totalCents)}</dd></div>
               </dl>
-              <fieldset className="space-y-1">
-                <legend className="text-sm font-medium">How you get it</legend>
-                <p className="text-sm">Pickup at the seller's home, or porch pickup. You choose at checkout.</p>
-                <p className="text-xs text-muted-foreground">Delivery by a Helpr is coming later.</p>
-              </fieldset>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <DeclutterNotice title="Paying opens in the next test round.">Your card is not charged until you check out and pay.</DeclutterNotice>
+              <PayForSeller sellerId={sellerId} totalCents={amounts.totalCents} onBack={() => void cart.refetch()} />
             </section>
           );
         })

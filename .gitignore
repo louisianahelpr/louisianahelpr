@@ -31,6 +31,12 @@ ios/DerivedData/
 # the workflows in .github/workflows/ run `bundle install` themselves
 # rather than relying on a committed lockfile.
 Gemfile.lock
+# ruby/setup-ruby `bundler-cache: true` installs gems into the checkout
+# (./vendor/bundle, ./.bundle/config); refresh-pr's stray-file check failed
+# ios-metadata's land job on them (Q1792, run 38448252004).
+# Guard: src/test/refreshPrIgnoresToolInstalls.test.ts.
+/vendor/bundle/
+/.bundle/
 
 # TypeScript incremental build cache
 *.tsbuildinfo

@@ -30,7 +30,8 @@
  * test 2 with `profiles: authenticated` and `client_compat_floor() -> 2`.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { trackedFiles } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { migrationFiles, parseDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
@@ -183,17 +184,10 @@ function revokedWithoutGrantBack(code: string, t: string, role: string, held: Se
 /** Every function name the app calls with .rpc("name"), from src (tests excluded). */
 function clientRpcNames(): Set<string> {
   const names = new Set<string>();
-  const walk = (dir: string) => {
-    for (const e of readdirSync(dir)) {
-      const p = join(dir, e);
-      if (statSync(p).isDirectory()) {
-        if (e !== "test" && e !== "__tests__") walk(p);
-      } else if (/\.(ts|tsx)$/.test(e) && !/\.test\.tsx?$/.test(e)) {
-        for (const m of blankComments(readFileSync(p, "utf8")).matchAll(/\.rpc\(\s*["'`]([a-z0-9_]+)["'`]/g)) names.add(m[1]);
-      }
-    }
-  };
-  walk(join(ROOT, "src"));
+  for (const f of trackedFiles("src")) {
+    if (!/\.(ts|tsx)$/.test(f) || /\.test\.tsx?$/.test(f) || /(^|\/)(test|__tests__)\//.test(f)) continue;
+    for (const m of blankComments(readFileSync(join(ROOT, f), "utf8")).matchAll(/\.rpc\(\s*["'`]([a-z0-9_]+)["'`]/g)) names.add(m[1]);
+  }
   return names;
 }
 const RPC = clientRpcNames();

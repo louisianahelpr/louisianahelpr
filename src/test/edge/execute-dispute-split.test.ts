@@ -308,7 +308,7 @@ describe("execute-dispute-split edge function", () => {
 
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept, never
     // split back to the poster; the poster's notice says so.
-    // @mutate supabase/functions/execute-dispute-split/index.ts |   const refundableCents = Math.max(0, capturedCents - nonRefundableCents - (pi ? setupFeeKeptCents(job) : 0)); |   const refundableCents = Math.max(0, capturedCents - nonRefundableCents);
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     setupFeeCents: pi ? setupFeeKeptCents(job) : 0, |     setupFeeCents: 0,
     // @mutate supabase/functions/execute-dispute-split/index.ts | : "the card processing fee, which can't be returned", setupFeeKeptCents(job)), | : "the card processing fee, which can't be returned", 0),
     it("a first job's kept $2 setup fee is not part of the poster's share, and the notice says it was kept (Q1674)", async () => {
       seedExecutable(scenario, { helperShare: 0.6, job: { onboarding_fee_amount: 2 } });

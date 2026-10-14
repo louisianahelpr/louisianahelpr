@@ -86,7 +86,7 @@
 // Q415 (e): the mid-run refunds withhold Stripe's fee; a platform failure does not.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (withholdMidRun) { |             if (true) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts | const refundCents = Math.max(0, captured - actualOrEstimatedFeeCents(pi, captured)); | const refundCents = captured;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | refundToPayerCents({ capturedCents: captured, actualFeeCents: actualOrEstimatedFeeCents(pi, captured) }) | refundToPayerCents({ capturedCents: captured, actualFeeCents: 0 })
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded, refund: refundMade } = await createRefundOnce( |             ({ alreadyRefunded, refund: refundMade } = await createRefundOnce(
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     return;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
@@ -99,8 +99,8 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               keptCents: Math.max(0, capturedCents - refundMade.cents), |               keptCents: 0,
 // @mutate supabase/functions/charge-recurring-visits/index.ts | } after it was charged.`,\n            });\n            if (problem) fail(`series ${parent.id} ${visitDate}: ${problem}`); | } after it was charged.`,\n            });\n            if (problem) console.log(`series ${parent.id} ${visitDate}: ${problem}`);
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (live.length > 0) { |         if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| true)) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents)) { |  \|\| refunded >= owedCents)) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= owedCents) { |  \|\| true) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= owedCents) { |  \|\| refunded >= amountCents) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };\n        }\n        const prior |         }\n        const prior
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | const withholdFee = false;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee =
@@ -113,14 +113,14 @@
 // Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) {\n            console.log( |           if (false) {\n            console.log(
 // Q808: a pre-read skip of a paid visit (ended series / unheld date) refunds in full again.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | === "true" \|\| dateUnheldCause);
-// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause); | === "true" \|\| seriesEndedCause);
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| dateUnheldCause;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| seriesEndedCause;
 // Q808 review: a date that changed hands to ANOTHER Helpr refunds in full again.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | !nowHolder \|\| (row.helper_id != null && nowHolder.helper_id !== row.helper_id); | !nowHolder;
 // Q808 review: the same Helpr still holding the date withholds the fee.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | nowHolder.helper_id !== row.helper_id); | nowHolder.helper_id === row.helper_id);
 // Q808: an unreadable cause is guessed instead of retried.
-// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (causeParent.error \|\| causeHold.error \|\| causePlatform.error) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (causeParent.error \|\| causeHold.error) { |       if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

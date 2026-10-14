@@ -22,8 +22,7 @@ import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
-import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
-import { saveMyPhone } from "@/lib/phoneSave";
+import { unwrapMutationRow, isWriteRejected, mutationErrorMessage, phoneInUseMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { safeInternalRedirect } from "@/lib/authRedirects";
@@ -331,8 +330,6 @@ const CompleteProfile = () => {
 
     setSubmitting(true);
     try {
-      const phoneResult = phone.trim() === (profile?.phone ?? "") ? null : await saveMyPhone(user.id, phone.trim()); // Q1586(a): never in the UPDATE
-      if (phoneResult && !phoneResult.ok) return fail(phoneResult.message);
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
       const nowIso = new Date().toISOString();
 
@@ -344,6 +341,7 @@ const CompleteProfile = () => {
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
         full_name: fullName,
+        phone: phone.trim(),
         bio: bio.trim(),
         location: location.trim(),
         // Required now — the checklist and submit guard both enforce 5 digits.
@@ -467,7 +465,7 @@ const CompleteProfile = () => {
       hapticSuccess();
       navigate(nextDestination, { replace: true });
     } catch (err: unknown) {
-      const recovered = await recoverCompletedProfile();
+      const recovered = phoneInUseMessage(err) ? false : await recoverCompletedProfile(); // a refused phone is never "recovered"
       if (!recovered) {
         hapticError();
         // A silently-rejected write gets its own sentence (the row wasn't
@@ -476,7 +474,7 @@ const CompleteProfile = () => {
         // The contact-leak trigger's message is the one server text shown
         // verbatim: written for the user, names the field.
         toast.error(
-          contactLeakRejectionMessage(err)
+          contactLeakRejectionMessage(err) ?? phoneInUseMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
               : userFacingError(err, "We couldn't save your profile just yet — give it another try.")),

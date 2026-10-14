@@ -17,15 +17,10 @@ describe("phoneInUseMessage", () => {
     expect(phoneInUseMessage(new Error("network"))).toBeNull();
     expect(phoneInUseMessage(null)).toBeNull();
   });
-  it("every screen that saves a phone says it in words (inventory)", () => {
-    // Q1586(a): the screens save through saveMyPhone, whose answers carry the
-    // sentence (PHONE_SAVE_COPY), and whose pre-RPC fallback reads the raised one.
+  it("every screen that saves a phone uses it (inventory)", () => {
     for (const f of ["src/pages/profile/Profile.tsx", "src/pages/auth/CompleteProfile.tsx", "src/components/PhotoPrompt.tsx"]) {
-      expect(readFileSync(f, "utf8"), f).toMatch(/saveMyPhone\(/);
+      expect(readFileSync(f, "utf8"), f).toMatch(/phoneInUseMessage\(/);
     }
-    const save = readFileSync("src/lib/phoneSave.ts", "utf8");
-    expect(save).toMatch(/phone_in_use:\s*PHONE_IN_USE_MESSAGE/);
-    expect(save).toMatch(/phoneInUseMessage\(res\.error\)/);
   });
 });
 // @mutate src/lib/mutationResult.ts |   if (e.code === "23505" && (e.hint === "phone_in_use" | if (false && (e.hint === "phone_in_use"

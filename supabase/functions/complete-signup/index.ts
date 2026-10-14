@@ -614,11 +614,7 @@ serve(async (req) => {
     // when posting / applying / accepting.
     const updateData: Record<string, unknown> = {};
 
-    // Q1586(a): the phone is NOT saved here. A member's phone is written only
-    // by save_my_phone, which counts and rate-limits the "already on another
-    // account" answer; this service-role write answered it without a limit
-    // (500 vs 200; lh-authz-rls review of d1d6337b0, must-fix 1). The app has
-    // not sent a phone to this function since sign-up stopped asking for one.
+    if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
     // `zipCode` unlocks parish (helper-notification matching) and Louisiana

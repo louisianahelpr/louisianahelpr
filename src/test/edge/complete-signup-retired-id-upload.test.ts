@@ -21,8 +21,8 @@
 // Registered mutations - each turns this guard RED on its own:
 //   (1) writing the retired column again from the body;
 //   (2) storing a portfolio path again.
-// @mutate supabase/functions/complete-signup/index.ts | if (bio) updateData.bio = bio; | if (bio) updateData.bio = bio; if (body.idBase64) updateData.id_document_url = "x";
-// @mutate supabase/functions/complete-signup/index.ts | if (bio) updateData.bio = bio; | if (bio) updateData.bio = bio; if (Array.isArray(body.portfolioFiles)) updateData.portfolio_urls = ["u/p.png"];
+// @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";
+// @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (Array.isArray(body.portfolioFiles)) updateData.portfolio_urls = ["u/p.png"];
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

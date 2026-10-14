@@ -1152,6 +1152,7 @@ serve(async (req) => {
         .from("jobs")
         .update({ payment_status: "refunded" })
         .eq("id", job.id)
+        .eq("status", "cancelled")
         .eq("payment_status", "unpaid")
         .select("id");
       if (updErr) {
@@ -1165,10 +1166,11 @@ serve(async (req) => {
         // else (escrow over a refunded PaymentIntent) is a defect, and no
         // warning claims the job was settled.
         const { data: now, error: nowErr } = await supabaseAdmin
-          .from("jobs").select("payment_status").eq("id", job.id).maybeSingle();
+          .from("jobs").select("status, payment_status").eq("id", job.id).maybeSingle();
         const status = (now as { payment_status?: string } | null)?.payment_status ?? null;
+        const jobStatus = (now as { status?: string } | null)?.status ?? null;
         if (nowErr || status !== "refunded") {
-          defects.record(`cancelled job ${job.id}: test-mode orphan refunded (${refundId ?? "already"}) but the job is ${nowErr ? `unreadable (${nowErr.message})` : `now '${status}'`}, not refunded`);
+          defects.record(`cancelled job ${job.id}: test-mode orphan refunded (${refundId ?? "already"}) but the job is ${nowErr ? `unreadable (${nowErr.message})` : `now '${status}' (job status '${jobStatus}')`}, not refunded`);
         }
         return false;
       }

@@ -13,6 +13,9 @@ name: Prod deploy
 #     (scripts/deploy-paths.sh) changed since prod's commit, or when the newest
 #     production deployment is under 20 minutes old (a later scheduled run
 #     catches up, so the latest main always ships);
+#   - it HOLDS (Q1824) while any migration on main HEAD is not yet applied on
+#     prod, so the client never goes live ahead of its schema; it goes red if
+#     that lasts an hour (db-deploy stuck) or the check cannot read prod;
 #   - otherwise it creates ONE production deployment of main at HEAD through
 #     the Vercel API and waits for READY.
 # Rules: scripts/lib/prodDeployDebounce.mjs, pinned by
@@ -62,6 +65,10 @@ jobs:
         id: run
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Q1824: read-only check that prod has applied every migration on
+          # the commit being shipped (supabase_migrations.schema_migrations).
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/prod-deploy.mjs
 
       - name: Summary

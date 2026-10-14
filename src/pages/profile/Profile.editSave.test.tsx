@@ -40,10 +40,7 @@ vi.mock("@/integrations/supabase/client", () => {
     };
     builder.eq = () => builder;
     builder.select = () =>
-      // The select reads the whole saved row back, as PostgREST does: the
-      // phone is no longer in the UPDATE (Q1586(a), save_my_phone) but is
-      // still in the row.
-      Promise.resolve({ data: [{ ...PROFILE, ...db.lastUpdate }], error: null });
+      Promise.resolve({ data: [{ ...db.lastUpdate }], error: null });
     return builder;
   };
   return { supabase: { from, rpc: vi.fn(), storage: { from: vi.fn() } } };

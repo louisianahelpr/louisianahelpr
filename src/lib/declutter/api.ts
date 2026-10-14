@@ -258,14 +258,15 @@ export async function attestItem(itemId: string): Promise<void> {
     }), (e) => rpcErrorMessage("declutter_attest_item", e));
 }
 
-export interface PickupWindow {
+// A type alias (not an interface) so it is assignable to the RPC's Json arg without a cast.
+export type PickupWindow = {
   weekday: number;
   starts: string;
   ends: string;
-}
+};
 
 export async function setPickupWindows(windows: PickupWindow[]): Promise<number> {
-  return rpcData(await supabase.rpc("declutter_set_pickup_windows", { p_windows: windows as unknown as never }), (e) => rpcErrorMessage("declutter_set_pickup_windows", e)) as number;
+  return rpcData(await supabase.rpc("declutter_set_pickup_windows", { p_windows: windows }), (e) => rpcErrorMessage("declutter_set_pickup_windows", e)) as number;
 }
 
 export async function publishItem(itemId: string): Promise<"pending_review" | "live"> {

@@ -283,7 +283,14 @@ export class RequestMeter {
     if (context.__requestMeter) return context;
     context.__requestMeter = this;
     const seen = new Map();
-    context.on("request", (req) => this.record(req.url(), req.method(), Date.now(), seen));
+    // A context may answer some requests itself without touching the backend
+    // (press-every-control's PublicObjectCache, which stands in for the HTTP
+    // cache Playwright disables while routes are set). It says so through
+    // `__requestMeterSkip`; those requests never reached Supabase.
+    context.on("request", (req) => {
+      if (context.__requestMeterSkip?.(req)) return;
+      this.record(req.url(), req.method(), Date.now(), seen);
+    });
     context.on("page", (page) => this.pacePage(page));
     for (const page of context.pages()) this.pacePage(page);
     return context;

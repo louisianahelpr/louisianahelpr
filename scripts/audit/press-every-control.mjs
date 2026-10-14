@@ -480,6 +480,127 @@ export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
   return !(now ?? []).some((c) => c.rowText === rowText);
 }
 
+/**
+ * A PRESS THAT WROTE IS A MUTATING PRESS, WHATEVER ITS LABEL SAID.
+ *
+ * Release gate run 38459066451 (c16b0f0dc, 2026-10-14), shard 7, /posts
+ * (customer): "Got It" on the poster's "[E2E DO NOT ACCEPT] J 7a4n6o" card
+ * PASSED at 04:29:06Z, and the same card's "Job address: 100 Audit Way …"
+ * then FAILED "control not found on a freshly loaded page". Read off prod, not
+ * guessed: backout_notices e032d4ab… (offer_expired, that job) has
+ * acknowledged_at = 2026-10-14 04:29:06.70Z, written by that press through
+ * `ack_backout_notice`, and a cancelled job sits in Needs You only until its
+ * banner is acknowledged (src/lib/backoutNotices.ts). The product worked; the
+ * press consumed its own row. ROW_CONSUMED_SKIP exists for exactly this, but it
+ * only learnt of writes from the LABEL gate (`entry.mutating`), and "Got It"
+ * is not a label anyone would gate. Labels are a guess about what a button
+ * does; the request is the fact (same rule as the Stripe-write backstop). So
+ * the record text of a press that SENT a successful write is recorded too, and
+ * the proof is otherwise unchanged: the same record text, gone from the
+ * reloaded screen.
+ *
+ * What counts as a write: a 2xx PATCH / PUT / DELETE, or POST, to PostgREST or
+ * Storage, EXCEPT a POST to an RPC whose name says it reads (`get_`, `is_`,
+ * `has_`, `my_`, `search_`, `count_`, `list_`, `can_`, `client_compat_floor`)
+ * and Storage's list/sign POSTs. Edge functions are not counted (several only
+ * read, e.g. check-pro-subscription), so a function-only write still needs the
+ * label gate. Misreading a read as a write cannot excuse anything by itself:
+ * the record must ALSO be gone from the reloaded screen.
+ */
+export const READ_RPC_RX = /^(?:get|is|has|my|search|count|list|can)_|^client_compat_floor$/;
+export function isWriteRequest({ method, url, status }) {
+  const m = String(method ?? "").toUpperCase();
+  if (!(Number(status) >= 200 && Number(status) < 300)) return false;
+  let path;
+  try { path = new URL(String(url)).pathname; } catch { return false; }
+  if (!/\/(rest|storage)\/v1\//.test(path)) return false;
+  if (m === "PATCH" || m === "PUT" || m === "DELETE") return true;
+  if (m !== "POST") return false;
+  const rpc = /\/rest\/v1\/rpc\/([A-Za-z0-9_]+)$/.exec(path);
+  if (rpc) return !READ_RPC_RX.test(rpc[1]);
+  if (/\/storage\/v1\/object\/(list|sign)\//.test(path)) return false;
+  return true;
+}
+
+/**
+ * A STALE NOTIFICATION FOR ANOTHER SWEEP'S FIXTURE, ANSWERED TRUTHFULLY.
+ *
+ * Same run, shard 4, /home (helper): "Notifications › Did you start this job?
+ * "[E2E DO NOT ACCEPT] J 7a4n6o" was s…" raised the error toast "We can't open
+ * this job right now — …". Read off prod: the notification (6bb02124…, link
+ * /jobs/a24b1afb…) was written at 01:42Z by sweep_no_show_alerts while the
+ * journeys' direct offer to the helper still stood; at 02:00Z the offer
+ * expired ("You lost a job offer"), helper_id went NULL, and the job's start
+ * had passed, so at the 02:39Z press the helper was neither a party to it nor
+ * able to browse it. QuickApplyHandler shows that copy ONLY after both reads
+ * came back with no row and no error (a transport or permission error gets
+ * "Couldn't load this job"). The app told the truth about a fixture that the
+ * e2e journeys and the crons moved on: class 3 of pressFailureClass.mjs,
+ * reached through a notification instead of a list row.
+ *
+ * Narrow on purpose, and listed under "Error toasts not counted as defects":
+ *   1. the opener chain names the journeys' marker and not this harness's own;
+ *   2. the toast is EXACTLY the not-visible copy (src/test/pressStaleFixture.test.ts
+ *      asserts it against QuickApplyHandler.tsx, so rewording reopens this).
+ * Any other toast on that row, or that toast on any other row, still FAILS.
+ */
+export const NOT_VISIBLE_JOB_TOAST =
+  "We can't open this job right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.";
+export function isForeignFixtureGoneRefusal({ toast, chain } = {}) {
+  return String(toast ?? "").trim() === NOT_VISIBLE_JOB_TOAST && isForeignSweepFixture(chain);
+}
+
+/**
+ * THE BROWSER'S HTTP CACHE, PUT BACK FOR PUBLIC STORAGE OBJECTS.
+ *
+ * Playwright turns Chromium's HTTP cache OFF for a whole context as soon as any
+ * route is registered (playwright-core 1.63: Network.setCacheDisabled follows
+ * request interception, and interception uses pattern "*" whatever the route
+ * glob, so narrowing the globs cannot help). This harness must route (the
+ * Stripe-write and CAPTCHA backstops), and it reloads the screen before every
+ * press, so every avatar was fetched again on every press. Run 38459066451
+ * metered 3302 `GET …/avatars/:id/avatar.jpg` (its top repeated GET), and 2977
+ * avatar GETs from the runner reached Supabase's edge in that window
+ * (edge_logs, X11 Linux UA, 2026-10-14 01:00-06:30Z) — a load no real visitor
+ * makes: the objects are served `cache-control: public, max-age=31536000`.
+ *
+ * So, per BrowserContext (one row = one fresh visitor), a public-object GET is
+ * fetched once and answered from memory afterwards for as long as its own
+ * `max-age` allows, which is what the disabled cache would have done. Only a
+ * 200 with a positive max-age and no no-store / no-cache / private is kept; a
+ * 400 for a missing object is never cached, so it fails on every load as
+ * before. The meter skips a request this cache answers (it never reached the
+ * backend) and counts the one that fills it.
+ */
+export const PUBLIC_OBJECT_PATH_RX = /\/storage\/v1\/object\/public\//;
+export function cacheableFor({ status, cacheControl }) {
+  if (Number(status) !== 200) return 0;
+  const cc = String(cacheControl ?? "").toLowerCase();
+  if (/\bno-store\b|\bno-cache\b|\bprivate\b/.test(cc)) return 0;
+  const m = /\bmax-age=(\d+)/.exec(cc);
+  return m ? Number(m[1]) * 1000 : 0;
+}
+export class PublicObjectCache {
+  constructor() { this.entries = new Map(); this.served = 0; this.filled = 0; }
+  /** The cached answer for this request, or null (an expired entry is dropped). */
+  hit(method, url, now = Date.now()) {
+    if (String(method).toUpperCase() !== "GET" || !PUBLIC_OBJECT_PATH_RX.test(String(url))) return null;
+    const e = this.entries.get(url);
+    if (!e) return null;
+    if (now >= e.expires) { this.entries.delete(url); return null; }
+    return e;
+  }
+  /** Keep a fetched answer when its own headers allow it. Returns true when kept. */
+  store(url, { status, headers, body }, now = Date.now()) {
+    if (!PUBLIC_OBJECT_PATH_RX.test(String(url))) return false;
+    const ttl = cacheableFor({ status, cacheControl: headers?.["cache-control"] });
+    if (!(ttl > 0)) return false;
+    this.entries.set(url, { status, headers, body, expires: now + ttl });
+    this.filled++;
+    return true;
+  }
+}
+
 export const TRANSIENT_STATUS_SKIP = "inside a transient status region that dismissed itself (an announcement, not page chrome)";
 export const TRANSIENT_REGION_SEL = '[role="status"][aria-live], [role="alert"]';
 
@@ -1114,6 +1235,26 @@ async function main() {
        * the probe proved TEST mode — and the press that caused it is reported
        * SKIP_STRIPE_WRITE_BLOCKED below, not PASS and not dropped.
        */
+      // See PublicObjectCache: the routes below turn Chromium's HTTP cache off
+      // for this context, so public objects (avatars) are cached here instead,
+      // and the request meter skips what this cache answers.
+      const objectCache = new PublicObjectCache();
+      ctx.__requestMeterSkip = (req) => !!objectCache.hit(req.method(), req.url());
+      await ctx.route("**/storage/v1/object/public/**", async (route, req) => {
+        if (req.method() !== "GET") return route.fallback();
+        const cached = objectCache.hit("GET", req.url());
+        if (cached) {
+          objectCache.served++;
+          return route.fulfill({ status: cached.status, headers: cached.headers, body: cached.body });
+        }
+        const res = await route.fetch().catch(() => null);
+        // Could not fetch it from Node: let the browser make the request itself.
+        if (!res) return route.continue();
+        const body = await res.body();
+        const headers = Object.fromEntries(Object.entries(res.headers()).filter(([k]) => !/^(content-encoding|content-length|transfer-encoding)$/i.test(k)));
+        objectCache.store(req.url(), { status: res.status(), headers, body });
+        return route.fulfill({ status: res.status(), headers, body });
+      });
       const stripeBlocked = [];
       await ctx.route("**/functions/v1/**", async (route, req) => {
         if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") {
@@ -1198,6 +1339,16 @@ async function main() {
       });
       page.on("requestfinished", (r) => inflight.delete(r));
       page.on("requestfailed", (r) => inflight.delete(r));
+      // Successful backend writes, in order (see isWriteRequest): a press that
+      // wrote has its record text added to mutatedRows whatever its label.
+      const writes = [];
+      page.on("requestfinished", async (r) => {
+        if (!isApiCall(r) || r.method() === "GET" || r.method() === "HEAD" || r.method() === "OPTIONS") return;
+        const res = await r.response().catch(() => null);
+        if (res && isWriteRequest({ method: r.method(), url: r.url(), status: res.status() })) {
+          writes.push(`${r.method()} ${new URL(r.url()).pathname.replace(/^.*\/v1\//, "")}`);
+        }
+      });
       const awaitApiQuiet = async (maxMs = 12_000) => {
         for (let waited = 0; inflight.size > 0 && waited < maxMs; waited += 100) await page.waitForTimeout(100);
       };
@@ -1696,7 +1847,7 @@ async function main() {
               return submits && !form.checkValidity();
             })
             .catch(() => false);
-          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length, captcha0 = captchaBlocked.length;
+          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length, captcha0 = captchaBlocked.length, writes0 = writes.length;
           // See paymentPaceMs: never outrun create-payment's own limiter.
           if (PAYMENT_RX.test(label) && paymentClock.last) {
             const wait = paymentClock.last + PAYMENT_PACE_MS - Date.now();
@@ -1789,6 +1940,12 @@ async function main() {
           pressedInScope.get(item.scopeKey ?? "page")?.add(meta.sig);
           await awaitApiQuiet();
           await settle();
+          // The request is the fact: a press that wrote consumed its record as
+          // surely as a label-gated one (see isWriteRequest, ROW_CONSUMED_SKIP).
+          if (writes.length > writes0) {
+            entry.wrote = writes.slice(writes0, writes0 + 3);
+            if (meta.rowText) mutatedRows.add(meta.rowText);
+          }
           const acked = await page
             .evaluate(() => { const w = /** @type {any} */ (window); w.__pressAck?.disconnect?.(); return w.__pressAcked === true; })
             .catch(() => false);
@@ -1830,7 +1987,10 @@ async function main() {
             const openedOverlay = after.overlays > before.overlays ? "opened an overlay" : "";
             const real = newErrToasts.filter((t) =>
               !isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }) &&
-              !isDesignedValidationRefusal({ toast: t, changed: openedOverlay }));
+              !isDesignedValidationRefusal({ toast: t, changed: openedOverlay }) &&
+              !isForeignFixtureGoneRefusal({ toast: t, chain: entry.chain }));
+            const gone = newErrToasts.find((t) => isForeignFixtureGoneRefusal({ toast: t, chain: entry.chain }));
+            if (gone) entry.excused = `another sweep's fixture the viewer can no longer open (class 3): "${gone}"`;
             const validation = newErrToasts.find((t) => isDesignedValidationRefusal({ toast: t, changed: openedOverlay }));
             if (validation) entry.excused = `designed validation refusal that opened the fix: "${validation}"`;
             if (real.length) problems.push(`error toast: "${real[0]}"`);
@@ -1944,9 +2104,13 @@ async function main() {
       // Every failure and every undocumented skip, one line each (#1582: the
       // artifacts are not readable where the red is triaged; see rowDetailLines).
       for (const l of rowDetailLines({ route: route.url, persona, controls: rec.controls, documented: DOCUMENTED_SKIPS })) console.log(l);
+      // Q1374: the budget is per PRESS (requests / presses), so the meter's
+      // `tests` is this shard's presses; kept current for the exit-time flush.
+      requestMeter.tests = totalPressed;
     }
   }
   if (queueStopped) console.log(`::warning title=press shard handed on::time budget reached; unclaimed rows are left in ${QUEUE_DIR} for the next wave`);
+  requestMeter.tests = totalPressed;
   requestMeter.flush();
   await browser.close();
 

@@ -80,6 +80,45 @@ export function realOccurrenceAt(tag, fallback) {
   return newest;
 }
 
+/**
+ * ONE ERROR = ONE FINGERPRINT (owner, 2026-10-14: the FEEDS list kept
+ * refilling with copies). ops_alert_apply keys a row on md5(kind|source|title),
+ * and Sentry's culprit names a Vite bundle by its CONTENT HASH plus a minified
+ * function name: `cu(assets/app-shared-DUoNbpYC)` one deploy,
+ * `Ku(assets/app-shared-CkIDj-oG)` the next. Measured on prod 2026-10-14
+ * (ops_alert_ledger, source_kind 'sentry'): "permission denied for table
+ * profiles" was 5 rows under 5 sources, "session lost on a signed-in screen"
+ * 3, and each row became its own docs/OPEN.md item (Q1596/Q1811,
+ * Q1636/Q1812). So the source keeps only what survives a deploy: for a
+ * hashed bundle file (`assets/<name>-<8-char hash>[.js]`) the bundle's NAME,
+ * with no hash and no function (a minified name is noise: `?` and
+ * `f.<anonymous>` were the same JAVASCRIPT-1Q). Any other culprit (a real
+ * function in a real file) is kept as it is.
+ *
+ * The SQL twin public.ops_alert_sentry_source(text) (migration
+ * *_sentry_alerts_fold_bundle_hashes) re-keyed the rows recorded before
+ * this; src/test/sentryCulpritOneFingerprint.test.ts holds both to the same
+ * answers.
+ */
+const CALL = /^([^()]*)\(([^()]*)\)$/;
+// A hash has a capital, a digit, `_` or `-` among its 8 characters; an all
+// lower-case word is part of the NAME (`assets/tiktok-provider`), which keeps
+// the key idempotent: sentryCulpritKey(sentryCulpritKey(c)) === sentryCulpritKey(c).
+const HASHED_BUNDLE = /^(.*\/)?([^/]*)-(?=[A-Za-z0-9_-]{0,7}[A-Z0-9_-])[A-Za-z0-9_-]{8}(\.m?js)?$/;
+const IN_ASSETS = /(^|\/)assets\//;
+/** The three patterns, for the SQL-twin check (src/test/sentryCulpritOneFingerprint.test.ts). */
+export const SENTRY_CULPRIT_PATTERNS = { CALL, HASHED_BUNDLE, IN_ASSETS };
+
+export function sentryCulpritKey(culprit) {
+  const raw = String(culprit ?? "").trim();
+  if (!raw) return "unknown";
+  const call = CALL.exec(raw);
+  const loc = call ? call[2] : raw;
+  const hashed = IN_ASSETS.test(loc) ? HASHED_BUNDLE.exec(loc) : null;
+  if (!hashed) return raw;
+  return `${(hashed[1] ?? "").replace(/^\//, "")}${hashed[2]}`;
+}
+
 /** One Sentry issue as a ledger occurrence (recordOpsAlert's argument). */
 export function sentryIssueToAlert(i) {
   const status = String(i?.status ?? "unknown");
@@ -87,7 +126,7 @@ export function sentryIssueToAlert(i) {
   const state = substatus ? `${status}/${substatus}` : status;
   return {
     sourceKind: "sentry",
-    source: `sentry:${i?.culprit ?? "unknown"}`.slice(0, 120),
+    source: `sentry:${sentryCulpritKey(i?.culprit)}`.slice(0, 120),
     title: i?.title ?? "(no title)",
     severity: i?.level === "fatal" ? "fatal" : i?.level === "warning" ? "warning" : "error",
     sample: `${i?.title} — Sentry ${i?.shortId ?? i?.id} (${state} in Sentry; last event ${i?.lastSeen}) — ${i?.permalink}`,

@@ -1,93 +1,127 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-14T18:35Z",
+  "measured_at": "2026-10-14T19:08Z",
   "issues": {
     "readable": true,
     "open": [
       {
         "number": 2244,
         "title": "nightly-red: nightly-red-age",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": null,
+        "runTruncated": true
       },
       {
         "number": 2245,
         "title": "nightly-red: prod-audit",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38199842917",
+        "runTruncated": false
       },
       {
         "number": 2353,
         "title": "nightly-red: press-every-control",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38536821617",
+        "runTruncated": false
       },
       {
         "number": 2366,
         "title": "nightly-red: branch-prune",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": null,
+        "runTruncated": true
       },
       {
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38580933416",
+        "runTruncated": false
       },
       {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527058685",
+        "runTruncated": false
       },
       {
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38473531873",
+        "runTruncated": false
       },
       {
         "number": 2660,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38592882166",
+        "runTruncated": false
       },
       {
         "number": 2894,
         "title": "nightly-red: vacuity",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38556677178",
+        "runTruncated": false
       },
       {
         "number": 2937,
         "title": "nightly-red: slow-network",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38364628121",
+        "runTruncated": false
       },
       {
         "number": 2940,
         "title": "nightly-red: e2e-real-backend",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527096325",
+        "runTruncated": false
       },
       {
         "number": 2941,
         "title": "nightly-red: core-loop-canary",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619494580",
+        "runTruncated": false
       },
       {
         "number": 2962,
         "title": "nightly-red: nightly-webkit",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38434750617",
+        "runTruncated": false
       },
       {
         "number": 2993,
         "title": "nightly-red: expiry-monitor",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38489254188",
+        "runTruncated": false
       },
       {
         "number": 2995,
         "title": "nightly-red: prod-errors",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38619651057",
+        "runTruncated": false
       },
       {
         "number": 3007,
         "title": "nightly-red: main: Vitest",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38556677248",
+        "runTruncated": false
       },
       {
         "number": 3096,
         "title": "nightly-red: db-drift-detect",
-        "label": "nightly-red"
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38611385251",
+        "runTruncated": false
       }
     ]
   },
@@ -175,6 +209,14 @@
         "issue": 2244
       },
       {
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-drift-detect",
+        "issue": 3096
+      },
+      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -236,7 +278,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 2941
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -559,14 +601,6 @@
         "issue": null
       },
       {
-        "fingerprint": "a13c4edc69832354d5e579c068462874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: feature-switch-audience",
-        "issue": 2978
-      },
-      {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -605,101 +639,123 @@
         "status": "open",
         "title": "a credential or certificate expires within # days",
         "issue": null
+      },
+      {
+        "fingerprint": "9078a39b33041fb407551509563a8709",
+        "source_kind": "sentry",
+        "source": "sentry:?(assets/supabase-D-x-fSSl)",
+        "status": "open",
+        "title": "functionsfetcherror: failed to send a request to the edge function",
+        "issue": null
       }
     ]
   },
   "mirrored": {
     "bus TC-004": "Q226",
-    "issue #1754": "Q785",
     "issue #1794": "Q593",
-    "issue #2244": "Q1275",
-    "issue #2245": "Q785",
-    "issue #2353": "Q1374",
-    "issue #2366": "Q1376",
-    "issue #2375": "Q593",
-    "issue #2419": "Q1426",
-    "issue #2420": "Q1427",
-    "issue #2436": "Q1429",
-    "issue #2501": "Q1426",
-    "issue #2589": "Q1507",
-    "issue #2601": "Q1427",
-    "issue #2660": "Q1507",
-    "issue #2894": "Q1426",
-    "issue #2937": "Q1775",
-    "issue #2940": "Q1778",
-    "issue #2941": "Q1779",
-    "issue #2962": "Q1780",
-    "issue #2978": "Q1781",
-    "issue #2993": "Q1807",
-    "issue #2995": "Q1808",
-    "issue #3007": "Q1814",
-    "issue #3096": "Q1815",
-    "ledger 03faea228969": "Q1602",
+    "issue #2244": "Q1816",
+    "issue #2245": "Q1816",
+    "issue #2353": "Q1816",
+    "issue #2366": "Q1816",
+    "issue #2375": "Q1816",
+    "issue #2436": "Q1816",
+    "issue #2601": "Q1816",
+    "issue #2660": "Q1816",
+    "issue #2894": "Q1816",
+    "issue #2937": "Q1816",
+    "issue #2940": "Q1816",
+    "issue #2941": "Q1816",
+    "issue #2962": "Q1816",
+    "issue #2993": "Q1816",
+    "issue #2995": "Q1816",
+    "issue #3007": "Q1816",
+    "issue #3096": "Q1816",
+    "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
+    "ledger 0bebf0385b3e": "Q1615",
     "ledger 0fa6c60d7a29": "Q1776",
-    "ledger 13c460ab330a": "Q1599",
-    "ledger 144d5faeaf8f": "Q1598",
-    "ledger 16e6e91f6701": "Q785",
-    "ledger 18539240a894": "Q1779",
-    "ledger 1b4eafb12222": "Q1636",
-    "ledger 1ef4b10bb74a": "Q1808",
-    "ledger 21cbec5b98d2": "Q1584",
-    "ledger 27437b0c4f14": "Q1603",
+    "ledger 11fa6e898f3d": "Q1596",
+    "ledger 13c460ab330a": "Q1596",
+    "ledger 144d5faeaf8f": "Q1596",
+    "ledger 16e6e91f6701": "Q1816",
+    "ledger 18539240a894": "Q1816",
+    "ledger 1b4eafb12222": "Q1596",
+    "ledger 1ef4b10bb74a": "Q1816",
+    "ledger 21cbec5b98d2": "Q1596",
+    "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
+    "ledger 31d4f960f703": "Q1638",
+    "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
-    "ledger 379653db0e8d": "Q1812",
-    "ledger 3a3460b71be7": "Q1778",
-    "ledger 40a33605c7c3": "Q1603",
+    "ledger 379653db0e8d": "Q1596",
+    "ledger 3a3460b71be7": "Q1816",
+    "ledger 3ab675187ce9": "Q1596",
+    "ledger 3c0d6b003e08": "Q1810",
+    "ledger 40a33605c7c3": "Q1596",
     "ledger 41f88aeb227f": "Q1777",
-    "ledger 41fbf0358661": "Q1600",
-    "ledger 43d77e26f272": "Q1429",
-    "ledger 4b5ace7af165": "Q1621",
+    "ledger 41fbf0358661": "Q1596",
+    "ledger 43738529abd4": "Q1596",
+    "ledger 43d77e26f272": "Q1816",
+    "ledger 4b5ace7af165": "Q1596",
     "ledger 5b3c79ac5eb7": "Q1581",
-    "ledger 5d35922623b5": "Q1610",
-    "ledger 60298a019ea3": "Q1809",
-    "ledger 60afeab5c360": "Q1636",
-    "ledger 6205197429d4": "Q593",
-    "ledger 6389f98a9f66": "Q1427",
-    "ledger 6471854dcd82": "Q1597",
-    "ledger 65bd41ba4452": "Q1597",
-    "ledger 70e7b0decb9a": "Q1780",
-    "ledger 7e141f206640": "Q1374",
-    "ledger 7f88b9cc45df": "Q1376",
+    "ledger 5d35922623b5": "Q1596",
+    "ledger 60298a019ea3": "Q1776",
+    "ledger 60afeab5c360": "Q1596",
+    "ledger 6205197429d4": "Q1816",
+    "ledger 6389f98a9f66": "Q1816",
+    "ledger 6471854dcd82": "Q1596",
+    "ledger 64e00d8d08da": "Q1596",
+    "ledger 65bd41ba4452": "Q1596",
+    "ledger 708048794e4c": "Q1596",
+    "ledger 70c81dfc4f91": "Q1596",
+    "ledger 70e7b0decb9a": "Q1816",
+    "ledger 779af65c258e": "Q1596",
+    "ledger 7e141f206640": "Q1816",
+    "ledger 7f88b9cc45df": "Q1816",
+    "ledger 8018e82cb167": "Q1816",
     "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
-    "ledger 88ecf6e765df": "Q1426",
-    "ledger 8ad756b6da76": "Q1630",
+    "ledger 87d1722faa1d": "Q1596",
+    "ledger 88ecf6e765df": "Q1816",
+    "ledger 8ad756b6da76": "Q1596",
+    "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
+    "ledger 9a2d993f43d7": "Q1596",
     "ledger a0597e872e21": "Q1698",
-    "ledger a13c4edc6983": "Q1781",
-    "ledger a8ceee56bbd5": "Q1775",
-    "ledger ab6fdbe8c882": "Q1275",
-    "ledger ab736843373b": "Q1620",
-    "ledger afd194b74d95": "Q1700",
+    "ledger a8ceee56bbd5": "Q1816",
+    "ledger ab6fdbe8c882": "Q1816",
+    "ledger ab736843373b": "Q1596",
+    "ledger ad381aa30d09": "Q1596",
+    "ledger afd194b74d95": "Q1596",
+    "ledger afffce6dd514": "Q1596",
     "ledger b4de6dae32de": "Q1633",
-    "ledger b7cb40a7f712": "Q1602",
-    "ledger ba752f27944d": "Q1599",
-    "ledger bc6810c9f1ab": "Q1597",
-    "ledger bd4c3063280b": "Q1600",
-    "ledger c1ad0c081216": "Q1603",
+    "ledger b7cb40a7f712": "Q1596",
+    "ledger ba752f27944d": "Q1596",
+    "ledger bbdaee370c35": "Q1631",
+    "ledger bc6810c9f1ab": "Q1596",
+    "ledger bd4c3063280b": "Q1596",
+    "ledger c1ad0c081216": "Q1596",
     "ledger c31b9a387af0": "Q1638",
-    "ledger caab19e71ae9": "Q1811",
-    "ledger cd2127b53ee7": "Q1597",
-    "ledger d1585655d567": "Q1601",
+    "ledger c4af5413ec6a": "Q1596",
+    "ledger caab19e71ae9": "Q1596",
+    "ledger cd2127b53ee7": "Q1596",
+    "ledger d1585655d567": "Q1596",
+    "ledger d1da98fd3fe3": "Q1596",
     "ledger d1f8391b44ec": "Q1631",
-    "ledger d2ada3522c22": "Q1602",
-    "ledger d3424c5d01ad": "Q1600",
+    "ledger d2ada3522c22": "Q1596",
+    "ledger d3424c5d01ad": "Q1596",
     "ledger d5cc10e1fb86": "Q1596",
-    "ledger db0fb15c4ec3": "Q1507",
+    "ledger db0fb15c4ec3": "Q1816",
     "ledger dd274a9b4b57": "Q1596",
-    "ledger de37efb6fa8e": "Q1599",
-    "ledger e06748071241": "Q1603",
-    "ledger e306dea6b044": "Q1601",
+    "ledger de37efb6fa8e": "Q1596",
+    "ledger e06748071241": "Q1596",
+    "ledger e306dea6b044": "Q1596",
     "ledger e49f68d9cbd6": "Q1475",
-    "ledger e81647556a56": "Q1609",
-    "ledger ed3f34acc0e1": "Q1598",
-    "ledger f22e3275d50d": "Q1814",
-    "ledger f3c752b3230f": "Q1609",
-    "ledger f8483bba3b3a": "Q1807"
+    "ledger e81647556a56": "Q1596",
+    "ledger ec743a639c38": "Q1596",
+    "ledger ed3f34acc0e1": "Q1596",
+    "ledger f22e3275d50d": "Q1816",
+    "ledger f3c752b3230f": "Q1596",
+    "ledger f8483bba3b3a": "Q1816"
   }
 }

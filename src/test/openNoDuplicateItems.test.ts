@@ -16,13 +16,30 @@
  * alert that fires again on a later date is mirrored as a NEW item with a
  * different date, so real repeats (staleness-watch red twice: Q917, Q787) pass.
  * Red first: 7 groups on origin/main at ca5acf08d.
+ *
+ * AND (owner 2026-10-14: "make sure this a rule that the same item merges if
+ * it already has an item open. remove duplicate items"): while an OPEN item
+ * exists for a problem, a new sighting of it is ATTACHED to that item
+ * (applyFeeds: "Seen again <date>"), never filed under a new number; only
+ * once the first is ticked may it come back under a new one. Two OPEN items
+ * ([ ] or [~]) with the same normalised title (itemTitleKey: no number,
+ * tier, dates, digits, Vite hashes, case or punctuation) fail, exact zero.
+ * Red first: 3 pairs on origin/main at 99cf3ca4c (Q1596/Q1811 "permission
+ * denied for table profiles", Q1610/Q1700 "functionshttperror ...",
+ * Q1636/Q1812 "session lost on a signed-in screen"), merged 2026-10-14.
  */
 // @mutate scripts/lib/openQueue.mjs | .filter(([, ids]) => ids.size > 1) | .filter(([, ids]) => ids.size > 99)
 // @mutate scripts/lib/openQueue.mjs |   if (o) return `origin ${o[1]} ${o[2].toLowerCase()}`; |   if (o) return `origin ${line}`;
+// @mutate scripts/lib/openQueue.mjs | .filter(([, ids]) => ids.length > 1).map(([key, ids]) => ({ key, ids })); | .filter(([, ids]) => ids.length > 99).map(([key, ids]) => ({ key, ids }));
+// @mutate scripts/lib/openQueue.mjs |     .replace(VITE_HASH, "") |     .replace(VITE_HASH, "$&")
+// @mutate scripts/lib/openQueue.mjs |     if (!m \|\| m[1] === "x") continue;\n    const key = itemTitleKey(line); |     if (!m) continue;\n    const key = itemTitleKey(line);
+// @mutate scripts/lib/openFeeds.mjs |     if (same.length) { |     if (false) {
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs module, no declaration file
-import { queueText, duplicateItems, itemOriginKey } from "../../scripts/lib/openQueue.mjs";
+import { queueText, duplicateItems, itemOriginKey, itemTitleKey, openTitleDuplicates } from "../../scripts/lib/openQueue.mjs";
+import { applyFeeds, groupSources, queueItems } from "../../scripts/lib/openFeeds.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const fed = (n: number, s: string, date: string, extra = "") =>
@@ -47,8 +64,49 @@ describe("no item is counted under two numbers", () => {
     expect(duplicateItems([`- [ ] **Q456** ${LONG}`, `- [x] **Q919** ${LONG} DONE.`].join("\n")).map((g: { items: { id: string }[] }) => g.items.map((i) => i.id))).toEqual([["Q456", "Q919"]]);
   });
 
-  it("the same alert firing again on a later date is a new item, not a copy", () => {
+  it("the same alert firing again AFTER its item was ticked may take a new number (history is out of scope)", () => {
     expect(duplicateItems([fed(5, "x", "2026-09-30"), fed(9, " ", "2026-10-02")].join("\n"))).toEqual([]);
+    expect(openTitleDuplicates([fed(5, "x", "2026-09-30"), fed(9, " ", "2026-10-02")].join("\n"))).toEqual([]);
+  });
+
+  it("the same problem seen again while its item is OPEN merges into that item: no new number", () => {
+    const md = [
+      "# OPEN", "", "## FEEDS — x", "",
+      "- [ ] **Q1596 MEDIUM error: permission denied for table profiles.** Mirrored 2026-10-09 from alert-ledger row dd274a9b4b57 (sentry: sentry:cu(assets/app-shared-DUoNbpYC)) by `scripts/open-sync-trackers.mjs`. feed: ledger dd274a9b4b57.",
+      "", "## CARRIED", "",
+    ].join("\n");
+    const again = groupSources({
+      ledger: [{ fingerprint: "caab19e71ae99b285e20eb42a5be1291", source_kind: "sentry", source: "sentry:Ku(assets/app-shared-CkIDj-oG)", status: "open", title: "error: permission denied for table profiles", sample_ref: {} }],
+      issues: [],
+    });
+    const res = applyFeeds(md, again, { status: () => "open", nextFree: 1811, today: "2026-10-14" });
+    expect(res.created).toEqual([]);
+    expect(res.attached).toEqual([{ id: "Q1596", keys: ["ledger caab19e71ae9"], seenAgain: true }]);
+    const items = queueItems(res.md);
+    expect(items.map((i) => i.id)).toEqual(["Q1596"]);
+    expect(items[0].text).toContain("**Seen again 2026-10-14**");
+    expect(items[0].text).toContain("feed: ledger caab19e71ae9");
+    // a problem with a different title is still filed on its own
+    const other = groupSources({ ledger: [{ fingerprint: "e067480712413dc7e3b99490c9b7c4f6", source_kind: "sentry", source: "sentry:assets/app-shared", status: "open", title: "error: permission denied for table jobs", sample_ref: {} }], issues: [] });
+    expect(applyFeeds(md, other, { status: () => "open", nextFree: 1811, today: "2026-10-14" }).created.map((c) => c.id)).toEqual(["Q1811"]);
+  });
+
+  it("two OPEN items whose titles differ only by number, tier, date, digits or a Vite hash are one problem", () => {
+    const a = "- [ ] **Q1 MEDIUM error: session lost on /assets/ProtectedRoute-CAbqOrT0.js at 2026-10-09 (3 times).** x";
+    const b = "- [~] **Q2 LOW Error: Session lost on /assets/ProtectedRoute-BOkAU22A.js at 2026-10-13 (12 times).** y";
+    expect(itemTitleKey(a)).toBe(itemTitleKey(b));
+    expect(openTitleDuplicates([a, b].join("\n"))).toEqual([{ key: itemTitleKey(a), ids: ["Q1", "Q2"] }]);
+    // a ticked copy is history, not a duplicate; a real word is not a hash
+    expect(openTitleDuplicates([a, b.replace("- [~]", "- [x]")].join("\n"))).toEqual([]);
+    expect(itemTitleKey("- [ ] **Q3 LOW nothing re-verified yet on the page.** x")).toContain("re verified");
+  });
+
+  it("docs/OPEN.md holds no two OPEN items for one problem (exact zero)", () => {
+    const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
+    const open = md.split("\n").filter((l) => /^- \[[ ~]\] \*\*Q\d+/.test(l));
+    expect(open.length).toBeGreaterThan(100);
+    expect(open.filter((l) => itemTitleKey(l)).length).toBeGreaterThan(100);
+    expect(openTitleDuplicates(md), "merge the later item into the earlier one (tick it 'merged into Qn' and move its feed: tags)").toEqual([]);
   });
 
   it("short heads say too little to call two items one", () => {

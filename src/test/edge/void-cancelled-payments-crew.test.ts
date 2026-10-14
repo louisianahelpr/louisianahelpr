@@ -404,7 +404,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   const blockTransfers = () =>
     stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents; |           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, |             otherKeptCents: Math.round(cancellationFee * 100),
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           await payBlockFees(pi);\n |           void payBlockFees;\n
   it("pays the block fee once and withholds it from the poster's refund", async () => {
     seedWithBlockFee();

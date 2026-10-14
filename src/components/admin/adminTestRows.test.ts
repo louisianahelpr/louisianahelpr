@@ -12,7 +12,7 @@
 // @mutate src/components/admin/adminusers/AdminUserRow.tsx | {p.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminReports.tsx | {report.is_test && <> <TestTag /></>} | {null}
 // @mutate src/components/admin/AdminReports.tsx | if (j.is_seed) seedIds.add(j.id); | void j;
-// @mutate src/components/admin/AdminDisputes.tsx | customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",\n | customer_fee_amount, sales_tax_amount, onboarding_fee_amount, dispute_helper_response",\n
+// @mutate src/components/admin/AdminDisputes.tsx | customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",\n | customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, dispute_helper_response",\n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

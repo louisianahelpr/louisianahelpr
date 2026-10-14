@@ -2001,7 +2001,7 @@ describe("create-payment edge function", () => {
     // excluded `disputed`; this door now does too.
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a
     // cancel. Live shape (job 1e16c281): 4120c = 3500 job + 420 fee + 200 setup.
-    // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)) + setupFeeCents; | const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+    // @mutate supabase/functions/create-payment/index.ts | customerFeeCents: serviceFeeCents,\n            setupFeeCents,\n | customerFeeCents: serviceFeeCents,\n            setupFeeCents: 0,\n
     it("cancelling a first job refunds everything but the service fee AND the kept $2 setup fee (Q1674)", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -2373,7 +2373,7 @@ describe("create-payment edge function", () => {
 
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
     // the poster wins the dispute, and the refund notice says so.
-    // @mutate supabase/functions/create-payment/index.ts | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents) + setupFeeKeptCents(job); | const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
+    // @mutate supabase/functions/create-payment/index.ts |               setupFeeCents: setupFeeKeptCents(job),\n            });\n            const nonRefundableCents = disputeSplit |               setupFeeCents: 0,\n            });\n            const nonRefundableCents = disputeSplit
     // @mutate supabase/functions/create-payment/index.ts | : null, disputeSetupKeptCents) | : null, 0)
     it("admin_refund_dispute on a first job keeps the $2 setup fee and the notice says so (Q1674)", async () => {
       seedAuth(scenario, ADMIN);
@@ -4143,7 +4143,8 @@ describe("create-payment edge function", () => {
 
       // A RETRIED full refund reuses the first one; the notice still says the
       // $2 was kept (it was counted twice before, so "kept" read 0).
-      // @mutate supabase/functions/create-payment/index.ts | - generalAlreadyRefundedCents - (reused ? 0 : refundedCents)) | - generalAlreadyRefundedCents - refundedCents)
+      // @mutate supabase/functions/create-payment/index.ts | Math.max(0, capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents)) | Math.max(0, capturedCents - generalAlreadyRefundedCents - refundedCents)
+      // @mutate supabase/functions/create-payment/index.ts | keptFromMoney(capturedCents - generalAlreadyRefundedCents - (reused ? 0 : refundedCents)); | keptFromMoney(capturedCents - generalAlreadyRefundedCents - refundedCents);
       it("a retried full refund that reuses the earlier refund still tells the poster the $2 setup fee was kept (Q1674)", async () => {
         seedFull();
         scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], onboarding_fee_amount: 2 };
@@ -4577,8 +4578,8 @@ describe("create-payment edge function", () => {
     // already on the charge) left the job payable: a partial takes no claim and
     // flips nothing, and the single-Helpr payout reads no refund total. It is
     // now refused with nothing moved; the full refund is the action to use.
-    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) { |           if (isPartial && requestedCents! > capturedCents) {
-    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= capturedCents) { |           if (isPartial && requestedCents! >= capturedCents) {
+    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= generalSplit.ceilingCents) { |           if (isPartial && requestedCents! > generalSplit.ceilingCents) {
+    // @mutate supabase/functions/create-payment/index.ts |           if (isPartial && generalAlreadyRefundedCents + requestedCents! >= generalSplit.ceilingCents) { |           if (isPartial && requestedCents! >= generalSplit.ceilingCents) {
     describe("a partial that returns the whole capture is refused (Q1320)", () => {
       async function partial(amountCents: number, prior: Array<{ id: string; amount: number; status: string }>) {
         seedAuth(scenario, ADMIN);

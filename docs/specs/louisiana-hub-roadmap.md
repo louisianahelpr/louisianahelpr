@@ -45,3 +45,11 @@ Declutter's own growth features (rows 71-90) live in docs/specs/declutter-auctio
 | G10 | ID checks | Required (Stripe Identity) for every money role: Helprs, shop owners, landlords, Declutter sellers; optional "ID-verified" badge for buyers |
 | G11 | Ratings | One overall star rating everywhere + per-section breakdown on the profile |
 | G12 | Support | Help center articles + AI helper answering from them + "Talk to a person" button reaching the owner |
+
+## Trades in Jobs (owner pop-up 2026-10-14) — more questions before building
+| # | Question | Decision |
+|---|----------|----------|
+| T1 | Trade categories | Add all common trades: electrical, plumbing, HVAC, roofing, welding, carpentry, auto & small-engine repair, appliance repair, flooring/tile, concrete & masonry, fencing, pressure washing; "Other: anything else" stays (owner: "i want everyone to feel welcomed to post what they wish") |
+| T2 | Licensed trades | Anyone can apply by default; poster may choose "Licensed pros only" (existing CredentialTierSelector); Helprs with a checked license show a "Licensed" badge; Claude researches which jobs legally need a Louisiana license and warns posters on those |
+
+Owner rule (2026-10-14): "before building all ask me questions to make sure we are on the same page for all" — EVERY section/feature gets a question round before any build, including Declutter slice 4.

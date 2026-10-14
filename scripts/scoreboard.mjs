@@ -935,10 +935,8 @@ export function renderOpenBlock(local, liveBlock, openText = "") {
   // (265 on 2026-10-02). Ratchet: src/test/openUnnumberedRatchet.test.ts.
   const un = q.unnumbered ?? 0;
   const unText = un ? ` Plus ${un} unnumbered open line${un === 1 ? "" : "s"} not yet given a Q number.` : "";
-  const launch = launchListProgress(openText ?? "");
-  const launchLine = launch
-    ? `\n- **Launch list: ${launch.left} left of ${launch.total}** (${launch.todo} to do, ${launch.partly} fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.`
-    : "";
+  const launch = launchListLine(openText ?? "");
+  const launchLine = launch ? `\n${launch}` : "";
   return `${EO_START}
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
@@ -959,6 +957,19 @@ ${EO_END}`;
  */
 export const LAUNCH_LIST_START = "<!-- launch-list -->";
 export const LAUNCH_LIST_END = "<!-- /launch-list -->";
+/**
+ * The "Launch list: N left of M" header line for this OPEN.md text, or "" when
+ * it has no LAUNCH LIST section. It reads only the file's own items, never the
+ * whole tree, so a landing recomputes it after putting the whole-tree totals
+ * back to main's copy (scripts/lib/landPostMergeReset.mjs).
+ */
+export function launchListLine(openText) {
+  const launch = launchListProgress(openText ?? "");
+  return launch
+    ? `- **Launch list: ${launch.left} left of ${launch.total}** (${launch.todo} to do, ${launch.partly} fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.`
+    : "";
+}
+
 export function launchListProgress(openText) {
   const i = openText.indexOf(LAUNCH_LIST_START), j = openText.indexOf(LAUNCH_LIST_END);
   if (i < 0 || j < i) return null;

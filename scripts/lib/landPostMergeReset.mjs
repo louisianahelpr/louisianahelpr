@@ -35,7 +35,7 @@ import { pathToFileURL } from "node:url";
 import { GENERATED } from "../check-generated-current.mjs";
 import { foreignLines } from "./openQueue.mjs";
 import { COUNT_LINE_SHAPE, START as QC_START, END as QC_END } from "../queue-count.mjs";
-import { EO_START, EO_END, OPEN_BLOCK_SHAPES } from "../scoreboard.mjs";
+import { EO_START, EO_END, OPEN_BLOCK_SHAPES, launchListLine } from "../scoreboard.mjs";
 
 export const OPEN = "docs/OPEN.md";
 
@@ -72,6 +72,12 @@ export function spliceBlocks(branch, main, blocks = OPEN_BLOCKS) {
     if (lines.length) foreign.push({ id: b.id, lines });
     text = text.slice(0, ours.i) + main.slice(theirs.i, theirs.j) + text.slice(ours.j);
   }
+  // The Launch list line sits in the scoreboard block but counts only this
+  // file's own LAUNCH LIST items, so main's copy is wrong for a branch that
+  // ticks one (lead-cleanup-1014 ticking Q152 went red on launchListProgress,
+  // 2026-10-14): it is recomputed from the spliced text, not taken from main.
+  const launch = launchListLine(text);
+  if (launch) text = text.replace(/^- \*\*Launch list: \d+ left of \d+\*\* .*$/m, () => launch);
   return { text, foreign };
 }
 

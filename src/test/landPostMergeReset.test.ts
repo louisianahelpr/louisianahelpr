@@ -2,6 +2,7 @@
 // @mutate scripts/lib/landPostMergeReset.mjs |     } else if (here !== main) { |     } else if (false) {
 // @mutate scripts/lib/landPostMergeReset.mjs |     text = text.slice(0, ours.i) + main.slice(theirs.i, theirs.j) + text.slice(ours.j); |     void theirs;
 // @mutate scripts/lib/landPostMergeReset.mjs |     if (lines.length) foreign.push({ id: b.id, lines }); |     void lines;
+// @mutate scripts/lib/landPostMergeReset.mjs |   if (launch) text = text.replace( |   if (false) text = text.replace(
 /*
  * GUARD: a landing never carries the whole-tree totals (owner, 2026-10-12:
  * "fix the bottleneck before").
@@ -25,6 +26,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 // @ts-expect-error — plain .mjs module
 import { reset, postMergeOutputs, spliceBlocks, OPEN_BLOCKS } from "../../scripts/lib/landPostMergeReset.mjs";
+// @ts-expect-error — plain .mjs script, no declaration file (as launchListProgress.test.ts)
+import { LAUNCH_LIST_END, LAUNCH_LIST_START, launchListProgress } from "../../scripts/scoreboard.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 let repo = "";
@@ -138,6 +141,23 @@ describe("landPostMergeReset", () => {
     const { text, foreign } = spliceBlocks(mine, main);
     expect(foreign).toEqual([]);
     expect(text).toBe(openMd(5, 6, ["- [ ] **Q1** first", "- [ ] **Q9** mine", "tail text"]));
+  });
+
+  // 2026-10-14: lead-cleanup-1014 ticked Q152, a LAUNCH LIST item; the reset put
+  // main's "Launch list: 2 left" back and launchListProgress.test.ts went red on
+  // the branch's own section (1 left). The line counts only the file's items.
+  it("the Launch list line is recomputed from the branch's own LAUNCH LIST, never taken from main", () => {
+    const withLaunch = (left: number, items: string[]) =>
+      openMd(5, 6, items).replace(
+        `- **Open: 5** (to do).`,
+        `- **Open: 5** (to do).\n- **Launch list: ${left} left of 2** (${left} to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.`,
+      ) + [LAUNCH_LIST_START, "- A: Q1, Q2", LAUNCH_LIST_END, ""].join("\n");
+    const main = withLaunch(2, ["- [ ] **Q1** first", "- [ ] **Q2** second"]);
+    const mine = withLaunch(1, ["- [ ] **Q1** first"]);
+    const { text, foreign } = spliceBlocks(mine, main);
+    expect(foreign).toEqual([]);
+    expect(text).toMatch(/^- \*\*Launch list: 1 left of 2\*\* \(1 to do, 0 fixed awaiting proof/m);
+    expect(launchListProgress(text)).toEqual({ total: 2, todo: 1, partly: 0, left: 1 });
   });
 });
 

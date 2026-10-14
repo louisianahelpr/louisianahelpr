@@ -1,8 +1,8 @@
 {
-  "note": "Supabase PERFORMANCE advisor findings per class, EXACT (docs/OPEN.md Q1321), read by scripts/check-performance-advisor.mjs. Measured with get_advisors (performance) on prod 2026-10-12 19:32Z: unused_index 119, multiple_permissive_policies 46, auth_db_connections_absolute 1. multiple_permissive_policies is set to 32, the count after 20261012193325_fold_redundant_permissive_policies deploys (it folds 14 findings; src/test/pglite/foldPermissivePolicies.pglite.mjs). Lower a count in the same change that lowers the finding; raise one only with the reason here.",
-  "measured": "2026-10-12T19:32Z",
+  "note": "Supabase PERFORMANCE advisor findings per class, EXACT (docs/OPEN.md Q1321), read by scripts/check-performance-advisor.mjs. Measured with get_advisors (performance) on prod 2026-10-12 19:32Z: unused_index 119, multiple_permissive_policies 46, auth_db_connections_absolute 1. multiple_permissive_policies is set to 32, the count after 20261012193325_fold_redundant_permissive_policies deploys (it folds 14 findings; src/test/pglite/foldPermissivePolicies.pglite.mjs). Re-measured 2026-10-14 19:27Z (db-drift-detect run 38611385251 red, Q1815): unused_index 118, multiple_permissive_policies 32, auth_db_connections_absolute 1. unused_index fell by one with no DROP INDEX in any migration after 20261012193325, so one index got its first scan (the finding is usage-driven); lowered to 118. Lower a count in the same change that lowers the finding; raise one only with the reason here.",
+  "measured": "2026-10-14T19:27Z",
   "counts": {
-    "unused_index": 119,
+    "unused_index": 118,
     "multiple_permissive_policies": 32,
     "auth_db_connections_absolute": 1
   }

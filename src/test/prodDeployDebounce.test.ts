@@ -33,7 +33,7 @@
  * be live on push.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import {
@@ -169,6 +169,15 @@ describe("prod deploy waits for main's migrations (Q1824)", () => {
     const files = ["20261014184909_a.sql", "20261014205016_b.sql", "README.md", "20261015000000_c.sql"];
     expect(pendingMigrationVersions(files, ["20261014184909"])).toEqual(["20261014205016", "20261015000000"]);
     expect(pendingMigrationVersions(files, ["20261014184909", "20261014205016", "20261015000000"])).toEqual([]);
+  });
+
+  it("pendingMigrationVersions on the real supabase/migrations: the newest file unapplied is the one pending", () => {
+    const real = readdirSync(join(root, "supabase/migrations"));
+    const versions = real.filter((f) => /^\d{14}_.*\.sql$/.test(f)).map((f) => f.slice(0, 14)).sort();
+    expect(versions.length).toBeGreaterThan(1000); // 1090 on 2026-10-14, equal to prod's schema_migrations count
+    const newest = versions[versions.length - 1];
+    expect(pendingMigrationVersions(real, versions.slice(0, -1))).toEqual([newest]);
+    expect(pendingMigrationVersions(real, versions).length).toBe(0);
   });
 
   it("the script and workflow wire the check in (prod read with the Management API, a held deploy fails red)", () => {

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-14T21:53:09.249Z",
-  "guards": 1831,
-  "registered": 1831,
+  "generated": "2026-10-14T22:59:15.536Z",
+  "guards": 1833,
+  "registered": 1833,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -309,6 +309,7 @@
     {
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [
+        "src/test/applyAndPostAskNoProfileDetails.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx"
       ],
       "parents": [

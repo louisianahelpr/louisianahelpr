@@ -335,7 +335,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   const shortPages = () =>
     (slackAlerts as Array<{ title?: string }>).filter((a) => /Crew refund short/.test(a.title ?? "")).length;
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0; | const feeReturnCents = 0;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const feeProRataCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0; | const feeProRataCents = 0;
   it("MQ31(C): 2 of 3 filled, $12 fee + $9 tax: the poster gets 3333 + floor(1200*3333/10000)=399 + floor(900*3333/10000)=299 = 4031c, recorded at 4031", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
@@ -347,6 +347,24 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     );
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
     expect(ledger?.payload).toEqual(expect.objectContaining({ source: "crew_unfilled_refund", amount_cents: 4031 }));
+    expect(shortPages()).toBe(0);
+  });
+
+  // Owner, 2026-10-14 ("we should never absorb any fee"): the card fee Stripe
+  // kept on the whole charge never comes back. On a job priced with no service
+  // fee its customer_fee_amount IS that card cost ($3.55 on $112), so the
+  // unfilled share gets the budget and tax back but none of the fee, and the
+  // poster is told why.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
+  it("owner 2026-10-14: 2 of 3 filled on a no-service-fee job: 3333 + 0 of the $3.55 card fee + 299 tax = 3632c", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3632 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
     expect(shortPages()).toBe(0);
   });
 
@@ -468,7 +486,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       const body = JSON.parse(await res.text()) as Record<string, unknown>;
       expect(body.defects).toBe(0);
       expect(body.defectReasons).toBeUndefined();
-      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1", { expand: ["latest_charge.balance_transaction"] });
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false);

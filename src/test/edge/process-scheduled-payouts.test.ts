@@ -733,7 +733,7 @@ describe("process-scheduled-payouts edge function", () => {
       const res = await runCron();
       const body = await json(res);
       expect((body.results as Array<Record<string, unknown>>)[0].status).not.toBe("exceeds_captured_escrow");
-      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1", { expand: ["latest_charge.balance_transaction"] });
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
       const args = stripeMock.transfers.create.mock.calls[0][0];
       expect(args.amount).toBe(9000);

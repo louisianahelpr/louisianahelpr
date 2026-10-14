@@ -13,6 +13,9 @@ import type { WebhookContext } from "../context.ts";
  */
 export async function refundDuplicateFunding(stripe: WebhookContext["stripe"], pi: string): Promise<void> {
   try {
+    // own-mistake full refund (owner, 2026-10-14): we took a second payment
+    // for a job already funded, so it goes back in full, card fee included;
+    // the card fee rule (_shared/refundAmount.ts) does not apply to our errors.
     await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `duplicate-funding-refund:${pi}` });
   } catch (e) {
     const err = e as { type?: string; code?: string } | null;

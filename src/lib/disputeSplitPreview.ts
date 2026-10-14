@@ -29,12 +29,15 @@
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { netUrgentFeeDollars, stripeProcessingCostCents } from "@/lib/stripeFees";
 import { helperDisplayFeePercent, helperShareCount, type HelperEarningsJob } from "@/lib/helperEarnings";
+import { cardCostFeeCents, refundToPayerCents } from "@/lib/refundAmount";
 
 export interface DisputeSplitJob extends HelperEarningsJob {
   customer_fee_amount?: number | null;
   sales_tax_amount?: number | null;
   /** The one-time setup fee this job's checkout kept (Q1346): part of the capture. */
   onboarding_fee_amount?: number | null;
+  /** The poster-side fee percent the job was priced at: 0 = no service fee (customer_fee_amount is the card cost). */
+  platform_fee_percent?: number | null;
 }
 
 export interface SplitPreview {
@@ -113,12 +116,18 @@ export function previewDisputeSplit(
     // checkout, and Stripe's cost is on that whole charge.
     (job.onboarding_fee_amount ?? 0);
   const capturedCents = Math.round(captured * 100);
-  const processingCents = capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0;
   // Q1674 (owner, 2026-10-12): the setup fee is kept, never split back, so
-  // neither the poster's gross nor their refund is drawn from it — the
-  // executor's `capturedCents - nonRefundableCents - setupFeeKeptCents(job)`.
+  // neither the poster's gross nor their refund is drawn from it. The card fee
+  // kept is the executor's (owner, 2026-10-14): Stripe's cost, or the card
+  // cost the poster paid on a no-service-fee job, never a legacy service fee.
+  // Same definition as the executor: `refundToPayerCents` (client mirror).
   const keptSetupFeeCents = Math.max(0, Math.round((job.onboarding_fee_amount ?? 0) * 100));
-  const refundableCents = Math.max(0, capturedCents - processingCents - keptSetupFeeCents);
+  const refundableCents = refundToPayerCents({
+    capturedCents,
+    actualFeeCents: capturedCents > 0 ? stripeProcessingCostCents(capturedCents) : 0,
+    customerFeeCents: cardCostFeeCents(job),
+    setupFeeCents: keptSetupFeeCents,
+  }).ceilingCents;
   // `Math.round` to whole cents, mirroring the executor's
   // `refundCents = Math.max(0, Math.round(refundableCents * posterShare))`.
   const posterNet = Math.round(refundableCents * posterShare) / 100;

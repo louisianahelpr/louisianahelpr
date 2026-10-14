@@ -657,6 +657,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
   );
 
+  // Owner 2026-10-14 (never absorb a fee): `_shared/refundAmount.ts` has ZERO
+  // imports and is THE refund-amount definition every refund path uses, so the
+  // real module runs and the amounts sent to Stripe stay under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/refundAmount\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/refundAmount.ts";`,
+  );
+
   // Q407 (5)/(9): `_shared/seriesRefund.ts` has ZERO imports and decides when a
   // cancelled series visit is refunded in full; the real module is under test.
   out = out.replace(

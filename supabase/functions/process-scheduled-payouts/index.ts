@@ -6,7 +6,8 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -531,6 +532,8 @@ serve(async (req) => {
       isPifFunded: boolean;
       giftAppliedCents: number;
       capturedCents: number;
+      /** Stripe's real fee on the charge, when it was read; else the card-rate estimate. */
+      stripeFeeCents?: number | null;
       /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
       cardLegTestMode: boolean;
       paidCents: number;
@@ -571,19 +574,29 @@ serve(async (req) => {
       // share, which can differ from the bonus's slot share by a few cents
       // (refunded plus kept is still the charge, to the cent). The one-time
       // onboarding fee is a per-account charge, not this job's, and is kept.
-      // When the Stripe-cost floor set the fee, the pro-rata includes part of
-      // that floor; Stripe keeps its processing fee on a refund, so the
-      // platform absorbs it (the owner's rule is "the fee, pro-rata").
+      // Since 2026-10-14 the card fee Stripe keeps is never part of the fee
+      // returned (see the cap below), so the platform no longer absorbs it.
       // Rounding: each component is FLOORED to the cent, so the sub-cent
-      // remainder stays with the platform; the numbers are a pure function of
-      // the job row and the frozen shares, so a re-run owes the same cents,
-      // and what is refunded plus what is kept is the charge, to the cent.
+      // remainder stays with the platform, and what is refunded plus what is
+      // kept is the charge, to the cent. A re-run owes the same cents only
+      // when it reads the same Stripe fee: the real balance-transaction fee
+      // vs the card-rate estimate can differ (open item in docs/OPEN.md, filed
+      // from the lh-money-escrow review of 79e9a6bb5, #3).
       const feeCents = Math.max(0, Math.round(Number(job.customer_fee_amount ?? 0) * 100));
       const taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100));
       // Q1390 (lh-money-escrow review): the service fee on a block fee is kept,
       // as the platform keeps it on any fee; the TAX on the whole closed share
       // goes back, as a cancellation refunds a cancelled job's tax.
-      const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0;
+      // Owner, 2026-10-14 ("we should never absorb any fee"): the card fee
+      // Stripe kept on the WHOLE charge never comes back, so the fee share is
+      // capped at the fee paid less Stripe's real fee (_shared/refundAmount.ts).
+      // On a job priced with no service fee (2026-10-11) the fee IS the card
+      // cost, so none of it returns; a legacy service fee still returns its
+      // pro-rata share above the card cost. Tax is unchanged.
+      const feeProRataCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0;
+      const crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents);
+      const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents });
+      const cardFeeKeptCents = feeProRataCents - feeReturnCents;
       const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
       const owedCents = unfilledCents + feeReturnCents + taxReturnCents;
       if (owedCents <= 0) return { ok: true, refundCents: 0 };
@@ -654,9 +667,12 @@ serve(async (req) => {
           ? ", including that share of the service fee and tax"
           : feeReturnCents > 0 ? ", including that share of the service fee"
           : taxReturnCents > 0 ? ", including that share of the tax" : "";
+        // Owner, 2026-10-14: the card processing fee is never refunded; say so
+        // whenever this refund kept some of it.
+        const cardFeeClause = cardFeeKeptCents > 0 ? " The card processing fee can't be returned, so it isn't part of this refund." : "";
         const why = decision
-          ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
-          : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`;
+          ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.${cardFeeClause}`
+          : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.${cardFeeClause}`;
         if (refundId && cardCents > 0) {
           // Q1714: a card refund gets THE refund notice (in the app and by
           // email), claimed on the refund's id, so the charge.refunded
@@ -836,6 +852,8 @@ serve(async (req) => {
       isPifFunded: boolean;
       giftAppliedCents: number;
       capturedCents: number;
+      /** Stripe's real fee on the charge, when it was read. */
+      stripeFeeCents?: number | null;
       cardLegTestMode: boolean;
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe;
@@ -1135,6 +1153,8 @@ serve(async (req) => {
       // nothing (the pre-Q1210 cap); one that cannot be read defers.
       /** What Stripe actually captured, in cents. 0 for a purely gift-funded job. */
       let capturedCents = 0;
+      /** Stripe's real fee on that charge (owner, 2026-10-14: a crew refund never returns it). null = not read. */
+      let stripeFeeCents: number | null = null;
       /** A gift job's card leg turned out to be a Stripe TEST-mode object. */
       let cardLegTestMode = false;
       /**
@@ -1196,7 +1216,11 @@ serve(async (req) => {
         // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
         if (paymentIntentId) {
           try {
-            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+            // The balance transaction carries Stripe's real fee, which a crew
+            // refund keeps (owner, 2026-10-14: never absorb a fee).
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+              expand: ["latest_charge.balance_transaction"],
+            });
 
             // Keep the AMOUNT, not just the status. This step already had the
             // PaymentIntent in hand and threw the figure away, which is why this
@@ -1245,6 +1269,7 @@ serve(async (req) => {
                 console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
               }
               capturedCents = captured.cents;
+              stripeFeeCents = actualOrEstimatedFeeCents(pi, captured.cents);
             }
           } catch (e: any) {
             if (isTestObjectUnderLiveKey(e)) {
@@ -1328,7 +1353,7 @@ serve(async (req) => {
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode, stripe });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, cardLegTestMode, stripe });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -1750,7 +1775,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode, stripe });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, cardLegTestMode, stripe });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);

@@ -169,7 +169,8 @@ export function BlockUserDialog({
                       ) : (
                         <>
                           You&rsquo;re far enough ahead of the job date that no
-                          cancellation fee applies — your escrow is refunded in full — but
+                          cancellation fee applies — your escrow is refunded, less the card
+                          processing fee — but
                           a cancellation strike is still recorded on your account.
                         </>
                       )

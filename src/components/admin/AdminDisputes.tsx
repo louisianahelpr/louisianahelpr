@@ -85,9 +85,9 @@ const AdminDisputes = () => {
     // sibling here, not a successor.
     const [openRes, decidedRes, unsettledRes] = await Promise.all([
       // onboarding_fee_amount (Q1346) is ahead of db-deploy: retried without it.
-      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
+      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
         supabase.from("jobs").select(columns).eq("status", "disputed").order("disputed_at", { ascending: false })),
-      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
+      readJobsAheadOfDb("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response", (columns) =>
         supabase.from("jobs").select(columns).not("dispute_resolved_at", "is", null).order("dispute_resolved_at", { ascending: false }).limit(50)),
       // Decided disputes whose settlement has NOT executed. `.or` admits NULL
       // as well as 'pending' — see the comment on `unsettledJobIds` below.
@@ -148,7 +148,7 @@ const AdminDisputes = () => {
     const strandedIds = [...unsettledJobIds].filter((id) => !alreadyOpen.has(id));
     if (strandedIds.length > 0) {
       const { data: strandedJobs, error: strandedErr } = await readJobsAheadOfDb(
-        "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",
+        "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",
         (columns) => supabase.from("jobs").select(columns).in("id", strandedIds),
       );
       if (strandedErr) {
@@ -747,7 +747,7 @@ const AdminDisputes = () => {
             // — no thousands separator, a truncated cent — on the one screen
             // where an admin is asked to confirm moving that exact sum.
             ? `This releases the escrowed $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
-            : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the poster"} and closes the dispute. This moves real money and can't be undone here.`
+            : `This refunds what ${profiles[confirm?.job.customer_id || ""] || "the poster"} paid for this $${formatPriceExact(confirm?.job.budget ?? 0)} job, less the card processing fee (and a first job's one-time $2 setup fee), and closes the dispute. This moves real money and can't be undone here.`
         }
         primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release Payment" : "Refund Poster")}
         primaryTone="sienna"

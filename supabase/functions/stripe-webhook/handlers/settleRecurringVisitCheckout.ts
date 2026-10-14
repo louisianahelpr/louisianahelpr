@@ -281,6 +281,10 @@ async function refundInFullOnce(
     before = null;
   }
   try {
+    // own-mistake full refund (owner, 2026-10-14): a paid visit checkout we
+    // could not settle (already paid, or the visit could not be booked) is our
+    // error, so it goes back in full, card fee included; the card fee rule
+    // (_shared/refundAmount.ts) does not apply to our errors.
     const created = await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
     const replayed = Boolean(created?.id) && (before ?? []).includes(created.id);
     return { alreadyRefunded: replayed, refund: { id: created?.id ?? null, amount: created?.amount ?? null } };

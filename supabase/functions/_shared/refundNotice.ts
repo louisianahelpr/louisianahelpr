@@ -582,6 +582,32 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       return (data ?? []).length > 0;
     };
 
+    // 0. A released hold that Stripe ALSO listed as a Refund (Q1726, review
+    // #2): when charge.refunded ran before the release path, the webhook
+    // already announced that money as "Refund issued" (refund:<re>, same
+    // payment, same amount). The release is the same money: not announced
+    // again. Within 600 s only (the window the webhook's own same-money check,
+    // releasedCentsAlreadyTold in chargeRefunded.ts, uses), so a genuinely
+    // separate movement is told. A placeholder stamp (ZERO_UUID: the webhook's
+    // insert wrote no notification) never counts as told.
+    // (The other order, release first, is releasedCentsAlreadyTold in the
+    // webhook and the release-notice read in void-cancelled-payments' sweep.)
+    if (input.kind === "release" && input.paymentIntentId) {
+      const { data: told, error: toldErr } = await supabase.from("refund_notices")
+        .select("notice_key, amount_cents, notification_id, created_at")
+        .eq("payment_intent_id", input.paymentIntentId)
+        .eq("amount_cents", Math.round(input.amountCents))
+        .not("notification_id", "is", null)
+        .neq("notification_id", ZERO_UUID);
+      // A failed read never stops the release notice (a release has no ledger
+      // row for a sweep to retry from): telling them twice beats not at all.
+      if (toldErr && !isMissingTable(toldErr)) console.warn("[refundNotice] prior refund notice read failed; announcing the release", { key: input.key, error: toldErr.message });
+      const same = ((told ?? []) as Array<{ notice_key: string; amount_cents: number; notification_id: string | null; created_at: string }>)
+        .find((t) => t.notice_key.startsWith("refund:") && t.notification_id && t.notification_id !== ZERO_UUID &&
+          Number(t.amount_cents) === Math.round(input.amountCents) && Math.abs(Date.now() - Date.parse(t.created_at)) < 600_000);
+      if (same) return { status: "duplicate" };
+    }
+
     // 1. Claim. The primary key is the dedupe: the loser stops here.
     let claimed = true;
     const claim = () => supabase.from("refund_notices").insert({

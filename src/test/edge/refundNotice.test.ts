@@ -399,6 +399,50 @@ describe("Q1714: void-cancelled-payments tells the poster when it releases a car
     expect(res.status).toBeLessThan(500);
   });
 
+  // Q1726 review #2: Stripe listed the released money as a Refund and the
+  // webhook announced it FIRST ("Refund issued", refund:<re>, same payment and
+  // amount): the release is the same money, not announced again. An older
+  // notice (over 600 s), another amount, or a placeholder stamp is not that
+  // money and does not stop it.
+  // @mutate supabase/functions/_shared/refundNotice.ts |     if (input.kind === "release" && input.paymentIntentId) { |     if (false) {
+  it("a release the webhook already announced as a refund of the same money is not announced again", async () => {
+    const HOLD_PI = {
+      id: "pi_hold", status: "requires_capture", amount: 11200,
+      latest_charge: { id: "ch_hold", payment_method_details: { type: "card", card: { brand: "visa", last4: "4242", wallet: null } } },
+    };
+    const told = (ageMs: number) => ({ notice_key: "refund:re_same", amount_cents: 11200, notification_id: "n-1", created_at: new Date(Date.now() - ageMs).toISOString() });
+    scenario.reads.refund_notices = { rows: [told(60_000)] };
+    await runVoid(HOLD_JOB, HOLD_PI);
+    expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledWith("pi_hold");
+    expect(claims()).toEqual([]);
+    expect(notificationEmails).toHaveLength(0);
+
+    for (const other of [
+      told(11 * 60_000),
+      { ...told(60_000), amount_cents: 5000 },
+      { ...told(60_000), notification_id: "00000000-0000-0000-0000-000000000000" },
+    ]) {
+      resetSupabaseMock();
+      resetSharedMocks();
+      scenario.reads.refund_notices = { rows: [other] };
+      await runVoid(HOLD_JOB, HOLD_PI);
+      expect(claims()).toEqual(["release:pi_hold"]);
+    }
+  });
+
+  // A failed read of the prior refund notices never stops the release notice:
+  // a release has no ledger row for a sweep to retry from.
+  // @mutate supabase/functions/_shared/refundNotice.ts | console.warn("[refundNotice] prior refund notice read failed; announcing the release", { key: input.key, error: toldErr.message }); | return { status: "failed", error: `prior refund notice read: ${toldErr.message}` };
+  it("a failed read of prior refund notices still announces the release", async () => {
+    const HOLD_PI = {
+      id: "pi_hold", status: "requires_capture", amount: 11200,
+      latest_charge: { id: "ch_hold", payment_method_details: { type: "card", card: { brand: "visa", last4: "4242", wallet: null } } },
+    };
+    scenario.reads.refund_notices = { rows: [], error: { message: "boom", code: "XX000" } };
+    await runVoid(HOLD_JOB, HOLD_PI);
+    expect(claims()).toEqual(["release:pi_hold"]);
+  });
+
   it("a captured payment refunded on cancellation: void-cancelled-payments itself announces it with the amounts it computed (the owner's case)", async () => {
     stripeMock.refunds.create.mockResolvedValue({ id: "re_3UOcZ8Kp2H4b7tEC1cVCF92O", amount: 10000 });
     await runVoid({ ...HOLD_JOB, id: OWNER_JOB.id, title: OWNER_JOB.title, customer_id: "poster-hold", stripe_payment_intent_id: "pi_mow" }, {

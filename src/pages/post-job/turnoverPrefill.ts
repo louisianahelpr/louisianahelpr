@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 
 /**
  * Q768 (owner, 2026-09-27: "Import as drafts"). str-ical-sync records each
@@ -45,27 +46,30 @@ const FUNDED = new Set(["escrow", "payout_pending", "released"]);
 /** public.jobs CHECKs (Q782): title <= 32 and description <= 1000 code points. */
 const fit = (s: string, n: number) => Array.from(s).slice(0, n).join("").trim();
 
-/** Like `fit`, but a title never ends on half a word: "STR clean 2026-10-17
- *  Proof Cotta" (seen on prod 2026-10-12 proving Q768) reads as a typo, so a
- *  cut drops the partial last word instead. src/test/noJobRowBeforePayment.test.ts. */
-const fitWords = (s: string, n: number) => {
-  const chars = Array.from(s.trim());
-  if (chars.length <= n) return chars.join("");
-  const cut = chars.slice(0, n).join("");
-  // The next character after the cut is a space: the cut fell between words.
-  if (chars[n] === " ") return cut.trim();
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
+/** A checkout day the way the app writes dates: "Oct 20" (title), "Tue, Oct 20" (prose). */
+const shortDay = (ymd: string) => parseLocalDate(ymd).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/**
+ * Q1787: the title used to be "STR clean <YYYY-MM-DD> <property>" cut to the
+ * 32-character cap ("STR clean 2026-10-20 SEED Bywate" on prod, 2026-10-13).
+ * Now "Turnover clean · Oct 20", with " · <property>" only when the WHOLE name
+ * fits, so a title never carries an ISO date or half a word.
+ * src/test/noJobRowBeforePayment.test.ts.
+ */
+const turnoverTitle = (ymd: string, propertyName: string | null | undefined) => {
+  const base = `Turnover clean · ${shortDay(ymd)}`;
+  const name = (propertyName ?? "").trim();
+  const withName = `${base} · ${name}`;
+  return name && Array.from(withName).length <= 32 ? withName : base;
 };
 
 /** The cleaning job a turnover pre-fills: the same words the sync used to write. Pure. */
 export function buildTurnoverPrefill(row: TurnoverRow): TurnoverPrefill {
   const conn = row.str_calendar_connections;
-  const propName = conn?.property_name ?? "property";
   const notes = conn?.cleaning_notes ? conn.cleaning_notes : "Standard turnover clean — please message for door code.";
   return {
-    title: fitWords(`STR clean ${row.checkout_date} ${propName}`, 32),
-    description: fit(`Cleaning needed after guest checkout on ${row.checkout_date}. ${notes}`, 1000),
+    title: turnoverTitle(row.checkout_date, conn?.property_name),
+    description: fit(`Cleaning needed after guest checkout on ${formatJobDate(row.checkout_date)}. ${notes}`, 1000),
     budget: conn?.cleaning_budget != null ? String(conn.cleaning_budget) : "",
     location: conn?.property_address ?? "",
     dateNeeded: row.checkout_date,

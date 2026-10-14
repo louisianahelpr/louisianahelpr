@@ -5,6 +5,7 @@ import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { confirmSessionLost } from "@/lib/sessionLoss";
+import { authDiagnostics } from "@/lib/authDiagnostics";
 import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
@@ -182,7 +183,8 @@ const ProtectedRoute = ({
         report(new Error("Session lost on a signed-in screen"), {
           severity: "warning",
           tags: { source: "ProtectedRoute.sessionLost", screen: location.pathname },
-          context: { path: location.pathname },
+          // Q1596: landing-URL token, auth events since load, in-app browser.
+          context: { path: location.pathname, ...authDiagnostics() },
         });
         // The note rides in the URL, not storage: it belongs to this one
         // redirect and cannot resurface on a later visit to /login.

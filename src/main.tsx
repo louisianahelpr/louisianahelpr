@@ -5,6 +5,10 @@ import "./lib/splashSafetyNet";
 // error off the URL before the Supabase client or the router can see or drop
 // it, and hands it to Login. See src/lib/oauthRedirectError.ts.
 import "./lib/oauthRedirectError";
+// THIRD, on purpose (Q1596): records whether the landing URL carried a sign-in
+// token (never the token) before the Supabase client detects and strips it, so
+// a later session-loss report can say so. See src/lib/authDiagnostics.ts.
+import { landingAuthHint, noteAuthEventForDiagnostics, authDiagnostics } from "./lib/authDiagnostics";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
@@ -20,6 +24,7 @@ import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
 import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
 import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePurge";
+import { hasPersistedAuthToken as tokenProbeAtBoot } from "./lib/persistedAuthToken";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -386,7 +391,15 @@ void hydrateStorage();
   // A SIGNED_OUT the app did not ask for is reported (src/lib/unexpectedSignOut.ts).
   // Its own imports and its own try: a failure here can never cost the
   // teardown above its listener.
+  // Q1596: it used to start on the first interaction, so a session that died
+  // in the first seconds after an email-confirm landing (the 10-09 and 10-13
+  // iPhone Safari cases) left no auth events behind. It now starts at BOOT when
+  // this page may hold a session (a stored token, or a sign-in token in the
+  // landing URL), and on the first interaction otherwise. Once only.
+  let signOutWatchStarted = false;
   const registerUnexpectedSignOutWatch = () => {
+    if (signOutWatchStarted) return;
+    signOutWatchStarted = true;
     void (async () => {
       try {
         const [{ supabase }, { noteAuthEvent }, { hasPersistedAuthToken }, { report }] = await Promise.all([
@@ -398,8 +411,9 @@ void hydrateStorage();
         const state = { lastEvent: null as string | null, signedInAt: null as number | null };
         supabase.auth.onAuthStateChange((event) => {
           try {
+            noteAuthEventForDiagnostics(event);
             const unexpected = noteAuthEvent(state, event, Date.now(), hasPersistedAuthToken);
-            if (unexpected) report(new Error("Unexpected sign-out"), { severity: "warning", tags: { source: "auth.unexpectedSignOut" }, context: unexpected });
+            if (unexpected) report(new Error("Unexpected sign-out"), { severity: "warning", tags: { source: "auth.unexpectedSignOut" }, context: { ...unexpected, ...authDiagnostics() } });
           } catch {
             /* diagnostics only: never let a probe throw out of an auth listener */
           }
@@ -409,6 +423,8 @@ void hydrateStorage();
       }
     })();
   };
+
+  if (landingAuthHint().hadAuthToken || tokenProbeAtBoot()) registerUnexpectedSignOutWatch();
 
   // Double-defer: after the user interacts, wait for the next idle window
   // before pulling Sentry/PostHog/Supabase chunks. Lighthouse simulates a

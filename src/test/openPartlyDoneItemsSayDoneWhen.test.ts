@@ -62,6 +62,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // seven such markers on 2026-10-03). Give an item a marker, or tick it, and
 // delete its line here in the same commit.
 // 13 on 2026-10-14 (lead, one-problem-one-item cleanup): Q206, Q380, Q421, Q593, Q701, Q1170 and Q1172 were merged into Q824/Q654/Q416/Q1158 and ticked; Q427 and Q1158 were reopened to [ ] as merge survivors. All nine left the markerless set.
+// 2026-10-14 (proof3 lane, re-applying the proof2 batch): Q654 goes back to [ ] (about 26 KB gz of ~140 KiB came off; the rest is unbuilt code work), so it leaves the list.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q44: "closes when Vacuity's push runs on main are green for a whole day; no marker kind reads a workflow's run history over a window",
   Q52: "area 1 waits on a full vacuity sweep that finishes and reports the e2e registrations conclusively; no marker kind reads a vacuity report's verdicts",
@@ -70,7 +71,6 @@ const MARKERLESS_PARTLY_DONE: Record<string, string> = {
   Q238: "the live half: seed the four admin queue states as is_seed rows, assert counts in admin-views.spec.ts and look at the screenshots",
   Q334: "a live two-account delete-mid-thread send plus a screenshot of the read-only thread",
   Q416: "marker removed by the lead 2026-10-03: the BORROWED statuses still need an owner, which no marker kind can read",
-  Q654: "the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse after deploy",
   Q858: "one green prod-audit run, then signIns set from that measurement",
   Q965: "a browser look at /help and /support on native and the marketing Navbar while /legal and /help scroll",
   Q1399: "the owner looking at both offer cards on a phone",

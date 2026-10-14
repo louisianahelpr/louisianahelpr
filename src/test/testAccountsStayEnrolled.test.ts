@@ -25,6 +25,7 @@
  * @mutate scripts/lib/testAccountEnrolment.mjs |   if (real.length) throw | if (false) throw
  * @mutate scripts/lib/testAccountEnrolment.mjs |   if (still.length) throw | if (false) throw
  * @mutate e2e/journeys/fixtures.ts |       await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: creds.serviceKey, userIds: [session.user.id], note: `e2e journeys mint (${role})` }); // TEST-ACCOUNT-ENROLMENT at mint |       // removed
+ * @mutate e2e/journeys/throwaway.ts |   await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: key, userIds: [userId], note: `e2e journey throwaway (${label})` }); // TEST-ACCOUNT-ENROLMENT for throwaways |   // removed
  * @mutate scripts/audit/prod-seed.mjs |   await enrolTestAccounts([posterId, helperId, ...Object.values(ids)]); |   // removed
  * @mutate scripts/check-test-account-strikes.mjs |   const unenrolled = findUnenrolled(profiles, enrolledRows); |   const unenrolled = [];
  */
@@ -131,6 +132,15 @@ describe("every harness that relies on the accounts keeps them enrolled", () => 
 
   it.each(minters)("%s enrols a shared account at mint", (f) => {
     expect(blankComments(read(f))).toMatch(/\bensureTestAccountsEnrolled\s*\(/);
+  });
+
+  it("a journey throwaway is enrolled before it is handed to a journey (e2e-journeys 38527058685: no-show apply_to_job 403 job_not_available)", () => {
+    const src = blankComments(read("e2e/journeys/throwaway.ts"));
+    const body = src.slice(src.indexOf("export async function createThrowaway"), src.indexOf("export async function requireThrowaway"));
+    const enrol = body.search(/\bensureTestAccountsEnrolled\s*\(\{[^}]*userIds: \[userId\]/);
+    expect(enrol, "createThrowaway does not enrol its account in public.test_accounts").toBeGreaterThan(-1);
+    expect(enrol, "the enrolment must follow the is_seed PATCH (the helper refuses a non-seed profile)").toBeGreaterThan(body.indexOf("is_seed: true"));
+    expect(body.lastIndexOf("return { userId, email, session }")).toBeGreaterThan(enrol);
   });
 
   it("prod-seed --apply enrols the pair and every owned account, and --verify reports it", () => {

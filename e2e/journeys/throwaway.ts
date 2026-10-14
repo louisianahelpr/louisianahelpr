@@ -28,6 +28,7 @@ import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 import { serviceHeaders, srFetch } from "../serviceRoleFetch";
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
+import { ensureTestAccountsEnrolled } from "../../scripts/lib/testAccountEnrolment.mjs";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
@@ -136,6 +137,14 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   );
   if (patched.length !== 1) throw new Error(`completing ${email}'s profile matched ${patched.length} rows`);
   await requireThrowaway(key, userId);
+  // A TEST ACCOUNT is is_seed AND a public.test_accounts row (Q552). With the
+  // launch switch on, an is_seed-only account is hidden from every is_seed job
+  // and cannot apply to one: enforce_application_job_state C6 answered the
+  // no-show throwaway 403 job_not_available (e2e-journeys 38527058685). It is
+  // also what puts a throwaway's payments on the Stripe TEST key beside the
+  // shared accounts (_shared/stripeMode.ts: any mix is refused). The row
+  // cascades away when deleteThrowaway removes the auth user.
+  await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: key, userIds: [userId], note: `e2e journey throwaway (${label})` }); // TEST-ACCOUNT-ENROLMENT for throwaways
   return { userId, email, session };
 }
 

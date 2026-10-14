@@ -39,7 +39,7 @@ import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay
 
 // @mutate release/app-review-freeze.json | "liveClientCompatFloor": 1, | "liveClientCompatFloor": 0,
 // @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role;\nREVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated;
-// @mutate src/test/appReviewFreeze.test.ts |     if (createsTable(m.code, t)) continue; |     if (createsTable(m.code, t) \|\| t === "profiles") continue;
+// @mutate src/test/appReviewFreeze.test.ts |     if (createsTable(m.code, t)) continue;\n    const word |     if (createsTable(m.code, t) \|\| t === "profiles") continue;\n    const word
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");

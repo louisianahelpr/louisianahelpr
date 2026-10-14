@@ -1,0 +1,11 @@
+{
+  "frozen": true,
+  "version": "1.0.4",
+  "build": 7119,
+  "buildSha": "c16b0f0dc62854d8b9068888ecff49a9242c8666",
+  "since": "2026-10-13",
+  "liveClientCompatFloor": 1,
+  "liveMinSupportedBuild": 7117,
+  "scanFrom": "20261001000000",
+  "why": "Build 7119 is in Apple review. Raising client_compat_floor() or min_supported_build shows the reviewer 'Update Helpr', and narrowing a privilege the 7119 client uses breaks it: both are an instant rejection. The release session or the lead sets frozen to false once Apple decides; src/test/appReviewFreeze.test.ts enforces it."
+}

@@ -366,7 +366,7 @@ function stripSqlComments(sql) {
 /** Objects created by migrations the snapshot's prod had not applied yet. */
 export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   const meta = snapshot.appliedMigrations;
-  const none = { exact: false, latest: meta?.latest ?? null, functions: new Map(), tables: new Map(), columns: new Map() };
+  const none = { exact: false, latest: meta?.latest ?? null, functions: new Map(), tables: new Map(), columns: new Map(), grants: new Set() };
   if (!meta || typeof meta.latest !== "string" || typeof meta.count !== "number") return none;
   if (!fs.existsSync(migrationsDir)) return none;
   const files = fs.readdirSync(migrationsDir).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
@@ -375,6 +375,10 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   const tables = new Map();
   // "table.column" -> file, for columns a pending ALTER TABLE ... ADD COLUMN adds.
   const columns = new Map();
+  // Q1825: grants a pending migration makes, as "role:PRIV:table" (whole
+  // table) and "role:PRIV:table.column" (per column). A pending column on a
+  // table that grants per column is only writable with a matching GRANT.
+  const grants = new Set();
   for (const f of files.filter((x) => x.slice(0, 14) > meta.latest)) {
     const sql = stripSqlComments(fs.readFileSync(path.join(migrationsDir, f), "utf8"));
     for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
@@ -388,8 +392,22 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
         if (!/^(constraint|primary|unique|foreign|check|exclude)$/i.test(a[1])) columns.set(`${m[1].toLowerCase()}.${a[1].toLowerCase()}`, f);
       }
     }
+    for (const m of sql.matchAll(/grant\s+([^;]*?)\s+on\s+(?:table\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s+to\s+([^;]+)/gi)) {
+      const table = m[2].toLowerCase();
+      const roles = m[3].replace(/\s+with\s+grant\s+option\s*$/i, "").split(",").map((r) => r.trim().replace(/"/g, "").toLowerCase()).filter(Boolean);
+      for (const pr of m[1].matchAll(/\b(select|insert|update|delete|all(?:\s+privileges)?)\b\s*(?:\(([^)]*)\))?/gi)) {
+        const privs = /^all/i.test(pr[1]) ? ["SELECT", "INSERT", "UPDATE", "DELETE"] : [pr[1].toUpperCase()];
+        const cols = pr[2] ? pr[2].split(",").map((c) => c.trim().replace(/"/g, "").toLowerCase()).filter(Boolean) : null;
+        for (const role of roles) {
+          for (const priv of privs) {
+            if (cols) for (const c of cols) grants.add(`${role}:${priv}:${table}.${c}`);
+            else grants.add(`${role}:${priv}:${table}`);
+          }
+        }
+      }
+    }
   }
-  return { exact: true, latest: meta.latest, functions, tables, columns };
+  return { exact: true, latest: meta.latest, functions, tables, columns, grants };
 }
 
 export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) {
@@ -473,8 +491,23 @@ export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) 
     const col = cols[key];
     if (!col) {
       const by = pending.columns?.get(`${w.target}.${key}`);
-      if (by) warn("column_pending", `column ${w.target}.${key} is added by ${by}, which prod had not applied when the snapshot was read (latest applied ${pending.latest})`);
-      else reject("unknown_column", `column ${w.target}.${key} does not exist`);
+      if (by) {
+        warn("column_pending", `column ${w.target}.${key} is added by ${by}, which prod had not applied when the snapshot was read (latest applied ${pending.latest})`);
+        // Q1825: the grant check above only sees columns the snapshot has. On a
+        // table that grants this write's privilege per column (profiles UPDATE,
+        // jobs SELECT), a new column is writable only if a pending migration
+        // grants it; otherwise prod refuses the write once it deploys.
+        for (const role of w.roles) {
+          for (const priv of OP_PRIV[w.kind] ?? []) {
+            if (priv === "UPDATE" && w.kind === "upsert" && w.ignoreDuplicates) continue;
+            if ((table.grants[role] ?? []).includes(priv)) continue;
+            if (!table.columnGrants?.[role]?.[priv]) continue;
+            const g = pending.grants ?? new Set();
+            const ok = [role, "public"].some((r) => g.has(`${r}:${priv}:${w.target}.${key}`) || g.has(`${r}:${priv}:${w.target}`));
+            if (!ok) reject("no_column_grant", `${role} has no ${priv} privilege on pending column ${w.target}.${key}: ${by} adds it but no pending migration grants ${priv} (${key}) ON public.${w.target} TO ${role}`);
+          }
+        }
+      } else reject("unknown_column", `column ${w.target}.${key} does not exist`);
       continue;
     }
     if (col.generated) reject("generated_column", `column ${w.target}.${key} is GENERATED and cannot be written`);

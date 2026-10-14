@@ -173,7 +173,10 @@ Guard: src/test/agentBriefHowWorkLands.test.ts.
   comment, a ratchet the change moves, a train conflict) is fixed in the same
   branch, not filed as a new OPEN item. File only a separate, real defect.
 - Every new OPEN.md item carries HIGH/MEDIUM/LOW (src/test/openItemsHaveTier.test.ts).
-- **No duplicate items (owner 2026-10-05).** Before filing, search OPEN.md AND docs/archive for the
+- **No duplicate items (owner 2026-10-05; tightened 2026-10-14: "the same item merges if it already
+  has an item open").** If an OPEN item already covers the same problem or root cause (a repeat
+  alert, the same error from a new build, the same failure on another table or screen), ADD the new
+  sighting to that item; never file a new number. Before filing, search OPEN.md AND docs/archive for the
   finding; never file a review point you fixed in the same branch (note it on the fixed item instead).
   Every item filed from a review ends with `finding: <reviewer>@<reviewed-sha>#<n>`; two numbers with one
   tag fail openNoDuplicateItems, and an untagged review item fails src/test/reviewFindingsCarryATag.test.ts.

@@ -4227,6 +4227,27 @@ export type Database = {
           },
         ]
       }
+      phone_save_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          save_outcome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          save_outcome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          save_outcome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pet_profiles: {
         Row: {
           age_years: number | null
@@ -8540,6 +8561,7 @@ export type Database = {
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
       run_missed_cron_catch_up: { Args: never; Returns: Json }
       run_seed_purge: { Args: never; Returns: Json }
+      save_my_phone: { Args: { p_phone: string }; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       search_profiles_by_name: {
         Args: { query: string }

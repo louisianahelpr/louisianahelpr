@@ -271,6 +271,12 @@ export const RPC_ERROR_COPY = {
     // Q1586(c), 20261013010621: a saved birthday under 18.
     under_18: UNDER_18_APPLY_COPY,
   },
+  // src/lib/phoneSave.ts — the one way a member saves their phone (Q1586(a)).
+  save_my_phone: {
+    account_restricted: "Your account is restricted right now, so you can't change your phone number.",
+    not_authenticated: "Please sign in again to save your phone number.",
+    profile_not_found: "We couldn't find your profile to save that to. Refresh and try again.",
+  },
   // CancellationDialog.
   poster_cancel_job: {
     not_cancellable:

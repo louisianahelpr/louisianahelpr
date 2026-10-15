@@ -8577,6 +8577,7 @@ export type Database = {
         Returns: {
           attempts: number
           buyer_id: string
+          checkout_session_id: string
           livemode: boolean
           order_id: string
           payment_intent_id: string

@@ -53,12 +53,17 @@ export async function handleChargeRefundUpdated(
       p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
     });
     if (dErr) throw new Error(`declutter_refund_reversed failed for ${refund.status} refund ${refund.id}: ${dErr.message}`);
+    // 'gave_up': the reversal was the row's 12th try, so declutter-money will NOT send another
+    // (lh-money-escrow re-review should-fix 1): a person refunds it by hand.
+    const gaveUp = reopened === "gave_up";
+    const notRepaid = reopened === "reopened" || gaveUp;
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
-      severity: reopened === "reopened" ? "critical" : "warning",
-      title: reopened === "reopened" ? "Declutter refund failed after Stripe took it: retrying" : "Declutter refund failed (row not reopened)",
-      message: `Stripe moved Declutter refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The refund row did not record this refund (an older attempt, or already reopened): nothing changed."}`,
-      fields: { "Refund row": meta.refund_id, "Order": meta.order_id ?? "none" },
+      severity: notRepaid ? "critical" : "warning",
+      title: gaveUp ? "Declutter refund failed after Stripe took it: GAVE UP, refund it by hand"
+        : reopened === "reopened" ? "Declutter refund failed after Stripe took it: retrying" : "Declutter refund failed (row not reopened)",
+      message: `Stripe moved Declutter refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${gaveUp ? "The buyer has NOT been repaid and that was the refund row's last try: no new refund will be sent. Refund it by hand." : reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The refund row did not record this refund (an older attempt, or already reopened): nothing changed."}`,
+      fields: { "Refund row": meta.refund_id, "Order": meta.order_id || "none" },
     });
     return;
   }

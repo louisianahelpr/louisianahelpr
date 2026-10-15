@@ -284,6 +284,12 @@ ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_payouts WHERE ord
   "  one payout row for the item price");
 ok(one(await me(BUYER, `SELECT public.declutter_porch_photo('${P.order_id}', '${bp}', 30.4513, -91.1543) AS r`))?.result === "already_handed_over",
   "  a second tap pays nothing more");
+// lh-authz-rls review of session 3 (should-fix 2): the exact address is for the PAID buyer only, not after the
+// handover and not after a refund.
+ok(refused(await me(BUYER, `SELECT * FROM public.declutter_item_address('${I(11)}')`), /item_not_found/),
+  "  after the handover the buyer no longer reads the exact address");
+ok(refused(await me(BUYER2, `SELECT * FROM public.declutter_item_address('${I(8)}')`), /item_not_found/),
+  "a buyer whose order was refunded (seller no-show) does not read the exact address");
 ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_payouts WHERE order_id = '${P.order_id}'`))) === 1, "  still one payout row");
 ok(refused(await me(SELLER2, `SELECT public.declutter_report_no_show('${P.order_id}')`), /already_picked_up|order_not_paid/), "the seller cannot call it a no-show after pickup");
 // Prod's job-photos bucket is public (readable); without a read policy a DELETE sees no rows and proves nothing.
@@ -322,6 +328,9 @@ const firstItem = one(await svc(`SELECT item_id FROM public.declutter_cart_items
 const otherPt = firstItem === I(31) ? "30.4013, -91.1543" : "30.4513, -91.1543";
 const bpm = `${BUYER3}/declutter/handover/${PM.order_id}/got.jpg`;
 await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('job-photos', '${bpm}')`);
+// lh-authz-rls review of session 3 (should-fix 2): a point near neither of the order's items is refused.
+ok(refused(await me(BUYER3, `SELECT public.declutter_porch_photo('${PM.order_id}', '${bpm}', 30.30, -91.00)`), /not_at_pickup/),
+  "a \"picked up\" photo far from every item in the order is refused");
 const pum = one(await me(BUYER3, `SELECT public.declutter_porch_photo('${PM.order_id}', '${bpm}', ${otherPt}) AS r`));
 ok(pum?.result === "picked_up" && pum.distance_m <= 200,
   `a multi-item porch pickup counts at the second item's address too (${pum?.distance_m ?? JSON.stringify(pum)} m)`);
@@ -371,8 +380,30 @@ ok(one(await svc(`SELECT public.declutter_refund_reversed('${rf}', 're_took1', '
 ok(rows(await svc(`SELECT refund_id FROM public.declutter_refunds_due(50)`)).some((d) => d.refund_id === rf),
   "  and it is due again at once (a NEW refund is sent)");
 ok(one(await svc(`SELECT public.declutter_refund_reversed('${rf}', 're_took1', 'failed') AS r`)) === "unchanged", "  a redelivered event does it once");
+// lh-money-escrow re-review should-fix 1: a reversal COUNTS as a try (a refund Stripe keeps failing must not loop
+// forever); when it reaches the 12-try cap the queue stops offering the row and the answer says 'gave_up', so the
+// page asks for a refund by hand instead of promising a new one.
+ok(one(await svc(`SELECT attempts FROM public.declutter_refunds WHERE id = '${rf}'`)) === 2, "  the reversal counted as a try (1 failure + 1 reversal)");
+await svc(`UPDATE public.declutter_refunds SET attempts = 11 WHERE id = '${rf}'`);
+await svc(`SELECT public.declutter_refund_executed('${rf}', 're_took12', true)`);
+ok(one(await svc(`SELECT public.declutter_refund_reversed('${rf}', 're_took12', 'failed') AS r`)) === "gave_up",
+  "Stripe failing a refund that succeeded on the row's 12th try answers 'gave_up' (refund it by hand), never 'reopened'");
+ok(!rows(await svc(`SELECT refund_id FROM public.declutter_refunds_due(50)`)).some((d) => d.refund_id === rf),
+  "  and the queue does not offer it again");
+// Should-fix 3: the queue hands declutter-money the order's Checkout Session id, whose prefix names the payment's mode.
+await svc(`UPDATE public.declutter_orders SET stripe_checkout_session_id = 'cs_test_s4G' WHERE id = '${G.order_id}'`);
+await svc(`UPDATE public.declutter_refunds SET attempts = 3 WHERE id = '${rf}'`);
+ok(rows(await svc(`SELECT refund_id, checkout_session_id FROM public.declutter_refunds_due(50)`)).some((d) => d.refund_id === rf && d.checkout_session_id === "cs_test_s4G"),
+  "the refund queue returns the order's Checkout Session id (its mode when none was recorded)");
+// Should-fix 2: the webhook builds the refund's metadata from the ROW (like declutter-money): the answer carries the
+// row's order_id, NULL for an order_missing row (whatever order the Checkout page named).
+ok(one(await svc(`SELECT public.declutter_refund_answer('${rf}') ->> 'order_id' AS o`)) === G.order_id, "the refund answer carries the row's order_id");
+const orphan = one(await svc(`SELECT public.declutter_record_refund(NULL, 'pi_s4_orphan', 'order_missing', 4600, 150) AS id`));
+const orphanAnswer = one(await svc(`SELECT public.declutter_refund_answer('${orphan}') AS a`));
+ok(orphan && orphanAnswer && "order_id" in orphanAnswer && orphanAnswer.order_id === null, "  and null for an order_missing row");
 ok(refused(await me(BUYER, `SELECT public.declutter_refund_reversed('${rf}', 're_took1', 'x')`), /permission denied/) &&
-   refused(await me(BUYER, `SELECT public.declutter_refund_set_mode('${rf}', true)`), /permission denied/), "  members can call neither");
+   refused(await me(BUYER, `SELECT public.declutter_refund_set_mode('${rf}', true)`), /permission denied/) &&
+   refused(await me(BUYER, `SELECT public.declutter_refund_answer('${rf}')`), /permission denied/), "  members can call none of them (reversed, set_mode, answer)");
 
 // J. The table holds every refund to its reason.
 ok(refused(await svc(`INSERT INTO public.declutter_refunds (stripe_payment_intent_id, reason, fee_policy, paid_cents, card_fee_cents, kept_cents, refund_cents)

@@ -24,6 +24,9 @@
  * @mutate supabase/functions/declutter-money/index.ts |         if (pi.status !== "succeeded" \|\| !ch \|\| ch.amount_refunded > 0 \|\| ch.disputed) { |         if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |       return { stripe: modes.clientFor(mode) }; |       return await modes.clientForParties([r.buyer_id, r.seller_id]);
  * @mutate supabase/functions/declutter-money/index.ts |     if (!hasParties) return null; |
+ * @mutate supabase/functions/declutter-money/index.ts |         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`); |
+ * @mutate supabase/functions/declutter-money/index.ts |     const byPage = sessionIdMode(r.checkout_session_id); |     const byPage = null;
+ * @mutate supabase/functions/declutter-money/index.ts |     if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`); |
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -240,6 +243,43 @@ describe("declutter-money: refund retry and reconcile (3b money review #7, B57)"
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(rpcs("declutter_refund_executed")).toHaveLength(0);
     expect(body.defects).toBe(1);
+  });
+
+  // lh-money-escrow re-review should-fix 4: the recorded mode is checked against the parties, and a mismatch moves nothing.
+  it("a recorded mode that disagrees with the parties is refused: nothing moves, the run reports it", async () => {
+    scenario.reads.test_accounts = { rows: [{ user_id: BUYER }, { user_id: SELLER }] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, is_seed: true }, { user_id: SELLER, is_seed: true }] };
+    const { body } = await run({ refunds: [refundRow({ livemode: true })] });
+    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(body.refunds_sent).toBe(0);
+    expect(body.refunds_failed).toBe(1);
+    expect(rpcs("declutter_refund_executed")[0]?.args).toMatchObject({ p_stripe_refund_id: null, p_succeeded: false });
+  });
+
+  // Should-fix 3: a row written by SQL has no recorded mode; the order's Checkout Session id prefix names it, and
+  // must agree with the parties (fail closed), and with a recorded mode when there is one.
+  it("no recorded mode: the order's page decides (a test page with test parties refunds on the test key)", async () => {
+    scenario.reads.test_accounts = { rows: [{ user_id: BUYER }, { user_id: SELLER }] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, is_seed: true }, { user_id: SELLER, is_seed: true }] };
+    const { body } = await run({ refunds: [refundRow({ livemode: null, checkout_session_id: "cs_test_dm1" })] });
+    expect(body.refunds_sent).toBe(1);
+    expect(stripeMock.__keys).toContain("sk_test_declutter");
+    expect(stripeMock.__keys).not.toContain("sk_live_declutter");
+  });
+
+  it("no recorded mode: a test page whose parties are real is refused, never refunded on the live key", async () => {
+    const { body } = await run({ refunds: [refundRow({ livemode: null, checkout_session_id: "cs_test_dm2" })] });
+    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(body.refunds_failed).toBe(1);
+  });
+
+  it("a recorded mode that disagrees with the order's page is refused: nothing moves", async () => {
+    const { body } = await run({ refunds: [refundRow({ livemode: true, checkout_session_id: "cs_test_dm3" })] });
+    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(body.refunds_failed).toBe(1);
   });
 
   it("nothing due: a clean, quiet run", async () => {

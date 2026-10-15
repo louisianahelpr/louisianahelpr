@@ -100,8 +100,9 @@ const CLASSIFIED: Record<string, { proven: boolean; why: string }> = {
     why: "Declutter seller payouts (slice 4) fund the transfer from the order's own charge. Once those funds have " +
       "left pending, Stripe refuses the transfer; declutter-money records a FAILED attempt (declutter_payout_executed), " +
       "backs off, retries up to 12 times and pages on the last try, so the payout row stays unpaid and visible, " +
-      "never marked sent. Whether the platform should float it, use manual payouts or pay faster is money " +
-      "review 2.2, held for the owner (docs/specs/declutter-auctions.md). Failure branch: src/test/edge/declutter-money.test.ts.",
+      "never marked sent. The platform payout schedule is manual (measured 2026-10-15), so the balance holds the " +
+      "money; a manual payout of the whole balance, or automatic payouts switched back on, would make the transfer " +
+      "fail this way (money review 2.2, docs/specs/declutter-auctions.md). Failure branch: src/test/edge/declutter-money.test.ts.",
   },
   "void-cancelled-payments": {
     proven: false,

@@ -602,8 +602,21 @@ serve(async (req) => {
       // and funded after it is stamped too. FAIL CLOSED on a write error:
       // an unstamped job would be paid out on the legacy tier commission
       // while its poster was charged the flat-model price.
+      //
+      // The write re-asserts, atomically, the two lifecycle facts this
+      // request decided from the job it read at the top (race class,
+      // migration 20260913014328): the job is still in the status it was
+      // judged fundable in (not completed/cancelled,
+      // FUNDING_CLOSED_JOB_STATUSES) and still unfunded (the same set as
+      // RE_MINTABLE_PAYMENT_STATUSES). It does NOT pin budget/urgent fee
+      // (see Q?fee-stamp-price-pin). Zero rows means the job moved between
+      // that read and this write: a concurrent tap funded it, a cancel or a
+      // decided dispute closed it, or its status changed under us. None of
+      // those may be charged under a stamp that never landed, so the
+      // checkout is refused here, before any funding branch (gift redeem,
+      // Stripe session).
       {
-        const { error: modelErr } = await supabaseAdmin
+        const { data: modelRows, error: modelErr } = await supabaseAdmin
           .from("jobs")
           .update({
             helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
@@ -615,13 +628,25 @@ serve(async (req) => {
             platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100,
           })
           .eq("id", jobId)
+          .eq("status", job.status)
           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
-          // Zero rows is legitimate: a concurrent tap already funded the job,
-          // and the funding paths below refuse it on their own guards.
           .select("id");
         if (modelErr) {
           console.error(`[create-payment] fee-model stamp failed for job ${jobId}; refusing escrow:`, modelErr);
           throw new PublicError("Pricing configuration is temporarily unavailable — please try again in a moment");
+        }
+        if (!modelRows || modelRows.length === 0) {
+          // Refused whatever the re-read says; it only picks the sentence.
+          const { data: moved } = await supabaseAdmin
+            .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
+          console.warn(`[create-payment] fee-model stamp matched 0 rows for job ${jobId} (read status=${job.status}, payment_status=${job.payment_status ?? "null"}; now status=${moved?.status ?? "?"}, payment_status=${moved?.payment_status ?? "?"}); refusing escrow`);
+          if (moved && !RE_MINTABLE_PAYMENT_STATUSES.has(moved.payment_status ?? "unpaid")) {
+            throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
+          }
+          if (moved && FUNDING_CLOSED_JOB_STATUSES.has(String(moved.status))) {
+            throw new PublicError("This job is closed, so it can no longer be paid for.");
+          }
+          throw new PublicError("This job changed while checkout was opening.");
         }
       }
 

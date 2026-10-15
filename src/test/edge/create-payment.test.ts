@@ -320,9 +320,9 @@ describe("create-payment edge function", () => {
         Object.defineProperty(scenario.writeSelectRows, "jobs:update", {
           configurable: true,
           enumerable: true,
-          // Call 0 is the fee-model stamp (F3: the first jobs update, its
-          // row count deliberately unread); call 1 is the session stamp the
-          // expire webhook beat, so IT matches zero rows.
+          // Call 0 is the fee-model stamp (F3: the first jobs update; it
+          // matches, or the checkout is refused); call 1 is the session stamp
+          // the expire webhook beat, so IT matches zero rows.
           get: () => (stampCalls++ === 1 ? [] : undefined),
         });
         const fn = await load();
@@ -926,7 +926,7 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-cc", customer_id: POSTER.id, budget, category: "cleaning", title: "Card cost job", payment_status: "unpaid" }],
+          rows: [{ id: "job-cc", customer_id: POSTER.id, budget, category: "cleaning", title: "Card cost job", status: "open", payment_status: "unpaid" }],
         };
         // The global is deliberately left at the legacy 10: nothing may read it.
         scenario.reads.platform_settings = {
@@ -991,7 +991,7 @@ describe("create-payment edge function", () => {
 
       // The fee-model stamp is written BEFORE any funding branch, only while
       // the job is unfunded, and a failed write refuses the checkout.
-      // @mutate supabase/functions/create-payment/index.ts |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          // Zero rows is legitimate |           .or("payment_status.is.null")\n          // Zero rows is legitimate
+      // @mutate supabase/functions/create-payment/index.ts |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id");\n        if (modelErr) |           .or("payment_status.is.null")\n          .select("id");\n        if (modelErr)
       it("stamps the flat model on the unfunded job before the checkout opens", async () => {
         seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
         await escrow();
@@ -1000,6 +1000,60 @@ describe("create-payment edge function", () => {
         // pays 5% + 70c = $5.70 whichever branch funds it (a gift included).
         expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_amount: 5.7 });
         expect(JSON.stringify(first)).toContain("unpaid,abandoned,failed");
+      });
+
+      // Race class (migration 20260913014328; scripts/check-race-class.mjs):
+      // the stamp re-asserts the status the job was judged fundable in, so a
+      // job cancelled or closed between the read and the write is never
+      // stamped, and so never funded below.
+      // @mutate supabase/functions/create-payment/index.ts |           .eq("status", job.status)\n          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id"); |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          .select("id");
+      it("the fee-model stamp is pinned to the status the job was read in", async () => {
+        seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+        await escrow();
+        const first = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        expect(first?.payload).toHaveProperty("helper_fee_flat_cents", 70);
+        expect(first?.filters).toContainEqual(expect.objectContaining({ op: "eq", column: "status", value: "open" }));
+        expect(first?.filters).toContainEqual(expect.objectContaining({ op: "eq", column: "id", value: "job-cc" }));
+      });
+
+      // Zero rows = the job moved (funded by a concurrent tap, cancelled,
+      // closed) between the read and the stamp. FAIL CLOSED: no gift redeem,
+      // no Checkout Session, nothing returned that could charge the poster
+      // under a fee model that was never recorded on the row.
+      // @mutate supabase/functions/create-payment/index.ts |         if (!modelRows \|\| modelRows.length === 0) { |         if (false) {
+      it("refuses the checkout when the fee-model stamp matched zero rows", async () => {
+        // [gift card, the row a re-read finds, the sentence the poster reads]
+        const CASES: Array<[string | undefined, Record<string, unknown> | null, RegExp]> = [
+          [undefined, null, /^This job changed while checkout was opening\.$/],
+          ["gc-1", null, /^This job changed while checkout was opening\.$/],
+          [undefined, { status: "open", payment_status: "escrow" }, /already been processed/i],
+          ["gc-1", { status: "cancelled", payment_status: "unpaid" }, /job is closed/i],
+        ];
+        for (const [giftCardId, moved, sentence] of CASES) {
+          seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+          if (moved) {
+            scenario.reads.jobs = {
+              ...scenario.reads.jobs,
+              selectOverrides: [{ includes: "status, payment_status", result: { rows: [{ id: "job-cc", ...moved }] } }],
+            };
+          }
+          scenario.writeOverrides = [{
+            table: "jobs",
+            op: "update",
+            when: (p) => "helper_fee_flat_cents" in p && !("stripe_session_id" in p),
+            rows: [],
+          }];
+          scenario.rpc.redeem_gift_card = { outcome: "settled" };
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc", giftCardId } }));
+          const body = await json(res);
+          expect(body.url, `gift=${giftCardId}`).toBeUndefined();
+          expect(String(body.error), `gift=${giftCardId} moved=${JSON.stringify(moved)}`).toMatch(sentence);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+          expect((scenario.rpcCalls ?? []).some((c) => c.name === "redeem_gift_card"), `gift=${giftCardId}`).toBe(false);
+          // Nothing after the refused stamp touched the job row.
+          expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(1);
+        }
       });
 
       it("the Helpr fee stamped at escrow is the flat 5% + 70c, whatever platform_settings or the tier says", async () => {

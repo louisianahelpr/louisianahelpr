@@ -29,7 +29,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts |             amount: generalSplit.refundCents, |             ...(isPartial ? { amount: requestedCents } : {}),
  * @mutate supabase/functions/create-payment/index.ts |             amount: generalSplit.refundCents, |             amount: capturedCents - generalSplit.setupKeptCents,
- * @mutate supabase/functions/create-payment/index.ts |           const refundAmount = cancelSplit.ceilingCents; |           const refundAmount = capturedCents - cancelSplit.setupKeptCents;
+ * @mutate supabase/functions/create-payment/index.ts |           const refundAmount = cancelSplit.refundCents; |           const refundAmount = capturedCents - cancelSplit.setupKeptCents;
  * @mutate supabase/functions/execute-dispute-split/index.ts | refundableCents = posterBase.ceilingCents | refundableCents = capturedCents - posterBase.setupKeptCents
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents + feeProRataCents + taxReturnCents;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
@@ -91,13 +91,13 @@ const WRAPPER_CALLERS: Array<{ kind: Exclude<Kind, "pass-through">; why: string 
 const AMOUNT_DEFS: Record<string, string[]> = {
   "cancel-escrow-": [
     "refundAmount",
-    "refundAmount = cancelSplit.ceilingCents",
-    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, })",
+    "refundAmount = cancelSplit.refundCents",
+    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, alreadyRefundedCents, })",
   ],
   "refund-dispute-": [
     "refundAmount",
-    "refundAmount = disputeSplit.ceilingCents",
-    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), })",
+    "refundAmount = disputeSplit.refundCents",
+    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, })",
   ],
   "refund-general-": [
     "generalSplit.refundCents",
@@ -128,8 +128,8 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   ],
   "cancel-refund-": [
     "refundAmount",
-    "refundAmount = voidSplit.refundCents > 0 ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents",
-    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, })",
+    "refundAmount = voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents",
+    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, })",
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",

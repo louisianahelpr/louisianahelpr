@@ -128,6 +128,7 @@ const JOB_COLUMNS = [
   "payment_status",
   "customer_id",
   "helper_id",
+  "helper_confirmed_at",
   "is_seed",
   "disputed_at",
   "has_active_dispute",
@@ -286,6 +287,20 @@ export async function settleJobForward({ base, anon, posterToken, helperToken, p
     const alreadySettled = refusal === "already settled";
     log(`    ${jobId}: ${alreadySettled ? "nothing to settle" : `NOT settling — ${refusal}`}`);
     return { settled: alreadySettled, reason: refusal, steps, paymentStatus: job.payment_status, status: job.status };
+  }
+
+  // 0. THE HELPR ACCEPTS THE OFFER (Q1816, e2e-real-backend run 38527096325:
+  //    "on-my-way failed: 403 accept_required"). accept_application only
+  //    OFFERS the job; since 20261004001807 / 20261007051854 nothing starts on
+  //    an offer the Helpr has not accepted, and the accept is written only by
+  //    accept_job_offer (the app's Accept Job button), never a PATCH.
+  if (job.status === "accepted" && !job.helper_confirmed_at) {
+    const r = await post(base, "/rest/v1/rpc/accept_job_offer", headers(anon, helperToken), { p_job_id: jobId });
+    if (!r.ok) throw new Error(`accept_job_offer ${jobId}: HTTP ${r.status} ${r.body}`);
+    if (!/"state"\s*:\s*"accepted"/.test(r.body)) {
+      throw new Error(`accept_job_offer ${jobId} did not accept: ${r.body} (helper setup incomplete?)`);
+    }
+    steps.push("accept");
   }
 
   // 1. ARRIVAL — the Helpr's own RPC. It records the arrival on every path

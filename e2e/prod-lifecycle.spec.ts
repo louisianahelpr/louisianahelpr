@@ -893,6 +893,21 @@ test.describe("full money loop against production", () => {
     const afterHire = await readJob(request, poster, job.id);
     expect(afterHire.helper_id).toBe(helper.user.id);
 
+    /* --- 4a. THE HELPR ACCEPTS (Q1816, run 38527096325) ---------------------
+       accept_application only OFFERS the job. Since 20261004001807 /
+       20261007051854 nothing starts on an offer the Helpr has not accepted
+       (on-my-way answered 403 accept_required), and the accept is written only
+       by accept_job_offer, the app's Accept Job button, which tells the poster. */
+    const accepted = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, {
+      headers: rest(helper),
+      data: { p_job_id: job.id },
+    });
+    expect(accepted.ok(), `accept_job_offer failed: ${accepted.status()} ${await accepted.text()}`).toBe(true);
+    expect(
+      ((await accepted.json()) as { state?: string } | null)?.state,
+      "accept_job_offer did not accept (helper-e2e's setup is no longer complete?)",
+    ).toBe("accepted");
+
     /* --- 4b. ARRIVAL — the gate completion actually depends on --------------
        `enforce_helper_completion_gates` rejects a completion with 400
        completion_requires_confirmed_arrival unless arrival is ESTABLISHED, and

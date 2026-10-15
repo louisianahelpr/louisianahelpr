@@ -237,7 +237,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
       {booked && <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (once each)" : "Pick a pickup time"}</label>
       <div className="flex gap-2">
-        <input id={id} type="datetime-local" className={input} value={value} onChange={(e) => setValue(e.target.value)} />
+        <input id={id} type="datetime-local" className={`${input} min-w-0`} value={value} onChange={(e) => setValue(e.target.value)} />
         <button
           type="button"
           className={booked ? btn : primary}
@@ -272,7 +272,7 @@ function HandoverPanel({ order }: { order: PaidOrder }) {
       <div className="space-y-2">
         {card.data?.code && (
           <p className="text-sm">
-            Your handover code: <span className="font-mono text-2xl font-bold tracking-widest" aria-label={`Handover code ${card.data.code.split("").join(" ")}`}>{card.data.code}</span>
+            Your handover code: <span className="font-mono text-2xl font-bold tracking-widest" aria-hidden="true">{card.data.code}</span><span className="sr-only">{card.data.code.split("").join(" ")}</span>
             <span className="block text-xs text-muted-foreground">Show it to the seller when you have the item. Never share it before.</span>
           </p>
         )}
@@ -341,7 +341,7 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
           </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={btn} disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</button>
-            <input aria-label="Out until" type="datetime-local" className={input} value={until} onChange={(e) => setUntil(e.target.value)} />
+            <input aria-label="Out until" type="datetime-local" className={`${input} min-w-0`} value={until} onChange={(e) => setUntil(e.target.value)} />
             <button type="button" className={btn} disabled={timing.isPending || !localInputToIso(until)}
               onClick={() => timing.mutate({ mode: "until", iso: localInputToIso(until) })}>Out until then</button>
           </div>

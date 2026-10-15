@@ -470,6 +470,17 @@ BEGIN
 END
 $do$;
 
+-- Q807: an account whose email is unconfirmed cannot write the new tables either
+-- (the same call slices 1, 3 and 3b make after their CREATE TABLEs; it skips a
+-- table that already has the trigger, so a replay is a no-op).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- ---------------------------------------------------------------------------
 -- 3. Internals (service only).
 

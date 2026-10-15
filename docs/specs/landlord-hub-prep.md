@@ -276,3 +276,12 @@ Every slice: switch OFF by default, testers only, export_my_data sections + dele
 | 25-26 | Tours booked in the app from landlord-set times, in person, reminders to both; NO self-tours/lockbox codes |
 | 29 | Lease: the landlord either fills our lawyer-written Louisiana template OR uploads their own lease PDF; sent and signed in the app (owner: "add applications when the house is for rent, then send leases also") |
 | 29b | Saving: "Download PDF" opens the phone's Save/Share sheet (Files, Google Drive, iCloud, email); both sides get a copy; it also stays in the app (owner: "landlords can save them on their drive") |
+| 27 | Renter has 48 h to accept an approval; then the lease is sent; no answer = landlord may pick the next applicant |
+| 28 | (holding deposit: none — no money in the app at launch, Q15) |
+| 30 | Required forms attached automatically: year built -> federal lead-paint form for pre-1978, pet/assistance-animal addendum, move-in condition checklist with photos |
+| 31 | Built-in signature (who/when/device record, both ID-checked, final PDF to both) — lawyer to confirm |
+| 32 | Every adult (18+) living there signs and has an account; co-signers as extra signers |
+| 33 | Friendly rent-due REMINDERS in the app only; formal late/eviction/default notices must go on paper (app tells the landlord) |
+| 34 | Lease-end reminders 60 and 30 days before; renewal signed in the app |
+| 35 | Deposit return: app reminds the one-month rule; landlord sends the itemized statement in the app with move-out vs move-in photos; we don't judge deposit disputes |
+| 36 | Account deletion: signed lease + lead-paint form kept 3 years, the other side keeps their copy, everything else deleted — lawyer to confirm |

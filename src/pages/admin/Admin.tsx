@@ -49,7 +49,7 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
-import { adminBadgeFor, useStalledQueueCount } from "@/components/admin/adminRailBadges";
+import { adminBadgeFor, useOpenQueueCounts, useStalledQueueCount } from "@/components/admin/adminRailBadges";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
@@ -59,7 +59,6 @@ import { sparklineBuckets } from "@/components/admin/dashboard/sparklineBuckets"
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
 const markSeen = (section: string) => safeStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
-
 
 const navGroups = adminNavGroups;
 
@@ -147,9 +146,10 @@ const Admin = () => {
   // supplies the shared loading flag (the redundant useAdminAuth redirect
   // hook has been removed).
   const { isLoading: loading } = useCurrentUser();
-  // Q1071: the Stuck Jobs rail count (src/components/admin/adminRailBadges.ts).
+  // Q1071 / Q1691: the queue rail counts (src/components/admin/adminRailBadges.ts).
   const stalledCount = useStalledQueueCount(!loading);
-  const openQueues = { stalled: stalledCount.data };
+  const queueCounts = useOpenQueueCounts(!loading);
+  const openQueues = { stalled: stalledCount.data, ...queueCounts.data };
 
   const loadUnreadCounts = useCallback(async () => {
     // `excludeSeed` marks the sections whose table HAS an is_seed column, which
@@ -474,11 +474,11 @@ const Admin = () => {
   useEffect(() => {
     const next: Record<string, number> = {};
     for (const g of adminNavGroups) for (const { id } of g.items) {
-      const n = adminBadgeFor(id, unreadCounts, stats, { stalled: stalledCount.data });
+      const n = adminBadgeFor(id, unreadCounts, stats, { stalled: stalledCount.data, ...queueCounts.data });
       if (n) next[id] = n;
     }
     publishAdminBadges(next);
-  }, [unreadCounts, stats, stalledCount.data]);
+  }, [unreadCounts, stats, stalledCount.data, queueCounts.data]);
 
   if (loading) {
     return (
@@ -540,7 +540,7 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
-          dataError={statsLoadError || unreadCountsError || stalledCount.isError}
+          dataError={statsLoadError || unreadCountsError || stalledCount.isError || queueCounts.isError}
         />
       );
     }

@@ -154,7 +154,8 @@ const AdminFraudDashboard = () => {
     }
     if (resolved) {
       await logAdminAction("resolve_fraud_flag", "fraud_flag", flag.id, { flag_type: flag.flag_type, user_id: flag.user_id });
-      qc.invalidateQueries({ queryKey });
+      // Prefix, so the rail count (["admin-fraud-flags", "rail-count"], Q1691) refreshes too.
+      qc.invalidateQueries({ queryKey: ["admin-fraud-flags"] });
     }
     setResolving(null);
     setResolveTarget(null);

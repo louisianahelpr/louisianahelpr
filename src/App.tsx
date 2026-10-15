@@ -150,6 +150,11 @@ const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
+// Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
+// 'rentals' switch is on for the member (RentalsGate).
+const RentalsPage = lazyWithPreload(() => import("./pages/rentals/RentalsPage"));
+const RentalsInvitePage = lazyWithPreload(() => import("./pages/rentals/RentalsInvitePage"));
+const MaintenanceRequestPage = lazyWithPreload(() => import("./pages/rentals/MaintenanceRequestPage"));
 
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
@@ -262,6 +267,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

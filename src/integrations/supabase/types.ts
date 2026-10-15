@@ -3569,6 +3569,163 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_request_photos: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          request_id: string
+          storage_path: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position: number
+          request_id: string
+          storage_path: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          request_id?: string
+          storage_path?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_request_photos_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_requests: {
+        Row: {
+          access_notes: string
+          access_windows: string
+          approved_budget_cents: number | null
+          auto_approved: boolean
+          category: string
+          created_at: string
+          decided_at: string | null
+          decline_reason_code: string | null
+          decline_reason_text: string | null
+          description: string
+          id: string
+          job_id: string | null
+          landlord_id: string | null
+          ok_to_enter_alone: boolean
+          pets_on_site: boolean
+          property_address: string
+          property_id: string | null
+          property_label: string
+          status: string
+          tenancy_id: string | null
+          tenant_answered_at: string | null
+          tenant_fixed_note: string | null
+          tenant_id: string | null
+          tenant_says_fixed: boolean | null
+          unit_id: string | null
+          unit_label: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          access_notes?: string
+          access_windows?: string
+          approved_budget_cents?: number | null
+          auto_approved?: boolean
+          category: string
+          created_at?: string
+          decided_at?: string | null
+          decline_reason_code?: string | null
+          decline_reason_text?: string | null
+          description: string
+          id?: string
+          job_id?: string | null
+          landlord_id?: string | null
+          ok_to_enter_alone?: boolean
+          pets_on_site?: boolean
+          property_address: string
+          property_id?: string | null
+          property_label: string
+          status?: string
+          tenancy_id?: string | null
+          tenant_answered_at?: string | null
+          tenant_fixed_note?: string | null
+          tenant_id?: string | null
+          tenant_says_fixed?: boolean | null
+          unit_id?: string | null
+          unit_label: string
+          updated_at?: string
+          urgency: string
+        }
+        Update: {
+          access_notes?: string
+          access_windows?: string
+          approved_budget_cents?: number | null
+          auto_approved?: boolean
+          category?: string
+          created_at?: string
+          decided_at?: string | null
+          decline_reason_code?: string | null
+          decline_reason_text?: string | null
+          description?: string
+          id?: string
+          job_id?: string | null
+          landlord_id?: string | null
+          ok_to_enter_alone?: boolean
+          pets_on_site?: boolean
+          property_address?: string
+          property_id?: string | null
+          property_label?: string
+          status?: string
+          tenancy_id?: string | null
+          tenant_answered_at?: string | null
+          tenant_fixed_note?: string | null
+          tenant_id?: string | null
+          tenant_says_fixed?: boolean | null
+          unit_id?: string | null
+          unit_label?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rental_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_tenancy_id_fkey"
+            columns: ["tenancy_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "rental_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_content: {
         Row: {
           attempts: number
@@ -5485,6 +5642,149 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_properties: {
+        Row: {
+          auto_approve_limit_cents: number | null
+          city: string
+          created_at: string
+          id: string
+          label: string
+          owner_id: string
+          ownership_proof_path: string | null
+          ownership_review_note: string | null
+          ownership_reviewed_at: string | null
+          ownership_reviewed_by: string | null
+          ownership_status: string
+          ownership_submitted_at: string | null
+          street_address: string
+          updated_at: string
+          zip_code: string
+        }
+        Insert: {
+          auto_approve_limit_cents?: number | null
+          city: string
+          created_at?: string
+          id?: string
+          label: string
+          owner_id: string
+          ownership_proof_path?: string | null
+          ownership_review_note?: string | null
+          ownership_reviewed_at?: string | null
+          ownership_reviewed_by?: string | null
+          ownership_status?: string
+          ownership_submitted_at?: string | null
+          street_address: string
+          updated_at?: string
+          zip_code: string
+        }
+        Update: {
+          auto_approve_limit_cents?: number | null
+          city?: string
+          created_at?: string
+          id?: string
+          label?: string
+          owner_id?: string
+          ownership_proof_path?: string | null
+          ownership_review_note?: string | null
+          ownership_reviewed_at?: string | null
+          ownership_reviewed_by?: string | null
+          ownership_status?: string
+          ownership_submitted_at?: string | null
+          street_address?: string
+          updated_at?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
+      rental_tenancies: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          invite_expires_at: string
+          invite_token_sha256: string
+          landlord_id: string
+          property_id: string
+          status: string
+          tenant_id: string | null
+          unit_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          invite_expires_at: string
+          invite_token_sha256: string
+          landlord_id: string
+          property_id: string
+          status?: string
+          tenant_id?: string | null
+          unit_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          invite_expires_at?: string
+          invite_token_sha256?: string
+          landlord_id?: string
+          property_id?: string
+          status?: string
+          tenant_id?: string | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_tenancies_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rental_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_tenancies_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "rental_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_units: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          owner_id: string
+          property_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          owner_id: string
+          property_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          owner_id?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_units_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rental_properties"
             referencedColumns: ["id"]
           },
         ]
@@ -8716,6 +9016,10 @@ export type Database = {
         Args: { p_admin_id: string; p_ban_status?: string; p_user_id: string }
         Returns: Json
       }
+      link_maintenance_request_job: {
+        Args: { p_job_id: string; p_request_id: string }
+        Returns: boolean
+      }
       link_str_turnover_job: {
         Args: { p_event_id: string; p_job_id: string }
         Returns: boolean
@@ -9012,6 +9316,102 @@ export type Database = {
       release_dispute_settlement_claim: {
         Args: { _job_id: string; _token?: string }
         Returns: boolean
+      }
+      rentals_accept_invite: {
+        Args: { p_token: string }
+        Returns: string
+      }
+      rentals_add_unit: {
+        Args: { p_label: string; p_property_id: string }
+        Returns: string
+      }
+      rentals_admin_review_property: {
+        Args: { p_approve: boolean; p_note: string; p_property_id: string }
+        Returns: undefined
+      }
+      rentals_approve_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      rentals_caller_is_active_tenant_of: {
+        Args: { p_property_id: string }
+        Returns: boolean
+      }
+      rentals_create_property: {
+        Args: {
+          p_city: string
+          p_label: string
+          p_street_address: string
+          p_zip_code: string
+        }
+        Returns: string
+      }
+      rentals_decline_request: {
+        Args: {
+          p_reason_code: string
+          p_reason_text: string
+          p_request_id: string
+        }
+        Returns: undefined
+      }
+      rentals_end_tenancy: {
+        Args: { p_tenancy_id: string }
+        Returns: undefined
+      }
+      rentals_file_request: {
+        Args: {
+          p_access_notes: string
+          p_access_windows: string
+          p_category: string
+          p_description: string
+          p_ok_to_enter_alone: boolean
+          p_pets_on_site: boolean
+          p_photo_paths: string[]
+          p_tenancy_id: string
+          p_urgency: string
+        }
+        Returns: string
+      }
+      rentals_invite_tenant: {
+        Args: { p_unit_id: string }
+        Returns: string
+      }
+      rentals_my_homes: {
+        Args: never
+        Returns: {
+          city: string
+          label: string
+          property_id: string
+          street_address: string
+          tenancy_id: string
+          unit_id: string
+          unit_label: string
+          zip_code: string
+        }[]
+      }
+      rentals_request_job_state: {
+        Args: { p_request_id: string }
+        Returns: {
+          booking: string
+          job_id: string
+          job_status: string
+        }[]
+      }
+      rentals_set_auto_approve: {
+        Args: { p_limit_cents: number; p_property_id: string }
+        Returns: undefined
+      }
+      rentals_submit_ownership_proof: {
+        Args: { p_property_id: string; p_storage_path: string }
+        Returns: undefined
+      }
+      rentals_tenant_answer_fixed: {
+        Args: { p_fixed: boolean; p_note: string; p_request_id: string }
+        Returns: undefined
+      }
+      rentals_withdraw_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
       }
       report_helper_no_show: { Args: { p_job_id: string }; Returns: Json }
       report_stale_dispute_settlement_claim: {

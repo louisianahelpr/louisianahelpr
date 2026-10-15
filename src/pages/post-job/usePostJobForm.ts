@@ -37,7 +37,8 @@ export function usePostJobForm() {
   // drop straight into the pre-filled form. Everyone else sees the
   // start-fresh / draft / template choice first, which declutters the page.
   // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover"));
+  // Rentals S1: an approved maintenance request (`maintenance`) too.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("maintenance") || searchParams.get("turnover"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -289,6 +290,8 @@ export function usePostJobForm() {
     setParish,
     setOfferToHelperId,
     setOfferToHelperName,
+    onMaintenanceUnusable: (linkedJobId: string | null) =>
+      navigate(linkedJobId ? `/jobs/${linkedJobId}` : "/post-job", { replace: true }),
     title,
     description,
     category,
@@ -404,6 +407,7 @@ export function usePostJobForm() {
     saveCardForFuture,
     giftCardId,
     turnoverId: searchParams.get("turnover"),
+    maintenanceRequestId: searchParams.get("maintenance"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

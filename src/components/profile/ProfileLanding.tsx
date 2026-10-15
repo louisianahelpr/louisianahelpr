@@ -6,6 +6,7 @@ import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { DeclutterEntryRow } from "./profileLanding/DeclutterEntryRow";
+import { RentalsEntryRow } from "./profileLanding/RentalsEntryRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 
 export function ProfileLanding({
@@ -111,6 +112,7 @@ export function ProfileLanding({
           cleaner and is easier to scan.) */}
       {/* Declutter (hidden switch): renders nothing unless it is on. */}
       <DeclutterEntryRow />
+      <RentalsEntryRow />
 
       <SettingsSection
         menuGroups={menuGroups}

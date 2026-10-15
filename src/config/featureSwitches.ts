@@ -32,6 +32,10 @@ export const FEATURE_SWITCH_KEYS = [
   // keeps Pro during the 1.0.4 review; every member is off); create-pro-checkout
   // and subscription_purchase_eligibility refuse anyone it is off for.
   "memberships",
+  // Rentals S1 (docs/specs/landlord-hub-prep.md): landlords invite tenants,
+  // tenants send maintenance requests that become Helpr jobs. Created OFF by
+  // 20261015061259; every rentals_* RPC refuses without it (require_feature).
+  "rentals",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

@@ -130,6 +130,12 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_seller_flags: { by: ["user_id"] },
   // "Suggest a category" (20261015051141 + 20261015052622, I1).
   category_suggestions: { by: ["user_id"] },
+  // Rentals S1 (20261015061259): landlord and tenant both get the shared rows.
+  rental_properties: { by: ["owner_id"] },
+  rental_units: { by: ["owner_id"] },
+  rental_tenancies: { by: ["landlord_id", "tenant_id"] },
+  maintenance_requests: { by: ["tenant_id", "landlord_id"] },
+  maintenance_request_photos: { by: ["tenant_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -381,6 +387,7 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
+  "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261015061259, with this staff id dropped)" },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.

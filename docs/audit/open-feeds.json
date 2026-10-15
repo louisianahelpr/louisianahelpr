@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T10:27Z",
+  "measured_at": "2026-10-15T16:37Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527058685",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38749234414",
         "runTruncated": false
       },
       {
@@ -57,14 +57,14 @@
         "number": 2660,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38592882166",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38761942829",
         "runTruncated": false
       },
       {
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38719255029",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38722944092",
         "runTruncated": false
       },
       {
@@ -123,14 +123,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 3135
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -501,7 +493,6 @@
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596"
   }
 }

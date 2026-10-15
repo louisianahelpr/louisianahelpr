@@ -188,6 +188,24 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
 };
 
 /**
+ * A SECOND section over a table that already has its own EXPORTED section, scoped
+ * not by a person column of that table but through a parent row the caller is a
+ * party to. `scope` is the exact WHERE the section must carry (whitespace-free
+ * compare): anything wider fails "every section is filtered to the caller".
+ * declutter_problems_about_me (20261015092457, lane J): problems the OTHER side of
+ * the member's order filed about them (RLS lets both parties read a problem),
+ * without the reporter's id, photos or the deciding admin.
+ */
+export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stripped: string[] }> = {
+  declutter_problems_about_me: {
+    table: "declutter_problems",
+    scope:
+      "WHERE t.reporter_id IS DISTINCT FROM v_uid AND EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND (o.buyer_id = v_uid OR o.seller_id = v_uid))",
+    stripped: ["decided_by", "reporter_id", "photo_paths"],
+  },
+};
+
+/**
  * Q739: tables whose SELECT policy lets a job's POSTER read a row because they
  * own the job, that the export does NOT give the poster. Each says why. Every
  * other such table must return the rows on the caller's own jobs (see

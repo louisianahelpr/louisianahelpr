@@ -37,6 +37,10 @@
  * Reconcile (20261015084728): the export keeps main's category_suggestions AND the Declutter sections.
  * @mutate supabase/migrations/20261016053541_declutter_wanted_price_hint.sql | jsonb_build_object('category_suggestions', | jsonb_build_object('category_suggestionz',
  * @mutate supabase/migrations/20261016053541_declutter_wanted_price_hint.sql | jsonb_build_object('declutter_bookings', | jsonb_build_object('declutter_bookingz',
+ * Lane J (20261015092457): the second declutter_problems section stays scoped to the member's own orders and strips the reporter.
+ * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql | AND (o.buyer_id = v_uid OR o.seller_id = v_uid) | AND (o.buyer_id = v_uid OR true)
+ * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql | WHERE t.reporter_id IS DISTINCT FROM v_uid | WHERE true OR t.reporter_id IS DISTINCT FROM v_uid
+ * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql | - 'reporter_id' - 'photo_paths' | - 'photo_paths'
  * Q1233: a renamed live policy, and a read policy calling an unclassified function.
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties read" ON public.disputes
  * Q1329: a replayed policy whose roles (or PERMISSIVE) differ from prod's, and an unmodelled role loop.
@@ -57,6 +61,7 @@ import { anonExecuteRevoked, latestFunctionDefs } from "./helpers/rpcErrorInvent
 import {
   EXEMPT,
   EXPORTED,
+  EXTRA_SECTIONS,
   POSTER_SIDE_EXEMPT,
   exportSections,
   helperReadableViaJob,
@@ -79,6 +84,9 @@ const defs = latestFunctionDefs(MIGRATIONS);
 const body = defs.get("export_my_data")?.body ?? "";
 const sections = exportSections(body);
 const sectionOf = (table: string) => EXPORTED[table]?.section ?? table;
+/** An EXTRA_SECTIONS section's WHERE, whitespace-flattened, its closing parens dropped. */
+const extraWhere = (text: string) =>
+  text.slice(text.search(/\bWHERE\b/i)).replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").replace(/\)+\s*$/, "");
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** `t.<col> IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid [OR j.helper_id = v_uid])`, closed right there. */
 const posterClause = (col: string) =>
@@ -125,7 +133,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
   it("the NEWEST export_my_data has exactly one section per EXPORTED table, scoped by each column", () => {
     expect(body, "export_my_data() not found in the migrations").not.toBe("");
     const names = sections.map((s) => s.name).sort();
-    expect(names).toEqual(Object.keys(EXPORTED).map(sectionOf).sort());
+    expect(names).toEqual([...Object.keys(EXPORTED).map(sectionOf), ...Object.keys(EXTRA_SECTIONS)].sort());
     const missing: string[] = [];
     for (const [t, { by }] of Object.entries(EXPORTED)) {
       const s = sections.find((x) => x.name === sectionOf(t));
@@ -141,8 +149,26 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     expect(missing, "export_my_data does not filter these by the caller").toEqual([]);
   });
 
+  it("an EXTRA section reads its table, carries exactly its registered scope, and strips the reporter's fields", () => {
+    expect(Object.keys(EXTRA_SECTIONS).length).toBeGreaterThan(0);
+    const wrong: string[] = [];
+    for (const [name, { table, scope, stripped }] of Object.entries(EXTRA_SECTIONS)) {
+      expect(EXPORTED[table], `${name}: its table must also have its own EXPORTED section`).toBeDefined();
+      const s = sections.find((x) => x.name === name);
+      if (!s) { wrong.push(`${name}: no section`); continue; }
+      if (s.table !== table) wrong.push(`${name} reads public.${s.table}, not public.${table}`);
+      if (extraWhere(s.text) !== extraWhere(scope)) wrong.push(`${name}: WHERE is "${extraWhere(s.text)}"`);
+      for (const c of stripped) if (!new RegExp(`-\\s*'${c}'`).test(s.text)) wrong.push(`${name}: ${c} must be stripped`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it("every section is filtered to the caller: its WHERE compares only to v_uid / v_email", () => {
     const unscoped = sections.filter((s) => {
+      // An EXTRA section is scoped through its parent row: it must carry its
+      // registered WHERE exactly (the test above); anything else is unscoped.
+      const extra = EXTRA_SECTIONS[s.name];
+      if (extra) return extraWhere(s.text) !== extraWhere(extra.scope);
       const where = s.text.slice(s.text.search(/\bWHERE\b/i));
       if (!/\bWHERE\b/i.test(s.text)) return true;
       // Every top-level comparison in the WHERE is to the caller. Strip the

@@ -58,6 +58,8 @@ const readEnv = (key: string): string | undefined => {
 
 const PROD_BASE = "https://api.storekit.itunes.apple.com";
 const SANDBOX_BASE = "https://api.storekit-sandbox.itunes.apple.com";
+/** Per-request ceiling on an App Store Server API call. */
+const APPLE_FETCH_TIMEOUT_MS = 8_000;
 
 /** The paid tiers sellable through Apple. Mirrors ProTierKey exactly. */
 export const APPLE_TIERS: readonly ProTierKey[] = ["basic", "pro", "plus", "elite"] as const;
@@ -152,6 +154,80 @@ export function expectsProduction(): boolean {
   return readEnv("APPLE_IAP_ENVIRONMENT") !== "sandbox";
 }
 
+/** The slice of a service-role supabase client isAppleTestAccount reads with. */
+interface TestAccountReader {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        maybeSingle(): PromiseLike<{ data: unknown; error: unknown }>;
+      };
+    };
+  };
+}
+
+/**
+ * Q1794: may a SANDBOX transaction count for this account in a production
+ * deployment? Only for a test account: a public.test_accounts row (RLS on, no
+ * policies, no client grant; only the service role writes it) AND
+ * profiles.is_seed, the definition _shared/stripeMode.ts uses. App Review's
+ * account is both. Any read error, a missing row or a throw answers false
+ * (fail closed). verify-apple-iap (purchase), apple-app-store-notifications
+ * (renewal / refund) and subscription-reconciliation (daily) all ask this
+ * one question, so the three can never disagree about whose sandbox purchase
+ * counts.
+ */
+export async function isAppleTestAccount(admin: unknown, userId: string): Promise<boolean> {
+  return (await appleTestAccountStatus(admin, userId)) === "test";
+}
+
+/**
+ * The same question with a third answer: "unknown" when a read failed. A
+ * grant treats unknown as "not a test account" (fail closed); a CLEARING
+ * (subscription-reconciliation) must treat it as "don't know" and do nothing,
+ * or one read error strips the App Review account's tier (lh-money-escrow
+ * review of 3b12e17b4, finding 3).
+ */
+async function appleTestAccountStatus(
+  admin: unknown,
+  userId: string,
+): Promise<"test" | "not_test" | "unknown"> {
+  // `unknown` + one cast, not a structural parameter type: checking a real
+  // SupabaseClient against TestAccountReader is TS2589 (excessively deep) in
+  // the edge type check.
+  const db = admin as TestAccountReader;
+  try {
+    const { data: enrolled, error: enrolledErr } = await db
+      .from("test_accounts").select("user_id").eq("user_id", userId).maybeSingle();
+    if (enrolledErr) return "unknown";
+    if (!enrolled) return "not_test";
+    const { data: prof, error: profErr } = await db
+      .from("profiles").select("is_seed").eq("user_id", userId).maybeSingle();
+    if (profErr) return "unknown";
+    if (!prof) return "not_test";
+    return (prof as { is_seed?: boolean }).is_seed === true ? "test" : "not_test";
+  } catch (e) {
+    console.error("[apple] test-account read failed:", e instanceof Error ? e.message : String(e));
+    return "unknown";
+  }
+}
+
+/**
+ * Does a transaction from this App Store environment count for `userId` in
+ * this deployment? A Production transaction always does. A Sandbox one (free)
+ * does only when the deployment opted into sandbox (APPLE_IAP_ENVIRONMENT=
+ * sandbox) or the account is a test account. "unknown" when the test-account
+ * read failed.
+ */
+export async function environmentVerdict(
+  tx: AppleTransaction,
+  admin: unknown,
+  userId: string,
+): Promise<"counts" | "does_not_count" | "unknown"> {
+  if (!expectsProduction() || !isSandboxTransaction(tx)) return "counts";
+  const status = await appleTestAccountStatus(admin, userId);
+  return status === "test" ? "counts" : status === "unknown" ? "unknown" : "does_not_count";
+}
+
 /**
  * Decode a JWS compact token's payload WITHOUT signature checking.
  *
@@ -237,7 +313,10 @@ export async function fetchAppleTransaction(
   for (const base of bases) {
     const res = await fetch(
       `${base}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`,
-      { headers: { Authorization: `Bearer ${bearer}` } },
+      // Bounded: a hung App Store call must not run the caller (the daily
+      // subscription-reconciliation above all) past its wall clock
+      // (lh-money-escrow review of 3b12e17b4, finding 4).
+      { headers: { Authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(APPLE_FETCH_TIMEOUT_MS) },
     );
     if (res.ok) {
       const { signedTransactionInfo } = await res.json();

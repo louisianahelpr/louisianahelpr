@@ -15,10 +15,13 @@
 //   3a. NATIVE CONTROL → the mail client POSTs `List-Unsubscribe=One-Click`
 //       to this function. No session, no page, no confirmation step. RFC 8058
 //       requires the unsubscribe to take effect on that POST alone.
-//   3b. FOOTER LINK → the recipient GETs this function. It takes effect on
-//       that single click too, and then renders a confirmation page with a
-//       one-button "resubscribe" in case the click was an accident or a
-//       corporate link-scanner followed it.
+//   3b. FOOTER LINK → the recipient GETs this function. The GET writes
+//       NOTHING (Q1655: a mail scanner or link preview fetches URLs too) and
+//       redirects to the app's /unsubscribe page with the same signed token.
+//       That page shows the address and a button that POSTs here
+//       (`action=unsubscribe`), then offers "resubscribe" (`action=resubscribe`)
+//       in case it was a mistake. The page lives on the app because Supabase
+//       serves a function's HTML as text/plain (Q?unsub-page-raw-html).
 //   4. This handler verifies the signature, resolves the address to a
 //      profile, and writes the two reversible consent flags:
 //          profiles.marketing_consent                -> false
@@ -69,10 +72,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { LOGO_URL } from '../_shared/email-templates/styles.ts'
-import { SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { unsubscribeListFrom, unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -151,10 +151,12 @@ async function setCommercialConsent(
   // the app, so a user who never opened the notifications tab has no row and
   // a bare UPDATE would match zero rows and report success. `user_id` is
   // UNIQUE (migration 20260312023604), which is what makes onConflict work.
-  const { error: prefsError } = await supabase
+  const { data: prefs, error: prefsError } = await supabase
     .from('notification_preferences')
     .upsert({ user_id: userId, email_promotions: !optOut }, { onConflict: 'user_id' })
+    .select('user_id')
   if (prefsError) throw new Error(`email_promotions write failed: ${prefsError.message}`)
+  if (!prefs || prefs.length === 0) throw new Error('email_promotions write matched no row')
 }
 
 /**
@@ -182,64 +184,55 @@ async function setJobMatchEmails(
   if (!data || data.length === 0) throw new Error('email_job_matches write matched no row')
 }
 
-const PAGE_CSS = `
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 24px 16px;
-    background: #F0F2F4; color: #23231A;
-    font: 16px/1.6 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    display: flex; justify-content: center;
+/**
+ * Q1655 + Q?unsub-page-raw-html: where a footer-link GET is sent.
+ *
+ * The GET used to WRITE the opt-out and then render a confirmation page from
+ * this function. Both halves were wrong:
+ *   - a write on a GET means any mail scanner or link previewer that fetches
+ *     the URL turns the member's email off (Q1655);
+ *   - Supabase serves an edge function's text/html as `text/plain` (measured
+ *     on prod 2026-10-14 with `curl -sD -`), so every page it rendered showed
+ *     the member raw markup.
+ * So a GET writes NOTHING and answers with a redirect to the app's
+ * /unsubscribe page, carrying the same signed token. That page shows the
+ * address and a button; the button POSTs back here (`action=unsubscribe`, or
+ * `action=resubscribe` to undo it) and the page renders the answer.
+ *
+ * The token rides in the FRAGMENT, not the query: a fragment is never sent to
+ * a server, so it stays out of Vercel's request logs and the page-meta
+ * function's logs (lh-authz-rls review of 65889d638, #2). Only e, sig and
+ * list are copied; nothing else from the request reaches the Location.
+ */
+function appPageUrl(url: URL): string {
+  const q = new URLSearchParams()
+  for (const key of ['e', 'sig', 'list']) {
+    const value = url.searchParams.get(key)
+    if (value !== null) q.set(key, value)
   }
-  .card {
-    width: 100%; max-width: 520px; background: #ffffff;
-    border: 1px solid #CBCFD8; border-radius: 14px; padding: 32px 28px;
-  }
-  img.logo { display: block; width: 80px; height: auto; margin: 0 0 24px; border: 0; }
-  h1 { font-size: 22px; line-height: 1.3; margin: 0 0 12px; color: #23231A; }
-  p { margin: 0 0 16px; color: #55656D; }
-  .addr { font-weight: 600; color: #23231A; overflow-wrap: anywhere; }
-  button {
-    appearance: none; border: 0; cursor: pointer;
-    background: #5E6544; color: #fff; font: inherit; font-weight: 600;
-    border-radius: 12px; padding: 14px 28px;
-  }
-  a { color: #984216; }
-  .fine { font-size: 13px; color: #6E7C83; margin: 24px 0 0; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1A1B15; color: #F0F2F4; }
-    .card { background: #23231A; border-color: #3A3B30; }
-    h1, .addr { color: #F0F2F4; }
-    p { color: #C3C9CC; }
-  }
-`
-
-/** Minimal branded page. Every interpolated value goes through htmlEscape. */
-function page(title: string, bodyHtml: string, status = 200): Response {
-  return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${htmlEscape(title)} · Louisiana Helpr</title>
-<style>${PAGE_CSS}</style></head>
-<body><main class="card">
-<img class="logo" src="${LOGO_URL}" alt="Louisiana Helpr">
-${bodyHtml}
-</main></body></html>`,
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/html; charset=utf-8',
-        // Never let a proxy cache an opt-out result page keyed on a token.
-        'Cache-Control': 'no-store',
-        'X-Robots-Tag': 'noindex, nofollow',
-      },
-    },
-  )
+  return `${getAppUrl()}/unsubscribe#${q.toString()}`
 }
 
-function text(body: string, status: number): Response {
-  return new Response(body, {
+type Action = 'unsubscribe' | 'resubscribe' | 'check'
+
+/**
+ * The answer to a POST. The app page asks for JSON (`Accept: application/json`)
+ * and renders it; a mail client's RFC 8058 one-click POST gets a short text
+ * body (it only reads the status).
+ */
+function reply(
+  wantsJson: boolean,
+  status: number,
+  body: { ok: boolean; error?: string; action?: Action; list?: string; email?: string },
+  plain: string,
+): Response {
+  if (wantsJson) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }
+  return new Response(plain, {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
   })
@@ -248,38 +241,44 @@ function text(body: string, status: number): Response {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return text('Method not allowed', 405)
+    return reply(false, 405, { ok: false, error: 'method' }, 'Method not allowed')
   }
 
   const url = new URL(req.url)
 
+  // A GET never writes (Q1655): it hands the signed link to the app page.
+  if (req.method === 'GET') {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        Location: appPageUrl(url),
+        'Cache-Control': 'no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Referrer-Policy': 'no-referrer',
+      },
+    })
+  }
+
+  const wantsJson = (req.headers.get('accept') ?? '').includes('application/json')
+
   // A one-click POST from a mail client carries `List-Unsubscribe=One-Click`
-  // as a form body; the confirmation page's resubscribe button posts
+  // as a form body; the app page posts `action=unsubscribe`, `action=check`
+  // (verify the link and say whose it is, writing nothing) or
   // `action=resubscribe`. Anything else is treated as an unsubscribe.
-  let action = 'unsubscribe'
-  if (req.method === 'POST') {
-    try {
-      const body = await req.text()
-      if (new URLSearchParams(body).get('action') === 'resubscribe') action = 'resubscribe'
-    } catch {
-      // An unreadable body is still a valid one-click unsubscribe.
-    }
+  let action: Action = 'unsubscribe'
+  try {
+    const asked = new URLSearchParams(await req.text()).get('action')
+    if (asked === 'resubscribe' || asked === 'check') action = asked
+  } catch {
+    // An unreadable body is still a valid one-click unsubscribe.
   }
 
   if (!unsubscribeSigningConfigured()) {
     // 503, not a friendly "you're unsubscribed": telling someone their opt-out
     // worked when nothing was written is the exact defect this replaces.
     console.error('[email-unsubscribe] no EMAIL_UNSUBSCRIBE_SECRET or CRON_SECRET configured')
-    return req.method === 'POST'
-      ? text('Unsubscribe temporarily unavailable', 503)
-      : page(
-          'Something went wrong',
-          `<h1>We couldn't process that right now</h1>
-           <p>Our unsubscribe service is temporarily unavailable. Please email
-           <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-           and we'll take you off the list by hand.</p>`,
-          503,
-        )
+    return reply(wantsJson, 503, { ok: false, error: 'unavailable' }, 'Unsubscribe temporarily unavailable')
   }
 
   // The list is part of what was signed: a promotions link verifies only as
@@ -287,19 +286,13 @@ serve(async (req) => {
   const list = unsubscribeListFrom(url.searchParams.get('list'))
   const email = await verifyUnsubscribeToken(url.searchParams.get('e'), url.searchParams.get('sig'), list)
   if (!email) {
-    return req.method === 'POST'
-      ? text('Invalid or expired unsubscribe link', 400)
-      : page(
-          'Link not valid',
-          `<h1>That unsubscribe link isn't valid</h1>
-           <p>It may have been altered in transit, or it may be from an email sent before
-           our signing key changed.</p>
-           <p>You can turn promotional email off yourself under
-           <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">Notifications</a> in your
-           profile, or email <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-           and we'll do it for you.</p>`,
-          400,
-        )
+    return reply(wantsJson, 400, { ok: false, error: 'invalid_link' }, 'Invalid or expired unsubscribe link')
+  }
+
+  // The page's first call: is this link good, and for which address? Nothing
+  // is written, so a script that runs the page cannot change anything either.
+  if (action === 'check') {
+    return reply(wantsJson, 200, { ok: true, action, list, email }, 'Valid')
   }
 
   const supabase = createClient(
@@ -313,15 +306,7 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[email-unsubscribe]', message)
-    return req.method === 'POST'
-      ? text('Unsubscribe failed, please retry', 500)
-      : page(
-          'Something went wrong',
-          `<h1>We couldn't process that right now</h1>
-           <p>Please try the link again in a minute, or email
-           <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>.</p>`,
-          500,
-        )
+    return reply(wantsJson, 500, { ok: false, error: 'failed' }, 'Unsubscribe failed, please retry')
   }
 
   if (!profile) {
@@ -347,16 +332,7 @@ serve(async (req) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[email-unsubscribe]', message)
-      return req.method === 'POST'
-        ? text('Unsubscribe failed, please retry', 500)
-        : page(
-            'Something went wrong',
-            `<h1>We couldn't save that</h1>
-             <p>Please try the link again in a minute, or email
-             <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-             and we'll take you off the list by hand.</p>`,
-            500,
-          )
+      return reply(wantsJson, 500, { ok: false, error: 'failed' }, 'Unsubscribe failed, please retry')
     }
   }
 
@@ -376,82 +352,17 @@ serve(async (req) => {
   if (leadError && leadError.code !== '42P01' && leadError.code !== 'PGRST205') {
     console.error('[email-unsubscribe] signup_leads write failed:', leadError.message)
     if (!profile) {
-      return req.method === 'POST'
-        ? text('Unsubscribe failed, please retry', 500)
-        : page(
-            'Something went wrong',
-            `<h1>We couldn't save that</h1>
-             <p>Please try the link again in a minute, or email
-             <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-             and we'll take you off the list by hand.</p>`,
-            500,
-          )
+      return reply(wantsJson, 500, { ok: false, error: 'failed' }, 'Unsubscribe failed, please retry')
     }
   }
 
-  console.log(`[email-unsubscribe] ${action} recorded`, { list, hasProfile: !!profile, method: req.method })
+  console.log(`[email-unsubscribe] ${action} recorded`, { list, hasProfile: !!profile, wantsJson })
 
-  // RFC 8058: the one-click POST answers 200 with no body the client shows.
-  if (req.method === 'POST') {
-    return text(action === 'resubscribe' ? 'Resubscribed' : 'Unsubscribed', 200)
-  }
-
-  const safeEmail = htmlEscape(email)
-  const tokenQuery = `e=${encodeURIComponent(url.searchParams.get('e') ?? '')}&sig=${encodeURIComponent(url.searchParams.get('sig') ?? '')}`
-    + (list === 'job_matches' ? '&list=job_matches' : '')
-
-  if (list === 'job_matches') {
-    if (action === 'resubscribe') {
-      return page(
-        "New-job emails are back on",
-        `<h1>New-job emails are back on</h1>
-         <p><span class="addr">${safeEmail}</span> will get an email again whenever a new job is
-         posted on Louisiana Helpr.</p>
-         <p class="fine">Manage this any time under Notifications in your
-         <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>`,
-      )
-    }
-    return page(
-      "New-job emails turned off",
-      `<h1>New-job emails are off</h1>
-       <p>We won't email <span class="addr">${safeEmail}</span> about new jobs any more. New jobs
-       still show in the app, and you'll still get email about your own jobs, messages and
-       payments.</p>
-       <p>You can turn this back on under Notifications in your
-       <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>
-       <form method="post" action="?${tokenQuery}">
-         <input type="hidden" name="action" value="resubscribe">
-         <button type="submit">Turn new-job emails back on</button>
-       </form>
-       <p class="fine">Questions? <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a></p>`,
-    )
-  }
-
-  if (action === 'resubscribe') {
-    return page(
-      "You're back on the list",
-      `<h1>You're subscribed again</h1>
-       <p><span class="addr">${safeEmail}</span> will receive Louisiana Helpr news and
-       promotional email again.</p>
-       <p class="fine">Changed your mind? Manage this any time under Notifications in your
-       <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>`,
-    )
-  }
-
-  return page(
-    "You're unsubscribed",
-    `<h1>You're unsubscribed</h1>
-     <p>We've removed <span class="addr">${safeEmail}</span> from Louisiana Helpr promotional
-     email. This takes effect immediately — you won't get another campaign, welcome series or
-     win-back message.</p>
-     <p>You'll still receive email about your account: job updates, payments and payouts,
-     security notices and password resets. You can turn those off individually under
-     Notifications in your
-     <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>
-     <form method="post" action="?${tokenQuery}">
-       <input type="hidden" name="action" value="resubscribe">
-       <button type="submit">Actually, resubscribe me</button>
-     </form>
-     <p class="fine">Questions? <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a></p>`,
+  // RFC 8058: the one-click POST answers 200; the app page renders the JSON.
+  return reply(
+    wantsJson,
+    200,
+    { ok: true, action, list, email },
+    action === 'resubscribe' ? 'Resubscribed' : 'Unsubscribed',
   )
 })

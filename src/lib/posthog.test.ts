@@ -162,3 +162,18 @@ describe("initPostHog", () => {
 });
 
 // @mutate src/lib/posthog.ts | disable_session_recording: true, | disable_session_recording: false,
+
+// Q1655: /unsubscribe#e=…&sig=… carries a signed token with the member's
+// address; the recorded URL never keeps that fragment.
+// @mutate src/lib/posthog.ts |           event.properties.$current_url = url.split("#")[0]; |           event.properties.$current_url = url;
+describe("before_send: the unsubscribe token never reaches analytics", () => {
+  it("drops the fragment of /unsubscribe and leaves every other URL alone", async () => {
+    const { initPostHog } = await loadFresh();
+    initPostHog();
+    const config = initMock.mock.calls[0][1] as { before_send: (e: { properties: Record<string, unknown> } | null) => { properties: Record<string, unknown> } | null };
+    const send = (url: string) => config.before_send({ properties: { $current_url: url } })?.properties.$current_url;
+    expect(send("https://www.louisianahelpr.com/unsubscribe#e=bWVt&sig=abc")).toBe("https://www.louisianahelpr.com/unsubscribe");
+    expect(send("https://www.louisianahelpr.com/home#section")).toBe("https://www.louisianahelpr.com/home#section");
+    expect(config.before_send(null)).toBeNull();
+  });
+});

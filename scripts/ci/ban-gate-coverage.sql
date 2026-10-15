@@ -188,6 +188,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_decide_dispute', 'admin-only (body checks has_role admin)'),
   ('rpc_decide_crew_dispute', 'admin-only (body checks has_role admin; Q728)'),
   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),
+  ('rpc_close_test_mode_dispute', 'admin-only (body checks has_role admin; Q1769)'),
   ('rpc_supersede_dispute_decision', 'admin-only (body checks has_role admin)'),
   -- No user-visible write.
   ('get_helper_earnings_export', 'read-only; VOLATILE only by default'),

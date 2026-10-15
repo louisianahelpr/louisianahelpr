@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T16:37Z",
+  "measured_at": "2026-10-15T20:25Z",
   "issues": {
     "readable": true,
     "open": [
@@ -93,6 +93,20 @@
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38656878328",
+        "runTruncated": false
+      },
+      {
+        "number": 3153,
+        "title": "nightly-red: core-loop-canary",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38776899703",
+        "runTruncated": false
+      },
+      {
+        "number": 3154,
+        "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739",
         "runTruncated": false
       }
     ]
@@ -218,6 +232,14 @@
         "source": "sentry:assets/supabase",
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
+        "issue": null
+      },
+      {
+        "fingerprint": "18539240a894224e952b88b2b21bb927",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: core-loop-canary",
         "issue": null
       },
       {
@@ -414,6 +436,8 @@
     "issue #2940": "Q1816",
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
+    "issue #3153": "Q1816",
+    "issue #3154": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -422,6 +446,7 @@
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 16e6e91f6701": "Q1816",
+    "ledger 18539240a894": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",

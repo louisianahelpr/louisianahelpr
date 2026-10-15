@@ -1,5 +1,5 @@
 /**
- * Auth captcha vs the shipped web client (OPEN.md "auth-captcha-matches-client").
+ * Auth captcha vs the shipped web client (OPEN.md item "captcha switch matches what the deployed clients send").
  *
  * Supabase Auth refuses every email-auth call without a Turnstile token while
  * `security_captcha_enabled` is on, and the web client sends one only when its

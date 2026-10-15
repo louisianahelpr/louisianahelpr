@@ -1,5 +1,5 @@
 /*
- * OPEN.md "auth-captcha-matches-client": Supabase Auth's captcha switch must agree with
+ * OPEN.md item "captcha switch matches what the deployed clients send": Supabase Auth's captcha switch must agree with
  * the deployed web build, and captcha refusals from several networks alert.
  *
  * On 2026-10-15 66 password sign-ins answered captcha_failed and were read as

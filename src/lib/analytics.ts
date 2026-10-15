@@ -8,6 +8,7 @@
  *   import { track, AhaEvent } from "@/lib/analytics";
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
+import { automationReason } from "@/lib/automatedBrowser";
 import { backgroundImport } from "@/lib/chunkReload";
 import { postRows } from "@/lib/restInsert";
 import { sessionKnown, whenSessionKnown } from "@/lib/sessionKnown";
@@ -199,10 +200,15 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   // Caller-supplied props win: an explicit value beats one scraped from the URL.
   const campaign = campaignProps();
+  // Q?analytics-test-traffic: a robot's event is TAGGED, not dropped (journeys
+  // assert events fire), and never reaches PostHog. Set last so a caller's
+  // props cannot clear it. The database tags seed users and local origins too.
+  const automation = automationReason();
+  const base = Object.keys(campaign).length ? { ...campaign, ...props } : props;
   const row: AnalyticsEventRow = {
     event,
     user_id: resolveUserId(),
-    properties: Object.keys(campaign).length ? { ...campaign, ...props } : props,
+    properties: automation ? { ...base, automated: true, automation } : base,
     url: window.location.pathname,
     referrer: document.referrer || null,
     platform: (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "web",
@@ -213,7 +219,7 @@ export function track(event: EventName, props: Record<string, unknown> = {}) {
   queue.push(row);
   schedule();
   // Fan out to PostHog (lazy-loaded). No-op until initPostHog() runs.
-  void fanOutToPostHog(event, props);
+  if (!automation) void fanOutToPostHog(event, props);
 }
 
 if (typeof window !== "undefined") {

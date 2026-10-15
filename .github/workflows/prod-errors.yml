@@ -151,6 +151,27 @@ jobs:
           WINDOW_MINUTES: "60"
         run: node scripts/db-saturation-check.mjs
 
+      # OPEN.md "auth-captcha-matches-client": Supabase Auth's captcha switch (Management
+      # API) agrees with the deployed web build (does its Turnstile chunk carry a
+      # site key). Server ON + web OFF refuses every email sign-in; the Vercel
+      # flag and the auth switch live in two dashboards. Exit 2 on a failed read.
+      - name: Auth captcha matches the deployed web build
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-auth-captcha-matches-client.mjs
+
+      # ...and people are not being refused for captcha: captcha_failed from
+      # two or more networks in the window (our own probes are one address).
+      - name: No captcha refusals from several networks
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          WINDOW_MINUTES: "65"
+        run: node scripts/check-captcha-refusals.mjs
+
       - name: Sync, verify, list
         if: always()
         env:

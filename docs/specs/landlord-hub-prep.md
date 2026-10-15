@@ -293,3 +293,22 @@ Every slice: switch OFF by default, testers only, export_my_data sections + dele
 | 42 | Done: Helpr before/after photos + tenant's "Was it fixed?" answer shown to the landlord, who confirms and pays |
 | 43 | Licensed trades OPEN to anyone by default; the landlord may still choose "Licensed pros only" (roadmap T2); Claude researches Louisiana contractor-license thresholds and shows a warning (not a block) on jobs that may legally need a licensed contractor |
 | 44 | Tenant-caused damage: the landlord pays the Helpr and settles with the tenant outside the app |
+| 45 | Regular upkeep via the existing recurring jobs |
+| 46 | Landlord must give a reason the tenant sees when turning a request down; the request stays on record with dates |
+| 47 | Maintenance jobs: same fees as any job (Helpr commission; landlord pays job price + card fee) |
+| 48 | Landlord may set "auto-approve repairs up to $X" per property, OFF by default |
+| 49 | Phone/email blocked in rental messages until the application is approved, then allowed |
+| 50 | Full scam protection: no money before a tour/approval, scam-word warnings, owner-verified badge, report button |
+| 51 | The app never collects SSNs; ID via the existing Stripe check |
+| 52 | Reviews: tenants rate landlords publicly (after 60 days and at move-out). Landlords may review tenants; the TENANT sees them and may CHOOSE to attach them to a new application; other landlords never search or see them otherwise (owner chose tenant-controlled sharing after Claude showed 15 U.S.C. 1681a(d)/(f): assembling reputation info for other landlords' eligibility decisions can make us a consumer reporting agency) |
+| 53 | Admin reviews a new landlord's ownership proof + first listing; later listings go live unless the AI flags wording |
+| 54 | Landlord-tenant disputes: we don't decide; keep the record and point to free legal aid; only Helpr-job disputes use our system |
+| 55 | Declutter-style strikes for Rentals (fake listing / off-app money = removed for good; tour no-show = 1 strike; 3 strikes = blocked from Rentals for a year); jobs untouched |
+| 56 | Rollout: hidden switch -> test accounts -> owner -> a few Acadiana landlords the owner picks -> all of Louisiana; described to Apple in every build |
+| 57-58 | NO LAWYER (owner: "im not hiring a lawyer so whatever you find online will work"). Rule from now on: every [LAWYER] item takes the option the law clearly allows (Claude reads the primary text), uncertain features are left out; nothing presented as legal advice |
+| 59 | Under 18: can't list, apply, sign or request maintenance (greyed out + server refuses); can be listed as an occupant |
+| 61 | Vouchers field: "Yes" / "Ask me" only |
+| 62 | "No pets" listings auto-add "Assistance animals are not pets and are welcome"; pet fees blocked for them |
+| 63 | Optional accessibility checkboxes (step-free entry, ground floor, elevator, grab bars, wide doors) |
+| 64 | Listings last 30 days, one-tap renew, auto-hidden when a lease is signed in the app |
+| 29c | Lease template: the owner already has lease PDFs (Downloads/Property & Home: 1703-McClellan, Maude, 320 S. Railroad); Claude compares them and drafts an improved BLANK Louisiana template (no personal data) for the owner to approve; landlords may also upload their own |

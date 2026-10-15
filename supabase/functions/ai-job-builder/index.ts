@@ -116,7 +116,7 @@ requirements text you write.
 Given a brief description of what the user needs help with, generate a complete job posting with:
 1. A clear, concise title (target 24 chars or fewer — the form's title field hard-caps at exactly 32 and rejects anything longer, so aim well under the cap rather than skimming it)
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
-3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, other
+3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, electrical, plumbing, hvac, roofing, welding, carpentry, auto_repair, appliance_repair, flooring, concrete_masonry, fencing, pressure_washing, other
 4. Estimated hours needed
 5. A suggested budget range (min and max in USD)
 6. Any special requirements or notes
@@ -160,7 +160,7 @@ Always respond using the generate_job_posting tool.`;
                   description: { type: "string", description: "Detailed job description" },
                   category: {
                     type: "string",
-                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "other"],
+                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair", "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing", "other"],
                     description: "Best matching job category"
                   },
                   estimated_hours: { type: "number", description: "Estimated hours to complete" },

@@ -10,7 +10,7 @@
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | Math.min(hi, Math.max(lo, v)) | v
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | if (out.length + ch.length > max) break; | if (Array.from(out).length >= max) break;
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | for (const ch of v) { | for (const ch of v.split("")) {
- * @mutate supabase/functions/ai-job-builder/sanitize.ts | "storm_prep", "events", "other", | "storm_prep", "other",
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | "storm_prep", "events",\n | "storm_prep",\n
  * @mutate supabase/functions/ai-job-builder/index.ts | " ").trim().slice(0, 80) | " ").trim()
  */
 import { readFileSync } from "node:fs";

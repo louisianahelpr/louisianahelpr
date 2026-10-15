@@ -128,6 +128,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_tax_attestations: { by: ["seller_id"] },
   declutter_strikes: { by: ["user_id"] },
   declutter_seller_flags: { by: ["user_id"] },
+  // "Suggest a category" (20261015051141 + 20261015052622, I1).
+  category_suggestions: { by: ["user_id"] },
   legal_acceptances: { by: ["user_id"] },
   login_history: { by: ["user_id"] },
   email_tracking: { by: ["user_id"] },
@@ -408,6 +410,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
+  "category_suggestions.reviewed_by": { reason: "I1: the staff member who approved or declined the suggestion", stripped: true },
   "payout_holds.held_by": { reason: "Q764: the staff member who placed the payout hold", stripped: true },
   "payout_holds.denied_by": { reason: "Q764: the staff member who recorded the denial", stripped: true },
   "ban_evasion_matches.user_id": { reason: "Q1324: ABOUT another person: the banned account a card, bank or name match points at, with that account's ban reason and date (GDPR Art. 15(4)); admin-only so a person cannot learn whether a name or card belongs to a banned account" },

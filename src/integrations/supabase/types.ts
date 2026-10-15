@@ -424,6 +424,45 @@ export type Database = {
           },
         ]
       }
+      category_suggestions: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          normalized: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_in: string
+          suggestion: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          normalized?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_in: string
+          suggestion: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          normalized?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_in?: string
+          suggestion?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chargeback_clawbacks: {
         Row: {
           created_at: string
@@ -7231,6 +7270,20 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_category_suggestions: {
+        Args: { p_status?: string }
+        Returns: {
+          admin_note: string
+          area: string
+          created_at: string
+          id: string
+          reviewed_at: string
+          same_count: number
+          status: string
+          suggester_name: string
+          suggestion: string
+        }[]
+      }
       admin_list_feature_switches: {
         Args: never
         Returns: {
@@ -7274,6 +7327,10 @@ export type Database = {
           p_violation_id: string
         }
         Returns: Json
+      }
+      admin_review_category_suggestion: {
+        Args: { p_approve: boolean; p_id: string; p_note?: string }
+        Returns: number
       }
       admin_send_team_message: {
         Args: { p_client_id?: string; p_content: string; p_user_id: string }
@@ -9230,6 +9287,10 @@ export type Database = {
         Args: { p_platform: string }
         Returns: Json
       }
+      suggest_category: {
+        Args: { p_area: string; p_suggestion: string }
+        Returns: string
+      }
       sweep_backout_notice_reminders: {
         Args: never
         Returns: number
@@ -9314,6 +9375,18 @@ export type Database = {
         | "other"
         | "storm_prep"
         | "events"
+        | "electrical"
+        | "plumbing"
+        | "hvac"
+        | "roofing"
+        | "welding"
+        | "carpentry"
+        | "auto_repair"
+        | "appliance_repair"
+        | "flooring"
+        | "concrete_masonry"
+        | "fencing"
+        | "pressure_washing"
       job_status:
         | "open"
         | "accepted"
@@ -9474,6 +9547,18 @@ export const Constants = {
         "other",
         "storm_prep",
         "events",
+        "electrical",
+        "plumbing",
+        "hvac",
+        "roofing",
+        "welding",
+        "carpentry",
+        "auto_repair",
+        "appliance_repair",
+        "flooring",
+        "concrete_masonry",
+        "fencing",
+        "pressure_washing",
       ],
       job_status: [
         "open",

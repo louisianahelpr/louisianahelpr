@@ -65,9 +65,11 @@ Rules for each column:
   statewide is a legitimate choice — do not force a parish onto a post that is
   not about one.
 - **Category** — a real `job_category` enum value from
-  `src/lib/jobCategories.ts:22-34`. Twelve exist: `cleaning`, `yard_work`,
-  `handyman`, `moving`, `errands`, `delivery`, `pet_care`, `assembly`,
-  `painting`, `storm_prep`, `events`, `other`. Use the value here and tell the
+  `src/lib/jobCategories.ts:23-50`. Twenty-four exist (counted 2026-10-15): `cleaning`,
+  `yard_work`, `handyman`, `moving`, `errands`, `delivery`, `pet_care`, `assembly`,
+  `painting`, `storm_prep`, `events`, the twelve trades (`electrical`, `plumbing`,
+  `hvac`, `roofing`, `welding`, `carpentry`, `auto_repair`, `appliance_repair`,
+  `flooring`, `concrete_masonry`, `fencing`, `pressure_washing`) and `other`. Use the value here and tell the
   copywriter the label ("Yard Work", "Pet Care") for the caption.
 - **Hook shape** — name one from §6 so the copywriter knows what you asked for:
   named-local specific, seasonal inevitability, the quiet mechanic, the two-way,

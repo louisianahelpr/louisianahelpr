@@ -29,7 +29,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
  * This file used to declare its own hand-typed literal union, with a comment
  * claiming it was "derived from categoryLabels keys" and that a
  * `keyof typeof` extraction "keeps it honest". No such extraction existed —
- * it was a frozen list, and it had drifted: the database has 12 categories,
+ * it was a frozen list, and it had drifted: the database had 12 categories then,
  * the list had 10, missing `storm_prep` and `events`. Both are live category
  * values, so this union was rejecting valid data.
  *

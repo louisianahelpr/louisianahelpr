@@ -51,6 +51,15 @@ export const DESCRIPTION_MAX = 1000;
 // Handyman, but it is equally where "help me carry boxes" lands, and offering a
 // licensing gate on a job we know nothing about invites a mis-set filter. Flag
 // for the owner rather than decided here.
+//
+// The trades (T2, owner 2026-10-14: "anyone can apply by default; the poster
+// may choose Licensed pros only") join where Louisiana licenses or certifies
+// the work (sources on LICENSE_WARNINGS below): electrical, plumbing, HVAC and
+// roofing, the four building trades the contractor board licenses by project
+// value (carpentry, flooring, concrete and masonry, fencing), and appliance
+// repair (refrigerant work needs an EPA certificate). Welding, auto and small
+// engine repair and pressure washing have no Louisiana trade license, so a
+// "Licensed" gate there would filter on nothing and empty the pool.
 export const CREDENTIAL_TIER_CATEGORIES = new Set([
   "handyman",
   "painting",
@@ -58,7 +67,50 @@ export const CREDENTIAL_TIER_CATEGORIES = new Set([
   "assembly",
   "storm_prep",
   "yard_work",
+  "electrical",
+  "plumbing",
+  "hvac",
+  "roofing",
+  "carpentry",
+  "flooring",
+  "concrete_masonry",
+  "fencing",
+  "appliance_repair",
 ]);
+
+// A plain-words heads-up for posters on jobs where Louisiana (or federal law)
+// requires a license or certificate AT ANY PRICE (T2, owner 2026-10-14: warn,
+// never block). Jobs here are capped at $1,000 (jobs_budget_range), so the
+// contractor board's dollar thresholds never apply and are not warned about:
+// R.S. 37:2150.1 (Acts 2025, No. 422) starts electrical, mechanical and
+// plumbing contractor licensing at $10,000, home improvement at $7,500 and
+// residential construction at $50,000 (read on legis.la.gov 2026-10-15).
+// What does apply at any price, each read from the primary source:
+//   plumbing    R.S. 37:1367 + 1377 (State Plumbing Board license for plumbing
+//               work; Act 908 of 2026 moves plumber licensing to the contractor
+//               board on 2027-01-01 and keeps it required).
+//   hvac        40 CFR 82.161(a)(1): anyone who could open a refrigerant
+//               circuit must hold an EPA Section 608 certificate.
+//   appliance   the same EPA rule for fridges, freezers and window AC units.
+//   electrical  no statewide electrician license below $10,000, but some
+//               cities license electricians for any work (New Orleans:
+//               nola.gov Class A electrical license).
+//   yard_work   R.S. 3:3804: tree removal, trimming or pruning for pay needs an
+//               LDAF arborist license (small pruning under 2 inches excepted).
+// Copy is a heads-up, not legal advice, and offers the "Licensed" tier as the
+// way to act on it.
+export const LICENSE_WARNINGS: Readonly<Record<string, string>> = {
+  plumbing:
+    "Heads up: Louisiana requires a licensed plumber for most plumbing work, whatever the price. Choose \"Licensed\" below to get only licensed pros.",
+  hvac:
+    "Heads up: anyone who works on refrigerant (AC lines, recharging) must hold an EPA certificate. Choose \"Licensed\" below to get only licensed pros.",
+  appliance_repair:
+    "Heads up: fixing a fridge, freezer or window AC unit's cooling system needs an EPA-certified tech. Choose \"Licensed\" below to get only licensed pros.",
+  electrical:
+    "Heads up: some Louisiana cities, including New Orleans, require a licensed electrician for electrical work. Choose \"Licensed\" below to get only licensed pros.",
+  yard_work:
+    "Heads up: cutting, trimming or removing trees for pay needs a Louisiana arborist license. If your job includes tree work, choose \"Licensed\" below.",
+};
 
 // The tier options rendered in the "Who can apply?" segmented control.
 // No "ID-Verified" tier: every helper accepted for a job is already
@@ -85,6 +137,18 @@ export const titlePlaceholders: Record<string, string> = {
   assembly: "e.g. Assemble an IKEA wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
   events: "e.g. Set up and break down a backyard party",
+  electrical: "e.g. Replace two kitchen outlets",
+  plumbing: "e.g. Fix a leaky kitchen faucet",
+  hvac: "e.g. AC unit not cooling upstairs",
+  roofing: "e.g. Replace shingles after a storm",
+  welding: "e.g. Weld a broken trailer hitch",
+  carpentry: "e.g. Build shelves in a closet",
+  auto_repair: "e.g. Tune up my lawn mower engine",
+  appliance_repair: "e.g. Dryer runs but won't heat",
+  flooring: "e.g. Lay tile in a small bathroom",
+  concrete_masonry: "e.g. Pour a small concrete pad",
+  fencing: "e.g. Repair a wood privacy fence",
+  pressure_washing: "e.g. Pressure wash the driveway",
   other: "e.g. Help me with a quick job",
 };
 

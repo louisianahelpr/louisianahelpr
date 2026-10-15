@@ -5,7 +5,9 @@
 
 const JOB_CATEGORIES = [
   "cleaning", "yard_work", "moving", "errands", "handyman", "painting",
-  "delivery", "pet_care", "assembly", "storm_prep", "events", "other",
+  "delivery", "pet_care", "assembly", "storm_prep", "events",
+  "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
+  "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing", "other",
 ] as const;
 
 // The post-job form's own bounds (Q782, owner 2026-09-27): the output is poured

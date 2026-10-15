@@ -657,6 +657,28 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // "Suggest a category" (I1, migration 20261015051141).
+  suggest_category: {
+    account_restricted: "Your account can't send suggestions right now.",
+    feature_disabled: "Suggesting a category isn't available yet.",
+    invalid_area: "Something went wrong sending your suggestion. Please try again.",
+    invalid_suggestion: "Use 2 to 40 letters, starting with a letter. No links or contact details.",
+    not_authenticated: "Sign in to suggest a category.",
+    rate_limited: "You've sent 5 suggestions today. Try again tomorrow.",
+  },
+  admin_list_category_suggestions: {
+    feature_disabled: "Category suggestions are switched off for your account.",
+    invalid_status: "That list doesn't exist.",
+    not_authorized: "Only admins can see category suggestions.",
+  },
+  admin_review_category_suggestion: {
+    already_reviewed: "Someone already decided this suggestion.",
+    feature_disabled: "Category suggestions are switched off for your account.",
+    invalid_arguments: "Something went wrong. Please try again.",
+    not_authorized: "Only admins can decide category suggestions.",
+    note_too_long: "Keep the note under 300 characters.",
+    unknown_suggestion: "That suggestion no longer exists.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

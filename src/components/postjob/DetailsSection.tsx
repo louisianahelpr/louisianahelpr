@@ -7,6 +7,7 @@ import { CategoryPicker } from "./detailsSection/CategoryPicker";
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
+import { LicenseWarning } from "./detailsSection/LicenseWarning";
 import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
@@ -83,10 +84,13 @@ export function DetailsSection({
           For all others the tier stays at 0 (open) and this block
           is hidden to keep the form clean. */}
       {CREDENTIAL_TIER_CATEGORIES.has(category) && (
-        <CredentialTierSelector
-          credentialTier={credentialTier}
-          setCredentialTier={setCredentialTier}
-        />
+        <>
+          <LicenseWarning category={category} />
+          <CredentialTierSelector
+            credentialTier={credentialTier}
+            setCredentialTier={setCredentialTier}
+          />
+        </>
       )}
 
       {/* Sits beside the credential tier because both answer the same

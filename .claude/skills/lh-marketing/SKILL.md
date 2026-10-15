@@ -76,10 +76,11 @@ There is a credential tier ladder — `src/lib/careerLadder.ts:66-73` defines
 ID verification exists (`HowItWorksSection.tsx:55` — "Verify your ID once, then
 work"). **What you may say about this is tightly limited — see §4.**
 
-**The 12 job categories.** The `job_category` Postgres enum, canonical order and
+**The 24 job categories.** The `job_category` Postgres enum, canonical order and
 labels from `JOB_CATEGORY_LABELS` in `src/lib/jobCategories.ts` (post-a-job
-popularity order, "Other" last; 12 entries, counted 2026-09-23 — the enum is the
-source, re-read it before relying on the count):
+popularity order, "Other" last; 24 entries, counted 2026-10-15 after the twelve
+trades were added (owner decision T1) — the enum is the source, re-read it before
+relying on the count):
 
 | value | label |
 |---|---|
@@ -94,6 +95,18 @@ source, re-read it before relying on the count):
 | `painting` | Painting |
 | `storm_prep` | Storm Prep |
 | `events` | Events |
+| `electrical` | Electrical |
+| `plumbing` | Plumbing |
+| `hvac` | HVAC |
+| `roofing` | Roofing |
+| `welding` | Welding |
+| `carpentry` | Carpentry |
+| `auto_repair` | Auto & Small Engine |
+| `appliance_repair` | Appliance Repair |
+| `flooring` | Flooring & Tile |
+| `concrete_masonry` | Concrete & Masonry |
+| `fencing` | Fencing |
+| `pressure_washing` | Pressure Washing |
 | `other` | Other |
 
 Use the **labels** in copy, exactly as spelled ("Yard Work", not "yardwork";
@@ -944,7 +957,7 @@ and why, so nobody re-adds it:
 - **Blog and local SEO — dropped (2026-09-03).** An earlier version added an
   `lh-mkt-blog-seo` agent, a `blog` channel, a `slug` column and a `/blog/:slug`
   route. **None of those exist.** There is no blog. The observation that drove
-  it — six indexable URLs against 64 parishes × 12 categories (§0) — is still
+  it — six indexable URLs against 64 parishes × 24 categories (§0, counted 2026-10-15) — is still
   true and still worth raising with the owner as a product recommendation. It is
   not a channel this team writes into, and it never was.
 - **A standalone "creative designer" agent — dropped**, folded into the brand

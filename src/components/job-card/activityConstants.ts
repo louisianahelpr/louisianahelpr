@@ -85,6 +85,32 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
   // events light-mode text darkened 36% → 32% L: was 4.46:1 vs WCAG AA
   // 4.5 (a 0.04 fail on the badge), now clears (Cowork 2026-07-08).
   events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_32%)] border-[hsl(44_40%_78%)] dark:bg-[hsl(42_40%_17%)] dark:text-[hsl(45_50%_76%)] dark:border-[hsl(44_36%_31%)]",     title: "text-[hsl(42_44%_32%)] dark:text-[hsl(45_50%_76%)]",  dot: "bg-[hsl(43_46%_46%)]" },
+  // Trade categories (T1, 2026-10-14): light text L picked per hue so every
+  // badge clears WCAG AA 4.5:1 on its own background (lowest 4.66:1).
+  // electrical → amber-yellow (live wire)
+  electrical:       { badge: "bg-[hsl(50_54%_94%)] text-[hsl(50_52%_32%)] border-[hsl(50_46%_80%)] dark:bg-[hsl(50_52%_18%)] dark:text-[hsl(50_56%_77%)] dark:border-[hsl(50_48%_32%)]", title: "text-[hsl(50_52%_32%)] dark:text-[hsl(50_56%_77%)]", dot: "bg-[hsl(50_52%_46%)]" },
+  // plumbing → water blue
+  plumbing:         { badge: "bg-[hsl(200_42%_94%)] text-[hsl(200_40%_38%)] border-[hsl(200_34%_80%)] dark:bg-[hsl(200_40%_18%)] dark:text-[hsl(200_44%_77%)] dark:border-[hsl(200_36%_32%)]", title: "text-[hsl(200_40%_38%)] dark:text-[hsl(200_44%_77%)]", dot: "bg-[hsl(200_40%_46%)]" },
+  // hvac → cool teal (air)
+  hvac:             { badge: "bg-[hsl(165_34%_94%)] text-[hsl(165_32%_35%)] border-[hsl(165_26%_80%)] dark:bg-[hsl(165_32%_18%)] dark:text-[hsl(165_36%_77%)] dark:border-[hsl(165_28%_32%)]", title: "text-[hsl(165_32%_35%)] dark:text-[hsl(165_36%_77%)]", dot: "bg-[hsl(165_32%_46%)]" },
+  // roofing → shingle red
+  roofing:          { badge: "bg-[hsl(352_32%_94%)] text-[hsl(352_30%_38%)] border-[hsl(352_24%_80%)] dark:bg-[hsl(352_30%_18%)] dark:text-[hsl(352_34%_77%)] dark:border-[hsl(352_26%_32%)]", title: "text-[hsl(352_30%_38%)] dark:text-[hsl(352_34%_77%)]", dot: "bg-[hsl(352_30%_46%)]" },
+  // welding → torch orange
+  welding:          { badge: "bg-[hsl(24_60%_94%)] text-[hsl(24_58%_38%)] border-[hsl(24_52%_80%)] dark:bg-[hsl(24_58%_18%)] dark:text-[hsl(24_62%_77%)] dark:border-[hsl(24_54%_32%)]", title: "text-[hsl(24_58%_38%)] dark:text-[hsl(24_62%_77%)]", dot: "bg-[hsl(24_58%_46%)]" },
+  // carpentry → wood brown
+  carpentry:        { badge: "bg-[hsl(30_32%_94%)] text-[hsl(30_30%_38%)] border-[hsl(30_24%_80%)] dark:bg-[hsl(30_30%_18%)] dark:text-[hsl(30_34%_77%)] dark:border-[hsl(30_26%_32%)]", title: "text-[hsl(30_30%_38%)] dark:text-[hsl(30_34%_77%)]", dot: "bg-[hsl(30_30%_46%)]" },
+  // auto_repair → gunmetal
+  auto_repair:      { badge: "bg-[hsl(222_20%_94%)] text-[hsl(222_18%_38%)] border-[hsl(222_12%_80%)] dark:bg-[hsl(222_18%_18%)] dark:text-[hsl(222_22%_77%)] dark:border-[hsl(222_14%_32%)]", title: "text-[hsl(222_18%_38%)] dark:text-[hsl(222_22%_77%)]", dot: "bg-[hsl(222_18%_46%)]" },
+  // appliance_repair → indigo
+  appliance_repair: { badge: "bg-[hsl(248_28%_94%)] text-[hsl(248_26%_38%)] border-[hsl(248_20%_80%)] dark:bg-[hsl(248_26%_18%)] dark:text-[hsl(248_30%_77%)] dark:border-[hsl(248_22%_32%)]", title: "text-[hsl(248_26%_38%)] dark:text-[hsl(248_30%_77%)]", dot: "bg-[hsl(248_26%_46%)]" },
+  // flooring → plum
+  flooring:         { badge: "bg-[hsl(300_22%_94%)] text-[hsl(300_20%_38%)] border-[hsl(300_14%_80%)] dark:bg-[hsl(300_20%_18%)] dark:text-[hsl(300_24%_77%)] dark:border-[hsl(300_16%_32%)]", title: "text-[hsl(300_20%_38%)] dark:text-[hsl(300_24%_77%)]", dot: "bg-[hsl(300_20%_46%)]" },
+  // concrete_masonry → cement grey
+  concrete_masonry: { badge: "bg-[hsl(25_10%_94%)] text-[hsl(25_8%_38%)] border-[hsl(25_4%_80%)] dark:bg-[hsl(25_8%_18%)] dark:text-[hsl(25_12%_77%)] dark:border-[hsl(25_4%_32%)]", title: "text-[hsl(25_8%_38%)] dark:text-[hsl(25_12%_77%)]", dot: "bg-[hsl(25_8%_46%)]" },
+  // fencing → sage
+  fencing:          { badge: "bg-[hsl(95_28%_94%)] text-[hsl(95_26%_36%)] border-[hsl(95_20%_80%)] dark:bg-[hsl(95_26%_18%)] dark:text-[hsl(95_30%_77%)] dark:border-[hsl(95_22%_32%)]", title: "text-[hsl(95_26%_36%)] dark:text-[hsl(95_30%_77%)]", dot: "bg-[hsl(95_26%_46%)]" },
+  // pressure_washing → aqua spray
+  pressure_washing: { badge: "bg-[hsl(188_46%_94%)] text-[hsl(188_44%_35%)] border-[hsl(188_38%_80%)] dark:bg-[hsl(188_44%_18%)] dark:text-[hsl(188_48%_77%)] dark:border-[hsl(188_40%_32%)]", title: "text-[hsl(188_44%_35%)] dark:text-[hsl(188_48%_77%)]", dot: "bg-[hsl(188_44%_46%)]" },
   // other light-mode text darkened 42% → 36% L: was 4.27:1 vs WCAG AA
   // 4.5 (a real fail), now 5.37:1 (Cowork 2026-07-08 followup sweep).
   other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_36%)] border-[hsl(40_12%_80%)] dark:bg-[hsl(40_10%_19%)] dark:text-[hsl(40_14%_75%)] dark:border-[hsl(40_10%_33%)]",      title: "text-[hsl(40_9%_36%)] dark:text-[hsl(40_14%_75%)]",   dot: "bg-[hsl(40_10%_55%)]" },

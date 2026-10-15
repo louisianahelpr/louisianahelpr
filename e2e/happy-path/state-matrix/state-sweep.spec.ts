@@ -172,7 +172,9 @@ const PROFILE_ROWS = [
 
 const CATEGORIES = [
   "cleaning", "yard_work", "moving", "errands", "handyman", "painting",
-  "delivery", "pet_care", "assembly", "storm_prep", "events", "other",
+  "delivery", "pet_care", "assembly", "storm_prep", "events",
+  "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
+  "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing", "other",
 ];
 
 /** A spread of jobs covering every bucket, for the "rich" activity-shell cells. */

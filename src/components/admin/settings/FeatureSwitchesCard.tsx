@@ -17,6 +17,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
 import { DeclutterReviewCard } from "./DeclutterReviewCard";
+import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -154,6 +155,7 @@ export function FeatureSwitchesCard() {
       />
     </AdminCard>
     <DeclutterReviewCard />
+    <CategorySuggestionsCard />
     </>
   );
 }

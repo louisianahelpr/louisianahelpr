@@ -305,6 +305,18 @@ serve(async (req) => {
       // what found it and is what keeps the next enum member from repeating it.
       storm_prep: "⛈️",
       events: "🎉",
+      electrical: "⚡",
+      plumbing: "🚰",
+      hvac: "❄️",
+      roofing: "🏠",
+      welding: "🔥",
+      carpentry: "🪚",
+      auto_repair: "🚗",
+      appliance_repair: "🧺",
+      flooring: "🧱",
+      concrete_masonry: "🏗️",
+      fencing: "🚧",
+      pressure_washing: "💦",
       other: "✨",
     };
     const emoji = categoryEmoji[job.category] ?? "✨";

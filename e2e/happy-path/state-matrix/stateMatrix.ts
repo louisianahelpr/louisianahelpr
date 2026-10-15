@@ -88,10 +88,10 @@
  *
  *   R8  CATEGORY COLLAPSES TO TWO VALUES PLUS ONE PALETTE STRIP.
  *       `pet_care` unlocks the report card and the pet sheet, so it is a real
- *       branch. The other eleven categories differ only in the left rail hue
- *       and the badge classes in `categoryColors`. Those are covered once, by
- *       a single cell that renders all twelve side by side, rather than by
- *       multiplying every status by twelve.
+ *       branch. The other categories (23 of the 24 counted 2026-10-15) differ
+ *       only in the left rail hue and the badge classes in `categoryColors`.
+ *       Those are covered once, by a single cell that renders every category
+ *       side by side, rather than by multiplying every status by the count.
  *
  * WHAT THIS MODULE IS NOT
  * -----------------------
@@ -1216,15 +1216,15 @@ function posterCells(): StateCell[] {
     });
   }
 
-  // R8 — the category palette, once, instead of x12 on every status.
+  // R8 — the category palette, once, instead of xN on every status.
   cells.push({
     id: "posted-category-palette",
     surface: "posted-card",
     route: "/posts?filter=all",
     describe:
-      "All twelve categories as sibling cards — the one cell that answers 'do these twelve hues read as one system, and is any pair indistinguishable'.",
+      "Every category as sibling cards — the one cell that answers 'do these hues read as one system, and is any pair indistinguishable'.",
     status: "open",
-    axes: { role: "poster", status: "open", substate: "category-palette", expanded: "false", content: "twelve-categories" },
+    axes: { role: "poster", status: "open", substate: "category-palette", expanded: "false", content: "all-categories" },
     expanded: false,
     reachable: "auto",
     shots: [SHOT_PRIMARY, SHOT_DARK],
@@ -1713,6 +1713,6 @@ export const COLLAPSING_RULES = [
   { id: "R5", rule: "Data presence is a 3-valued content profile (empty/sparse/rich) plus named content cells, not N independent booleans." },
   { id: "R6", rule: "Transient in-flight button guards are declared unreachable with a reason rather than enumerated." },
   { id: "R7", rule: "Clock axes are enumerated at their boundaries (calm / <12h / <2h / expired; on-time / due-today / N-days-past) against a single run clock." },
-  { id: "R8", rule: "Category collapses to pet_care + one representative, plus one twelve-category palette cell." },
+  { id: "R8", rule: "Category collapses to pet_care + one representative, plus one all-category palette cell." },
   { id: "R9", rule: "Breakpoint and theme apply to a subset: every cell at 390 light; status-defining cells also at 390 dark, 1440 light and 320 light." },
 ] as const;

@@ -43,6 +43,18 @@ import {
   MoreHorizontal,
   Briefcase,
   PartyPopper,
+  Zap,
+  ShowerHead,
+  AirVent,
+  House,
+  Flame,
+  Ruler,
+  Car,
+  WashingMachine,
+  Grid3x3,
+  BrickWall,
+  Fence,
+  Droplets,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +75,18 @@ import {
  *   assembly    → Hammer          (build / put together)
  *   storm_prep  → CloudLightning  (storm warning — Louisiana hurricane country)
  *   events      → PartyPopper     (celebration / Mardi Gras / LSU game day)
+ *   electrical  → Zap             (live current)
+ *   plumbing    → ShowerHead      (water fixture)
+ *   hvac        → AirVent         (heating / cooling air)
+ *   roofing     → House           (the roof line)
+ *   welding     → Flame           (the torch)
+ *   carpentry   → Ruler           (measure twice, cut once)
+ *   auto_repair → Car             (auto & small engine)
+ *   appliance_repair → WashingMachine
+ *   flooring    → Grid3x3         (tile grid)
+ *   concrete_masonry → BrickWall
+ *   fencing     → Fence
+ *   pressure_washing → Droplets   (spray)
  *   other       → MoreHorizontal  (catch-all neutral glyph)
  */
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -77,6 +101,18 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   assembly: Hammer,
   storm_prep: CloudLightning,
   events: PartyPopper,
+  electrical: Zap,
+  plumbing: ShowerHead,
+  hvac: AirVent,
+  roofing: House,
+  welding: Flame,
+  carpentry: Ruler,
+  auto_repair: Car,
+  appliance_repair: WashingMachine,
+  flooring: Grid3x3,
+  concrete_masonry: BrickWall,
+  fencing: Fence,
+  pressure_washing: Droplets,
   other: MoreHorizontal,
 };
 

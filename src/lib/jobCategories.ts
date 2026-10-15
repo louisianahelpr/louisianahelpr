@@ -32,6 +32,20 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   painting: "Painting",
   storm_prep: "Storm Prep",
   events: "Events",
+  // Trades (owner decision T1, 2026-10-14): every common trade gets its own
+  // category, and "Other" stays last as the escape hatch for anything else.
+  electrical: "Electrical",
+  plumbing: "Plumbing",
+  hvac: "HVAC",
+  roofing: "Roofing",
+  welding: "Welding",
+  carpentry: "Carpentry",
+  auto_repair: "Auto & Small Engine",
+  appliance_repair: "Appliance Repair",
+  flooring: "Flooring & Tile",
+  concrete_masonry: "Concrete & Masonry",
+  fencing: "Fencing",
+  pressure_washing: "Pressure Washing",
   other: "Other",
 };
 

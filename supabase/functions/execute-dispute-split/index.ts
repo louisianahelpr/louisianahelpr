@@ -105,6 +105,15 @@ const EXECUTABLE_PAYMENT_STATES = ["escrow", "payout_pending"] as const;
  */
 const RESUME_PAYMENT_STATES = ["released", "refunded"] as const;
 
+/**
+ * Q1764: a PostgREST `or` filter matching a dispute whose execution_error does
+ * NOT carry Q1732's cleared marker (a NULL error passes). A second `.or()` on a
+ * query is ANDed with the first (measured against prod PostgREST 2026-10-15:
+ * jobs `or=(status...)&or=(payment_status...)` returned 6 = the SQL AND count).
+ * The quoted value keeps the marker's spaces inside one term.
+ */
+const NOT_TEST_MODE_CLEARED = `execution_error.is.null,execution_error.not.like."${TEST_MODE_CLEARED_MARKER}*"`;
+
 /** A dispute id must be a uuid — the column is `uuid`, and a malformed one
  *  otherwise reaches Postgres and comes back as an opaque 22P02 cast error. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1051,6 +1060,9 @@ serve(async (req) => {
     .or(
       `execution_status.is.null,execution_status.in.(${CLAIMABLE_EXECUTION_STATES.join(",")})`,
     )
+    // Q1764: an admin's Clear test-mode records may have committed since step
+    // 1 read the row; a cleared decision is never split, only re-opened.
+    .or(NOT_TEST_MODE_CLEARED)
     .select("id");
   if (claimErr) {
     console.error(`[execute-dispute-split] execution claim failed for dispute ${disputeId}:`, claimErr);
@@ -1199,7 +1211,7 @@ serve(async (req) => {
     // markFailed is scoped to status 'decided' and leaves a changed row alone.
     const { data: nowDispute, error: nowDisputeErr } = await supabaseAdmin
       .from("disputes")
-      .select("id, status, decided_at, payout_split, execution_status")
+      .select("id, status, decided_at, payout_split, execution_status, execution_error")
       .eq("id", disputeId)
       .maybeSingle();
     if (nowDisputeErr || !nowDispute) {
@@ -1209,7 +1221,9 @@ serve(async (req) => {
     const decisionChanged = nowDispute.status !== "decided" ||
       String(nowDispute.decided_at ?? "") !== String(dispute.decided_at ?? "") ||
       JSON.stringify(nowDispute.payout_split ?? null) !== JSON.stringify(dispute.payout_split ?? null) ||
-      nowDispute.execution_status === "executed";
+      nowDispute.execution_status === "executed" ||
+      // Q1764: test-mode records cleared since step 1 (markFailed keeps the marker).
+      String(nowDispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER);
     if (decisionChanged) {
       console.error(`[execute-dispute-split] dispute ${disputeId} changed under the claim (status ${nowDispute.status}, execution ${nowDispute.execution_status}) — refusing`);
       await markFailed(supabaseAdmin, disputeId, "the decision changed while this split was starting", {}, job.id, settlementClaim);
@@ -2026,6 +2040,10 @@ async function markFailed(
       // never recorded. That is precisely the pre-claim path this function now
       // routes every refusal through, so the guard has to admit NULL.
       .or("execution_status.is.null,execution_status.neq.executed")
+      // Q1764: never over Q1732's cleared marker. The Clear test-mode records
+      // button reads it to re-open the dispute; overwritten, the button found
+      // "nothing to clear" and supersede had to be pressed again.
+      .or(NOT_TEST_MODE_CLEARED)
       .select("id");
     if (error) {
       // Not fatal — the caller is already returning the real error — but a

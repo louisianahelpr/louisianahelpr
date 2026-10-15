@@ -107,6 +107,31 @@ describe("release-payout honours the payout hold", () => {
     expect(q?.filters).toContainEqual({ op: "in", column: "helper_id", value: ["helper-1"] });
   });
 
+  // Q1491: a JOB payout hold (an underfunded gift-card job), asked before the
+  // claim so the answer names the job's hold, not a Helpr hold.
+  // @mutate supabase/functions/release-payout/index.ts |   if (jobHold.kind === "held") {\n    console.warn(`[release-payout] | if (false) {\n    console.warn(`[release-payout]
+  it("refuses a job on a JOB payout hold, before any Stripe call or claim (Q1491)", async () => {
+    seedPayable(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { rows: [{ job_id: "job-1", reason: "Q1491: gift spent elsewhere" }] };
+    const res = await call();
+    expect(res.status).toBe(409);
+    const body = await json(res);
+    expect(body.code).toBe("payout_held");
+    expect(body.job_hold).toBe(true);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(ledgerInserts()).toHaveLength(0);
+  });
+
+  it("a job payout hold that cannot be read fails closed (Q1491)", async () => {
+    seedPayable(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { error: { message: "connection reset", code: "08006" } };
+    const res = await call();
+    expect(res.status).toBe(500);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
   it("a recorded denial still blocks", async () => {
     seedPayable(scenario);
     scenario.reads.payout_holds = { rows: [{ ...HELD, denied_at: "2026-10-03T01:00:00Z" }] };

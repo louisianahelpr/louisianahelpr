@@ -50,7 +50,44 @@ export const IDENTITY_BUCKETS = [
  */
 export const IDENTITY_SUBFOLDERS = [
   { bucket: "job-photos", folder: "declutter" },
+  // Porch and problem photos (20261015092723): the PRIVATE declutter-handover
+  // bucket, same <uid>/declutter/ folder, erased with the account as before.
+  { bucket: "declutter-handover", folder: "declutter" },
 ] as const;
+
+/**
+ * Subfolder buckets whose ABSENCE means "nothing to erase", never a failed
+ * deletion. Each is created by a migration newer than the purge code that
+ * names it, and the purge can run before that migration does:
+ * functions-deploy.yml waits for the same commit's db-deploy run but then
+ * ships whatever its conclusion (and a hand-run functions deploy waits for
+ * nothing). Without this, every account deletion in that window failed its
+ * storage step on a bucket that holds nothing. A bucket that does not exist
+ * cannot hold an object (no upload can land in it), so its absence is logged
+ * and the step stays ok. Q219 still holds for every other name: a misspelled
+ * or dropped bucket fails the step, and every name here must also be declared
+ * by the migrations (src/test/purgeBucketsAreDeclared.test.ts), so a typo
+ * here fails CI rather than skipping the purge.
+ *
+ * TEMPORARY: an entry is retired once its bucket exists on prod (for
+ * declutter-handover: `select id from storage.buckets where id =
+ * 'declutter-handover'` returns a row, i.e. 20261015092723 applied). Then
+ * empty this list and set the EXACT check in
+ * src/test/declutterPhotosPurged.test.ts to [] in the same commit.
+ */
+export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover"];
+
+/**
+ * Splits the subfolder buckets Storage does not have into the ones whose
+ * absence is nothing to erase (SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET) and the
+ * ones that fail the storage step (Q219).
+ */
+export function classifyMissingSubfolderBuckets(missing: readonly string[]): { notCreatedYet: string[]; failing: string[] } {
+  return {
+    notCreatedYet: missing.filter((b) => SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)),
+    failing: missing.filter((b) => !SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)),
+  };
+}
 
 /** `<uid>/<folder>` for each IDENTITY_SUBFOLDERS entry. */
 export function identitySubfolderPrefixes(userId: string): { bucket: string; prefix: string }[] {

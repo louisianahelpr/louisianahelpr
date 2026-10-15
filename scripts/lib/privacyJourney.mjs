@@ -107,7 +107,7 @@ export const EXPORT_SECTIONS = [
   "category_suggestions",
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
   "declutter_seller_fee_debts",
-  "declutter_bookings", "declutter_problems", "declutter_payouts", "declutter_reviews",
+  "declutter_bookings", "declutter_problems", "declutter_problems_about_me", "declutter_payouts", "declutter_reviews",
   "storage_objects",
 ];
 

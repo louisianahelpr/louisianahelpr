@@ -15,7 +15,7 @@
  * URL is read before the Supabase client module can detect and strip it.
  */
 
-export type LandingAuthKind = "code" | "access_token" | "token_hash" | "error";
+type LandingAuthKind = "code" | "access_token" | "token_hash" | "error";
 
 export interface LandingAuthHint {
   /** True when the URL this page loaded with carried a sign-in token of any kind. */

@@ -35,6 +35,7 @@ import { readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import { EDGE_GEN_DIR_NAME } from "./evictGenModules";
 
 /** This file's own directory — `import.meta.url` is portable under vitest. */
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -49,7 +50,7 @@ const REPO_ROOT = resolve(HERE, "../../..");
  * specifier the rewrite emits is absolutised in `absolutiseSpecifiers`, so
  * the files resolve `./mocks/*` and the REAL `_shared` modules from anywhere.
  */
-const GEN_DIR = join(REPO_ROOT, ".lh-edge-gen");
+const GEN_DIR = join(REPO_ROOT, EDGE_GEN_DIR_NAME);
 const FUNCTIONS_DIR = join(REPO_ROOT, "supabase", "functions");
 
 /** Mock-module specifiers, resolved relative to a `.gen.ts` in THIS dir. */

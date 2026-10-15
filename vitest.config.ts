@@ -2,6 +2,7 @@ import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { cpus } from "node:os";
+import { evictEdgeGenModules } from "./src/test/edge/evictGenModules.ts";
 
 /**
  * `*.tz.test.{ts,tsx}` — specs that switch the DEVICE timezone mid-run
@@ -15,7 +16,20 @@ import { cpus } from "node:os";
 const TZ_SWEEP_SPECS = "src/**/*.tz.test.{ts,tsx}";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // The edge harness writes each load as new `.gen.ts` modules; without this
+    // the MAIN process caches every one for the whole run, and the unsharded
+    // coverage job hit V8's ~4 GB heap limit (main runs 38659872759,
+    // 38666593004). See src/test/edge/evictGenModules.ts.
+    evictEdgeGenModules({
+      onReport: ({ dropped, pending, peakHeapMB }) => {
+        if (dropped + pending > 0) {
+          console.log(`[edge-gen-evict] dropped ${dropped} edge-harness modules (${pending} still loading); main heap peak ${peakHeapMB} MB`);
+        }
+      },
+    }),
+  ],
   // NOT node_modules/.vite (the default). Vitest clears its dep-optimizer
   // cache on start, and sharing the directory with the dev server means
   // every `vitest run` deletes the RUNNING server's optimized deps — every

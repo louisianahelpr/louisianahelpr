@@ -84,7 +84,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |   for (const r of refunds) { |   await admin.from("declutter_orders").update({ status: "paid" }).eq("id", "x");\n  for (const r of refunds) {
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

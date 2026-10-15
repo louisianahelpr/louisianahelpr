@@ -316,7 +316,7 @@ describe("declutter-money: refund retry and reconcile (3b money review #7, B57)"
       refund_id: "rf-g", reason: "superseded", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER,
       payment_intent_id: "pi_order1", refund_cents: 4600, attempts: 0, livemode: true, checkout_session_id: "cs_live_x",
     }] });
-    // A defect answers 500 by the cron-result convention (_shared/cron-result.ts: the
+    // A defect is answered with status 500, the cron-result convention (_shared/cron-result.ts: the
     // watcher pages on non-2xx); the money that is due still moves in the same run.
     expect(status).toBe(500);
     expect(body.defects).toBeGreaterThan(0);

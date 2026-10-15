@@ -8374,6 +8374,14 @@ export type Database = {
         }
         Returns: number
       }
+      declutter_hand_refund_failed: {
+        Args: { p_stripe_refund_id: string; p_why: string }
+        Returns: string
+      }
+      declutter_handover_photo_access: {
+        Args: { p_name: string; p_write: boolean }
+        Returns: boolean
+      }
       declutter_handover_sweep: { Args: never; Returns: Json }
       declutter_has_agreed_sales: { Args: never; Returns: boolean }
       declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
@@ -8544,6 +8552,15 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_record_hand_refund: {
+        Args: {
+          p_amount_cents: number
+          p_livemode: boolean
+          p_payment_intent_id: string
+          p_stripe_refund_id: string
+        }
+        Returns: string
+      }
       declutter_record_refund: {
         Args: {
           p_card_fee_cents: number
@@ -8562,6 +8579,10 @@ export type Database = {
           p_succeeded: boolean
         }
         Returns: string
+      }
+      declutter_refund_gave_up_check: {
+        Args: { p_refund_id?: string }
+        Returns: number
       }
       declutter_refund_paid_order: { Args: { p_order_id: string; p_reason: string }; Returns: Json }
       declutter_refund_reversed: {

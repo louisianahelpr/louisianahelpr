@@ -24,9 +24,26 @@
  *
  * RED on 51305c81c's create-payment/index.ts: lists
  * `create-payment/index.ts:2250 .in("status") on payment_refunds`.
+ *
+ * PENDING vs MISSING (same rule as the write contract, Q1072). The snapshot is
+ * a frozen copy of prod, so a column that a migration in THIS tree adds, and
+ * that prod had not applied when the snapshot was read, is absent from it
+ * without being missing: functions-deploy.yml waits for the same commit's
+ * db-deploy run before it uploads any function, so the column exists before
+ * the edge read does. write-contract.mjs's pendingDefinitions() tells the two
+ * apart exactly (a migration file above the snapshot's `appliedMigrations.latest`,
+ * with every file at or below it accounted for, that ALTERs that very table to
+ * ADD that very column); when the metadata is inexact nothing is pending and
+ * every absent column stays red (fail closed). A column no pending migration
+ * adds is red as before. 2026-10-15: the flat-fee branch's 13 edge reads of
+ * jobs.helper_fee_flat_cents (added by 20261015023908) were red here although
+ * that migration ships in the same push.
  */
 // Proven able to fail 2026-09-20: filtering a real edge read by a column
 // prod does not have (applications.worker_id) turns it red.
+// Proven able to fail with the pending set applied (2026-10-15): a column NO
+// migration adds, on a read beside a pending one, is still red.
+// @mutate supabase/functions/release-payout/index.ts | stripe_session_id, helper_fee_percent, helper_fee_flat_cents, is_seed | stripe_session_id, helper_fee_percent, helper_fee_flat_cent, is_seed
 // @mutate supabase/functions/cleanup-abandoned-accounts/index.ts | supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", u.id) | supabase.from("applications").select("id", { count: "exact", head: true }).eq("worker_id", u.id)
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -130,12 +147,22 @@ export function extractColumnUses(file: string, text: string): ColumnUse[] {
   return uses;
 }
 
-export function unknownColumns(uses: ColumnUse[], snapshot: Snapshot): ColumnUse[] {
-  return uses.filter((u) => snapshot.tables[u.table] && !(u.column in snapshot.tables[u.table].columns));
+type Pending = { exact: boolean; columns: Map<string, string> };
+const NO_PENDING: Pending = { exact: false, columns: new Map() };
+
+/** Absent from the snapshot AND not added by a migration prod had not applied yet (exact metadata only). */
+export function unknownColumns(uses: ColumnUse[], snapshot: Snapshot, pending: Pending = NO_PENDING): ColumnUse[] {
+  return uses.filter(
+    (u) =>
+      snapshot.tables[u.table] &&
+      !(u.column in snapshot.tables[u.table].columns) &&
+      !(pending.exact && pending.columns.has(`${u.table}.${u.column}`)),
+  );
 }
 
 describe("edge filter-column contract", () => {
   const snapshot: Snapshot = contract.loadSnapshot();
+  const pending: Pending = contract.pendingDefinitions(snapshot, path.join(ROOT, "supabase", "migrations"));
   const uses = listEdgeFiles(FUNCTIONS).flatMap((f) => extractColumnUses(f, fs.readFileSync(f, "utf8")));
 
   it("inventories the edge functions' column filters (a broken extractor must not pass vacuously)", () => {
@@ -146,8 +173,29 @@ describe("edge filter-column contract", () => {
   });
 
   it("no edge function filters, orders or selects by a column prod does not have", () => {
-    const bad = unknownColumns(uses, snapshot).map((u) => `${u.file}:${u.line} .${u.method}("${u.column}") on ${u.table}`);
+    const bad = unknownColumns(uses, snapshot, pending).map((u) => `${u.file}:${u.line} .${u.method}("${u.column}") on ${u.table}`);
     expect(bad).toEqual([]);
+  });
+
+  it("a pending column passes only while its own migration is pending and the metadata is exact", () => {
+    const use: ColumnUse = { file: "f.ts", line: 1, table: "jobs", column: "fee_x", method: "select" };
+    const s: Snapshot = { tables: { jobs: { columns: { id: {} } } } };
+    const added = new Map([["jobs.fee_x", "20990101000000_add_fee_x.sql"]]);
+    // pending + exact: not missing
+    expect(unknownColumns([use], s, { exact: true, columns: added })).toEqual([]);
+    // inexact metadata: fail closed
+    expect(unknownColumns([use], s, { exact: false, columns: added })).toEqual([use]);
+    // a pending migration that adds a DIFFERENT column, or the same column to another table: still missing
+    expect(unknownColumns([use], s, { exact: true, columns: new Map([["jobs.fee_y", "m.sql"]]) })).toEqual([use]);
+    expect(unknownColumns([use], s, { exact: true, columns: new Map([["applications.fee_x", "m.sql"]]) })).toEqual([use]);
+    // no pending info at all (the default): missing
+    expect(unknownColumns([use], s)).toEqual([use]);
+  });
+
+  it("the pending set read from this tree is exact, so a column it lacks is graded, not waved through", () => {
+    expect(pending.exact).toBe(true);
+    // the 2026-09-14 defect's column is added by no migration: it stays red even with the pending set applied
+    expect(pending.columns.has("payment_refunds.status")).toBe(false);
   });
 
   it("RED on the exact 2026-09-14 defect: payment_refunds filtered by `status`", () => {
@@ -158,13 +206,13 @@ describe("edge filter-column contract", () => {
         const { data, error } = await supabaseAdmin
           .from(table).select("id").eq("job_id", jobId).in("status", statuses).limit(1);
       }`;
-    const bad = unknownColumns(extractColumnUses(path.join(FUNCTIONS, "create-payment/index.ts"), original), snapshot);
+    const bad = unknownColumns(extractColumnUses(path.join(FUNCTIONS, "create-payment/index.ts"), original), snapshot, pending);
     expect(bad.map((u) => `${u.table}.${u.column}`)).toEqual(["payment_refunds.status"]);
   });
 
   it("fails when a live column is removed from the snapshot", () => {
     const s: Snapshot = JSON.parse(JSON.stringify(snapshot));
     delete s.tables.payout_transfers.columns.status;
-    expect(unknownColumns(uses, s).some((u) => u.table === "payout_transfers" && u.column === "status")).toBe(true);
+    expect(unknownColumns(uses, s, pending).some((u) => u.table === "payout_transfers" && u.column === "status")).toBe(true);
   });
 });

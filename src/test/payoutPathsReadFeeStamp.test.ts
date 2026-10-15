@@ -28,9 +28,12 @@
 // @mutate src/hooks/useProfileTabData.ts | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, helper_fee_flat_cents`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
 // @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = 0; | const customerFeeAmount = urgentBonusCardFeeCents(urgentFeeCents) / 100;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+// The shared listing (Q1142): supabase/functions is outside src/, so it passes
+// through to the real readdirSync; the guard only needs one import shape.
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const FN_DIR = path.join(ROOT, "supabase/functions");

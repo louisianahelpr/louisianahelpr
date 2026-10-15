@@ -44,6 +44,7 @@ import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
 import { BOOST_FEE_CENTS } from "../../../supabase/functions/_shared/productPrices";
+import { TIER_PERK_MATRIX } from "../../../supabase/functions/_shared/tierPerks";
 
 const USER_ID = "user-boost-1";
 const JOB_ID = "job-boost-1";
@@ -512,7 +513,9 @@ describe("create-boost-payment — no member boost perks while memberships are o
     resetEnv();
   });
 
-  for (const tier of ["elite", "plus", "pro", "basic"]) {
+  // Every tier, derived from the perk matrix (literalRegistryGuard): a tier
+  // added later is graded here without anyone remembering this list.
+  for (const tier of Object.keys(TIER_PERK_MATRIX)) {
     it(`${tier}: full price at Checkout, no free boost, no monthly credit claimed`, async () => {
       seed(tier);
       scenario.rpc.feature_enabled_for_user = false;

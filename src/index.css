@@ -2834,6 +2834,36 @@ button,
    `.liquid-glass` background, so call sites just add this class. */
 
 
+/* ONE shared blur behind the Activity cards (Q959; owner pop-up 2026-10-05:
+   "keep the frosted look but cut layers"). My Posts / My Jobs render every
+   job card as `.liquid-glass` INSIDE the PageScaffold panel, which is itself
+   `.liquid-glass`, so each card ran its own blur(20px) saturate(170%) pass on
+   top of the panel's. Those passes buy no look: a light-mode card is an OPAQUE
+   white fill (nothing behind it shows), and in dark mode the only thing behind
+   a card is the panel's own neutral fill, which the panel has already frosted.
+   So inside an opted-in panel (PageScaffold `oneBlur`) the panel keeps the one
+   blur and its cards, skeletons, search field and the outline buttons inside a
+   card (Button `outline`: `ctl-tint` + `backdrop-blur-md`, a 12px pass over an
+   opaque card) stop blurring; fills, border and shadow are untouched. Measured
+   on prod 2026-10-15 (poster-e2e /posts, 375): 21 blurring elements, 16 of
+   them inside the panel (11 cards + 5 outline buttons). The unprefixed twin lives in an @supports for the
+   minifier reason given at the Reduce Transparency block below: a pair in one
+   rule ships as one half. Guard: src/test/activityOneSharedBlur.test.tsx. */
+.page-panel--one-blur .liquid-glass,
+.page-panel--one-blur .skeleton-glass,
+.page-panel--one-blur .glass-field,
+.page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {
+  -webkit-backdrop-filter: none;
+}
+@supports (backdrop-filter: none) {
+  .page-panel--one-blur .liquid-glass,
+  .page-panel--one-blur .skeleton-glass,
+  .page-panel--one-blur .glass-field,
+  .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {
+    backdrop-filter: none;
+  }
+}
+
 /* (The `.tracker-merged > .liquid-glass` override that used to live here is
    gone: HelperTrackerPanel now passes `embedded` to JobTracking, so the nested
    panel never renders its own glass in the first place. A CSS override left

@@ -513,7 +513,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
-        titleCardClassName={headerPadding}
+        titleCardClassName={headerPadding} oneBlur
       >
           {isWebDesktop && headerEl && (
             <div

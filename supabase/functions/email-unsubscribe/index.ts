@@ -26,8 +26,8 @@
 //      profile, and writes the two reversible consent flags:
 //          profiles.marketing_consent                -> false
 //          notification_preferences.email_promotions -> false
-//      A resubscribe turns email_promotions back on, and marketing_consent
-//      only for someone whose sign-up consent record says they agreed
+//      The first unsubscribe through a link records what the two flags were;
+//      a resubscribe restores exactly that and nothing else
 //      (Q?unsub-resubscribe-consent; see setCommercialConsent).
 //   5. Every commercial sender re-reads both flags before its next send:
 //        • send-marketing-blast  — filters on both, FAIL-CLOSED on a read error
@@ -123,12 +123,57 @@ async function findProfile(
   return ci.data ?? null
 }
 
+/** What a promotions unsubscribe turned off, kept so its resubscribe can undo exactly that. */
+type PromotionsBefore = { marketing_consent: boolean; email_promotions: boolean }
+
+/** A column the database does not have yet (this function deployed before its migration). */
+function isMissingColumn(error: { code?: string } | null | undefined): boolean {
+  return error?.code === '42703' || error?.code === 'PGRST204'
+}
+
 /**
- * Flip both consent flags for one user.
+ * The upsert both directions share. Upsert, not update: `notification_preferences`
+ * rows are created lazily by the app, so a user who never opened the
+ * notifications tab has no row and a bare UPDATE would match zero rows and
+ * report success. `user_id` is UNIQUE (migration 20260312023604), which is what
+ * makes onConflict work.
+ */
+async function writeEmailPromotions(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  userId: string,
+  on: boolean,
+): Promise<void> {
+  const { data: prefs, error: prefsError } = await supabase
+    .from('notification_preferences')
+    .upsert({ user_id: userId, email_promotions: on }, { onConflict: 'user_id' })
+    .select('user_id')
+  if (prefsError) throw new Error(`email_promotions write failed: ${prefsError.message}`)
+  if (!prefs || prefs.length === 0) throw new Error('email_promotions write matched no row')
+}
+
+/**
+ * The promotions list, for one user. THROWS on failure — the caller must never
+ * report success for a write that did not happen, which is the whole failure
+ * mode this endpoint exists to fix.
  *
- * `optOut = true` unsubscribes, `false` resubscribes. Returns nothing and
- * THROWS on failure — the caller must never report success for a write that
- * did not happen, which is the whole failure mode this endpoint exists to fix.
+ * Q?unsub-resubscribe-consent (owner, 2026-10-15, pop-up: "Only undo what they
+ * turned off"). Resubscribe used to write marketing_consent = true and
+ * email_promotions = true whatever they had been, so anyone holding a
+ * promotions link (a sign-up lead reminder carries one too; the token never
+ * expires) could opt in an address that never agreed to marketing, or switch
+ * on promotions a member had turned off in Settings. Now:
+ *   - UNSUBSCRIBE turns both off, as before, and the FIRST one through a link
+ *     records what they were in profiles.promotions_before_unsubscribe
+ *     (a second unsubscribe keeps the first record: it is what the person had).
+ *     A member with no notification_preferences row is recorded as promotions
+ *     ON, because that is what every sender reads a missing row as.
+ *   - RESUBSCRIBE restores exactly that record and clears it. No record means
+ *     a link never turned anything off, so it writes NOTHING: marketing
+ *     consent that was never given stays off.
+ * Before the column exists (deploy lag) an unsubscribe still turns both off
+ * (the opt-out never waits on the record) and a resubscribe fails rather than
+ * guess.
  *
  * `.select('user_id')` on the profiles UPDATE is deliberate: an UPDATE that
  * matches zero rows resolves `{ data: [], error: null }`, so without it a
@@ -140,51 +185,56 @@ async function setCommercialConsent(
   userId: string,
   optOut: boolean,
 ): Promise<void> {
-  // Q?unsub-resubscribe-consent (owner, 2026-10-15: "only undo what they
-  // turned off"). Resubscribe used to write `marketing_consent: true` whatever
-  // it was before, so anyone holding a promotions link (a sign-up lead
-  // reminder carries one too) could opt in an address that never ticked the
-  // sign-up box. Now an unsubscribe still turns consent OFF, but a resubscribe
-  // turns it back ON only for someone who agreed to it before: the sign-up
-  // consent record (`legal_acceptances.marketing_opted_in`, written by
-  // complete-signup when the box is ticked; measured 2026-10-15: all 24
-  // profiles with consent on have one). No record: consent is not written and
-  // stays off, and only the list they left (email_promotions) comes back.
-  // A failed read throws: it must never be read as "they agreed".
-  let restoreConsent = !optOut
-  if (!optOut) {
-    const { data: agreed, error: agreedError } = await supabase
-      .from('legal_acceptances')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('marketing_opted_in', true)
-      .limit(1)
-    if (agreedError) throw new Error(`consent record read failed: ${agreedError.message}`)
-    restoreConsent = Array.isArray(agreed) && agreed.length > 0
-  }
+  const { data: profile, error: readError } = await supabase
+    .from('profiles')
+    .select('marketing_consent, promotions_before_unsubscribe')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const columnMissing = isMissingColumn(readError)
+  if (readError && !columnMissing) throw new Error(`consent read failed: ${readError.message}`)
+  if (!readError && !profile) throw new Error('consent read matched no profile row')
+  const saved = (profile?.promotions_before_unsubscribe ?? null) as PromotionsBefore | null
 
-  if (optOut || restoreConsent) {
+  if (optOut) {
+    const patch: Record<string, unknown> = { marketing_consent: false }
+    if (!columnMissing && !saved) {
+      const { data: prefsRow, error: prefsReadError } = await supabase
+        .from('notification_preferences')
+        .select('email_promotions')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (prefsReadError) throw new Error(`email_promotions read failed: ${prefsReadError.message}`)
+      patch.promotions_before_unsubscribe = {
+        marketing_consent: profile?.marketing_consent === true,
+        email_promotions: prefsRow ? prefsRow.email_promotions !== false : true,
+      } satisfies PromotionsBefore
+    }
     const { data: updated, error: profileError } = await supabase
       .from('profiles')
-      .update({ marketing_consent: !optOut })
+      .update(patch)
       .eq('user_id', userId)
       .select('user_id')
     if (profileError) throw new Error(`marketing_consent write failed: ${profileError.message}`)
     if (!updated || updated.length === 0) {
       throw new Error('marketing_consent write matched no profile row')
     }
+    await writeEmailPromotions(supabase, userId, false)
+    return
   }
 
-  // Upsert, not update: `notification_preferences` rows are created lazily by
-  // the app, so a user who never opened the notifications tab has no row and
-  // a bare UPDATE would match zero rows and report success. `user_id` is
-  // UNIQUE (migration 20260312023604), which is what makes onConflict work.
-  const { data: prefs, error: prefsError } = await supabase
-    .from('notification_preferences')
-    .upsert({ user_id: userId, email_promotions: !optOut }, { onConflict: 'user_id' })
+  // Resubscribe.
+  if (columnMissing) throw new Error('resubscribe needs promotions_before_unsubscribe (migration not deployed yet)')
+  if (!saved) return
+  // The list first, then consent + clearing the record: if the second write
+  // fails, the record is still there and a retry finishes the undo.
+  await writeEmailPromotions(supabase, userId, saved.email_promotions === true)
+  const { data: restored, error: restoreError } = await supabase
+    .from('profiles')
+    .update({ marketing_consent: saved.marketing_consent === true, promotions_before_unsubscribe: null })
+    .eq('user_id', userId)
     .select('user_id')
-  if (prefsError) throw new Error(`email_promotions write failed: ${prefsError.message}`)
-  if (!prefs || prefs.length === 0) throw new Error('email_promotions write matched no row')
+  if (restoreError) throw new Error(`marketing_consent restore failed: ${restoreError.message}`)
+  if (!restored || restored.length === 0) throw new Error('marketing_consent restore matched no profile row')
 }
 
 /**

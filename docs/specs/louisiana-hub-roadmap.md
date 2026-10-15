@@ -79,3 +79,4 @@ Owner rule (2026-10-14): "before building all ask me questions to make sure we a
 | S4 | Job posts, listings and reviews: "Translate" button; anyone may write in either language |
 
 Ownership (owner via lead session, 2026-10-14): THIS session builds the jobs flat fee (F3) and memberships off (F4); the lead session stays on the open list; landing on main stays one at a time.
+| F5 | Boosts bought INSIDE the iPhone app: paused for BOTH job boosts and shop/business boosts (owner: "whatever you recommend"; Claude recommended both) — boosts sell on the website only for now; supersedes Shops L65/L66 (Apple/Google in-app purchase) until revisited |

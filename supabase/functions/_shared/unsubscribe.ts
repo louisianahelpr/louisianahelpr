@@ -42,7 +42,7 @@
 // structural, not a convention: see `commercialConsentFilter` below and the
 // comment above the suppression read in each sender.
 //
-// The flags are reversible on purpose (the confirmation page offers "resubscribe"),
+// The flags are reversible on purpose (the app's /unsubscribe page offers "resubscribe"),
 // where a `suppressed_emails` row is append-only and permanent.
 
 import { getAppUrl } from './appUrl.ts'
@@ -235,7 +235,8 @@ export async function unsubscribeHeaders(
   // honours it within 10 business days, and nothing in this repo reads that
   // mailbox — so advertising it promised a channel nobody was listening on,
   // which is worse than not offering one. The signed one-click URL below is
-  // verified working end to end (GET and POST both flip the flags, a forged
+  // verified working end to end (the one-click POST flips the flags; a GET
+  // writes nothing and opens the app's /unsubscribe page, Q1655; a forged
   // signature 400s, an unknown address writes nothing), so the opt-out half of
   // CAN-SPAM is satisfied without it. Owner's call, 2026-08-31.
   const oneClick = recipientEmail ? await buildUnsubscribeUrl(recipientEmail, list) : null

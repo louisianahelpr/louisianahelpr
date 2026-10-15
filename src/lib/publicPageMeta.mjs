@@ -157,6 +157,15 @@ export const NOINDEX_PAGE_META = {
     ogDescription: "This Helpr account has been banned. Contact support if you think this is a mistake.",
     robots: NOINDEX_ROBOTS,
   },
+  // Q1655: reached only from an email's unsubscribe link, with a signed token.
+  "/unsubscribe": {
+    title: "Unsubscribe — Helpr",
+    description: "Stop or restart email from Louisiana Helpr.",
+    canonical: `${SITE_ORIGIN}/unsubscribe`,
+    ogTitle: "Unsubscribe — Helpr",
+    ogDescription: "Stop or restart email from Louisiana Helpr.",
+    robots: NOINDEX_ROBOTS,
+  },
 };
 
 /** The noindex head values for a path, or null when it is not one of those pages. */

@@ -107,7 +107,10 @@ async function pageIfLastTry(p: PayoutDue, why: string): Promise<void> {
   await postSlackOpsAlert({
     kind: "payout_failed", severity: "critical",
     title: "Declutter seller payout gave up",
-    message: `Payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${why.slice(0, 200)}. Pay it by hand.`,
+    // A charge that is not whole (refunded or disputed) must NEVER be paid by hand (lh-money-escrow review of lane J, 3).
+    message: /charge is not whole/.test(why)
+      ? `Payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) gave up: the order's charge was refunded or disputed. Do NOT pay the seller by hand; decide the order first. Last reason: ${why.slice(0, 200)}.`
+      : `Payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${why.slice(0, 200)}. Pay it by hand.`,
     fields: { Group: `declutter_order_${p.order_id}` },
   });
 }
@@ -148,7 +151,7 @@ serve(async (req) => {
     return await modes.clientForParties([r.buyer_id, r.seller_id]);
   };
   const out = {
-    refunds_sent: 0, refunds_reconciled: 0, refunds_failed: 0,
+    refunds_sent: 0, refunds_reconciled: 0, refunds_failed: 0, refunds_gave_up: 0,
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     held: 0, ban_review: 0, no_payout_account: 0, mixed_parties: 0,
   };
@@ -161,6 +164,12 @@ serve(async (req) => {
   if (payoutsRes.error) return cronError(FN, `declutter_payouts_due failed: ${payoutsRes.error.message}`);
   const refunds = (refundsRes.data ?? []) as RefundDue[];
   const payouts = (payoutsRes.data ?? []) as PayoutDue[];
+  // Refunds that gave up (12 tries; the queue no longer offers them): the SQL raises one ops-ledger
+  // alert per row per day and tells the buyer once that the refund is being sent by hand
+  // (lh-money-escrow should-fix (a)). A failed check is a defect, never a reason to hold money.
+  const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {});
+  if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
+  else out.refunds_gave_up = Number(gaveUp.data ?? 0);
   if (refunds.length === 0 && payouts.length === 0) return cronResult(FN, out, defects.defects);
 
   // Q1415(c): no refund or payout moves for an account under ban review. Fail closed.

@@ -1509,54 +1509,168 @@ describe("stripe-webhook edge function", () => {
       expect(refundedFlip).toBeUndefined();
     });
 
-    // Q1655: a refunded recurring visit's Stripe Tax transaction (stamped on
-    // its PaymentIntent by charge-recurring-visits) is reversed in full on a
-    // full refund, once per charge; a partial refund is paged, never guessed.
-    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefundCount: ordinaryRefunds.length, logStep }); |     void reverseVisitTaxForRefund;
-    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!isFullRefund) { |   if (false) {
-    it("reverses a refunded visit's Stripe Tax transaction: full refund in full, partial not at all (Q1655)", async () => {
-      const refundEvent = (amountRefunded: number) => ({
-        id: `evt_visit_tax_${amountRefunded}`,
+    // Q1655 / Q1782 (2): a refunded recurring visit's Stripe Tax transaction
+    // (stamped on its PaymentIntent by charge-recurring-visits; ONE labor line,
+    // tax exclusive) is reversed once per refund, keyed on the refund id, by
+    // the share of the labor + tax that refund returned (owner pop-up
+    // 2026-10-15: tax stays paid on fees we keep). The visit below: $100
+    // labor + $10 tax + $3.50 card fee = $113.50 charged; $110 is taxed.
+    describe("recurring-visit sales tax reversal per refund (Q1655, Q1782 (2))", () => {
+      // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, logStep }); |     void reverseVisitTaxForRefund;
+      const visitRefund = (id: string) => ({
+        id,
         type: "charge.refunded",
-        data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 5000, amount_refunded: amountRefunded } },
+        data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 11350, amount_refunded: 0 } },
       });
-      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9" } });
-      stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "tax_txn_rev" });
-      scenario.reads.jobs = { rows: [{ id: "job-v", customer_id: "poster-1", title: "Visit", payment_status: "escrow" }] };
+      const refundsAre = (rows: Array<{ id: string; amount: number; created: number; status?: string }>) =>
+        // Stripe lists newest first.
+        stripeMock.refunds.list.mockResolvedValue({
+          data: [...rows].sort((a, b) => b.created - a.created).map((r) => ({ status: "succeeded", metadata: {}, ...r })),
+          has_more: false,
+        });
+      const piMeta = (extra: Record<string, string> = {}) =>
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", ...extra } });
+      const reversals = () => stripeMock.tax.transactions.createReversal.mock.calls.map((c) => ({ args: c[0], opts: c[1] }));
+      const run = async (evtId: string) => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(visitRefund(evtId));
+        return fn.fetch(webhookRequest(fn, "{}"));
+      };
+      beforeEach(() => {
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({
+          data: [{ id: "tax_li_1", amount: 10000, amount_tax: 1000, reference: "labor" }],
+          has_more: false,
+        });
+        stripeMock.tax.transactions.createReversal.mockImplementation(async (args: { reference: string }) => ({ id: `taxrev_${args.reference}` }));
+        stripeMock.paymentIntents.update.mockResolvedValue({ id: "pi_visit" });
+        scenario.reads.jobs = { rows: [{ id: "job-v", customer_id: "poster-1", title: "Visit", payment_status: "escrow" }] };
+      });
 
-      let fn = await loadConfigured();
-      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
-      await fn.fetch(webhookRequest(fn, "{}"));
-      expect(stripeMock.tax.transactions.createReversal).toHaveBeenCalledTimes(1);
-      const [args, opts] = stripeMock.tax.transactions.createReversal.mock.calls[0];
-      expect(args).toEqual({ mode: "full", original_transaction: "tax_txn_9", reference: "refund:ch_visit" });
-      expect(opts).toEqual({ idempotencyKey: "visit-tax-reversal:ch_visit" });
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     const full = beforeCents === 0 && shareCents >= txTotalCents; |     const full = false;
+      it("a refund of the whole labor + tax (the card fee kept) is ONE full reversal keyed on the refund, recorded on the payment", async () => {
+        piMeta();
+        refundsAre([{ id: "re_full", amount: 11000, created: 100 }]);
+        await run("evt_tax_full");
+        expect(reversals()).toEqual([{
+          args: { mode: "full", original_transaction: "tax_txn_9", reference: "refund:re_full", metadata: { refund_id: "re_full", charge_id: "ch_visit" } },
+          opts: { idempotencyKey: "visit-tax-reversal:re_full" },
+        }]);
+        expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
+      });
 
-      stripeMock.tax.transactions.createReversal.mockClear();
-      fn = await loadConfigured();
-      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(300));
-      await fn.fetch(webhookRequest(fn, "{}"));
-      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if (piMeta[metaKey]) { |     if (false) {
+      it("a redelivery (retry) of the same refund reverses nothing again", async () => {
+        piMeta({ tax_rev_re_full: "taxrev_1" });
+        refundsAre([{ id: "re_full", amount: 11000, created: 100 }]);
+        await run("evt_tax_retry");
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      });
 
-      // Full, but across two refunds: an earlier partial was paged for a hand
-      // reversal, and a full reversal would not net it, so this pages too.
-      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (ordinaryRefundCount > 1) { |   if (false) {
-      stripeMock.refunds.list.mockResolvedValue({ data: [
-        { id: "re_2", amount: 4700, status: "succeeded", metadata: {} },
-        { id: "re_1", amount: 300, status: "succeeded", metadata: {} },
-      ] });
-      fn = await loadConfigured();
-      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
-      await fn.fetch(webhookRequest(fn, "{}"));
-      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
-      stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: false });
+      it("a redelivery before the reversal was recorded reuses the refund's idempotency key, so Stripe hands back the same reversal", async () => {
+        piMeta();
+        refundsAre([{ id: "re_p", amount: 3000, created: 100 }]);
+        await run("evt_tax_a");
+        await run("evt_tax_b");
+        const keys = reversals().map((r) => r.opts.idempotencyKey);
+        expect(keys).toEqual(["visit-tax-reversal:re_p", "visit-tax-reversal:re_p"]);
+      });
 
-      // An ordinary job's PaymentIntent carries no tax transaction: nothing to reverse.
-      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: {} });
-      fn = await loadConfigured();
-      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
-      await fn.fetch(webhookRequest(fn, "{}"));
-      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     const shareCents = Math.min(amount, Math.max(0, total - before)); |     const shareCents = amount;
+      it("a second partial refund gets a second reversal of its own; the first is not reversed again", async () => {
+        piMeta({ tax_rev_re_1: "taxrev_1" });
+        refundsAre([{ id: "re_1", amount: 3000, created: 100 }, { id: "re_2", amount: 2000, created: 200 }]);
+        await run("evt_tax_second");
+        expect(reversals()).toEqual([{
+          args: { mode: "partial", flat_amount: -2000, original_transaction: "tax_txn_9", reference: "refund:re_2", metadata: { refund_id: "re_2", charge_id: "ch_visit" } },
+          opts: { idempotencyKey: "visit-tax-reversal:re_2" },
+        }]);
+      });
+
+      it("the cumulative reversal is capped at what the transaction collected", async () => {
+        piMeta({ tax_rev_re_1: "taxrev_1" });
+        // An own-mistake full refund returns the card fee too: $80 then $33.50.
+        refundsAre([{ id: "re_1", amount: 8000, created: 100 }, { id: "re_2", amount: 3350, created: 200 }]);
+        await run("evt_tax_cap");
+        expect(reversals().map((r) => [r.args.reference, r.args.mode, r.args.flat_amount])).toEqual([["refund:re_2", "partial", -3000]]);
+        // A later refund with nothing left to reverse reverses nothing.
+        stripeMock.tax.transactions.createReversal.mockClear();
+        piMeta({ tax_rev_re_1: "taxrev_1", tax_rev_re_2: "taxrev_2" });
+        refundsAre([{ id: "re_1", amount: 8000, created: 100 }, { id: "re_2", amount: 3350, created: 200 }, { id: "re_3", amount: 500, created: 300 }]);
+        await run("evt_tax_cap2");
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      });
+
+      it("a late-cancel fee kept for the Helpr keeps its share collected: only the returned $85 is reversed, partially", async () => {
+        piMeta();
+        // $113.50 - $3.50 card fee - $25 late-cancel fee paid to the Helpr.
+        refundsAre([{ id: "re_late", amount: 8500, created: 100 }]);
+        await run("evt_tax_kept");
+        expect(reversals().map((r) => [r.args.mode, r.args.flat_amount])).toEqual([["partial", -8500]]);
+      });
+
+      it("a refund that failed before this event is not reversed; one re-issued after it is", async () => {
+        piMeta();
+        refundsAre([{ id: "re_failed", amount: 11000, created: 100, status: "failed" }, { id: "re_again", amount: 11000, created: 200 }]);
+        await run("evt_tax_reissue");
+        expect(reversals().map((r) => [r.args.reference, r.args.mode])).toEqual([["refund:re_again", "full"]]);
+      });
+
+      it("a reversal Stripe refuses is paged with the amount to reverse by hand", async () => {
+        piMeta();
+        refundsAre([{ id: "re_x", amount: 3000, created: 100 }]);
+        stripeMock.tax.transactions.createReversal.mockRejectedValue(new Error("boom"));
+        const res = await run("evt_tax_err");
+        expect(res.status).toBe(200);
+        const page = (slackAlerts as Array<{ title: string; message: string }>).find((a) => /sales tax NOT reversed/.test(a.title));
+        expect(page?.message).toContain("re_x");
+        expect(page?.message).toContain("reverse $30 by hand");
+        // A hand reversal must be recorded, or the next refund event reverses it again.
+        expect(page?.message).toContain("metadata.tax_rev_re_x=");
+        expect(page?.message).toContain("reference refund:re_x");
+      });
+
+      // Reviews of 994f077b2: a stale delivery whose only refund has since
+      // FAILED returned no money, so nobody is told to reverse tax by hand.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if (listedAnyRefund) { |     if (false) {
+      it("a delivery whose every refund has since failed reverses nothing and pages nothing", async () => {
+        piMeta();
+        refundsAre([{ id: "re_gone", amount: 11000, created: 100, status: "failed" }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_tax_allfailed",
+          type: "charge.refunded",
+          data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 11350, amount_refunded: 11000 } },
+        });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+        expect((slackAlerts as Array<{ title: string }>).some((a) => /tax/i.test(a.title))).toBe(false);
+      });
+
+      // Reviews of 994f077b2: only an invalid-request refusal about the
+      // reference reads as "already reversed"; any other error is paged.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return invalidRequest && aboutReference && | return aboutReference &&
+      it("a reference-taken refusal reads as done; a connection error with the same words is paged", async () => {
+        piMeta();
+        refundsAre([{ id: "re_dup", amount: 3000, created: 100 }]);
+        stripeMock.tax.transactions.createReversal.mockRejectedValue(
+          Object.assign(new Error("A transaction with reference refund:re_dup already exists"), { type: "StripeInvalidRequestError", param: "reference" }),
+        );
+        await run("evt_tax_dup");
+        const notReversed = () => (slackAlerts as Array<{ title: string }>).filter((a) => /NOT reversed/.test(a.title));
+        expect(notReversed()).toHaveLength(0);
+        stripeMock.tax.transactions.createReversal.mockRejectedValue(
+          Object.assign(new Error("reference request already in flight"), { type: "StripeConnectionError" }),
+        );
+        await run("evt_tax_dup2");
+        expect(notReversed()).toHaveLength(1);
+      });
+
+      it("control: an ordinary job's PaymentIntent carries no tax transaction, so nothing is reversed", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: {} });
+        refundsAre([{ id: "re_plain", amount: 11000, created: 100 }]);
+        await run("evt_tax_none");
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      });
     });
 
     // Q1724: a LOST chargeback on a taxed recurring visit returns the money

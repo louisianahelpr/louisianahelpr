@@ -10,8 +10,9 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| removedNow \|\| !!visitNotRepaid; |   const notRepaid = (settledAsRefunded && stillFull === false) \|\| !!visitNotRepaid;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (notRepaid && payerToTell) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (delErr) { |   if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   await pageVisitTaxForFailedRefund( |   void pageVisitTaxForFailedRefund; void (
- * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!txId) return "none";\n  await postSlackOpsAlert( |   return "none";\n  await postSlackOpsAlert(
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   await undoVisitTaxForFailedRefund( |   void undoVisitTaxForFailedRefund; void (
+ * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!txId && !reversalId) return "none"; |   if (!reversalId) return "none";
+ * @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | original_transaction: reversalId, reference: | original_transaction: txId ?? reversalId, reference:
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -41,6 +42,9 @@ const refundEvent = (status: string, over: Record<string, unknown> = {}) =>
 // stamps it). Kept at module scope: inside a test body its key would make
 // fixtureSchemaContract grade that whole body as a recurring_visit_payments row.
 const TAXED_VISIT_PI_METADATA = { tax_transaction_id: "tax_1" };
+// Q1782 (2): the same PaymentIntent once charge.refunded reversed the tax of re_1
+// (reverseVisitTaxForRefund records the reversal under tax_rev_<refund id>).
+const TAXED_VISIT_PI_METADATA_REVERSED = { tax_transaction_id: "tax_1", tax_rev_re_1: "taxrev_re_1" };
 const alerts = () => slackAlerts as Array<{ severity?: string; title: string; message: string }>;
 const deletes = () => scenario.writes.filter((w) => w.table === "payment_refunds" && w.op === "delete");
 
@@ -137,24 +141,43 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     expect(JSON.stringify(f)).not.toMatch(/"Ledger row removed":"false"/);
   });
 
-  // Q1730 (finding lh-money-escrow@dcbbd8299#7): charge.refunded reversed the
-  // Stripe Tax transaction of a taxed recurring visit; the refund then failed, so
-  // the money stayed but the tax would no longer be reported. Ops is paged.
-  it("a failed refund on a taxed recurring visit pages ops to undo its tax reversal", async () => {
+  // Q1730 (finding lh-money-escrow@dcbbd8299#7) / Q1782 (2): charge.refunded
+  // reversed the Stripe Tax transaction of a taxed recurring visit for this
+  // refund; the refund then failed, so the money stayed and the tax is
+  // collected after all. Its OWN reversal is undone by a full reversal of that
+  // reversal transaction (Stripe: "Undo a partial refund"), once.
+  it("a failed refund on a taxed recurring visit undoes its own tax reversal, once", async () => {
+    const fn = await load();
+    refundEvent("failed");
+    scenario.reads.jobs = { rows: [] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: TAXED_VISIT_PI_METADATA_REVERSED });
+    stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "taxrev_undo" });
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+    expect(stripeMock.tax.transactions.createReversal).toHaveBeenCalledTimes(1);
+    const [args, opts] = stripeMock.tax.transactions.createReversal.mock.calls[0];
+    expect(args).toEqual({ mode: "full", original_transaction: "taxrev_re_1", reference: "refund-failed:re_1", metadata: { refund_id: "re_1", undoes: "taxrev_re_1" } });
+    expect(opts).toEqual({ idempotencyKey: "visit-tax-reversal-undo:re_1" });
+    expect(alerts().some((a) => /tax/i.test(a.title))).toBe(false);
+    // A redelivery after the Stripe idempotency window finds the reference taken: done, no page.
+    stripeMock.tax.transactions.createReversal.mockRejectedValue(
+      Object.assign(new Error("A transaction with reference refund-failed:re_1 already exists"), { type: "StripeInvalidRequestError", param: "reference" }),
+    );
+    await post(fn);
+    expect(alerts().some((a) => /tax/i.test(a.title))).toBe(false);
+  });
+
+  it("a failed refund on a taxed visit with no reversal recorded for it pages ops to check", async () => {
     const fn = await load();
     refundEvent("failed");
     scenario.reads.jobs = { rows: [] };
     stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", metadata: TAXED_VISIT_PI_METADATA });
-    const res = await post(fn);
-    expect(res.status).toBe(200);
-    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+    await post(fn);
+    expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
     const page = alerts().find((a) => /taxed recurring visit/.test(a.title));
     expect(page?.message).toContain("tax_1");
-    expect(page?.message).toContain("re_1");
-    // Undoing the reversal is right only if the money is kept for good; a
-    // re-refund needs it to stand (review of Q1730).
-    expect(page?.message).toMatch(/LEAVE the reversal/);
-    expect(page?.message).not.toMatch(/\bvoid that reversal\b/);
+    expect(page?.message).toContain("refund:re_1");
   });
 
   it("control: a failed refund with no tax transaction pages nothing about tax", async () => {

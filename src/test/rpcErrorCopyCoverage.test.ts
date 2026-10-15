@@ -66,6 +66,11 @@ const UNREACHABLE: Allowlist = {
       reason: "Expected refusal rendered by DisputedSection/PostedJobActions via isExpectedLifecycleRefusal + their dispute-copy files, not central RPC_ERROR_COPY.",
     },
   },
+  rpc_admin_end_recurring_series: {
+    end_series_unknown_kind: {
+      reason: "Q417 (c): rpc_admin_end_recurring_series always passes the kind 'admin' to end_recurring_series_by_platform, so its unknown-kind refusal cannot be reached from this call site.",
+    },
+  },
   rpc_decide_dispute: {
     dispute_settlement_in_progress: {
       reason: "Admin console (AdminDisputes) renders the settlement-in-progress refusal in its own dispute UI, not via rpcErrorMessage.",

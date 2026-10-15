@@ -123,9 +123,22 @@ async function measureMotion(page: Page, url: string, extraSetup?: (page: Page) 
         return `${nameOf(a)} ${t?.duration}ms x${t?.iterations} on ${describe(eff?.target, eff?.pseudoElement)}`;
       });
 
-    // 2. Anything still moving: transform/opacity changing on EVERY sample.
-    // A one-off state change (a button enabling) changes once; motion changes
-    // continuously, so an element must differ A→B AND B→C to count.
+    // 2. Anything still moving: transform/opacity taking at least THREE
+    // distinct values across four samples. A one-off state change (a button
+    // enabling) gives at most two; motion gives more.
+    //
+    // WHY FOUR SAMPLES AT UNEVEN GAPS (Q1816 a11y-webkit-prod, run
+    // 38580933416): the old rule was three samples 300 ms apart and "A!=B and
+    // B!=C". Tailwind's bounce is symmetric in time (f(t) = f(1s - t)), so two
+    // samples placed symmetrically about a turning point read the SAME
+    // computed transform, and the control reported "nothing moves" with the
+    // chevron bouncing. Measured in WebKit on prod's landing
+    // (~/.lh-shots/sec-c-8/chevron-rules-webkit.json): the old rule failed 1
+    // of 150 trials (-3.249979 twice, 300 ms apart), and 1 of 40 in a second
+    // run; this rule failed 0 of 150. With gaps of 230, 240 and 130 ms no two
+    // pairs of sample times sum to the same value modulo the 1 s period (the
+    // closest are 100 ms apart), so at most ONE pair can coincide and three
+    // distinct values remain. Same 600 ms window as before.
     const sample = () => {
       const m = new Map<Element, string>();
       for (const el of Array.from(document.querySelectorAll("body *"))) {
@@ -135,16 +148,16 @@ async function measureMotion(page: Page, url: string, extraSetup?: (page: Page) 
       return m;
     };
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const a = sample();
-    await wait(300);
-    const b = sample();
-    await wait(300);
-    const c = sample();
+    const samples = [sample()];
+    for (const gap of [230, 240, 130]) {
+      await wait(gap);
+      samples.push(sample());
+    }
     const movers: string[] = [];
-    for (const [el, vb] of b) {
-      const va = a.get(el);
-      const vc = c.get(el);
-      if (va !== undefined && vc !== undefined && va !== vb && vb !== vc) movers.push(`${describe(el)} ${va} → ${vb} → ${vc}`);
+    for (const el of samples[0].keys()) {
+      const vals = samples.map((m) => m.get(el));
+      if (vals.some((v) => v === undefined)) continue;
+      if (new Set(vals).size >= 3) movers.push(`${describe(el)} ${vals.join(" → ")}`);
     }
 
     // 3. The canary: the shared rule must reach arbitrary markup on this

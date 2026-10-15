@@ -148,6 +148,7 @@ describe("the /unsubscribe page's calls against the real function", () => {
     scenario.reads.profiles = {
       rows: [{ user_id: "real-user-1", marketing_consent: false, promotions_before_unsubscribe: { marketing_consent: true, email_promotions: true } }],
     };
+    scenario.reads.notification_preferences = { rows: [{ user_id: "real-user-1", email_promotions: false }] };
     const on = await postUnsubscribe("https://x.supabase.co", link, "resubscribe", viaHarness(fn));
     expect(on.ok && on.action).toBe("resubscribe");
     expect(prefs()).toEqual([

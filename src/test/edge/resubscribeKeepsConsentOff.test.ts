@@ -20,16 +20,23 @@
  *   - agreed, but promotions off in Settings: the undo leaves promotions off;
  *   - a resubscribe with no unsubscribe before it writes nothing;
  *   - a second unsubscribe keeps the first record;
- *   - unsubscribe still turns both off, and a failed read is a failure.
+ *   - a member who changed either flag after the unsubscribe keeps that choice;
+ *   - unsubscribe still turns both off, even when the record cannot be read;
+ *     a resubscribe that cannot read fails;
+ *   - only the service role can write the record (locked column) and the
+ *     pre-verification wipe clears it.
  */
 // @mutate supabase/functions/email-unsubscribe/index.ts |   if (!saved) return\n |   if (!saved) { await writeEmailPromotions(supabase, userId, true); return }\n
-// @mutate supabase/functions/email-unsubscribe/index.ts |     .update({ marketing_consent: saved.marketing_consent === true, promotions_before_unsubscribe: null }) |     .update({ marketing_consent: true, promotions_before_unsubscribe: null })
-// @mutate supabase/functions/email-unsubscribe/index.ts |   await writeEmailPromotions(supabase, userId, saved.email_promotions === true) |   await writeEmailPromotions(supabase, userId, true)
-// @mutate supabase/functions/email-unsubscribe/index.ts |     if (!columnMissing && !saved) { |     if (!columnMissing) {
-// @mutate supabase/functions/email-unsubscribe/index.ts |         marketing_consent: profile?.marketing_consent === true, |         marketing_consent: true,
-// @mutate supabase/functions/email-unsubscribe/index.ts |         email_promotions: prefsRow ? prefsRow.email_promotions !== false : true, |         email_promotions: true,
-// @mutate supabase/functions/email-unsubscribe/index.ts |   if (readError && !columnMissing) throw new Error(`consent read failed: ${readError.message}`) |   if (readError && !columnMissing) return
-// @mutate supabase/functions/email-unsubscribe/index.ts |   if (columnMissing) throw new Error('resubscribe needs promotions_before_unsubscribe (migration not deployed yet)') |   if (columnMissing) return
+// @mutate supabase/functions/email-unsubscribe/index.ts |       ? { marketing_consent: saved.marketing_consent === true, promotions_before_unsubscribe: null } |       ? { marketing_consent: true, promotions_before_unsubscribe: null }
+// @mutate supabase/functions/email-unsubscribe/index.ts |     await writeEmailPromotions(supabase, userId, saved.email_promotions === true) |     await writeEmailPromotions(supabase, userId, true)
+// @mutate supabase/functions/email-unsubscribe/index.ts |     } else if (profile && !saved) { |     } else if (profile) {
+// @mutate supabase/functions/email-unsubscribe/index.ts |           marketing_consent: profile.marketing_consent === true, |           marketing_consent: true,
+// @mutate supabase/functions/email-unsubscribe/index.ts |   return data ? data.email_promotions !== false : true |   return true
+// @mutate supabase/functions/email-unsubscribe/index.ts |   if (readError) throw new Error(`consent read failed: ${readError.message}`) |   if (readError) return
+// @mutate supabase/functions/email-unsubscribe/index.ts |       console.error('[email-unsubscribe] consent read failed; opting out without a record:', readError.message) |       throw new Error(readError.message)
+// @mutate supabase/functions/email-unsubscribe/index.ts |   const untouched = profile.marketing_consent === false && (await readEmailPromotions(supabase, userId)) === false |   const untouched = true
+// @mutate supabase/functions/email-unsubscribe/index.ts |           .is('promotions_before_unsubscribe', null) |
+// @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql |     'promotions_before_unsubscribe'\n  ]::text[]; |     'auto_suspended_until_x'\n  ]::text[];
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -37,6 +44,9 @@ import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetEmailMocks } from "./mocks/email";
 import { postUnsubscribe, type UnsubscribeLink, type UnsubscribeAction } from "@/lib/emailUnsubscribe";
+import { effectiveDefs } from "../helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "../helpers/blankNonCode";
+import { join } from "node:path";
 
 const BASE = "https://x.supabase.co";
 const MEMBER = "member-1";
@@ -144,28 +154,54 @@ describe("resubscribe undoes only what the unsubscribe turned off", () => {
     expect(state()).toEqual({ consent: true, promotions: true });
   });
 
-  it("a failed read fails the request and writes nothing", async () => {
-    seed({ consent: false, promotions: null });
-    scenario.reads.profiles = { rows: [profile], selectOverrides: [{ includes: "promotions_before_unsubscribe", result: { error: { message: "boom", code: "XX000" } } }] };
-    for (const action of ["unsubscribe", "resubscribe"] as const) {
-      expect(await postUnsubscribe(BASE, link, action, (async (i: RequestInfo | URL, n?: RequestInit) => fn.fetch(new Request(i, n))) as typeof fetch))
-        .toEqual({ ok: false, error: "failed" });
-    }
-    expect(scenario.writes.filter((w) => w.table !== "signup_leads")).toEqual([]);
+  it("a member who changed a flag after the unsubscribe keeps that choice: the undo clears the record and writes nothing else", async () => {
+    seed({ consent: false, promotions: true, saved: { marketing_consent: true, email_promotions: true } });
+    expect((await tap("resubscribe")).ok).toBe(true);
+    expect(state()).toEqual({ consent: false, promotions: true });
+    expect(profile.promotions_before_unsubscribe).toBeNull();
+    expect(scenario.writes.filter((w) => w.table === "notification_preferences")).toEqual([]);
+    expect(consentWrittenTrue()).toBe(false);
   });
 
-  it("before the column is deployed: unsubscribe still turns both off, resubscribe fails rather than guess", async () => {
+  it("the record only fills an empty one, so two racing unsubscribes cannot record the half-off state", async () => {
     seed({ consent: true, promotions: true });
-    scenario.reads.profiles = { rows: [profile], selectOverrides: [{ includes: "promotions_before_unsubscribe", result: { error: { message: "column profiles.promotions_before_unsubscribe does not exist", code: "42703" } } }] };
-    const off = await postUnsubscribe(BASE, link, "unsubscribe", (async (i: RequestInfo | URL, n?: RequestInit) => fn.fetch(new Request(i, n))) as typeof fetch);
-    expect(off.ok).toBe(true);
-    const writes = scenario.writes.filter((w) => w.table !== "signup_leads").map((w) => [w.table, w.payload]);
-    expect(writes).toEqual([
-      ["profiles", { marketing_consent: false }],
-      ["notification_preferences", { user_id: MEMBER, email_promotions: false }],
-    ]);
-    const on = await postUnsubscribe(BASE, link, "resubscribe", (async (i: RequestInfo | URL, n?: RequestInit) => fn.fetch(new Request(i, n))) as typeof fetch);
-    expect(on).toEqual({ ok: false, error: "failed" });
-    expect(consentWrittenTrue()).toBe(false);
+    await tap("unsubscribe");
+    const recordWrite = scenario.writes.find((w) => w.table === "profiles" && "promotions_before_unsubscribe" in (w.payload as object));
+    expect(recordWrite?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "is", column: "promotions_before_unsubscribe", value: null }),
+    ]));
+  });
+
+  for (const [why, err] of [
+    ["a failed read", { message: "boom", code: "XX000" }],
+    ["the column not deployed yet", { message: "column profiles.promotions_before_unsubscribe does not exist", code: "42703" }],
+  ] as const) {
+    it(`${why}: unsubscribe still turns both off (no record), resubscribe fails and writes nothing`, async () => {
+      seed({ consent: true, promotions: true });
+      scenario.reads.profiles = { rows: [profile], selectOverrides: [{ includes: "promotions_before_unsubscribe", result: { error: err } }] };
+      const post = (action: UnsubscribeAction) =>
+        postUnsubscribe(BASE, link, action, (async (i: RequestInfo | URL, n?: RequestInit) => fn.fetch(new Request(i, n))) as typeof fetch);
+      expect((await post("unsubscribe")).ok).toBe(true);
+      expect(scenario.writes.filter((w) => w.table !== "signup_leads").map((w) => [w.table, w.payload])).toEqual([
+        ["profiles", { marketing_consent: false }],
+        ["notification_preferences", { user_id: MEMBER, email_promotions: false }],
+      ]);
+      const before = scenario.writes.length;
+      expect(await post("resubscribe")).toEqual({ ok: false, error: "failed" });
+      expect(scenario.writes.slice(before).filter((w) => w.table !== "signup_leads")).toEqual([]);
+    });
+  }
+});
+
+describe("only the service role writes the record", () => {
+  const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
+  const flat = (fn: string) => blankSqlComments(defs.get(fn)?.stmt ?? "").replace(/\s+/g, " ");
+
+  it("reads the newest definitions (floor)", () => {
+    expect(defs.size).toBeGreaterThan(100);
+  });
+
+  it("the newest profiles_locked_update_columns() locks it, so the grant sync never gives clients UPDATE on it", () => {
+    expect(flat("profiles_locked_update_columns")).toMatch(/'promotions_before_unsubscribe'/);
   });
 });

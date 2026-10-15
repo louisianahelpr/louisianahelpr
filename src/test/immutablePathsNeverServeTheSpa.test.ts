@@ -16,10 +16,22 @@
  * immutable path, or a widened catch-all, fails here.
  *
  * @mutate vercel.json | "source": "/((?!api/\|_vercel/\|assets/\|fonts/).*)" | "source": "/((?!api/\|_vercel/\|fonts/).*)"
+ *
+ * Q1737: and a missing file there is not cached at all. The header rule stamps
+ * every response under those paths `immutable` for a year, found or not
+ * (measured on www 2026-10-12: a missing chunk's 404 carried it), so a chunk
+ * asked for in a deploy's propagation window could stay a cached 404. Every
+ * immutable path rewrites a missing file to api/missing-file.ts (Vercel serves
+ * a real file before any rewrite), which answers 404 `no-store`.
+ * @mutate vercel.json |       "destination": "/api/missing-file" |       "destination": "/index.html"
+ * @mutate vercel.json |       "source": "/(assets\|fonts)/(.*)", |       "source": "/(assets)/(.*)",
+ * @mutate api/missing-file.ts |         "cache-control": "no-store", |         "cache-control": "public, max-age=31536000, immutable",
+ * @mutate api/missing-file.ts |       status: 404, |       status: 200,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import missingFile from "../../api/missing-file";
 
 type Header = { source: string; headers: { key: string; value: string }[] };
 type Rewrite = { source: string; destination: string };
@@ -62,5 +74,29 @@ describe("an immutable path never falls through to the SPA page (Q1663)", () => 
     const re = sourceToRegExp(spaRewrites[spaRewrites.length - 1].source);
     for (const route of ["/home", "/jobs", "/messages/abc", "/profile/settings"]) expect(re.test(route), route).toBe(true);
     for (const route of ["/api/share", "/_vercel/insights/script.js"]) expect(re.test(route), route).toBe(false);
+  });
+});
+
+describe("a missing immutable file is a 404 nobody caches (Q1737)", () => {
+  const missingRewrites = (cfg.rewrites ?? []).filter((r) => r.destination === "/api/missing-file");
+
+  it("every immutable path rewrites a missing file to api/missing-file, before the SPA catch-all", () => {
+    expect(missingRewrites.length).toBeGreaterThanOrEqual(1);
+    const rewrites = cfg.rewrites ?? [];
+    const spaIndex = rewrites.findIndex((r) => r.destination === "/index.html");
+    for (const src of immutableSources) {
+      const missing = src.replace("(.*)", "missing-Q1737-x.js");
+      const hit = rewrites.findIndex((r) => !/:[A-Za-z]/.test(r.source) && sourceToRegExp(r.source).test(missing));
+      expect(hit, `${missing} reaches no rewrite`).toBeGreaterThanOrEqual(0);
+      expect(rewrites[hit].destination, `${missing} must reach api/missing-file`).toBe("/api/missing-file");
+      expect(hit, "before the SPA catch-all").toBeLessThan(spaIndex);
+    }
+  });
+
+  it("api/missing-file answers 404 with no-store", async () => {
+    const res = missingFile.fetch();
+    expect(res.status).toBe(404);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("cache-control")).not.toMatch(/immutable|max-age=[1-9]/);
   });
 });

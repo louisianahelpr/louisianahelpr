@@ -230,7 +230,12 @@ type RedriveRow = {
  * Re-pay every held-back tip whose Helpr is no longer on hold. Never throws:
  * a fault is a defect the caller counts; the row is left for the next run.
  */
-export async function redriveHeldTips(stripe: Stripe, supabase: Db): Promise<RedriveResult> {
+export async function redriveHeldTips(
+  liveStripe: Stripe,
+  supabase: Db,
+  /** Q1753: the client for this job's money (its own Stripe mode); throws StripeModeRefused on a mix. */
+  stripeForJob?: (jobId: string | null, payees: string[]) => Promise<Stripe>,
+): Promise<RedriveResult> {
   const out: RedriveResult = { repaid: 0, kept: 0, waiting: 0, defects: [] };
   const { data, error } = await supabase
     .from("tip_hold_redrives")
@@ -252,12 +257,22 @@ export async function redriveHeldTips(stripe: Stripe, supabase: Db): Promise<Red
   for (const r of rows) {
     const stale = !r.updated_at || now - Date.parse(r.updated_at) > STALE_MS;
     const held = holds.holds.has(r.helper_id);
+    // Q1753: each row's tip job decides its Stripe mode, resolved only when a
+    // Stripe call is about to run (a waiting row reads nothing more).
+    let rowStripe: Stripe | null = stripeForJob ? null : liveStripe;
+    const stripeForRow = async (): Promise<Stripe> => {
+      if (rowStripe) return rowStripe;
+      const { data: tipJob, error: tipJobErr } = await supabase.from("tips").select("job_id").eq("id", r.tip_id).maybeSingle();
+      if (tipJobErr) throw new Error(`tip job read: ${tipJobErr.message}`);
+      rowStripe = await stripeForJob!((tipJob?.job_id as string | undefined) ?? null, [r.helper_id]);
+      return rowStripe;
+    };
     try {
       if (r.status === "owed") {
         if (!stale) continue; // the webhook is mid-way
         if (!held) {
           // Released before the row moved on: Stripe says whether it did.
-          const found = await ourReversal(stripe, r.transfer_id, r.tip_id);
+          const found = await ourReversal(await stripeForRow(), r.transfer_id, r.tip_id);
           if (found) {
             await markReversed(supabase, r.tip_id, found.id);
             out.waiting++;
@@ -273,7 +288,7 @@ export async function redriveHeldTips(stripe: Stripe, supabase: Db): Promise<Red
           }
           continue;
         }
-        const res = await reverseOwed(stripe, supabase, { tipId: r.tip_id, transferId: r.transfer_id });
+        const res = await reverseOwed(await stripeForRow(), supabase, { tipId: r.tip_id, transferId: r.transfer_id });
         if (res.kind === "not_reversed") out.defects.push(`tip ${r.tip_id} reversal refused: ${res.reason}`);
         out.waiting++;
         continue;
@@ -284,6 +299,9 @@ export async function redriveHeldTips(stripe: Stripe, supabase: Db): Promise<Red
         continue;
       }
       if (r.status === "repaying" && !stale) continue; // another run holds it
+      // The key BEFORE the claim: a refused mode or a failed job read leaves
+      // the row as it was (a defect, retried next run), never a stranded claim.
+      const repayStripe = await stripeForRow();
       // The claim: 'reversed' -> 'repaying', or re-take a stale 'repaying' row
       // pinned to the updated_at it was read at, so two runs that both read it
       // stale cannot both take it (review of Q1222).
@@ -297,7 +315,7 @@ export async function redriveHeldTips(stripe: Stripe, supabase: Db): Promise<Red
       const { data: claimed, error: claimErr } = await claimQ.select("tip_id");
       if (claimErr) { out.defects.push(`tip ${r.tip_id} claim: ${claimErr.message}`); continue; }
       if (!claimed || claimed.length === 0) continue; // another run took it
-      if (await repayOne(stripe, supabase, r, out, now)) out.repaid++;
+      if (await repayOne(repayStripe, supabase, r, out, now)) out.repaid++;
     } catch (err) {
       out.defects.push(`tip ${r.tip_id}: ${message(err)}`);
     }

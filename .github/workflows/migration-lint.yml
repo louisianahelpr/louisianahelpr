@@ -168,6 +168,7 @@ jobs:
             LINT_ALL=1
           fi
           echo "lint_all=$LINT_ALL" >> $GITHUB_OUTPUT
+          echo "diff_base=$DIFF_BASE" >> $GITHUB_OUTPUT
 
           # KNOWN: the lint-all path is currently RED, and that is not a bug in
           # the fallback. Measured across all 521 migrations on 2026-08-31:
@@ -326,6 +327,29 @@ jobs:
           # reintroduced it on the edit trigger, fixed in 20260831015232) —
           # valid SQL, green tests, and a moderation flag that did nothing.
           echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-trigger-timing.mjs
+
+      - name: Refuse an older migration that restates what a newer one already restates
+        if: steps.changed.outputs.files != '' && steps.changed.outputs.lint_all != '1'
+        env:
+          DIFF_BASE: ${{ steps.changed.outputs.diff_base }}
+        run: |
+          # db-deploy's `supabase db push --include-all` applies a migration
+          # OLDER than prod's newest AFTER the newer ones. If both restate the
+          # same function/view/trigger, prod keeps the OLDER body while a
+          # replay (version order) ends on the newer one, and nothing reds
+          # (2026-10-15: ready/declutter-4 vs main's 20261015052622
+          # export_my_data). Base = the PR's base on a PR, the pushed range's
+          # before-SHA when db-deploy calls this, so a conflict that reaches
+          # main still stops the prod push. scripts/land.sh runs it too.
+          node scripts/check-out-of-order-restatements.mjs --base "$DIFF_BASE" --head HEAD
+
+      - name: Out-of-order restatements — whole-tree fallback has no base
+        if: steps.changed.outputs.lint_all == '1'
+        run: |
+          # With no diff base there is no "added since" set to judge. Said, not
+          # skipped silently: the landing gate (scripts/land.sh, base
+          # origin/main) already ran this check on every branch that landed.
+          echo "::warning::Whole-tree fallback: out-of-order restatements not checked here (no diff base); scripts/land.sh checks every landing against origin/main."
 
       - name: Block unacknowledged destructive DDL
         if: steps.changed.outputs.files != '' && steps.changed.outputs.lint_all != '1'

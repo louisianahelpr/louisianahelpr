@@ -66,7 +66,7 @@ async function cleanup(job) {
   try { await rest(`admin_audit_log?target_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup audit: ${e.message.slice(0, 120)}`); }
   // A refund lands the job in `cancelled`: drop any strike/violation it filed on
   // the seed poster, or three rounds would restrict the account for 7 days.
-  for (const t of ["payout_transfers", "payment_refunds", "disputes", "user_violations", "user_strikes"]) {
+  for (const t of ["payout_transfers", "payment_refunds", "disputes", "user_violations"]) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }
   await rest(`jobs?id=eq.${job.id}`, { method: "DELETE" });

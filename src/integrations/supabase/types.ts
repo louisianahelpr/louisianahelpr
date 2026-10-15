@@ -7578,64 +7578,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_strikes: {
-        Row: {
-          created_at: string
-          dispute_id: string | null
-          expires_at: string | null
-          id: string
-          issued_by: string | null
-          job_id: string | null
-          reason: string
-          severity: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          dispute_id?: string | null
-          expires_at?: string | null
-          id?: string
-          issued_by?: string | null
-          job_id?: string | null
-          reason: string
-          severity?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          dispute_id?: string | null
-          expires_at?: string | null
-          id?: string
-          issued_by?: string | null
-          job_id?: string | null
-          reason?: string
-          severity?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_strikes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_strikes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_strikes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_violations: {
         Row: {
           action_taken: string

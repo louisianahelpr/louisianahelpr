@@ -8,7 +8,7 @@
  * suspended the account every prod workflow signs in as. This check makes
  * that state red the night it appears instead of the day a journey breaks.
  *
- * Load: 4 service-role REST reads (profiles, user_strikes, user_violations, test_accounts),
+ * Load: 3 service-role REST reads (profiles, user_violations, test_accounts; the old strikes table was dropped by Q1682),
  * each filtered to the six accounts below. No writes.
  *
  * Also exit 1 when a shared account has no public.test_accounts row (Q552
@@ -103,7 +103,8 @@ async function main() {
   const profiles = await get(`profiles?email=in.(${encodeURIComponent(emails)})&select=user_id,email,ban_status`);
   if (profiles.length === 0) throw new Error("no shared test account profiles found — wrong project?");
   const ids = profiles.map((p) => p.user_id).join(",");
-  const strikes = await get(`user_strikes?user_id=in.(${ids})&select=id,user_id,reason,severity,job_id,created_at,expires_at`);
+  // Q1682: the old strikes table was dropped (0 rows on prod 2026-10-14, no writer); strikes live in user_violations.
+  const strikes = [];
   const violations = await get(`user_violations?user_id=in.(${ids})&select=id,user_id,violation_type,action_taken,job_id,created_at`);
 
   const problems = findStrikes(profiles, strikes, violations);

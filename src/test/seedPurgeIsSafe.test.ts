@@ -29,11 +29,11 @@
  * RED: before 20260926041023 the inventory test fails (no purge function, no
  * cron); each @mutate below turns one property off.
  *
- * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'cancelled')\n       AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY | AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY
- * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | 'public.payout_transfers:job_id', |
- * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | v_dry     boolean     := p_dry_run IS DISTINCT FROM false; | v_dry     boolean     := coalesce(p_dry_run, false);
+ * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql | AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'cancelled')\n       AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY | AND substr(j.id::text, 15, 1) = '4'\n       AND NOT EXISTS (SELECT 1 FROM public.profiles p\n                        WHERE p.user_id = j.customer_id AND NOT p.is_seed)\n     ORDER BY
+ * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql | 'public.payout_transfers:job_id', |
+ * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql | v_dry     boolean     := p_dry_run IS DISTINCT FROM false; | v_dry     boolean     := coalesce(p_dry_run, false);
  * @mutate supabase/migrations/20260926041023_purge_old_seed_data.sql | to_jsonb(public.run_seed_purge()) | public.run_seed_purge()
- * @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql | interval '7 days'); | interval '0 days');
+ * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql | interval '7 days'); | interval '0 days');
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -62,7 +62,6 @@ const HOLD_REFS = [
   // NO ACTION (live 2026-09-26)
   "public.jobs:parent_job_id",
   "public.user_violations:job_id",
-  "public.user_strikes:job_id",
   "public.str_processed_events:job_id",
   "public.gift_cards:job_id",
   // money / trust history an ON DELETE CASCADE or SET NULL would erase or orphan
@@ -119,8 +118,8 @@ describe("the seed purge only removes old, money-free, disposable test data (Q65
   });
 
   // Q455: the gift-card journey's residue goes too, and ONLY certain residue.
-  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                      WHERE g.payment_status = 'pending'\n                       AND g.status = 'expired' |                      WHERE g.status = 'expired'
-  // @mutate supabase/migrations/20261007044702_seed_purge_clears_gift_residue.sql |                       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = g.donor_id AND p.is_seed)\n                       AND (g.recipient_id IS NULL |                       AND (g.recipient_id IS NULL
+  // @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql |                      WHERE g.payment_status = 'pending'\n                       AND g.status = 'expired' |                      WHERE g.status = 'expired'
+  // @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql |                       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = g.donor_id AND p.is_seed)\n                       AND (g.recipient_id IS NULL |                       AND (g.recipient_id IS NULL
   it("deletes only certain gift-card residue: never paid, expired, old, seed donor and recipient, no job, no child (Q455)", () => {
     const del = /DELETE\s+FROM\s+public\.gift_cards\s+WHERE\s+id\s+IN\s*\(([\s\S]*?)\);/i.exec(body)?.[1] ?? "";
     expect(del.length, "the gift step deletes through one bounded select").toBeGreaterThan(100);

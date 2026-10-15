@@ -895,7 +895,7 @@ describe("Popup grammar — footer", () => {
    *   adminJobs/JobDetail Remove / Override / Refund — a wrapping toolbar.
    *   AdminSettings       inline per-section saves inside a settings form.
    *   TipDialog           one Send beside the amount input — an input group.
-   *   SosShareButton, PhotoProof, HelperScheduleStrip — single inline buttons.
+   *   SosShareButton, PhotoProof — single inline buttons.
    *
    * So the signature is a GHOST/OUTLINE button and a PRIMARY/DESTRUCTIVE button
    * as siblings in one flex or grid container — that pair means "back out" and

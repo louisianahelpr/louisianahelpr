@@ -33,6 +33,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { DEFAULT_SUPABASE_URL, resolveServiceKey } from "./lib/adminSession.mjs";
+import { supabaseBase } from "./lib/apiBase.mjs";
 
 export const REVIEWER_EMAIL = "apple-reviewer@louisianahelpr.com";
 export const SECRET_NAME = "ASC_REVIEW_DEMO_PASSWORD";
@@ -128,7 +129,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     apply: process.argv.includes("--apply"),
     freeze,
     fetchImpl: fetch,
-    url: process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL,
+    url: supabaseBase(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL),
     key: resolveServiceKey(),
     setSecret: ghSetSecret,
     writeBackup: backupFile,

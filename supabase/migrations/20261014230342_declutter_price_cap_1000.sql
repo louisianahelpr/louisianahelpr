@@ -62,22 +62,40 @@ END
 $do$;
 
 -- 3. The cap itself (column CHECKs were auto-named <table>_<column>_check).
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_items.declutter_items_price_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_items_price_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_items_price_cap validates against every existing row.
 ALTER TABLE public.declutter_items DROP CONSTRAINT IF EXISTS declutter_items_price_cents_check;
 ALTER TABLE public.declutter_items DROP CONSTRAINT IF EXISTS declutter_items_price_cap;
 ALTER TABLE public.declutter_items ADD CONSTRAINT declutter_items_price_cap CHECK (price_cents BETWEEN 100 AND 100000);
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_items.declutter_items_current_price_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_items_current_price_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_items_current_price_cap validates against every existing row.
 ALTER TABLE public.declutter_items DROP CONSTRAINT IF EXISTS declutter_items_current_price_cents_check;
 ALTER TABLE public.declutter_items DROP CONSTRAINT IF EXISTS declutter_items_current_price_cap;
 ALTER TABLE public.declutter_items ADD CONSTRAINT declutter_items_current_price_cap CHECK (current_price_cents BETWEEN 100 AND 100000);
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_item_private.declutter_item_private_floor_price_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_item_private_floor_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_item_private_floor_cap validates against every existing row.
 ALTER TABLE public.declutter_item_private DROP CONSTRAINT IF EXISTS declutter_item_private_floor_price_cents_check;
 ALTER TABLE public.declutter_item_private DROP CONSTRAINT IF EXISTS declutter_item_private_floor_cap;
 ALTER TABLE public.declutter_item_private ADD CONSTRAINT declutter_item_private_floor_cap CHECK (floor_price_cents BETWEEN 100 AND 100000);
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_offers.declutter_offers_amount_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_offers_amount_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_offers_amount_cap validates against every existing row.
 ALTER TABLE public.declutter_offers DROP CONSTRAINT IF EXISTS declutter_offers_amount_cents_check;
 ALTER TABLE public.declutter_offers DROP CONSTRAINT IF EXISTS declutter_offers_amount_cap;
 ALTER TABLE public.declutter_offers ADD CONSTRAINT declutter_offers_amount_cap CHECK (amount_cents BETWEEN 100 AND 100000);
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_offer_events.declutter_offer_events_amount_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_offer_events_amount_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_offer_events_amount_cap validates against every existing row.
 ALTER TABLE public.declutter_offer_events DROP CONSTRAINT IF EXISTS declutter_offer_events_amount_cents_check;
 ALTER TABLE public.declutter_offer_events DROP CONSTRAINT IF EXISTS declutter_offer_events_amount_cap;
 ALTER TABLE public.declutter_offer_events ADD CONSTRAINT declutter_offer_events_amount_cap
   CHECK (amount_cents IS NULL OR amount_cents BETWEEN 100 AND 100000);
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_cart_items.declutter_cart_items_price_cents_check
+-- ACK-REASON: the auto-named column CHECK is replaced two lines below by declutter_cart_items_price_cap, a stricter cap (100..100000 cents); the table is never without a price bound once this migration commits.
+-- ACK-DATA-LOSS: none; no rows are deleted or rewritten by this statement, and steps 1-2 above either stop the migration (agreed sales, cart lines, offers) or lower an over-cap listing price, so declutter_cart_items_price_cap validates against every existing row.
 ALTER TABLE public.declutter_cart_items DROP CONSTRAINT IF EXISTS declutter_cart_items_price_cents_check;
 ALTER TABLE public.declutter_cart_items DROP CONSTRAINT IF EXISTS declutter_cart_items_price_cap;
 ALTER TABLE public.declutter_cart_items ADD CONSTRAINT declutter_cart_items_price_cap CHECK (price_cents BETWEEN 100 AND 100000);

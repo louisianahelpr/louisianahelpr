@@ -46,6 +46,13 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 const EXPECTED_CALLERS = [
   "accept_application",
   "accept_group_application",
+  // Quotes on jobs (20261015091114): each sets v_uid := auth.uid() and passes
+  // it, or a party it has just pinned to it, as one argument.
+  // book_accepted_quote / get_quotes_for_request: v_uid is the poster (checked
+  // against the request) vs the quoter. list_open_quote_requests /
+  // submit_job_quote: the request's poster vs v_uid. respond_to_job_quote: the
+  // poster vs the quoter, after v_uid is checked to be one of the two.
+  "book_accepted_quote",
   "can_send_message_to_in_job",
   // Both pass v_uid := auth.uid() (never reassigned) as one argument
   // (20260927012806): the claimer vs the poster, and the poster vs the offeree.
@@ -77,13 +84,17 @@ const EXPECTED_CALLERS = [
   // real answer for (helper, the exporting user).
   "export_my_data",
   "get_my_saved_helpers",
+  "get_quotes_for_request",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
   // participant blocked with the poster. Neither is necessarily auth.uid() (the
   // Helpr may be the one moving the status), and it gets the real answer the
   // same way enforce_block_on_message_insert does: pg_trigger_depth() > 0.
   "insert_job_status_system_message",
+  "list_open_quote_requests",
   "offer_series_dates",
   "respond_to_direct_offer",
+  "respond_to_job_quote",
+  "submit_job_quote",
 ];
 
 describe("Q348: are_users_blocked refuses a third-party pair", () => {

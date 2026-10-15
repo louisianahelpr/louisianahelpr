@@ -29,7 +29,7 @@ export function OfferThread({ offers, mySide }: { offers: QuoteOffer[]; mySide: 
       {offers.map((o, i) => (
         <li key={`${o.at}-${i}`} className="text-sm">
           <span className="font-medium text-foreground">
-            {o.by === mySide ? "You" : mySide === "poster" ? "They" : "The poster"}: {dollars(o.price_cents)}
+            {o.by === mySide ? "You" : "They"}: {dollars(o.price_cents)}
           </span>
           {o.note ? <span className="text-muted-foreground"> · {o.note}</span> : null}
         </li>

@@ -137,7 +137,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
             aria-describedby="quote-price-help"
           />
           <p id="quote-price-help" className="text-xs text-muted-foreground">
-            The whole job, from ${MIN_QUOTE_DOLLARS} to ${MAX_QUOTE_DOLLARS.toLocaleString("en-US")}. If the poster accepts, this is the job price.
+            The whole job, from ${MIN_QUOTE_DOLLARS} to ${MAX_QUOTE_DOLLARS.toLocaleString("en-US")}. If your quote is accepted, this is the job price.
           </p>
         </div>
         <div className="space-y-1.5">

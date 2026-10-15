@@ -36,9 +36,9 @@ export function MyQuoteCard({ quote }: { quote: MyJobQuote }) {
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {myTurn
-          ? "The poster sent a counter-offer"
+          ? "They sent a counter-offer"
           : theirTurn
-            ? "Waiting for the poster"
+            ? "Waiting for their answer"
             : (QUOTE_STATUS_LABEL[quote.status] ?? "Closed")}
         {pending && timeLeft(quote.respond_until) ? ` · ${timeLeft(quote.respond_until)}` : ""}
       </p>
@@ -51,13 +51,13 @@ export function MyQuoteCard({ quote }: { quote: MyJobQuote }) {
         <p className="mt-3 text-sm text-foreground">
           {quote.job_id ? (
             <>
-              The poster booked it.{" "}
+              It's booked.{" "}
               <Link to={`/jobs/${quote.job_id}`} className="font-medium underline underline-offset-2">
                 Open the job
               </Link>
             </>
           ) : (
-            "Accepted. It is booked once the poster pays."
+            "Accepted. It is booked once it is paid for."
           )}
         </p>
       )}

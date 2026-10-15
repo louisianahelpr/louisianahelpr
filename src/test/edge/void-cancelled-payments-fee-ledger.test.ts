@@ -178,7 +178,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     expect(scenario.writes.filter((w) => w.table === "payout_transfers")).toHaveLength(0);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (row && ["paid", "reversed", "waived"].includes(row.status)) return; | if (false) return;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (row && ["paid", "reversed", "waived"].includes(row.status)) return true; | if (false) return true;
   it("a row already paid moves no money and claims nothing", async () => {
     seed({ existing: ledgerRow({ status: "paid", stripe_transfer_id: "tr_old", created_at: OLD }) });
     const h = await load();

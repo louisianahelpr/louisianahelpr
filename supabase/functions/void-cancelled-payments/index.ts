@@ -114,6 +114,8 @@ serve(async (req) => {
        * platform's balance.
        */
       withholdCents = 0,
+      /** Q1806: what the kept cents paid, named in the poster's "gift is back" notice. */
+      withholdReason = "the cancellation fee for the crew spots you closed",
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
       let keptForBlockFees = 0;
@@ -138,7 +140,7 @@ serve(async (req) => {
           shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
           keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
           console.log(
-            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for crew block fees; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
+            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
           );
         }
       }
@@ -182,7 +184,7 @@ serve(async (req) => {
             message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.` +
               // Q1490 review #6: say what the gift kept, as the card path does.
               (keptForBlockFees > 0
-                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.`
+                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.`
                 : ""),
             type: "payment",
             link: "/profile?tab=gift_card",
@@ -322,12 +324,66 @@ serve(async (req) => {
       }
     };
 
+    /**
+     * Q1806: what a gift paid toward this job that can fund a fee the poster
+     * owes, read WITHOUT restoring anything.
+     *   - 'would_restore': `cents` is what the gift paid.
+     *   - 'already_restored' (a run restored it, then its status flip failed):
+     *     `restored`, and `cents` is only what that restore KEPT (0 when the RPC
+     *     does not say), so a gift an earlier run gave back whole funds nothing.
+     *   - no gift on the job: 0.
+     *   - `donationReversed` (review of Q1806 #1): the donor's purchase behind
+     *     the gift was refunded or charged back (revoke_gift_card_for_refund
+     *     stamps the spent row's payment_status), so the platform no longer
+     *     holds that money and a fee "from the gift" would be its own.
+     * Null: unreadable, and the caller fails closed.
+     */
+    const giftFeeFunding = async (
+      jobId: string,
+    ): Promise<{ cents: number; restored: boolean; donationReversed: boolean } | null> => {
+      const { data, error: dryErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
+        p_job_id: jobId,
+        p_dry_run: true,
+      });
+      if (dryErr) return null;
+      const d = (data ?? null) as { outcome?: string; applied_cents?: number | null; restore_cents?: number | null } | null;
+      let cents: number;
+      let restored = false;
+      if (d?.outcome === "would_restore") {
+        cents = Math.max(0, Math.floor(Number(d.applied_cents ?? 0)));
+      } else if (d?.outcome === "already_restored") {
+        restored = true;
+        cents = d.applied_cents === undefined || d.applied_cents === null
+          ? 0
+          : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0)));
+      } else if (d?.outcome === "no_credit" || d?.outcome === "would_unreserve" || d?.outcome === "job_not_found") {
+        return { cents: 0, restored: false, donationReversed: false };
+      } else {
+        return null;
+      }
+      if (cents <= 0) return { cents, restored, donationReversed: false };
+      const { data: spent, error: spentErr } = await supabaseAdmin
+        .from("gift_cards")
+        .select("payment_status")
+        .eq("job_id", jobId)
+        .eq("status", "redeemed")
+        .limit(1);
+      if (spentErr) return null;
+      // A gift that paid something always has its 'redeemed' row: none back is
+      // unreadable, never "not reversed" (re-review nit 1, fails closed).
+      const spentRow = (spent ?? [])[0] as { payment_status?: string | null } | undefined;
+      if (!spentRow) return null;
+      return { cents, restored, donationReversed: spentRow.payment_status !== "paid" };
+    };
+
     const settleCancelledJob = async (
       job: { id: string; title: string },
       patch: Record<string, unknown>,
       stage: string,
       /** Q1490: gift cents kept to pay what the poster owes (see restorePifGift). */
       withholdGiftCents = 0,
+      /** Q1806: what those cents paid, for the poster's notice. */
+      withholdReason?: string,
     ): Promise<boolean> => {
       // Return the gift BEFORE the job leaves escrow. Ordering matters: the
       // selection query at the top of this run is
@@ -335,7 +391,7 @@ serve(async (req) => {
       // been flipped is never handed back. Restoring first means a restore
       // that succeeds and a flip that fails still leaves the recipient
       // whole, and the restore is idempotent so the retry is a no-op.
-      if (!(await restorePifGift(job, stage, withholdGiftCents)).ok) return false;
+      if (!(await restorePifGift(job, stage, withholdGiftCents, withholdReason)).ok) return false;
 
       const { data, error: flipErr } = await supabaseAdmin
         .from("jobs")
@@ -452,14 +508,24 @@ serve(async (req) => {
     const payHelperCancellationFee = async (
       job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
       cancellationFee: number,
-      pi: Stripe.PaymentIntent,
+      /**
+       * Q1806: null for a fully gift-funded job (no card was charged). The fee
+       * then goes from the platform balance the gift paid into, with no
+       * source_transaction; the caller has kept it from the gift first.
+       */
+      pi: Stripe.PaymentIntent | null,
       // Q1358: Part A resolves the rate BEFORE any money moves (a failed read
       // there leaves the job in escrow for the next run) and hands it in here.
       preResolvedPercent: number | undefined,
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe,
-    ) => {
-      if (!(cancellationFee > 0) || !job.helper_id) return;
+    ): Promise<boolean> => {
+      // Q1806: resolves to whether the fee is on the ledger (claimed, paid,
+      // waived, or nothing owed). False only when this run stopped BEFORE a row
+      // existed (a failed read or claim): the gift-funded branch then leaves the
+      // job in escrow, because settling it would keep the fee from the gift with
+      // no row for Part E to pay it from.
+      if (!(cancellationFee > 0) || !job.helper_id) return true;
       const helperId = job.helper_id;
 
       // ── 1. What does the ledger already say? Fails CLOSED. ──
@@ -472,16 +538,16 @@ serve(async (req) => {
       if (rowReadErr) {
         console.error(`[void-cancelled-payments] cancellation fee ledger read failed for job ${job.id}; not transferring:`, rowReadErr.message);
         defects.record(`cancellation fee ledger read ${job.id}: ${rowReadErr.message} — fee not sent`);
-        return;
+        return false;
       }
       let row = existingRow as FeeRow | null;
-      if (row && ["paid", "reversed", "waived"].includes(row.status)) return;
+      if (row && ["paid", "reversed", "waived"].includes(row.status)) return true;
       if (
         row && row.status === "pending" && !row.stripe_transfer_id && row.created_at &&
         Date.now() - new Date(row.created_at).getTime() < FEE_CLAIM_INFLIGHT_MS
       ) {
         console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} is claimed by a run in flight (${row.id}); leaving it.`);
-        return;
+        return true;
       }
 
       // ── 2. Price it. A resumed row keeps the price it was claimed at. ──
@@ -531,7 +597,7 @@ serve(async (req) => {
               message: `The Helpr's cancellation fee for job ${job.id} was not priced or sent, and no ledger row exists for a retry to find. Pay it by hand.`,
               fields: { job_id: job.id, helper_id: helperId, fee: cancellationFee, error: feeRead.error.slice(0, 200) },
             });
-            return;
+            return false;
           }
           commissionPercent = feeRead.percent;
         }
@@ -559,17 +625,17 @@ serve(async (req) => {
         if (claimErr || !claimed) {
           if (claimErr?.code === "23505") {
             console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} was claimed by another run; leaving it.`);
-            return;
+            return true;
           }
           // No claim, no transfer: without a row the transfer would be money
           // nothing records. Reconciliation's charged-fee check pages on it.
           console.error(`[void-cancelled-payments] cancellation fee claim failed for job ${job.id}; not transferring:`, claimErr?.message ?? "no row returned");
           defects.record(`cancellation fee claim ${job.id}: ${claimErr?.message ?? "no row returned"} — fee not sent`);
-          return;
+          return false;
         }
         row = claimed as FeeRow;
         // Nothing left after commission: recorded as waived, nothing to send.
-        if (waived) return;
+        if (waived) return true;
       }
       const feeRow: FeeRow = row;
       const wasFailed = feeRow.status === "failed";
@@ -598,7 +664,7 @@ serve(async (req) => {
             paid_at: new Date().toISOString(),
             failure_reason: null,
           }, `was already paid in Stripe (${alreadyPaidFee.id})`);
-          return;
+          return true;
         }
       } catch (listErr) {
         // Fail CLOSED. Without knowing whether the fee already went out, sending
@@ -606,7 +672,7 @@ serve(async (req) => {
         // Part E retries once the job settles.
         console.error(`[void-cancelled-payments] could not list prior fee transfers for job ${job.id}:`, listErr);
         defects.record(`fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);
-        return;
+        return true;
       }
 
       // ── 5. Payout hold (Q764). The row stays open (pending or failed) and
@@ -617,11 +683,11 @@ serve(async (req) => {
       if (feeHold.kind === "error") {
         console.error(`[void-cancelled-payments] payout hold check failed for job ${job.id} (Helpr ${helperId}); not transferring: ${feeHold.message}`);
         defects.record(`cancellation fee hold check ${job.id}: ${feeHold.message} — fee not sent`);
-        return;
+        return true;
       }
       if (feeHold.kind === "held") {
         console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} not sent: Helpr ${helperId} is on a payout hold.`);
-        return;
+        return true;
       }
 
       // ── 6. Where does it go? ──
@@ -639,7 +705,7 @@ serve(async (req) => {
         console.error(`[void-cancelled-payments] cancellation fee for job ${job.id} (Helpr ${helperId}) not sent: ${why}`);
         await markFeeRow(job.id, feeRow, { status: "failed", failure_reason: why.slice(0, 500) }, `could not be sent (${why.slice(0, 80)})`);
         // Already failed and paged once: Part E keeps retrying quietly.
-        if (wasFailed) return;
+        if (wasFailed) return true;
         defects.record(`cancellation fee ${job.id}: ${why}`);
         await postSlackOpsAlert({
           kind: "payout_failed",
@@ -648,7 +714,7 @@ serve(async (req) => {
           message: "A Helpr's cancellation fee could not be sent. The poster's fee is already captured; the hourly run retries it from cancellation_fee_transfers.",
           fields: { job_id: job.id, helper_id: helperId, fee_transfer_id: feeRow.id, amount: helperPayout, reason: why.slice(0, 200) },
         });
-        return;
+        return true;
       }
 
       // ── 7. Transfer, keyed to the row; then mark it. ──
@@ -667,7 +733,7 @@ serve(async (req) => {
           },
         };
         // Link to the source charge so the transfer draws from these funds.
-        if (pi.latest_charge) {
+        if (pi?.latest_charge) {
           transferParams.source_transaction = typeof pi.latest_charge === "string"
             ? pi.latest_charge
             : pi.latest_charge.id;
@@ -699,11 +765,11 @@ serve(async (req) => {
           // Q1381 review: the transfer may exist. The row keeps its status, so
           // the next attempt reuses this same key and Stripe dedupes it.
           defects.record(`cancellation fee transfer ${job.id}: outcome unknown (${reason.slice(0, 160)}); retried under the same key`);
-          return;
+          return true;
         }
         await markFeeRow(job.id, feeRow, { status: "failed", failure_reason: reason }, `transfer failed (${reason.slice(0, 80)})`);
         // Already failed and paged once: Part E keeps retrying quietly.
-        if (wasFailed) return;
+        if (wasFailed) return true;
         // A defect, not just a bell item: the Helpr is unpaid until Part E's
         // retry succeeds or a person acts. `admin_alert` is what the admin
         // push->Slack mirror pages on (docs/OPEN.md Q2 review, 2026-09-23).
@@ -719,6 +785,7 @@ serve(async (req) => {
           });
         }
       }
+      return true;
     };
 
     // ── A crew's cancellation fee: one transfer per member (Q407) ──────────
@@ -751,7 +818,8 @@ serve(async (req) => {
     const payCrewCancellationFees = async (
       job: { id: string; title: string; helper_fee_percent?: number | string | null },
       shares: CrewShare[],
-      pi: Stripe.PaymentIntent,
+      /** Q1806: null for a fully gift-funded crew (paid from the platform balance the gift paid into). */
+      pi: Stripe.PaymentIntent | null,
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe,
     ) => {
@@ -881,7 +949,7 @@ serve(async (req) => {
             transfer_group: feeGroup,
             metadata: { job_id: job.id, helper_id: share.helper_id, share_id: share.id, type: "cancellation_fee", platform_cut: platformCut },
           };
-          if (pi.latest_charge) {
+          if (pi?.latest_charge) {
             transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
           }
           const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
@@ -1304,7 +1372,9 @@ serve(async (req) => {
           .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...crewRetryShares.keys()])
           // Only a job whose fee Part A captured: one still in escrow is Part A's own.
-          .eq("payment_status", "refunded")
+          // Q1806: 'cancelled' is a fully gift-funded crew whose fee Part A kept
+          // from the gift (the only path that marks a 'cancelled' job charged).
+          .in("payment_status", ["refunded", "cancelled"])
           .eq("cancellation_fee_status", "charged");
         if (settledErr) {
           defects.record(`crew share retry job read: ${settledErr.message}`);
@@ -1345,7 +1415,9 @@ serve(async (req) => {
           .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...feeRetryRows.keys()])
           // Only a job Part A already settled: one still in escrow is Part A's own.
-          .eq("payment_status", "refunded")
+          // Q1806: 'cancelled' is a fully gift-funded job whose fee Part A kept
+          // from the gift (the only path that marks a 'cancelled' job charged).
+          .in("payment_status", ["refunded", "cancelled"])
           .eq("cancellation_fee_status", "charged");
         if (feeJobsErr) {
           defects.record(`cancellation fee retry job read: ${feeJobsErr.message}`);
@@ -1410,8 +1482,13 @@ serve(async (req) => {
       // this loop applies to it (its escrow already left 'escrow').
       if (job.crew_share_retry) {
         const shares = crewRetryShares.get(job.id) ?? [];
-        if (!job.stripe_payment_intent_id) {
-          defects.record(`crew share retry ${job.id}: no payment intent to draw the fee from`);
+        // Q1806: a gift-funded crew ('cancelled', no PaymentIntent) is paid from
+        // the platform balance its gift paid into; any other job with no
+        // PaymentIntent has nothing behind the fee.
+        // A 'cancelled' job WITH a PaymentIntent is a voided hold: no money
+        // behind a fee (review of Q1806 #5).
+        if (job.payment_status === "cancelled" ? !!job.stripe_payment_intent_id : !job.stripe_payment_intent_id) {
+          defects.record(`crew share retry ${job.id}: no payment intent to draw the fee from (${job.payment_status}${job.stripe_payment_intent_id ? ", a voided hold" : ""})`);
           continue;
         }
         const sharesShareMode = await feePayeesShareMode(shares.map((s) => s.helper_id));
@@ -1421,7 +1498,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id) : null;
           await payCrewCancellationFees(job, shares, retryPi, stripe);
           crewSharesRetried += shares.length;
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
@@ -1439,8 +1516,11 @@ serve(async (req) => {
       if (job.fee_transfer_retry) {
         const owed = feeRetryRows.get(job.id);
         if (!owed) continue;
-        if (!job.stripe_payment_intent_id) {
-          defects.record(`cancellation fee retry ${job.id}: no payment intent to draw the fee from`);
+        // Q1806: as Part D, a gift-funded job ('cancelled', no PaymentIntent)
+        // is paid from the platform balance its gift paid into.
+        // A 'cancelled' job WITH a PaymentIntent is a voided hold (review of Q1806 #5).
+        if (job.payment_status === "cancelled" ? !!job.stripe_payment_intent_id : !job.stripe_payment_intent_id) {
+          defects.record(`cancellation fee retry ${job.id}: no payment intent to draw the fee from (${job.payment_status}${job.stripe_payment_intent_id ? ", a voided hold" : ""})`);
           continue;
         }
         const owedShareMode = await feePayeesShareMode([owed.helper_id]);
@@ -1450,7 +1530,7 @@ serve(async (req) => {
           continue;
         }
         try {
-          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          const retryPi = job.stripe_payment_intent_id ? await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id) : null;
           await payHelperCancellationFee(
             { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent },
             Number(owed.fee_amount),
@@ -1699,8 +1779,11 @@ serve(async (req) => {
           blockFeeRows = [];
         }
       }
-      const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
-        crewShares ? payCrewCancellationFees(job, crewShares, pi, stripe) : payHelperCancellationFee(job, fee, pi, singleFeePercent, stripe);
+      /** Resolves false only when a single Helpr's fee could not be put on the ledger (Q1806). */
+      const payCancellationFee = async (fee: number, pi: Stripe.PaymentIntent | null): Promise<boolean> => {
+        const onLedger = await (crewShares ? payCrewCancellationFees(job, crewShares, pi, stripe) : payHelperCancellationFee(job, fee, pi, singleFeePercent, stripe));
+        return onLedger !== false;
+      };
       /**
        * Q1390: try every unpaid block fee. Its cents are withheld from the
        * refund either way; one that cannot go now (a payout hold, no payout
@@ -1752,11 +1835,91 @@ serve(async (req) => {
         // into (no charge to link): a member whose account is gone is voided
         // there and so is never withheld (review #7); one that cannot go now
         // is withheld and Part F pays it later.
+        //
+        // Q1806: the same for the late-cancellation fee owed to the Helpr (or
+        // each crew member). It used to be priced and then dropped here: the
+        // whole gift came back and nobody paid the fee. Now, when a gift paid
+        // for this job, the fee is put on its ledger and sent FIRST (from the
+        // platform balance the gift paid into), then kept from the gift, and
+        // the job is marked charged so Parts D/E retry a fee that could not go
+        // yet. With no gift and no card there is no money behind the job, so no
+        // fee is paid from the platform's own money (never absorb a fee).
+        let giftFeeCents = Math.round(jobCancellationFee * 100);
+        if (giftFeeCents > 0) {
+          const funding = await giftFeeFunding(job.id);
+          const blockCentsNow = crewBlockFeeCents(blockFeeRows);
+          if (funding === null) {
+            console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid; not settling this run.`);
+            defects.record(`gift fee funding read ${job.id}: unreadable — not settled`);
+            results.push({ job_id: job.id, title: job.title, status: "gift_fee_funding_unreadable" });
+            continue;
+          }
+          if (funding.cents === 0 && !funding.restored) {
+            console.warn(`[void-cancelled-payments] job ${job.id}: $${jobCancellationFee.toFixed(2)} cancellation fee owed, but no card or gift paid for this job; nothing to pay it from.`);
+            giftFeeCents = 0;
+          } else if (funding.donationReversed || (funding.restored && funding.cents < giftFeeCents + blockCentsNow)) {
+            // Nothing left to pay the fee from without it being the platform's
+            // own money: the gift's donation went back to the donor (review of
+            // Q1806 #1), or an earlier run already gave the gift back without
+            // keeping the fee (#6). The gift is settled either way, so the job
+            // settles without the fee and a person decides (once a day per job).
+            const why = funding.donationReversed
+              ? "the donation behind the gift was refunded or charged back"
+              : "an earlier run already returned the gift without keeping the fee";
+            console.warn(`[void-cancelled-payments] job ${job.id}: $${jobCancellationFee.toFixed(2)} cancellation fee not paid: ${why}.`);
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Cancellation fee not paid on a gift-funded job",
+              message: `Job ${job.id} ("${job.title}") was paid by a gift card and cancelled late, so a $${jobCancellationFee.toFixed(2)} cancellation fee is owed, but ${why}. The fee was not paid from the platform's own money; decide by hand whether anyone is owed it. (If cancellation_fee_transfers already shows it paid, an earlier run sent it before the donation was reversed; the job is left uncharged, so reconciliation will flag its fee status.)`,
+              fields: { job_id: job.id, fee: jobCancellationFee, gift_kept_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no" },
+              oncePerDayKey: `gift-fee-unfunded:${job.id}`,
+            });
+            giftFeeCents = 0;
+          } else if (funding.cents < giftFeeCents + blockCentsNow) {
+            // A gift-funded job's gift covers its whole cost, and the fee is at
+            // most half the budget, so this should not happen: the fee would be
+            // paid partly from the platform's own money. Fails closed.
+            console.error(`CRITICAL: [void-cancelled-payments] job ${job.id}: its gift paid ${funding.cents}c, less than the ${giftFeeCents}c cancellation fee and ${blockCentsNow}c block fees it owes; not settling.`);
+            defects.record(`gift fee funding ${job.id}: gift paid ${funding.cents}c < fees ${giftFeeCents + blockCentsNow}c — not settled`);
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Gift-funded cancelled job owes more in fees than its gift paid",
+              message: `Job ${job.id} ("${job.title}") was paid by a gift card and cancelled late, but the gift paid less than the fees owed out of it. No money moved and the job stays in escrow; settle it by hand.`,
+              fields: { job_id: job.id, gift_paid_cents: funding.cents, fee_cents: giftFeeCents, block_fee_cents: blockCentsNow },
+              oncePerDayKey: `gift-fee-shortfall:${job.id}`,
+            });
+            results.push({ job_id: job.id, title: job.title, status: "gift_fee_shortfall" });
+            continue;
+          }
+        }
+        if (giftFeeCents > 0 && !(await payCancellationFee(jobCancellationFee, null))) {
+          // The fee is not on its ledger (a failed read or claim, recorded as a
+          // defect there): keeping it from the gift now would leave nothing for
+          // Part E to pay it from. The job stays in escrow; the next run retries.
+          results.push({ job_id: job.id, title: job.title, status: "gift_fee_not_claimed" });
+          continue;
+        }
         if (blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) {
           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null);
           for (const p of paidFirst.problems) defects.record(p);
         }
-        const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found", crewBlockFeeCents(blockFeeRows));
+        const giftBlockCents = crewBlockFeeCents(blockFeeRows);
+        const giftKeptFor = [
+          giftFeeCents > 0 ? `the cancellation fee for your ${crewShares ? "crew" : "Helpr"}` : null,
+          giftBlockCents > 0 ? "the cancellation fee for the crew spots you closed" : null,
+        ].filter((x): x is string => !!x).join(" and ") || undefined;
+        const updated = await settleCancelledJob(
+          job,
+          giftFeeCents > 0
+            // Q1345's stamp, as on the card paths: the fee the gift paid.
+            ? { payment_status: "cancelled", cancellation_fee_status: "charged", cancellation_fee: jobCancellationFee }
+            : { payment_status: "cancelled" },
+          "no payment found",
+          giftFeeCents + giftBlockCents,
+          giftKeptFor,
+        );
         results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated });
         continue;
       }

@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeclutterNotice } from "./declutterUi";
 
 /** /declutter: the title row, the intro, the Browse / My listings tabs, the distance row and the first cards. */
 export function DeclutterHomeSkeleton() {
@@ -68,6 +69,29 @@ export function DeclutterSellSkeleton() {
         <Skeleton className="h-[34rem] w-full rounded-2xl" />
         <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
+    </AppPage>
+  );
+}
+
+const ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Whether a /declutter/item/:id link can name an item at all (item ids are uuids). */
+export function isItemId(id: string | undefined): id is string {
+  return !!id && ITEM_ID.test(id);
+}
+
+/**
+ * The item page for an item that is not there: sold, taken down, or a link
+ * that never named one. Also the gate's frame for a malformed link, where we
+ * know before loading anything that no item will arrive, so a skeleton of
+ * photos would be a promise the page then breaks.
+ */
+export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
+  return (
+    <AppPage title="Item" backTo="/declutter">
+      <DeclutterNotice tone="warn" title="This item isn't available.">
+        {detail ?? "It may have sold or been taken down."}
+      </DeclutterNotice>
     </AppPage>
   );
 }

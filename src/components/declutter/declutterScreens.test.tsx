@@ -141,7 +141,7 @@ describe("Declutter screens", () => {
 
   it("the seller of a rejected listing reads the admin's reason; no offer button exists", async () => {
     state.item = { ...ITEM, status: "rejected" };
-    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByText("Your listing: Not approved")).toBeInTheDocument();
     expect(await screen.findByText("Reason: Used car seats cannot be sold.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /offer/i })).toBeNull();
@@ -149,7 +149,7 @@ describe("Declutter screens", () => {
 
   it("a buyer sees area + miles wording, the watch heart and that offers come later", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
-    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByText("Pickup in Mid-City, Baton Rouge")).toBeInTheDocument();
     expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
@@ -195,13 +195,13 @@ describe("Declutter controls are the shared ones", () => {
     sell.unmount();
     // A buyer's Ask, and the seller's Answer.
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
-    const buyer = at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    const buyer = at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     await screen.findByRole("button", { name: "Ask" });
     check();
     buyer.unmount();
     state.item = { ...ITEM, status: "live" };
     state.questions = [{ id: "q1", item_id: "i1", question: "Is it sturdy?", answer: null, created_at: "2026-10-15", answered_at: null }];
-    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     await screen.findByRole("button", { name: "Answer" });
     check();
     // Inventory floor: Sell an item x2, Finish listing, Save details, List this item, Ask, Answer.
@@ -223,7 +223,7 @@ describe("Declutter controls are the shared ones", () => {
     const word = "Supercalifragilistic".repeat(6);
     state.item = { ...ITEM, status: "live", description: word };
     state.questions = [{ id: "q1", item_id: "i1", question: word, answer: word, created_at: "2026-10-15", answered_at: "2026-10-15" }];
-    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     const texts = [await screen.findByText(`Q: ${word}`), screen.getByText(`A: ${word}`), screen.getByText(word)];
     for (const t of texts) expect(t.className).toMatch(/\[overflow-wrap:anywhere\]|break-all|break-words/);
   });

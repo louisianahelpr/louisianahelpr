@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 /**
+ * ARCHIVED 2026-10-14 (Q1683, owner decision): nothing runs this any more.
+ * The build-time VITE_APPLE_MAPKIT_TOKEN it mints was removed by Q249; the
+ * app gets short-lived tokens from the mapkit-token edge function. Kept only
+ * as a record; do not paste its output into .env.
+ *
  * Generate an Apple MapKit JS token (VITE_APPLE_MAPKIT_TOKEN).
  *
  * A MapKit JS "token" is not a value Apple hands you — it is a JWT you sign
@@ -8,10 +13,10 @@
  * permanent secret.
  *
  * Usage:
- *   node scripts/mapkit-token.mjs <path-to.p8> <KEY_ID> <TEAM_ID> [days]
+ *   node scripts/archive/mapkit-token.mjs <path-to.p8> <KEY_ID> <TEAM_ID> [days]
  *
  * Example:
- *   node scripts/mapkit-token.mjs ~/Downloads/AuthKey_ABCD123456.p8 ABCD123456 XYZ9876543 180
+ *   node scripts/archive/mapkit-token.mjs ~/Downloads/AuthKey_ABCD123456.p8 ABCD123456 XYZ9876543 180
  *
  * Then paste the output into .env as:
  *   VITE_APPLE_MAPKIT_TOKEN="<output>"
@@ -34,7 +39,7 @@ import { createSign, sign as cryptoSign } from "node:crypto";
 const [p8Path, keyId, teamId, daysRaw] = process.argv.slice(2);
 
 if (!p8Path || !keyId || !teamId) {
-  console.error("usage: node scripts/mapkit-token.mjs <path-to.p8> <KEY_ID> <TEAM_ID> [days]");
+  console.error("usage: node scripts/archive/mapkit-token.mjs <path-to.p8> <KEY_ID> <TEAM_ID> [days]");
   process.exit(1);
 }
 

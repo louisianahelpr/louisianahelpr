@@ -2,7 +2,7 @@
 // prod-shaped stub (default privileges grant anon/authenticated, service_role
 // BYPASSRLS), then shows clients are refused and a stage claim is single-winner.
 // Run from a dir with @electric-sql/pglite installed (npm i --no-save):
-//   node scripts/probes/arrival-confirm-nudges.probe.mjs supabase/migrations/20260915070651_arrival_confirm_nudges.sql
+//   node scripts/archive/probes/arrival-confirm-nudges.probe.mjs supabase/migrations/20260915070651_arrival_confirm_nudges.sql
 
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";

@@ -6,6 +6,9 @@
  *
  * @mutate src/components/job-card/activityConstants.ts |   return order.find((k) => (counts[k] ?? 0) > 0) ?? preferred; |   return preferred;
  * @mutate src/components/job-card/JobListPage.tsx |     if (next !== statusFilter) setStatusFilter(next); |     void next;
+ * @mutate src/components/job-card/JobListPage.tsx |     setLinkedJobMissing(!!deepLinkJobId && !named); |     void named;
+ * @mutate src/components/job-card/JobListPage.tsx |     if (!linkedJobMissing \|\| loading) return; |     return;
+ * @mutate src/components/job-card/JobListPage.tsx |  && !jobIsUnfundedDraft(j)) |)
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,6 +34,22 @@ describe("Activity opens on the first bucket that has anything", () => {
 
   it("everything empty stays on Needs you", () => {
     expect(firstBucketWithItems(ORDER, {}, "needs_you")).toBe("needs_you");
+  });
+
+  // Q1668 (found 2026-10-12 in e2e-journeys 38181872855): a notification link
+  // to a job My Posts does not list (cancelled, never paid) landed on a view
+  // with no word about the job. Now the page says so and falls back to the
+  // first bucket with anything.
+  it("a link to a job the list does not hold says so and opens the first bucket with anything", () => {
+    const src = readFileSync(join(process.cwd(), "src/components/job-card/JobListPage.tsx"), "utf8");
+    const resolve = src.slice(src.indexOf("deepLinkResolvedFor.current = deepLinkKey;"), src.indexOf("let bucket: string | null = null;"));
+    expect(resolve).toMatch(/setLinkedJobMissing\(!!deepLinkJobId && !named\);/);
+    // A never-paid job sits in postedJobs but My Posts never shows it.
+    expect(src).toMatch(/postedJobs\.some\(\(j\) => j\.id === \(deepLinkJobId \?\? highlightJobId\) && !jobIsUnfundedDraft\(j\)\)/);
+    const fallback = src.slice(src.indexOf("if (!linkedJobMissing || loading) return;"), src.indexOf("}, [linkedJobMissing, loading]);"));
+    expect(fallback).toMatch(/firstBucketWithItems\(activeStatusFilters\.map/);
+    expect(fallback).toMatch(/setStatusFilter\(next\)/);
+    expect(src).toMatch(/\{linkedJobMissing && \([\s\S]{0,300}That job is no longer on \{tab === "posted" \? "My Posts" : "My Jobs"\}\./);
   });
 
   it("the page applies it once per tab, only on a plain open (no filter or job in the link)", () => {

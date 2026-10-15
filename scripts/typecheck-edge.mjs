@@ -70,6 +70,12 @@ const SKIP_DIRS = new Set(["node_modules", ".git"]);
 const KNOWN_ERRORS = [
   {
     code: "TS2345",
+    // One defect, two codes (see the TS2589 entry): the pair is stale only
+    // when NEITHER matches. Measured 2026-10-15: origin/main reports 6 hits
+    // across the pair, the sec-c-3 head 7, and a branch touching only
+    // unrelated edge functions 5 with no TS2589 at all, so a per-code stale
+    // check failed a tree where the defect was plainly still there.
+    group: "FeeAdminClient",
     contains: "is not assignable to parameter of type 'FeeAdminClient'",
     files: [
       "supabase/functions/auto-release-payment/index.ts",
@@ -95,6 +101,7 @@ const KNOWN_ERRORS = [
   },
   {
     code: "TS2589",
+    group: "FeeAdminClient",
     contains: "Type instantiation is excessively deep and possibly infinite",
     // Same six files as the entry above. A getHelperFeePercent() call site
     // reports EITHER TS2345 or TS2589 depending on how deep the checker gets
@@ -308,7 +315,14 @@ for (const d of diagnostics) {
   if (idx === -1) remaining.push(d);
   else matchedByRule.set(idx, matchedByRule.get(idx) + 1);
 }
-const staleRules = KNOWN_ERRORS.map((rule, i) => ({ rule, hits: matchedByRule.get(i) })).filter((r) => r.hits === 0);
+// A rule in a `group` is stale only when its whole group matched nothing: the
+// checker reports one defect under either code depending on how deep it got.
+const groupHits = new Map();
+KNOWN_ERRORS.forEach((rule, i) => {
+  if (rule.group) groupHits.set(rule.group, (groupHits.get(rule.group) ?? 0) + matchedByRule.get(i));
+});
+const staleRules = KNOWN_ERRORS.map((rule, i) => ({ rule, hits: rule.group ? groupHits.get(rule.group) : matchedByRule.get(i) }))
+  .filter((r) => r.hits === 0);
 
 // ── Report ─────────────────────────────────────────────────────────────────
 if (process.argv.includes("--json")) {

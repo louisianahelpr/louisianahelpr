@@ -10218,6 +10218,13 @@ export type Database = {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
       }
+      poster_crew_block_fee_cents: {
+        Args: never
+        Returns: {
+          fee_cents: number
+          job_id: string
+        }[]
+      }
       pre_verification_wipe_objects: {
         Args: { p_wipe_id: string }
         Returns: {

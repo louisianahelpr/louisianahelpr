@@ -12,6 +12,7 @@
  * @mutate src/components/declutter/declutterUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const [asked, setAsked] = useState(false); |   const [asked, setAsked] = useState(true);
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const device = useUserLocation(asked, "declutter_location"); |   const device = useUserLocation(asked);
+ * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
@@ -149,6 +150,17 @@ describe("Declutter location ask", () => {
     expect(dialog.textContent).not.toMatch(/\bjobs?\b|Helpr/);
     // Once asked, the button goes (a declined prompt cannot be re-shown from the page).
     expect(screen.queryByRole("button", { name: "Use my location" })).toBeNull();
+  });
+
+  it("a refused ask says so: the button goes once tapped, so the screen must give the reason", async () => {
+    at("/declutter", <DeclutterPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Use my location" }));
+    await screen.findByRole("alertdialog");
+    act(() => __resolveRationale(false));
+    expect(await screen.findByText("Location permission declined")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use my location" })).toBeNull();
+    // The notice must not still offer "Use your location" once that is gone.
+    expect(screen.queryByText(/^Use your location/)).toBeNull();
   });
 
   it("an item page never asks for location", async () => {

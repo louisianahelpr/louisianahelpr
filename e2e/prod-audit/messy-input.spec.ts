@@ -72,6 +72,7 @@ import {
   restAs,
   retireApplicantFixtures,
   runtime,
+  serviceRoleKey,
   sessionFor,
   skipWhenUnfundedLive,
   unlessLivePay,
@@ -86,6 +87,7 @@ import {
   type Session,
 } from "./harness";
 import { EXPLORE_CREDITED, FORMS, GAPS } from "./messyInputForms";
+import { ensureDeclutterFixture, type DeclutterFixture } from "./declutterFixture";
 
 const test = base;
 const CREDITS = join("test-results", "messy-input-prod", "credits");
@@ -139,6 +141,9 @@ const BUDGET_FIELD_LABEL = /job budget in dollars/i;
 const sessions = new Map<Account, Session>();
 let fx: Fixtures;
 let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
+/** The live + waiting Declutter items the declutter-ask / declutter-review sweeps open (declutterFixture.ts). */
+let declutterFx: DeclutterFixture | undefined;
+const DECLUTTER_SWEEPS = ["declutter-ask", "declutter-review"];
 /** FormSpec names (messyInputForms.ts) that need the Q100 applicant fixture. */
 const APPLICANT_SWEEPS = ["edit-job", "cancel-job", "applicants-note", "decline-applicant"];
 /** FormSpec names that open `jobWithPendingApplicant`, which only the applicant fixture reliably provides. */
@@ -175,6 +180,11 @@ test.beforeAll(async ({ request, browser }) => {
     livePay.disputedJob = disputed.livePay;
     console.log(`[messy-input] dispute fixture: ${disputed.value?.log.join("; ") ?? `not funded: ${disputed.livePay}`}`);
   }
+  if (!SCOPE_RE || DECLUTTER_SWEEPS.some((t) => SCOPE_RE.test(`sweep: ${t}`))) {
+    declutterFx = await ensureDeclutterFixture(request, { helper: sessions.get("helper")!, admin: sessions.get("admin")! }, RUN_MARKER, serviceRoleKey());
+    runtime.declutter = { liveId: declutterFx.liveId, pendingId: declutterFx.pendingId };
+    console.log(`[messy-input] declutter fixture: ${declutterFx.log.join("; ")}`);
+  }
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
   // Publish for messyInputForms.ts's `prepare` steps — see the comment on
@@ -200,6 +210,11 @@ test.afterAll(async ({ playwright }) => {
       const retired = await retireApplicantFixtures(api, await sessionFor(api, "poster"), await sessionFor(api, "helper"));
       console.log(`[messy-input] applicant fixture cleanup: ${retired.join("; ") || "nothing open"}`);
       runtime.applicantJob = null;
+    }
+    if (declutterFx) {
+      console.log(`[messy-input] declutter fixture cleanup: ${(await declutterFx.undo(api)).join("; ")}`);
+      declutterFx = undefined;
+      runtime.declutter = { liveId: null, pendingId: null };
     }
     if (!adminState) return;
     const out = await adminState.undo(api);

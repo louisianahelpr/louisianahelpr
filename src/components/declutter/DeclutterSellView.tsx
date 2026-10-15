@@ -19,6 +19,9 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
@@ -366,9 +369,9 @@ export default function SellFlow() {
         <input id="sell-address" className={input} maxLength={300} value={form.pickupAddress} onChange={(e) => set("pickupAddress", e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
         <p className="text-xs text-muted-foreground">Private. Only the buyer who pays sees it.</p>
         {problem && <p className="text-xs text-muted-foreground" data-testid="sell-form-problem">{problem}</p>}
-        <button type="button" className="btn-grad-primary rounded-full px-5 py-2.5 text-sm font-semibold" disabled={saving} onClick={() => void saveDetails()}>
+        <Button type="button" size="sm" disabled={saving} onClick={() => void saveDetails()}>
           {saving ? "Saving…" : itemId ? "Save details" : "Save and add photos"}
-        </button>
+        </Button>
       </section>
 
       {itemId ? (
@@ -382,11 +385,13 @@ export default function SellFlow() {
                   <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-xl bg-muted" />
                   <button
                     type="button"
-                    className="absolute top-1 right-1 rounded-full bg-background/90 px-2 py-1 text-xs font-semibold"
+                    className="absolute top-0 right-0 w-11 h-11 flex items-center justify-center"
                     onClick={() => void onRemovePhoto(p.id)}
                     aria-label={`Remove photo ${i + 1}`}
                   >
-                    Remove
+                    <span className="w-7 h-7 rounded-full bg-background/90 text-foreground shadow flex items-center justify-center" aria-hidden>
+                      <X className="w-4 h-4" />
+                    </span>
                   </button>
                 </li>
               ))}
@@ -394,14 +399,14 @@ export default function SellFlow() {
             <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="sell-files" onChange={(e) => void onFiles(e.target.files)} />
             <div className="flex flex-wrap gap-2">
               {photoCount < 12 && (
-                <label htmlFor="sell-files" className="rounded-full border border-border px-4 py-2 text-sm font-semibold cursor-pointer">
-                  {uploading > 0 ? `Adding ${uploading}…` : "Add photos"}
-                </label>
+                <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                  <label htmlFor="sell-files">{uploading > 0 ? `Adding ${uploading}…` : "Add photos"}</label>
+                </Button>
               )}
               {photoCount > 0 && (
-                <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={aiBusy} onClick={() => void onAiDraft()}>
+                <Button type="button" variant="outline" size="sm" disabled={aiBusy} onClick={() => void onAiDraft()}>
                   {aiBusy ? "Looking at your photos…" : "Fill in from my photos"}
-                </button>
+                </Button>
               )}
             </div>
             {photoCount > 0 && (
@@ -414,30 +419,30 @@ export default function SellFlow() {
             <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
             <ul className="space-y-2">
               {windows.map((w, i) => (
-                <li key={i} className="flex flex-wrap items-center gap-2">
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
                   <label className="sr-only" htmlFor={`pw-day-${i}`}>Day</label>
-                  <select id={`pw-day-${i}`} className="rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.weekday}
+                  <select id={`pw-day-${i}`} className="col-span-3 min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.weekday}
                     onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, weekday: Number(e.target.value) } : x)))}>
                     {WEEKDAYS.map((d, n) => <option key={d} value={n}>{d}</option>)}
                   </select>
                   <label className="sr-only" htmlFor={`pw-start-${i}`}>From</label>
-                  <input id={`pw-start-${i}`} type="time" className="min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.starts}
+                  <input id={`pw-start-${i}`} type="time" className="w-full min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.starts}
                     onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, starts: e.target.value } : x)))} />
                   <span className="text-sm">to</span>
                   <label className="sr-only" htmlFor={`pw-end-${i}`}>Until</label>
-                  <input id={`pw-end-${i}`} type="time" className="min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.ends}
+                  <input id={`pw-end-${i}`} type="time" className="w-full min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.ends}
                     onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, ends: e.target.value } : x)))} />
                   {windows.length > 1 && (
-                    <button type="button" className="text-sm underline" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}>Remove</button>
+                    <button type="button" className="col-span-3 justify-self-start min-h-11 text-sm underline" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}>Remove this time</button>
                   )}
                 </li>
               ))}
             </ul>
             {windows.length < 21 && (
-              <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
+              <Button type="button" variant="outline" size="sm"
                 onClick={() => setWindows((ws) => [...ws, { weekday: 0, starts: "17:00", ends: "19:00" }])}>
                 Add a time
-              </button>
+              </Button>
             )}
           </section>
 
@@ -445,11 +450,11 @@ export default function SellFlow() {
             <h2 id="sell-tax" className="text-base font-semibold">4. Confirm about this item</h2>
             <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Check all four to list.</p>
             {TAX_STATEMENTS.map((s, i) => (
-              <label key={s} className="flex items-start gap-3 text-sm">
-                <input type="checkbox" className="mt-1 h-4 w-4" checked={checks[i]}
-                  onChange={(e) => setChecks((c) => c.map((x, j) => (j === i ? e.target.checked : x)))} />
-                <span>{s}</span>
-              </label>
+              <div key={s} className="flex items-start gap-3 text-sm">
+                <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
+                  onCheckedChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v === true : x)))} />
+                <label htmlFor={`sell-tax-${i}`}>{s}</label>
+              </div>
             ))}
           </section>
 
@@ -458,9 +463,9 @@ export default function SellFlow() {
             {photoCount < 3 && <p className="text-sm text-muted-foreground">Add at least 3 photos to list this item.</p>}
             {payoutBlock && <p className="text-sm text-muted-foreground">Set up payouts first (see the note at the top).</p>}
             {photoCount >= 3 && !payoutBlock && (
-              <button type="button" className="btn-grad-primary rounded-full px-6 py-3 text-sm font-semibold" disabled={publishing} onClick={() => void onPublish()}>
+              <Button type="button" disabled={publishing} onClick={() => void onPublish()}>
                 {publishing ? "Listing…" : "List this item"}
-              </button>
+              </Button>
             )}
           </section>
         </>

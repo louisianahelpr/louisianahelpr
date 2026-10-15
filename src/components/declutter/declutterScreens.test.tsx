@@ -7,6 +7,9 @@
  * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             <Button type="submit" size="sm" disabled={ask.isPending \|\| question.trim().length < 2}> |             <Button type="submit" size="sm" className="btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| question.trim().length < 2}>
+ * @mutate src/components/declutter/DeclutterItemView.tsx | <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: | <p className="text-sm font-medium">Q:
+ * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -19,6 +22,8 @@ const state = {
   payoutBlock: null as string | null,
   mine: [] as unknown[],
   item: null as unknown,
+  photos: [] as unknown[],
+  questions: [] as unknown[],
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
@@ -40,8 +45,8 @@ vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,
-  fetchPhotos: async () => [],
-  fetchQuestions: async () => [],
+  fetchPhotos: async () => state.photos,
+  fetchQuestions: async () => state.questions,
   fetchSellerRating: async () => ({ avg: 4.8, count: 12 }),
   fetchWatching: async () => new Set(),
   fetchItem: async () => state.item,
@@ -88,6 +93,8 @@ describe("Declutter screens", () => {
     state.payoutBlock = null;
     state.mine = [];
     state.item = null;
+    state.photos = [];
+    state.questions = [];
   });
 
   it("switch off: every Declutter route is the 404", () => {
@@ -144,6 +151,77 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
     expect(screen.getByText("Making offers is coming soon.")).toBeInTheDocument();
     expect(await screen.findByText(/4\.8 stars from 12 reviews/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * THE DECLUTTER SCREENS WEAR THE APP'S OWN CONTROLS (2026-10-15 visual pass on prod, lane E).
+ * Measured on prod: every Declutter primary was a hand-rolled `<button className="btn-grad-primary">`
+ * with no ink of its own, so it inherited the page's text colour: rgb(46,47,34) on the olive gloss in
+ * light mode (about 1.5:1) and cream on the light olive in dark mode. The shared `<Button>` pins the
+ * ink (button.tsx `primary`). The tax confirmations were native checkboxes (system blue on iOS), and a
+ * long unbroken question ran out of its card at 375. Each rule below is checked on every screen state
+ * that renders the control, never on one sample.
+ */
+describe("Declutter controls are the shared ones", () => {
+  const PINNED_INK = "!text-[hsl(var(--parchment))]";
+  // SegmentedControl's selected option takes its ink from `.segmented-option-selected` (index.css).
+  const gradients = () => Array.from(document.querySelectorAll<HTMLElement>(".btn-grad-primary:not(.segmented-option-selected)"));
+
+  it("every glossy primary on every Declutter screen pins its ink (shared Button)", async () => {
+    let seen = 0;
+    const check = () => {
+      for (const el of gradients()) {
+        seen++;
+        expect(el.className, `${el.textContent?.trim()} wears btn-grad-primary without pinned ink`).toContain(PINNED_INK);
+      }
+    };
+    // Home (Sell an item) and My listings (Finish listing).
+    state.mine = [{ ...ITEM, status: "draft" }];
+    const home = at("/declutter?view=mine", <DeclutterPage />);
+    await screen.findByRole("button", { name: "Finish listing" });
+    check();
+    home.unmount();
+    // Sell: Save, and List this item once there are 3 photos.
+    state.item = { ...ITEM, status: "draft" };
+    state.photos = [1, 2, 3].map((n) => ({ id: `p${n}`, item_id: "i1", storage_path: `u1/declutter/i1/${n}.jpg`, position: n }));
+    const sell = at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
+    await screen.findByRole("button", { name: "List this item" });
+    check();
+    sell.unmount();
+    // A buyer's Ask, and the seller's Answer.
+    state.item = { ...ITEM, seller_id: "u2", status: "live" };
+    const buyer = at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    await screen.findByRole("button", { name: "Ask" });
+    check();
+    buyer.unmount();
+    state.item = { ...ITEM, status: "live" };
+    state.questions = [{ id: "q1", item_id: "i1", question: "Is it sturdy?", answer: null, created_at: "2026-10-15", answered_at: null }];
+    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    await screen.findByRole("button", { name: "Answer" });
+    check();
+    // Inventory floor: Sell an item x2, Finish listing, Save details, List this item, Ask, Answer.
+    expect(seen).toBeGreaterThan(5);
+  });
+
+  it("the four tax confirmations are the shared Checkbox, not native inputs", async () => {
+    state.item = { ...ITEM, status: "draft" };
+    at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
+    const boxes = await screen.findAllByRole("checkbox");
+    expect(boxes.length).toBe(4);
+    for (const b of boxes) expect(b.tagName).toBe("BUTTON");
+    expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
+    // Each statement is the box's label.
+    expect(screen.getByRole("checkbox", { name: "I bought this item for my own personal or household use." })).toBeInTheDocument();
+  });
+
+  it("a long unbroken question, answer or description can wrap inside its card", async () => {
+    const word = "Supercalifragilistic".repeat(6);
+    state.item = { ...ITEM, status: "live", description: word };
+    state.questions = [{ id: "q1", item_id: "i1", question: word, answer: word, created_at: "2026-10-15", answered_at: "2026-10-15" }];
+    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    const texts = [await screen.findByText(`Q: ${word}`), screen.getByText(`A: ${word}`), screen.getByText(word)];
+    for (const t of texts) expect(t.className).toMatch(/\[overflow-wrap:anywhere\]|break-all|break-words/);
   });
 });
 

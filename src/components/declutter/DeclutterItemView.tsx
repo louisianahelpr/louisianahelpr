@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserLocation } from "@/hooks/useUserLocation";
@@ -71,9 +72,9 @@ function QuestionRow({ q, isSeller, itemId }: { q: DeclutterQuestion; isSeller: 
   });
   return (
     <li className="rounded-xl border border-border p-3 space-y-1">
-      <p className="text-sm font-medium">Q: {q.question}</p>
+      <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: {q.question}</p>
       {q.answer ? (
-        <p className="text-sm text-muted-foreground">A: {q.answer}</p>
+        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">A: {q.answer}</p>
       ) : isSeller ? (
         <form
           className="flex gap-2"
@@ -89,11 +90,11 @@ function QuestionRow({ q, isSeller, itemId }: { q: DeclutterQuestion; isSeller: 
             value={answer}
             maxLength={1000}
             onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Answer for everyone to see"
+            placeholder="Write an answer"
           />
-          <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={send.isPending || !answer.trim()}>
+          <Button type="submit" size="sm" disabled={send.isPending || !answer.trim()}>
             Answer
-          </button>
+          </Button>
         </form>
       ) : (
         <p className="text-xs text-muted-foreground">Not answered yet.</p>
@@ -209,7 +210,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
       {it.description && (
         <section className="space-y-1">
           <h2 className="text-base font-semibold">About this item</h2>
-          <p className="text-sm whitespace-pre-line">{it.description}</p>
+          <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{it.description}</p>
         </section>
       )}
 
@@ -250,13 +251,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Ask the seller a question"
             />
-            <button
-              type="submit"
-              className="btn-grad-primary rounded-full px-4 text-sm font-semibold"
-              disabled={ask.isPending || question.trim().length < 2}
-            >
+            <Button type="submit" size="sm" disabled={ask.isPending || question.trim().length < 2}>
               Ask
-            </button>
+            </Button>
           </form>
         )}
       </section>

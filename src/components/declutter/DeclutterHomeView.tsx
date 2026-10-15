@@ -9,6 +9,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -152,22 +153,19 @@ function MyListingsView({ userId }: { userId: string }) {
           {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
           <div className="flex flex-wrap gap-2">
             {item.status === "draft" ? (
-              <button
-                type="button"
-                className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold"
-                onClick={() => navigate(`/declutter/sell?item=${item.id}`)}
-              >
+              <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                 Finish listing
-              </button>
+              </Button>
             ) : (
-              <Link to={`/declutter/item/${item.id}`} className="rounded-full border border-border px-4 py-2 text-sm font-semibold">
-                View
-              </Link>
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/declutter/item/${item.id}`}>View</Link>
+              </Button>
             )}
             {(item.status === "draft" || item.status === "pending_review" || item.status === "live") && (
-              <button
+              <Button
                 type="button"
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
+                variant="outline"
+                size="sm"
                 disabled={takeDown.isPending}
                 onClick={() => {
                   if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
@@ -176,7 +174,7 @@ function MyListingsView({ userId }: { userId: string }) {
                 }}
               >
                 {item.status === "draft" ? "Delete" : "Take down"}
-              </button>
+              </Button>
             )}
           </div>
         </li>
@@ -195,13 +193,9 @@ export default function DeclutterHome() {
     <AppPage
       title="Declutter"
       titleActions={
-        <button
-          type="button"
-          className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap"
-          onClick={() => navigate("/declutter/sell")}
-        >
+        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
           Sell an item
-        </button>
+        </Button>
       }
     >
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>

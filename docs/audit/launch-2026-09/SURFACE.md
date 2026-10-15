@@ -14,7 +14,7 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 26 |
+| Routes (non-redirect) | route | 27 |
 | Redirect-only routes | route | 0 |
 | `?tab=` variants | variant | 29 |
 | `?view=` variants | variant | 25 |
@@ -28,9 +28,9 @@ reports coverage against THIS file, not against the route list.
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 129 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **482** |
+| **Navigable surfaces** (places a person can stand) | mixed | **483** |
 | **Copy surfaces** (strings a person may read) | mixed | **652** |
-| **Total auditable surface** | mixed | **1134** |
+| **Total auditable surface** | mixed | **1135** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,7 +67,7 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 26 | 34 | agree |
+| Real routes | 27 | 34 | agree |
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 154 | 130 | agree within method (script counts every menu instance) |
@@ -99,6 +99,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/admin`
 - [ ] `/messages`
 - [ ] `/support`
+- [ ] `/unsubscribe`
 - [ ] `/legal`
 - [ ] `/terms`
 - [ ] `/privacy`

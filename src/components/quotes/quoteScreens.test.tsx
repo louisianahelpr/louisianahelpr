@@ -231,7 +231,7 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     state.job = { payment_status: "unpaid" };
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText("Not paid yet")).toBeInTheDocument();
-    expect(screen.getByText(/Finish paying to post your job\./)).toBeInTheDocument();
+    expect(screen.getByText(/Pay to post your job\./)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Pay now" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.invokes).toEqual([
@@ -315,10 +315,10 @@ describe("Your quotes (the quoter)", () => {
       { ...base, id: "b", title: "Haul a sofa", price_cents: 8000, last_offer_side: "quoter", offers: [] },
     ];
     at("/quotes?view=mine", <QuotesPage />);
-    expect(await screen.findByText(/^The poster sent a counter-offer/)).toBeInTheDocument();
-    expect(screen.getByText(/^Waiting for the poster/)).toBeInTheDocument();
+    expect(await screen.findByText(/^They sent a counter-offer/)).toBeInTheDocument();
+    expect(screen.getByText(/^Waiting for their answer/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Accept / })).toHaveLength(1);
-    expect(screen.getByText("The poster: $100")).toBeInTheDocument();
+    expect(screen.getByText("They: $100")).toBeInTheDocument();
   });
 });
 

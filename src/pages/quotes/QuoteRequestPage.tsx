@@ -205,7 +205,7 @@ function RequestView({ id }: { id: string }) {
       {bookedJobId && paid.data === false && (
         <QuotesNotice title="Not paid yet">
           <p>
-            {ownPrice ? "Finish paying to post your job." : "Finish paying to book it."} The money is held until the job is
+            {ownPrice ? "Pay to post your job." : "Pay to book it."} The money is held until the job is
             done. Checkout shows your total before you pay.
           </p>
           <Button type="button" className="mt-3 w-full" disabled={payJob.isPending} onClick={() => payJob.mutate()}>

@@ -385,11 +385,18 @@ export async function handleChargeDisputeClosed(
         );
         // Worded from what actually happened per row, never assumed.
         const nothingTaken = repaid.neverTaken === repaid.rows;
+        // Q1818: a crew dispute's rows can end differently (one refused, one
+        // waiting on the balance or a hold). One wording for the whole dispute
+        // told a person to pay by hand a row the re-drive would also pay
+        // (paid twice), so a mixed outcome lists each row's own next step.
+        const mixed = wonRowSteps(repaid);
         for (const adminId of wonAdminIds) {
           const { error: noticeErr } = await supabase.from("notifications").insert({
             user_id: adminId,
             job_id: closedJob.id,
-            title: repaid.failed.length > 0
+            title: mixed
+              ? "Chargeback WON — Helpr re-pays need different steps"
+              : repaid.failed.length > 0
               ? "Chargeback WON — paying the Helpr back FAILED"
               : repaid.held.length + repaid.holdErrors.length > 0
               ? "Chargeback WON — Helpr re-pay waits on a payout hold"
@@ -398,7 +405,9 @@ export async function handleChargeDisputeClosed(
               : nothingTaken
               ? "Chargeback WON — nothing had been taken back"
               : "Chargeback WON — Helpr paid back automatically",
-            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". ${repaid.failed.length > 0
+            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". ${mixed
+              ? mixed
+              : repaid.failed.length > 0
               ? "The payout taken back when it was filed could not be paid back to the Helpr. Pay it by hand from the Admin panel."
               : repaid.held.length + repaid.holdErrors.length > 0
               ? "The payout taken back when it was filed is paid back to the Helpr automatically once their payout hold is released. Do NOT pay it by hand (it would be paid twice)."
@@ -858,4 +867,23 @@ function preDecisionPaymentStatus(job: {
   payout_scheduled_at?: string | null;
 }): "escrow" | "payout_pending" {
   return job.payout_scheduled_at ? "payout_pending" : "escrow";
+}
+
+/**
+ * Q1818: when a won dispute's clawback rows ended in DIFFERENT ways, one line
+ * per kind naming its payouts (original transfer ids), so only the refused
+ * ones are paid by hand. null when every row that is not paid ended the same
+ * way (the single wording above already says it right).
+ */
+function wonRowSteps(repaid: RepayResult): string | null {
+  const byHand = repaid.failed.map((f) => f.transferId);
+  const onHold = [...repaid.held, ...repaid.holdErrors.map((h) => h.transferId)];
+  const onBalance = repaid.balanceShort;
+  const kinds = [byHand, onHold, onBalance].filter((k) => k.length > 0).length;
+  if (kinds < 2) return null;
+  const parts: string[] = [];
+  if (byHand.length) parts.push(`Pay by hand from the Admin panel (Stripe refused): ${byHand.join(", ")}.`);
+  if (onHold.length) parts.push(`Paid automatically once the Helpr's payout hold is released, do NOT pay by hand: ${onHold.join(", ")}.`);
+  if (onBalance.length) parts.push(`Paid automatically once the platform balance is topped up, do NOT pay by hand: ${onBalance.join(", ")}.`);
+  return `The payouts taken back when it was filed ended differently: ${parts.join(" ")}`;
 }

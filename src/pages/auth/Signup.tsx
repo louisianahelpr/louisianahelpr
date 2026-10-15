@@ -12,6 +12,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useSignupLeadCapture } from "@/lib/signupLead";
 import { withTimeout } from "@/pages/auth/completeProfile/constants";
+import { invokeWithOneRetryIfUnsent } from "@/pages/auth/signup/retrySignupCompletion";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
@@ -241,7 +242,7 @@ const Signup = () => {
   };
 
 
-  const completeProfile = async (userId: string) => {
+  const completeProfile = async (userId: string, gaveUp?: AbortSignal) => {
     // The photo is optional: a failed read must not stop the profile write,
     // which runs after the account already exists (CC-006).
     let avatarBase64: string | null = null;
@@ -266,7 +267,9 @@ const Signup = () => {
     //     so nothing in the app ever sets it and no editor is coming.
     // Either way the edge function defaults every omitted field to null, same
     // as a skip.
-    const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
+    // One more send when the first never got an answer (Q1810): see
+    // retrySignupCompletion.ts for why a second send is safe.
+    const { data: result, error: fnError } = await invokeWithOneRetryIfUnsent(() => supabase.functions.invoke("complete-signup", {
       body: {
         userId,
         avatarBase64,
@@ -299,7 +302,7 @@ const Signup = () => {
         // a hand-typed code fails. Empty stays null — never an empty string.
         referralCode: referralCode.trim().toUpperCase() || null,
       },
-    });
+    }), undefined, gaveUp);
 
     if (fnError) {
       // NOT `fnError.message`. supabase-js sets that to one of three fixed
@@ -384,7 +387,9 @@ const Signup = () => {
       // re-consent gate, which records the consent this call would have.
       let result: Awaited<ReturnType<typeof completeProfile>>;
       try {
-        result = await withTimeout(completeProfile(userId), "Finishing your account");
+        // Aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810).
+        const gaveUp = new AbortController();
+        result = await withTimeout(completeProfile(userId, gaveUp.signal), "Finishing your account").finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
         if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }

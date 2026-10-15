@@ -3,8 +3,8 @@ import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
-import { Button } from "@/components/ui/button";
-import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star, X } from "lucide-react";
+import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
+import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -382,8 +382,10 @@ export function ApplicantsPanel({
                         {/* Row 1, AT THE TOP (owner, 2026-10-08: "move picture and
                             name up into the top left"): avatar + name on the left,
                             and on the right the Private note · Report · Block
-                            icons (Q366: on every card) over Hire / decline. */}
-                        <div className="flex items-start gap-3">
+                            icons (Q366: on every card) over Hire / decline.
+                            Below `sm` a pending card wraps and its right column dissolves
+                            (`contents`), so the Hire row drops under the name: ApplicantHireRow. */}
+                        <div className={app.status === "pending" ? "flex flex-wrap sm:flex-nowrap items-start gap-3" : "flex items-start gap-3"}>
                           {/* Migrated onto the shared `<UserAvatar>`
                               (2026-08-31). This is a hiring decision: the
                               poster is choosing between people, and the
@@ -582,8 +584,10 @@ export function ApplicantsPanel({
                             )}
                           </div>
 
-                          <div className="flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1">
-                          <div className="flex gap-0.5">
+                          <div className={app.status === "pending"
+                            ? "contents sm:flex sm:flex-col sm:items-end sm:gap-1 sm:shrink-0 sm:-mt-1 sm:-mr-1"
+                            : "flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1"}>
+                          <div className={app.status === "pending" ? "flex gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
                           <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
                             ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
                             onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
@@ -594,47 +598,15 @@ export function ApplicantsPanel({
                           </div>
                           {/* Status / hire + decline buttons */}
                           {app.status === "pending" && (
-                            <div className="flex items-center gap-1.5 shrink-0 mr-1">
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                className="rounded-ds-md btn-press"
-                                // Never disabled for the Helpr's Stripe state:
-                                // a single job's Hire is an offer, and payout
-                                // setup + Stripe ID are asked at their Accept
-                                // (20261003193541). A crew hire's roster-gate
-                                // refusal comes back as a toast naming the reason
-                                // (useOfferHandlers), which beats a dead control.
-                                aria-label={
-                                  app.profiles?.is_payout_ready === true
-                                    ? `Select ${helperName}`
-                                    : `Select ${helperName} — payout setup not finished yet`
-                                }
-                                onClick={() => onAcceptApplication(app)}
-                              >
-                                Hire
-                              </Button>
-                              <button
-                                type="button"
-                                aria-label={`Decline ${helperName}`}
-                                onClick={() => {
-                                  hapticLight();
-                                  setDeclineTarget(app);
-                                  setDeclineNote("");
-                                  setDeclineReason(null);
-                                }}
-                                className="w-8 h-8 rounded-ds-sm flex items-center justify-center active:opacity-60 transition-opacity"
-                                style={{
-                                  background: "hsl(var(--olivewood) / 0.08)",
-                                  border: "0.5px solid hsl(var(--olivewood) / 0.2)",
-                                }}
-                              >
-                                <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-                              </button>
-                            </div>
+                            <ApplicantHireRow
+                              jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName}
+                              payoutReady={app.profiles?.is_payout_ready === true}
+                              onAcceptApplication={() => onAcceptApplication(app)}
+                              onDecline={() => { setDeclineTarget(app); setDeclineNote(""); setDeclineReason(null); }}
+                            />
                           )}
-                          {/* Message under Hire, beside the applicant's note (owner, 2026-10-11); poster-first, see MessageApplicantButton. */}
-                          {canMessageApplicant(app.status) && (
+                          {/* A hired (accepted) applicant has no Hire row: Message stands on its own (owner, 2026-10-11). */}
+                          {app.status !== "pending" && canMessageApplicant(app.status) && (
                             <MessageApplicantButton jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName} className="mr-1" />
                           )}
                           <ApplicantStatusBadge app={app} />

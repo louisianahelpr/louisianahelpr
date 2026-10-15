@@ -15,7 +15,7 @@ const SRC = readFileSync(join(process.cwd(), "src/pages/posts/postedJobs/Applica
 describe("an applicant's message sits beside the photo, under the name", () => {
   it("is rendered before the Hire column closes the top row", () => {
     const message = SRC.indexOf('"{app.message}"');
-    const hireColumn = SRC.indexOf('<div className="flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1">');
+    const hireColumn = SRC.indexOf('"flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1"');
     expect(message).toBeGreaterThan(0);
     expect(hireColumn).toBeGreaterThan(0);
     expect(message).toBeLessThan(hireColumn);

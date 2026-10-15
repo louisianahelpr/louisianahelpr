@@ -83,11 +83,17 @@ interface UseDashboardFiltersOptions {
    * Also previously list-only, for the same reason.
    */
   savedOnlyJobIds?: ReadonlySet<string> | null;
+  /**
+   * Every job id the viewer saved, whether or not the toggle is on (Q1739).
+   * The bookmark's count is how many of these are still shown to the viewer
+   * (`savedShownCount`), not how many were ever saved.
+   */
+  savedJobIds?: ReadonlySet<string>;
 }
 
 const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 
-export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string>, dismissedJobIds = EMPTY_ID_SET, savedOnlyJobIds = null }: UseDashboardFiltersOptions) {
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string>, dismissedJobIds = EMPTY_ID_SET, savedOnlyJobIds = null, savedJobIds = EMPTY_ID_SET }: UseDashboardFiltersOptions) {
   // The live viewer-exclusion object the list filters with — same fields, same
   // values the header count is keyed on and the map is handed.
   const viewerExclusions = useMemo<ViewerFeedExclusions>(
@@ -505,6 +511,30 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     savedOnlyJobIds: savedOnlyIdsKey,
   });
 
+  // The saved count (Q1739): saved jobs STILL SHOWN to this viewer, read from
+  // the server with the same culls as the header count and none of the
+  // viewer's filters. savedJobIds.size counted closed, filled, applied-to,
+  // dismissed and blocked-poster saves too, so the bookmark said 1 over a
+  // saved-only feed that said "Nothing saved yet" (measured on prod
+  // 2026-10-15: the one saved_jobs row is on a job open_jobs_browse no longer
+  // shows). Undefined until read, so no number is shown before it is known.
+  const savedAllIdsKey = useMemo(() => [...savedJobIds].sort(), [savedJobIds]);
+  const { data: savedShownCount } = useDashboardJobsCount({
+    userId,
+    selectedCategory: null,
+    searchQuery: "",
+    minBudget: "",
+    maxBudget: "",
+    urgentOnly: false,
+    boostedOnly: false,
+    expiresWithin: "",
+    earlyAccessTier,
+    appliedJobIds: appliedIdsKey,
+    blockedUserIds: blockedIdsKey,
+    dismissedJobIds: dismissedIdsKey,
+    savedOnlyJobIds: savedAllIdsKey,
+  });
+
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
     return userLocation
@@ -549,6 +579,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     // it is never more than the reader can already see.
     totalMatchingCount: clientOnlyNarrowing ? null : totalMatchingCount,
     totalMatchingCountLoading,
+    savedShownCount,
     userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
   };
 }

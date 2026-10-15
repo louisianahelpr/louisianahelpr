@@ -59,4 +59,13 @@ Owner rule (2026-10-14): "before building all ask me questions to make sure we a
 |---|----------|
 | F1 | Declutter AND Shops buyer fee = 5% + $0.70 (match Vinted's "usually 5% + $0.70", read on vinted.com/help/342 2026-10-14), card cost included in it; raise later once more people sign up. REPLACES Declutter row 20/21 (15%, min $1) and Shops L37 — the built Declutter code (slices 3/3b: 15% + $1 minimum, table CHECKs) must change before launch |
 | F2 | Pro shops: free boost days + badge only for now (no lower buyer fee) — replaces the "lower buyer fee" half of L38 |
-| F3 | JOBS: "the percentages should be the same across the board": job POSTER pays NO fee; the same 5% + $0.70 comes out of the HELPR's pay (replacing today's Helpr commission). Card-cost detail being confirmed with the owner. Live money change: not during the App Store review freeze without checking the 7119 client; lands as its own reviewed change |
+| F3 | JOBS: "the percentages should be the same across the board": job POSTER pays NO fee; the same 5% + $0.70 comes out of the HELPR's pay (replacing today's Helpr commission). Card cost (~2.9% + 30c) comes OUT of the 5% + 70c (poster pays exactly the job price; on $100 the Helpr gets $94.30). Owner: change it RIGHT AWAY (not waiting for Apple). New jobs only; jobs already posted keep their old fees. Poster refunds = job price minus card cost (never-absorb rule; our-mistake refunds stay full) |
+| F4 | MEMBERSHIPS (Pro) switched OFF entirely for now (owner 2026-10-14): everyone has the same features and the same flat fee. Measured on prod: 35 non-seed members, 0 with a subscription tier or Stripe subscription, so nobody is stranded. Switched off, not deleted, so it can return. Supersedes F2 / L38 / L63 Pro perks |
+
+## Everyone welcome (owner 2026-10-14: "the Louisiana spot for everything... Everyone. No matter the age gender etc. I want all professional trades etc to feel included and seen. No matter how weird the hobby")
+| # | Feature |
+|---|---------|
+| I1 | "Suggest a category" button everywhere a category is picked; admin approves; added for everyone; "Other" always works meanwhile |
+| I2 | Interest groups & clubs for any hobby (posts + events), found locally |
+| I3 | Profile skills & interests tags, searchable |
+| I4 | Spanish + Vietnamese translations (after launch) |

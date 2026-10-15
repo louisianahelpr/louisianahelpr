@@ -176,6 +176,33 @@ function noisy(u: string): boolean {
   return NOISE_URL.test(u) || NOISE_KEYWORD.test(u) || noisyHost(u);
 }
 
+// MapKit JS's terrain shading asking for WebAssembly (Q1821). Read from
+// https://cdn.apple-mapkit.com/ti/csr/1.x.x/mk-csr.js on 2026-10-15 (version
+// "1.37.9", build "26.32", 456,807 bytes, sha256 12182f57...043d): its ONE
+// WebAssembly use is "astc-loader.wasm", a texture decoder for the HILLSHADE
+// layer ("hillshade-deps", shaders/hillshade.*), loaded only when the GPU lacks
+// WEBGL_compressed_texture_astc (iPhones have it; many desktop GPUs do not).
+// When our CSP refuses the compile, MapKit catches it, sets its no-decoder
+// flag and stops fetching hillshade tiles, so the map draws without terrain
+// shading (a few early tiles may reject in the console first). The trade:
+// missing hillshade on desktop GPUs without ASTC, against one more script-src
+// keyword ('wasm-unsafe-eval' allows WebAssembly compilation, not JavaScript
+// eval). Only this exact shape is dropped: the wasm-eval keyword raised by
+// MapKit's own csr script. The 1.x.x URL is updated in place by Apple, so a
+// later build that needs WebAssembly for the map itself would be hidden here:
+// Q?mapkit-wasm-drift tracks a check for that.
+function isMapKitHillshadeWasm(v: Violation): boolean {
+  if (v.blockedURL.trim().toLowerCase() !== "wasm-eval") return false;
+  let src: URL;
+  try {
+    src = new URL(v.sourceFile);
+  } catch {
+    return false; // no source file to attribute it to: keep the report
+  }
+  return src.protocol === "https:" && !src.port && src.hostname === "cdn.apple-mapkit.com" &&
+    src.pathname.startsWith("/ti/csr/");
+}
+
 // The only documents that carry our CSP (and so the only ones a browser
 // reports to us about) are the pages Vercel serves with vercel.json's
 // headers: the site itself. The native app's CSP is a meta tag, which cannot
@@ -200,7 +227,7 @@ function isOurDocument(u: string): boolean {
 
 /** True when the violation is noise or not about one of our pages. */
 export function isNoise(v: Violation): boolean {
-  if (noisy(v.blockedURL) || noisy(v.sourceFile)) return true;
+  if (noisy(v.blockedURL) || noisy(v.sourceFile) || isMapKitHillshadeWasm(v)) return true;
   // A report about a document that is not one of our pages (another site, an
   // extension's own page, about:blank) is not about this site.
   return !isOurDocument(v.documentURL);

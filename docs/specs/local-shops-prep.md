@@ -736,3 +736,8 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L58 | Boost shows at the top of the chosen section (Makers, Rent equipment, or a business category) for people in the chosen parishes, labelled "Ad" |
 | L59 | Max 3 boosted spots per section per parish, first come with a waitlist; one per business at a time |
 | L60 | Boost area = per parish (one or more, price per parish) |
+| L61 | Boost label "Ad" on every boosted card, before the name |
+| L62 | Any approved shop/business with no active strikes may buy a boost |
+| L63 | (Pro: free monthly boost days count for business boosts — L38) |
+| L65 | iPhone app: boosts bought via Apple IN-APP PURCHASE (owner chose; Apple keeps its share, 15% under the Small Business Program if enrolled — not checked); website purchases use Stripe |
+| L67 | Monthly boosts do NOT auto-renew: reminder 3 days before the end, one tap to buy again |

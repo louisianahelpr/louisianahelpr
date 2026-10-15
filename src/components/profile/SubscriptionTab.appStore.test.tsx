@@ -103,13 +103,13 @@ describe("Manage opens the store that billed the membership (Q1797)", () => {
     renderTab(member("apple"));
     fireEvent.click(screen.getByRole("button", { name: /Manage/ }));
     await waitFor(() => expect(openApple).toHaveBeenCalledTimes(1));
-    expect(invoke.mock.calls.map((c) => c[0])).not.toContain("pro-customer-portal");
+    expect(invoke.mock.calls.map((c: unknown[]) => c[0])).not.toContain("pro-customer-portal");
   });
 
   it("a Stripe subscriber's Manage still opens the Stripe billing portal", async () => {
     renderTab(member("stripe"));
     fireEvent.click(screen.getByRole("button", { name: /Manage/ }));
-    await waitFor(() => expect(invoke.mock.calls.map((c) => c[0])).toContain("pro-customer-portal"));
+    await waitFor(() => expect(invoke.mock.calls.map((c: unknown[]) => c[0])).toContain("pro-customer-portal"));
     expect(openApple).not.toHaveBeenCalled();
   });
 });

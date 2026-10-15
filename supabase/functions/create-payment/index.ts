@@ -39,7 +39,7 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
-import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
@@ -4853,6 +4853,17 @@ async function transferToHelper(
   }
   if (hold.kind === "held") {
     throw new PublicError("This Helpr's payouts are on hold. Release the hold in the Payout Queue first — no money was moved.");
+  }
+  // Q1491: a JOB payout hold (an underfunded gift-card job). This path sends
+  // the transfer before it writes its ledger row, so the payout_transfers
+  // claim trigger cannot stop it; ask here, same place, same fail-closed rule.
+  const jobHold = await checkJobPayoutHold(supabaseAdmin, jobId);
+  if (jobHold.kind === "error") {
+    console.error(`[create-payment] transferToHelper — job payout hold check failed for ${jobId}: ${jobHold.message}`);
+    throw new PublicError("Could not verify this job's payout hold — no money was moved. Try again.");
+  }
+  if (jobHold.kind === "held") {
+    throw new PublicError(JOB_PAYOUT_HELD_MESSAGE);
   }
 
   // DB-level idempotency: if a payout ledger row already exists for this job

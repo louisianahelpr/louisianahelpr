@@ -66,7 +66,7 @@ import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { checkPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
@@ -1373,6 +1373,24 @@ serve(async (req) => {
       await markFailed(supabaseAdmin, disputeId, PAYOUT_HOLD_SPLIT_ERROR, {}, job.id, settlementClaim);
       return json(
         { error: "the Helpr's payouts are on hold — release the hold in the Payout Queue, then retry the settlement. Nothing was moved.", code: PAYOUT_HELD_CODE },
+        409,
+      );
+    }
+
+    // Q1491: a JOB payout hold (an underfunded gift-card job). The split
+    // transfers before its ledger row, so the claim trigger cannot stop it.
+    const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id);
+    if (jobHold.kind === "error") {
+      console.error(`[execute-dispute-split] job payout hold check failed for ${job.id}: ${jobHold.message}`);
+      await markFailed(supabaseAdmin, disputeId, "job payout hold check failed", {}, job.id, settlementClaim);
+      return json({ error: "could not verify this job's payout hold — nothing was moved, retry" }, 500);
+    }
+    if (jobHold.kind === "held") {
+      // Its own error text: the Helpr has no hold in the Payout Queue, and
+      // auto-resolve-disputes sets a job-held split aside by this prefix.
+      await markFailed(supabaseAdmin, disputeId, PAYOUT_JOB_HOLD_SPLIT_ERROR, {}, job.id, settlementClaim);
+      return json(
+        { error: "this job's payout is on hold until it is reconciled (job_payout_holds) — release it, then retry the settlement. Nothing was moved.", code: PAYOUT_HELD_CODE },
         409,
       );
     }

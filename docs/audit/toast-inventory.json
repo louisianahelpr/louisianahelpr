@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 638,
+    "calls": 639,
     "files": 165,
-    "rendering": 601,
+    "rendering": 602,
     "suppressedByPolicy": 37,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 497,
+      "toast.error": 498,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 43,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 331,
+      "literal": 332,
       "template": 80,
       "dynamic": 268,
       "jsx": 0
@@ -462,7 +462,7 @@
     },
     {
       "file": "src/components/JobBoostDialog.tsx",
-      "line": 101,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4240,7 +4240,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 95,
+      "line": 102,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -4250,7 +4250,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 97,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4260,7 +4260,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 150,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4270,7 +4270,17 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 189,
+      "line": 165,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Memberships aren't available right now."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4283,7 +4293,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 192,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4293,7 +4303,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 207,
+      "line": 218,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -4303,7 +4313,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 209,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "literal",

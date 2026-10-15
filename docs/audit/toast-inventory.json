@@ -3906,16 +3906,6 @@
       "renders": true
     },
     {
-      "file": "src/components/job-card/JobListPage.tsx",
-      "line": 412,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "GPS confirmed you were at the job."
-      },
-      "renders": false
-    },
-    {
       "file": "src/components/job-card/NudgeConfirmLink.tsx",
       "line": 50,
       "kind": "toast.error",
@@ -4298,6 +4288,16 @@
         "text": "Offer declined"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/job-card/useActivityTabRefresh.ts",
+      "line": 61,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "GPS confirmed you were at the job."
+      },
+      "renders": false
     },
     {
       "file": "src/components/messages/ChatView.tsx",

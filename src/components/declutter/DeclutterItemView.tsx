@@ -151,7 +151,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const it = item.data;
   const miles =
     geo.status === "ready" ? milesBetween({ lat: geo.lat, lng: geo.lng }, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null;
-  const away = milesLabel(miles);
+  const away = milesLabel(miles, geo.status === "ready" && geo.approximate);
   const canAct = !isSeller && (it.status === "live" || it.status === "reserved");
 
   return (

@@ -80,3 +80,12 @@ Owner rule (2026-10-14): "before building all ask me questions to make sure we a
 
 Ownership (owner via lead session, 2026-10-14): THIS session builds the jobs flat fee (F3) and memberships off (F4); the lead session stays on the open list; landing on main stays one at a time.
 | F5 | Boosts bought INSIDE the iPhone app: paused for BOTH job boosts and shop/business boosts (owner: "whatever you recommend"; Claude recommended both) — boosts sell on the website only for now; supersedes Shops L65/L66 (Apple/Google in-app purchase) until revisited |
+
+## Quotes on jobs + Shops rate cards (owner 2026-10-14: "add bidding back to post a job... request quotes from businesses that signed up in shops... shops can set their rates to automate")
+Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction definition (R.S. 37:3103, read 2026-10-14) covers the sale of PROPERTY by competitive bid; quotes for SERVICES on a job are outside it.
+| # | Decision |
+|---|----------|
+| Q1 | Poster chooses per job: "Set my price" or "Get quotes". With quotes the poster can also COUNTER a quote, or switch to just setting their own price |
+| Q2 | Poster may INVITE specific businesses from Shops AND the job stays open for any Helpr or business to quote; invited businesses get an alert |
+| Q3 | Business rate cards produce an instant ESTIMATE for matching jobs; the business confirms or adjusts it into a real quote |
+| Q4 | Quote window chosen by the poster (24 h / 48 h / 3 days), default 48 h |

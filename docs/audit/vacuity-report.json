@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-15T01:46:50.424Z",
-  "guards": 1840,
-  "registered": 1839,
+  "generated": "2026-10-15T03:43:16.254Z",
+  "guards": 1842,
+  "registered": 1841,
   "unregistered": [
     "src/lib/refundAmount.parity.test.ts"
   ],

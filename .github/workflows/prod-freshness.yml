@@ -290,6 +290,24 @@ jobs:
           fi
           exit 1
 
+      # Q1737: a missing /assets or /fonts file answers 404 that nobody caches
+      # (vercel.json's rewrite to api/missing-file). Graded against the commit
+      # prod SERVES: before that commit carries the rewrite there is no fix
+      # live to check, and the source guard (immutablePathsNeverServeTheSpa)
+      # is what stops the rewrite being removed. Two GETs of a few bytes.
+      - name: A missing asset is a 404 nobody caches (Q1737)
+        run: |
+          set -euo pipefail
+          SERVED=$(grep -oiE '<meta[[:space:]]+name="build-commit"[[:space:]]+content="[0-9a-f]{40}"' /tmp/live.html \
+                   | grep -oE '[0-9a-f]{40}' | head -1)
+          git cat-file -e "${SERVED}^{commit}"
+          if ! git show "$SERVED:vercel.json" | grep -q '"/api/missing-file"'; then
+            echo "Prod serves $SERVED, which predates the Q1737 rewrite: nothing live to grade yet."
+            echo "- Q1737 missing-asset probe: not graded, prod serves $SERVED (before the rewrite)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/probes/missing-asset-not-cached.mjs
+
       - name: Report what prod is serving
         if: always()
         run: |

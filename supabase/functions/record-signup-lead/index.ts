@@ -40,6 +40,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { isReservedRecipient } from "../_shared/reservedRecipient.ts";
 
 /** Same shape public.record_signup_lead enforces; checked here to skip a round trip. */
 const EMAIL_RE =
@@ -153,6 +154,15 @@ serve(async (req) => {
     if (verdict === "unavailable") return json({ error: "Could not verify" }, 503);
   } else {
     console.warn("[record-signup-lead] TURNSTILE_SECRET_KEY is not set: lead saved with no bot check (Q1589)");
+  }
+
+  // Q1656: browser specs that type an RFC 2606 fixture address at step 1
+  // against prod (trailing-icon-<ts>@example.com, messy.prodaudit@example.com)
+  // made every row of signup_leads CI noise on the admin card. A reserved
+  // address can never be mailed (claim_signup_lead_reminders already skips
+  // it), so it is not a lead: answer as if saved, store nothing.
+  if (isReservedRecipient(email)) {
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {

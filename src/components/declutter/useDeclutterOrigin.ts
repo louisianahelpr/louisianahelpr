@@ -22,24 +22,35 @@ import { deriveFallbackLocation, getCachedUserLocation, useUserLocation, type Ge
 
 export type DeclutterOrigin =
   | { status: "pending" }
-  | { status: "none" }
+  /**
+   * No position. `zipOnFile` says the profile HAS a ZIP code we could not turn
+   * into an area (a failed or unknown lookup), so the screen must not tell
+   * the member to "add your ZIP code".
+   */
+  | { status: "none"; zipOnFile: boolean }
   | { status: "ready"; lat: number; lng: number; source: GeoSource; approximate: boolean };
 
 /**
- * `asked` stays true once the member has tapped "Use my location": the device
- * is asked once per visit (a declined OS prompt cannot be re-shown from the
- * page anyway), so the screen hides the button rather than leave a dead one.
+ * `asked` turns true on the first tap of "Use my location". Each tap is a new
+ * attempt (`attempts`), so a member who answered "Not now", or who has since
+ * turned location on in Settings, can ask again: `canAskAgain` is true once a
+ * read has finished without a device fix. A declined OS prompt on iOS is not
+ * shown again; asking again then gives the same Settings message, which is
+ * still the honest answer.
  */
 export function useDeclutterOrigin(): {
   origin: DeclutterOrigin;
   askDevice: () => void;
   asked: boolean;
   asking: boolean;
+  /** True once a read finished without a device fix: offer the button again. */
+  canAskAgain: boolean;
   /** Why the device read did not give a fix, once asked (null while it loads, or if it worked). */
   deviceNote: string | null;
 } {
-  const [asked, setAsked] = useState(false);
-  const device = useUserLocation(asked, "declutter_location");
+  const [attempts, setAttempts] = useState(0);
+  const asked = attempts > 0;
+  const device = useUserLocation(asked, "declutter_location", attempts);
   const { profile, isLoading } = useCurrentUser();
   const [known, setKnown] = useState<DeclutterOrigin>({ status: "pending" });
   // Keyed on the fields the position comes from, not the profile object, so
@@ -53,23 +64,25 @@ export function useDeclutterOrigin(): {
   useEffect(() => {
     const fix = getCachedUserLocation();
     if (fix) {
-      setKnown({ status: "ready", lat: fix.lat, lng: fix.lng, source: "device", approximate: false });
+      // A coarse fix is cached too: keep its own flag, so miles from it say "about".
+      setKnown({ status: "ready", lat: fix.lat, lng: fix.lng, source: "device", approximate: fix.approximate });
       return;
     }
     if (!hasProfile) {
-      if (!isLoading) setKnown({ status: "none" });
+      if (!isLoading) setKnown({ status: "none", zipOnFile: false });
       return;
     }
     let alive = true;
+    const zipOnFile = !!zip;
     deriveFallbackLocation({ latitude: lat, longitude: lng, zip_code: zip, parish })
       .then((fb) => {
-        if (alive) setKnown(fb ? { status: "ready", ...fb } : { status: "none" });
+        if (alive) setKnown(fb ? { status: "ready", ...fb } : { status: "none", zipOnFile });
       })
       .catch((err: unknown) => {
-        // The ZIP lookup failed: we just don't know where they are, which the
-        // screen says ("add your ZIP code ..."), so this is not an error page.
+        // The ZIP lookup failed: we just don't know where they are. The screen
+        // says so in those words (zipOnFile), so this is not an error page.
         console.warn("[declutter] could not work out a position from the profile", err);
-        if (alive) setKnown({ status: "none" });
+        if (alive) setKnown({ status: "none", zipOnFile });
       });
     return () => {
       alive = false;
@@ -80,8 +93,8 @@ export function useDeclutterOrigin(): {
     device.status === "ready"
       ? { status: "ready", lat: device.lat, lng: device.lng, source: device.source, approximate: device.approximate }
       : known;
-  // The button goes once asked, so a failed read must SAY so (silent-failure
-  // review): `useUserLocation` already words the reason (denied in Settings,
+  // A failed read must SAY so (silent-failure review), beside the button
+  // that asks again: `useUserLocation` already words the reason (denied in Settings,
   // timed out, permission declined); a read that fell back to the ZIP/parish
   // is `ready` but not from the device.
   const deviceNote =
@@ -90,5 +103,8 @@ export function useDeclutterOrigin(): {
       : asked && device.status === "ready" && device.source !== "device"
         ? "We couldn't read your device's location."
         : null;
-  return { origin, askDevice: () => setAsked(true), asked, asking: asked && device.status === "loading", deviceNote };
+  const asking = asked && device.status === "loading";
+  const gotDeviceFix = device.status === "ready" && device.source === "device";
+  const canAskAgain = asked && !asking && (device.status === "error" || (device.status === "ready" && !gotDeviceFix));
+  return { origin, askDevice: () => setAttempts((n) => n + 1), asked, asking, canAskAgain, deviceNote };
 }

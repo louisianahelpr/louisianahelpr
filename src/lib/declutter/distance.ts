@@ -14,8 +14,14 @@ export function milesBetween(a: { lat: number; lng: number }, b: { lat: number; 
   return 2 * EARTH_RADIUS_MI * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export function milesLabel(miles: number | null): string | null {
+/**
+ * `approximate` = the buyer's end is itself rough (a ZIP or parish centre, or
+ * a coarse device fix): the figure then says "About", and never "Less than
+ * 1 mi", which a centre point cannot know.
+ */
+export function milesLabel(miles: number | null, approximate = false): string | null {
   if (miles === null || !Number.isFinite(miles)) return null;
+  if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`;
   if (miles < 1) return "Less than 1 mi away";
   return `${Math.round(miles)} mi away`;
 }

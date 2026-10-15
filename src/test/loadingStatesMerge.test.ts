@@ -14,7 +14,8 @@
  * @mutate scripts/audit/measure-loading-states.mjs | results.push(...incoming.values()); | results.length += 0;
  * @mutate scripts/audit/measure-loading-states.mjs |     ...prev,\n    results, |     ...partial,\n    results,
  * @mutate scripts/audit/measure-loading-states.mjs | if (JSON.stringify(prev[k]) !== JSON.stringify(partial[k])) { | if (false) {
- * @mutate scripts/audit/measure-loading-states.mjs | const doc = only && existsSync(evidence) ? mergeMeasurements( | const doc = false && existsSync(evidence) ? mergeMeasurements(
+ * @mutate scripts/audit/measure-loading-states.mjs |     if (only) {\n      try {\n        catalog = JSON.parse( |     if (false) {\n      try {\n        catalog = JSON.parse(
+ * @mutate scripts/audit/measure-loading-states.mjs | const doc = catalog ? mergeMeasurements(catalog, run) : run; | const doc = run;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -85,7 +86,9 @@ describe("loading-state evidence: a narrowed run merges into the catalog", () =>
     const src = blankComments(readFileSync(resolve(REPO, "scripts/audit/measure-loading-states.mjs"), "utf8"));
     const write = src.slice(src.indexOf("const run = { base: BASE"), src.indexOf("writeFileSync(evidence,"));
     expect(write.length, "the evidence write in main() was not found: guard rotted").toBeGreaterThan(50);
-    expect(write).toMatch(/const doc = only && existsSync\(evidence\) \? mergeMeasurements\(/);
+    // Read-and-catch ENOENT, never exists-then-read (noCheckThenActInTooling.test.ts).
+    expect(write).toMatch(/if \(only\) \{\s*try \{\s*catalog = JSON\.parse\(readFileSync\(evidence, "utf8"\)\);/);
+    expect(write).toMatch(/const doc = catalog \? mergeMeasurements\(catalog, run\) : run;/);
   });
 
   it("the committed evidence holds one result per surface, and every merged surface is in it", () => {

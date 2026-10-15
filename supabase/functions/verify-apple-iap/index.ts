@@ -63,6 +63,26 @@ function tierRank(tier: string | null | undefined): number {
   return -(TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT);
 }
 
+/** Q1794: a test account = a public.test_accounts row AND profiles.is_seed. Fails closed. */
+async function isTestAccount(userId: string): Promise<boolean> {
+  try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
+    );
+    const { data: enrolled, error: enrolledErr } = await admin
+      .from("test_accounts").select("user_id").eq("user_id", userId).maybeSingle();
+    if (enrolledErr || !enrolled) return false;
+    const { data: prof, error: profErr } = await admin
+      .from("profiles").select("is_seed").eq("user_id", userId).maybeSingle();
+    if (profErr || !prof) return false;
+    return (prof as { is_seed?: boolean }).is_seed === true;
+  } catch (e) {
+    console.error("[verify-apple-iap] test-account read failed; refusing sandbox:", e instanceof Error ? e.message : String(e));
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -100,12 +120,28 @@ serve(async (req) => {
     // TestFlight or sandbox Apple ID grants itself a real paid tier for nothing
     // (MS-4 / EF-4). Sandbox is allowed only when the deployment opts in via
     // APPLE_IAP_ENVIRONMENT=sandbox (TestFlight / dev builds).
+    //
+    // Q1794 (lh-compliance-store@c16b0f0dc#1): App Review buys with SANDBOX
+    // Apple IDs on the production build, so refusing every sandbox receipt
+    // meant the reviewer subscribed and nothing unlocked (2.1). A sandbox
+    // transaction is accepted ONLY for a test account: a public.test_accounts
+    // row (no client grant; only the service role writes it) AND
+    // profiles.is_seed, the same definition _shared/stripeMode.ts uses. The
+    // App Review account (f2098932, 2026-10-14) is both. Any read error
+    // refuses (fail closed). Everyone else still gets the refusal.
     if (expectsProduction() && isSandboxTransaction(tx)) {
-      console.error(
-        "[verify-apple-iap] rejected SANDBOX transaction in production — user", user.id,
+      const reviewer = await isTestAccount(user.id);
+      if (!reviewer) {
+        console.error(
+          "[verify-apple-iap] rejected SANDBOX transaction in production — user", user.id,
+          "tx", tx.transactionId, "product", tx.productId,
+        );
+        return errorResponse("This purchase could not be verified", 400, corsHeaders);
+      }
+      console.warn(
+        "[verify-apple-iap] accepting SANDBOX transaction for test account", user.id,
         "tx", tx.transactionId, "product", tx.productId,
       );
-      return errorResponse("This purchase could not be verified", 400, corsHeaders);
     }
 
     // ── Bind the purchase to THIS caller via appAccountToken ────────────────

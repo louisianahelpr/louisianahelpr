@@ -31,6 +31,7 @@
 import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
 import { setupFeeKeptCents } from "./posterFees.ts";
+import { stripeModeForParties } from "./stripeMode.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = any;
@@ -83,6 +84,13 @@ export interface RefundNoticeInput {
    * that sender is preflighted before anything is written (Q1731).
    */
   endpoint?: { url: string; key: string } | null;
+  /**
+   * Q1761: the money moved in Stripe's TEST mode (a webhook event with
+   * livemode false). Sandbox money is only ever told to a test account: a
+   * recipient picked from a payment's metadata that is a real person is not
+   * told (status 'dropped', by design, like the seed boundary).
+   */
+  testMode?: boolean;
 }
 
 type RefundNoticeStatus =
@@ -568,6 +576,42 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       recipient = ((data ?? [])[0] as Record<string, string> | undefined)?.[col] ?? null;
     }
     if (!recipient) return { status: "no_recipient" };
+    // Q1761 (lh-authz-rls + lh-money-escrow reviews of the test-mode branch):
+    // a sandbox refund of an old charge whose PaymentIntent names a real user
+    // must never tell that person (in the app or by email) about test money.
+    if (input.testMode === true) {
+      // The drop is written down as a FINISHED claim (notification_id =
+      // ZERO_UUID, as the seed boundary does), or void-cancelled-payments'
+      // untold-refund sweep (Part G), which re-sends any refund with no
+      // finished claim and knows nothing of test mode, tells the real person
+      // within the hour anyway (lh-money-escrow review of the rebuild, #1).
+      const closeAsDropped = async (why: string): Promise<RefundNoticeResult> => {
+        const { error: closeErr } = await supabase.from("refund_notices").insert({
+          notice_key: input.key,
+          user_id: recipient,
+          job_id: job?.id ?? null,
+          payment_intent_id: input.paymentIntentId,
+          amount_cents: Math.round(input.amountCents),
+          notification_id: ZERO_UUID,
+        }).select("notice_key");
+        // Taken (23505): someone already claimed it; a constraint no retry
+        // passes (the account is gone) or deploy lag: nothing more to do.
+        if (closeErr && closeErr.code !== "23505" && !PERMANENT.has(closeErr.code ?? "") && !isMissingTable(closeErr)) {
+          return { status: "failed", error: `sandbox drop claim: ${closeErr.message}` };
+        }
+        console.warn("[refundNotice] test-mode money: not told", { key: input.key, why });
+        return { status: "dropped", error: why };
+      };
+      let mode: string;
+      try {
+        mode = await stripeModeForParties(supabase, [recipient]);
+      } catch (modeErr) {
+        // Unknown whether the recipient is a test account: losing one sandbox
+        // notice to a test account is harmless, telling a real person is not.
+        return await closeAsDropped(`test-account read failed: ${caughtMessage(modeErr)}`);
+      }
+      if (mode !== "test") return await closeAsDropped("test-mode money names a real account");
+    }
 
     const ref = input.key.slice(input.key.indexOf(":") + 1);
     const link = input.link ??

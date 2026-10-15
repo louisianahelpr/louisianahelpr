@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
@@ -216,6 +216,14 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
   const parsed = parse24(value) || { hour12: 12, minute: "00", period: "AM" as const };
   const hasValue = !!value;
   const isWebDesktop = useIsWebDesktop();
+  // NO SILENT AM (owner, 2026-10-14, Q1733: "make them pick"). On an empty
+  // time an hour or minute tap is held here, not committed: the value stays
+  // empty (so Post a Job's "Pick a Start Time" gate stays up) until AM or PM
+  // is tapped. It used to commit the hour with an assumed AM, so tapping 3
+  // and 30 posted 3:30 AM.
+  const [draft, setDraft] = useState<{ hour12?: number; minute?: string }>({});
+  useEffect(() => { setDraft({}); }, [value]);
+  const drafting = !hasValue && (draft.hour12 != null || draft.minute != null);
 
   // Desktop website: a native time field, not the phone wheels. Stretched
   // across a 1030px form column each wheel became a 500px-wide box showing
@@ -246,8 +254,12 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
   }
 
   const update = (field: "hour" | "minute" | "period", val: string) => {
-    const h = field === "hour" ? Number(val) : parsed.hour12;
-    const m = field === "minute" ? val : parsed.minute;
+    if (!hasValue && field !== "period") {
+      setDraft((d) => (field === "hour" ? { ...d, hour12: Number(val) } : { ...d, minute: val }));
+      return;
+    }
+    const h = field === "hour" ? Number(val) : hasValue ? parsed.hour12 : (draft.hour12 ?? parsed.hour12);
+    const m = field === "minute" ? val : hasValue ? parsed.minute : (draft.minute ?? parsed.minute);
     const p = (field === "period" ? (val as "AM" | "PM") : parsed.period);
     onChange(to24(h, m, p));
   };
@@ -258,7 +270,7 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         <Wheel
           ariaLabel="Hour"
           options={HOUR_OPTIONS}
-          value={hasValue ? parsed.hour12 : null}
+          value={hasValue ? parsed.hour12 : (draft.hour12 ?? null)}
           onChange={(v) => update("hour", v)}
           disabled={disabled}
         />
@@ -266,7 +278,7 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         <Wheel
           ariaLabel="Minute"
           options={MINUTE_OPTIONS}
-          value={hasValue ? parsed.minute : null}
+          value={hasValue ? parsed.minute : (draft.minute ?? null)}
           onChange={(v) => update("minute", v)}
           disabled={disabled}
         />
@@ -281,6 +293,11 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         onChange={(v) => update("period", v)}
         disabled={disabled}
       />
+      {drafting && (
+        <p role="status" data-testid="time-pick-period" className="text-ds-13 font-medium text-primary">
+          Pick AM or PM to set the time.
+        </p>
+      )}
     </div>
   );
 }

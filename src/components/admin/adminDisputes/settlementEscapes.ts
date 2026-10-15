@@ -2,7 +2,9 @@
  * The two ways out for a decided dispute whose settlement cannot run, moved out
  * of AdminDisputes.tsx (component-size ratchet) with their bodies unchanged:
  *   - closeWithoutPayment: a job with NO payment on file (Q235);
- *   - clearTestModeRecords: a split that ran in Stripe TEST mode (Q1732).
+ *   - clearTestModeRecords: a split that ran in Stripe TEST mode (Q1732);
+ *   - closeAsTest: a decided dispute on a Stripe TEST-mode payment between
+ *     test accounts, closed as "test, no money moved" (Q1769).
  * Both are admin-only on the server, gated by the biometric prompt here, and
  * reload the queue when they finish.
  */
@@ -112,5 +114,43 @@ export function settlementEscapes({
     }
   };
 
-  return { closeWithoutPayment, clearTestModeRecords };
+  /**
+   * Q1769 (owner, 2026-10-15): close a decided dispute on a Stripe TEST-mode
+   * payment between test accounts as a test, with no money moved.
+   * rpc_close_test_mode_dispute re-checks under row locks that the job was
+   * paid in test mode (cs_test_ session), that every party is a test account,
+   * that no gift card (live money) and no refund or transfer record is on it,
+   * and closes the job's payment so nothing pays it out afterwards. It raises
+   * on anything it did not write, so a null error here means it closed.
+   */
+  const closeAsTest = async (job: DisputedJob, note: string) => {
+    const disputeId = disputeRecords[job.id]?.id ?? null;
+    if (!disputeId) {
+      toast.error("This dispute has no formal record to close.");
+      return;
+    }
+    const ok = await requireBiometric("Confirm closing this test-mode dispute");
+    if (!ok) return;
+    setRetrying(job.id);
+    try {
+      const { error } = await supabase.rpc(
+        "rpc_close_test_mode_dispute",
+        { _dispute_id: disputeId, _note: note.trim() },
+      );
+      if (error) {
+        toast.error(rpcErrorMessage("rpc_close_test_mode_dispute", error) ?? userFacingError(error, "Couldn't close that dispute — try again."));
+        return;
+      }
+      confirmConsequential("Closed as a test. No real money moved.");
+    } catch (err: unknown) {
+      // A thrown call never reached the RPC's refusals: say so, and report it.
+      report(err, { tags: { source: "AdminDisputes.closeAsTest" } });
+      toast.error(userFacingError(err, "Couldn't close that dispute — try again."));
+    } finally {
+      setRetrying(null);
+      loadDisputes();
+    }
+  };
+
+  return { closeWithoutPayment, clearTestModeRecords, closeAsTest };
 }

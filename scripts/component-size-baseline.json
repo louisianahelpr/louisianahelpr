@@ -4,7 +4,7 @@
   "files": {
     "src/App.tsx": 666,
     "src/components/admin/AdminAnalytics.tsx": 624,
-    "src/components/admin/AdminDisputes.tsx": 769,
+    "src/components/admin/AdminDisputes.tsx": 768,
     "src/components/admin/AdminReports.tsx": 722,
     "src/components/admin/AdminSettings.tsx": 695,
     "src/components/BrowseMap.tsx": 1200,

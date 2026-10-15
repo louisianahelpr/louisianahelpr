@@ -28,6 +28,7 @@
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO anon, authenticated, service_role;
  * @mutate src/components/admin/AdminAnalytics.tsx |       <SignupLeadsCard />\n | \n
+ * @mutate supabase/functions/record-signup-lead/index.ts |   if (isReservedRecipient(email)) { |   if (false) {
  *
  * Q1587 (owner 2026-10-11): the admin card reads the leads through
  * admin_list_signup_leads(), an admin-only read. Its grant shape is pinned
@@ -38,6 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+const ROOT_DIR_Q1656 = resolve(__dirname, "..", "..");
 
 const ROOT = resolve(__dirname, "../..");
 const MIG = join(ROOT, "supabase", "migrations");
@@ -179,6 +181,19 @@ describe("signup leads: client and unsubscribe layers", () => {
   it("the one-click unsubscribe also stamps the lead, and a failed write is not reported as success", () => {
     expect(unsub).toMatch(/\.from\('signup_leads'\)\s*\.update\(\{\s*unsubscribed_at:/);
     expect(unsub).toMatch(/if \(leadError && leadError\.code !== '42P01' && leadError\.code !== 'PGRST205'\) \{[\s\S]*?if \(!profile\) \{[\s\S]*?500/);
+  });
+});
+
+describe("signup leads: fixture addresses are not leads (Q1656)", () => {
+  // Measured 2026-10-12 02:55Z: all 6 rows in prod's signup_leads were
+  // @example.com addresses typed by browser specs against prod.
+  it("record-signup-lead stores nothing for an RFC 2606 reserved address, before it calls the RPC", () => {
+    const src = blankComments(readFileSync(join(ROOT_DIR_Q1656, "supabase/functions/record-signup-lead/index.ts"), "utf8"));
+    expect(src).toMatch(/import \{ isReservedRecipient \} from "\.\.\/_shared\/reservedRecipient\.ts"/);
+    const skip = src.search(/if \(isReservedRecipient\(email\)\) \{\s*return new Response\(null, \{ status: 204/);
+    const rpc = src.indexOf('rpc("record_signup_lead"');
+    expect(skip).toBeGreaterThan(0);
+    expect(rpc).toBeGreaterThan(skip);
   });
 });
 

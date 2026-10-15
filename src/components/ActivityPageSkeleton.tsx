@@ -116,7 +116,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
     </div>
   );
   return (
-    <PageScaffold titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING}>
+    <PageScaffold oneBlur titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING}>
       <LoadingHeading
         title={tab === "posted" ? "My Posts" : "My Jobs"}
         message={tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}

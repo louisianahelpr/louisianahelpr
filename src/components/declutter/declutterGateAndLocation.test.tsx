@@ -41,6 +41,7 @@ vi.mock("@/components/AppPage", () => ({
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/declutter/api", () => ({
+  fetchHasAgreedSales: async () => false,
   fetchLiveItems: async () => [],
   fetchMyItems: async () => [],
   fetchPhotos: async () => [],
@@ -117,10 +118,11 @@ describe("Declutter loading frame (DeclutterGate)", () => {
     expect(bones(container)).toBe(0);
   });
 
-  it("a settled 'off' is still the 404, with no skeleton left behind", () => {
+  it("a settled 'off' is still the 404, with no skeleton left behind", async () => {
     state.featureSettled = true;
     const { container } = at("/declutter", <DeclutterPage />);
-    expect(screen.getByText("Page not found")).toBeInTheDocument();
+    // /declutter first asks whether the member has a sale to finish (row 62), then 404s.
+    expect(await screen.findByText("Page not found")).toBeInTheDocument();
     expect(bones(container)).toBe(0);
   });
 });

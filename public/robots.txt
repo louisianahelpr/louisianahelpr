@@ -44,6 +44,7 @@ Disallow: /warnings
 Disallow: /activity
 Disallow: /data-rights
 Disallow: /account-banned
+Disallow: /unsubscribe
 Disallow: /signup-pending
 Disallow: /forgot-password
 Disallow: /reset-password

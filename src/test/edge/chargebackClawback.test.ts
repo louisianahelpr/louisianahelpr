@@ -407,6 +407,31 @@ describe("card-dispute clawback (Q202)", () => {
       expect(writesTo("jobs", "update").some((w) => payload(w).payment_status === "released")).toBe(false);
     });
 
+    // Q1818: a crew dispute whose rows end differently (one refused, one
+    // balance-short) tells the admin each row's own step, never "pay it by
+    // hand" for the whole dispute (the balance-short row would be paid twice).
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (kinds < 2) return null; |   return null;
+    it("Q1818: a won dispute with one refused and one balance-short row lists each row's step", async () => {
+      const fn = await load();
+      event("evt_w_mixed", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.chargeback_clawbacks = { rows: [
+        row({ id: "cb-1", original_transfer_id: "tr_refused", helper_id: "helper-1" }),
+        row({ id: "cb-2", original_transfer_id: "tr_short", helper_id: "helper-2" }),
+      ] };
+      stripeMock.transfers.create
+        .mockRejectedValueOnce(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }))
+        .mockRejectedValueOnce(Object.assign(new Error("Your platform balance is too low"), { type: "StripeInvalidRequestError", code: "balance_insufficient" }));
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      const admin = notices().find((n) => n.user_id === "admin-1" && /Chargeback WON/.test(n.title));
+      expect(admin?.title).toBe("Chargeback WON — Helpr re-pays need different steps");
+      expect(admin?.message).toMatch(/Pay by hand from the Admin panel \(Stripe refused\): tr_refused\./);
+      expect(admin?.message).toMatch(/platform balance is topped up, do NOT pay by hand: tr_short\./);
+      expect(admin?.message).not.toMatch(/tr_short.*Pay by hand|Pay by hand[^.]*tr_short/);
+    });
+
     // Q1322: a refused re-pay whose 'repay_failed' write matched no row is
     // re-read: a row already out of the re-drive needs no "fix it by hand" page.
     // @mutate supabase/functions/_shared/chargebackClawback.ts |       const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null; |       const alreadySettled = false;

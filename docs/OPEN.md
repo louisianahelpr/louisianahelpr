@@ -710,6 +710,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
   - main: Supabase DB Deploy: issue #3162, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083553. feed: issue #3162
+  - STATUS 2026-10-15: two robots fixed at the root on this landing (sec-c): e2e-real-backend (run 38527096325: the spec hired with accept_application then went to on-my-way and got 403 accept_required; prod-lifecycle and settleJobForward now call accept_job_offer first; guard src/test/e2eHiresAreAccepted.test.ts) and vacuity (run 38651055503: launchWaitsOn's @mutate removed Q152, already done; it now removes open Q1289). Each sub-line ticks itself when its workflow runs green after deploy; the lead re-runs both.
 - [ ] **Q1851 MEDIUM db-deploy failed on main.** Mirrored 2026-10-16 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23

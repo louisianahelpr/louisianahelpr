@@ -15,16 +15,27 @@
  *
  * @mutate src/components/admin/adminRailBadges.ts | if (id === "stalled" && (openQueues.stalled ?? 0) > 0) return openQueues.stalled; | void openQueues;
  * @mutate src/components/admin/adminRailBadges.ts | const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id])); | const seed = new Set<string>();
+ *
+ * Q1691 (2026-10-14): Ban Review, License & Insurance, Exception Queue, Fraud
+ * and Identity Review now count what their screens list as waiting, from the
+ * same reads, test accounts left out.
+ * @mutate src/components/admin/adminRailBadges.ts |   if (id === "fraud" && (openQueues.fraud ?? 0) > 0) return openQueues.fraud; |
+ * @mutate src/components/admin/adminRailBadges.ts |   return userIds.filter((id): id is string => !!id && !seed.has(id)); |   return userIds.filter((id): id is string => !!id);
+ * @mutate src/components/admin/adminRailBadges.ts |       return rows.filter((r) => r.is_seed !== true).length; |       return rows.length;
+ * @mutate src/pages/admin/Admin.tsx |   const openQueues = { stalled: stalledCount.data, ...queueCounts.data }; |   const openQueues = { stalled: stalledCount.data };
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { adminBadgeFor } from "@/components/admin/adminRailBadges";
+import type { Stats } from "@/components/admin/dashboard/types";
 import { blankComments } from "./helpers/blankNonCode";
 
-// Q1653: queues still without a rail count (2026-10-12).
+// Q1653: queues still without a rail count. Empty since Q1691 (2026-10-14) gave
+// the last five (banreview, credentials, exceptions, fraud, idvreview) a count.
 // @two-way src/test/adminQueueRowsHaveBadges.test.ts:stale baseline entry ${id} — remove it (lower the baseline)
-const KNOWN_NO_BADGE = ["banreview", "credentials", "exceptions", "fraud", "idvreview"];
+const KNOWN_NO_BADGE: string[] = [];
 
 const admin = blankComments(readFileSync(join(process.cwd(), "src/pages/admin/Admin.tsx"), "utf8"));
 const rail = blankComments(readFileSync(join(process.cwd(), "src/components/admin/adminRailBadges.ts"), "utf8"));
@@ -55,6 +66,41 @@ describe("admin queue rows show a live count (Q1071)", () => {
   it("every queue row without a badge is in the known list", () => {
     const missing = queueRows.filter((id) => !hasBadge(id) && !KNOWN_NO_BADGE.includes(id));
     expect(missing, "a queue row with no rail count").toEqual([]);
+  });
+
+  it("Q1691: each of the five queues returns its own open count, and none when zero", () => {
+    const stats = { disputedJobs: 0, openReports: 0, supportTickets: 0 } as unknown as Stats;
+    const counts = { banreview: 1, credentials: 2, exceptions: 3, fraud: 4, idvreview: 5 };
+    for (const [id, n] of Object.entries(counts)) {
+      expect(adminBadgeFor(id, {}, stats, counts), id).toBe(n);
+      expect(adminBadgeFor(id, {}, stats, { [id]: 0 }), `${id} at zero`).toBeUndefined();
+    }
+    expect(admin).toMatch(/const queueCounts = useOpenQueueCounts\(!loading\);/);
+    expect(admin).toMatch(/const openQueues = \{ stalled: stalledCount\.data, \.\.\.queueCounts\.data \};/);
+    expect(admin).toMatch(/\{ stalled: stalledCount\.data, \.\.\.queueCounts\.data \}\);/);
+    expect(admin).toMatch(/queueCounts\.isError\}/);
+  });
+
+  it("Q1691: the counts read each screen's own source and leave test accounts out", () => {
+    const hook = rail.slice(rail.indexOf("export function useOpenQueueCounts("));
+    expect(hook.length).toBeGreaterThan(500);
+    // Same reads as AdminBanReview, AdminExceptionQueue, AdminFraudDashboard,
+    // AdminCredentialQueue and AdminIDVReview.
+    expect(hook).toMatch(/\.from\("user_violations"\)\.select\("user_id"\)\.eq\("action_taken", "pending_ban_review"\)/);
+    expect(hook).toMatch(/new Set\(await realUsers\(/); // one case per person
+    expect(hook).toMatch(/\.from\("verification_exceptions"\)\.select\("user_id"\)\.eq\("status", "open"\)/);
+    expect(hook).toMatch(/\.from\("fraud_flags"\)\.select\("user_id"\)\.eq\("resolved", false\)/);
+    expect(hook).toMatch(/supabase\.rpc\("get_pending_credentials"\)/);
+    expect(hook).toMatch(/\.eq\("idv_status", "manual_review"\)/);
+    expect(hook).toMatch(/rows\.filter\(\(r\) => r\.is_seed !== true\)\.length/);
+    // Test accounts out (fetchSeedUserIds), a failed read throws (unwrap).
+    expect(rail).toMatch(/return userIds\.filter\(\(id\): id is string => !!id && !seed\.has\(id\)\);/);
+    expect((hook.match(/realUsers\(/g) ?? []).length).toBe(4);
+    expect((hook.match(/unwrap\(/g) ?? []).length).toBe(5);
+    // Each key under its screen's prefix, so the screen's refresh moves the number.
+    for (const key of ["admin-ban-review", "admin-credential-queue", "admin-exception-queue", "admin-fraud-flags", "admin-idv-review"]) {
+      expect(hook).toContain(`queryKey: ["${key}", "rail-count"]`);
+    }
   });
 
   it("the known list holds no row that has a badge now, or left the rail (two-way)", () => {

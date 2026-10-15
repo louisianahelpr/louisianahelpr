@@ -26,6 +26,7 @@
     "admin_list_feature_switches()": "client",
     "admin_list_signup_leads()": "client",
     "admin_notification_crosses_seed_boundary(uuid, uuid, text)": "client",
+    "admin_release_job_payout_hold(uuid)": "reviewed 2026-10-15 (Q1491): admin (has_role on auth.uid()) or a server context (public.is_server_context(): no auth.uid() and neither the JWT role nor the role GUC is anon/authenticated, i.e. postgres/SQL editor, service_role, cron); every anon or authenticated non-admin caller is refused with admin_only. Clears a job payout hold stripe-webhook placed on an underfunded gift-card job once it is reconciled; audited in admin_audit_log (admin_id NULL when released by a server context). No app caller yet; ops runs it from the SQL editor.",
     "admin_release_payout_hold(uuid)": "client",
     "admin_resolve_ban_evasion_match(uuid)": "client",
     "admin_reverse_violation(uuid, text, boolean)": "client",

@@ -40,6 +40,7 @@
 //   APPLE_IAP_ENVIRONMENT  "production" | "sandbox" (optional; we probe both)
 
 import { ONE_TIME_PASS_DAYS, type ProTierKey, type ProBillingCycle } from "./proTiers.ts";
+import { caughtMessage } from "./caughtMessage.ts";
 
 /**
  * Read a Deno env var without naming the `Deno` global at module scope.
@@ -206,7 +207,7 @@ async function appleTestAccountStatus(
     if (!prof) return "not_test";
     return (prof as { is_seed?: boolean }).is_seed === true ? "test" : "not_test";
   } catch (e) {
-    console.error("[apple] test-account read failed:", e instanceof Error ? e.message : String(e));
+    console.error("[apple] test-account read failed:", caughtMessage(e));
     return "unknown";
   }
 }

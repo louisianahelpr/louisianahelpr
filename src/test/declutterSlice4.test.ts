@@ -18,6 +18,7 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'code', CASE WHEN v_side = 'buyer' AND o.status = 'paid' THEN h.code END, |     'code', CASE WHEN o.status = 'paid' THEN h.code END,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
+ * @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
@@ -105,6 +106,14 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(p).toContain("v_done := public.declutter_complete_handover(o.id, 'porch');");
     expect(p).toContain("IF EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN");
     expect(flat(MIG)).toContain("confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin')");
+  });
+
+  it("row 45 (lead 2026-10-15): ONE public star rating across job and Declutter reviews, public ones only", () => {
+    const st = flat(body("get_public_profile_stats"));
+    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261015051301_declutter_shared_star_rating.sql");
+    expect(st).toContain("JOIN public.declutter_reviews dr ON dr.reviewee_id = t.user_id");
+    expect(st).toContain("WHERE o.status = 'handed_over' AND (o.handed_over_at <= now() - interval '14 days' OR (SELECT count(*) FROM public.declutter_reviews d2 WHERE d2.order_id = dr.order_id) = 2)");
+    expect(st).toContain("SELECT t.user_id, dr.stars::integer, false");
   });
 
   it("row 94: \"They didn't show\" opens 15 minutes after the booked time; the auto-pay waits 24 h", () => {

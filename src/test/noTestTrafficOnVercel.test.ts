@@ -48,7 +48,8 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
     "index.html every 10 minutes (plus one PostgREST row). It cannot be pointed at a local build.",
   "prod-freshness.yml":
     "Reads the build-commit meta tag out of the LIVE index.html to prove prod serves main — one " +
-    "HTML GET per poll, hourly (Q271: not on push, deploys are batched). A local build would prove nothing about the deploy.",
+    "HTML GET per poll, hourly (Q271: not on push, deploys are batched). A local build would prove nothing about the deploy. " +
+    "Its served-commit job also runs the Q1737 missing-asset probe (two tiny GETs per run).",
   // sitemap-drift.yml is NOT here: it regenerates public/sitemap.xml from source
   // (scripts/generate-sitemap.mjs --check) and never fetches the site.
 };
@@ -78,6 +79,10 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/rollback/drill-web.mjs":
     "Q69 live rollback drill (rollback-drill.yml, workflow_dispatch only): it polls the live page's " +
     "build-commit meta tag to time a rollback and its restore. A local build cannot show which deployment prod serves.",
+  "scripts/probes/missing-asset-not-cached.mjs":
+    "Q1737 live probe (prod-freshness.yml, hourly): two GETs of made-up /assets and /fonts file names, because the " +
+    "404's Cache-Control is where a vercel.json header rule and api/missing-file's own header meet at Vercel's CDN, " +
+    "which a local preview cannot reproduce.",
 };
 
 const BASE_VARS = /^\s*-?\s*(PLAYWRIGHT_BASE_URL|HAPPY_PATH_BASE_URL|SITE_URL|BASE):\s*(.*?)\s*$/;

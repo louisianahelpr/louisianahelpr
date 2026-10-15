@@ -102,7 +102,11 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
         className="font-sans text-ds-11 leading-snug text-left"
         style={{
           color: cell.selected
-            ? "hsl(var(--parchment) / 0.85)"
+            ? // Full parchment, not 0.85: on the gradient the 11px label
+              // measured 4.01:1 light / 3.93:1 dark at 0.85 (AA is 4.5).
+              // Size and weight already make it quieter than the value.
+              // Guard: e2e/happy-path/gradInkContrast.spec.ts.
+              "hsl(var(--parchment))"
             : "hsl(var(--olivewood) / 0.8)",
         }}
       >

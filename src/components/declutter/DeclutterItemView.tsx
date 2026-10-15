@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
-import { DeclutterItemSkeleton } from "./DeclutterSkeletons";
+import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
 import {
   answerQuestion,
   askQuestion,
@@ -110,9 +110,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
   const [question, setQuestion] = useState("");
-  const item = useQuery({ queryKey: ["declutter", "item", itemId], queryFn: () => fetchItem(itemId) });
-  const photos = useQuery({ queryKey: ["declutter", "item-photos", itemId], queryFn: () => fetchPhotos([itemId]) });
-  const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId) });
+  // A link whose id is not an item id at all can never load one: say so at
+  // once instead of asking the server (and showing a skeleton) first.
+  const validId = isItemId(itemId);
+  const item = useQuery({ queryKey: ["declutter", "item", itemId], queryFn: () => fetchItem(itemId), enabled: validId });
+  const photos = useQuery({ queryKey: ["declutter", "item-photos", itemId], queryFn: () => fetchPhotos([itemId]), enabled: validId });
+  const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId), enabled: validId });
   const watching = useQuery({
     queryKey: ["declutter", "watching", user?.id],
     queryFn: () => fetchWatching(user!.id),
@@ -142,13 +145,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
   if (item.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {
-    return (
-      <AppPage title="Item" backTo="/declutter">
-        <DeclutterNotice tone="warn" title="This item isn't available.">
-          {item.isError ? declutterErrorMessage(item.error) : "It may have sold or been taken down."}
-        </DeclutterNotice>
-      </AppPage>
-    );
+    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} />;
   }
   const it = item.data;
   const miles =

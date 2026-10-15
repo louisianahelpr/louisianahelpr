@@ -12,6 +12,7 @@
  * @mutate src/components/declutter/declutterUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const [asked, setAsked] = useState(false); |   const [asked, setAsked] = useState(true);
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const device = useUserLocation(asked, "declutter_location"); |   const device = useUserLocation(asked);
+ * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -97,12 +98,18 @@ describe("Declutter loading frame (DeclutterGate)", () => {
   it.each([
     ["/declutter", <DeclutterPage key="h" />, "/declutter", "Declutter"],
     ["/declutter/sell", <DeclutterSellPage key="s" />, "/declutter/sell", "Sell an item"],
-    ["/declutter/item/i1", <DeclutterItemPage key="i" />, "/declutter/item/:id", "Item"],
+    ["/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage key="i" />, "/declutter/item/:id", "Item"],
   ])("%s: the switch still loading paints the page's shell and bones, not a blank page", (path, el, route, title) => {
     const { container } = at(path, el, route);
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(bones(container)).toBeGreaterThan(0);
     expect(screen.queryByText("Page not found")).toBeNull();
+  });
+
+  it("a link that cannot name an item says so at once: no skeleton of photos that will never come", () => {
+    const { container } = at("/declutter/item/test", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(screen.getByText("This item isn't available.")).toBeInTheDocument();
+    expect(bones(container)).toBe(0);
   });
 
   it("a settled 'off' is still the 404, with no skeleton left behind", () => {
@@ -141,7 +148,7 @@ describe("Declutter location ask", () => {
   });
 
   it("an item page never asks for location", async () => {
-    at("/declutter/item/i1", <DeclutterItemPage />, "/declutter/item/:id");
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByRole("heading", { name: "Oak rocking chair" })).toBeInTheDocument();
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();

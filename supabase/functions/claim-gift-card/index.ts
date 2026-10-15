@@ -19,6 +19,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { sessionIdMode, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,7 @@ serve(async (req) => {
     // fall through to "invalid" and hide a transient outage as a bad link.
     const { data: credit, error: readErr } = await supabaseAdmin
       .from("gift_cards")
-      .select("id, recipient_id, recipient_email, status, expires_at, payment_status")
+      .select("id, recipient_id, recipient_email, status, expires_at, payment_status, stripe_session_id")
       .eq("claim_token", claimToken)
       .maybeSingle();
     if (readErr) {
@@ -132,6 +133,23 @@ serve(async (req) => {
       return json(403, {
         error: "This gift was sent to a different email address. Sign in with that email to claim it.",
       });
+    }
+
+    // Q1750: a gift paid on the Stripe TEST key is sandbox credit, so only a
+    // test account may hold it. The checkout and the webhook already require a
+    // test recipient; this holds the line for an unbound one (a later sign-up
+    // with that email, or an account no longer enrolled). Fails closed.
+    if (sessionIdMode(credit.stripe_session_id as string | null) === "test") {
+      let callerMode: string;
+      try {
+        callerMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+      } catch (modeErr) {
+        if (modeErr instanceof StripeModeRefused) return stripeModeRefusedResponse(modeErr, corsHeaders);
+        throw modeErr;
+      }
+      if (callerMode !== "test") {
+        return json(403, { error: "This gift can't be claimed from this account. Please contact support." });
+      }
     }
 
     // Atomic claim: bind recipient_id only if still unclaimed. The WHERE guard

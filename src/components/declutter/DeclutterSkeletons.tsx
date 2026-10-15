@@ -35,7 +35,9 @@ export function DeclutterHomeSkeleton() {
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
       <Skeleton className="h-12 w-full rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading items">
-        <Skeleton className="h-12 w-full rounded-2xl" />
+        {/* The distance choices wrap to three rows on a phone (140px at 375)
+            and sit in one row from sm up. */}
+        <Skeleton className="h-[140px] sm:h-12 w-full rounded-2xl" />
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
           {[0, 1, 2, 3].map((i) => (
             <li key={i} className="min-w-0">

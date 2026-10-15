@@ -31,7 +31,7 @@
  * @mutate supabase/functions/create-payment/index.ts |             amount: generalSplit.refundCents, |             amount: capturedCents - generalSplit.setupKeptCents,
  * @mutate supabase/functions/create-payment/index.ts |           const refundAmount = cancelSplit.ceilingCents; |           const refundAmount = capturedCents - cancelSplit.setupKeptCents;
  * @mutate supabase/functions/execute-dispute-split/index.ts | refundableCents = posterBase.ceilingCents | refundableCents = capturedCents - posterBase.setupKeptCents
- * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents + feeProRataCents + taxReturnCents;
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents - flatCardFeeKeptCents + feeProRataCents + taxReturnCents;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
  * @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |         // own-mistake full refund (owner, 2026-10-14): we charged the one-time |         // we charged the one-time
  * The three charge-recurring-visits own-mistake branches (owner pop-up, 2026-10-14 ~3 PM CT, confirmed each):
@@ -114,16 +114,21 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "refundCents = Math.min(cardOwedCents, chargeLeftCents)",
     "cardOwedCents = Math.max(0, owedCents - giftRestoredCents)",
     "chargeLeftCents = a.isPifFunded ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents - blockFeeCents)) : Math.max(0, a.capturedCents - a.paidCents - blockFeeCents)",
-    "owedCents = unfilledCents + feeReturnCents + taxReturnCents",
+    "owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents",
     "giftRestoredCents = Math.max(0, Math.round(Number(restore?.restore_cents ?? 0)))",
     "capturedCents = a.capturedCents",
     "blockFeeCents = Math.min(a.blockFeeCents, unpaidBudgetCents)",
     "unfilledCents = unpaidBudgetCents - blockFeeCents + Math.max(0, urgentCents - paidUrgent)",
+    // Roadmap F3 (lh-money-escrow review N2, 2026-10-15): a flat-fee crew job
+    // has no poster fee line to hold Stripe's fee, so the unfilled share of
+    // the card fee is kept out of the refund here.
+    "flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0 ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents)) : 0",
     "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents })",
     "taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
     "unpaidBudgetCents = Math.max(0, budgetCents - paidBudget)",
     "urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100)",
     "budgetCents = Math.round(Number(job.budget ?? 0) * 100)",
+    "crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents)",
     "taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100))",
   ],
   "cancel-refund-": [

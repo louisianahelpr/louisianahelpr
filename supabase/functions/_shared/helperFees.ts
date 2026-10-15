@@ -46,6 +46,8 @@
 // that actually moves money to a helper resolves the tier from the helper's
 // live profile at payout time.
 
+import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob } from "./helprFlatFee.ts";
+
 /** Tier id (lowercased `profiles.subscription_tier`) → platform fee percent. */
 export const TIER_FEE_PERCENT: Record<string, number> = {
   free: 12,
@@ -224,4 +226,37 @@ export function helperCommissionDollars(
   feePercent: number,
 ): number {
   return helperCommissionCents(perHelperBudgetDollars, feePercent) / 100;
+}
+
+/**
+ * THE Helpr commission for one job's per-Helpr share, in dollars exact to the
+ * cent, whichever fee model the job was funded under (roadmap F3):
+ *
+ *   - a FLAT-model job (create-payment stamped jobs.helper_fee_flat_cents):
+ *     the stamped 5% + 70c (`helprFlatFeeCents`); the tier never counts, so a
+ *     membership can never change it (F4);
+ *   - a LEGACY job (no stamp): the tier commission at `legacyFeePercent`,
+ *     exactly as before (`helperCommissionDollars`).
+ *
+ * `perHelperUrgentDollars` is this Helpr's share of the urgent bonus. On a
+ * flat job the bonus is PART of the job price (owner 2026-10-15): the 5% is
+ * priced on budget share + bonus share, and the 70c once. On a legacy job the
+ * bonus stays outside the commission (Q362: the Helpr got all of it). It is a
+ * required argument so no payout path can silently leave the bonus out.
+ *
+ * Every path that pays a Helpr or records what the platform kept calls this,
+ * so a payout path cannot price a flat job on the tier ladder by forgetting
+ * to check the stamp.
+ */
+export function jobHelprCommissionDollars(
+  job: FlatFeeStamp | null | undefined,
+  perHelperBudgetDollars: number,
+  legacyFeePercent: number,
+  perHelperUrgentDollars: number,
+): number {
+  if (isFlatFeeJob(job)) {
+    const urgentCents = Math.max(0, Math.round((Number(perHelperUrgentDollars) || 0) * 100));
+    return helprFlatFeeCents(Math.round(Number(perHelperBudgetDollars) * 100) + urgentCents, job) / 100;
+  }
+  return helperCommissionDollars(perHelperBudgetDollars, legacyFeePercent);
 }

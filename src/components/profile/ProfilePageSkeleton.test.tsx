@@ -9,6 +9,8 @@ import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDeri
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ isAdmin: false }) }));
+// Memberships switch OFF, the shipped state (roadmap F4): the landing reads it.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 /**
  * /profile's FIRST FRAME HAS WORDS IN IT (Q1173, the owner's data-aware

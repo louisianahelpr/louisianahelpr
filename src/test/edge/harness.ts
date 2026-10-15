@@ -136,6 +136,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Jobs flat fee (roadmap F3): `_shared/helprFlatFee.ts` has ZERO imports
+  // (constants and pure functions), so the generated file points at the REAL
+  // module and the flat-fee arithmetic stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helprFlatFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helprFlatFee.ts";`,
+  );
+
   // Client-safe errors: `_shared/publicError.ts` has ZERO imports (a class and
   // a pure function). Point at the real module so the tests exercise the real
   // PublicError / publicErrorMessage split (create-payment, 2026-09-23).

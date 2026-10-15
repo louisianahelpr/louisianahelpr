@@ -6,6 +6,7 @@ import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { posterDeadline } from "@/components/job-card/jobStatusLine";
 import type { PosterStepCtx } from "./posterStepContract";
+import { boostPurchasePausedHere } from "@/lib/storePurchasePause";
 
 /**
  * POSTER STEP 1 — open, nobody hired yet.
@@ -88,14 +89,15 @@ export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked, applicant
           className={JOB_ACTION_CHIP_CLASS}
           style={jobActionChipStyle("share")}
         />,
-        <JobActionChip
+        // Roadmap F5: no boost purchase inside the iPhone app (web only).
+        ...(boostPurchasePausedHere() ? [] : [<JobActionChip
           key="boost"
           icon={Rocket}
           label={isBoosted ? "Boosted" : "Boost"}
           tone="boost"
           disabled={isBoosted}
           onClick={() => onBoost(job.id)}
-        />,
+        />]),
         // Q707 (owner, 2026-10-05): a crew stays open while it fills, but once a
         // member is hired its date and details change only through a request
         // the crew accepts (Q1254), and the server refuses a direct edit.

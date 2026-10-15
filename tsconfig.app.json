@@ -87,6 +87,7 @@
     "supabase/functions/_shared/tierNames.ts",
     "supabase/functions/_shared/tierPerks.ts",
     "supabase/functions/_shared/helperFees.ts",
+    "supabase/functions/_shared/helprFlatFee.ts",
     "supabase/functions/_shared/payoutClaim.ts",
     // Q1221: the payout-hold Stripe schedule freeze, unit-tested with fakes by
     // src/test/payoutFreeze.test.ts.

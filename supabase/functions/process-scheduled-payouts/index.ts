@@ -5,7 +5,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { readHelperFeePercentStrict, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -92,7 +93,7 @@ serve(async (req) => {
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, is_seed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       // Never pay out a job under dispute. A CREW whose dispute CLOSED
@@ -596,9 +597,18 @@ serve(async (req) => {
       const feeProRataCents = budgetCents > 0 ? Math.floor((feeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents) : 0;
       const crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents);
       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents });
-      const cardFeeKeptCents = feeProRataCents - feeReturnCents;
+      // Roadmap F3 (lh-money-escrow review N2, 2026-10-15): a FLAT job charged
+      // the poster no fee line (customer_fee_amount 0), so nothing above holds
+      // back the card fee, and only the filled spots pay the Helpr's 5% + 70c.
+      // The unfilled share's part of Stripe's real fee is kept from the refund
+      // (never absorb a fee), pro-rata by the same budget share the fee above
+      // uses, floored. Only when a card actually paid (a gift has no card fee).
+      const flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
+        ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
+        : 0;
+      const cardFeeKeptCents = feeProRataCents - feeReturnCents + flatCardFeeKeptCents;
       const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
-      const owedCents = unfilledCents + feeReturnCents + taxReturnCents;
+      const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents;
       if (owedCents <= 0) return { ok: true, refundCents: 0 };
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";
@@ -999,11 +1009,16 @@ serve(async (req) => {
       // instead of transferring at a fallback rate. Only a Helpr with NO
       // profile row (no tier to read) takes the fee frozen on the job, then the
       // free-tier default (12, see helperFees.ts).
-      const feeRead = await readHelperFeePercentStrict(
-        supabaseAdmin,
-        helperId,
-        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
-      );
+      // Roadmap F3: a flat-model job keeps its stamp and reads no tier, so a
+      // tier read failure cannot hold up its payout either.
+      const flatPercent = flatFeePercentOf(job);
+      const feeRead = flatPercent !== null
+        ? { ok: true as const, percent: flatPercent }
+        : await readHelperFeePercentStrict(
+          supabaseAdmin,
+          helperId,
+          job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
+        );
       if (!feeRead.ok) {
         console.error(`[process-scheduled-payouts] helper fee read failed for ${helperId} (job ${job.id}): ${feeRead.error}`);
         results.push({ job_id: job.id, status: "helper_fee_read_error", error: feeRead.error });
@@ -1014,7 +1029,6 @@ serve(async (req) => {
       // Shared with release-payout. This used to be an unrounded
       // (perHelperBudget * pct) / 100, which disagreed with that path by a
       // cent on 2,243 (budget, tier) pairs under $200.
-      const helperCommission = helperCommissionDollars(perHelperBudget, jobHelperFeePercent);
       // Urgent fee is collected from the poster ONCE → split across the roster
       // like the budget, else each of N helpers is paid the full urgent bonus
       // against a single fee collected and the platform over-pays N×.
@@ -1023,6 +1037,9 @@ serve(async (req) => {
       const urgentShare = crewSlot?.slotNo != null
         ? allocateCents(Math.round(netUrgentFeeDollars(job.urgent_fee) * 100), helpersCount, crewSlot.slotNo) / 100
         : netUrgentFeeDollars(job.urgent_fee) / helpersCount;
+      // After urgentShare: on a flat-model job (F3) the bonus is part of the
+      // job price the 5% + 70c is priced on (owner 2026-10-15).
+      const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, jobHelperFeePercent, urgentShare);
       // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). Held
       // in dollars here but always a whole number of them. The onboarding-fee
       // branch below re-floors from the UNROUNDED cents, so the fee is taken
@@ -1810,7 +1827,7 @@ serve(async (req) => {
         const releaseFields: Record<string, unknown> = { payment_status: "released" };
         if (!job.is_group_job) {
           releaseFields.helper_fee_percent = jobHelperFeePercent;
-          releaseFields.platform_fee_amount = Math.round(perHelperBudget * jobHelperFeePercent) / 100;
+          releaseFields.platform_fee_amount = jobHelprCommissionDollars(job, perHelperBudget, jobHelperFeePercent, urgentShare);
         }
         // The retry is not optional here. This exact write, on the sibling
         // path, came back `57014 canceling statement due to statement timeout`

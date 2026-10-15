@@ -3149,6 +3149,7 @@ export type Database = {
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_dayof_confirmed_at: string | null
+          helper_fee_flat_cents: number | null
           helper_fee_percent: number | null
           helper_id: string | null
           helper_on_the_way_at: string | null
@@ -3268,6 +3269,7 @@ export type Database = {
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_dayof_confirmed_at?: string | null
+          helper_fee_flat_cents?: number | null
           helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
@@ -3387,6 +3389,7 @@ export type Database = {
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
           helper_dayof_confirmed_at?: string | null
+          helper_fee_flat_cents?: number | null
           helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
@@ -7032,6 +7035,7 @@ export type Database = {
           direct_offer_status: string | null
           estimated_hours: number | null
           expires_at: string | null
+          helper_fee_flat_cents: number | null
           helpers_needed: number | null
           id: string | null
           is_flexible_schedule: boolean | null
@@ -8088,6 +8092,7 @@ export type Database = {
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_dayof_confirmed_at: string | null
+          helper_fee_flat_cents: number | null
           helper_fee_percent: number | null
           helper_id: string | null
           helper_on_the_way_at: string | null
@@ -8232,6 +8237,7 @@ export type Database = {
           helper_completed_at: string | null
           helper_confirmed_at: string | null
           helper_dayof_confirmed_at: string | null
+          helper_fee_flat_cents: number | null
           helper_fee_percent: number | null
           helper_id: string | null
           helper_on_the_way_at: string | null

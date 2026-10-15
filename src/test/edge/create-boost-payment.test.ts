@@ -43,6 +43,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
+import { BOOST_FEE_CENTS } from "../../../supabase/functions/_shared/productPrices";
 
 const USER_ID = "user-boost-1";
 const JOB_ID = "job-boost-1";
@@ -82,6 +83,9 @@ function seed(tier: string) {
       },
     ],
   };
+  // The tier perks below exist only while the memberships switch is on for
+  // the caller (roadmap F4a); the F4a describe turns it off.
+  scenario.rpc.feature_enabled_for_user = true;
   // A year out, so `subActive` is true for every tier under test.
   scenario.reads.profiles = {
     rows: [
@@ -457,5 +461,87 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
     const paid = await keyFor("basic");
     expect(free1).toBe(free2);
     expect(paid).not.toBe(free1);
+  });
+});
+
+// Roadmap F5 (owner 2026-10-14): boosts are not sold inside the iPhone app for
+// now; they sell on the website. The app sends the platform it runs on, and the
+// server refuses a boost from the iOS app before any read or Stripe call. A
+// build that predates the platform field (1.0.4/7119, under App Store review)
+// sends none and is left exactly as it was (REVIEW FREEZE).
+// @mutate supabase/functions/create-boost-payment/index.ts |     if ((rawBody as { platform?: unknown })?.platform === "ios") { |     if (false) {
+describe("create-boost-payment — no purchase inside the iPhone app (F5)", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+    resetEnv();
+  });
+
+  it("refuses a boost from the iOS app with 403, reading and charging nothing", async () => {
+    seed("free");
+    const fn = await load();
+    const res = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer user-jwt" },
+      body: { job_id: JOB_ID, native: true, platform: "ios" },
+    }));
+    expect(res.status).toBe(403);
+    expect((await json(res)).error).toMatch(/website/i);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(jobWrites()).toHaveLength(0);
+    expect(scenario.readQueries.filter((q) => q.table === "jobs")).toHaveLength(0);
+  });
+
+  it("a request with no platform (the web, or an older build) is not refused by this rule", async () => {
+    seed("elite");
+    const fn = await load();
+    const res = await fn.fetch(call(fn));
+    expect(res.status).not.toBe(403);
+  });
+});
+
+describe("create-boost-payment — no member boost perks while memberships are off (F4a)", () => {
+  // Owner 2026-10-15: the formerly paid perks are off for EVERYONE while the
+  // memberships switch is off, plan holders included: everyone pays the full
+  // boost price, no free boost, no monthly credit, no discount.
+  // @mutate supabase/functions/create-boost-payment/index.ts | const subActive = membershipsOn && (subExp ? subExp > new Date() : true); | const subActive = (subExp ? subExp > new Date() : true);
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+    resetEnv();
+  });
+
+  for (const tier of ["elite", "plus", "pro", "basic"]) {
+    it(`${tier}: full price at Checkout, no free boost, no monthly credit claimed`, async () => {
+      seed(tier);
+      scenario.rpc.feature_enabled_for_user = false;
+      stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+      stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_f4a" });
+      const fn = await load();
+      const res = await fn.fetch(call(fn));
+      const body = await json(res);
+      expect(res.status).toBe(200);
+      expect(body.free).not.toBe(true);
+      expect(rpcCallsNamed("claim_monthly_free_boost")).toHaveLength(0);
+      // The switch was asked, for the verified caller.
+      expect(rpcCallsNamed("feature_enabled_for_user")[0]?.args).toEqual({ p_key: "memberships", p_user_id: USER_ID });
+      expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [Record<string, any>];
+      expect(params.line_items[0].price_data.unit_amount).toBe(BOOST_FEE_CENTS);
+      expect(jobWrites()).toHaveLength(0);
+    });
+  }
+
+  it("an unreadable switch fails closed to the full price", async () => {
+    seed("elite");
+    scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+    stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_f4a" });
+    const fn = await load();
+    const body = await json(await fn.fetch(call(fn)));
+    expect(body.free).not.toBe(true);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [Record<string, any>];
+    expect(params.line_items[0].price_data.unit_amount).toBe(BOOST_FEE_CENTS);
   });
 });

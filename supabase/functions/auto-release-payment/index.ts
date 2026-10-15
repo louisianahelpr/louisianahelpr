@@ -3,7 +3,8 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
-import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
@@ -132,7 +133,7 @@ serve(async (req) => {
 
     let dueQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, helper_fee_flat_cents, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
       // A requested revision STOPS the payout clock. The 24h window is keyed on
@@ -169,7 +170,7 @@ serve(async (req) => {
     // per-job guards below run for these rows too.
     let recentQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, helper_fee_flat_cents, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .eq("status", "in_progress")
       .eq("payment_status", "escrow")
       .is("poster_completed_at", null)
@@ -247,7 +248,7 @@ serve(async (req) => {
       // are what makes this query self-describing next to its two identical
       // siblings, and they are the discriminator the edge-test harness matches
       // on (it keys mock results by column list).
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, revision_completed_at, revision_acceptance_deadline, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, helper_fee_flat_cents, poster_completed_at, helper_completed_at, revision_completed_at, revision_acceptance_deadline, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .eq("status", "revision_requested")
       .eq("payment_status", "escrow")
       .not("revision_completed_at", "is", null)
@@ -497,7 +498,8 @@ serve(async (req) => {
       //
       // DEFAULT_TIER_FEE_PERCENT, never a bare 12, so retuning the ladder moves
       // this preview and the payout together.
-      const helperFeePercent = await getHelperFeePercent(
+      // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+      const helperFeePercent = flatFeePercentOf(job) ?? await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
         job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
@@ -506,7 +508,7 @@ serve(async (req) => {
       const perHelperBudget = job.budget / helpersCount;
       // Same rounding as the path that actually pays, so the preview can never
       // quote a cent the transfer won't send.
-      const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
+      const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, helperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount);
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       // Q764: a held Helpr is not promised a payout that every payout path
       // will refuse until the hold is released. The notice is skipped; an

@@ -1,6 +1,7 @@
 import { Percent } from "lucide-react";
 import { TIER_ORDER, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminCard } from "../AdminViewShell";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT } from "@/lib/helprFlatFee";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -41,7 +42,7 @@ export function FeeModelCard({ customerFee, helperFee }: { customerFee: string; 
   return (
     <AdminCard
       title={<span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Fee Model</span>}
-      subtitle="Helpr commission by tier, not by this screen."
+      subtitle={`Jobs funded from Oct 15, 2026: ${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)} from each Helpr payout. Older jobs keep the tier commission below.`}
       contentClassName="space-y-4"
     >
       {/* The ladder speaks for itself — the paragraph that used to sit above
@@ -61,9 +62,12 @@ export function FeeModelCard({ customerFee, helperFee }: { customerFee: string; 
           fee model, a page apart, is the duplication itself — not just the
           prose inside them. */}
       <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-        <li>Poster pays: job budget + a service fee equal to Stripe's card cost + sales tax (no platform %)</li>
-        <li>Helpr receives: job budget − their tier commission + urgent bonus</li>
-        <li>Platform keeps the Helpr commission, at that Helpr's own tier rate, so the take differs job to job</li>
+        {/* Roadmap F3 (owner 2026-10-14/15). The ladder above prices only jobs
+            funded before the change (each job carries its own stamp). */}
+        <li>Poster pays: the job price (urgent bonus included) + sales tax on taxable categories; no service fee and no card-cost line</li>
+        <li>Helpr receives: job price − {HELPR_FLAT_FEE_PERCENT}% − ${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}, rounded down to the whole dollar</li>
+        <li>Platform keeps {HELPR_FLAT_FEE_PERCENT}% + ${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)} per Helpr payout; Stripe's card cost comes out of it</li>
+        <li>Jobs funded before Oct 15, 2026 keep their old fees: the tier commission above and the poster's card-cost fee</li>
       </ul>
 
       <div className="space-y-1.5 border-t border-border/60 pt-3">

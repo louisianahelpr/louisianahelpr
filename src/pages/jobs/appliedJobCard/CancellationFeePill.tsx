@@ -1,5 +1,6 @@
 import { formatPriceFloor } from "@/lib/format";
 import { helperDisplayFeePercent } from "@/lib/helperEarnings";
+import { helprFlatTakeHomeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "../../../components/job-card/activityConstants";
 
@@ -32,7 +33,11 @@ export function CancellationFeePill({
     job,
     fallbackFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT,
   );
-  const netAmt = `$${formatPriceFloor(job.cancellation_fee * (1 - feePercent / 100))}`;
+  // Roadmap F3: on a flat-model job the Helpr pays 5% + 70c on the fee they
+  // receive (void-cancelled-payments prices it the same way).
+  const netAmt = `$${formatPriceFloor(isFlatFeeJob(job)
+    ? helprFlatTakeHomeCents(Math.round(job.cancellation_fee * 100), job) / 100
+    : job.cancellation_fee * (1 - feePercent / 100))}`;
   // Same sentence the push/in-app notification from `poster_cancel_job`
   // already sent ("You'll receive approximately $X as a cancellation fee").
   // The card used to say "$X to you after the platform fee, pending" — two

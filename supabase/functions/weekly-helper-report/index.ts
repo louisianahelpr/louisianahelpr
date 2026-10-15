@@ -186,7 +186,7 @@ serve(async (req) => {
           // payment_status — a job completed an hour ago is still inside the
           // 24-hour payout window — so without this column the guard would be
           // inert and the report would keep quoting the escrow-time stamp.
-          .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, payment_status")
+          .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, payment_status")
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
           .gte("updated_at", weekAgoISO),

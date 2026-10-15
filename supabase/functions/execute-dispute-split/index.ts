@@ -59,7 +59,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { CLEAR_TEST_MODE_ACTION, TEST_MODE_CLEARED_MARKER, clearTestModeRecords } from "./clearTestModeRecords.ts";
-import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
@@ -280,7 +281,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, onboarding_fee_amount, customer_fee_amount, platform_fee_percent",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, onboarding_fee_amount, customer_fee_amount, platform_fee_percent",
     )
     .eq("id", dispute.job_id)
     .maybeSingle();
@@ -565,7 +566,7 @@ serve(async (req) => {
   //
   //   helper budget share = budget × helperShare
   //   helper urgent share = netUrgentFee(urgent_fee) × helperShare
-  //   platform commission = helperCommissionDollars(helper budget share, pct)
+  //   platform commission = jobHelprCommissionDollars(job, helper budget share, pct, helper urgent share)
   //   helper payout       = budget share + urgent share − commission
   //
   // The commission comes from the ONE shared implementation
@@ -604,7 +605,8 @@ serve(async (req) => {
   // source of truth. This used to fall back to
   // platform_settings.helper_fee_percent (10 in prod), which under-charged the
   // platform against a free helper's real 12%.
-  const helperFeePercent = await getHelperFeePercent(
+  // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+  const helperFeePercent = flatFeePercentOf(job) ?? await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,
     job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
@@ -613,7 +615,7 @@ serve(async (req) => {
   const perHelperBudget = Number(job.budget);
   const helperBudgetShareDollars = perHelperBudget * helperShare;
   const helperUrgentShareDollars = netUrgentFeeDollars(job.urgent_fee) * helperShare;
-  const platformFeeDollars = helperCommissionDollars(helperBudgetShareDollars, helperFeePercent);
+  const platformFeeDollars = jobHelprCommissionDollars(job, helperBudgetShareDollars, helperFeePercent, helperUrgentShareDollars);
   const helperPayoutDollars =
     helperBudgetShareDollars + helperUrgentShareDollars - platformFeeDollars;
   // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The

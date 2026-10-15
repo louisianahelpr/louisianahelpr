@@ -20,6 +20,8 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { userFacingError } from "@/lib/userFacingError";
+import { useFeature } from "@/hooks/useFeature";
+import { runtimePlatform } from "@/lib/storePurchasePause";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -29,6 +31,9 @@ interface JobBoostDialogProps {
 }
 
 export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
+  // Roadmap F4: memberships are off; the "See plans" link shows only while
+  // the hidden memberships switch is on for this viewer.
+  const membershipsOn = useFeature("memberships");
   const [boosting, setBoosting] = useState(false);
   const { profile, refresh: refreshProfile } = useCurrentUser();
   // Price comes from the SAME rule the edge function charges by
@@ -42,7 +47,11 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   // ACTIVE — the house convention, owned by _shared/tierPerks.ts. This said
   // `: false`, so a comped member was quoted the full boost price the server
   // would not have charged them.
-  const subActive = subExp ? subExp > new Date() : true;
+  // Roadmap F4a (owner 2026-10-15): while memberships are off, every boost
+  // perk (free boosts, the monthly free boost, the member discount) is off for
+  // everyone, so everyone is quoted the full price. create-boost-payment
+  // charges by the same switch.
+  const subActive = membershipsOn && (subExp ? subExp > new Date() : true);
   const price = boostPriceForTier(subTier, subActive);
   // The FREE BOOSTS per calendar month (Pro 1, Plus 2 — MONTHLY_FREE_BOOSTS)
   // are spent server-side against the profiles.boost_credit_used_month +
@@ -69,7 +78,8 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     setBoosting(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-boost-payment", {
-        body: { job_id: jobId, native: isNativePlatform },
+        // `platform` (F5): the server refuses a paid boost from the iOS app.
+        body: { job_id: jobId, native: isNativePlatform, platform: runtimePlatform() },
       });
       // A non-2xx makes the SDK return a FunctionsHttpError whose message is
       // the unhelpful "Edge Function returned a non-2xx status code". The real,
@@ -183,7 +193,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 >
                   One-time · runs for <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                 </p>
-                <Link
+                {membershipsOn && (<Link
                   to="/profile?tab=subscription"
                   onClick={onClose}
                   className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70 tap-44"
@@ -193,7 +203,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   {isDiscounted
                     ? `${BOOST_DISCOUNT_PCT}% off with your plan · Free with ${TIER_PERKS.elite.name}`
                     : `Free with ${TIER_PERKS.elite.name} · See plans`}
-                </Link>
+                </Link>)}
               </>
             )}
           </div>

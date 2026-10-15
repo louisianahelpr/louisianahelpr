@@ -5,6 +5,7 @@ import {
   AlertTriangle, Type, Bug,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeature } from "@/hooks/useFeature";
 import type { MenuItem, Profile } from "./types";
 import { SECTION_TINT, WORK_MENU_GROUP } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
@@ -20,6 +21,10 @@ export function useProfileLandingDerived({
   profile,
 }: UseProfileLandingDerivedArgs) {
   const { isAdmin } = useCurrentUser();
+  // Roadmap F4: memberships are off. The Membership row shows only while the
+  // hidden "memberships" switch is on for this viewer, or for a member who
+  // still holds a plan (so they can still see and manage it).
+  const membershipsOn = useFeature("memberships");
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
   // app bar. Home no longer has an app bar, and /admin is an account-level
 
@@ -164,7 +169,9 @@ export function useProfileLandingDerived({
         // ProfileTabHeader, canonical cards, plan management, cancel/pause —
         // so the row opens that. /subscription stays reachable from the public
         // nav and footer, which is the audience it was written for.
-        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money },
+        ...((membershipsOn || tier !== "free")
+          ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
+          : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
         {
           key: "work-record",

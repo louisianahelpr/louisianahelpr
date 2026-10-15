@@ -8,6 +8,7 @@ import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { formatPrice } from "@/lib/format";
 import { daysPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { BOOST_DURATION_HOURS } from "@/lib/productPrices";
+import { boostPurchasePausedHere } from "@/lib/storePurchasePause";
 import { type Job } from "../../../../components/job-card/activityConstants";
 import { type JobAnalytics } from "../useJobAnalytics";
 
@@ -220,9 +221,12 @@ function LeverRow({
 export function ApplicantsEmptyState({
   selectedJob,
   jobAnalytics,
-  onBoost,
+  onBoost: onBoostProp,
   onEdit,
 }: ApplicantsEmptyStateProps) {
+  // Roadmap F5: no boost purchase inside the iPhone app (web only), so every
+  // boost lever below reads as absent there, as it does without a handler.
+  const onBoost = boostPurchasePausedHere() ? undefined : onBoostProp;
   const phase = applicantsEmptyPhase(selectedJob);
   const views = jobAnalytics?.viewCount ?? 0;
   const hours = hoursSincePosted(selectedJob);

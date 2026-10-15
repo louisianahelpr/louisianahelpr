@@ -166,4 +166,4 @@ describe("previewDisputeSplit — each column reconciles: gross − deduction = 
 // Round ONCE, on the commission in cents — the executor's own rounding order.
 // Rounding the dollar figure instead is exactly the sub-cent drift that put two
 // payout paths a cent apart on 2,243 (budget, tier) pairs.
-// @mutate src/lib/disputeSplitPreview.ts | const commission = Math.round(budgetShare * feePercent) / 100; | const commission = Math.round((budgetShare * feePercent) / 100);
+// @mutate src/lib/disputeSplitPreview.ts |     : Math.round(budgetShare * feePercent) / 100; |     : Math.round((budgetShare * feePercent) / 100);

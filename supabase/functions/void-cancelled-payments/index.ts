@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
@@ -450,7 +451,7 @@ serve(async (req) => {
     };
 
     const payHelperCancellationFee = async (
-      job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
+      job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
       cancellationFee: number,
       pi: Stripe.PaymentIntent,
       // Q1358: Part A resolves the rate BEFORE any money moves (a failed read
@@ -514,6 +515,9 @@ serve(async (req) => {
         // and pages because nothing would retry it.
         if (preResolvedPercent !== undefined) {
           commissionPercent = preResolvedPercent;
+        } else if (flatFeePercentOf(job) !== null) {
+          // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+          commissionPercent = flatFeePercentOf(job)!;
         } else {
           const feeRead = await readHelperFeePercentStrict(
             supabaseAdmin,
@@ -535,7 +539,11 @@ serve(async (req) => {
           }
           commissionPercent = feeRead.percent;
         }
-        platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
+        // A flat-model job (F3): the Helpr pays 5% + 70c on the fee they
+        // receive, as on any other pay; a legacy job keeps the tier percent.
+        platformCut = isFlatFeeJob(job)
+          ? helprFlatFeeCents(Math.round(cancellationFee * 100), job) / 100
+          : Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
         // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
         helperPayout = roundPayoutDownCents(Math.round((cancellationFee - platformCut) * 100)) / 100;
       }
@@ -749,7 +757,7 @@ serve(async (req) => {
       stripe_transfer_id: string | null;
     };
     const payCrewCancellationFees = async (
-      job: { id: string; title: string; helper_fee_percent?: number | string | null },
+      job: { id: string; title: string; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
       shares: CrewShare[],
       pi: Stripe.PaymentIntent,
       /** The client of this job's Stripe mode (owner 2026-10-12). */
@@ -835,19 +843,25 @@ serve(async (req) => {
         }
         // Q1358: skip this share this run on a failed tier read (Part D
         // retries it) rather than paying at the fallback rate.
-        const shareFeeRead = await readHelperFeePercentStrict(
-          supabaseAdmin,
-          share.helper_id,
-          (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
-            DEFAULT_TIER_FEE_PERCENT,
-        );
+        // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+        const shareFlatPercent = flatFeePercentOf(job);
+        const shareFeeRead = shareFlatPercent !== null
+          ? { ok: true as const, percent: shareFlatPercent }
+          : await readHelperFeePercentStrict(
+            supabaseAdmin,
+            share.helper_id,
+            (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
+              DEFAULT_TIER_FEE_PERCENT,
+          );
         if (!shareFeeRead.ok) {
           console.error(`[void-cancelled-payments] helper fee read failed for crew fee share ${share.id} (job ${job.id}): ${shareFeeRead.error}`);
           defects.record(`crew fee share tier read ${share.id}: ${shareFeeRead.error} — not paid`);
           continue;
         }
         const commissionPercent = shareFeeRead.percent;
-        const platformCut = Math.round(shareAmount * (commissionPercent / 100) * 100) / 100;
+        const platformCut = isFlatFeeJob(job)
+          ? helprFlatFeeCents(Math.round(shareAmount * 100), job) / 100
+          : Math.round(shareAmount * (commissionPercent / 100) * 100) / 100;
         // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
         const memberPayout = roundPayoutDownCents(Math.round((shareAmount - platformCut) * 100)) / 100;
 
@@ -927,7 +941,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -1301,7 +1315,7 @@ serve(async (req) => {
       if (crewRetryShares.size > 0) {
         const { data: settledJobs, error: settledErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...crewRetryShares.keys()])
           // Only a job whose fee Part A captured: one still in escrow is Part A's own.
           .eq("payment_status", "refunded")
@@ -1342,7 +1356,7 @@ serve(async (req) => {
       if (feeRetryRows.size > 0) {
         const { data: feeJobs, error: feeJobsErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id")
           .in("id", [...feeRetryRows.keys()])
           // Only a job Part A already settled: one still in escrow is Part A's own.
           .eq("payment_status", "refunded")
@@ -1452,7 +1466,7 @@ serve(async (req) => {
         try {
           const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
           await payHelperCancellationFee(
-            { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent },
+            { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent, helper_fee_flat_cents: job.helper_fee_flat_cents },
             Number(owed.fee_amount),
             retryPi,
             undefined,
@@ -1664,11 +1678,15 @@ serve(async (req) => {
         const frozen = job.helper_fee_percent === null || job.helper_fee_percent === undefined
           ? null
           : Number(job.helper_fee_percent);
-        const feeRead = await readHelperFeePercentStrict(
-          supabaseAdmin,
-          job.helper_id,
-          (frozen !== null && Number.isFinite(frozen) ? frozen : undefined) ?? DEFAULT_TIER_FEE_PERCENT,
-        );
+        // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+        const flatPct = flatFeePercentOf(job);
+        const feeRead = flatPct !== null
+          ? { ok: true as const, percent: flatPct }
+          : await readHelperFeePercentStrict(
+            supabaseAdmin,
+            job.helper_id,
+            (frozen !== null && Number.isFinite(frozen) ? frozen : undefined) ?? DEFAULT_TIER_FEE_PERCENT,
+          );
         if (!feeRead.ok) {
           console.error(`[void-cancelled-payments] helper fee read failed for ${job.helper_id} (job ${job.id}); not settling this run: ${feeRead.error}`);
           defects.record(`cancellation fee tier read ${job.id}: ${feeRead.error} — not settled`);
@@ -2126,7 +2144,7 @@ serve(async (req) => {
         for (const r of (owedFees ?? []) as CrewBlockFeeRow[]) byJob.set(r.job_id, [...(byJob.get(r.job_id) ?? []), r]);
         const { data: feeJobs, error: feeJobErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, payment_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id")
           .in("id", [...byJob.keys()])
           .in("payment_status", ["released", "refunded", "cancelled"]);
         if (feeJobErr) {

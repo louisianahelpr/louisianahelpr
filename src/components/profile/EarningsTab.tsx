@@ -24,6 +24,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeature } from "@/hooks/useFeature";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
@@ -112,7 +113,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // endpoint anyway, a 403 telling them to downgrade. Both sides now call the
   // same `profileHasPerk`, which also owns the expiry convention (null expiry
   // on a paid tier = active).
-  const canUseInstantPayout = profileHasPerk(
+  // Roadmap F4a (owner 2026-10-15): while memberships are off, instant
+  // cash-out and Advanced Analytics are off for EVERYONE, plan holders
+  // included, and nothing offers an upgrade: Cash Out is the standard payout
+  // only. The instant-payout edge function refuses on the same switch.
+  const membershipsOn = useFeature("memberships");
+  const canUseInstantPayout = membershipsOn && profileHasPerk(
     profile?.subscription_tier,
     profile?.subscription_expires_at,
     "instantPayout",
@@ -348,6 +354,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           availableTotal={availableTotal}
           pendingTotal={pendingTotal}
           canUseInstantPayout={canUseInstantPayout}
+          instantOffered={membershipsOn}
           onRefresh={handleRefresh}
           onCashOut={() => setPayoutDialogOpen(true)}
           onUpgrade={() => setUpgradeOpen(true)}
@@ -473,7 +480,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   link, not a locked teaser: the page it opens decides
                   server-side whether this helper gets the dashboard or the
                   upgrade offer. */}
-              <button
+              {membershipsOn && (<button
                 type="button"
                 onClick={() => navigate("/profile?tab=analytics")}
                 className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
@@ -489,7 +496,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">
                   &rsaquo;
                 </span>
-              </button>
+              </button>)}
             </CollapsibleContent>
           </Collapsible>
 
@@ -537,7 +544,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </section>
       )}
 
-      <ProUpgradeSheet
+      {membershipsOn && <ProUpgradeSheet
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         icon={Zap}
@@ -562,7 +569,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         // Basic unlocks instant payouts (TIER_PERKS.basic) — the paywall
         // names the CHEAPEST tier that actually opens the gate, not Pro.
         requiredTier="basic"
-      />
+      />}
 
       <InstantPayoutDialog
         open={payoutDialogOpen}

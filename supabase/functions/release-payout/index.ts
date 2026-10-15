@@ -37,7 +37,8 @@ import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectU
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -128,7 +129,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, helper_fee_percent, is_seed",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, helper_fee_percent, helper_fee_flat_cents, is_seed",
     )
     .eq("id", body.job_id)
     .single();
@@ -762,7 +763,9 @@ serve(async (req) => {
     frozenPercent !== null && Number.isFinite(frozenPercent)
       ? frozenPercent
       : DEFAULT_TIER_FEE_PERCENT;
-  const helperFeePercent = await getHelperFeePercent(
+  // Roadmap F3: a flat-model job keeps its stamped percent; the tier is never
+  // read for it (a membership cannot change the fee, F4).
+  const helperFeePercent = flatFeePercentOf(job) ?? await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,
     fallbackFeePercent,
@@ -777,7 +780,9 @@ serve(async (req) => {
   const grossDollars = perHelperBudget + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
   // ONE implementation, shared with process-scheduled-payouts — see
   // helperCommissionDollars for why the product is rounded before the divide.
-  const platformFeeDollars = helperCommissionDollars(perHelperBudget, helperFeePercent);
+  // jobHelprCommissionDollars picks the job's own model: flat 5% + 70c when
+  // stamped (F3), the tier commission otherwise.
+  const platformFeeDollars = jobHelprCommissionDollars(job, perHelperBudget, helperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount);
   const payoutDollars = grossDollars - platformFeeDollars;
   // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The
   // onboarding-fee branch below re-floors from the UNROUNDED cents, so the

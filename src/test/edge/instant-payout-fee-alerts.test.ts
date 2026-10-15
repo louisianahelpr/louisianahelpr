@@ -46,6 +46,8 @@ beforeEach(async () => {
     rows: [{ stripe_account_id: "acct_helper", full_name: "H", subscription_tier: "basic", subscription_expires_at: null }],
   };
   scenario.writeSelectRows["instant_payouts:insert"] = [{ id: "ip-1" }];
+  // Instant cash-out exists only while memberships are on (roadmap F4a).
+  scenario.rpc.feature_enabled_for_user = true;
   stripeMock.balance.retrieve.mockResolvedValue({ instant_available: [{ currency: "usd", amount: 10_000 }] });
   stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_platform" });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_fee" });
@@ -82,6 +84,39 @@ describe("instant-payout on an unusable Connect account (Q1251)", () => {
     expect(res.status).toBe(409);
     expect(JSON.parse(await res.text()).code).toBe("connect_account_unusable");
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.payouts.create).not.toHaveBeenCalled();
+  });
+});
+
+// Roadmap F4a (owner 2026-10-15): while memberships are off, instant cash-out
+// is off for EVERYONE, plan holders included. Funds pay out on the standard
+// schedule; the endpoint moves nothing and names no plan to buy.
+describe("instant-payout is off while memberships are off (F4a)", () => {
+  // @mutate supabase/functions/instant-payout/index.ts | if (!membershipsOn) { | if (false) {
+  for (const action of ["quote", "execute"]) {
+    it(`${action}: a paid member is refused 403 instant_payout_off, with no Stripe call`, async () => {
+      scenario.rpc.feature_enabled_for_user = false;
+      const res = await fn.fetch(fn.request({
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer caller.jwt.sig" },
+        body: { action },
+      }));
+      expect(res.status).toBe(403);
+      const body = JSON.parse(await res.text());
+      expect(body.code).toBe("instant_payout_off");
+      expect(body.error).not.toMatch(/upgrade|plan|basic|pro\b|elite|plus/i);
+      expect(stripeMock.balance.retrieve).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.payouts.create).not.toHaveBeenCalled();
+      const ask = (scenario.rpcCalls ?? []).find((c) => c.name === "feature_enabled_for_user");
+      expect(ask?.args).toEqual({ p_key: "memberships", p_user_id: "helper-1" });
+    });
+  }
+
+  it("an unreadable switch fails closed", async () => {
+    scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+    const res = await execute();
+    expect(res.status).toBe(403);
     expect(stripeMock.payouts.create).not.toHaveBeenCalled();
   });
 });

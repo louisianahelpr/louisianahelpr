@@ -9,6 +9,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
 import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -136,6 +137,17 @@ serve(async (req) => {
     const { job_id } = rawBody;
     const isNative = isNativeRequest(rawBody);
     if (!job_id) return fail(400, "Missing job to boost.");
+    // Roadmap F5 (owner 2026-10-14): boosts are not SOLD inside the iPhone app
+    // for now (Apple's in-app purchase rules bind the iOS binary); they sell on
+    // the website. Refused before any read or Stripe call. Keyed on the
+    // platform the app now sends; a build that predates it (the 1.0.4/7119
+    // build under App Store review, REVIEW FREEZE) sends none and is left as
+    // it was. A member's free boost below is not a purchase, but the refusal
+    // is kept simple and total for the iOS app: the app hides every boost
+    // entry point there (src/lib/storePurchasePause.ts).
+    if ((rawBody as { platform?: unknown })?.platform === "ios") {
+      return fail(403, "Boosts are available on the website for now.");
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -184,7 +196,12 @@ serve(async (req) => {
     const subExp = posterProfile?.subscription_expires_at
       ? new Date(posterProfile.subscription_expires_at)
       : null;
-    const subActive = subExp ? subExp > new Date() : true;
+    // Roadmap F4a (owner 2026-10-15): while memberships are off, every boost
+    // perk (free boosts, the monthly free boost, the member discount) is off
+    // for EVERYONE, plan holders included: everyone pays the full boost price.
+    // Fails closed to the full price on an unreadable switch.
+    const membershipsOn = await featureEnabledForUser(supabaseAdmin, "memberships", user);
+    const subActive = membershipsOn && (subExp ? subExp > new Date() : true);
     if (hasPerk(subTier, "freeBoosts", subActive)) {
       const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
       // `.select("id")` + a zero-row branch, per CLAUDE.md. This response is the

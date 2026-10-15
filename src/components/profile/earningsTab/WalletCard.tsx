@@ -19,6 +19,12 @@ interface WalletCardProps {
   availableTotal: number;
   pendingTotal: number;
   canUseInstantPayout: boolean;
+  /**
+   * Roadmap F4a: false while memberships are off. The instant cash-out tile is
+   * then not rendered at all (no upgrade chip, no upgrade sheet): funds pay
+   * out on the standard schedule.
+   */
+  instantOffered: boolean;
   onRefresh: () => void;
   onCashOut: () => void;
   onUpgrade: () => void;
@@ -30,6 +36,7 @@ export function WalletCard({
   availableTotal,
   pendingTotal,
   canUseInstantPayout,
+  instantOffered,
   onRefresh,
   onCashOut,
   onUpgrade,
@@ -124,7 +131,7 @@ export function WalletCard({
           0,
           (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0),
         );
-        if (instantAvailable <= 0) return null;
+        if (!instantOffered || instantAvailable <= 0) return null;
         // Subscribed helpers still can't cash out below the minimum — a flat 3%
         // doesn't clear Stripe's per-instant-payout cost on tiny balances. Their
         // funds pay out free on the standard schedule; instant unlocks at the

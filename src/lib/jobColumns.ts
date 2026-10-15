@@ -160,7 +160,8 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
  * src/test/offeredHelperPrivacy.test.ts counts these as covered.
  */
 // onboarding_fee_amount: the setup fee a first job kept (Q1346, 20261012171259).
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const;
+// helper_fee_flat_cents: the jobs flat-fee stamp (roadmap F3, 20261015023908).
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "helper_fee_flat_cents"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

@@ -54,6 +54,10 @@ beforeEach(async () => {
   });
   scenario.authUser = USER;
   scenario.rpc.subscription_purchase_eligibility = { allowed: true, code: "no_active_subscription" };
+  // Roadmap F4: memberships sit behind the hidden "memberships" switch. The
+  // behaviour tests below run with it ON for this caller; the describe at the
+  // end proves the refusal while it is off.
+  scenario.rpc.feature_enabled_for_user = true;
   stripeMock.customers.list.mockResolvedValue({ data: [] });
   stripeMock.checkout.sessions.create.mockResolvedValue({
     id: "cs_test_1", url: "https://checkout.stripe.com/c/pay/cs_test_1",
@@ -172,3 +176,30 @@ describe("automatic_tax needs an address, and this is where every helper failed"
 //   × executes on a client carrying the caller's Authorization header
 //   AssertionError: RPC ran on a client with no caller JWT — it would execute as anon
 // @mutate supabase/functions/create-pro-checkout/index.ts | { global: { headers: { Authorization: authHeader } } }, | {},
+
+// Roadmap F4 (owner 2026-10-14/15): memberships are OFF. The switch is created
+// off (20261015033658), and the server refuses a new membership checkout
+// before any eligibility read or Stripe call. Hiding the buttons is not the
+// protection; this is.
+// @mutate supabase/functions/create-pro-checkout/index.ts |     if (membershipsOff) return membershipsOff; |
+describe("memberships are off (F4)", () => {
+  it("refuses with 403 feature_disabled while the switch is off for the caller, touching nothing", async () => {
+    scenario.rpc.feature_enabled_for_user = false;
+    const res = await post({ tier: "plus", billing_cycle: "monthly" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("feature_disabled");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    const names = (scenario.rpcCalls ?? []).map((c) => c.name);
+    expect(names).not.toContain("subscription_purchase_eligibility");
+    // Asked for the VERIFIED caller, never an id from the body.
+    const ask = (scenario.rpcCalls ?? []).find((c) => c.name === "feature_enabled_for_user");
+    expect(ask?.args).toEqual({ p_key: "memberships", p_user_id: USER.id });
+  });
+
+  it("fails closed when the switch cannot be read", async () => {
+    scenario.rpcErrors = { feature_enabled_for_user: { message: "boom" } };
+    const res = await post({ tier: "plus", billing_cycle: "monthly" });
+    expect(res.status).toBe(403);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+});

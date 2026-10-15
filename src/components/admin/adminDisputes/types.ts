@@ -22,6 +22,8 @@ export interface DisputedJob {
    */
   urgent_fee?: number | null;
   helper_fee_percent?: number | null;
+  /** Roadmap F3 fee-model stamp: non-null = flat 5% + 70c job. */
+  helper_fee_flat_cents?: number | null;
   platform_fee_amount?: number | null;
   is_group_job?: boolean | null;
   helpers_needed?: number | null;

@@ -71,8 +71,9 @@ import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import {
   DEFAULT_TIER_FEE_PERCENT,
   getHelperFeePercent,
-  helperCommissionDollars,
+  jobHelprCommissionDollars,
 } from "../_shared/helperFees.ts";
+import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { effectiveSalesTaxRate, isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
@@ -593,7 +594,7 @@ serve(async (req) => {
     const q = supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -1466,7 +1467,11 @@ serve(async (req) => {
 
         // ME-014: the fee's Stripe-cost floor must cover the WHOLE charge,
         // tax included (posterFees.ts), so it is computed after the tax.
-        const computedFeeCents = posterCardCostFeeCents(budgetCents, taxCents);
+        // Roadmap F3: a series funded on the flat model (its parent carries the
+        // helper_fee_flat_cents stamp) charges the poster the visit price only;
+        // a series funded before the change keeps the card-cost fee it was
+        // sold with (owner: posted jobs keep their old fees).
+        const computedFeeCents = isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents);
         const feeCents = paidRow ? paidRow.fee_cents : computedFeeCents;
         const totalCents = budgetCents + feeCents + taxCents;
 
@@ -1552,7 +1557,8 @@ serve(async (req) => {
         // chain. That read fed nothing else and is gone. Every path that
         // resolves a helper commission now falls back to the same number,
         // derived from DEFAULT_TIER_FEE_PERCENT rather than a literal.
-        const helperFeePercent = await getHelperFeePercent(
+        // Roadmap F3: a flat-model series keeps its parent's stamp; no tier read.
+        const helperFeePercent = flatFeePercentOf(parent) ?? await getHelperFeePercent(
           supabase as never,
           holderId,
           DEFAULT_TIER_FEE_PERCENT,
@@ -1564,9 +1570,13 @@ serve(async (req) => {
         // This value is provisional — release-payout overwrites it with the
         // real commission — but it is what admin reporting and the helper's
         // estimate read until then, so it must round like money.
-        const helperFeeAmount = helperCommissionDollars(
+        // jobHelprCommissionDollars: flat 5% + 70c on a stamped series (F3),
+        // the tier commission otherwise. A visit carries no urgent bonus.
+        const helperFeeAmount = jobHelprCommissionDollars(
+          parent,
           budgetCents / 100,
           helperFeePercent,
+          0,
         );
 
         if (dryRun) {
@@ -1989,6 +1999,9 @@ serve(async (req) => {
             platform_fee_amount: helperFeeAmount,
             customer_fee_amount: feeCents / 100,
             helper_fee_percent: helperFeePercent,
+            // The visit inherits its series' fee model (F3): payout paths price
+            // the visit by THIS row's stamp. Null on a legacy series.
+            helper_fee_flat_cents: isFlatFeeJob(parent) ? Number(parent.helper_fee_flat_cents) : null,
             // Derived from the amount Stripe actually calculated rather than a
             // rate we looked up ourselves — that second source of truth is the
             // one that was retired. A FRACTION (effectiveSalesTaxRate): the

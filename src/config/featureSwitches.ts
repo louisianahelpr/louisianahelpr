@@ -27,6 +27,9 @@ export const FEATURE_SWITCH_KEYS = [
   // category picker and the admin queue. Created 'testers' by 20261015051141;
   // suggest_category() and the admin RPCs refuse without it (require_feature).
   "suggest_category",
+  // Roadmap F4 (owner 2026-10-14/15): membership purchases and every upgrade
+  // entry point. Created OFF; create-pro-checkout refuses while it is off.
+  "memberships",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

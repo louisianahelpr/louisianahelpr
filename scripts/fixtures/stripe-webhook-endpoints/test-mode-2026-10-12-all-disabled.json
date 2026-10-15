@@ -1,0 +1,27 @@
+{
+  "_note": "Q1820: the TEST-mode webhook endpoints as they stood 2026-10-06..2026-10-13 (we_1UNfFl pointed at a function that does not exist, the other two disabled), shaped as stripe-webhook-config-check returns them. The guard must FAIL on this.",
+  "testKeyIsTest": true,
+  "testEndpoints": [
+    {
+      "id": "we_1UNfFlKp2H4b7tECoGERXN18",
+      "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook-testmode",
+      "status": "disabled",
+      "livemode": false,
+      "enabled_events": ["checkout.session.completed", "checkout.session.expired", "payment_intent.succeeded", "payment_intent.payment_failed", "charge.refunded", "charge.refund.updated", "charge.dispute.created", "charge.dispute.funds_withdrawn", "charge.dispute.closed", "transfer.created", "transfer.reversed", "transfer.failed", "transfer.canceled", "account.updated"]
+    },
+    {
+      "id": "we_1U8AbhKp2H4b7tECpsHaYA7D",
+      "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook",
+      "status": "disabled",
+      "livemode": false,
+      "enabled_events": ["checkout.session.completed", "checkout.session.expired", "payment_intent.succeeded", "payment_intent.payment_failed", "charge.refunded", "charge.dispute.created", "charge.dispute.closed", "account.updated", "transfer.created", "transfer.failed", "transfer.reversed", "transfer.canceled", "customer.subscription.updated", "customer.subscription.deleted", "charge.dispute.funds_withdrawn"]
+    },
+    {
+      "id": "we_1U5fInKp2H4b7tECFa6TwsPJ",
+      "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-idv-webhook",
+      "status": "disabled",
+      "livemode": false,
+      "enabled_events": ["identity.verification_session.canceled", "identity.verification_session.processing", "identity.verification_session.requires_input", "identity.verification_session.verified"]
+    }
+  ]
+}

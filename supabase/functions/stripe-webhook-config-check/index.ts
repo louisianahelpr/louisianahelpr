@@ -22,7 +22,15 @@ serve(async (req) => {
   const unauthorized = verifyCronSecret(req);
   if (unauthorized) return unauthorized;
 
-  const result = await readWebhookConfig(Deno.env.get("STRIPE_SECRET_KEY"), (i, n) => fetch(i, n));
+  const result = await readWebhookConfig(
+    Deno.env.get("STRIPE_SECRET_KEY"),
+    (i, n) => fetch(i, n),
+    undefined,
+    undefined,
+    // Q1820: the test-mode endpoints too, so a disabled or mis-pointed TEST
+    // endpoint (2026-10-06..13: every test-account payment undelivered) is red.
+    Deno.env.get("STRIPE_TEST_SECRET_KEY"),
+  );
   if (!result.ok) {
     console.error(`stripe-webhook-config-check: ${result.error}`);
     return errorResponse(result.error, result.status, corsHeaders);

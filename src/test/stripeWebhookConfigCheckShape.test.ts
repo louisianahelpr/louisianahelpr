@@ -1,6 +1,8 @@
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |       endpoints: endpoints.data.map((e) => shapeEndpoint((e ?? {}) as Record<string, unknown>)), |       endpoints: endpoints.data as ShapedEndpoint[],
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   if (!res.ok) { |   if (false) {
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   if (!key) { |   if (false) {
+// @mutate supabase/functions/stripe-webhook-config-check/shape.ts |     else testEndpoints = test.data.map((e) => shapeEndpoint((e ?? {}) as Record<string, unknown>)); |     else testEndpoints = test.data as ShapedEndpoint[];
+// @mutate supabase/functions/stripe-webhook-config-check/shape.ts |     if (!test.ok) testError = test.error; |     if (!test.ok) testEndpoints = [];
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   if (!Array.isArray(data)) { |   if (false) {
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   return s.replace(/\b(?:sk\|rk\|pk)_(?:live\|test)_\S*\|\bwhsec_\S*/g, "[redacted]"); |   return s;
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   const shaped = events.data.map((e) => shapeEvent((e ?? {}) as Record<string, unknown>)); |   const shaped = events.data as ShapedEvent[];
@@ -165,7 +167,10 @@ describe("readWebhookConfig", () => {
     for (const c of calls) expect(c.init?.method).toBe("GET");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(Object.keys(r.body).sort()).toEqual(["endpoints", "keyIsLive", "taxRegistrations", "undelivered"]);
+    expect(Object.keys(r.body).sort()).toEqual(["endpoints", "keyIsLive", "taxRegistrations", "testEndpoints", "testError", "testKeyIsTest", "undelivered"]);
+    // Q1820: no test key given, so the test half is null + a reason, never [].
+    expect(r.body.testEndpoints).toBeNull();
+    expect(r.body.testError).toMatch(/STRIPE_TEST_SECRET_KEY is not set/);
     expect(r.body.taxRegistrations).toEqual([{ country: "US", state: "LA", status: "active" }]);
     expect(r.body.keyIsLive).toBe(true);
     for (const e of r.body.endpoints) {
@@ -254,5 +259,63 @@ describe("readWebhookConfig", () => {
       throw new TypeError(`timeout reading ${url}`);
     };
     expect(await readWebhookConfig(FAKE_LIVE_KEY, throwsOnSecond, 15000, NOW)).toMatchObject({ ok: false, status: 502 });
+  });
+});
+
+describe("readWebhookConfig, TEST-mode half (Q1820)", () => {
+  // A placeholder of x runs (.gitleaks.toml allowlist), so no commit carries a key-shaped literal.
+  const FAKE_TEST_KEY = "rk_test_xxxxxxxxxxxx";
+  const rawTestEndpoint = { ...rawEndpoint, id: "we_test_1", livemode: false, secret: FAKE_SECRET };
+
+  /** Routes the endpoints read by the key that asked: live key -> live list, test key -> test list. */
+  function byKey(test: Reply, calls: Call[]) {
+    const live = stub(list([rawEndpoint]), list([]), calls);
+    return async (url: string, init?: RequestInit) => {
+      const auth = (init?.headers as Record<string, string> | undefined)?.Authorization ?? "";
+      if (url === STRIPE_WEBHOOK_ENDPOINTS_URL && auth === `Bearer ${FAKE_TEST_KEY}`) {
+        calls.push({ url, init: init as FakeInit });
+        return new Response(typeof test.body === "string" ? test.body : JSON.stringify(test.body), { status: test.status });
+      }
+      return live(url, init);
+    };
+  }
+
+  it("reads the test-mode endpoints with the TEST key, shaped, with no secret or key", async () => {
+    const calls: Call[] = [];
+    const r = await readWebhookConfig(FAKE_LIVE_KEY, byKey(list([rawTestEndpoint]), calls), 15000, NOW, FAKE_TEST_KEY);
+    expect(calls).toHaveLength(4);
+    expect(calls[3].url).toBe(STRIPE_WEBHOOK_ENDPOINTS_URL);
+    expect(calls[3].init?.headers?.Authorization).toBe(`Bearer ${FAKE_TEST_KEY}`);
+    expect(calls[3].init?.method).toBe("GET");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.body.testKeyIsTest).toBe(true);
+    expect(r.body.testEndpoints).toHaveLength(1);
+    expect(Object.keys(r.body.testEndpoints![0]).sort()).toEqual([...RETURNED_ENDPOINT_FIELDS].sort());
+    expect(r.body).not.toHaveProperty("testError");
+    const json = JSON.stringify(r.body);
+    expect(json).not.toContain("whsec_");
+    expect(json).not.toContain(FAKE_TEST_KEY);
+  });
+
+  it("a failed test read is null + testError (never []), and the live result still comes back", async () => {
+    const r = await readWebhookConfig(
+      FAKE_LIVE_KEY,
+      byKey({ status: 401, body: { error: { message: `Invalid API Key provided: ${FAKE_TEST_KEY}` } } }, []),
+      15000,
+      NOW,
+      FAKE_TEST_KEY,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.body.endpoints).toHaveLength(1);
+    expect(r.body.testEndpoints).toBeNull();
+    expect(r.body.testError).toMatch(/HTTP 401/);
+    expect(r.body.testError).not.toContain(FAKE_TEST_KEY);
+  });
+
+  it("testKeyIsTest is false for a live key passed as the test key", async () => {
+    const r = await readWebhookConfig(FAKE_LIVE_KEY, byKey(list([]), []), 15000, NOW, "rk_live_OOPS");
+    expect(r.ok && r.body.testKeyIsTest).toBe(false);
   });
 });

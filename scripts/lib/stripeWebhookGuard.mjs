@@ -19,7 +19,7 @@
  * be a LIVE key (else the read graded the retired sandbox), and the endpoints
  * are then graded exactly like a /v1/webhook_endpoints list.
  */
-export function gradeConfigCheckResponse(body, handlers, url) {
+export function gradeConfigCheckResponse(body, handlers, url, testModeEvents = null) {
   if (!body || typeof body !== "object") {
     return { failures: ["stripe-webhook-config-check returned no JSON object. Refusing to grade."], notes: [] };
   }
@@ -40,10 +40,88 @@ export function gradeConfigCheckResponse(body, handlers, url) {
   const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
   const undelivered = gradeUndelivered(body.undelivered);
   const tax = gradeTaxRegistrations(body.taxRegistrations, body.taxError);
+  // Q1820: graded whenever the caller names the test-mode event set (the
+  // script always does; unit tests of the other halves may omit it).
+  const test = testModeEvents
+    ? gradeTestEndpoints(body, handlers, testModeEvents, url)
+    : { failures: [], notes: [] };
   return {
-    failures: [...config.failures, ...undelivered.failures, ...tax.failures],
-    notes: [...config.notes, ...undelivered.notes, ...tax.notes],
+    failures: [...config.failures, ...undelivered.failures, ...tax.failures, ...test.failures],
+    notes: [...config.notes, ...undelivered.notes, ...tax.notes, ...test.notes],
   };
+}
+
+/**
+ * Q1820: the TEST-mode webhook endpoint. Since 2026-10-12 the shared test
+ * accounts pay on the Stripe TEST key (_shared/stripeMode.ts), so their
+ * checkouts, refunds and transfers reach stripe-webhook only through a
+ * test-mode endpoint. From 2026-10-06 to 2026-10-13 every test-mode endpoint
+ * was disabled or pointed at a function that does not exist, 0 of 31 test
+ * checkouts reached escrow, and nothing noticed (Q1809). RED when the block is
+ * missing (never read as "fine"), when the key is not a test key, when exactly
+ * one enabled test-mode endpoint is not on `url` (zero = nothing delivered,
+ * two = every event twice, #1586), and when its events miss one of
+ * `expected` or include one with no handler.
+ */
+export function gradeTestEndpoints(body, handlers, expected, url) {
+  const failures = [];
+  const notes = [];
+  const list = body?.testEndpoints;
+  if (!Array.isArray(list)) {
+    failures.push(
+      (typeof body?.testError === "string" && body.testError
+        ? `stripe-webhook-config-check could not read the TEST-mode webhook endpoints (${body.testError}). `
+        : "stripe-webhook-config-check returned no `testEndpoints` array, so the TEST-mode webhook was not read. ") +
+        "Refusing to call that delivering (is the deployed function older than Q1820?).",
+    );
+    return { failures, notes };
+  }
+  if (body.testKeyIsTest !== true) {
+    failures.push("stripe-webhook-config-check reports testKeyIsTest != true: STRIPE_TEST_SECRET_KEY is not a test key. Refusing to grade.");
+    return { failures, notes };
+  }
+  if (list.some((e) => e?.livemode === true)) {
+    failures.push("A live-mode endpoint came back from the TEST-mode read. Refusing to grade.");
+    return { failures, notes };
+  }
+  const target = endpointKey(url);
+  const enabled = list.filter((e) => endpointKey(e?.url) === target && e?.status === "enabled");
+  notes.push(`Stripe TEST mode: ${list.length} endpoint(s) listed, ${enabled.length} enabled on ${url}.`);
+  if (!enabled.length) {
+    failures.push(
+      `No enabled TEST-mode webhook endpoint on ${url} (${list.length} test-mode endpoint(s) listed: ` +
+        `${list.map((e) => `${e?.id} ${e?.status} ${e?.url}`).join("; ") || "none"}). ` +
+        "The shared test accounts pay on the test key, so none of their payments, refunds or transfers reaches stripe-webhook (Q1809). " +
+        "Enable or repoint it in the Stripe dashboard (TEST mode).",
+    );
+    return { failures, notes };
+  }
+  if (enabled.length >= 2) {
+    failures.push(
+      `${enabled.length} ENABLED TEST-mode webhook endpoints point at ${url} (${enabled.map((e) => e.id).join(", ")}): every test event is delivered twice (#1586). Disable all but one (TEST mode).`,
+    );
+    return { failures, notes };
+  }
+  const kept = enabled[0];
+  const subscribed = [...new Set(kept.enabled_events ?? [])];
+  if (subscribed.includes("*")) {
+    failures.push(`TEST-mode endpoint ${kept.id} subscribes to "*". Subscribe to the handled test-mode set.`);
+    return { failures, notes };
+  }
+  const missing = expected.filter((e) => !subscribed.includes(e));
+  // Against the TEST-mode set, not all handlers: the webhook drops any other
+  // event from a test endpoint (stripe-webhook/index.ts TEST_MODE_EVENT_TYPES).
+  const unhandled = subscribed.filter((e) => !expected.includes(e));
+  if (missing.length) {
+    failures.push(`TEST-mode endpoint ${kept.id} does NOT subscribe to ${missing.length} event(s) the test accounts need: ${missing.join(", ")}.`);
+  }
+  if (unhandled.length) {
+    failures.push(`TEST-mode endpoint ${kept.id} subscribes to ${unhandled.length} event(s) the webhook drops in test mode (not in TEST_MODE_EVENT_TYPES): ${unhandled.join(", ")}.`);
+  }
+  if (!missing.length && !unhandled.length) {
+    notes.push(`TEST-mode endpoint ${kept.id} subscribes to the ${expected.length} test-mode events.`);
+  }
+  return { failures, notes };
 }
 
 /**

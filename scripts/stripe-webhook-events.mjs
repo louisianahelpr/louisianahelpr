@@ -47,6 +47,29 @@ export const WEBHOOK_URL =
  * to find the block throws — a rename must break the guard loudly, not silently
  * return an empty set that would make every comparison trivially pass.
  */
+/**
+ * Q1820: the events the TEST-mode endpoint must deliver, read from the
+ * webhook's own `const TEST_MODE_EVENT_TYPES = new Set([...])` in
+ * supabase/functions/stripe-webhook/index.ts (the set the webhook applies from
+ * a test-mode endpoint; anything else it acknowledges and drops). Read, never
+ * restated, so the guard and the webhook cannot disagree. Throws when the
+ * block is missing or names a type EVENT_HANDLERS does not handle.
+ */
+export function testModeEventTypes(handlers = handlerEventTypes(), source = readFileSync(WEBHOOK_INDEX, "utf8")) {
+  const m = source.match(/const TEST_MODE_EVENT_TYPES = new Set\(\[([^\]]*)\]\)/);
+  if (!m) {
+    throw new Error(`Could not find "const TEST_MODE_EVENT_TYPES = new Set([...])" in ${WEBHOOK_INDEX}. Update scripts/stripe-webhook-events.mjs to match.`);
+  }
+  const types = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+  if (types.length === 0) throw new Error(`TEST_MODE_EVENT_TYPES in ${WEBHOOK_INDEX} is empty.`);
+  for (const e of types) {
+    if (!handlers.includes(e)) {
+      throw new Error(`TEST_MODE_EVENT_TYPES names ${e}, which EVENT_HANDLERS does not handle.`);
+    }
+  }
+  return types;
+}
+
 export function handlerEventTypes(source = readFileSync(WEBHOOK_INDEX, "utf8")) {
   const start = source.indexOf("const EVENT_HANDLERS");
   if (start === -1) {

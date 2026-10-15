@@ -399,4 +399,34 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
     expect(label.nextElementSibling?.textContent).toBe("$310.50");
     expect(screen.getByText("Total jobs").nextElementSibling?.textContent).toBe("2");
   });
+
+  /**
+   * Q1760 (lh-money-escrow review of the test-mode branch, 2026-10-12): with a
+   * real and a test batch selected, the selection bar and the bulk confirm
+   * call only the real batch real money, and name the test one apart.
+   *
+   * @mutate src/components/admin/adminPayoutBatches/adminPayoutBatchesHelpers.ts |   const real = batches.filter((b) => !b.is_seed); |   const real = batches;
+   * @mutate src/components/admin/AdminPayoutBatches.tsx |         description={bulkPayoutDescription(selectedBatches)} |         description={`This fires ${selected.size} Stripe transfers totalling $${(selectedMoney.real + selectedMoney.test).toFixed(2)}. This moves real money and can't be undone here.`}
+   */
+  it("Q1760: a ticked test batch is never called real money in the bulk confirm", async () => {
+    seedProfiles = [{ user_id: "helper-seed" }];
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch, { ...batch, helper_id: "helper-seed", helper_name: "Test Helpr", total_payout: 999 }], error: null }
+        : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    renderScreen();
+    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
+    for (const box of screen.getAllByRole("checkbox", { name: /for bulk payout/i })) fireEvent.click(box);
+    expect(await screen.findByText(/\$310\.50 real money · \$999\.00 to test accounts — fires 2 Stripe transfers/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /Bulk Approve/i }));
+    const dialog = await screen.findByRole("alertdialog").catch(() => screen.findByRole("dialog"));
+    const text = dialog.textContent ?? "";
+    expect(text).toContain("$310.50 of real money to 1 Helpr");
+    expect(text).toContain("can't be undone here");
+    // The dialog's button counts the same transfers the sentence does.
+    expect(screen.getByRole("button", { name: "Send 2" })).toBeTruthy();
+    expect(text).toContain("$999.00 to 1 test account");
+    expect(text).not.toMatch(/totalling \$1309\.50/);
+  });
 });

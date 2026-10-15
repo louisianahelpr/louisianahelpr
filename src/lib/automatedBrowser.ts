@@ -45,7 +45,7 @@ export function isAutomatedBrowser(): boolean {
  */
 export type AutomationReason = "webdriver" | "flag" | "seed_user";
 
-export const AUTOMATION_FLAG_KEY = "lh_automation";
+const AUTOMATION_FLAG_KEY = "lh_automation";
 
 let testProfileSession = false;
 

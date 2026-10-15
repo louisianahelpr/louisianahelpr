@@ -85,6 +85,14 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 68 | Off-app payment on a Declutter sale | Same rule as jobs (existing off-platform ladder), one rule app-wide | 2026-10-14 |
 | 69 | Who can buy | Anyone; the item and pickup stay in Louisiana; buyer need not live in Louisiana | 2026-10-14 |
 | 70 | Price cap | Highest price per item $1,000 (was $10,000 in B3); floor/offers/price drops all within it | 2026-10-14 |
+| 91 | Buyer restarted checkout and paid twice | The extra payment is refunded MINUS the card fee (buyer caused it; never-absorb rule) | 2026-10-14 |
+| 92 | Seller banned / 3 strikes after the buyer paid | Buyer gets everything back; the card fee becomes the SELLER's fee debt (same as row 60) | 2026-10-14 |
+| 93 | When the seller is paid | Right away: the moment handover is confirmed (QR scan, buyer's "I got it", or 24 h auto-pay) the item price transfers to the seller's Stripe account; bank timing is Stripe's normal schedule (same-day = row 84, later) | 2026-10-14 |
+| 94 | No-show wait | 15 minutes after the booked time the waiting side gets a "They didn't show" button | 2026-10-14 |
+| 95 | Buyer no-show | First miss: buyer may rebook once within the 7 days. Second miss or no rebook: sale cancelled, item price back minus the 15% premium, 1 buyer strike (as row 18); seller relists free | 2026-10-14 |
+| 96 | "Report a problem" window | Any time until the seller is paid (handover confirmed); after that the sale is final (row 15) | 2026-10-14 |
+| 97 | Porch timing | Seller chooses per booking: "out all day" OR "out until <time>"; if the buyer hasn't picked up by the end, the seller may bring it in and it counts as a buyer no-show (row 95) | 2026-10-14 |
+| 98 | Exact address | Shown to the buyer right after paying (to plan and book); before paying only area + miles (row 27) | 2026-10-14 |
 
 ## Approved for later slices (details still to ask the owner)
 Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give to a local charity".

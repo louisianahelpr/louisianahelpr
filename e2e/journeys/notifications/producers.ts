@@ -172,6 +172,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:sweep_no_show_alerts": { uncovered: CRON("sweep-no-show-alerts") },
   "sql:sweep_open_ban_settlement_reviews": { uncovered: CRON("ban-review-watch") },
   "sql:sweep_release_last_chance": { uncovered: CRON("sweep-release-last-chance") },
+  // Declutter (20261014210518 / 20261014224914): behind the hidden 'declutter' switch; no journey trades yet.
+  "sql:declutter_notify": { uncovered: "GAP — the one notification writer of the Declutter RPCs and sweeps (offers, cart, checkout, strikes, handover); Declutter is behind the hidden 'declutter' switch and no journey leg drives a Declutter trade yet. Its rows are proven in src/test/pglite/declutterSlice3.pglite.mjs (offer declined, a strike notice, a test account never notifying a real one)." },
+  "sql:declutter_price_drop_sweep": { uncovered: "pg_cron job \"declutter-price-drops\" (23:07 UTC) is its only caller and EXECUTE is service_role only (REVOKE FROM PUBLIC, anon, authenticated in 20261014224914), so no journey door fires it. Proven in src/test/pglite/declutterSlice3.pglite.mjs (watchers only get 'Price dropped', once per Louisiana day, none at the floor)." },
   "sql:track_revision_scope_creep": {
     uncovered: "notifies only on a job's THIRD revision request, and files a fraud_flags scope_creep row against the poster (a shared account) when it does",
   },

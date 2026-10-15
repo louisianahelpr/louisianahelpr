@@ -37,6 +37,7 @@ import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
+import { splitRealAndTest, bulkPayoutDescription, singlePayoutDescription } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -206,7 +207,8 @@ const AdminPayoutBatches = () => {
 
   // Bulk amounts — recomputed off the live selection.
   const selectedBatches = readyBatches.filter((b) => selected.has(b.helper_id) && b.stripe_account_id);
-  const selectedTotal = selectedBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
+  // Q1760: the selection's REAL money; a ticked test batch is named apart.
+  const selectedMoney = splitRealAndTest(selectedBatches);
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -426,11 +428,11 @@ const AdminPayoutBatches = () => {
                 {selected.size} helper{selected.size > 1 ? "s" : ""} selected
               </p>
               <p className="text-ds-11 text-muted-foreground tabular-nums">
-                ${selectedTotal.toFixed(2)} total — fires {selected.size} Stripe transfer{selected.size > 1 ? "s" : ""}
+                ${selectedMoney.real.toFixed(2)} real money{selectedMoney.testCount > 0 ? ` · $${selectedMoney.test.toFixed(2)} to test accounts` : ""} — fires {selectedBatches.length} Stripe transfer{selectedBatches.length === 1 ? "" : "s"}
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
-            <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selected.size === 0}>
+            <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selectedBatches.length === 0}>
               <Send className="w-3 h-3 mr-1" />
               {bulkPaying ? "Queuing…" : "Bulk Approve"}
             </Button>
@@ -517,8 +519,8 @@ const AdminPayoutBatches = () => {
         open={confirmBulk}
         onOpenChange={(open) => { if (!open) setConfirmBulk(false); }}
         title="Bulk Approve These Payouts?"
-        description={`This fires ${selected.size} Stripe transfer${selected.size > 1 ? "s" : ""} totalling $${selectedTotal.toFixed(2)}. This moves real money and can't be undone here.`}
-        primaryLabel={bulkPaying ? "Queuing…" : `Send ${selected.size}`}
+        description={bulkPayoutDescription(selectedBatches)}
+        primaryLabel={bulkPaying ? "Queuing…" : `Send ${selectedBatches.length}`}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={bulkPaying}
@@ -537,7 +539,7 @@ const AdminPayoutBatches = () => {
         title="Send This Payout?"
         description={
           confirmBatch
-            ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count !== 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`
+            ? singlePayoutDescription(confirmBatch)
             : ""
         }
         primaryLabel={confirmBatch && paying === confirmBatch.helper_id ? "Sending…" : "Send Payout"}

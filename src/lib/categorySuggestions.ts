@@ -27,7 +27,7 @@ export interface CategorySuggestionRow {
 }
 
 /** The same bounds suggest_category() enforces, so the form can say so first. */
-export const SUGGESTION_MIN = 2;
+const SUGGESTION_MIN = 2;
 export const SUGGESTION_MAX = 40;
 const SUGGESTION_SHAPE = /^[A-Za-z][A-Za-z0-9 &/'(),.-]*$/;
 

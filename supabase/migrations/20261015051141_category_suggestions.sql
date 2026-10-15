@@ -233,3 +233,12 @@ COMMENT ON FUNCTION public.admin_review_category_suggestion(uuid, boolean, text)
   'Admin-only: approve or decline a pending category suggestion and every pending one with the '
   'same words in the same area; audited (review_category_suggestion). Approved = queued for the '
   'next category release.';
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

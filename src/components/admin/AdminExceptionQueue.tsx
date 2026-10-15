@@ -89,17 +89,13 @@ const ExceptionQueueInner = () => {
         .eq("status", "open")
         .order("created_at", { ascending: true });
 
-      // PGRST202 = function/table not found — migration not yet deployed
-      const { error } = result;
-      if (error && (error.code === "PGRST202" || error.message?.includes("does not exist"))) {
-        return [];
-      }
       // THROW (unwrap), don't `return []`. A toast is transient; the list it
       // leaves behind reads "No open exceptions — Nothing is waiting on a
       // decision right now" forever, which is the opposite of the truth on a
       // COMPLIANCE queue. Throwing flips isError so the surface says so.
-      // (The PGRST202 branch above stays a legitimate empty: the table
-      // genuinely does not exist yet during a deploy-lag window.)
+      // No "not deployed yet" branch (Q?admin-badge-not-deployed): the table
+      // has been on prod for months, so a missing table or column is a real
+      // failure; the old message test also swallowed a dropped column.
       const baseRows = unwrap(result) ?? [];
 
       // Hydrate poster names/emails via an explicit profiles lookup keyed on

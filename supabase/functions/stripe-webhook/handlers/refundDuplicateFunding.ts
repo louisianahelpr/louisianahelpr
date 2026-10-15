@@ -42,7 +42,7 @@ export async function refundDuplicateFunding(stripe: WebhookContext["stripe"], p
 }
 
 /** The ledger source (and refund metadata stamp) of a duplicate-funding refund. */
-export const DUPLICATE_FUNDING_SOURCE = "duplicate_funding";
+const DUPLICATE_FUNDING_SOURCE = "duplicate_funding";
 
 /**
  * Q1819: the duplicate-funding refund gets its payment_refunds ledger row,

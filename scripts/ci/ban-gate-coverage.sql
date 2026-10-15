@@ -173,6 +173,7 @@ rpc_exempt(fn, why) AS (
   ('save_weekly_availability', 'SECURITY INVOKER: its INSERT is ban-gated; a delete-only call just clears own hours'),
   -- Admin-only: the body refuses anyone without has_role admin.
   ('admin_delete_review', 'admin-only (body checks has_role admin)'),
+  ('admin_review_category_suggestion', 'admin-only (body checks has_role admin; trades suggest-a-category)'),
   ('admin_set_payout_hold', 'admin-only (body checks has_role admin; Q764)'),
   ('admin_release_payout_hold', 'admin-only (body checks has_role admin; Q764)'),
   ('admin_deny_payout_hold', 'admin-only (body checks has_role admin; Q764)'),

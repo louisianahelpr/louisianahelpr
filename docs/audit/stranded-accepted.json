@@ -1440,12 +1440,6 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/bot/refresh/morning-page",
-      "sha": "7bfb92ed806170494b0aec9a28b1730fb99d93d4",
-      "reason": "Obsolete: the 2026-10-12 morning page from the morning-page bot (its PR #2914 closed); a dated daily snapshot the bot regenerates every run, superseded by the next one.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "remote:origin/chore/automate-ticking",
       "sha": "e8630e6173fb3e16d7d56fa5e148b52478560a6f",
       "reason": "Superseded on main: Q936 done (src/test/uptimeHeartbeat.test.ts).",
@@ -2386,6 +2380,108 @@
       "sha": "a0ecf760b01885d26968da551dfee85951849e67",
       "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "pr:2780",
+      "sha": "cdf8df7cc4fd02fce5563c5656553c159ec4c8cd",
+      "reason": "Closed PR 'fix(tax): LA sales tax actually collected' (land/lane1-q1578-la-tax-code-6e15e405): Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "pr:2846",
+      "sha": "f5511680242b44a354933e14b20fc7039a2f63d7",
+      "reason": "Closed PR 'fix(tax): LA sales tax actually collected' (land/lane1-q1578-r2): Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "pr:2776",
+      "sha": "fa54a53f22c4c36b48f9f2eaa1438e53e49a6c23",
+      "reason": "Closed PR 'auto-land: local/q1558' (fix-land/q1558): the Q1558 empty-page alignment work is on main (useSearchOnOwnLine.ts, src/test/mainTabEmptyPagesAlign.test.tsx, Q1558 [~]); its 2 leftover lines are the test's older import and doc line, which main reworded.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a-1",
+      "sha": "6082aaa5751122feeeb8379c179fa50e43400a76",
+      "reason": "Lane A refund-notice/tax build (2026-10-12), superseded piece by piece: the gift fee stamp and sweep re-announce fixes landed (#2918 / items-c-refund-notice), the failed-refund tax page as 22dbd6caa, its cents-as-dollars fix as e4ceb0ca3, and Q1782(1) (a release a refund notice already announced is not told twice; a failed read still announces) as 7ce549414. KEPT because Q1782(2) cites its commit 2a6f3754d: it keys a re-issued refund's tax reversal on the refund id, while main chose the other rule (1b0f31114: the page says leave the reversal on a re-refund). Q1782 decides; delete this branch once it does.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1v",
+      "sha": "e080660fc2e0c8283dc3c00e6b6f0098ca75bd18",
+      "reason": "Lane A2 under-18 build, final iteration. Its under-18 grey-out half landed through #2999; its phone-save half is held on ready/phone-save-after-review until Apple decides on 1.0.4 (review freeze), and wip/noprompt-1014 (the owner's 10-14 'no later prompt' work) is built on top of it. Its 2 lines covered by neither are PhotoPrompt's phone write, which the noprompt work removes. Decided by the held branch and ready/noprompt-1014.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/fix-land/q1558",
+      "sha": "586ec447f9e56bd537490e3d8c860bd1720d6cca",
+      "reason": "Main has the Q1558 guard src/test/mainTabEmptyPagesAlign.test.tsx in a newer form; leftover is its older import line and a ConversationList useEffect deletion main kept.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/land/lane1-q1578-la-tax-code-6e15e405",
+      "sha": "cdf8df7cc4fd02fce5563c5656553c159ec4c8cd",
+      "reason": "Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/land/lane1-q1578-r2",
+      "sha": "f5511680242b44a354933e14b20fc7039a2f63d7",
+      "reason": "Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/items-b-perf-advisor",
+      "sha": "1b7353f2a29ae54953a44bb786c54f71288a851c",
+      "reason": "Q1321 performance-advisor check is on main in a newer form (scripts/check-performance-advisor.mjs, performanceAdvisorBaseline.test.ts, db-drift-detect.yml step, Q1816).",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/items-c-refund-notice",
+      "sha": "9b8d085fc5124e5154b0c358710a687f65e19b72",
+      "reason": "PR #2918's refund-notice work landed. Its one leftover line is the failed-refund Stripe Tax page printing CENTS as dollars; main fixed that exact line by dividing by 100 in e4ceb0ca3. Not landed on purpose: it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1",
+      "sha": "db9ac1f187447a7aa0eda4d2bb40d29b44dd369a",
+      "reason": "Under-18 iteration superseded by #2999 (merged), the held ready/phone-save-after-review and the owner 10-14 no-later-prompt decision (ready/noprompt-1014).",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1r",
+      "sha": "0f7786627aa21c1a8c7308173908bc0f50e02ee0",
+      "reason": "Same as todo-a2-1.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1s",
+      "sha": "44ca75e95d9d0be2df10ce164ea3bd3e15d81438",
+      "reason": "Same as todo-a2-1.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1t",
+      "sha": "381ca73a079d5c198e1a3cf0d2ccafd88f3b003e",
+      "reason": "Same as todo-a2-1.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1u",
+      "sha": "b305dcba9f9e64e76a3897d99d1f480aeefb36ab",
+      "reason": "Same as todo-a2-1 (its land copy is open PR #2982, kept).",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/wip/limit-a1e95198fa67c0bd0",
+      "sha": "13059a2502e20cb3cfde09e7c7409bd68816af0a",
+      "reason": "Cwv-lab.mjs installWriteBlock is on main with more parameters (reads, allowed); leftover is the older signature.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/wip/limit-a2f911567d5c08c19",
+      "sha": "3a97bf6f544dc55673c289d4dc9a7720f19fc657",
+      "reason": "Early test-mode iteration; main rebuilt test mode (8feeeb629 #2923, 10a0bb648 #2987); crewReadyToRelease on main also takes stripeFeeCents.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
     }
   ]
 }

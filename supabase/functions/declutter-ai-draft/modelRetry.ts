@@ -14,7 +14,7 @@
  *
  * Pure (no Deno globals) so src/test/declutterAiModelRetry.test.ts can run it.
  */
-export const RETRYABLE_STATUSES: ReadonlySet<number> = new Set([503, 529]);
+const RETRYABLE_STATUSES: ReadonlySet<number> = new Set([503, 529]);
 export const MAX_ATTEMPTS = 2;
 /** Pause before the one retry. Short: the seller is watching a spinner. */
 export const RETRY_DELAY_MS = 1500;

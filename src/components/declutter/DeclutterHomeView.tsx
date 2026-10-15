@@ -61,9 +61,21 @@ function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?:
 }
 
 /** Where the miles are counted from, and the one place Declutter asks for the device's location. */
-function OriginLine({ origin, asked, asking, onUse }: { origin: DeclutterOrigin; asked: boolean; asking: boolean; onUse: () => void }) {
+function OriginLine({
+  origin,
+  asked,
+  asking,
+  deviceNote,
+  onUse,
+}: {
+  origin: DeclutterOrigin;
+  asked: boolean;
+  asking: boolean;
+  deviceNote: string | null;
+  onUse: () => void;
+}) {
   if (origin.status !== "ready" || origin.source === "device") return null;
-  const from = origin.source === "profile" ? "your saved location" : "your ZIP code's area";
+  const from = origin.source === "profile" ? "your saved location" : origin.source === "zip" ? "your ZIP code's area" : "your parish's center";
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <p className="text-xs text-muted-foreground">Miles are counted from {from}.</p>
@@ -73,6 +85,7 @@ function OriginLine({ origin, asked, asking, onUse }: { origin: DeclutterOrigin;
         </Button>
       )}
       {asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
+      {deviceNote && <p className="text-xs text-muted-foreground" role="status">{deviceNote}</p>}
     </div>
   );
 }
@@ -81,7 +94,7 @@ function BrowseView({ userId }: { userId: string }) {
   const [maxMiles, setMaxMiles] = useState<number | null>(25);
   // No location prompt on landing: miles come from what we already know, and
   // the device is asked only from the "Use my location" button below.
-  const { origin, askDevice, asked, asking } = useDeclutterOrigin();
+  const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
@@ -112,11 +125,16 @@ function BrowseView({ userId }: { userId: string }) {
             onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
             options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
           />
-          <OriginLine origin={origin} asked={asked} asking={asking} onUse={askDevice} />
+          <OriginLine origin={origin} asked={asked} asking={asking} deviceNote={deviceNote} onUse={askDevice} />
         </>
       ) : (
         <DeclutterNotice title="Nearest items show first once we know where you are.">
-          <p>Use your location, or add your ZIP code in your profile, to see how far each item is.</p>
+          <p>
+            {asked
+              ? "Add your ZIP code in your profile to see how far each item is."
+              : "Use your location, or add your ZIP code in your profile, to see how far each item is."}
+          </p>
+          {deviceNote && <p className="mt-1" role="status">{deviceNote}</p>}
           {!asked && (
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={askDevice}>
               Use my location

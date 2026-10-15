@@ -30,7 +30,14 @@ export type DeclutterOrigin =
  * is asked once per visit (a declined OS prompt cannot be re-shown from the
  * page anyway), so the screen hides the button rather than leave a dead one.
  */
-export function useDeclutterOrigin(): { origin: DeclutterOrigin; askDevice: () => void; asked: boolean; asking: boolean } {
+export function useDeclutterOrigin(): {
+  origin: DeclutterOrigin;
+  askDevice: () => void;
+  asked: boolean;
+  asking: boolean;
+  /** Why the device read did not give a fix, once asked (null while it loads, or if it worked). */
+  deviceNote: string | null;
+} {
   const [asked, setAsked] = useState(false);
   const device = useUserLocation(asked, "declutter_location");
   const { profile, isLoading } = useCurrentUser();
@@ -73,5 +80,15 @@ export function useDeclutterOrigin(): { origin: DeclutterOrigin; askDevice: () =
     device.status === "ready"
       ? { status: "ready", lat: device.lat, lng: device.lng, source: device.source, approximate: device.approximate }
       : known;
-  return { origin, askDevice: () => setAsked(true), asked, asking: asked && device.status === "loading" };
+  // The button goes once asked, so a failed read must SAY so (silent-failure
+  // review): `useUserLocation` already words the reason (denied in Settings,
+  // timed out, permission declined); a read that fell back to the ZIP/parish
+  // is `ready` but not from the device.
+  const deviceNote =
+    asked && device.status === "error"
+      ? device.message
+      : asked && device.status === "ready" && device.source !== "device"
+        ? "We couldn't read your device's location."
+        : null;
+  return { origin, askDevice: () => setAsked(true), asked, asking: asked && device.status === "loading", deviceNote };
 }

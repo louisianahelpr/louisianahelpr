@@ -45,7 +45,7 @@ describe("Management API log queries use the live endpoint", () => {
   it("every log reader goes through the helper instead of building the URL", () => {
     const readers = files.filter((f) => f.rel !== HELPER && /logsQueryUrl\(/.test(f.src));
     expect(readers.map((f) => f.rel).sort()).toEqual(
-      ["scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"],
+      ["scripts/check-captcha-refusals.mjs", "scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"],
     );
     expect(files.filter((f) => f.rel !== HELPER && /analytics\/endpoints\/logs\b/.test(f.src)).map((f) => f.rel)).toEqual([]);
   });
@@ -54,7 +54,7 @@ describe("Management API log queries use the live endpoint", () => {
     // The new endpoint answers "Table postgres_logs does not exist" (run 36006924856).
     const old = /\bselect\b[^"`\n]*\bfrom\s+(edge_logs|postgres_logs|function_edge_logs|function_logs|auth_logs|postgrest_logs)\b/i;
     expect(files.filter((f) => old.test(f.src)).map((f) => f.rel)).toEqual([]);
-    const readers = ["scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"];
+    const readers = ["scripts/check-captcha-refusals.mjs", "scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"];
     for (const r of readers) expect(files.find((f) => f.rel === r)!.src, r).toMatch(/from logs where source = '\w+'/);
   });
 });

@@ -63,6 +63,10 @@ const ALLOWED = new Map<string, string>([
     "src/lib/openSignedDocument.ts | openSignedDocument | tab.location.href = url",
     "points the admin's freshly opened document tab at a signed storage URL; a new tab, never this page",
   ],
+  [
+    "src/lib/appleSubscriptions.ts | openAppleSubscriptions | window.location.assign(APPLE_SUBSCRIPTIONS_URL)",
+    "an Apple member's Manage tap opening Apple's manage-subscriptions page (a constant https://apps.apple.com URL, Q1797): a voluntary tap, never a session check",
+  ],
 ]);
 
 type Target = "login" | "unknown" | "not-login";

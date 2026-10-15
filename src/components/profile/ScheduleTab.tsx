@@ -216,7 +216,7 @@ const ScheduleCard = ({
         >
           <div aria-hidden className="flex items-center justify-between gap-3">
             <h4
-              className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
+              className="job-card-title senior-clamp-2 font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               {job.title}

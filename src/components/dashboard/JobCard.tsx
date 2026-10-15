@@ -532,7 +532,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               heading-order on 18 pages. The visual size is carried by
               `text-headline-card`, not by the tag, so nothing moves. */}
           <h2
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
+            className="job-card-title senior-clamp-2 text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",

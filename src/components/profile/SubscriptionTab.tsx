@@ -9,7 +9,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
@@ -18,6 +18,7 @@ import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierC
 import { BILLING_OPTIONS, BILLING_PILL_STYLE } from "@/components/profile/subscriptionTab/billingPill";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { openAppleSubscriptions } from "@/lib/appleSubscriptions";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useFeature } from "@/hooks/useFeature";
 import {
@@ -140,7 +141,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // required Change -> "Cancel Instead" -> declaring a cancellation reason.
   // The portal is where tier switches, card updates and cancellation all
   // actually happen, and Stripe handles proration correctly.
+  // Q1797: an Apple-billed membership is managed by Apple, not our Stripe
+  // portal (src/lib/appleSubscriptions.ts says why).
   const handleManageSubscription = async () => {
+    if (profile?.subscription_source === "apple") {
+      openAppleSubscriptions();
+      return;
+    }
     void openStripePortal();
   };
 
@@ -873,6 +880,28 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           </button>
         </div>
       )}
+
+      {/* Q1795 (App Store 3.1.2 / lh-compliance-store@c16b0f0dc#2): an app
+          selling auto-renewing subscriptions must link its Terms of Use and
+          Privacy Policy on the purchase surface itself. Shown everywhere: the
+          same terms govern a membership bought on the web. */}
+      <p className="mt-3 text-center text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <Link
+          to="/legal?tab=terms"
+          data-testid="membership-terms-link"
+          className="underline underline-offset-2 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Terms of Use
+        </Link>
+        {" · "}
+        <Link
+          to="/legal?tab=privacy"
+          data-testid="membership-privacy-link"
+          className="underline underline-offset-2 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Privacy Policy
+        </Link>
+      </p>
     </ProfileTabBody>
   );
 };

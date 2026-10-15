@@ -4200,7 +4200,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 96,
+      "line": 97,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -4210,7 +4210,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 98,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4220,7 +4220,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 157,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4230,7 +4230,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4243,7 +4243,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4253,7 +4253,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -4263,7 +4263,7 @@
     },
     {
       "file": "src/components/profile/SubscriptionTab.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "literal",

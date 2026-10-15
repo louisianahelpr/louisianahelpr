@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 639,
-    "files": 165,
-    "rendering": 602,
-    "suppressedByPolicy": 37,
+    "calls": 670,
+    "files": 168,
+    "rendering": 618,
+    "suppressedByPolicy": 52,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 498,
+      "toast.error": 514,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 43,
+      "toast.success": 58,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 332,
-      "template": 80,
-      "dynamic": 268,
+      "literal": 343,
+      "template": 82,
+      "dynamic": 286,
       "jsx": 0
     }
   },
@@ -3011,6 +3011,36 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
+      "line": 47,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "decision === \"refund_buyer\" ? \"Decided: the buyer is refunded.\" : \"Decided: the seller is paid.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Decided: the buyer is refunded."
+          },
+          {
+            "form": "literal",
+            "text": "Decided: the seller is paid."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/settings/DeclutterReviewCard.tsx",
       "line": 46,
       "kind": "toast.success",
@@ -3042,7 +3072,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 69,
+      "line": 70,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3052,7 +3082,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 72,
+      "line": 73,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3185,8 +3215,208 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 224,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "r.result === \"booked\" ? \"Pickup booked.\" : \"Pickup time changed.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Pickup booked."
+          },
+          {
+            "form": "literal",
+            "text": "Pickup time changed."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 228,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 261,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "That code isn't right. ${r.attempts_left} ${r.attempts_left === 1 ? \"try\" : \"tries\"} left."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 262,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Too many wrong codes. The buyer can tap \"I got it\" instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 263,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "order.side === \"seller\" ? \"Handover done. You're being paid.\" : \"Handover done. Enjoy your item.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Handover done. You're being paid."
+          },
+          {
+            "form": "literal",
+            "text": "Handover done. Enjoy your item."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 267,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 317,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 318,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 327,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Set out. The buyer is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 328,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 329,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Picked up. The seller is paid and the sale is final."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 332,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 363,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Reported. We'll tell the other side and sort out the money."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 364,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 393,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Reported. Nobody is paid until Louisiana Helpr decides."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 398,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 424,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Thanks. Your review shows once both of you review, or after 14 days."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 425,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 171,
+      "line": 181,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3196,7 +3426,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 174,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3377,6 +3607,156 @@
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
       "line": 312,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 96,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 126,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Offer sent. The seller has 48 hours to answer."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 134,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "It's yours. Check out within 48 hours."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 137,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 231,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "res === \"accepted\" ? (o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\") : res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Accepted. Check out within 48 hours."
+              },
+              {
+                "form": "literal",
+                "text": "Accepted. The buyer has 48 hours to pay."
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Sent. They have 48 hours to answer."
+              },
+              {
+                "form": "dynamic",
+                "text": "res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "Offer taken back."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "Declined."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 239,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 355,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Sale cancelled. You have ${Math.min(n, 3)} of 3 strikes."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 358,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 424,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "This order is already paid."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 431,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

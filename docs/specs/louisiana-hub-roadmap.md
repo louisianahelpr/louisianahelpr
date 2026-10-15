@@ -93,3 +93,15 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 | Q6 | Counter-offers back and forth, 48 h for each side to answer (accept / decline / counter) |
 | Q7 | A quote = total price + short note (what's included, materials) + when they can do it; optional photos of past work |
 | Q8 | An accepted quote becomes a normal job at that price: paid and held like any job, flat 5% + $0.70 from the Helpr's pay, arrival/done/reviews as today |
+
+## Business tools (owner pop-up 2026-10-14, all 8 approved) — each gets its own question round before building
+| # | Feature | Notes to raise in its question round |
+|---|---------|---------------------------------------|
+| B1 | Appointment booking (hair, nails, barbers, trainers, tutors, groomers): open slots, reminders, optional no-show deposit | deposit/refund rules follow the never-absorb fee rule |
+| B2 | Business dashboard: quote requests, orders, bookings, messages, monthly earnings, profile views, parish search terms | |
+| B3 | Team accounts: staff under one business, jobs/bookings assigned to a member, one payout to the business | Stripe Connect: one connected account per business |
+| B4 | Shift hiring (staffing): businesses post short shifts that Helprs fill | BIG legal question: a business directing a worker's shift can look like EMPLOYMENT (W-2 vs 1099 misclassification under federal/Louisiana law) — research before building |
+| B5 | Digital punch cards for local shops | |
+| B6 | Invoices for repeat customers, paid in the app with the flat fee | reuses recurring jobs where possible |
+| B7 | Business-to-business: local suppliers selling to businesses | sales tax: business buyers may resell (resale certificates) |
+| B8 | "Request a review" link to any customer, every review counts (no review gating: 16 CFR 465) | |

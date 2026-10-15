@@ -37,8 +37,8 @@ function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   return out;
 }
 
-function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?: string; miles: number | null }) {
-  const away = milesLabel(miles);
+function ItemCard({ item, photoPath, miles, approximate }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean }) {
+  const away = milesLabel(miles, approximate);
   return (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -75,12 +75,14 @@ function OriginLine({
   origin,
   asked,
   asking,
+  canAskAgain,
   deviceNote,
   onUse,
 }: {
   origin: DeclutterOrigin;
   asked: boolean;
   asking: boolean;
+  canAskAgain: boolean;
   deviceNote: string | null;
   onUse: () => void;
 }) {
@@ -89,9 +91,9 @@ function OriginLine({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <p className="text-xs text-muted-foreground">Miles are counted from {from}.</p>
-      {!asked && (
+      {(!asked || canAskAgain) && (
         <Button type="button" variant="outline" size="sm" onClick={onUse}>
-          Use my location
+          {asked ? "Try my location again" : "Use my location"}
         </Button>
       )}
       {asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
@@ -104,7 +106,7 @@ function BrowseView({ userId }: { userId: string }) {
   const [maxMiles, setMaxMiles] = useState<number | null>(25);
   // No location prompt on landing: miles come from what we already know, and
   // the device is asked only from the "Use my location" button below.
-  const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
+  const { origin, askDevice, asked, asking, canAskAgain, deviceNote } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
@@ -135,19 +137,23 @@ function BrowseView({ userId }: { userId: string }) {
             onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
             options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
           />
-          <OriginLine origin={origin} asked={asked} asking={asking} deviceNote={deviceNote} onUse={askDevice} />
+          <OriginLine origin={origin} asked={asked} asking={asking} canAskAgain={canAskAgain} deviceNote={deviceNote} onUse={askDevice} />
         </>
       ) : (
         <DeclutterNotice title="Nearest items show first once we know where you are.">
           <p>
-            {asked
-              ? "Add your ZIP code in your profile to see how far each item is."
-              : "Use your location, or add your ZIP code in your profile, to see how far each item is."}
+            {origin.status === "none" && origin.zipOnFile
+              ? // The profile HAS a ZIP; we just couldn't place it. Never tell them to add one.
+                "We couldn't find the area for the ZIP code on your profile, so items show without miles for now."
+              : asked
+                ? "Add your ZIP code in your profile to see how far each item is."
+                : "Use your location, or add your ZIP code in your profile, to see how far each item is."}
           </p>
+          {asking && <p className="mt-1" role="status">Finding you…</p>}
           {deviceNote && <p className="mt-1" role="status">{deviceNote}</p>}
-          {!asked && (
+          {(!asked || canAskAgain) && (
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={askDevice}>
-              Use my location
+              {asked ? "Try my location again" : "Use my location"}
             </Button>
           )}
         </DeclutterNotice>
@@ -162,7 +168,7 @@ function BrowseView({ userId }: { userId: string }) {
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {rows.map(({ item, miles }) => (
             <li key={item.id} className="min-w-0">
-              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} />
+              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate} />
             </li>
           ))}
         </ul>

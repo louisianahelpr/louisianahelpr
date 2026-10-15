@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePermissionRationale, type PermissionKind } from "@/hooks/usePermissionRationale";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { persistUserLocation } from "@/lib/persistUserLocation";
@@ -49,11 +49,14 @@ const TTL = 5 * 60 * 1000;
  *
  * Returns null when no cache exists or the cached entry is older than the
  * 5-minute TTL. The caller silently hides the pill in that case.
+ *
+ * `approximate` is the platform's own confidence in the fix (a coarse fix is
+ * cached too), handed on so a caller quoting miles can say "about".
  */
-export function getCachedUserLocation(): { lat: number; lng: number } | null {
+export function getCachedUserLocation(): { lat: number; lng: number; approximate: boolean } | null {
   if (!cached) return null;
   if (Date.now() - cached.ts >= TTL) return null;
-  return { lat: cached.lat, lng: cached.lng };
+  return { lat: cached.lat, lng: cached.lng, approximate: cached.approximate };
 }
 
 /**
@@ -127,20 +130,69 @@ export async function deriveFallbackLocation(
   return null;
 }
 
+const fallbackKey = (p: Parameters<typeof deriveFallbackLocation>[0]) =>
+  p ? JSON.stringify([p.latitude ?? null, p.longitude ?? null, p.zip_code ?? null, p.parish ?? null]) : null;
+
 /**
  * `rationale` picks the "why we want location" copy shown before the OS
  * prompt. Every job surface uses the default ("location": jobs near you,
  * Helpr arrival); Declutter passes its own kind so its explanation talks
  * about items and miles, not jobs. The fetch, cache, profile write and
  * fallback chain are identical whichever copy is shown.
+ *
+ * `attempt` asks again: each new value re-runs the read (and so the rationale
+ * dialog, if it was answered "Not now"). Only a caller's tap should move it.
+ *
+ * The read does NOT re-run when the profile changes: a refetch handing back
+ * a new profile object used to re-run it, which after a "Not now" reopened
+ * the dialog with no tap (silent-failure review of declutter-loading,
+ * finding 7). The fallback reads the LATEST profile through a ref, and a
+ * profile that arrives after a read already failed is still used (the
+ * second effect below), without asking the device again.
  */
-export function useUserLocation(enabled: boolean, rationale: PermissionKind = "location"): GeoState {
+export function useUserLocation(enabled: boolean, rationale: PermissionKind = "location", attempt = 0): GeoState {
   const [state, setState] = useState<GeoState>({ status: "idle" });
   const { request } = usePermissionRationale();
   const { profile } = useCurrentUser();
+  const hasProfile = !!profile;
+  const pLat = profile?.latitude ?? null;
+  const pLng = profile?.longitude ?? null;
+  const pZip = profile?.zip_code ?? null;
+  const pParish = profile?.parish ?? null;
+  const onFileRef = useRef<Parameters<typeof deriveFallbackLocation>[0]>(null);
+  onFileRef.current = hasProfile ? { latitude: pLat, longitude: pLng, zip_code: pZip, parish: pParish } : null;
+  // The profile fields the last failed read already fell back from, so the
+  // effect below does not repeat the same ZIP lookup.
+  const triedRef = useRef<string | null>(null);
+
+  // A read that failed before the profile arrived (or before its ZIP was
+  // saved) still falls back to it once it does, with no new ask.
+  const failedNoFallback = enabled && state.status === "error";
+  useEffect(() => {
+    if (!failedNoFallback || !hasProfile) return;
+    const onFile = { latitude: pLat, longitude: pLng, zip_code: pZip, parish: pParish };
+    if (triedRef.current === fallbackKey(onFile)) return;
+    triedRef.current = fallbackKey(onFile);
+    let alive = true;
+    void deriveFallbackLocation(onFile)
+      .then((fb) => {
+        if (alive && fb) setState({ status: "ready", ...fb });
+      })
+      .catch((err: unknown) => {
+        // Nothing derivable is the state we are already in ("error"), so the
+        // honest message stays on screen; logged for the record.
+        console.warn("[location] fallback after a failed read could not resolve", err);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [failedNoFallback, hasProfile, pLat, pLng, pZip, pParish]);
 
   useEffect(() => {
+    // Each run is a new ask (first enable, or a tap that moved `attempt`):
+    // drop the last answer so the screen shows this one, not the old one.
     if (!enabled) return;
+    setState({ status: "idle" });
     let alive = true;
 
     /**
@@ -152,7 +204,10 @@ export function useUserLocation(enabled: boolean, rationale: PermissionKind = "l
      * so the honest "no radius could run" case still reaches the toolbar.
      */
     const failWith = (message: string) => {
-      void deriveFallbackLocation(profile)
+      // The profile as it is NOW (a ref), not as it was when the read began.
+      const onFile = onFileRef.current;
+      triedRef.current = fallbackKey(onFile);
+      void deriveFallbackLocation(onFile)
         .then((fb) => {
           if (!alive) return;
           if (fb) {
@@ -278,7 +333,7 @@ export function useUserLocation(enabled: boolean, rationale: PermissionKind = "l
     return () => {
       alive = false;
     };
-  }, [enabled, request, profile, rationale]);
+  }, [enabled, request, rationale, attempt]);
 
   return state;
 }

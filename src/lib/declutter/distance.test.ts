@@ -1,6 +1,7 @@
 /**
  * Declutter Browse: nearest first, area + miles only (rows 5, 27).
  *
+ * @mutate src/lib/declutter/distance.ts |   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`; |   if (false) return `About ${Math.max(1, Math.round(miles))} mi away`;
  * @mutate src/lib/declutter/distance.ts |     .sort((x, y) => (x.miles as number) - (y.miles as number)); |     ;
  * @mutate src/lib/declutter/distance.ts |     .filter((r) => maxMiles === null \|\| (r.miles as number) <= maxMiles) |     .filter(() => true)
  */
@@ -37,6 +38,10 @@ describe("Declutter nearest first (rows 5, 27)", () => {
     expect(milesLabel(0.4)).toBe("Less than 1 mi away");
     expect(milesLabel(12.6)).toBe("13 mi away");
     expect(milesLabel(null)).toBeNull();
+    // A rough origin (ZIP/parish centre, coarse fix) says "About", never "Less than 1 mi".
+    expect(milesLabel(0.4, true)).toBe("About 1 mi away");
+    expect(milesLabel(12.6, true)).toBe("About 13 mi away");
+    expect(milesLabel(null, true)).toBeNull();
     expect(formatPrice(4000)).toBe("$40");
     expect(formatPrice(1999)).toBe("$19.99");
   });

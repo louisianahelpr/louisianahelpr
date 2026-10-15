@@ -92,6 +92,21 @@ export const ADMIN_RPC_ERROR_COPY = {
     dispute_money_moved: "A transfer, refund or restored gift exists for this job, so it can't be closed as unpaid. Reconcile it against Stripe.",
     admin_is_party: "You're a party to this job, so another admin has to close its settlement.",
   },
+  // AdminDisputes — closing a decided dispute on a Stripe TEST-mode payment
+  // between test accounts as a test (Q1769, 20261015061949). Admin-facing.
+  rpc_close_test_mode_dispute: {
+    settle_note_required: "Write how you know this was a test. It's the only record of this close.",
+    dispute_not_decided: "This dispute hasn't been decided yet, so there's no settlement to close.",
+    dispute_already_settled: "This dispute's settlement is already closed. Refresh to see it.",
+    dispute_crew_fanout: "A crew decision is settled by the payout run, so it can't be closed here.",
+    dispute_settlement_in_progress: "A settlement run holds this dispute right now. Refresh in a few minutes.",
+    dispute_not_test_mode: "This job wasn't paid in Stripe test mode, so it's a real dispute. Use Retry settlement.",
+    dispute_not_test_accounts: "A real account is on this job, so it's a real dispute. Only a job between test accounts can be closed as a test.",
+    dispute_has_live_gift: "A gift card paid toward this job, and gift cards are real money. Use Retry settlement.",
+    dispute_payment_settled: "This job's payment record says it was already settled, so there's nothing to close. Refresh to see it.",
+    dispute_money_moved: "Test-mode refund or transfer records exist for this job. Press Clear test-mode records and re-open first.",
+    admin_is_party: "You're a party to this job, so another admin has to close its settlement.",
+  },
   // Declutter (DECLUTTER_ERROR_COPY, src/lib/declutter/errors.ts), slice 4 (20261015042253).
   declutter_admin_decide_problem: {
     account_restricted: DC.account_restricted,

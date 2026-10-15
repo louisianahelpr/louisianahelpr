@@ -166,6 +166,7 @@ import { KEY_EVENTS } from "../../scripts/lib/analyticsFreshness.mjs";
 import { __resetJobCompletedForTests } from "@/lib/jobCompletedEvent";
 import Signup from "@/pages/auth/Signup";
 import PaymentSuccess from "@/pages/post-job/PaymentSuccess";
+import { report } from "@/lib/errorLogger";
 import { ReviewForm } from "@/components/reviewPanel/ReviewForm";
 import { useJobSubmit, type UseJobSubmitParams } from "@/pages/post-job/useJobSubmit";
 import { useApplyFlow } from "@/pages/home/useApplyFlow";
@@ -426,6 +427,108 @@ describe("payment_made counts only the job's poster (Q1385/Q1386b)", () => {
   });
 });
 
+/**
+ * Q?payment-made-bare-visit and Q?first-payment-zero-paid (measured on prod
+ * 2026-10-15: payment_made rows with no job_id outnumber the ones with one
+ * 2378 to 109, and first_payment_collected fired 57 times for the test helper,
+ * which has never paid for a job). Every real checkout return carries
+ * `?job_id=` (create-payment's success_url and its gift-covered return), so a
+ * visit without one is not a payment; and "first payment" means the poster's
+ * ONE paid job is this one, never zero.
+ */
+describe("payment_made and first_payment_collected count only real checkout returns", () => {
+  /** Answer the poster's paid-job read in either shape (count head or rows). */
+  const paidJobs = (rows: Array<{ id: string }> | "error") =>
+    (c: { table: string; ops: Array<{ m: string; a: unknown[] }> }, t: string) => {
+      if (c.table !== "jobs") return undefined;
+      if (t === "maybeSingle") {
+        return { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID }, error: null };
+      }
+      if (rows === "error") return { data: null, error: { code: "57014", message: "statement timeout" }, count: null };
+      const sel = c.ops.find((o) => o.m === "select");
+      const head = (sel?.a[1] as { head?: boolean } | undefined)?.head;
+      return head ? { data: null, error: null, count: rows.length } : { data: rows, error: null, count: rows.length };
+    };
+
+  async function settle() {
+    for (let i = 0; i < 5; i += 1) {
+      flushAnalytics();
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    flushAnalytics();
+  }
+
+  const renderAt = (path: string) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <PaymentSuccess />
+      </MemoryRouter>,
+    );
+
+  it("a bare /payment-success visit (no job_id) emits neither event", async () => {
+    h.state.fromHandler = paidJobs([]);
+    renderAt("/payment-success");
+    await screen.findByRole("heading", { level: 1 });
+    await settle();
+    expect(rowsFor("payment_made")).toEqual([]);
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+  });
+
+  it("a visit whose only reference is the stored last-posted job (no job_id in the link) emits neither event", async () => {
+    localStorage.setItem("helpr_last_posted_job_id", PAYMENT_JOB);
+    h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }]);
+    renderAt("/payment-success");
+    await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+    await settle();
+    expect(rowsFor("payment_made")).toEqual([]);
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+  });
+
+  it("a poster with no paid job gets payment_made but no first_payment_collected", async () => {
+    h.state.fromHandler = paidJobs([]);
+    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+    await expectSent("payment_made", PAYMENT_JOB);
+    await settle();
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+  });
+
+  it("a poster whose one paid job is a DIFFERENT job gets no first_payment_collected here", async () => {
+    h.state.fromHandler = paidJobs([{ id: "30000000-0000-4000-8000-0000000000dd" }]);
+    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+    await expectSent("payment_made", PAYMENT_JOB);
+    await settle();
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+  });
+
+  it("an unreadable paid-job count emits no first_payment_collected", async () => {
+    h.state.fromHandler = paidJobs("error");
+    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+    await expectSent("payment_made", PAYMENT_JOB);
+    await settle();
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+    // ...and the failed read is reported, not dropped (CLAUDE.md: never drop the error).
+    expect(vi.mocked(report)).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "57014" }),
+      { tags: { source: "PaymentSuccess.firstPaymentCount" } },
+    );
+  });
+
+  it("a poster whose ONE paid job is this one gets first_payment_collected, with its job_id", async () => {
+    h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }]);
+    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+    await expectSent("first_payment_collected", PAYMENT_JOB);
+    expect(rowsFor("first_payment_collected")).toHaveLength(1);
+  });
+
+  it("a poster with two paid jobs gets no first_payment_collected", async () => {
+    h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }, { id: "30000000-0000-4000-8000-0000000000dd" }]);
+    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+    await expectSent("payment_made", PAYMENT_JOB);
+    await settle();
+    expect(rowsFor("first_payment_collected")).toEqual([]);
+  });
+});
+
 describe("job_completed counts a completion once", () => {
   it("a duplicate release response ({bothDone, alreadyReleased}) emits nothing", async () => {
     release({ success: true, bothDone: true, alreadyReleased: true, helperPayout: 0, platformFee: 0 });
@@ -481,6 +584,11 @@ describe("inventory", () => {
 // @mutate src/pages/home/useApplyFlow.ts | track(AhaEvent.JobApplied, { job_id: vars.jobId }); | void 0;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps }); | void 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
+// @mutate src/pages/post-job/PaymentSuccess.tsx | if (!urlJobId \|\| !UUID_RE.test(urlJobId)) return; | void 0;
+// @mutate src/pages/post-job/PaymentSuccess.tsx | const urlJobId = searchParams.get("job_id"); | const urlJobId = searchParams.get("job_id") ?? resolvedJobId;
+// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paid?.length === 1 && paid[0].id === jobId) { | if ((paid?.length ?? 0) <= 1) {
+// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paid?.length === 1 && paid[0].id === jobId) { | if (paid?.length === 1) {
+// @mutate src/pages/post-job/PaymentSuccess.tsx | if (paidError) { | if (false) {
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;

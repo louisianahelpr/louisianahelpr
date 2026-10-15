@@ -8,11 +8,12 @@
 // the config HERE, where the key already is, instead of adding a separate
 // GitHub secret. The workflow calls this function with the service-role key.
 //
-// READ ONLY: two GETs, both lists. GET /v1/webhook_endpoints (Q853), and
+// READ ONLY: four GETs, all lists (Q1820 added the fourth: the TEST-mode
+// webhook_endpoints, read with STRIPE_TEST_SECRET_KEY). GET /v1/webhook_endpoints (Q853), and
 // GET /v1/events?delivery_success=false (Q854, a second read the owner allowed
 // 2026-09-30 by pop-up) for events whose webhook delivery is still pending or
 // has failed. The key never leaves this module except in the Authorization
-// header of those two requests. From events only {id, type} and a count leave;
+// header of its requests (the live key on three, the test key on one). From events only {id, type} and a count leave;
 // never an event's data/payload.
 
 /** The ONLY fields that leave this function, per endpoint. Anything else Stripe
@@ -68,6 +69,14 @@ interface ConfigCheckBody {
    *  endpoint and undelivered checks are still returned and graded the same night. */
   taxRegistrations: ShapedTaxRegistration[] | null;
   taxError?: string;
+  /** Q1820: the TEST-mode webhook endpoints, read with STRIPE_TEST_SECRET_KEY
+   *  (the shared test accounts pay on the test key since 2026-10-12, so their
+   *  webhooks arrive only through a test-mode endpoint). null when the read
+   *  failed or the key is missing (then `testError` says why); graded red. */
+  testEndpoints: ShapedEndpoint[] | null;
+  testError?: string;
+  /** true only when the test key really is a test key (sk_test_/rk_test_). */
+  testKeyIsTest: boolean;
 }
 
 export const STRIPE_TAX_REGISTRATIONS_URL = "https://api.stripe.com/v1/tax/registrations?status=active&limit=100";
@@ -128,6 +137,11 @@ export function shapeEvent(raw: Record<string, unknown>): ShapedEvent {
 /** Live-ness from the key's prefix, computed here so the key itself is never returned. */
 function keyIsLive(key: string): boolean {
   return /^(sk|rk)_live_/.test(key);
+}
+
+/** Test-ness from the key's prefix (Q1820). */
+function keyIsTest(key: string | undefined): boolean {
+  return typeof key === "string" && /^(sk|rk)_test_/.test(key);
 }
 
 /** Replace anything shaped like a Stripe key or signing secret with [redacted]. */
@@ -196,6 +210,7 @@ export async function readWebhookConfig(
   fetchImpl: FetchFn,
   timeoutMs = 15000,
   nowSec = Math.floor(Date.now() / 1000),
+  testKey?: string,
 ): Promise<ConfigCheckResult> {
   if (!key) {
     return { ok: false, status: 500, error: "STRIPE_SECRET_KEY is not set in the edge-function env" };
@@ -222,6 +237,19 @@ export async function readWebhookConfig(
       ? "Stripe returned more than 100 active tax registrations; the check reads one page only"
       : undefined;
 
+  // Q1820: the TEST-mode endpoints, read with the test key. Like the tax read,
+  // a failure never hides the live result: it is null + testError, graded red.
+  let testEndpoints: ShapedEndpoint[] | null = null;
+  let testError: string | undefined;
+  if (!testKey) {
+    testError = "STRIPE_TEST_SECRET_KEY is not set in the edge-function env";
+  } else {
+    const test = await getStripeList(STRIPE_WEBHOOK_ENDPOINTS_URL, "test-mode webhook_endpoints", testKey, fetchImpl, timeoutMs);
+    if (!test.ok) testError = test.error;
+    else if (test.hasMore) testError = "Stripe returned more than 100 test-mode webhook endpoints; the check reads one page only";
+    else testEndpoints = test.data.map((e) => shapeEndpoint((e ?? {}) as Record<string, unknown>));
+  }
+
   return {
     ok: true,
     body: {
@@ -230,6 +258,9 @@ export async function readWebhookConfig(
       undelivered: { since, until, count: shaped.length, truncated: events.hasMore, events: shaped },
       taxRegistrations: taxError || !tax.ok ? null : tax.data.map((r) => shapeTaxRegistration((r ?? {}) as Record<string, unknown>)),
       ...(taxError ? { taxError } : {}),
+      testEndpoints,
+      ...(testError ? { testError } : {}),
+      testKeyIsTest: keyIsTest(testKey),
     },
   };
 }

@@ -5953,6 +5953,7 @@ export type Database = {
           phone: string | null
           portfolio_urls: string[] | null
           preferred_helper_id: string | null
+          promotions_before_unsubscribe: Json | null
           saved_helper_seen: Json
           senior_mode: boolean
           skills: string | null
@@ -6057,6 +6058,7 @@ export type Database = {
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
+          promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
           senior_mode?: boolean
           skills?: string | null
@@ -6161,6 +6163,7 @@ export type Database = {
           phone?: string | null
           portfolio_urls?: string[] | null
           preferred_helper_id?: string | null
+          promotions_before_unsubscribe?: Json | null
           saved_helper_seen?: Json
           senior_mode?: boolean
           skills?: string | null

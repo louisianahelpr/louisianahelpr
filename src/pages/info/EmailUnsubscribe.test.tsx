@@ -6,6 +6,7 @@
  */
 // @mutate src/pages/info/EmailUnsubscribe.tsx |     void postUnsubscribe(SUPABASE_URL, link, "check").then((r) => { |     void postUnsubscribe(SUPABASE_URL, link, "unsubscribe").then((r) => {
 // @mutate src/pages/info/EmailUnsubscribe.tsx |       window.history.replaceState({ ...state, unsubscribeLink: fromUrl }, "", window.location.pathname); |       window.history.replaceState({ ...state, unsubscribeLink: fromUrl }, "", window.location.href);
+// @mutate src/pages/info/EmailUnsubscribe.tsx |     onBody: (email: string) => `${email} is back to the email settings it had before you unsubscribed.`, |     onBody: (email: string) => `${email} will get Louisiana Helpr news and offers again.`,
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -54,7 +55,12 @@ describe("/unsubscribe", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Resubscribe" }));
     await waitFor(() => expect(actions).toEqual(["check", "unsubscribe", "resubscribe"]));
-    await screen.findByRole("heading", { name: "You're subscribed again" });
+    await screen.findByRole("heading", { name: "Unsubscribe undone" });
+    // Q?unsub-resubscribe-consent: the undo restores only what was turned off,
+    // so an address that never agreed to news and offers still gets none; the
+    // page must not promise otherwise.
+    expect(screen.queryByText(/news and offers again/i)).toBeNull();
+    expect(screen.getByText(/back to the email settings it had before/)).toBeTruthy();
   });
 
   it("with no token, says to open the link from the email and posts nothing", async () => {

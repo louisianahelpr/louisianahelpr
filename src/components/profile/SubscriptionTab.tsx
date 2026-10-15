@@ -18,6 +18,7 @@ import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierC
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { useFeature } from "@/hooks/useFeature";
 import {
   isIapAvailable,
   purchaseTier,
@@ -38,6 +39,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // pricing, and defaulting here to the one-time pass meant the same tier
   // quoted a different price depending on which surface you arrived at.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
+  // Roadmap F4a (owner 2026-10-15): while memberships are off, nothing sells
+  // one. The Membership row is hidden, but /profile?tab=subscription is still
+  // a deep link, and on iOS the purchase goes through Apple (verify-apple-iap
+  // grants after Apple has the money), so the refusal sits here, before
+  // either payment path. create-pro-checkout refuses on the same switch.
+  const membershipsOn = useFeature("memberships");
   const [refreshing, setRefreshing] = useState(false);
   const reduceMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
@@ -154,6 +161,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   };
 
   const handleSubscribe = async (tier: string) => {
+    if (!membershipsOn) {
+      toast.error("Memberships aren't available right now.");
+      return;
+    }
     setLoadingCheckout(tier);
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { categories } from "@/components/postjob/DetailsSection";
-import { posterCardCostFeeCents } from "@/lib/posterFees";
-import { urgentBonusCardFeeCents } from "@/lib/stripeFees";
 import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { isScheduleTooSoon } from "@/lib/jobExpiry";
@@ -161,37 +159,23 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // Waived on a gift-funded post: create-payment returns before this line
   // item exists, so quoting it would overstate the charge.
   const onboardingFeeAmount = hasGift || onboardingFeePaid ? 0 : onboardingFeeCents / 100;
-  // The poster service fee is Stripe's real processing cost on the whole
-  // transaction and nothing more: posters pay no platform percentage on any
-  // tier (owner, 2026-10-11). Computed in cents via the same authority the
-  // create-payment edge function uses (posterFees), so the shown total equals
-  // the Stripe charge. Waived on a gift-funded post, for the same reason as
-  // above.
-  const budgetCents = Math.round(budgetNum * 100);
-  const urgentFeeCents = Math.round(urgentFeeNum * 100);
-  const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
-  // Q362 / CC-003: the urgent bonus's card fee, paid on top so the Helpr gets
-  // all of the bonus. Its own checkout line; same function as create-payment.
-  // On a gift post it is charged on the part of the bonus the card shortfall
-  // can be carrying (create-payment's gift-card-diff session does the same);
-  // a gift that covers everything leaves no card charge and no fee.
-  const urgentCardFeeCents = hasGift
-    ? urgentBonusCardFeeCents(Math.min(urgentFeeCents, giftDueCents))
-    : urgentBonusCardFeeCents(urgentFeeCents);
-  const urgentCardFeeAmount = urgentCardFeeCents / 100;
-  const customerFeeAmount = hasGift
-    ? 0
-    : posterCardCostFeeCents(budgetCents, urgentFeeCents + urgentCardFeeCents + onboardingCents, urgentCardFeeCents) / 100;
+  // Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job price.
+  // No service fee, no card-cost line, and the urgent bonus is part of the
+  // price with no card fee of its own (owner 2026-10-15). Stripe's card cost
+  // comes out of the Helpr's flat 5% + $0.70 (src/lib/helprFlatFee.ts). Same
+  // as create-payment, so the shown total equals the Stripe charge.
+  const urgentCardFeeAmount = 0;
+  const customerFeeAmount = 0;
   // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
   // is where the parish rate resolves — and for the great majority of
   // categories it is $0, because create-payment marks every line but assembly
   // labor `txcd_00000000`. See `src/lib/salesTax.ts`.
   //
-  // On the gift path this IS the final number (the shortfall plus any urgent
-  // bonus card fee, Q362): no other fee and no tax follow it,
+  // On the gift path this IS the final number (the shortfall, F3: no card fee
+  // on it): no other fee and no tax follow it,
   // so CheckoutStep must not add tax on top (see `hasGift` there).
   const totalCharge = hasGift
-    ? (giftDueCents + urgentCardFeeCents) / 100
+    ? giftDueCents / 100
     : budgetNum + customerFeeAmount + urgentFeeNum + urgentCardFeeAmount + onboardingFeeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 

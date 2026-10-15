@@ -47,6 +47,7 @@
 
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { netAfterFirstPayoutFee, sumAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
+import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * The subset of a `jobs` row needed to compute helper take-home. Kept
@@ -63,6 +64,8 @@ export interface HelperEarningsJob {
   platform_fee_amount?: number | null;
   /** Commission % frozen on the job row when it was posted. */
   helper_fee_percent?: number | null;
+  /** Roadmap F3 fee-model stamp (create-payment): non-null = flat 5% + 70c job. */
+  helper_fee_flat_cents?: number | null;
   /** Poster-paid urgent bonus, gross (dollars). */
   urgent_fee?: number | null;
   /** Whether the budget is shared by a roster rather than paid to one helper. */
@@ -121,6 +124,9 @@ export function helperDisplayFeePercent(
   job: HelperEarningsJob,
   feeFallbackPercent: number,
 ): number {
+  // Roadmap F3: a flat-model job's percent is its stamp (5), settled or not;
+  // the viewer's tier never applies to it.
+  if (isFlatFeeJob(job)) return flatFeePercentOf(job) ?? feeFallbackPercent;
   if (!isSettledForDisplay(job)) return feeFallbackPercent;
   return job.helper_fee_percent ?? feeFallbackPercent;
 }
@@ -152,6 +158,13 @@ export function helperPlatformFeeDollars(
 ): number {
   const shares = helperShareCount(job);
   const perHelperBudget = (job.budget ?? 0) / shares;
+  // Roadmap F3: a flat-model job's fee is fixed by its stamp at funding
+  // (5% + 70c on budget share + urgent bonus share), the same before and
+  // after release, so no tier rate or settlement state is consulted.
+  if (isFlatFeeJob(job)) {
+    const urgentShareCents = Math.round(netUrgentFeeDollars(job.urgent_fee) * 100 / shares);
+    return helprFlatFeeCents(Math.round(perHelperBudget * 100) + urgentShareCents, job) / 100;
+  }
   const derived =
     (perHelperBudget * helperDisplayFeePercent(job, feeFallbackPercent)) / 100;
   if (shares !== 1) return derived;

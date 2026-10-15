@@ -132,6 +132,37 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | return { ready: refund.ok, paidCents, | return { ready: true, paidCents,
+  // Roadmap F3, lh-money-escrow review N2 (2026-10-15): a FLAT job has no fee
+  // line to hold the card fee back, so the unfilled slot's share of Stripe's
+  // fee is kept from the refund (never absorb a fee). $100 charged, card-rate
+  // fee 2.9% + 30c = 320c, unfilled share 3333/10000 -> floor(106.656) = 106c.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents + feeReturnCents + taxReturnCents;
+  it("a FLAT crew (2 of 3), all paid: the unfilled refund keeps that share of Stripe's card fee (F3, review N2)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    const rows = (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows;
+    rows[0] = { ...rows[0], helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_amount: 5.7, customer_fee_amount: 0 };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 10000, amount_received: 10000,
+    });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3333 - 106 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+  });
+
+  it("control: the same crew on the LEGACY model (no stamp) refunds the whole unfilled share", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 10000, amount_received: 10000,
+    });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3333 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+  });
+
   it("an under-filled crew (2 of 3), all paid: the unfilled slot's $33.33 is refunded to the poster once, recorded, then the job releases", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     await run();

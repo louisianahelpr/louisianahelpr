@@ -50,7 +50,8 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee, type CrewFeeShareRow } from "../_shared/crewShares.ts";
-import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
+import { helperCommissionDollars, feePercentForTier, jobHelprCommissionDollars } from "../_shared/helperFees.ts";
+import { isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
@@ -545,7 +546,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount, onboarding_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount, onboarding_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -1102,7 +1103,10 @@ serve(async (req) => {
       // taking commission, so the reconciler must divide the same way.
       const helpers = job.is_group_job ? Math.max(1, Number(job.helpers_needed ?? 1)) : 1;
       const perHelperBudget = money(job.budget) / helpers;
-      const expected = helperCommissionDollars(perHelperBudget, pct);
+      // The job's own fee model (F3): flat 5% + 70c on budget + urgent bonus
+      // when stamped, the tier commission on the budget otherwise. Graded the
+      // way release-payout computes it, or every flat job would page.
+      const expected = jobHelprCommissionDollars(job, perHelperBudget, pct, money(job.urgent_fee) / helpers);
       const stored = money(job.platform_fee_amount);
       if (Math.abs(stored - expected) > EPSILON) {
         checks.platformFee.add({
@@ -1224,7 +1228,29 @@ serve(async (req) => {
         for (const t of settled) {
           const share = t.helper_id ? members?.get(t.helper_id) : undefined;
           const live = t.helper_id ? liveLadderByHelper.get(t.helper_id) : undefined;
-          if (share == null || !live) continue;
+          if (share == null) continue;
+          // A flat-model crew (F3) reads no tier: each member pays 5% + 70c on
+          // their share plus their part of the urgent bonus. The bonus is split
+          // by largest remainder at payout (process-scheduled-payouts), so a
+          // member's bonus share can sit a cent off urgent/N and move the 5%
+          // by at most a cent: graded within 1 cent.
+          if (isFlatFeeJob(job)) {
+            const helpersN = Math.max(1, Number(job.helpers_needed ?? 1));
+            const flatExpectedCents = Math.round(jobHelprCommissionDollars(job, share / 100, 0, money(job.urgent_fee) / helpersN) * 100);
+            const flatStoredCents = Math.round(Number(t.platform_fee_cents ?? 0));
+            if (Math.abs(flatExpectedCents - flatStoredCents) > 1) {
+              checks.tierDrift.add({
+                job_id: t.job_id,
+                helper_id: t.helper_id,
+                tier: "flat",
+                live_tier_percent: null,
+                expected_commission_cents: flatExpectedCents,
+                transfer_commission_cents: flatStoredCents,
+              });
+            }
+            continue;
+          }
+          if (!live) continue;
           const expectedCents = Math.round(helperCommissionDollars(share / 100, live.ladder) * 100);
           const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));
           if (expectedCents !== storedCents) {
@@ -1268,7 +1294,10 @@ serve(async (req) => {
       // commission from the LIVE ladder over the same per-helper budget
       // release-payout uses, and compare it to what the settled transfer
       // recorded. A mismatch is a discount that genuinely was not applied.
-      const live = liveFeeByJob.get(t.job_id as string);
+      // A flat-model job (F3) reads no tier at payout, so a tier that differs
+      // from the transfer is not drift; transferFeeMismatch above already
+      // grades its commission against the job's own stamp.
+      const live = isFlatFeeJob(job) ? undefined : liveFeeByJob.get(t.job_id as string);
       if (live) {
         const helpers = job.is_group_job ? Math.max(1, Number(job.helpers_needed ?? 1)) : 1;
         const liveCents = Math.round(

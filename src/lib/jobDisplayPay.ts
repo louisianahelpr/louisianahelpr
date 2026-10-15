@@ -32,6 +32,9 @@ export interface DisplayPayJob {
   urgent_fee?: number | null;
   is_group_job?: boolean | null;
   helpers_needed?: number | null;
+  /** Roadmap F3 fee-model stamp; a flat-model job is priced 5% + 70c. */
+  helper_fee_flat_cents?: number | null;
+  helper_fee_percent?: number | null;
 }
 
 /**
@@ -54,5 +57,7 @@ export function displayedPayDollars(job: DisplayPayJob, effectiveFee: number): n
     effectiveFee,
     job.urgent_fee ?? 0,
     displayHelpersCount(job),
+    0,
+    job,
   ).netEarnings;
 }

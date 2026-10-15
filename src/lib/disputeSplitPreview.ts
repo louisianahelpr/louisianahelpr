@@ -30,6 +30,7 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { netUrgentFeeDollars, stripeProcessingCostCents } from "@/lib/stripeFees";
 import { helperDisplayFeePercent, helperShareCount, type HelperEarningsJob } from "@/lib/helperEarnings";
 import { cardCostFeeCents, refundToPayerCents } from "@/lib/refundAmount";
+import { helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 export interface DisputeSplitJob extends HelperEarningsJob {
   customer_fee_amount?: number | null;
@@ -99,7 +100,11 @@ export function previewDisputeSplit(
   // the transfer agree exactly. Inlined rather than imported because app code
   // must not reach into `supabase/functions/`; `disputeSplitPreview.parity.test.ts`
   // asserts the two stay identical.
-  const commission = Math.round(budgetShare * feePercent) / 100;
+  // Roadmap F3: a flat-model job's Helpr leg pays 5% + 70c on its budget +
+  // urgent share, as execute-dispute-split prices it (jobHelprCommissionDollars).
+  const commission = isFlatFeeJob(job)
+    ? helprFlatFeeCents(Math.round(budgetShare * 100) + Math.round(urgentShare * 100), job) / 100
+    : Math.round(budgetShare * feePercent) / 100;
   const helperNet = Math.max(0, budgetShare + urgentShare - commission);
 
   // ── Poster leg — a share of the CAPTURE, less what Stripe keeps ────────

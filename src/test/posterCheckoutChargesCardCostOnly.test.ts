@@ -21,6 +21,13 @@
  *   3. The retired tier-fee APIs (`posterFeePercentForTier`,
  *      `posterServiceFeeCents`) are gone from every source file.
  *
+ * Roadmap F3 (owner 2026-10-14/15) went one step further for every job funded
+ * from 2026-10-15: NO fee at all for the poster (the Helpr pays 5% + 70c).
+ * So create-payment's own checkouts price no poster fee and must not call
+ * posterCardCostFeeCents; the card-cost fee survives only for a recurring
+ * series funded before the change (charge-recurring-visits, behind the
+ * series' fee-model stamp), and still never a tier.
+ *
  * The behavioural proof lives in the edge suites named in POSTER_JOB_SITES;
  * this file is the inventory that makes sure no path is left out of them.
  * The old-job refund case (a job charged the old tier fee keeps it at refund,
@@ -53,7 +60,7 @@ const POSTER_JOB_SITES: Record<string, { sites: number; what: string; proof: { f
     sites: 3,
     what: "escrow checkout, gift-card shortfall checkout, on-session recurring visit",
     proof: [
-      { file: "src/test/edge/create-payment.test.ts", title: "poster checkout charges the card cost only, on every tier (owner, 2026-10-11)" },
+      { file: "src/test/edge/create-payment.test.ts", title: "poster checkout charges the job price only, on every tier (F3, owner 2026-10-14/15)" },
       { file: "src/test/edge/create-payment.test.ts", title: "Q362: a non-urgent gift shortfall has no card fee line and stamps a zero fee (clearing any stale one)" },
     ],
   },
@@ -88,6 +95,7 @@ function chargeSitesByFile(): Map<string, number> {
   return out;
 }
 
+// @mutate supabase/functions/charge-recurring-visits/index.ts | isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents) | posterCardCostFeeCents(budgetCents, taxCents)
 describe("every poster checkout charges the card cost only (owner, 2026-10-11)", () => {
   const measured = chargeSitesByFile();
 
@@ -104,10 +112,16 @@ describe("every poster checkout charges the card cost only (owner, 2026-10-11)",
     );
   });
 
-  it("each poster-job checkout prices the fee as the card cost and reads no tier", () => {
+  it("each poster-job checkout prices no poster fee (F3) or, for a pre-F3 series only, the card cost; and reads no tier", () => {
+    const cp = blankComments(readFileSync(resolve(FUNCTIONS, "create-payment/index.ts"), "utf8"));
+    expect(cp, "create-payment prices a poster card-cost fee again (F3: the poster pays the job price)").not.toMatch(/\bposterCardCostFeeCents\s*\(/);
+    expect(cp).toMatch(/const customerFeeAmount = 0;/);
+    const crv = blankComments(readFileSync(resolve(FUNCTIONS, "charge-recurring-visits/index.ts"), "utf8"));
+    // Exactly one fee site, and it is behind the series' fee-model stamp.
+    expect([...crv.matchAll(/\bposterCardCostFeeCents\s*\(/g)].length).toBe(1);
+    expect(crv).toMatch(/isFlatFeeJob\(parent\)\s*\?\s*0\s*:\s*posterCardCostFeeCents\(/);
     for (const file of Object.keys(POSTER_JOB_SITES)) {
       const code = blankComments(readFileSync(resolve(FUNCTIONS, file), "utf8"));
-      expect(code, `${file} must price the poster fee with posterCardCostFeeCents`).toMatch(/\bposterCardCostFeeCents\s*\(/);
       expect(code, `${file} reads the poster's subscription tier at checkout again`).not.toMatch(/subscription_tier/);
       expect(code, `${file} calls a tier-percent resolver`).not.toMatch(/\b(?:feePercentForTier|tierFeePercent|posterFeePercentForTier)\s*\(|TIER_FEE_PERCENT\s*\[/);
     }

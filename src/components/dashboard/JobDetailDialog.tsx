@@ -577,6 +577,7 @@ const JobDetailDialog = ({
               effectiveFee={commissionPercent}
               urgentFee={job.urgent_fee ?? 0}
               helpersNeeded={helpers} jobStatus={job.status}
+              feeStamp={job}
             />
           </div>
         </div>

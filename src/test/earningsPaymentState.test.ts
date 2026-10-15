@@ -33,7 +33,7 @@
  * cancelled jobs" — it did NOT before the comment-blanking above was added.
  */
 // @mutate src/hooks/useProfileTabData.ts | .neq("status", "cancelled") | .eq("is_seed", false).neq("status", "cancelled")
-// @mutate src/hooks/useProfileTabData.ts | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled"); | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS); // .neq("status", "cancelled")
+// @mutate src/hooks/useProfileTabData.ts | const jobsQuery = supabase.from("jobs").select(columns).neq("status", "cancelled"); | const jobsQuery = supabase.from("jobs").select(columns); // .neq("status", "cancelled")
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

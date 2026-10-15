@@ -480,7 +480,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     scenario.reads.jobs = {
       rows: [],
       selectOverrides: [{
-        includes: "helper_fee_percent, payment_status, stripe_payment_intent_id",
+        includes: "helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id",
         result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", stripe_payment_intent_id: "pi_done" }] },
       }],
     };
@@ -507,7 +507,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     scenario.reads.jobs = {
       rows: [],
       selectOverrides: [{
-        includes: "helper_fee_percent, payment_status, stripe_payment_intent_id",
+        includes: "helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id",
         result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", stripe_payment_intent_id: "pi_done" }] },
       }],
     };

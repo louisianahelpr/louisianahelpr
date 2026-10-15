@@ -123,21 +123,19 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
   });
 });
 
-// Q362 / CC-003: the poster pays the urgent bonus's card fee on top so the
-// Helpr gets the whole bonus. Owner, 2026-10-09 ("it's all one post"): it is
-// folded into the Service Fee number, no line of its own, and the "(12%)"
-// label drops because the number is no longer exactly 12%.
-// @mutate src/pages/post-job/CheckoutStepView.tsx | urgentCardFeeAmount={form.urgentCardFeeAmount} | urgentCardFeeAmount={0}
-// @mutate src/components/postjob/CheckoutStep.tsx |  && !foldUrgentCardFee && ( |  && (
-describe("urgent bonus card fee (Q362, folded 2026-10-09)", () => {
-  it("adds the card fee into the Service Fee number and shows no separate line", () => {
+// Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job price. No
+// service fee, no card-cost line, and the urgent bonus is part of the price
+// with no card fee of its own (F3b, 2026-10-15; it replaced Q362's fold).
+// useJobDerived prices both at 0, as create-payment does.
+// @mutate src/components/postjob/CheckoutStep.tsx | {customerFeeAmount > 0 && ( | {(customerFeeAmount >= 0) && (
+// @mutate src/components/postjob/CheckoutStep.tsx | {isUrgent && urgentCardFeeAmount > 0 && ( | {isUrgent && urgentCardFeeAmount >= 0 && (
+describe("the poster pays the job price only (F3)", () => {
+  it("an urgent post shows the bonus and no service fee or card-fee row", () => {
     const base = makeForm();
-    const form = { ...base, isUrgent: true, urgentFeeNum: 15, urgentCardFeeAmount: 0.45, totalCharge: 47.45 };
+    const form = { ...base, customerFeeAmount: 0, urgentCardFeeAmount: 0, isUrgent: true, urgentFeeNum: 15, totalCharge: Number(base.budgetNum) + 15 };
     render(<CheckoutStepView form={form as unknown as ReturnType<typeof usePostJobForm>} />);
     expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
-    const label = screen.getByText("Service Fee (covers card processing)");
-    const expected = (Number(base.customerFeeAmount) + 0.45).toFixed(2);
-    expect(label.parentElement?.textContent).toContain(`$${expected}`);
+    expect(screen.queryByText(/^Service Fee/)).toBeNull();
     expect(screen.queryByText(/Goes to Helpr/)).toBeNull();
   });
 

@@ -20,6 +20,7 @@
  */
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -43,7 +44,7 @@ type Db = any;
 export async function payCrewBlockFees(
   /** `settled`: the job's refund has already gone (the void-cancelled sweep). */
   deps: { stripe: Stripe; admin: Db; fn: string; settled?: boolean },
-  job: { id: string; title?: string | null; helper_fee_percent?: number | string | null },
+  job: { id: string; title?: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
   rows: CrewBlockFeeRow[],
   chargeId: string | null,
 ): Promise<{ allPaid: boolean; problems: string[] }> {
@@ -127,13 +128,20 @@ export async function payCrewBlockFees(
       continue;
     }
     const frozen = job.helper_fee_percent === null || job.helper_fee_percent === undefined ? NaN : Number(job.helper_fee_percent);
-    const feeRead = await readHelperFeePercentStrict(admin, row.helper_id, Number.isFinite(frozen) ? frozen : DEFAULT_TIER_FEE_PERCENT);
+    // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+    const flatPct = flatFeePercentOf(job);
+    const feeRead = flatPct !== null
+      ? { ok: true as const, percent: flatPct }
+      : await readHelperFeePercentStrict(admin, row.helper_id, Number.isFinite(frozen) ? frozen : DEFAULT_TIER_FEE_PERCENT);
     if (!feeRead.ok) {
       problems.push(`crew block fee tier read ${row.id}: ${feeRead.error}`);
       allPaid = false;
       continue;
     }
-    const platformCut = Math.round(feeDollars * (feeRead.percent / 100) * 100) / 100;
+    // A flat-model job (F3): 5% + 70c on what this member receives.
+    const platformCut = isFlatFeeJob(job)
+      ? helprFlatFeeCents(Math.round(feeDollars * 100), job) / 100
+      : Math.round(feeDollars * (feeRead.percent / 100) * 100) / 100;
     // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
     const payoutCents = roundPayoutDownCents(Math.round((feeDollars - platformCut) * 100));
     const { data: prof, error: profErr } = await admin

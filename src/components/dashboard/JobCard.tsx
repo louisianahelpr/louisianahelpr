@@ -122,7 +122,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // formatPriceFloor on the net branch, matching the chip: this said
   // formatPriceExact while the visible chip floored, so a screen-reader user
   // heard "$57.66" where a sighted one read "$57". The chip is the authority.
-  const netAria = formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount, firstPayoutFee).netEarnings);
+  const netAria = formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount, firstPayoutFee, job).netEarnings);
   const priceAria = showBudget ? `$${formatPrice(job.budget)}` : `$${netAria}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
@@ -563,6 +563,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             effectiveFee={effectiveFee}
             urgentFee={job.urgent_fee ?? 0}
             helpersNeeded={helpersCount} jobStatus={job.status}
+            feeStamp={job}
             showBudget={showBudget}
             variant="chip"
             className="shrink-0"

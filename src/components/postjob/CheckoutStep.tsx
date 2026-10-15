@@ -29,7 +29,6 @@ import { formatPriceExact } from "@/lib/format";
 import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
-import { POSTER_SERVICE_FEE_DESCRIPTION } from "@/lib/posterFees";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
@@ -182,9 +181,6 @@ export function CheckoutStep({
   // and the total both change wording for it, because "Continue to Payment"
   // in front of a $0.00 total is the screen contradicting itself.
   const giftCoversEverything = hasGift && totalCharge <= 0;
-  // Same rule as create-payment's `foldCardFee`: the bonus's card fee rides in
-  // the Service Fee line whenever there is one.
-  const foldUrgentCardFee = !hasGift && isUrgent && urgentCardFeeAmount > 0 && customerFeeAmount > 0;
   return (
     <>
       {/* No "Review your job before paying" line or step rail (owner): the
@@ -287,13 +283,15 @@ export function CheckoutStep({
               {budgetNum > 0 && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
-                  {/* "budget + fees" is wrong on a gift-funded post — there
-                      is no service fee (only the urgent bonus card fee when
-                      the card carries part of a bonus, Q362), and the number above is what's left after
+                  {/* Names what the total holds. F3 (owner 2026-10-14/15): there
+                      is no service fee or card-cost line, so "budget + fees"
+                      would name fees that are not there; only the urgent
+                      bonus and the one-time setup fee can sit on top. On a
+                      gift-funded post the number above is what's left after
                       the gift, so name the gift instead. */}
                   {hasGift
                     ? ` budget · $${formatPriceExact(giftAppliedAmount)} gift applied`
-                    : " budget + fees"}
+                    : ` budget${isUrgent && urgentFeeNum > 0 ? " + urgent bonus" : ""}${onboardingFeeAmount > 0 ? " + one-time setup" : ""}`}
                 </p>
               )}
             </div>
@@ -461,35 +459,19 @@ export function CheckoutStep({
             </div>
           )}
           <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />
-          {/* Service fee — Stripe's card-processing cost on this charge and
-              nothing more (owner, 2026-10-11: no platform percentage for
-              posters on any tier). Waived outright on a gift-funded post:
-              create-payment returns from the gift card branch before the fee
-              pricing runs, and the donor already covered the processing cost at
-              donate time (create-gift-card-checkout → posterCardCostFeeCents). */}
-          <div className="flex justify-between text-ds-13">
-            {/* Bonus card fee folded in, like create-payment's one "Service fee"
-                line (owner, 2026-10-09). The words match that Stripe line's
-                description (POSTER_SERVICE_FEE_DESCRIPTION). */}
-            <span className="text-muted-foreground">
-              {hasGift ? "Service Fee" : `Service Fee (${POSTER_SERVICE_FEE_DESCRIPTION.toLowerCase()})`}
-            </span>
-            {hasGift ? (
-              <span className="font-medium" style={{ color: "hsl(var(--success-ink))" }}>
-                Waived
-              </span>
-            ) : (
-              <span className="font-medium text-foreground">
-                ${formatPriceExact(customerFeeAmount + (foldUrgentCardFee ? urgentCardFeeAmount : 0))}
-              </span>
-            )}
-          </div>
+          {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
+              price. No service fee and no card-cost line; the row shows only
+              if a fee is ever passed in (never for a post made today, since
+              useJobDerived prices it at 0 like create-payment). */}
+          {customerFeeAmount > 0 && (
+            <CheckoutSummaryRow label="Service Fee" amount={formatPriceExact(customerFeeAmount)} />
+          )}
           {isUrgent && urgentFeeNum > 0 && (
             <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus</>} amount={formatPriceExact(urgentFeeNum)} />
           )}
-          {/* Q362: the poster pays the bonus's card fee; its own line only when
-              there is no service fee to carry it (gift-funded). */}
-          {isUrgent && urgentCardFeeAmount > 0 && !foldUrgentCardFee && (
+          {/* F3: the urgent bonus is part of the job price, with no card-fee
+              line of its own (owner 2026-10-15); shown only if one is passed. */}
+          {isUrgent && urgentCardFeeAmount > 0 && (
             <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}
           {onboardingFeeAmount > 0 && (

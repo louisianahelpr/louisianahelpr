@@ -42,6 +42,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
     loading: false,
   }),
 }));
+// Memberships switch OFF, the shipped state (roadmap F4/F4a).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 }));
 vi.mock("@/hooks/useHelperMilestones", () => ({ useHelperMilestones: () => {} }));
 vi.mock("@/components/profile/HelperStreakBadge", () => ({

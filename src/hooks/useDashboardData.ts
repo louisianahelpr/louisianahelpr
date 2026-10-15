@@ -346,7 +346,7 @@ export function useDashboardData() {
             // `parish`) are the counter-example worth keeping in view: both
             // were added to the VIEW first, by 20260904031002, before any
             // select asked for them.
-                      "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish";
+                      "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish, helper_fee_flat_cents";
 
         rawJobsRes = unwrap(await withTimeout(readJobsAheadOfDb(browseColumns, (columns) => supabase
           .from("open_jobs_browse")

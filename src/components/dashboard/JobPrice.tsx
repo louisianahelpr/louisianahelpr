@@ -1,6 +1,7 @@
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
+import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { MoneyAmount, MONEY_CHIP_SURFACE, MONEY_CHIP_SURFACE_LG } from "@/components/job/MoneyChip";
 
@@ -13,6 +14,12 @@ export interface JobPriceProps {
   urgentFee?: number;
   /** Helpers splitting the budget (group jobs). Defaults to 1. */
   helpersNeeded?: number;
+  /**
+   * The job's fee-model stamp (roadmap F3). A job funded on the flat model
+   * (helper_fee_flat_cents set) is priced 5% + 70c on budget + urgent bonus,
+   * whatever `effectiveFee` says; absent or null = the tier rate as before.
+   */
+  feeStamp?: FlatFeeStamp | null;
   /** `jobs.status`. A disputed job is settled by the split or Quick Release, which never take the setup fee (Q1272 (3)). */
   jobStatus?: string | null;
   /**
@@ -66,10 +73,20 @@ export function computeNet(
   helpersNeeded: number,
   /** The one-time setup fee still due from the viewer's first payout (Q753). */
   firstPayoutFeeDollars = 0,
+  /** The job's fee-model stamp (F3): a flat-model job ignores effectiveFee. */
+  feeStamp: FlatFeeStamp | null = null,
 ) {
   const helpers = helpersNeeded > 0 ? helpersNeeded : 1;
   const perHelperBudget = budget / helpers;
-  const commission = perHelperBudget * (effectiveFee / 100);
+  // Roadmap F3: a flat-model job pays 5% + 70c on its budget share PLUS its
+  // urgent bonus share (owner 2026-10-15: the bonus is part of the price),
+  // exactly as the payout paths price it (jobHelprCommissionDollars).
+  const commission = isFlatFeeJob(feeStamp)
+    ? helprFlatFeeCents(
+        Math.round(perHelperBudget * 100) + Math.round((netUrgentFeeDollars(urgentFee) / helpers) * 100),
+        feeStamp,
+      ) / 100
+    : perHelperBudget * (effectiveFee / 100);
   // The urgent bonus is charged to the poster bundled into escrow ONCE and
   // passes to the helper WHOLE (Q362: the poster pays its card fee on top).
   // On a group job it is split across the roster like the budget is —
@@ -89,6 +106,7 @@ export function JobPrice({
   urgentFee = 0,
   helpersNeeded = 1,
   jobStatus = null,
+  feeStamp = null,
   variant = "chip",
   showBudget = false,
   className,
@@ -98,7 +116,7 @@ export function JobPrice({
   // first payout, so the chip and the detail pill must not read higher.
   const owedFee = useFirstPayoutFeeDollars();
   const firstPayoutFee = jobStatus === "disputed" ? 0 : owedFee;
-  const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee);
+  const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee, feeStamp);
 
   // Bidding was removed (zero production usage), so a job's price is always the
   // poster's set budget: gross on guest/poster surfaces, net take-home otherwise.

@@ -20,9 +20,9 @@ import { describe, expect, it } from "vitest";
 import { blankNonCode } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
 
-// @mutate src/components/dashboard/JobPrice.tsx | helpersNeeded, firstPayoutFee); | helpersNeeded);
-// @mutate src/components/dashboard/CompactJobCard.tsx | helpers, firstPayoutFee).netEarnings | helpers).netEarnings
-// @mutate src/components/dashboard/JobCard.tsx | helpersCount, firstPayoutFee).netEarnings | helpersCount).netEarnings
+// @mutate src/components/dashboard/JobPrice.tsx | helpersNeeded, firstPayoutFee, feeStamp); | helpersNeeded, 0, feeStamp);
+// @mutate src/components/dashboard/CompactJobCard.tsx | helpers, firstPayoutFee, job).netEarnings | helpers, 0, job).netEarnings
+// @mutate src/components/dashboard/JobCard.tsx | helpersCount, firstPayoutFee, job).netEarnings | helpersCount, 0, job).netEarnings
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | isSettledForDisplay(job) ? 0 : firstPayoutFeeDollars, | 0,
 // @mutate src/components/profile/ScheduleTab.tsx | isSettledForDisplay(job) ? 0 : firstPayoutFee | 0
 // @mutate src/components/profile/EarningsTab.tsx | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger) | earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, 0, payoutLedger)

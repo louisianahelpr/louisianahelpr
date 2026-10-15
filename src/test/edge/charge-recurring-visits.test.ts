@@ -1581,7 +1581,7 @@ describe("charge-recurring-visits edge function", () => {
   // checkout charges the card cost only, on every tier" (the inventory in
   // src/test/posterCheckoutChargesCardCostOnly.test.ts requires both).
   // @mutate supabase/functions/charge-recurring-visits/index.ts | const feePercent = paidRow ? Number(paidRow.fee_percent) : POSTER_SERVICE_FEE_PERCENT; | const feePercent = paidRow ? Number(paidRow.fee_percent) : 12;
-  // @mutate supabase/functions/charge-recurring-visits/index.ts | const computedFeeCents = posterCardCostFeeCents(budgetCents, taxCents); | const computedFeeCents = Math.max(posterCardCostFeeCents(budgetCents, taxCents), Math.round(budgetCents * 0.12));
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const computedFeeCents = isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents); | const computedFeeCents = isFlatFeeJob(parent) ? 0 : Math.max(posterCardCostFeeCents(budgetCents, taxCents), Math.round(budgetCents * 0.12));
   it("a recurring visit charges the poster the card cost only, on every tier (owner, 2026-10-11)", async () => {
     let checked = 0;
     // Derived from the ladder (never hand-listed), plus a row with no tier.
@@ -1615,6 +1615,37 @@ describe("charge-recurring-visits edge function", () => {
     }
     expect(checked).toBe((Object.keys(TIER_FEE_PERCENT).length + 1) * 2);
     expect(checked, "floor: no tiers derived").toBeGreaterThanOrEqual(12);
+  });
+
+  // Roadmap F3 (owner 2026-10-14/15): a series funded on the flat model (its
+  // parent carries the helper_fee_flat_cents stamp) charges each visit the
+  // visit price only, and the visit inherits the stamp so its payout is 5% +
+  // 70c. A series funded before the change keeps its card-cost fee (above).
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | const computedFeeCents = isFlatFeeJob(parent) ? 0 : posterCardCostFeeCents(budgetCents, taxCents); | const computedFeeCents = posterCardCostFeeCents(budgetCents, taxCents);
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             helper_fee_flat_cents: isFlatFeeJob(parent) ? Number(parent.helper_fee_flat_cents) : null, |             helper_fee_flat_cents: null,
+  it("F3: a flat-model series charges the visit price only and the visit carries the stamp", async () => {
+    for (const budget of [100, 300]) {
+      resetSupabaseMock();
+      resetStripeMock();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [seriesParent({ budget, helper_fee_flat_cents: 70, helper_fee_percent: 5 })] } });
+      if (budget >= 300) wireVisitPayments({});
+      await runOn(fn, "2026-09-01");
+      if (budget < 300) {
+        const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
+        expect(charge.amount).toBe(budget * 100);
+        const visit = insertedVisits()[0].payload as Record<string, unknown>;
+        expect(visit.customer_fee_amount).toBe(0);
+        expect(visit.helper_fee_flat_cents).toBe(70);
+        expect(visit.helper_fee_percent).toBe(5);
+        // $100 visit: 5% + 70c = $5.70.
+        expect(visit.platform_fee_amount).toBe(5.7);
+      } else {
+        const row = visitPaymentWrites("insert")[0].payload as Record<string, unknown>;
+        expect(row.fee_cents, "parked").toBe(0);
+      }
+    }
   });
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             sales_tax_rate: effectiveSalesTaxRate(taxCents, budgetCents), |             sales_tax_rate: Math.round((taxCents / budgetCents) * 1_000_000) / 10_000,

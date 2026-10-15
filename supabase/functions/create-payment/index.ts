@@ -10,10 +10,11 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
+import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf, helprFlatFeeCents } from "../_shared/helprFlatFee.ts";
+import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
-import { POSTER_SERVICE_FEE_DESCRIPTION, POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
+import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 
@@ -576,6 +577,54 @@ serve(async (req) => {
         return { ok: false as const, reason: `matched 0 rows; job now holds ${recheck?.stripe_session_id ?? "null"}` };
       };
 
+      // The server-authoritative urgent bonus (see "urgent fee is recomputed,
+      // never trusted" in create-payment.test.ts); hoisted here so the fee-model
+      // stamp below prices the flat fee on the same budget + bonus.
+      const URGENT_FEE_FLOOR_CENTS = 500;
+      const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;
+      const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
+      const urgentFeeCents = job.is_urgent
+        ? Math.min(
+            Math.max(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS),
+            URGENT_FEE_CEILING_CENTS,
+          )
+        : 0;
+
+      // ─── Fee model stamp (roadmap F3, owner 2026-10-14/15) ───
+      // Every job funded from here on is on the FLAT model: the poster pays
+      // exactly the job price and the Helpr pays 5% + $0.70 out of their pay
+      // (_shared/helprFlatFee.ts). Stamped BEFORE any funding branch (gift,
+      // gift shortfall, card) so every way a job is funded carries it, and
+      // only while the job is still unfunded: a job already funded keeps the
+      // model it was funded under. Both parties come out ahead of the old
+      // model on an unfunded job (no card-cost line for the poster; 5% + 70c
+      // instead of 8-12% for the Helpr), so a job posted before the change
+      // and funded after it is stamped too. FAIL CLOSED on a write error:
+      // an unstamped job would be paid out on the legacy tier commission
+      // while its poster was charged the flat-model price.
+      {
+        const { error: modelErr } = await supabaseAdmin
+          .from("jobs")
+          .update({
+            helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
+            helper_fee_percent: HELPR_FLAT_FEE_PERCENT,
+            // Every funding branch carries the flat fee it will be paid out at
+            // (lh-money-escrow review N4): the full-gift path (redeem_gift_card)
+            // and the gift-shortfall stamp never write platform_fee_amount, so
+            // money-reconciliation graded a gift-funded flat job against NULL.
+            platform_fee_amount: helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100,
+          })
+          .eq("id", jobId)
+          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
+          // Zero rows is legitimate: a concurrent tap already funded the job,
+          // and the funding paths below refuse it on their own guards.
+          .select("id");
+        if (modelErr) {
+          console.error(`[create-payment] fee-model stamp failed for job ${jobId}; refusing escrow:`, modelErr);
+          throw new PublicError("Pricing configuration is temporarily unavailable — please try again in a moment");
+        }
+      }
+
       // ─── Gift card redemption ───
       // A recipient redeeming a directed gift funds the job from the
       // prepaid donation (already captured into the platform balance at
@@ -621,14 +670,10 @@ serve(async (req) => {
         if (!Number.isFinite(differenceCents) || differenceCents <= 0) {
           throw new PublicError("Could not determine the remaining balance for this gift — please try again");
         }
-        // Q362 (lh-money-escrow review): the shortfall can carry (part of) the
-        // urgent bonus on the card, and the Helpr now gets the whole bonus, so
-        // the bonus's card fee is charged here too, on the part of the bonus
-        // the card can be carrying (redeem_gift_card prices the cost as
-        // budget + urgent_fee). Stamped as customer_fee_amount below, so a
-        // cancellation withholds it like the escrow path does.
-        const giftUrgentCents = Math.max(0, Math.round(Number(job.urgent_fee ?? 0) * 100));
-        const diffUrgentCardFeeCents = urgentBonusCardFeeCents(Math.min(giftUrgentCents, differenceCents));
+        // Roadmap F3 (owner 2026-10-15): the urgent bonus is part of the job
+        // price, with NO card-fee line of its own for the poster (it replaced
+        // Q362's "Urgent bonus card fee" here). The Helpr's flat 5% + $0.70 is
+        // priced on budget + bonus at payout (jobHelprCommissionDollars).
         const diffLineItems: any[] = [{
           price_data: {
             currency: "usd",
@@ -642,21 +687,6 @@ serve(async (req) => {
           },
           quantity: 1,
         }];
-        if (diffUrgentCardFeeCents > 0) {
-          diffLineItems.push({
-            price_data: {
-              currency: "usd",
-              tax_behavior: TAX_BEHAVIOR,
-              product_data: {
-                name: "Urgent bonus card fee",
-                description: "Card processing on the urgent bonus, so your Helpr receives all of it",
-                tax_code: NONTAXABLE_TAX_CODE,
-              },
-              unit_amount: diffUrgentCardFeeCents,
-            },
-            quantity: 1,
-          });
-        }
         const diffSession = await stripe.checkout.sessions.create({
           customer: customerId,
           customer_update: { address: "auto" },
@@ -664,7 +694,7 @@ serve(async (req) => {
           mode: "payment",
           automatic_tax: { enabled: true },
           // 3D Secure from $300 (Q202): the hosted page runs the challenge.
-          payment_method_options: threeDSecureOptions(differenceCents + diffUrgentCardFeeCents),
+          payment_method_options: threeDSecureOptions(differenceCents),
           payment_intent_data: {
             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
             // Q734: honour "save my card" here too. A recurring series charges
@@ -702,7 +732,7 @@ serve(async (req) => {
         // Always stamped, zero included: a fee an earlier card checkout of this
         // job stamped must not survive into this gift job's cancellation
         // withholding (Q362 re-review LOW 1).
-        const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: diffUrgentCardFeeCents / 100 });
+        const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 });
         if (!diffStamp.ok) {
           console.error(`[create-payment] gift card difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
           // Safe to fail loudly: the credit is still 'reserved' against THIS
@@ -736,7 +766,10 @@ serve(async (req) => {
       // fail loud rather than price escrow on guesses — but its VALUE no longer
       // reaches any charge: the poster's service fee is Stripe's card cost
       // only (posterCardCostFeeCents, owner 2026-10-11).
-      const helperFeePercent = settings.helper_fee_percent;
+      // helper_fee_percent from platform_settings is read and null-checked for
+      // the same fail-loud reason, but no longer prices anything: every job
+      // funded here is on the flat model stamped above (roadmap F3).
+      const helperFeePercent = HELPR_FLAT_FEE_PERCENT;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
       // Check if the poster owes the one-time onboarding fee (first job post).
@@ -788,31 +821,21 @@ serve(async (req) => {
       // what the column holds. Floor/ceiling mirror URGENT_FEE_FLOOR_DOLLARS
       // ($5) and MAX_URGENT_FEE_DOLLARS ($250 since Q210(c))
       // in _shared/jobBudgetLimits.ts, which src/lib/moneyLimits.ts re-exports.
-      const URGENT_FEE_FLOOR_CENTS = 500;
-      const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;
-      const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
-      const urgentFeeCents = job.is_urgent
-        ? Math.min(
-            Math.max(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS),
-            URGENT_FEE_CEILING_CENTS,
-          )
-        : 0;
+      // (urgentFeeCents is computed above the fee-model stamp, which records
+      // the flat fee on budget + bonus for every funding branch.)
       const onboardingChargeCents = owesOnboardingFee ? onboardingFeeCents : 0;
-      // Q362 / CC-003 (owner MQ11): the Helpr gets 100% of the urgent bonus
-      // (netUrgentFeeDollars no longer nets anything), so its card fee is
-      // charged to the poster ON TOP, as its own line. It counts toward the
-      // service fee's whole-charge floor, and is stored inside
-      // customer_fee_amount: non-refundable like the service fee (Stripe keeps
-      // its cut on a refund) and included in every "what the poster paid" sum.
-      const urgentCardFeeCents = urgentBonusCardFeeCents(urgentFeeCents);
-      const customerFeeCents = posterCardCostFeeCents(
-        Math.round(job.budget * 100),
-        urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,
-        urgentCardFeeCents,
-      );
-      const customerFeeAmount = (customerFeeCents + urgentCardFeeCents) / 100;
-      // Helper commission is deducted at payout time, not charged to poster
-      const helperFeeAmount = (job.budget * helperFeePercent) / 100;
+      // Roadmap F3 (owner 2026-10-14/15): NO service fee and no card-cost
+      // line at all. The poster pays exactly the job price, and the urgent
+      // bonus is PART of that price (owner 2026-10-15): no "Urgent bonus card
+      // fee" line any more (it replaced Q362 / MQ11 for flat-model jobs).
+      // Stripe's card cost comes out of the Helpr's flat 5% + $0.70, priced on
+      // budget + bonus at payout. customer_fee_amount is 0, so a refund keeps
+      // Stripe's actual card fee (refundToPayerCents) and returns the rest.
+      const customerFeeAmount = 0;
+      // The Helpr's flat fee is deducted at payout time, not charged to the
+      // poster. Stored as platform_fee_amount for the single-Helpr case, as
+      // the tier commission was.
+      const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100;
 
       // ─── Louisiana sales-tax classification ───
       // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task
@@ -843,37 +866,11 @@ serve(async (req) => {
         },
       ];
 
-      // Poster service fee — Stripe's card-processing cost on this charge
-      // (owner, 2026-10-11), on a non-taxable line, as the tier-percent fee it
-      // replaced was. Only the labor line of a taxable category is taxed
-      // (_shared/salesTax.ts); this line's tax code is unchanged.
-      // The urgent bonus's card fee rides INSIDE this line (owner, 2026-10-09:
-      // "it's all one post", no separate "Urgent bonus card fee" line). Same
-      // cents, same non-taxable code, and customer_fee_amount already holds
-      // both, so only the grouping changed. With no service fee (fee waived)
-      // the card fee keeps its own line below.
-      const foldCardFee = customerFeeCents > 0 && urgentCardFeeCents > 0;
-      if (customerFeeCents > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            tax_behavior: TAX_BEHAVIOR,
-            product_data: {
-              name: "Service fee",
-              // The same few words the app shows beside the fee. Never a
-              // percentage: there is none (owner, 2026-10-11).
-              description: foldCardFee
-                ? `${POSTER_SERVICE_FEE_DESCRIPTION}, including the urgent bonus`
-                : POSTER_SERVICE_FEE_DESCRIPTION,
-              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
-            },
-            unit_amount: customerFeeCents + (foldCardFee ? urgentCardFeeCents : 0),
-          },
-          quantity: 1,
-        });
-      }
+      // No poster service fee line (roadmap F3, owner 2026-10-14/15): the
+      // poster pays exactly the job price. The 2026-10-11 card-cost line that
+      // stood here is gone for every job funded from now on.
 
-      // Urgent tip — non-taxable (passes through to helper). Uses the
+      // Urgent bonus (F3 review N5: not called a tip, the 5% applies to it) — non-taxable (passes through to helper). Uses the
       // server-recomputed urgentFeeCents (see above), never the stored column:
       // present and >= the floor whenever the job is urgent, absent otherwise.
       if (urgentFeeCents > 0) {
@@ -882,8 +879,8 @@ serve(async (req) => {
             currency: "usd",
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
-              name: "Urgent tip",
-              description: "Urgent tip — goes directly to the helpr",
+              name: "Urgent bonus",
+              description: "Urgent bonus, part of the job price",
               tax_code: NONTAXABLE_TAX_CODE, // Non-taxable: passes through to helper
             },
             unit_amount: urgentFeeCents,
@@ -891,25 +888,6 @@ serve(async (req) => {
           quantity: 1,
         });
       }
-      // Q362: the urgent bonus's card fee, paid by the poster so the Helpr
-      // receives the whole bonus. Non-taxable (a processing cost). Folded into
-      // the service fee line above whenever there is one.
-      if (urgentCardFeeCents > 0 && !foldCardFee) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            tax_behavior: TAX_BEHAVIOR,
-            product_data: {
-              name: "Urgent bonus card fee",
-              description: "Card processing on the urgent bonus, so your Helpr receives all of it",
-              tax_code: NONTAXABLE_TAX_CODE,
-            },
-            unit_amount: urgentCardFeeCents,
-          },
-          quantity: 1,
-        });
-      }
-
       // One-time onboarding fee — first job post only. Treated as a non-taxable
       // platform setup fee (matching the service-fee treatment above).
       if (owesOnboardingFee) {
@@ -939,6 +917,7 @@ serve(async (req) => {
           customer_id: user.id,
           customer_fee_percent: String(customerFeePercent),
           helper_fee_percent: String(helperFeePercent),
+          helper_fee_flat_cents: String(HELPR_FLAT_FEE_CENTS),
           onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
         },
       };
@@ -985,6 +964,7 @@ serve(async (req) => {
         platform_fee_amount: helperFeeAmount,
         customer_fee_amount: customerFeeAmount,
         helper_fee_percent: helperFeePercent,
+        helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,
       });
       if (!escrowStamp.ok) {
         console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowStamp.reason);
@@ -1271,12 +1251,13 @@ serve(async (req) => {
       const perHelperBudget = job.budget / helpersCount;
       // Resolve the helper's live tier for an accurate payout estimate; the real
       // transfer in process-scheduled-payouts re-resolves it at payout time.
-      const jobHelperFeePercent = await getHelperFeePercent(
+      const jobHelperFeePercent = flatFeePercentOf(job) ?? await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
         job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
-      const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
+      // Roadmap F3: the job's own model (flat 5% + 70c when stamped).
+      const helperCommission = jobHelprCommissionDollars(job, perHelperBudget, jobHelperFeePercent, netUrgentFeeDollars(job.urgent_fee) / helpersCount);
       // Urgent fee is collected from the poster ONCE, so on a group job it is
       // split across the roster like the budget — else N helpers each get the
       // full urgent bonus against a single fee collected, over-paying N×.
@@ -2504,13 +2485,19 @@ serve(async (req) => {
       // Transfer to helpr. Resolve the platform fee from the helper's live
       // subscription tier at release time; fall back to the amount frozen on the
       // job at checkout if the profile read fails.
-      const disputeFeePercent = await getHelperFeePercent(
+      // Roadmap F3: a flat-model job keeps its stamp; no tier read.
+      const disputeFeePercent = flatFeePercentOf(job) ?? await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
         job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
-      const feeAmt = Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      // feeAmt is the WHOLE job's commission (divided by the roster below). A
+      // flat-model job's 70c is per Helpr, so it is priced on the per-Helpr
+      // share and multiplied back up; a legacy job keeps its old formula.
+      const feeAmt = flatFeePercentOf(job) !== null
+        ? Math.round(jobHelprCommissionDollars(job, Number(job.budget) / dpHelpersCount, disputeFeePercent, netUrgentFeeDollars(job.urgent_fee) / dpHelpersCount) * dpHelpersCount * 100) / 100
+        : Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       // Urgent fee collected from the poster ONCE → split across the roster like
       // budget and fee, else each of N helpers gets the full urgent bonus and
       // the platform over-pays N× what it collected.

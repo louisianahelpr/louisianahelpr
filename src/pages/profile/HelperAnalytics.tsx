@@ -24,6 +24,8 @@
 // why `Body` below carries only the column's gap.
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useFeature } from "@/hooks/useFeature";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -81,6 +83,12 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
   const { user, profile, isLoading: userLoading } = useCurrentUser();
   const [range, setRange] = useState<AnalyticsRange>(DEFAULT_ANALYTICS_RANGE);
   const { data, isLoading, isError, refetch, isFetching } = useHelperAnalytics(user?.id, range);
+  // Roadmap F4a (owner 2026-10-15): while memberships are off, Advanced
+  // Analytics is off for EVERYONE, plan holders included, and this page never
+  // shows an upgrade offer. Its one entry point (Earnings) is hidden too; a
+  // deep link lands on a plain note instead.
+  const membershipsOn = useFeature("memberships");
+  const navigate = useNavigate();
 
   // The commission to apply to a legacy row that predates the per-job
   // `helper_fee_percent` column — the helper's own tier rate, exactly as the
@@ -104,6 +112,26 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
     // Size to content (owner, 2026-10-01): the three bone cards were 305px
     // taller than the upgrade panel that replaces them.
     return wrap(<ProfileTabBodyReserve tab="analytics" />);
+  }
+
+  if (!membershipsOn) {
+    return wrap(
+      <EmptyState
+        variant="inline"
+        icon={BarChart3}
+        title="Advanced Analytics is off for now"
+        body="Your earnings, fees and payouts are all on the Earnings tab."
+        action={
+          <button
+            type="button"
+            onClick={() => navigate("/profile?tab=earnings")}
+            className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-ds-md font-semibold text-ds-13"
+          >
+            Go to Earnings
+          </button>
+        }
+      />,
+    );
   }
 
   if (isError) {

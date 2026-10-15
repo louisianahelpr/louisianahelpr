@@ -28,7 +28,6 @@ import {
   type SupabaseScenario,
 } from "./mocks/supabase";
 import { rateLimitState, resetSharedMocks, slackAlerts, notificationEmails } from "./mocks/shared";
-import { urgentBonusCardFeeCents } from "../../../supabase/functions/_shared/stripeFees";
 import { posterCardCostFeeCents } from "../../../supabase/functions/_shared/posterFees";
 import { TIER_FEE_PERCENT } from "../../../supabase/functions/_shared/helperFees";
 
@@ -321,7 +320,10 @@ describe("create-payment edge function", () => {
         Object.defineProperty(scenario.writeSelectRows, "jobs:update", {
           configurable: true,
           enumerable: true,
-          get: () => (stampCalls++ === 0 ? [] : undefined),
+          // Call 0 is the fee-model stamp (F3: the first jobs update, its
+          // row count deliberately unread); call 1 is the session stamp the
+          // expire webhook beat, so IT matches zero rows.
+          get: () => (stampCalls++ === 1 ? [] : undefined),
         });
         const fn = await load();
         const res = await fn.fetch(
@@ -493,13 +495,15 @@ describe("create-payment edge function", () => {
       expect(args.automatic_tax).toEqual({ enabled: true });
       // job budget line item is $100 → 10000 cents
       expect(args.line_items[0].price_data.unit_amount).toBe(10000);
-      // Service fee = Stripe's card cost on $100 + the fee = $3.30 (was the
-      // Pro tier's 10% = $10.00 before 2026-10-11).
+      // Roadmap F3 (owner 2026-10-14/15): no Service fee line at all. It was
+      // Stripe's card cost ($3.30 on $100) from 2026-10-11, and the Pro
+      // tier's 10% before that. The poster pays exactly the job price.
       const feeItem = args.line_items.find(
         (li: { price_data: { product_data: { name: string } } }) =>
           li.price_data.product_data.name === "Service fee",
       );
-      expect(feeItem.price_data.unit_amount).toBe(330);
+      expect(feeItem).toBeUndefined();
+      expect(args.line_items).toHaveLength(1);
       // poster already paid onboarding fee → no setup line item
       expect(
         args.line_items.some(
@@ -565,13 +569,13 @@ describe("create-payment edge function", () => {
         expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
       });
 
-      // Q362 (lh-money-escrow review of 7b6911484, finding 1): the shortfall card
-      // charge can carry the urgent bonus, so its card fee rides on top there
-      // too (on the part of the bonus the card can carry), stamped as the fee.
-      // @mutate supabase/functions/create-payment/index.ts |         if (diffUrgentCardFeeCents > 0) { |         if (false) {
-      // @mutate supabase/functions/create-payment/index.ts |         const diffUrgentCardFeeCents = urgentBonusCardFeeCents(Math.min(giftUrgentCents, differenceCents)); |         const diffUrgentCardFeeCents = urgentBonusCardFeeCents(giftUrgentCents);
-      it("Q362: an urgent gift shortfall charges the bonus's card fee on the part the card carries", async () => {
-        for (const [urgent, diff, carried] of [[30, 4000, 3000], [250, 4000, 4000]] as const) {
+      // Roadmap F3b (owner 2026-10-15): the urgent bonus is part of the job
+      // price, with no card-fee line of its own. It replaced Q362's "Urgent
+      // bonus card fee" on the shortfall: the card is charged the shortfall
+      // only, and the fee stamped is 0 (a refund keeps Stripe's real fee).
+      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 }); |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0.45 });
+      it("F3b: an urgent gift shortfall charges the shortfall only, no card-fee line", async () => {
+        for (const [urgent, diff] of [[30, 4000], [250, 4000]] as const) {
           resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
           seedGiftShortfall();
           scenario.reads.jobs = {
@@ -582,23 +586,21 @@ describe("create-payment edge function", () => {
           const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
           expect(res.status).toBe(200);
           const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
-          const fee = params.line_items.find(
-            (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Urgent bonus card fee",
-          );
-          expect(fee?.price_data.unit_amount, `urgent ${urgent}`).toBe(urgentBonusCardFeeCents(carried));
-          const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
-          expect(stamp.customer_fee_amount).toBe(urgentBonusCardFeeCents(carried) / 100);
+          expect(params.line_items, `urgent ${urgent}`).toHaveLength(1);
+          expect(params.line_items[0].price_data.unit_amount).toBe(diff);
+          const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object))?.payload as Record<string, unknown>;
+          expect(stamp.customer_fee_amount).toBe(0);
         }
       });
 
-      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: diffUrgentCardFeeCents / 100 }); |         const diffStamp = await stampSession(diffSession.id, {});
+      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: 0 }); |         const diffStamp = await stampSession(diffSession.id, {});
       it("Q362: a non-urgent gift shortfall has no card fee line and stamps a zero fee (clearing any stale one)", async () => {
         seedGiftShortfall();
         const fn = await load();
         await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
         const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
         expect(params.line_items).toHaveLength(1);
-        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object))?.payload as Record<string, unknown>;
         expect(stamp.customer_fee_amount).toBe(0);
       });
 
@@ -712,7 +714,9 @@ describe("create-payment edge function", () => {
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
         expect(args.automatic_tax).toEqual({ enabled: true });
         expect(args.customer_update).toEqual({ address: "auto" });
-        expect(args.line_items.length).toBeGreaterThan(2);
+        // Labor + the urgent bonus. F3 (owner 2026-10-14/15): no service-fee
+        // line and no urgent card-fee line any more.
+        expect(args.line_items.length).toBe(2);
         for (const li of args.line_items) {
           expect(li.price_data.tax_behavior).toBe("exclusive");
           expect(li.price_data.product_data.tax_code).toMatch(/^txcd_\d{8}$/);
@@ -737,7 +741,9 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-3ds", customer_id: POSTER.id, budget: 260, category, title: "T", payment_status: "unpaid" }],
+          // $270: under $300 before tax (F3: the job price is the whole
+          // pre-tax charge), over it with the 15% tax ceiling ($310.50).
+          rows: [{ id: "job-3ds", customer_id: POSTER.id, budget: 270, category, title: "T", payment_status: "unpaid" }],
         };
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
@@ -794,7 +800,7 @@ describe("create-payment edge function", () => {
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
         return args.line_items.find(
           (li: { price_data: { product_data: { name: string } } }) =>
-            li.price_data.product_data.name === "Urgent tip",
+            li.price_data.product_data.name === "Urgent bonus",
         );
       }
 
@@ -827,55 +833,33 @@ describe("create-payment edge function", () => {
         expect(urgentLineItem()?.price_data.unit_amount).toBe(500);
       });
 
-      // Q362 / CC-003 (owner MQ11): the Helpr gets 100% of the bonus, so the
-      // poster pays its card fee ON TOP, stored inside customer_fee_amount with
-      // the service fee. Owner, 2026-10-09: it rides INSIDE the "Service fee"
-      // line, not a line of its own ("it's all one post"). Same cents.
-      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = (customerFeeCents + urgentCardFeeCents) / 100; |       const customerFeeAmount = customerFeeCents / 100;
-      // @mutate supabase/functions/create-payment/index.ts |             unit_amount: customerFeeCents + (foldCardFee ? urgentCardFeeCents : 0), |             unit_amount: customerFeeCents,
-      it("Q362: charges the urgent bonus's card fee inside the Service fee line and stores it in customer_fee_amount", async () => {
-        seedUrgentJob({ is_urgent: true, urgent_fee: 15 });
-        await run();
-        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        const names = args.line_items.map((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name);
-        expect(names).toContain("Urgent tip");
-        expect(names).not.toContain("Urgent bonus card fee");
-        // 1500 bonus: the smallest fee with fee >= round((1500 + fee) * 2.9%) is 45.
-        expect(urgentBonusCardFeeCents(1500)).toBe(45);
-        const service = args.line_items.find(
-          (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Service fee",
-        );
-        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
-        // The whole Service fee line (card cost + the 45c bonus card fee) is what customer_fee_amount records.
-        expect(stamp.customer_fee_amount).toBe(service.price_data.unit_amount / 100);
-        const total = args.line_items.reduce((s: number, li: { price_data: { unit_amount: number } }) => s + li.price_data.unit_amount, 0);
-        const budgetCents = args.line_items[0].price_data.unit_amount;
-        expect(total).toBe(budgetCents + 1500 + service.price_data.unit_amount + (names.includes("One-time account setup") ? args.line_items.find((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "One-time account setup").price_data.unit_amount : 0));
-      });
-
-      // Q362 review finding 2: when the service fee's Stripe-cost floor wins, it
-      // must not charge the bonus's card cost a second time.
-      // @mutate supabase/functions/create-payment/index.ts |         urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,\n        urgentCardFeeCents,\n |         urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,\n
-      it("Q362: on a small job with a big bonus the poster pays the card cost once, and the platform is covered", async () => {
-        seedUrgentJob({ budget: 20, is_urgent: true, urgent_fee: 250 });
-        await run();
-        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        const items = args.line_items as Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
-        const amount = (name: string) => items.find((li) => li.price_data.product_data.name === name)?.price_data.unit_amount ?? 0;
-        const total = items.reduce((s, li) => s + li.price_data.unit_amount, 0);
-        const collected = amount("Service fee") + amount("Urgent bonus card fee");
-        const stripeCost = Math.round(total * 0.029) + 30;
-        // Covered...
-        expect(collected).toBeGreaterThanOrEqual(stripeCost);
-        // ...and not twice: the old double-count overshot by the whole card fee ($7.47).
-        // The card-cost fee is lowered by the bonus card fee it already
-        // carries, then the bonus card fee is folded into the same line
-        // (owner, 2026-10-09) — once.
-        const card = urgentBonusCardFeeCents(25000);
-        expect(amount("Service fee")).toBe(posterCardCostFeeCents(2000, 25000 + card, card) + card);
-        // No more than rounding slack above Stripe's real cost on the charge.
-        expect(collected - stripeCost).toBeLessThanOrEqual(1);
-        expect(amount("Urgent bonus card fee")).toBe(0);
+      // Roadmap F3b (owner 2026-10-15): the urgent bonus is part of the job
+      // price ("urgent is added on the original job post"). The poster pays
+      // budget + bonus and nothing for the card; the Helpr's 5% + 70c is priced
+      // on the whole amount at payout. This replaced Q362 / MQ11's card fee on
+      // top (folded into the Service fee line 2026-10-09).
+      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 0.45;
+      // @mutate supabase/functions/create-payment/index.ts |       const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100) + urgentFeeCents) / 100; |       const helperFeeAmount = helprFlatFeeCents(Math.round(job.budget * 100)) / 100;
+      it("F3b: an urgent post charges budget + bonus only, and stores no card fee", async () => {
+        for (const [budget, urgent] of [[100, 15], [20, 250]] as const) {
+          resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+          seedUrgentJob({ budget, is_urgent: true, urgent_fee: urgent });
+          await run();
+          const args = stripeMock.checkout.sessions.create.mock.calls.slice(-1)[0][0];
+          const items = args.line_items as Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+          const names = items.map((li) => li.price_data.product_data.name);
+          expect(names).toContain("Urgent bonus");
+          expect(names).not.toContain("Urgent tip");
+          expect(names).not.toContain("Urgent bonus card fee");
+          expect(names).not.toContain("Service fee");
+          const setup = items.find((li) => li.price_data.product_data.name === "One-time account setup")?.price_data.unit_amount ?? 0;
+          const total = items.reduce((t, li) => t + li.price_data.unit_amount, 0);
+          expect(total, `$${budget} + $${urgent}`).toBe(budget * 100 + urgent * 100 + setup);
+          const stamp = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
+          expect(stamp.customer_fee_amount).toBe(0);
+          // The single-Helpr fee recorded at escrow: 5% of budget + bonus, plus 70c.
+          expect(stamp.platform_fee_amount).toBe(Math.round((budget + urgent) * 5 + 70) / 100);
+        }
       });
 
       it("Q362: a job with no urgent bonus has no urgent card fee line", async () => {
@@ -913,7 +897,12 @@ describe("create-payment edge function", () => {
       });
     });
 
-    // ── CLASS: a poster checkout charges Stripe's card cost and nothing more ─
+    // ── CLASS: a poster checkout charges the job price and nothing more ─────
+    //
+    // Roadmap F3 (owner 2026-10-14/15): "the percentages should be the same
+    // across the board". The poster pays exactly the job price: no service
+    // fee and no card-cost line; the Helpr pays 5% + $0.70 out of their pay.
+    // History below: the 2026-10-11 card-cost fee this replaced.
     //
     // Owner, 2026-10-11 (pop-up): "remove the service fee for posters bc right
     // now I'm worried no one will post when they can easily post for free on
@@ -926,8 +915,9 @@ describe("create-payment edge function", () => {
     // Stripe charge site in supabase/functions and requires this describe (and
     // its recurring-visit twin) to exist for the poster-job ones.
     // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = 12;
-    // @mutate supabase/functions/_shared/posterFees.ts |   return feeCents;\n} |   return Math.max(feeCents, Math.round(budgetCents * 0.12));\n}
-    describe("poster checkout charges the card cost only, on every tier (owner, 2026-10-11)", () => {
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 1;
+    // @mutate supabase/functions/create-payment/index.ts |         helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,\n      }); |       });
+    describe("poster checkout charges the job price only, on every tier (F3, owner 2026-10-14/15)", () => {
       const FUTURE = new Date(Date.now() + 30 * 864e5).toISOString();
       const PAST = new Date(Date.now() - 864e5).toISOString();
 
@@ -953,7 +943,8 @@ describe("create-payment edge function", () => {
         const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc" } }));
         expect(res.status).toBe(200);
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+        // The session stamp (stampSession), not the fee-model stamp written first.
+        const stamp = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
         return { items: args.line_items, stamp, meta: args.payment_intent_data.metadata };
       }
 
@@ -969,7 +960,7 @@ describe("create-payment edge function", () => {
         ["profile read fails", null],
       ];
 
-      it("the Service fee line equals Stripe's card cost for every tier and budget, and is stamped as charged", async () => {
+      it("the poster is charged exactly the job price for every tier and budget, and the flat model is stamped", async () => {
         // FLOOR: a derivation that produced nothing would pass vacuously.
         expect(Object.keys(TIER_FEE_PERCENT).length).toBeGreaterThanOrEqual(5);
         let checked = 0;
@@ -977,33 +968,45 @@ describe("create-payment edge function", () => {
           for (const [label, row] of PROFILES) {
             seedEscrowJob(budget, row);
             const { items, stamp, meta } = await escrow();
-            const fee = items.find((li) => li.price_data.product_data.name === "Service fee");
-            const want = posterCardCostFeeCents(budget * 100);
-            expect(fee?.price_data.unit_amount, `$${budget} ${label}`).toBe(want);
-            // Covers Stripe's cost on the whole charge (fee included), by no
-            // more than the closed form's 1c rounding slack.
-            const total = items.reduce((t, li) => t + li.price_data.unit_amount, 0);
-            const stripeCost = Math.round(total * 0.029) + 30;
-            expect(want - stripeCost, `$${budget} ${label}`).toBeGreaterThanOrEqual(0);
-            expect(want - stripeCost, `$${budget} ${label}`).toBeLessThanOrEqual(1);
-            // Never a percentage on the poster's receipt.
-            expect(fee?.price_data.product_data.description ?? "").not.toMatch(/%/);
-            expect(fee?.price_data.product_data.description).toBe("Covers card processing");
-            // The row and the PaymentIntent record the pricing it was charged under.
-            expect(stamp.customer_fee_amount).toBe(want / 100);
+            const names = items.map((li) => li.price_data.product_data.name);
+            expect(names, `$${budget} ${label}`).not.toContain("Service fee");
+            // Every line but the job and the one-time setup (absent here, or
+            // never billed on a failed profile read) would be a fee.
+            const total = items
+              .filter((li) => li.price_data.product_data.name !== "One-time account setup")
+              .reduce((t, li) => t + li.price_data.unit_amount, 0);
+            expect(total, `$${budget} ${label}`).toBe(budget * 100);
+            // The row and the PaymentIntent record the model it was charged under.
+            expect(stamp.customer_fee_amount).toBe(0);
             expect(stamp.platform_fee_percent).toBe(0);
+            expect(stamp.helper_fee_flat_cents).toBe(70);
+            expect(stamp.helper_fee_percent).toBe(5);
             expect(meta.customer_fee_percent).toBe("0");
+            expect(meta.helper_fee_flat_cents).toBe("70");
             checked++;
           }
         }
         expect(checked).toBeGreaterThan(40);
       });
 
-      it("the Helpr commission stamped at escrow is unchanged (platform_settings.helper_fee_percent)", async () => {
+      // The fee-model stamp is written BEFORE any funding branch, only while
+      // the job is unfunded, and a failed write refuses the checkout.
+      // @mutate supabase/functions/create-payment/index.ts |           .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")\n          // Zero rows is legitimate |           .or("payment_status.is.null")\n          // Zero rows is legitimate
+      it("stamps the flat model on the unfunded job before the checkout opens", async () => {
+        seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+        await escrow();
+        const first = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        // platform_fee_amount rides the model stamp too (review N4): a $100 job
+        // pays 5% + 70c = $5.70 whichever branch funds it (a gift included).
+        expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_amount: 5.7 });
+        expect(JSON.stringify(first)).toContain("unpaid,abandoned,failed");
+      });
+
+      it("the Helpr fee stamped at escrow is the flat 5% + 70c, whatever platform_settings or the tier says", async () => {
         seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: "elite", subscription_expires_at: FUTURE });
         const { stamp } = await escrow();
-        expect(stamp.helper_fee_percent).toBe(12);
-        expect(stamp.platform_fee_amount).toBe(12);
+        expect(stamp.helper_fee_percent).toBe(5);
+        expect(stamp.platform_fee_amount).toBe(5.7);
       });
 
       it("never bills the one-time onboarding fee when the profile read failed", async () => {

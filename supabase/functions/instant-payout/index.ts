@@ -12,6 +12,7 @@ import {
 import { formatPayoutCents } from "../_shared/money.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
@@ -137,6 +138,20 @@ serve(async (req) => {
     // Elite" — i.e. to buy a cheaper plan. Both halves now derive from
     // TIER_PERK_MATRIX, so the gate and the sentence explaining it can never
     // name different sets again.
+    // Roadmap F4a (owner 2026-10-15): while memberships are off, instant
+    // cash-out is off for EVERYONE, plan holders included ("Nobody for now"),
+    // and nothing offers an upgrade. Funds pay out on the standard schedule.
+    // Fails closed: an unreadable switch reads as off.
+    const membershipsOn = await featureEnabledForUser(supabaseAdmin, "memberships", user);
+    if (!membershipsOn) {
+      return new Response(
+        JSON.stringify({
+          error: "Instant cash-out isn't available right now. Your funds pay out free on the standard schedule.",
+          code: "instant_payout_off",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
+    }
     const entitled = profileHasPerk(
       profile?.subscription_tier,
       profile?.subscription_expires_at,

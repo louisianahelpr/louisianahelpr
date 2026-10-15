@@ -97,7 +97,7 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
 });
 
 // @mutate src/lib/posterJobCost.ts |     num(job.sales_tax_amount) +\n    num(job.onboarding_fee_amount) |     num(job.sales_tax_amount)
-// @mutate src/lib/jobColumns.ts | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount"] as const; | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note"] as const;
+// @mutate src/lib/jobColumns.ts | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "helper_fee_flat_cents"] as const; | export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "helper_fee_flat_cents"] as const;
 // @mutate src/pages/profile/HomeHistory.tsx | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, onboarding_fee_amount`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | sales_tax_amount, onboarding_fee_amount, dispute_status, payment_status | sales_tax_amount, dispute_status, payment_status
 // @mutate supabase/migrations/20261012171259_job_setup_fee_stamped.sql |     NEW.onboarding_fee_amount := NULL; |     NULL;

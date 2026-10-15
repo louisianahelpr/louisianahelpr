@@ -31,6 +31,7 @@ import {
   type AnalyticsPreviewJob,
 } from "@/lib/helperAnalytics";
 import { helperPlatformFeeDollars } from "@/lib/helperEarnings";
+import { useFeature } from "@/hooks/useFeature";
 
 /** The cheapest tier whose perk row carries advancedAnalytics. */
 const UPGRADE_TIER: SubscriptionTier = "pro";
@@ -55,6 +56,9 @@ export function AnalyticsUpgradePanel({
   windowLabel,
 }: AnalyticsUpgradePanelProps) {
   const navigate = useNavigate();
+  // Roadmap F4: memberships are off; no "See plans" while the hidden
+  // memberships switch is off for this viewer.
+  const membershipsOn = useFeature("memberships");
   const target = TIER_PERKS[UPGRADE_TIER];
 
   // Their real commission over the window, beside the same jobs at Pro's rate.
@@ -146,12 +150,14 @@ export function AnalyticsUpgradePanel({
         {/* Glossy because it is the primary action on this screen. The gradient
             lives in `.btn-grad-primary` (index.css) — never an inline
             `background` shorthand, which silently resets background-image. */}
-        <Button
-          className="btn-grad-primary !text-[hsl(var(--parchment))] flex-1 h-11 rounded-ds-md font-semibold"
-          onClick={() => navigate("/profile?tab=subscription")}
-        >
-          See {target.name} plans
-        </Button>
+        {membershipsOn && (
+          <Button
+            className="btn-grad-primary !text-[hsl(var(--parchment))] flex-1 h-11 rounded-ds-md font-semibold"
+            onClick={() => navigate("/profile?tab=subscription")}
+          >
+            See {target.name} plans
+          </Button>
+        )}
         <Button
           variant="ghost"
           className="flex-1 h-11 rounded-full"

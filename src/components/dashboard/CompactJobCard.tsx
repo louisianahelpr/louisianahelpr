@@ -57,7 +57,7 @@ export function CompactJobCard({
   // Q753: the one-time setup fee still due from the viewer's first payout.
   const firstPayoutFee = useFirstPayoutFeeDollars();
   const priceAmount = isNet
-    ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers, firstPayoutFee).netEarnings
+    ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers, firstPayoutFee, job).netEarnings
     : job.budget;
   // Take-home FLOORED to whole dollars, gross budget rounded — the same split
   // JobPrice makes (owner, 2026-08-19): a payout figure may never read above

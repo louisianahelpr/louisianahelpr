@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { PRO_PRICE_MAP } from "../_shared/proTiers.ts";
+import { requireFeature } from "../_shared/featureSwitch.ts";
 
 // billing_cycle: "monthly" | "annual" | "one_time". Price IDs derive from the
 // single source of truth so the checkout can never drift from the displayed
@@ -42,6 +43,20 @@ serve(async (req) => {
     // the table (that gate cannot see the caller behind a service-role write).
     const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
     if (unconfirmedEmail) return unconfirmedEmail;
+
+    // Roadmap F4 (owner 2026-10-14/15): memberships are OFF. A new membership
+    // checkout is refused unless the hidden "memberships" switch is on for
+    // this caller (off for everyone; only an admin flip in Settings turns it
+    // back on). The app hides every upgrade entry point behind the same
+    // switch; this is the protection, the hidden button is not. Asked with
+    // the service role (feature_enabled_for_user is service_role only), for
+    // the VERIFIED user, before any Stripe call.
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
+    );
+    const membershipsOff = await requireFeature(serviceClient, "memberships", user, corsHeaders);
+    if (membershipsOff) return membershipsOff;
 
     const proBody = await req.json();
     const { tier, billing_cycle = "monthly", billing_day } = proBody;

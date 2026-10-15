@@ -320,7 +320,7 @@ const HERMETIC: Record<string, Case[]> = {
     // src/test/nativeSignInConfig.test.ts.)
     { label: "a provider still disabled while the switch is on", env: MGMT("nobundle"), says: /FAIL external_google_enabled is true/ },
   ],
-  // OPEN.md "auth-captcha-matches-client" (prod-errors.yml hourly, prod-deploy.yml):
+  // OPEN.md item "captcha switch matches what the deployed clients send" (prod-errors.yml hourly, prod-deploy.yml):
   // GET /config/auth, then the web build's chunks (LH_WEB_BASE, same stub).
   "scripts/check-auth-captcha-matches-client.mjs": [
     { label: "no credentials", says: /could not check auth captcha against the web build: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },

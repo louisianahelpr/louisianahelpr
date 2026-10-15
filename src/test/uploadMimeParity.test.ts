@@ -82,8 +82,8 @@ const SITES: Site[] = [
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/pages/post-job/useJobMediaUpload.ts", "allowedImageTypes"], via: ["allowedImageTypes"] },
   // Declutter listing photos: cleaned to JPEG first (src/lib/declutter/photos.ts).
   { file: "src/lib/declutter/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
-  // Declutter porch and problem photos (slice 4): the same JPEG clean as listing photos.
-  { file: "src/lib/declutter/handover.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Declutter porch and problem photos (20261015092723): the same JPEG clean, into the PRIVATE handover bucket.
+  { file: "src/lib/declutter/handover.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Quote past-work photos: cleaned to JPEG the same way (src/lib/quotes/api.ts).
   { file: "src/lib/quotes/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/lib/scopeVideo.ts", "SCOPE_VIDEO_TYPES"], via: ["scopeVideoFileProblem", "SCOPE_VIDEO_BUCKET"], bucketSrc: "src/lib/scopeVideo.ts" },
@@ -110,7 +110,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterSellView.tsx": { bucket: "job-photos" },
   // Room photos (moving-out mode) are never stored: cleaned to JPEG and sent to the photo tool only; held to the listing photos' bucket so it offers nothing a listing photo could not be.
   "src/components/declutter/DeclutterMoveView.tsx": { bucket: "job-photos" },
-  "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "job-photos" },
+  "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   "src/pages/quotes/SendQuotePage.tsx": { bucket: "job-photos" },
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",

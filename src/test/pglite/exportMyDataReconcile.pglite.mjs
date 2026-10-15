@@ -7,6 +7,7 @@
  *
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261015092457 left out (problems filed against the member missing)
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
  * last export_my_data both lines of history share):
@@ -43,6 +44,9 @@ const SLICE3B = "20261014224914_declutter_slice3b_payments.sql";
 const SLICE4 = "20261015042253_declutter_slice4_handover_payout.sql";
 const MAIN_CAT = "20261015052622_export_my_data_category_suggestions.sql";
 const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
+// 20261015092457 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
+const AGAINST = "20261015092457_export_my_data_declutter_problems_against.sql";
+const NO_AGAINST = process.argv.includes("--no-against");
 
 const DECLUTTER_SECTIONS = [
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
@@ -86,7 +90,7 @@ async function installedAfter(label, files) {
   const db = new PGlite();
   await db.exec(ROLES);
   for (const f of files) {
-    for (let i = 0; i < (f === RECONCILE ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
+    for (let i = 0; i < (f === RECONCILE || f === AGAINST ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
   }
   const def = (await db.query(`SELECT pg_get_functiondef('public.export_my_data(uuid)'::regprocedure) AS d`)).rows[0].d;
   const acl = (await db.query(`SELECT
@@ -102,7 +106,7 @@ async function installedAfter(label, files) {
   return { db, def };
 }
 
-const tail = NO_RECONCILE ? [] : [RECONCILE];
+const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_AGAINST ? [] : [AGAINST])];
 const replay = await installedAfter("REPLAY (version order)", [BASE, SLICE3, SLICE3B, SLICE4, MAIN_CAT, ...tail]);
 const prod = await installedAfter("PROD (main's 052622 live, branch versions pending)", [BASE, MAIN_CAT, SLICE3, SLICE3B, SLICE4, ...tail]);
 check("both orders end with the same body", replay.def === prod.def);
@@ -153,7 +157,8 @@ CREATE TABLE IF NOT EXISTS public.declutter_reviews (id uuid PRIMARY KEY DEFAULT
 // Columns the body only strips (`- 'reviewed_by'`), so the scan above cannot see them.
 await db.exec(`
 ALTER TABLE public.category_suggestions ADD COLUMN IF NOT EXISTS reviewed_by uuid, ADD COLUMN IF NOT EXISTS admin_note text;
-ALTER TABLE public.declutter_problems ADD COLUMN IF NOT EXISTS decided_by uuid;`);
+ALTER TABLE public.declutter_problems ADD COLUMN IF NOT EXISTS decided_by uuid, ADD COLUMN IF NOT EXISTS order_id uuid,
+  ADD COLUMN IF NOT EXISTS photo_paths text[], ADD COLUMN IF NOT EXISTS note text;`);
 await db.exec(`
 CREATE OR REPLACE FUNCTION public.are_users_blocked(a uuid, b uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE OR REPLACE FUNCTION public.user_may_see_job_address(j uuid, u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;`);
@@ -162,6 +167,7 @@ const ME = "00000000-0000-0000-0000-0000000000aa";
 const OTHER = "00000000-0000-0000-0000-0000000000bb";
 const STAFF = "00000000-0000-0000-0000-0000000000cc";
 const ORDER = "00000000-0000-0000-0000-0000000000dd";
+const OTHER_ORDER = "00000000-0000-0000-0000-0000000000ee";
 await db.exec(`
 INSERT INTO auth.users (id, email, created_at) VALUES ('${ME}', 'Me@Example.com', now() - interval '1 year');
 INSERT INTO public.category_suggestions (user_id, reviewed_by, admin_note) VALUES ('${ME}', '${STAFF}', 'staff only');
@@ -171,7 +177,14 @@ INSERT INTO public.declutter_orders (id, buyer_id, seller_id, handed_over_at) VA
 INSERT INTO public.declutter_bookings (buyer_id, seller_id) VALUES ('${OTHER}', '${ME}');
 INSERT INTO public.declutter_payouts (seller_id) VALUES ('${ME}');
 INSERT INTO public.declutter_problems (reporter_id, decided_by) VALUES ('${ME}', '${STAFF}');
-INSERT INTO public.declutter_reviews (order_id, reviewer_id, reviewee_id) VALUES ('${ORDER}', '${OTHER}', '${ME}');`);
+INSERT INTO public.declutter_reviews (order_id, reviewer_id, reviewee_id) VALUES ('${ORDER}', '${OTHER}', '${ME}');
+-- Filed AGAINST me by the buyer of my order (photos, reporter and decider are the reporter's / staff's), one filed by a
+-- since-deleted account (reporter NULL), and one on an order I am not part of.
+INSERT INTO public.declutter_orders (id, buyer_id, seller_id) VALUES ('${OTHER_ORDER}', '${OTHER}', '${STAFF}');
+INSERT INTO public.declutter_problems (order_id, reporter_id, decided_by, photo_paths, note) VALUES
+  ('${ORDER}', '${OTHER}', '${STAFF}', ARRAY['declutter/problem/x.jpg'], 'chair was broken'),
+  ('${ORDER}', NULL, NULL, '{}', 'from a deleted account'),
+  ('${OTHER_ORDER}', '${OTHER}', NULL, '{}', 'not about me');`);
 let out;
 try {
   out = (await db.query(`SELECT public.export_my_data('${ME}') AS x`)).rows[0].x;
@@ -191,7 +204,16 @@ if (out) {
       && len("declutter_problems") === 1 && !("decided_by" in out.declutter_problems[0])
       && len("declutter_reviews") === 1 && !("reviewer_id" in out.declutter_reviews[0]),
     JSON.stringify({ o: len("declutter_offers"), ord: len("declutter_orders"), b: len("declutter_bookings"), p: len("declutter_payouts"), pr: out.declutter_problems, r: out.declutter_reviews }));
+  // lh-authz-rls should-fix (a) of the reconcile review: problems filed AGAINST the member are exported too.
+  const about = Array.isArray(out.declutter_problems_about_me) ? out.declutter_problems_about_me : [];
+  check("problems filed AGAINST the member are in the export (declutter_problems_about_me): both on my order, none from elsewhere",
+    about.length === 2 && about.every((p) => p.order_id === ORDER), JSON.stringify(out.declutter_problems_about_me));
+  check("...without the reporter's private fields (reporter_id, photo_paths) or the deciding admin, but with what was said",
+    about.length > 0 && about.every((p) => !("reporter_id" in p) && !("photo_paths" in p) && !("decided_by" in p))
+      && about.some((p) => p.note === "chair was broken"), JSON.stringify(about));
+  check("the member's own report stays in declutter_problems only (not double-listed)",
+    len("declutter_problems") === 1 && about.every((p) => p.note !== null && p.id !== out.declutter_problems[0]?.id));
 }
 
-console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}  (${tables.size} tables stubbed from the body)`);
+console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}${NO_AGAINST ? " [--no-against]" : ""}  (${tables.size} tables stubbed from the body)`);
 process.exit(failures ? 1 : 0);

@@ -5,7 +5,7 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
-import { pageVisitTaxForFailedRefund } from "./_visitTaxReversal.ts";
+import { undoVisitTaxForFailedRefund } from "./_visitTaxReversal.ts";
 
 /**
  * charge.refund.updated (Q1325 (a); owner approved the subscription
@@ -51,10 +51,11 @@ export async function handleChargeRefundUpdated(
 
   const piId = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
   const chargeId = typeof refund.charge === "string" ? refund.charge : refund.charge?.id ?? null;
-  // Q1730: a recurring visit's sales tax reversed for this refund must not
-  // stand once the refund failed. Pages ops; never throws.
-  await pageVisitTaxForFailedRefund({
-    stripe, piId, chargeId, refundId: refund.id, refundStatus: String(refund.status), amountCents: Number(refund.amount ?? 0),
+  // Q1730 / Q1782 (2): a recurring visit's sales tax reversed for this refund
+  // must not stand once the refund failed: its own reversal is undone (or ops
+  // is paged when none is recorded). Never throws.
+  await undoVisitTaxForFailedRefund({
+    stripe, piId, chargeId, refundId: refund.id, refundStatus: String(refund.status), amountCents: Number(refund.amount ?? 0), logStep,
   });
   type JobRow = { id: string; status?: string | null; payment_status?: string | null; customer_id?: string | null; title?: string | null };
   let job: JobRow | null = null;

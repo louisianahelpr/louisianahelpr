@@ -712,3 +712,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L33 | One standard set of Louisiana rental terms, written by Claude from the primary law (no lawyer); no injury waivers (art. 2004) |
 | L34 | Insurance required for inflatables + tents; suggested for everything else |
 | L35 | Renter ID check (Stripe Identity) for deposits over $100 |
+| L37 | Earnings: 15% BUYER fee like Declutter (min $1), card fee INSIDE the 15% (clarified by pop-up); the shop keeps 100% of its price |
+| L38 | Pro for shops: free boost days each month + "Pro" badge (no shop fee exists to lower; clarified by pop-up) |
+| L39 | Card fee: inside the buyer's one total (never absorbed beyond the premium, as Declutter) |
+| L40 | Shop paid at handover (QR / "I got it" / auto after 24 h) |

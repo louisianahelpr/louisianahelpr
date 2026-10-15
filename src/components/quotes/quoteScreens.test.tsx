@@ -15,6 +15,8 @@
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |     mutationFn: () => openEscrowCheckout(bookedJobId as string), |     mutationFn: () => bookAcceptedQuote(id),
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |             Book and pay\n |             Book and pay {dollars(accepted.price_cents)}\n
  * @mutate src/components/quotes/MyQuoteCard.tsx |   const myTurn = pending && quote.last_offer_side === "poster"; |   const myTurn = pending;
+ * @mutate src/components/quotes/quotesUi.tsx |   return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />; |   return settled ? <NotFound /> : null;
+ * @mutate src/components/quotes/quotesUi.tsx |       <p role="status" className="sr-only"> |       <p role="status" className="sr-only animate-pulse">
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -25,6 +27,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   feature: true,
+  /** false: the switch's answer has not arrived (the gate's loading frame). */
+  switchSettled: true,
   rpc: {} as Record<string, unknown>,
   calls: [] as { fn: string; args: unknown }[],
   invokes: [] as { name: string; body: unknown }[],
@@ -92,7 +96,7 @@ import { parseWholeDollars } from "./QuoteAnswerControls";
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  qc.setQueryData(["feature-enabled", "quotes", "u1"], state.feature);
+  if (state.switchSettled) qc.setQueryData(["feature-enabled", "quotes", "u1"], state.feature);
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>
@@ -125,6 +129,7 @@ const OPEN = {
 
 beforeEach(() => {
   state.feature = true;
+  state.switchSettled = true;
   state.rpc = {};
   state.calls = [];
   state.invokes = [];
@@ -141,6 +146,22 @@ describe("the 'quotes' switch", () => {
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
     expect(screen.getAllByText("Page not found")).toHaveLength(3);
+    expect(state.calls).toEqual([]);
+  });
+
+  // measure-loading-states, 2026-10-15: bones here swapped for the 404 with a -132px row and 2 -> 3 rows on all three routes.
+  it.each([
+    ["/quotes", "/quotes", "Quotes", "Loading quotes", () => <QuotesPage />],
+    ["/quotes/request/r1", "/quotes/request/:id", "Quotes for your job", "Loading the request", () => <QuoteRequestPage />],
+    ["/quotes/send/r9", "/quotes/send/:id", "Send a quote", "Loading the request", () => <SendQuotePage />],
+  ])("while the switch loads, %s is its real header with no bones (the answer may still be the 404)", (path, route, title, label, el) => {
+    state.feature = false;
+    state.switchSettled = false;
+    const { container } = at(path, el(), route);
+    expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    expect(screen.getByRole("status").textContent).toBe(label);
+    expect(container.querySelector('[class*="animate-"], [aria-busy="true"]')).toBeNull();
+    expect(screen.queryByText("Page not found")).toBeNull();
     expect(state.calls).toEqual([]);
   });
 

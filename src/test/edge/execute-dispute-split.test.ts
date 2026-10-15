@@ -959,6 +959,53 @@ describe("execute-dispute-split edge function", () => {
       });
     });
 
+    it("pages ops when the poster refund throws AFTER the Helpr was paid (Q1729)", async () => {
+      // @mutate supabase/functions/execute-dispute-split/index.ts |       if (transferId) await pageRefundLegFailed(disputeId, job.id, transferId, refundCents, `refund failed: ${err.message}`); |       void 0;
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_network_unavailable"));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const paged = alerts().filter((a) => /Helpr paid, poster refund failed/.test(a.title ?? ""));
+      expect(paged).toHaveLength(1);
+    });
+
+    it("pages ops when a refund comes back failed AFTER the Helpr was paid (Q1729)", async () => {
+      // @mutate supabase/functions/execute-dispute-split/index.ts |       if (transferId) await pageRefundLegFailed(disputeId, job.id, transferId, refundCents, `refund ${refund.id} is ${refund.status} at Stripe`); |       void 0;
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.refunds.create.mockResolvedValueOnce({ id: "re_bad", amount: 4260, currency: "usd", status: "failed", failure_reason: "lost_or_stolen_card" });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(alerts().filter((a) => /Helpr paid, poster refund failed/.test(a.title ?? ""))).toHaveLength(1);
+    });
+
+    it("does not page the half-settled alarm when no Helpr share moved (0/100 refund throws)", async () => {
+      seedExecutable(scenario, { helperShare: 0, posterShare: 1 });
+      stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_network_unavailable"));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(alerts().some((a) => /Helpr paid, poster refund failed/.test(a.title ?? ""))).toBe(false);
+    });
+
+    it("pages ops when the failure stamp itself cannot be written (Q1729: markFailed's write is checked)", async () => {
+      // @mutate supabase/functions/execute-dispute-split/index.ts |         title: "Dispute split failure not recorded", |         title: "x",
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_network_unavailable"));
+      // The claim write succeeds; only the failure stamp (execution_status
+      // 'failed') errors.
+      scenario.writeOverrides = [
+        { table: "disputes", op: "update", when: (p) => p.execution_status === "failed", error: { message: "db down" } },
+      ];
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect(alerts().filter((a) => /Dispute split failure not recorded/.test(a.title ?? ""))).toHaveLength(1);
+    });
+
     it("reports the LEDGER's amount when the transfer leg is skipped, not a recomputation", async () => {
       // A subscription-tier change between attempts moves the recomputed
       // commission. What the dispute records and the admin is told must be what

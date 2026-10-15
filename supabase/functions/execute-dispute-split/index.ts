@@ -1563,6 +1563,10 @@ serve(async (req) => {
         supabaseAdmin, disputeId, `refund failed: ${err.message}`, { transferId, helperCents }, job.id,
         isDefiniteStripeRefusal(err) ? settlementClaim : null,
       );
+      // Q1729: the Helpr's share already left the platform, so this dispute is
+      // half-settled until someone retries the refund. The 502 reaches only the
+      // admin who pressed the button; ops is paged so it cannot sit unnoticed.
+      if (transferId) await pageRefundLegFailed(disputeId, job.id, transferId, refundCents, `refund failed: ${err.message}`);
       return json(
         {
           error: `the Helpr's share was settled but the poster refund failed: ${err.message}. Retry to finish the refund.`,
@@ -1580,6 +1584,7 @@ serve(async (req) => {
       await markFailed(
         supabaseAdmin, disputeId, `refund ${refund.id} is ${refund.status} at Stripe`, { transferId, helperCents }, job.id, settlementClaim,
       );
+      if (transferId) await pageRefundLegFailed(disputeId, job.id, transferId, refundCents, `refund ${refund.id} is ${refund.status} at Stripe`);
       return json(
         {
           error: `the poster refund ${refund.id} is '${refund.status}' at Stripe, so the poster was NOT repaid. EITHER retry this settlement after 24 hours (Stripe replays the failed refund until then) OR refund them by hand in Stripe, never both: a hand refund carries no dispute id, so a later retry cannot see it.`,
@@ -2006,7 +2011,7 @@ async function markFailed(
     if (settled.refundId) patch.execution_refund_id = settled.refundId;
     if (settled.helperCents != null) patch.execution_helper_cents = settled.helperCents;
     if (settled.refundCents != null) patch.execution_refund_cents = settled.refundCents;
-    const { error } = await admin
+    const { data: marked, error } = await admin
       .from("disputes")
       .update(patch)
       .eq("id", disputeId)
@@ -2020,16 +2025,53 @@ async function markFailed(
       // RPC learned to stamp 'pending') matched ZERO ROWS and the failure was
       // never recorded. That is precisely the pre-claim path this function now
       // routes every refusal through, so the guard has to admit NULL.
-      .or("execution_status.is.null,execution_status.neq.executed");
+      .or("execution_status.is.null,execution_status.neq.executed")
+      .select("id");
     if (error) {
       // Not fatal — the caller is already returning the real error — but a
       // dispute left in 'executing' with no reason recorded is a run nobody can
-      // diagnose, so it must never vanish silently.
+      // diagnose, so it must never vanish silently (Q1729: paged, not only logged).
       console.error(`[execute-dispute-split] could not record failure on dispute ${disputeId}:`, error);
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "warning",
+        title: "Dispute split failure not recorded",
+        message: "execute-dispute-split failed and could not stamp the failure on the dispute, so the admin queue may not show it as failed. Check the dispute by hand.",
+        fields: { dispute_id: disputeId, reason: reason.slice(0, 300), db_error: error.message },
+        oncePerDayKey: `dispute-split-failure-unrecorded:${disputeId}`,
+      });
+    } else if (!marked || marked.length === 0) {
+      // Zero rows is legitimate: the dispute is no longer 'decided' (superseded,
+      // withdrawn) or another run already executed it, and neither may be
+      // relabelled. Logged so a failure that recorded nothing is diagnosable.
+      console.warn(`[execute-dispute-split] failure not stamped on dispute ${disputeId} (no decided, unexecuted row matched): ${reason.slice(0, 200)}`);
     }
   } catch (e) {
     console.error(`[execute-dispute-split] markFailed threw for dispute ${disputeId}:`, e);
   }
+}
+
+/**
+ * Q1729: the poster's refund leg failed AFTER the Helpr's transfer went out.
+ * The dispute is half-settled (the Helpr paid, the poster not repaid) until an
+ * admin retries, so ops is paged rather than relying on the admin's 502 alone.
+ */
+async function pageRefundLegFailed(
+  disputeId: string,
+  jobId: string,
+  transferId: string,
+  refundCents: number,
+  why: string,
+): Promise<void> {
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: "Dispute split: Helpr paid, poster refund failed",
+    message: "The Helpr's share of a dispute split was transferred but the poster's refund failed. Retry the settlement from the admin dispute page (or refund by hand in Stripe, never both).",
+    fields: { dispute_id: disputeId, job_id: jobId, transfer_id: transferId, refund_cents: refundCents, error: why.slice(0, 300) },
+    // An admin retrying a refund that keeps failing pages once a day, not per press.
+    oncePerDayKey: `dispute-split-refund-leg:${disputeId}`,
+  });
 }
 
 /**

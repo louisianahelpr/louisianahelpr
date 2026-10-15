@@ -6,7 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { refundDuplicateFunding } from "./refundDuplicateFunding.ts";
+import { ledgerDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
@@ -1096,7 +1096,7 @@ async function settleCheckoutSession(
     if (!jobError && (!jobUpdated || jobUpdated.length === 0)) {
       const { data: funded, error: fundedErr } = await supabase
         .from("jobs")
-        .select("id, status, payment_status, stripe_payment_intent_id")
+        .select("id, status, payment_status, stripe_payment_intent_id, customer_id")
         .eq("id", jobId)
         .maybeSingle();
       if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) {
@@ -1106,7 +1106,7 @@ async function settleCheckoutSession(
         return;
       }
       if (!fundedErr && funded) {
-        await refundDuplicateFunding(stripe, piId);
+        const dupRefund = await refundDuplicateFunding(stripe, piId);
         let giftRestored: boolean | null = null;
         if (giftCardId && giftConsumedHere) {
           const { data: restored, error: restoreErr } = await supabase
@@ -1138,6 +1138,12 @@ async function settleCheckoutSession(
             gift_card: giftCardId ?? "none",
             gift_restored: giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand",
           },
+        });
+        // Q1819: ledgered LAST (lh-money-escrow re-review of dfae918ae): a
+        // write error throws so Stripe redelivers, and by then the gift above
+        // is already restored, so the retry cannot skip its restore.
+        await ledgerDuplicateFundingRefund(supabase, dupRefund, {
+          jobId, customerId: (funded as { customer_id?: string | null }).customer_id ?? null, pi: piId, sessionId: session.id,
         });
         return;
       }

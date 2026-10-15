@@ -219,7 +219,7 @@ function SendQuote() {
 
 export default function SendQuotePage() {
   return (
-    <QuotesGate title={TITLE}>
+    <QuotesGate title={TITLE} backTo="/quotes?view=open" label="Loading the request">
       <AppPage title={TITLE} backTo="/quotes?view=open">
         <SendQuote />
       </AppPage>

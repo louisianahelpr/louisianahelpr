@@ -24589,6 +24589,1179 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/quotes",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3986,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3985,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4197",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fquotes",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/quotes/request/test",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3816,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes/request/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes_request_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes_request_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes/request/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4197",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fquotes%2Frequest%2Ftest",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/quotes/request/test",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3770,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes/request/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes_request_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes_request_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes/send/test",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3854,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes/send/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes_send_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/customer_quotes_send_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes/send/test",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4197",
+      "capturedAt": 3830,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/quotes/send/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes_send_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 34,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/quotes-loading/measure-after/helper_quotes_send_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/quotes/send/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4197",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fquotes%2Fsend%2Ftest",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -24649,6 +25822,22 @@
         "customer /declutter/sell",
         "helper /declutter/sell"
       ]
+    },
+    {
+      "at": "2026-10-15T12:26:30.714Z",
+      "base": "http://127.0.0.1:4197",
+      "surfaces": [
+        "helper /quotes",
+        "customer /quotes",
+        "anon /quotes",
+        "customer /quotes/request/test",
+        "anon /quotes/request/test",
+        "helper /quotes/request/test",
+        "customer /quotes/send/test",
+        "helper /quotes/send/test",
+        "anon /quotes/send/test"
+      ],
+      "replaced": []
     }
   ]
 }

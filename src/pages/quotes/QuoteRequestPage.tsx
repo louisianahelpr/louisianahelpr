@@ -247,7 +247,7 @@ function RequestView({ id }: { id: string }) {
 export default function QuoteRequestPage() {
   const { id = "" } = useParams<{ id: string }>();
   return (
-    <QuotesGate title={TITLE}>
+    <QuotesGate title={TITLE} backTo="/quotes" label="Loading the request">
       <AppPage title={TITLE} backTo="/quotes">
         <RequestView id={id} />
       </AppPage>

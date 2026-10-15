@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { isMissingRpc } from "@/components/admin/adminStalledJobs/stalledQueue";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import type { Stats } from "@/components/admin/dashboard/types";
 
@@ -40,8 +39,8 @@ export function adminBadgeFor(
  * Q1071: the Stuck Jobs rail count. Its key sits under the screen's own
  * ["admin-stalled-job-queue"] prefix, so the screen's resolve invalidation
  * refreshes the badge too. A failed read throws (unwrap) and shows as the
- * page's data error, never as a confident "nothing stuck"; an RPC not yet
- * deployed is no badge, as the screen treats it. Test jobs (either party a
+ * page's data error, never as a confident "nothing stuck" (and the RPC is on
+ * prod, so a missing one is a failure too, Q?admin-badge-not-deployed). Test jobs (either party a
  * seed account, the screen's own Test tag rule) are left out, like every
  * other rail and dashboard count.
  */
@@ -50,7 +49,6 @@ export function useStalledQueueCount(enabled: boolean) {
     queryKey: ["admin-stalled-job-queue", "rail-count"],
     queryFn: async () => {
       const res = await supabase.rpc("admin_stalled_job_queue", { p_include_resolved: false });
-      if (res.error && isMissingRpc(res.error)) return 0;
       const rows = unwrap(res) ?? [];
       const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id]));
       return rows.filter((r) => !seed.has(r.customer_id ?? "") && !seed.has(r.helper_id ?? "")).length;
@@ -59,19 +57,6 @@ export function useStalledQueueCount(enabled: boolean) {
     staleTime: 60_000,
   });
 }
-
-/**
- * Q1691: the five admin queues that had no rail count (Ban Review, License &
- * Insurance, Exception Queue, Fraud, Identity Review). Each counts what its
- * screen lists as waiting, from the same read the screen makes, test accounts
- * left out like every other rail count. Each key sits under its screen's own
- * query-key prefix, so the screen's invalidation after a decision refreshes
- * the number too. A failed read throws (unwrap) and shows as the page's data
- * error, never as a confident zero; a table or RPC not yet deployed is no
- * badge, as the screens treat it.
- */
-const notDeployed = (error: { code?: string; message?: string } | null) =>
-  !!error && (error.code === "PGRST202" || !!error.message?.includes("does not exist"));
 
 async function realUsers(userIds: (string | null | undefined)[]): Promise<string[]> {
   const seed = await fetchSeedUserIds(userIds);
@@ -86,6 +71,17 @@ export type QueueCounts = {
   idvreview?: number;
 };
 
+/**
+ * Q1691: the five admin queues that had no rail count (Ban Review, License &
+ * Insurance, Exception Queue, Fraud, Identity Review). Each counts what its
+ * screen lists as waiting, from the same read the screen makes, test accounts
+ * left out like every other rail count. Each key sits under its screen's own
+ * query-key prefix, so the screen's invalidation after a decision refreshes
+ * the number too. A failed read throws (unwrap) and shows as the page's data
+ * error, never as a confident zero (Q?admin-badge-not-deployed: no "not
+ * deployed yet" branch either; every table and RPC read here is on prod, so a
+ * missing one, or a dropped column, is a real failure).
+ */
 export function useOpenQueueCounts(enabled: boolean): { data: QueueCounts; isError: boolean } {
   const opts = { enabled, staleTime: 60_000 } as const;
   // AdminBanReview: one open case per person (pending_ban_review rows collapsed by user).
@@ -94,7 +90,6 @@ export function useOpenQueueCounts(enabled: boolean): { data: QueueCounts; isErr
     queryKey: ["admin-ban-review", "rail-count"],
     queryFn: async () => {
       const res = await supabase.from("user_violations").select("user_id").eq("action_taken", "pending_ban_review");
-      if (notDeployed(res.error)) return 0;
       return new Set(await realUsers((unwrap(res) ?? []).map((r) => r.user_id))).size;
     },
   });
@@ -113,7 +108,6 @@ export function useOpenQueueCounts(enabled: boolean): { data: QueueCounts; isErr
     queryKey: ["admin-exception-queue", "rail-count"],
     queryFn: async () => {
       const res = await supabase.from("verification_exceptions").select("user_id").eq("status", "open");
-      if (notDeployed(res.error)) return 0;
       return (await realUsers((unwrap(res) ?? []).map((r) => r.user_id))).length;
     },
   });

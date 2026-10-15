@@ -9,7 +9,6 @@ import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import NotFound from "@/pages/info/NotFound";
 import AppPage from "@/components/AppPage";
-import { Skeleton } from "@/components/ui/skeleton";
 
 /** What a quote's status reads as, from the reader's side. */
 export const QUOTE_STATUS_LABEL: Record<string, string> = {
@@ -28,15 +27,22 @@ export const REQUEST_STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-/** The page shell while the switch answer loads: the real title, bones below. */
-function QuotesSkeleton({ title }: { title: string }) {
+/**
+ * The gate's frame while the switch's answer loads: the screen's real AppPage
+ * header (same title, same back link) and NO bones. While 'quotes' is off the
+ * answer is the 404 for every account, so bones there could only guess at a
+ * page that never comes: measured 2026-10-15 (scripts/audit/measure-loading-states.mjs,
+ * local build of ready/quotes, prod backend, both test accounts), the old three
+ * bones swapped for the 404 with a -132px row and 2 -> 3 rows on all three routes. The
+ * header holds the real title in its place and says it is loading; each page's
+ * own loading state (switch on, data on its way) draws below it.
+ */
+function QuotesGateFrame({ title, backTo, label }: { title: string; backTo: string; label: string }) {
   return (
-    <AppPage title={title} backTo="/posts">
-      <div className="space-y-3" aria-busy="true" aria-label="Loading">
-        <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-      </div>
+    <AppPage title={title} backTo={backTo}>
+      <p role="status" className="sr-only">
+        {label}
+      </p>
     </AppPage>
   );
 }
@@ -46,14 +52,14 @@ function QuotesSkeleton({ title }: { title: string }) {
  * this member; a settled "off" is the 404, exactly as if the route did not
  * exist. Never the protection on its own: every quote RPC refuses too.
  */
-export function QuotesGate({ title, children }: { title: string; children: ReactNode }) {
+export function QuotesGate({ title, backTo, label, children }: { title: string; backTo: string; label: string; children: ReactNode }) {
   const enabled = useFeature("quotes");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
   const state = qc.getQueryState(["feature-enabled", "quotes", user?.id ?? null]);
   const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
-  return settled ? <NotFound /> : <QuotesSkeleton title={title} />;
+  return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />;
 }
 
 /** A plain-English block in place of a control the member cannot use. */

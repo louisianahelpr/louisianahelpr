@@ -173,7 +173,7 @@ function QuotesHome() {
 
 export default function QuotesPage() {
   return (
-    <QuotesGate title="Quotes">
+    <QuotesGate title="Quotes" backTo="/posts" label="Loading quotes">
       <AppPage title="Quotes" backTo="/posts">
         <QuotesHome />
       </AppPage>

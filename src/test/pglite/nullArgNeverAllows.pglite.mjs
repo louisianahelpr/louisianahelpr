@@ -78,6 +78,10 @@ CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, email_confirmed_at tim
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
                   (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid $$;
+-- Supabase's auth.role(): the role claim, from either GUC (read by is_server_context, Q1784).
+CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
+  SELECT coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
+                  (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'))::text $$;
 CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
 CREATE TYPE public.job_category AS ENUM ('cleaning', 'other');
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE,
@@ -115,6 +119,11 @@ CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
+-- Q1784: read by the newest job_announceable_to (shape as live, 2026-10-14,
+-- information_schema.columns: the two columns it reads plus the NOT NULL rest).
+CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
+  matched_on text NOT NULL DEFAULT 'test', review_state text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(),
+  deferred_rungs jsonb NOT NULL DEFAULT '[]'::jsonb);
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
 CREATE TABLE storage.objects (id bigserial PRIMARY KEY, bucket_id text, name text, owner uuid, UNIQUE (bucket_id, name));
@@ -136,7 +145,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
-const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];
+// job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
+// like the rest (SQL bodies are validated at CREATE, so it must exist first).
+const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
 const loaded = [];
@@ -153,6 +164,16 @@ if (MODE)
       absentBeforeFix.add(name); // no definition before the fix: stubbed below
     }
   }
+// Q1784: the newest has_role / user_may_see_job_address / feature_enabled_for_user
+// allow a caller with no uid only in a server context (20261012184600). db-smoke
+// runs the check as postgres, where the REAL is_server_context() is true; the
+// `SELECT false` stub made every baseline call false here (BASELINE_NOT_TRUE).
+// Replace the stub with its newest definition, verbatim, before anything uses it.
+{
+  const def = newest("is_server_context");
+  await db.exec(def.sql);
+  loaded.push(`is_server_context@${def.file.slice(0, 14)}`);
+}
 for (const name of ORDER) {
   if (absentBeforeFix.has(name)) continue;
   const def = newest(name);

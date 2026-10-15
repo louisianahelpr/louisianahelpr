@@ -28,7 +28,9 @@ export const FEATURE_SWITCH_KEYS = [
   // suggest_category() and the admin RPCs refuse without it (require_feature).
   "suggest_category",
   // Roadmap F4 (owner 2026-10-14/15): membership purchases and every upgrade
-  // entry point. Created OFF; create-pro-checkout refuses while it is off.
+  // entry point. Created at TESTERS by 20261015033658 (the App Review account
+  // keeps Pro during the 1.0.4 review; every member is off); create-pro-checkout
+  // and subscription_purchase_eligibility refuse anyone it is off for.
   "memberships",
 ] as const;
 

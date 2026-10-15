@@ -119,6 +119,11 @@ serve(async (req) => {
             .update({
               subscription_tier: tier,
               subscription_expires_at: expiresAt,
+              // A live Stripe subscription makes Stripe the authority, as the
+              // two stripe-webhook grants record (f0c3fdb3f). Without it a row
+              // synced only here kept 'apple' and was graded by Apple
+              // (lh-money-escrow review of 3b12e17b4, finding 7).
+              subscription_source: "stripe",
               // This function reconciles a member against Stripe on every
               // dashboard load, so it is also the natural BACKFILL for the
               // linkage columns on accounts whose last webhook predates them.

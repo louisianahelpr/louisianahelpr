@@ -710,6 +710,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38434750617. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38656878328. notes: Q1807. feed: issue #2993
   - main: vitest: no open issue. feed: ledger f22e3275d50d
+  - STATUS 2026-10-15: two robots fixed at the root on this landing (sec-c): e2e-real-backend (run 38527096325: the spec hired with accept_application then went to on-my-way and got 403 accept_required; prod-lifecycle and settleJobForward now call accept_job_offer first; guard src/test/e2eHiresAreAccepted.test.ts) and vacuity (run 38651055503: launchWaitsOn's @mutate removed Q152, already done; it now removes open Q1289). Each sub-line ticks itself when its workflow runs green after deploy; the lead re-runs both.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

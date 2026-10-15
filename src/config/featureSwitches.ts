@@ -32,6 +32,10 @@ export const FEATURE_SWITCH_KEYS = [
   // keeps Pro during the 1.0.4 review; every member is off); create-pro-checkout
   // and subscription_purchase_eligibility refuse anyone it is off for.
   "memberships",
+  // Quotes on jobs (roadmap Q1-Q8, owner 2026-10-14): Get quotes on Post a Job,
+  // the quote form and counters. Created OFF by 20261015091114; every job quote
+  // RPC refuses without it (require_feature).
+  "quotes",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

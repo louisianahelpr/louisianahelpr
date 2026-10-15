@@ -3529,6 +3529,188 @@ export type Database = {
           },
         ]
       }
+      job_quote_offers: {
+        Row: {
+          by_side: string
+          created_at: string
+          id: string
+          note: string | null
+          price_cents: number
+          quote_id: string
+        }
+        Insert: {
+          by_side: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          price_cents: number
+          quote_id: string
+        }
+        Update: {
+          by_side?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          price_cents?: number
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_quote_offers_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "job_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_quote_requests: {
+        Row: {
+          category: Database["public"]["Enums"]["job_category"]
+          created_at: string
+          date_needed: string
+          description: string
+          estimated_hours: number | null
+          id: string
+          invited_only: boolean
+          is_seed: boolean
+          job_id: string | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          parish: string | null
+          poster_id: string | null
+          quotes_close_at: string
+          start_time: string | null
+          status: string
+          title: string
+          updated_at: string
+          window_hours: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["job_category"]
+          created_at?: string
+          date_needed: string
+          description: string
+          estimated_hours?: number | null
+          id?: string
+          invited_only?: boolean
+          is_seed?: boolean
+          job_id?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          parish?: string | null
+          poster_id?: string | null
+          quotes_close_at: string
+          start_time?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          window_hours?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["job_category"]
+          created_at?: string
+          date_needed?: string
+          description?: string
+          estimated_hours?: number | null
+          id?: string
+          invited_only?: boolean
+          is_seed?: boolean
+          job_id?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          parish?: string | null
+          poster_id?: string | null
+          quotes_close_at?: string
+          start_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          window_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_quote_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_quote_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_quote_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_quotes: {
+        Row: {
+          available_note: string
+          created_at: string
+          id: string
+          last_offer_side: string
+          note: string
+          offer_count: number
+          photo_paths: string[]
+          price_cents: number
+          quoter_id: string | null
+          request_id: string
+          respond_until: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          available_note: string
+          created_at?: string
+          id?: string
+          last_offer_side?: string
+          note: string
+          offer_count?: number
+          photo_paths?: string[]
+          price_cents: number
+          quoter_id?: string | null
+          request_id: string
+          respond_until: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          available_note?: string
+          created_at?: string
+          id?: string
+          last_offer_side?: string
+          note?: string
+          offer_count?: number
+          photo_paths?: string[]
+          price_cents?: number
+          quoter_id?: string | null
+          request_id?: string
+          respond_until?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_quotes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "job_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_refund_claims: {
         Row: {
           actor_user_id: string | null
@@ -8214,6 +8396,10 @@ export type Database = {
         Args: { p_blocked: string; p_reason?: string }
         Returns: Json
       }
+      book_accepted_quote: {
+        Args: { p_request_id: string }
+        Returns: string
+      }
       can_message_in_job: {
         Args: { _job_id: string; _sender: string }
         Returns: boolean
@@ -8231,6 +8417,10 @@ export type Database = {
       can_send_message_to_in_job: {
         Args: { _job_id: string; _receiver: string }
         Returns: boolean
+      }
+      cancel_quote_request: {
+        Args: { p_request_id: string }
+        Returns: undefined
       }
       cancellation_fee_percent: {
         Args: { p_has_helper: boolean; p_hours_until: number }
@@ -8251,6 +8441,22 @@ export type Database = {
       check_user_reports_reach_ledger: { Args: never; Returns: number }
       client_compat_floor: { Args: never; Returns: number }
       declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
+      create_quote_request: {
+        Args: {
+          p_category: string
+          p_date_needed: string
+          p_description: string
+          p_estimated_hours?: number
+          p_latitude?: number
+          p_location?: string
+          p_longitude?: number
+          p_parish?: string
+          p_start_time?: string
+          p_title: string
+          p_window_hours?: number
+        }
+        Returns: string
+      }
       declutter_add_item_photo: {
         Args: { p_item_id: string; p_storage_path: string }
         Returns: string
@@ -8700,6 +8906,59 @@ export type Database = {
           p_reason: string
         }
         Returns: Json
+      }
+      get_my_job_quotes: {
+        Args: never
+        Returns: {
+          available_note: string
+          created_at: string
+          date_needed: string
+          id: string
+          job_id: string
+          last_offer_side: string
+          note: string
+          offers: Json
+          parish: string
+          price_cents: number
+          request_id: string
+          respond_until: string
+          status: string
+          title: string
+        }[]
+      }
+      get_my_quote_requests: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          date_needed: string
+          id: string
+          job_id: string
+          parish: string
+          quote_count: number
+          quotes_close_at: string
+          status: string
+          title: string
+          window_hours: number
+        }[]
+      }
+      get_quotes_for_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          available_note: string
+          created_at: string
+          id: string
+          last_offer_side: string
+          note: string
+          offers: Json
+          photo_paths: string[]
+          price_cents: number
+          quoter_avatar_url: string
+          quoter_id: string
+          quoter_name: string
+          respond_until: string
+          status: string
+        }[]
       }
       job_offer_cutoff: {
         Args: { p_date_needed: string; p_start_time: string }
@@ -9728,6 +9987,26 @@ export type Database = {
         Args: { p_event_id: string; p_job_id: string }
         Returns: boolean
       }
+      list_open_quote_requests: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          date_needed: string
+          description: string
+          estimated_hours: number
+          id: string
+          latitude: number
+          location: string
+          longitude: number
+          my_quote_id: string
+          my_quote_status: string
+          parish: string
+          quotes_close_at: string
+          start_time: string
+          title: string
+        }[]
+      }
       log_cron_defect: {
         Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
         Returns: undefined
@@ -9961,6 +10240,23 @@ export type Database = {
         Returns: Json
       }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
+      quote_display_status: {
+        Args: { p_respond_until: string; p_status: string }
+        Returns: string
+      }
+      quote_insert_job: {
+        Args: {
+          p_budget: number
+          p_offer_to: string
+          p_req: Database["public"]["Tables"]["job_quote_requests"]["Row"]
+        }
+        Returns: string
+      }
+      quote_notify: {
+        Args: { p_message: string; p_title: string; p_user: string }
+        Returns: undefined
+      }
+      quote_require_member: { Args: never; Returns: string }
       rate_limit_hit: {
         Args: {
           p_bucket: string
@@ -10059,6 +10355,15 @@ export type Database = {
       respond_to_direct_offer: {
         Args: { p_accept: boolean; p_job_id: string }
         Returns: Json
+      }
+      respond_to_job_quote: {
+        Args: {
+          p_action: string
+          p_note?: string
+          p_price_cents?: number
+          p_quote_id: string
+        }
+        Returns: string
       }
       respond_to_review: {
         Args: { _response_text: string; _review_id: string }
@@ -10297,6 +10602,16 @@ export type Database = {
         Returns: boolean
       }
       start_underfilled_crews: { Args: never; Returns: number }
+      submit_job_quote: {
+        Args: {
+          p_available_note: string
+          p_note: string
+          p_photo_paths?: string[]
+          p_price_cents: number
+          p_request_id: string
+        }
+        Returns: string
+      }
       subscription_purchase_eligibility: {
         Args: { p_platform: string }
         Returns: Json
@@ -10337,6 +10652,10 @@ export type Database = {
       sweep_unfilled_series_visit_reminders: { Args: never; Returns: number }
       sync_jobs_select_grants: { Args: never; Returns: Json }
       sync_profiles_update_grants: { Args: never; Returns: Json }
+      switch_quote_request_to_set_price: {
+        Args: { p_budget: number; p_request_id: string }
+        Returns: string
+      }
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
@@ -10370,6 +10689,10 @@ export type Database = {
       wipe_pre_verification_account: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      withdraw_job_quote: {
+        Args: { p_quote_id: string }
+        Returns: undefined
       }
     }
     Enums: {

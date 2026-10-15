@@ -12,6 +12,14 @@ import type { usePostJobForm } from "./usePostJobForm";
 import { detailsBlocker } from "./detailsBlocker";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
+import { useRef, useState } from "react";
+import { useFeature } from "@/hooks/useFeature";
+import {
+  PriceModeChoice,
+  QuoteRequestSection,
+  type PriceMode,
+  type QuoteAskHandle,
+} from "@/components/quotes/PostJobQuoteChoice";
 
 interface FormStepProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -37,7 +45,18 @@ export function FormStep({ form }: FormStepProps) {
   // Q1586(c): a saved birthday under 18 greys the button out, and the line at
   // the top says why before any of the form is filled in.
   const { underAge } = useAgeGate();
-  const submitDisabled = atOpenJobLimit || !formReady || underAge;
+  // Quotes on jobs (hidden 'quotes' switch): "Get quotes" replaces the budget
+  // with a quote window for a one-time job with no direct offer.
+  const quotesOn = useFeature("quotes");
+  const [priceModeRaw, setPriceMode] = useState<PriceMode>("price");
+  const quotesEligible = quotesOn && !form.offerToHelperId && !form.isRecurring && !form.isGroupJob;
+  const priceMode: PriceMode = quotesEligible ? priceModeRaw : "price";
+  const quoteAsk = useRef<QuoteAskHandle>(null);
+  const [quoteSending, setQuoteSending] = useState(false);
+  const askingQuotes = priceMode === "quotes";
+  const submitDisabled = askingQuotes
+    ? !(form.detailsComplete && form.logisticsComplete) || underAge || quoteSending
+    : atOpenJobLimit || !formReady || underAge;
 
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
@@ -57,6 +76,8 @@ export function FormStep({ form }: FormStepProps) {
     // button used to read "Review & Pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
     else submitLabel = "That Start Time Has Passed";
+  } else if (askingQuotes) {
+    submitLabel = quoteSending ? "Sending…" : "Ask for Quotes";
   } else if (!form.budgetComplete) {
     submitLabel = "Set a Budget to Continue";
   }
@@ -87,7 +108,28 @@ export function FormStep({ form }: FormStepProps) {
           per-section chapter cards (numbered headers) now carry section
           identity on their own. */}
 
-      <form onSubmit={form.handleReview} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          if (!askingQuotes) return form.handleReview(e);
+          e.preventDefault();
+          if (submitDisabled) return;
+          void quoteAsk.current?.ask({
+            title: form.title,
+            description: form.description,
+            category: form.category,
+            streetAddress: form.streetAddress,
+            city: form.city,
+            addrState: form.addrState,
+            zipCode: form.zipCode,
+            dateNeeded: form.dateNeeded,
+            startTime: form.startTime,
+            isFlexibleSchedule: form.isFlexibleSchedule,
+            estimatedHours: form.estimatedHours,
+            parish: form.parish,
+          });
+        }}
+        className="space-y-4"
+      >
         {/* SECTION 1: DETAILS */}
         <div>
           <DetailsSection
@@ -160,7 +202,11 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* SECTION 3: BUDGET */}
+        {/* SECTION 3: BUDGET (or, with quotes on, the quote window) */}
+        {quotesEligible && <PriceModeChoice value={priceMode} onChange={setPriceMode} />}
+        {askingQuotes ? (
+          <QuoteRequestSection ref={quoteAsk} stepNumber={3} onSendingChange={setQuoteSending} />
+        ) : (
         <div>
           <BudgetSection
             stepNumber={3}
@@ -176,6 +222,7 @@ export function FormStep({ form }: FormStepProps) {
             giftAmount={form.giftCreditAmount}
           />
         </div>
+        )}
 
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The
@@ -208,7 +255,7 @@ export function FormStep({ form }: FormStepProps) {
                   charge are on the review screen, which shows them before any
                   payment. `formatPriceExact` so cents typed into the field
                   show here exactly as typed. */}
-              {formReady && form.budgetNum > 0 && (
+              {!askingQuotes && formReady && form.budgetNum > 0 && (
                 <span
                   className="font-sans font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}

@@ -266,6 +266,11 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "declutter", url: "/declutter" },
   { name: "declutter-sell", url: "/declutter/sell" },
   { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
+  // Quotes on jobs (hidden switch 'quotes', created OFF): the NotFound page while
+  // it is off for the sweep account, the real screens once testers include it.
+  { name: "quotes", url: "/quotes" },
+  { name: "quotes-request-missing", url: "/quotes/request/10000000-0000-4000-8000-00000000dead" },
+  { name: "quotes-send-missing", url: "/quotes/send/10000000-0000-4000-8000-00000000dead" },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },
   { name: "profile-edit", url: "/profile?tab=profile" },

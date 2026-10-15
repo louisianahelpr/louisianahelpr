@@ -151,6 +151,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/declutter/DeclutterTradeViews.tsx::await startCardSave()": STRIPE_EDGE_URL,
   "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
+  "lib/escrowCheckout.ts::url": STRIPE_EDGE_URL + " (create-payment action escrow, the quote screens' booking)",
 };
 
 function unclassifiedSinks(files: { rel: string; source: string }[]) {

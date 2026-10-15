@@ -43,6 +43,9 @@ export function FeatureSwitchesCard() {
   const reachesMe: Partial<Record<FeatureKey, boolean>> = {
     switch_canary: canaryReachesMe,
     declutter: useFeature("declutter"),
+    // Quotes on jobs (slice 1 is server-only): the admin's proof the switch
+    // reaches this account before the quote screens exist.
+    quotes: useFeature("quotes"),
   };
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);

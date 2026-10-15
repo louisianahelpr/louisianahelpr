@@ -10,6 +10,12 @@ export interface SavedRead {
   onRetry: () => void;
   /** The re-read is in flight: the retry button is disabled meanwhile. */
   retrying: boolean;
+  /**
+   * How many jobs the viewer has saved, shown or not (Q1739). Above zero with
+   * an empty list means every saved job is closed, filled, applied to or
+   * passed on: "Nothing saved yet" would be false.
+   */
+  total?: number;
 }
 
 /**
@@ -26,11 +32,14 @@ export function SavedOnlyState({ savedRead }: { savedRead?: SavedRead }) {
        and action rows, so its circle, title and text sit where My Posts',
        My Jobs' and Messages' do (it sat 38px lower at 375 on prod,
        2026-10-13: the wrapper's pt-4 plus no button row). */
+    const noneOpen = (savedRead?.total ?? 0) > 0;
     return (
       <div className="flex-1 min-h-0 flex">
         <EmptyState icon={Bookmark}
-          title="Nothing saved yet"
-          body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
+          title={noneOpen ? "None of your saved jobs are open" : "Nothing saved yet"}
+          body={noneOpen
+            ? "Each one was filled or closed, or is one you applied to or passed on. Tap the bookmark on a job to keep it here."
+            : "Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."}
           bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
         />
       </div>

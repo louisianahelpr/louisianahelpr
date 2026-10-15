@@ -27,6 +27,12 @@ export const APPLICATION_ATTACHMENT_TYPES: readonly string[] = [
   "application/pdf",
 ];
 
+/** Rentals ownership proof goes to user-documents (jpeg/png/webp/heic/pdf); the picker offers JPEG, PNG and PDF. */
+export const RENTALS_PROOF_TYPES: readonly string[] = ["image/jpeg", "image/png", "application/pdf"];
+
+/** Rentals maintenance-request photos go to user-documents: images only (no video yet: the bucket takes none). */
+export const RENTALS_REQUEST_PHOTO_TYPES: readonly string[] = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+
 /** True when the file's reported MIME type is on the list. An empty type never is. */
 export function isAllowedUploadType(file: { type: string }, allowed: readonly string[]): boolean {
   return allowed.includes((file.type || "").toLowerCase());

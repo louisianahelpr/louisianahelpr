@@ -787,7 +787,7 @@ export const GAPS: Record<string, string> = {
   // reason required ('other' needs >= 5 chars, <= 500, contact scan); "Was it fixed?" note <= 500 with contact scan;
   // auto-approve limit $1-$10,000; admin rejection needs a >= 5-char reason. src/test/pglite/rentalsMaintenance.pglite.mjs
   // proves the contact-leak refusal, both reason_required paths, bad_limit and the admin reason (97 PASS, 0/97 with the
-  // migration skipped). A FORMS sweep is OWED once the switch is on for testers (Q?rentals-visual).
+  // migration skipped). A FORMS sweep is OWED once the switch is on for testers (the Rentals S1 visual item in docs/OPEN.md).
   "src/components/rentals/RentalsHomeView.tsx": "behind the OFF 'rentals' switch (404 on prod); property/unit/limit rules are CHECKs and RAISEs in 20261015061259, bad_limit pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   "src/components/rentals/MaintenanceRequestForm.tsx": "behind the OFF 'rentals' switch (404 on prod); description/access lengths and the contact-leak scan in rentals_file_request (20261015061259), contact refusal pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   "src/components/rentals/MaintenanceRequestView.tsx": "behind the OFF 'rentals' switch (404 on prod); decline reason and fixed-note rules in 20261015061259, reason_required pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",

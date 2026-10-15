@@ -217,10 +217,18 @@ ALTER TABLE public.maintenance_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maintenance_request_photos ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.rental_properties, public.rental_units, public.rental_tenancies,
   public.maintenance_requests, public.maintenance_request_photos FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.rental_properties, public.rental_units, public.rental_tenancies,
-  public.maintenance_requests, public.maintenance_request_photos TO authenticated;
-GRANT ALL ON TABLE public.rental_properties, public.rental_units, public.rental_tenancies,
-  public.maintenance_requests, public.maintenance_request_photos TO service_role;
+-- One statement per table (scripts/check-migration-relation-grants.mjs reads one relation per GRANT).
+-- SELECT only, for the read policies below; every write goes through a SECURITY DEFINER RPC.
+GRANT SELECT ON TABLE public.rental_properties TO authenticated;
+GRANT SELECT ON TABLE public.rental_units TO authenticated;
+GRANT SELECT ON TABLE public.rental_tenancies TO authenticated;
+GRANT SELECT ON TABLE public.maintenance_requests TO authenticated;
+GRANT SELECT ON TABLE public.maintenance_request_photos TO authenticated;
+GRANT ALL ON TABLE public.rental_properties TO service_role;
+GRANT ALL ON TABLE public.rental_units TO service_role;
+GRANT ALL ON TABLE public.rental_tenancies TO service_role;
+GRANT ALL ON TABLE public.maintenance_requests TO service_role;
+GRANT ALL ON TABLE public.maintenance_request_photos TO service_role;
 
 -- Is the CALLER an active tenant of p_property? Definer, so the policies below
 -- do not recurse through rental_tenancies' own policy; scoped to auth.uid()
@@ -327,19 +335,29 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
+DECLARE
+  v_actor uuid := auth.uid();
+  v_link text := p_link;
 BEGIN
   IF p_user IS NULL THEN
     RETURN;
   END IF;
+  -- Carry the actor (the tenant, landlord or admin whose RPC sent this) in the
+  -- link, so the notifications seed-boundary trigger can judge the row: a test
+  -- account never notifies a real person (Q137, seedNeverNotifiesReal). A
+  -- Rentals link names no job, so without it the trigger could not tell.
+  IF v_actor IS NOT NULL AND v_actor <> p_user AND v_link IS NOT NULL THEN
+    v_link := CASE WHEN strpos(v_link, '?') > 0 THEN v_link || '&user=' ELSE v_link || '?user=' END || v_actor::text;
+  END IF;
   BEGIN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (p_user, p_title, p_message, 'job_updates', p_link);
+    VALUES (p_user, p_title, p_message, 'job_updates', v_link);
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'rentals_notify: %', SQLERRM;
   END;
   IF p_email THEN
     BEGIN
-      IF public.notification_crosses_seed_boundary(p_user, NULL, p_link, auth.uid()) THEN
+      IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
         RETURN;
       END IF;
       PERFORM net.http_post(
@@ -348,7 +366,7 @@ BEGIN
           'Content-Type', 'application/json',
           'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key' LIMIT 1)
         ),
-        body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'job_updates', 'link', p_link)
+        body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'job_updates', 'link', v_link)
       );
     EXCEPTION WHEN OTHERS THEN
       RAISE WARNING 'rentals_notify email: %', SQLERRM;
@@ -425,7 +443,7 @@ BEGIN
   END IF;
   -- The file must sit in the caller's own folder for THIS property.
   IF p_storage_path IS NULL
-     OR p_storage_path !~ ('^' || v_uid::text || '/rentals/' || p_property_id::text || '/[A-Za-z0-9._-]{1,100}$') THEN
+     OR p_storage_path !~ format('^%s/rentals/%s/[A-Za-z0-9._-]{1,100}$', v_uid, p_property_id) THEN
     RAISE EXCEPTION 'bad_proof_path' USING ERRCODE = '22023';
   END IF;
   UPDATE public.rental_properties
@@ -767,7 +785,7 @@ BEGIN
   RETURNING id INTO v_id;
   IF p_photo_paths IS NOT NULL THEN
     FOREACH v_path IN ARRAY p_photo_paths LOOP
-      IF v_path IS NULL OR v_path !~ ('^' || v_uid::text || '/rentals/requests/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$') THEN
+      IF v_path IS NULL OR v_path !~ format('^%s/rentals/requests/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,100}$', v_uid) THEN
         RAISE EXCEPTION 'bad_photo_path' USING ERRCODE = '22023';
       END IF;
       INSERT INTO public.maintenance_request_photos (request_id, tenant_id, storage_path, position)

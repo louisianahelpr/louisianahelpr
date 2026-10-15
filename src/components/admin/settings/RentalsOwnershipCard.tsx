@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPendingOwnership, reviewOwnership, signedFileUrl, type RentalProperty } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
+import { openSignedDocument } from "@/lib/openSignedDocument";
 import { AdminCard } from "../AdminViewShell";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
@@ -32,11 +33,13 @@ function Row({ p, onDone }: { p: RentalProperty; onDone: () => void }) {
         <button
           type="button"
           className="underline font-semibold"
+          // The tab opens inside the click, before any await, or WebKit blocks it silently (Q295).
           onClick={() =>
-            signedFileUrl(p.ownership_proof_path as string).then(
-              (u) => window.open(u, "_blank", "noopener"),
-              (e) => toast.error(rentalsErrorMessage(e)),
-            )
+            void openSignedDocument({
+              open: (url, target) => window.open(url, target),
+              sign: () => signedFileUrl(p.ownership_proof_path as string),
+              toastError: (msg) => toast.error(msg),
+            })
           }
         >
           Open ownership proof

@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isStorageObjectPath } from "@/lib/storagePath";
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { RENTALS_PROOF_TYPES, RENTALS_REQUEST_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { RentalsCopyError } from "./copy";
 
 type Tables = Database["public"]["Tables"];
@@ -80,6 +83,8 @@ export async function fetchRequestJobState(requestId: string): Promise<RequestJo
 
 /** A short-lived link to a private file (proof or request photo) the caller may read. */
 export async function signedFileUrl(path: string): Promise<string> {
+  // Only a storage path is ever signed (a stored URL is not one): signedUrlOnlyForStoragePaths.
+  if (!isStorageObjectPath(path)) throw new Error("not_a_storage_path");
   const { data, error } = await supabase.storage.from(RENTALS_BUCKET).createSignedUrl(path, 600);
   if (error) throw error;
   return data.signedUrl;
@@ -93,9 +98,20 @@ export async function fetchPendingOwnership(): Promise<RentalProperty[]> {
 
 const safeName = (name: string) => (name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-80) || "file");
 
-/** Upload a file into the caller's own folder; returns the storage path. */
-async function uploadOwn(path: string, file: File): Promise<string> {
-  const { error } = await supabase.storage.from(RENTALS_BUCKET).upload(path, file, { upsert: false, contentType: file.type });
+/**
+ * Upload a file into the caller's own folder; returns the storage path.
+ * The type is checked against `allowed` (inside user-documents' allowed_mime_types,
+ * src/test/uploadMimeParity.test.ts) BEFORE uploading, so a refused type gets words,
+ * not a raw storage error. Every key is new (a timestamp or a fresh batch id), so
+ * the object never changes: cache it a year (Q655).
+ */
+async function uploadOwn(path: string, file: File, allowed: readonly string[], formats: string): Promise<string> {
+  if (!isAllowedUploadType(file, allowed)) throw new RentalsCopyError(unsupportedUploadCopy(file, formats), new Error("unsupported_type"));
+  const { error } = await supabase.storage.from(RENTALS_BUCKET).upload(path, file, {
+    upsert: false,
+    contentType: file.type,
+    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
+  });
   if (error) throw error;
   return path;
 }
@@ -104,7 +120,12 @@ export const createProperty = (label: string, street: string, city: string, zip:
   rpcValue(supabase.rpc("rentals_create_property", { p_label: label, p_street_address: street, p_city: city, p_zip_code: zip }), (e) => rpcErrorMessage("rentals_create_property", e));
 
 export async function submitOwnershipProof(uid: string, propertyId: string, file: File): Promise<void> {
-  const path = await uploadOwn(`${uid}/rentals/${propertyId}/${Date.now()}-${safeName(file.name)}`, file);
+  const path = await uploadOwn(
+    `${uid}/rentals/${propertyId}/${Date.now()}-${safeName(file.name)}`,
+    file,
+    RENTALS_PROOF_TYPES,
+    "a JPEG, PNG or PDF",
+  );
   await rpcVoid(supabase.rpc("rentals_submit_ownership_proof", { p_property_id: propertyId, p_storage_path: path }), (e) => rpcErrorMessage("rentals_submit_ownership_proof", e));
 }
 
@@ -134,10 +155,15 @@ export interface NewRequest {
 }
 
 export async function fileRequest(uid: string, r: NewRequest): Promise<string> {
+  // Check every photo before uploading any, so a refused one leaves no orphan objects behind.
+  const refused = r.photos.slice(0, 10).find((f) => !isAllowedUploadType(f, RENTALS_REQUEST_PHOTO_TYPES));
+  if (refused) throw new RentalsCopyError(unsupportedUploadCopy(refused, "a JPEG, PNG, WebP or HEIC photo"), new Error("unsupported_type"));
   const batch = crypto.randomUUID();
   const paths: string[] = [];
   for (const f of r.photos.slice(0, 10)) {
-    paths.push(await uploadOwn(`${uid}/rentals/requests/${batch}/${paths.length}-${safeName(f.name)}`, f));
+    paths.push(
+      await uploadOwn(`${uid}/rentals/requests/${batch}/${paths.length}-${safeName(f.name)}`, f, RENTALS_REQUEST_PHOTO_TYPES, "a JPEG, PNG, WebP or HEIC photo"),
+    );
   }
   return rpcValue(
     supabase.rpc("rentals_file_request", {

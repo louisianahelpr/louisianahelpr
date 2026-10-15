@@ -45,6 +45,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "reviews", column: "photo_urls", array: true, bucket: "job-photos", writer: "src/components/reviewPanel/ReviewForm.tsx (public URL)" },
   { table: "declutter_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "declutter_add_item_photo RPC (path <uid>/declutter/<item>/<file>; Declutter slice 2 uploads it)" },
   { table: "declutter_strikes", column: "appeal_photo_path", array: false, bucket: "job-photos", writer: "none yet: the Declutter strike-appeal RPC (a later slice) writes a job-photos path" },
+  { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
+  { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
 ];
 
 /**

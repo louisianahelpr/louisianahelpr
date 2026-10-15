@@ -9333,6 +9333,7 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      rentals_assert_member: { Args: never; Returns: string }
       rentals_caller_is_active_tenant_of: {
         Args: { p_property_id: string }
         Returns: boolean
@@ -9388,6 +9389,16 @@ export type Database = {
           unit_label: string
           zip_code: string
         }[]
+      }
+      rentals_notify: {
+        Args: {
+          p_email: boolean
+          p_link: string
+          p_message: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
       }
       rentals_request_job_state: {
         Args: { p_request_id: string }

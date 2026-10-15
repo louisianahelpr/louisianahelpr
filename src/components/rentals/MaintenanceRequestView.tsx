@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { answerFixed, approveRequest, declineRequest, fetchRequest, fetchRequestJobState, fetchRequestPhotos, signedFileUrl, withdrawRequest } from "@/lib/rentals/api";
 import {
   DECLINE_REASON_LABEL,
@@ -51,6 +52,8 @@ export default function MaintenanceRequestView() {
   const uid = user?.id ?? "";
   const qc = useQueryClient();
   const navigate = useNavigate();
+  // Q1586(c): Post a Job is greyed out under 18 (the server refuses a property to a minor anyway).
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const [reason, setReason] = useState<DeclineReason | "">("");
   const [reasonText, setReasonText] = useState("");
   const [note, setNote] = useState("");
@@ -165,7 +168,12 @@ export default function MaintenanceRequestView() {
         {isLandlord && r.status === "approved" && job.booking === "none" && (
           <RentalsCard title="Post the job">
             <p className="text-sm">We filled in a job from this request. Check the price, then post and pay like any job.</p>
-            <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" onClick={() => navigate(`/post-job?maintenance=${r.id}`)}>
+            <button
+              type="button"
+              className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold"
+              {...ageGatedProps("post")}
+              onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))}
+            >
               Post the repair job
             </button>
           </RentalsCard>

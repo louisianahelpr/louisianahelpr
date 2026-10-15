@@ -233,6 +233,11 @@ ok(rows(await as("authenticated", TENANT, `SELECT label, street_address FROM pub
 ok(empty(await as("authenticated", STRANGER, `SELECT label FROM public.rentals_my_homes()`)), "a stranger rents no home");
 ok(rows(await as("authenticated", TENANT, `SELECT id FROM public.rental_units`)).length === 1, "the active tenant reads their unit");
 ok(empty(await as("authenticated", STRANGER, `SELECT id FROM public.rental_units`)), "a stranger reads no unit");
+ok(rows(await as("authenticated", TENANT, `SELECT id FROM public.rental_tenancies WHERE status = 'active'`)).length === 1,
+  "the tenant reads their own tenancy (authenticated SELECT grant on rental_tenancies)");
+ok(rows(await as("authenticated", LANDLORD, `SELECT id FROM public.rental_tenancies`)).length >= 1,
+  "the landlord reads the unit's tenancies");
+ok(empty(await as("authenticated", STRANGER, `SELECT id FROM public.rental_tenancies`)), "a stranger reads no tenancy");
 ok(empty(await as("authenticated", STRANGER, `SELECT id FROM public.rental_properties`)),
   "a stranger reads no property");
 ok(rows(await as("authenticated", ADMIN, `SELECT id FROM public.rental_properties`)).length === 1,
@@ -264,6 +269,11 @@ ok(typeof emerg === "string" && one(await svc(`SELECT count(*)::int FROM public.
 ok(rows(await as("authenticated", LANDLORD, `SELECT id FROM public.maintenance_requests`)).length === 2, "the landlord reads both requests");
 ok(rows(await as("authenticated", TENANT, `SELECT id FROM public.maintenance_requests`)).length === 2, "the tenant reads their requests");
 ok(empty(await as("authenticated", STRANGER, `SELECT id FROM public.maintenance_requests`)), "a stranger reads none");
+ok(rows(await as("authenticated", TENANT, `SELECT storage_path FROM public.maintenance_request_photos`))[0]?.storage_path === photoPath,
+  "the tenant reads their request's photo row (authenticated SELECT grant on maintenance_request_photos)");
+ok(rows(await as("authenticated", LANDLORD, `SELECT storage_path FROM public.maintenance_request_photos`)).length === 1,
+  "the landlord reads the request's photo row");
+ok(empty(await as("authenticated", STRANGER, `SELECT storage_path FROM public.maintenance_request_photos`)), "a stranger reads no photo row");
 await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('user-documents', '${photoPath}'), ('user-documents', '${TENANT}/other/x.jpg')`);
 ok(rows(await as("authenticated", LANDLORD, `SELECT name FROM storage.objects`)).map((r) => r.name).join() === photoPath,
   "the landlord reads exactly the request's photo object, nothing else of the tenant's");
@@ -392,9 +402,28 @@ const writes = await svc(`SELECT string_agg(c.relname || ':' || r.rolname || ':'
   WHERE c.relnamespace = 'public'::regnamespace AND (c.relname LIKE 'rental%' OR c.relname LIKE 'maintenance_request%') AND c.relkind = 'r'
     AND has_table_privilege(r.rolname, c.oid, pr.p)`);
 ok(Array.isArray(writes) && one(writes) === null && !skip, "no client role can write any Rentals table (RPCs only)");
+const grants = await svc(`SELECT string_agg(c.relname || ':' || r.rolname || ':' || has_table_privilege(r.rolname, c.oid, 'SELECT'), ',' ORDER BY c.relname, r.rolname) AS g
+  FROM pg_class c CROSS JOIN (VALUES ('anon'), ('authenticated')) r(rolname)
+  WHERE c.relnamespace = 'public'::regnamespace AND (c.relname LIKE 'rental%' OR c.relname LIKE 'maintenance_request%') AND c.relkind = 'r'`);
+ok(one(grants) === ["maintenance_request_photos", "maintenance_requests", "rental_properties", "rental_tenancies", "rental_units"]
+  .flatMap((t) => [`${t}:anon:false`, `${t}:authenticated:true`]).join(),
+  "exactly SELECT for authenticated and nothing for anon on each of the 5 Rentals tables");
 const tables = await svc(`SELECT count(*)::int AS n, count(*) FILTER (WHERE NOT relrowsecurity)::int AS norls FROM pg_class
   WHERE relnamespace = 'public'::regnamespace AND (relname LIKE 'rental%' OR relname LIKE 'maintenance_request%') AND relkind = 'r'`);
 ok(rows(tables)[0]?.n === 5 && rows(tables)[0]?.norls === 0, "5 Rentals tables, every one with RLS on");
+
+// --- Q137: every Rentals notice names its actor, so the seed-boundary trigger can judge it
+const newLink = one(await svc(`SELECT link FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'New maintenance request'`));
+ok(newLink === `/rentals/requests/${req1}?user=${TENANT}`, "the landlord's notice names the tenant who filed (link ?user=<actor>)");
+// The real boundary (newest definitions), with the tenant a test account and the landlord real:
+await svc(`ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS is_seed boolean`);
+for (const name of ["notification_job_id_from_link", "notification_crosses_seed_boundary"]) await svc(newestDefinition(name).stmt);
+await svc(`UPDATE public.profiles SET is_seed = (user_id = '${TENANT}')`);
+ok(one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}', NULL, '${newLink}') AS x`)) === true,
+  "a test tenant's notice to a real landlord crosses the seed boundary (the trigger drops it)");
+ok(typeof newLink === "string" && one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}', NULL, '/rentals/requests/${req1}') AS x`)) === false,
+  "without the actor in the link the boundary could not tell (why the link carries it)");
+await svc(`UPDATE public.profiles SET is_seed = false`);
 
 // --- Q807: the unconfirmed-email statement gate covers every Rentals table
 const gated = await svc(`SELECT count(*)::int AS n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid

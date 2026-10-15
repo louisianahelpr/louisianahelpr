@@ -9,6 +9,7 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |                 disabled={!reason \|\| decline.isPending} |                 disabled={decline.isPending}
  * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && ( |               !adding && (
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isLandlord && r.status === "approved" && job.booking === "none" && ( |         {isLandlord && r.status === "approved" && !job.jobId && (
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx |               onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))} |               onClick={() => navigate(`/post-job?maintenance=${r.id}`)}
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isTenant && r.status === "approved" && workStarted && ( |         {isTenant && r.status === "approved" && !!job.jobId && (
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -27,7 +28,17 @@ const state = {
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
-vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
+vi.mock("@/hooks/useAgeGate", () => ({
+  useAgeGate: () => ({
+    underAge: state.underAge,
+    gate:
+      <A extends unknown[]>(_kind: string, go: (...args: A) => void) =>
+      (...args: A) => {
+        if (!state.underAge) go(...args);
+      },
+    gatedProps: () => (state.underAge ? { "aria-disabled": true } : {}),
+  }),
+}));
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <main>
@@ -71,6 +82,7 @@ function renderAt(path: string) {
         <Routes>
           <Route path="/rentals" element={<RentalsPage />} />
           <Route path="/rentals/requests/:id" element={<MaintenanceRequestPage />} />
+          <Route path="/post-job" element={<p>Post a Job form</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -151,7 +163,18 @@ describe("Rentals screens", () => {
       state.request = approved;
       state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
       renderAt("/rentals/requests/r1");
-      expect(await screen.findByRole("button", { name: "Post the repair job" })).toBeTruthy();
+      fireEvent.click(await screen.findByRole("button", { name: "Post the repair job" }));
+      expect(await screen.findByText("Post a Job form")).toBeTruthy();
+    });
+    it("landlord under 18: Post the repair job is greyed out and goes nowhere (Q1586(c))", async () => {
+      state.underAge = true;
+      state.request = approved;
+      state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
+      renderAt("/rentals/requests/r1");
+      const btn = await screen.findByRole("button", { name: "Post the repair job" });
+      expect(btn.getAttribute("aria-disabled")).toBe("true");
+      fireEvent.click(btn);
+      expect(screen.queryByText("Post a Job form")).toBeNull();
     });
     it("landlord, checkout in flight: says so, and no second post", async () => {
       state.request = approved;

@@ -37,7 +37,7 @@ function RequestRow({ r }: { r: MaintenanceRequest }) {
       className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="min-w-0">
-        <span className="block font-medium truncate">
+        <span className="block font-medium truncate" title={`${r.urgency === "emergency" ? "EMERGENCY: " : ""}${r.description}`}>
           {r.urgency === "emergency" ? "EMERGENCY: " : ""}
           {r.description}
         </span>

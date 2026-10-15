@@ -145,6 +145,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:poster_cancel_job": {
     uncovered: GAP("poster_cancel_job on an unfunded or unhired job (the notifying branches need a hired Helpr, which records a cancel_with_helper strike on the poster)"),
   },
+  "sql:rentals_notify": {
+    uncovered:
+      "Rentals S1 (20261015061259): every caller is a Rentals RPC behind the hidden 'rentals' switch, created OFF, so require_feature refuses the two shared accounts until the switch reaches testers. The rows (landlord told of a new / emergency request and a tenant joining; tenant told of approve / decline; owner told of the ownership check) are proven in src/test/pglite/rentalsMaintenance.pglite.mjs.",
+  },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
   "sql:request_job_detail_change": { uncovered: GAP("request_job_detail_change on a hired journey job (each booked Helpr answers with respond_job_detail_change)") },

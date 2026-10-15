@@ -9,6 +9,7 @@
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |   if (!on) return null; |
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(false)}> |         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(true)}>
  * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |       {q.isError ? ( |       {false ? (
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx |               open: (url, target) => window.open(url, target), |               open: () => null,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -89,5 +90,20 @@ describe("RentalsOwnershipCard", () => {
     fireEvent.change(screen.getByLabelText("Note (required to reject)"), { target: { value: "Name on the deed differs" } });
     fireEvent.click(screen.getByRole("button", { name: "Reject" }));
     await waitFor(() => expect(reviewOwnership).toHaveBeenLastCalledWith("p1", false, "Name on the deed differs"));
+  });
+
+  it("opens the proof tab inside the click, then points it at the signed link (Q295: WebKit blocks a tab opened after an await)", async () => {
+    state.pending = [PROPERTY];
+    const tab = { opener: {} as unknown, location: { href: "" }, close: vi.fn() };
+    const open = vi.spyOn(window, "open").mockImplementation(() => tab as unknown as Window);
+    try {
+      renderCard();
+      fireEvent.click(await screen.findByRole("button", { name: "Open ownership proof" }));
+      expect(open).toHaveBeenCalledWith("", "_blank");
+      await waitFor(() => expect(tab.location.href).toBe("https://signed/x"));
+      expect(tab.opener).toBeNull();
+    } finally {
+      open.mockRestore();
+    }
   });
 });

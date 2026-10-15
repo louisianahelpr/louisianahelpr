@@ -326,6 +326,15 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
   fi
 
+  # db-deploy's `supabase db push --include-all` applies a migration OLDER than
+  # prod's newest AFTER the newer ones, so an older branch file restating a
+  # function/view/trigger that a newer main file already restates leaves prod
+  # on the OLDER body while a replay ends on the newer one (2026-10-15:
+  # ready/declutter-4 restated export_my_data in three files older than main's
+  # 20261015052622 and would have dropped its category_suggestions export).
+  # On the rebased tree, against the land base. Guard: src/test/outOfOrderRestatements.test.ts.
+  node scripts/check-out-of-order-restatements.mjs --base origin/main
+
   # The critical-path budget (Q178: scripts/perf/critical-path-budget.json),
   # checked on the BUILT bundle before the push. CI's "Bundle Size Check" runs
   # the same command but is NOT a required check, so a regression showed only

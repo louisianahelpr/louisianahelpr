@@ -9,7 +9,7 @@
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | const { error: noticeErr } = await supabase.from("notifications").insert({ | await supabase.from("notifications").insert({
  * @mutate supabase/functions/_shared/insertNotifications.ts |     if (error) { |     if (false) {
- * @mutate supabase/functions/auto-expire-jobs/index.ts | await insertNotifications(supabase, { | await supabase.from("notifications").insert({
+ * @mutate supabase/functions/auto-expire-jobs/index.ts |       const noticeLanded = await insertNotifications(supabase, autoCancelNotice); |       await supabase.from("notifications").insert(autoCancelNotice); const noticeLanded = true;
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

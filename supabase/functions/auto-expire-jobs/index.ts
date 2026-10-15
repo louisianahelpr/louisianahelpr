@@ -3,6 +3,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { isLiveSeriesParent } from "../_shared/seriesParent.ts";
@@ -16,6 +17,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -325,7 +327,7 @@ serve(async (req) => {
         continue;
       }
 
-      await insertNotifications(supabase, {
+      const autoCancelNotice = {
         user_id: job.customer_id,
         job_id: job.id,
         title: "Job auto-cancelled",
@@ -334,7 +336,29 @@ serve(async (req) => {
         // not admins — a job-lifecycle event, not a platform alert.
         type: "job_updates",
         link: "/post-job",
-      });
+      };
+      const noticeLanded = await insertNotifications(supabase, autoCancelNotice);
+      // Q1817: the in-app row fans out to push only; nothing turned it into an
+      // email, so a poster who was not in the app never heard their paid job
+      // was cancelled. Sent explicitly and its answer read, the way
+      // stalled-completion-reminder does. send-notification-email applies the
+      // poster's email_job_updates preference and the seed boundary itself.
+      if (noticeLanded && job.customer_id) {
+        try {
+          const res = await fetchFunction(`${supabaseUrl}/functions/v1/send-notification-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
+            body: JSON.stringify(autoCancelNotice),
+          }, { deadlineAt: invocationDeadline(startedAt) });
+          if (!res.ok) {
+            defects.record(`auto-cancel email for job ${job.id}: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
+          }
+        } catch (e) {
+          defects.record(`auto-cancel email for job ${job.id}: ${(e as Error).message}`);
+        }
+      } else if (!noticeLanded) {
+        defects.record(`auto-cancel notice for job ${job.id} was not written`);
+      }
 
       cancelledCount++;
     }

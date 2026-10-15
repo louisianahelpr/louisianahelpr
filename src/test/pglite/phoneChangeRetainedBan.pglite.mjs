@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 /**
+ * SUPERSEDED (Q1714, owner 2026-10-15 "just flag it"): 20261015051417 drops
+ * the auto-ban this file proves, and a phone match now only files a doubt-check
+ * (src/test/pglite/phoneMatchFlagsNotBans.pglite.mjs). Kept as the record of
+ * the 2026-10-12 state; it is not expected to pass on the current migrations.
+ *
  * PGlite proof for 20261012042748_phone_change_retained_ban (docs/OPEN.md
  * Q1586 + Q1495, owner decision 2026-10-12: a phone changed to a banned
  * account's EXACT number bans at once, like sign-up).

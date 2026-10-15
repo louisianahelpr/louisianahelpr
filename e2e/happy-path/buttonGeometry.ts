@@ -108,14 +108,6 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
   // @two-way src/test/buttonGeometryExemptParents.test.ts:const staleSels =
   const EXEMPT_PARENTS: { sel: string; why: string }[] = [
     {
-      // HelperScheduleStrip on the earnings/payment tabs: seven day cards in a
-      // horizontal scroll row, each as tall as the jobs listed under it (an
-      // empty day 60px, a 13-job day 140px). The height IS the data; equal
-      // heights would be the defect. (OPEN.md button-height false positive.)
-      sel: 'ul[aria-label="Upcoming 7 days"]',
-      why: "schedule day cards are sized by their job count",
-    },
-    {
       // /admin?view=people: one card per account. A verified account carries
       // a line of standing / rating / parish / last-seen chips, an account
       // still awaiting its email does not, so the cards are 74 vs 66px

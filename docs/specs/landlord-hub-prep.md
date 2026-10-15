@@ -285,3 +285,11 @@ Every slice: switch OFF by default, testers only, export_my_data sections + dele
 | 34 | Lease-end reminders 60 and 30 days before; renewal signed in the app |
 | 35 | Deposit return: app reminds the one-month rule; landlord sends the itemized statement in the app with move-out vs move-in photos; we don't judge deposit disputes |
 | 36 | Account deletion: signed lease + lead-paint form kept 3 years, the other side keeps their copy, everything else deleted — lawyer to confirm |
+| 37 | Who can request maintenance: tenants with an app lease AND tenants a landlord invites by link (leases signed elsewhere) — lets maintenance launch first |
+| 38 | Full request details: category, description, photos/video, urgency (emergency/soon/whenever), when someone may come in, pets on site, "OK to enter without me" |
+| 39 | Approval drafts a normal Helpr job; the landlord checks the price and posts it with their card |
+| 40 | Emergencies: app first shows "call 911 / your utility now", then alerts the landlord by push + email; never sends a Helpr without the landlord |
+| 41 | Entry: the tenant OKs the visit time the Helpr offers (or "OK to enter without me"); lock/gate info in the existing private access notes |
+| 42 | Done: Helpr before/after photos + tenant's "Was it fixed?" answer shown to the landlord, who confirms and pays |
+| 43 | Licensed trades OPEN to anyone by default; the landlord may still choose "Licensed pros only" (roadmap T2); Claude researches Louisiana contractor-license thresholds and shows a warning (not a block) on jobs that may legally need a licensed contractor |
+| 44 | Tenant-caused damage: the landlord pays the Helpr and settles with the tenant outside the app |

@@ -142,6 +142,19 @@ describe("Q345: every hire RPC refuses across a block", () => {
     }
   }
 
+  // book_accepted_quote offers the job to the quoter an accept already chose
+  // (no HIRE_WRITE of its own), so it is pinned by name: a block made between
+  // the accept and the booking is refused before the job is inserted.
+  it("book_accepted_quote raises applicant_blocked on are_users_blocked before it inserts the job", () => {
+    const body = blankSqlComments(defs.get("book_accepted_quote")?.stmt ?? "");
+    const check = body.search(/if\s+(public\.)?are_users_blocked\s*\([^;]*\)\s+then\s+raise\s+exception\s+'applicant_blocked'/i);
+    const insert = body.indexOf("public.quote_insert_job(");
+    expect(check, "book_accepted_quote has no block check").toBeGreaterThan(-1);
+    expect(insert, "book_accepted_quote no longer calls quote_insert_job").toBeGreaterThan(-1);
+    expect(check).toBeLessThan(insert);
+    expect((RPC_ERROR_COPY as Record<string, Record<string, string>>).book_accepted_quote?.applicant_blocked).toBeTruthy();
+  });
+
   it("every internal hire function is in the inventory (two-way)", () => {
     for (const name of Object.keys(INTERNAL_HIRES)) expect(EXPECTED).toContain(name);
   });
@@ -154,5 +167,6 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
+// @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

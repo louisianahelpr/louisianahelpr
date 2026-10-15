@@ -26,6 +26,9 @@ export interface DetailsSectionProps {
    *  DB trigger enforce_helper_completion_gates(). */
   requirePhotoProof: boolean;
   setRequirePhotoProof: (next: boolean) => void;
+  /** Q1680: the poster's opt-in W-9 requirement (jobs.requires_w9). */
+  requiresW9: boolean;
+  setRequiresW9: (next: boolean) => void;
   /** Optional scope video — blob URL or storage URL once uploaded. */
   scopeVideoUrl?: string | null;
   /** Called when the user selects a video file. */

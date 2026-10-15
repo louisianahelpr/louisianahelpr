@@ -8,6 +8,7 @@ import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
 import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
+import { W9Toggle } from "./detailsSection/W9Toggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
 import type { DetailsSectionProps } from "./detailsSection/types";
@@ -35,6 +36,8 @@ export function DetailsSection({
   setCredentialTier,
   requirePhotoProof,
   setRequirePhotoProof,
+  requiresW9,
+  setRequiresW9,
   scopeVideoUrl,
   onVideoSelect,
   onClearVideo,
@@ -97,6 +100,9 @@ export function DetailsSection({
         requirePhotoProof={requirePhotoProof}
         setRequirePhotoProof={setRequirePhotoProof}
       />
+
+      {/* Q1680: also "what this job requires of the Helpr". */}
+      <W9Toggle requiresW9={requiresW9} setRequiresW9={setRequiresW9} />
 
       <PhotoUpload
         imagePreviews={imagePreviews}

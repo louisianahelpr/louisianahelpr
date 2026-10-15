@@ -152,6 +152,8 @@ export interface UseJobSubmitParams {
   credentialTier: number;
   /** Poster's per-job before/after photo-proof requirement. */
   requirePhotoProof: boolean;
+  /** Q1680: the poster's opt-in W-9 requirement (jobs.requires_w9). */
+  requiresW9: boolean;
   // Materials + card
   includeMaterials: boolean;
   materialsNote: string;
@@ -206,6 +208,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     offerResponseHours,
     credentialTier,
     requirePhotoProof,
+    requiresW9,
     includeMaterials,
     materialsNote: materialsNoteInput,
     saveCardForFuture,
@@ -440,7 +443,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // column default, so the deploy-lag window loses an opt-OUT only.
         requirePhotoProof: opts.withExtras ? requirePhotoProof : true,
         department: null,
-        requiresW9: false,
+        // Q1680: the poster's opt-in (was hard-coded false, so no job could ever ask).
+        requiresW9,
       });
 
     // `expires_at` is left out: it is floored to now + 1 hour, so for a job

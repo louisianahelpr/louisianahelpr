@@ -109,6 +109,8 @@ export function usePostJobForm() {
     if (photoProofTouched) return;
     setRequirePhotoProofRaw(defaultRequirePhotoProof(category));
   }, [category, photoProofTouched]);
+  // Q1680 (owner 2026-10-14): the poster opts in to a W-9 from the Helpr. Off by default.
+  const [requiresW9, setRequiresW9] = useState(false);
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   // State is locked to LA (Helpr is Louisiana-only) and the field is rendered
@@ -399,6 +401,7 @@ export function usePostJobForm() {
     offerResponseHours,
     credentialTier,
     requirePhotoProof,
+    requiresW9,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -561,6 +564,9 @@ export function usePostJobForm() {
      *  and read server-side by enforce_helper_completion_gates(). */
     requirePhotoProof,
     setRequirePhotoProof,
+    /** Q1680: does the hired Helpr sign a W-9 at acceptance? Poster's opt-in. */
+    requiresW9,
+    setRequiresW9,
     // Pricing mode fields
     isUrgent,
     setIsUrgent,

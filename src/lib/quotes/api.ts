@@ -1,12 +1,15 @@
 /**
  * Quotes on jobs (docs/specs/louisiana-hub-roadmap.md, owner Q1-Q8): the
  * client's only door to the quote RPCs in 20261015091114_job_quotes.sql.
- * Every call goes through unwrap(), so a refusal reaches the screen as an
- * Error whose message is the server's code (quoteErrorMessage turns it into
- * words). Every RPC refuses while the 'quotes' switch is off for the caller.
+ * Every call goes through quoteRpc() (unwrap() plus the RPC's own words from
+ * RPC_ERROR_COPY, read at the call: the rpcErrorCopyCoverage rule), so a
+ * refusal reaches the screen as an Error whose message is the server's code
+ * and whose `userMessage` is its sentence (quoteErrorMessage shows it).
+ * Every RPC refuses while the 'quotes' switch is off for the caller.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import type { Database } from "@/integrations/supabase/types";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -41,24 +44,42 @@ export const MAX_QUOTE_PHOTOS = 4;
 export const MIN_QUOTE_DOLLARS = 10;
 export const MAX_QUOTE_DOLLARS = 1000;
 
+/**
+ * unwrap() a quote RPC's result; on a refusal, attach the words `words` finds
+ * for it as `userMessage` (the original error stays the thrown one, so its
+ * code still reads as its message).
+ */
+function quoteRpc<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
+  if (!result.error) return result.data;
+  try {
+    unwrap(result);
+  } catch (thrown) {
+    const e = thrown as Error & { userMessage?: string };
+    const msg = words(thrown);
+    if (msg && Object.isExtensible(e)) e.userMessage = msg;
+    throw e;
+  }
+  return result.data;
+}
+
 export function offersOf(raw: unknown): QuoteOffer[] {
   return Array.isArray(raw) ? (raw as QuoteOffer[]) : [];
 }
 
 export async function fetchMyQuoteRequests(): Promise<MyQuoteRequest[]> {
-  return unwrap(await supabase.rpc("get_my_quote_requests")) ?? [];
+  return quoteRpc(await supabase.rpc("get_my_quote_requests"), (e) => rpcErrorMessage("get_my_quote_requests", e)) ?? [];
 }
 
 export async function fetchOpenQuoteRequests(): Promise<OpenQuoteRequest[]> {
-  return unwrap(await supabase.rpc("list_open_quote_requests")) ?? [];
+  return quoteRpc(await supabase.rpc("list_open_quote_requests"), (e) => rpcErrorMessage("list_open_quote_requests", e)) ?? [];
 }
 
 export async function fetchQuotesForRequest(requestId: string): Promise<RequestQuote[]> {
-  return unwrap(await supabase.rpc("get_quotes_for_request", { p_request_id: requestId })) ?? [];
+  return quoteRpc(await supabase.rpc("get_quotes_for_request", { p_request_id: requestId }), (e) => rpcErrorMessage("get_quotes_for_request", e)) ?? [];
 }
 
 export async function fetchMyJobQuotes(): Promise<MyJobQuote[]> {
-  return unwrap(await supabase.rpc("get_my_job_quotes")) ?? [];
+  return quoteRpc(await supabase.rpc("get_my_job_quotes"), (e) => rpcErrorMessage("get_my_job_quotes", e)) ?? [];
 }
 
 export interface NewQuoteRequest {
@@ -77,7 +98,7 @@ export interface NewQuoteRequest {
 
 /** Ask for quotes. Returns the new request's id (never null: unwrap throws first). */
 export async function createQuoteRequest(r: NewQuoteRequest): Promise<string> {
-  const id = unwrap(
+  const id = quoteRpc(
     await supabase.rpc("create_quote_request", {
       p_title: r.title,
       p_description: r.description,
@@ -91,6 +112,7 @@ export async function createQuoteRequest(r: NewQuoteRequest): Promise<string> {
       p_parish: r.parish ?? undefined,
       p_window_hours: r.windowHours,
     }),
+    (e) => rpcErrorMessage("create_quote_request", e),
   );
   if (!id) throw new Error("no_request_id");
   return id;
@@ -145,7 +167,7 @@ export async function submitJobQuote(input: {
   when: string;
   photoPaths: string[];
 }): Promise<string> {
-  const id = unwrap(
+  const id = quoteRpc(
     await supabase.rpc("submit_job_quote", {
       p_request_id: input.requestId,
       p_price_cents: Math.round(input.priceDollars) * 100,
@@ -153,6 +175,7 @@ export async function submitJobQuote(input: {
       p_available_note: input.when,
       p_photo_paths: input.photoPaths,
     }),
+    (e) => rpcErrorMessage("submit_job_quote", e),
   );
   if (!id) throw new Error("no_quote_id");
   return id;
@@ -167,13 +190,14 @@ export async function respondToQuote(input: {
   priceDollars?: number;
   note?: string;
 }): Promise<string> {
-  const out = unwrap(
+  const out = quoteRpc(
     await supabase.rpc("respond_to_job_quote", {
       p_quote_id: input.quoteId,
       p_action: input.action,
       p_price_cents: input.priceDollars != null ? Math.round(input.priceDollars) * 100 : undefined,
       p_note: input.note?.trim() ? input.note.trim() : undefined,
     }),
+    (e) => rpcErrorMessage("respond_to_job_quote", e),
   );
   if (!out) throw new Error("no_answer");
   return out;
@@ -181,26 +205,27 @@ export async function respondToQuote(input: {
 
 /** Turn the agreed quote into an unpaid job (idempotent). Returns the job id. */
 export async function bookAcceptedQuote(requestId: string): Promise<string> {
-  const jobId = unwrap(await supabase.rpc("book_accepted_quote", { p_request_id: requestId }));
+  const jobId = quoteRpc(await supabase.rpc("book_accepted_quote", { p_request_id: requestId }), (e) => rpcErrorMessage("book_accepted_quote", e));
   if (!jobId) throw new Error("no_job_id");
   return jobId;
 }
 
 /** Close every quote and post the job at the poster's own price. Returns the job id. */
 export async function switchToSetPrice(requestId: string, budgetDollars: number): Promise<string> {
-  const jobId = unwrap(
+  const jobId = quoteRpc(
     await supabase.rpc("switch_quote_request_to_set_price", { p_request_id: requestId, p_budget: budgetDollars }),
+    (e) => rpcErrorMessage("switch_quote_request_to_set_price", e),
   );
   if (!jobId) throw new Error("no_job_id");
   return jobId;
 }
 
 export async function cancelQuoteRequest(requestId: string): Promise<void> {
-  unwrap(await supabase.rpc("cancel_quote_request", { p_request_id: requestId }));
+  quoteRpc(await supabase.rpc("cancel_quote_request", { p_request_id: requestId }), (e) => rpcErrorMessage("cancel_quote_request", e));
 }
 
 export async function withdrawJobQuote(quoteId: string): Promise<void> {
-  unwrap(await supabase.rpc("withdraw_job_quote", { p_quote_id: quoteId }));
+  quoteRpc(await supabase.rpc("withdraw_job_quote", { p_quote_id: quoteId }), (e) => rpcErrorMessage("withdraw_job_quote", e));
 }
 
 /**

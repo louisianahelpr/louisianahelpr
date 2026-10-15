@@ -18,6 +18,7 @@ import { isWriteRejected } from "./mutationResult";
 import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
 import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
+import { QUOTE_ERROR_COPY as QC } from "./quotes/errorCopy";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -828,6 +829,108 @@ export const RPC_ERROR_COPY = {
     not_authorized: "Only admins can decide category suggestions.",
     note_too_long: "Keep the note under 300 characters.",
     unknown_suggestion: "That suggestion no longer exists.",
+  },
+  // Quotes on jobs (20261015091114_job_quotes.sql): the words live in
+  // src/lib/quotes/errorCopy.ts (QUOTE_ERROR_COPY, exact against the
+  // migration); each RPC maps exactly the codes it can raise. Read at each
+  // call in src/lib/quotes/api.ts.
+  book_accepted_quote: {
+    account_restricted: QC.account_restricted,
+    applicant_blocked: QC.applicant_blocked,
+    feature_disabled: QC.feature_disabled,
+    no_agreed_quote: QC.no_agreed_quote,
+    not_authenticated: QC.not_authenticated,
+    under_18: QC.under_18,
+    unknown_request: QC.unknown_request,
+  },
+  cancel_quote_request: {
+    account_restricted: QC.account_restricted,
+    checkout_open: QC.checkout_open,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    request_booked: QC.request_booked,
+    request_closed: QC.request_closed,
+    under_18: QC.under_18,
+    unknown_request: QC.unknown_request,
+  },
+  create_quote_request: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    invalid_date: QC.invalid_date,
+    invalid_window: QC.invalid_window,
+    job_start_too_soon: QC.job_start_too_soon,
+    not_authenticated: QC.not_authenticated,
+    too_many_open_requests: QC.too_many_open_requests,
+    under_18: QC.under_18,
+  },
+  get_my_job_quotes: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    under_18: QC.under_18,
+  },
+  get_my_quote_requests: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    under_18: QC.under_18,
+  },
+  get_quotes_for_request: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    under_18: QC.under_18,
+    unknown_request: QC.unknown_request,
+  },
+  list_open_quote_requests: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    under_18: QC.under_18,
+  },
+  respond_to_job_quote: {
+    account_restricted: QC.account_restricted,
+    applicant_blocked: QC.applicant_blocked,
+    feature_disabled: QC.feature_disabled,
+    invalid_action: QC.invalid_action,
+    job_start_too_soon: QC.job_start_too_soon,
+    not_authenticated: QC.not_authenticated,
+    not_your_turn: QC.not_your_turn,
+    price_required: QC.price_required,
+    quote_closed: QC.quote_closed,
+    quote_expired: QC.quote_expired,
+    quote_unavailable: QC.quote_unavailable,
+    under_18: QC.under_18,
+    unknown_quote: QC.unknown_quote,
+  },
+  submit_job_quote: {
+    account_restricted: QC.account_restricted,
+    already_quoted: QC.already_quoted,
+    cannot_quote_own_request: QC.cannot_quote_own_request,
+    feature_disabled: QC.feature_disabled,
+    invalid_photo: QC.invalid_photo,
+    not_authenticated: QC.not_authenticated,
+    quotes_closed: QC.quotes_closed,
+    rate_limited: QC.rate_limited,
+    under_18: QC.under_18,
+    unknown_request: QC.unknown_request,
+  },
+  switch_quote_request_to_set_price: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    invalid_budget: QC.invalid_budget,
+    not_authenticated: QC.not_authenticated,
+    request_closed: QC.request_closed,
+    under_18: QC.under_18,
+    unknown_request: QC.unknown_request,
+  },
+  withdraw_job_quote: {
+    account_restricted: QC.account_restricted,
+    feature_disabled: QC.feature_disabled,
+    not_authenticated: QC.not_authenticated,
+    quote_closed: QC.quote_closed,
+    under_18: QC.under_18,
+    unknown_quote: QC.unknown_quote,
   },
 } satisfies Record<string, Record<string, string>>;
 

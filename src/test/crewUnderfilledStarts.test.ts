@@ -20,7 +20,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * @mutate supabase/migrations/20261006225402_underfilled_crew_starts_with_who_is_hired.sql |        AND public.job_payment_is_funded(j.payment_status) |        AND TRUE
  * @mutate supabase/migrations/20261006225402_underfilled_crew_starts_with_who_is_hired.sql | GRANT EXECUTE ON FUNCTION public.start_underfilled_crews() TO service_role; | GRANT EXECUTE ON FUNCTION public.start_underfilled_crews() TO anon, authenticated, service_role;
  * @mutate supabase/functions/auto-expire-jobs/index.ts |         if ((confirmed ?? 0) > 0) { |         if (false) {
- * @mutate supabase/functions/auto-expire-jobs/index.ts |       const { data: crewRpc, error: crewRpcErr } = await supabase.rpc("start_underfilled_crews"); |       const { data: crewRpc, error: crewRpcErr } = { data: 0, error: null };
+ * @mutate supabase/functions/auto-expire-jobs/index.ts |       const { data: crewRpc, error: crewRpcErr } = await sweepRpc(() => supabase.rpc("start_underfilled_crews")); |       const { data: crewRpc, error: crewRpcErr } = { data: 0, error: null };
  */
 const ROOT = resolve(__dirname, "../..");
 const DEFS = effectiveDefs(resolve(ROOT, "supabase/migrations"));

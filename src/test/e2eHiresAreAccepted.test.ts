@@ -1,7 +1,8 @@
 // @mutate e2e/prod-lifecycle.spec.ts | const accepted = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, { | const accepted = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer_off`, {
 // @mutate scripts/e2e/settleForward.mjs | const r = await post(base, "/rest/v1/rpc/accept_job_offer", headers(anon, helperToken), { p_job_id: jobId }); | const r = { ok: true, status: 200, body: '"state":"accepted"' };
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

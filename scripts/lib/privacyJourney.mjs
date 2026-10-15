@@ -93,7 +93,7 @@ export const EXPORT_SECTIONS = [
   "helper_w9_records", "instant_payouts", "payout_transfers", "crew_cancellation_fee_shares", "crew_block_fees", "cancellation_fee_transfers",
   "payment_refunds",
   "chargeback_clawbacks", "tips", "tip_hold_redrives", "gift_cards", "referral_codes", "referral_credits", "referrals",
-  "reports", "user_blocks", "user_bans", "user_strikes", "user_violations", "user_roles",
+  "reports", "user_blocks", "user_bans", "user_violations", "user_roles",
   "legal_acceptances", "login_history", "email_tracking", "email_send_log", "suppressed_emails",
   "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "recurring_visit_payments", "job_revisions",
   "job_completion_nudges", "job_match_queue", "disputes", "job_views", "profile_views", "pet_profiles",

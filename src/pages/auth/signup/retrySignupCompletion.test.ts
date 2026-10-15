@@ -4,10 +4,11 @@
  * that ONE unsent request. These pin the second send and that the signup form
  * uses it.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { trackedFiles } from "@/test/helpers/trackedFiles";
 import { invokeWithOneRetryIfUnsent, isUnsentRequest, waitForAWorkingPage } from "./retrySignupCompletion";
 
 const unsent = () => Object.assign(new Error("Failed to send a request to the Edge Function"), { name: "FunctionsFetchError" });
@@ -106,16 +107,12 @@ describe("waitForAWorkingPage", () => {
 });
 
 // Every complete-signup call in the app goes through the second send.
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) return sourceFiles(p);
-    return /\.(ts|tsx)$/.test(name) && !/\.test\.(ts|tsx)$/.test(name) ? [p] : [];
-  });
-}
+// The file list comes from git (trackedFiles), never a directory walk of src/.
+const sourceFiles = () =>
+  trackedFiles("src").filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.(ts|tsx)$/.test(f)).map((f) => join(process.cwd(), f));
 
 describe("complete-signup call sites (Q1810)", () => {
-  const sites = sourceFiles(join(process.cwd(), "src")).flatMap((file) => {
+  const sites = sourceFiles().flatMap((file) => {
     const code = blankComments(readFileSync(file, "utf8"));
     const found: { file: string; wrapped: boolean; lastArg: string }[] = [];
     const re = /functions\.invoke\(\s*["']complete-signup["']/g;

@@ -18,26 +18,23 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { trackedFiles } from "@/test/helpers/trackedFiles";
 import { SavedOnlyState } from "@/components/dashboard/SavedOnlyState";
 import { shouldReadNextSavedPage } from "@/pages/home/useSavedOnlyPaging";
 
 afterEach(cleanup);
 
 const root = process.cwd();
-function tsxUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) return tsxUnder(p);
-    return /\.tsx$/.test(name) && !/\.test\.tsx$/.test(name) ? [p] : [];
-  });
-}
+// From git (trackedFiles), never a directory walk of src/.
+const tsxUnder = (dir: string): string[] =>
+  trackedFiles(dir).filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f)).map((f) => join(root, f));
 
 describe("the saved count (Q1739)", () => {
   // Every `savedCount=` prop handed to a Browse control, across src/pages.
-  const props = tsxUnder(join(root, "src/pages")).flatMap((file) =>
+  const props = tsxUnder("src/pages").flatMap((file) =>
     [...blankComments(readFileSync(file, "utf8")).matchAll(/savedCount=\{([^}]*)\}/g)].map((m) => ({
       file: file.slice(root.length + 1),
       expr: m[1].trim(),

@@ -1,0 +1,24 @@
+# Build queue — Louisiana hub (owner 2026-10-15: "launch 2-3 agents continuously until it's all done")
+
+Lead (this session) keeps 2-3 agents running; when one finishes, the next unblocked item starts.
+Every item's decisions are already recorded (specs below); agents never re-decide them.
+Landing on main: one at a time via scripts/land.sh, coordinated with the lead session (louisianahelpr-c3).
+Rules for every lane: AGENT-BRIEF.md; push WIP every 20-30 min; 1-hour rule handoffs in ~/.lh-shots/handoffs-1015/;
+money/authz diffs need lh-money-escrow / lh-authz-rls REVIEW-ONLY + Sensitive-Review trailers;
+heavy tests: targeted files + parsecheck while other lanes run; the FULL suite only right before landing.
+
+| # | Item | Spec | Depends on | Status |
+|---|------|------|------------|--------|
+| 1 | Declutter slices 1-2 pass full CI + land | declutter-auctions.md | — | CI fix running |
+| 2 | Jobs flat fee 5% + $0.70 from the Helpr (poster pays job price; card cost inside; new jobs only; refunds minus card cost) + memberships (Pro) OFF + in-app boost purchases paused | louisiana-hub-roadmap.md F3, F4, F5 | — | lane B |
+| 3 | Declutter buyer fee -> 5% + $0.70 (replace 15%/$1) + slice 4 (handover QR/4-digit, I-got-it, porch, auto-pay, seller payout + fee-debt, Report a problem/disputes, no-shows, address after paying) + slice-3b open items | declutter-auctions.md rows 13-28, 60, 67, 91-98, F1 | slices 3/3b branch | lane C |
+| 4 | Trade categories in Jobs (T1-T2) + "Suggest a category" (I1) | roadmap T1-T2, I1 | — | queued |
+| 5 | Declutter slice 6: admin (storm pause, strike appeals, review queue polish) + alerts | declutter-auctions.md rows 39, 44, 49 | 3 | queued |
+| 6 | Rentals S1: maintenance requests -> Helpr jobs (invited tenants, approve -> draft job, emergencies, entry, done, recurring upkeep, auto-approve limit) | landlord-hub-prep.md Q37-Q48 | 2 | queued |
+| 7 | Quotes on jobs (Q1-Q8) | roadmap Q1-Q8 | 2 | queued |
+| 8 | Declutter slice 5: Helpr delivery (after launch) | declutter-auctions.md rows 29-30, 40-43 | 3 | queued |
+| 9 | Shops (makers, bakers, rentals of equipment, business profiles, boosts, appointments, punch cards, invoices, B2B, review links, rate cards) | local-shops-prep.md L1-L92, roadmap B1-B8 | 3 | queued |
+| 10 | Rentals S2+: listings, tours, applications, leases (template), e-sign, rent tracker | landlord-hub-prep.md | 6 | queued |
+| 11 | Hub features: storm hub, events, licensed pros, hiring board (jobs), deals/gift cards, community board, rewards, interest groups, skills tags | roadmap | various | queued |
+| 12 | Navigation G2b (Home · Jobs · Declutter · Shops · Rentals) + Home "near you" feed + landing page update | roadmap G2b, G3, G4 | sections exist | queued |
+| 13 | Spanish (S1-S4) | roadmap | all sections launched | queued |

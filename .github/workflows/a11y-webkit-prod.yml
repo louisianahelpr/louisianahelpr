@@ -420,7 +420,13 @@ jobs:
           echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV"
 
       - name: Run the prod sweep (webkit)
-        timeout-minutes: 52
+        # 52 -> 55 (Q1816, run 38580933416, 2026-10-14): the step was cut at
+        # 52 min with 365 of 368 tests done. Measured in that job: setup before
+        # this step 72 s (17:04:33 -> 17:05:45Z), every step after it 12 s, so
+        # 55 leaves ~3.5 min under the job's 60-min lock cap for a slower
+        # cold-cache setup. The lasting fix is giving the leg time back
+        # (docs/OPEN.md Q1816), not raising this again.
+        timeout-minutes: 55
         env:
           SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/webkit
         run: npx playwright test --project=a11y-prod-webkit --output=test-results/webkit --reporter=list,./e2e/reporters/skipReporter.ts

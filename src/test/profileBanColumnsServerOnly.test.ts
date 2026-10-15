@@ -27,7 +27,7 @@
  * the CI half.
  *
  * @mutate src/components/admin/adminusers/useAdminUserActions.ts | await setProfileBanStatus({ | await supabase.from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id);\n      await setProfileBanStatus({
- * @mutate supabase/migrations/20260923212305_revoke_profile_ban_column_updates.sql | 'ban_status', | 'ban_status_retired',
+ * @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql | 'ban_status', | 'ban_status_retired',
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

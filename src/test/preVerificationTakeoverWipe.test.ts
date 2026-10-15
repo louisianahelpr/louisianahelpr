@@ -39,6 +39,9 @@ const CLEARED = [
   "marketing_consent", "terms_version_accepted", "terms_accepted_at", "accepted_terms_at",
   "skills", "availability", "transportation", "hear_about_us", "experience_level", "tools_equipment",
   "emergency_contact_name", "emergency_contact_phone", "extra_comments",
+  // Q?unsub-resubscribe-consent: an unsubscribe link's record of the consent it
+  // turned off, so a squatter's ticked box cannot come back through it.
+  "promotions_before_unsubscribe",
 ];
 
 describe("Q447: a pre-verification takeover deletes what was typed before verification", () => {
@@ -96,8 +99,8 @@ describe("Q447: a pre-verification takeover deletes what was typed before verifi
   });
 });
 
-// @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |   DELETE FROM public.legal_acceptances WHERE user_id = p_user_id;\n |
-// @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |   DELETE FROM public.referrals WHERE referred_id = p_user_id;\n |
-// @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |          phone                   = NULL,\n |
+// @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql |   DELETE FROM public.legal_acceptances WHERE user_id = p_user_id;\n |
+// @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql |   DELETE FROM public.referrals WHERE referred_id = p_user_id;\n |
+// @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql |          phone                   = NULL,\n |
 // @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |   IF EXISTS (SELECT 1 FROM auth.identities i WHERE i.user_id = NEW.id AND i.provider = 'email') THEN | IF false THEN
 // @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |   AFTER UPDATE OF email_confirmed_at ON auth.users | AFTER UPDATE OF email ON auth.users

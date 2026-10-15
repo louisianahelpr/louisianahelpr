@@ -143,6 +143,12 @@ describe("the /unsubscribe page's calls against the real function", () => {
     const prefs = () => scenario.writes.filter((w) => w.table === "notification_preferences").map((w) => w.payload);
     expect(prefs()).toEqual([{ user_id: "real-user-1", email_promotions: false }]);
 
+    // The unsubscribe recorded what it turned off; the undo restores exactly that
+    // (Q?unsub-resubscribe-consent, resubscribeKeepsConsentOff.test.ts).
+    scenario.reads.profiles = {
+      rows: [{ user_id: "real-user-1", marketing_consent: false, promotions_before_unsubscribe: { marketing_consent: true, email_promotions: true } }],
+    };
+    scenario.reads.notification_preferences = { rows: [{ user_id: "real-user-1", email_promotions: false }] };
     const on = await postUnsubscribe("https://x.supabase.co", link, "resubscribe", viaHarness(fn));
     expect(on.ok && on.action).toBe("resubscribe");
     expect(prefs()).toEqual([

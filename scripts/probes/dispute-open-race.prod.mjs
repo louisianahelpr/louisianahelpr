@@ -74,7 +74,7 @@ async function fixture(scenario, label) {
 async function cleanup(job) {
   await rest(`notifications?link=ilike.*${job.id}*`, { method: "DELETE" });
   await rest(`notifications?message=ilike.*${encodeURIComponent(job.title)}*`, { method: "DELETE" });
-  for (const t of ["disputes", "fraud_flags", "user_violations", "user_strikes"]) {
+  for (const t of ["disputes", "fraud_flags", "user_violations"]) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); }
     catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }

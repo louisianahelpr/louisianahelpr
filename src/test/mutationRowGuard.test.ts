@@ -148,7 +148,8 @@ const RISK_TABLES = [
   // both incidents; only the first one is currently invisible.
   "user_bans",
   "helper_shadowbans",
-  "user_strikes",
+  // "user_strikes" was here until 20261015000241_drop_unused_user_strikes
+  // dropped it (Q1682): 0 rows on prod 2026-10-14, no writer; strikes live in user_violations.
   "user_violations",
   "fraud_flags",
   "user_blocks",

@@ -444,18 +444,6 @@
   },
   {
    "op": "DELETE",
-   "tbl": "user_strikes"
-  },
-  {
-   "op": "INSERT",
-   "tbl": "user_strikes"
-  },
-  {
-   "op": "UPDATE",
-   "tbl": "user_strikes"
-  },
-  {
-   "op": "DELETE",
    "tbl": "user_violations"
   },
   {

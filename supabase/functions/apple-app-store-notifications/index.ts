@@ -30,6 +30,7 @@
 // only for a test account. Either failing leaves the row untouched.
 
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -194,7 +195,7 @@ serve(async (req) => {
               fields: { user_id: profile.user_id, notification: notificationType, product: tx.productId },
             });
           } catch (e) {
-            console.error("[assn] ops alert failed:", e instanceof Error ? e.message : String(e));
+            console.error("[assn] ops alert failed:", caughtMessage(e));
           }
         }
         // The billing system is not echoed: this endpoint is unauthenticated

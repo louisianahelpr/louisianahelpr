@@ -28,7 +28,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
 /** Sites left on 2026-10-03, after the four that reached a response were converted. */
-const BASELINE = 62;
+const BASELINE = 59;
 
 /** `x instanceof Error ? x.message : String(x)` and `(x as Error).message ?? String(x)`. */
 const SHAPES = [

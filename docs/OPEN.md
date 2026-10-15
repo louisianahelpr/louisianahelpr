@@ -703,8 +703,8 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - e2e-real-backend: issue #2940, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527096325. notes: Q1778. feed: issue #2940 · feed: ledger 3a3460b71be7
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38656878328. notes: Q1807. feed: issue #2993
-  - core-loop-canary: issue #3153, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38776899703. feed: issue #3153 · feed: ledger 18539240a894
-  - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154
+  - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
+  - core-loop-canary: no open issue. feed: ledger 18539240a894
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -453,7 +453,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   useEffect(() => {
     if (!linkedJobMissing || loading) return;
     const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
-    if (next !== statusFilter) setStatusFilter(next);
+    if (statusFilter !== next) setStatusFilter(next);
     // Only when the missing link resolves; a bucket picked afterwards stays.
   }, [linkedJobMissing, loading]);
 

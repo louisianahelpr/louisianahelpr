@@ -770,7 +770,7 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
   if (callAt < 0) problems.push(`${file}: the refund call does not follow its pinned source chain`);
   else {
     const between = flat.slice(pos, callAt);
-    const row = sql.row.replace(/[$]/g, "\\$");
+    const row = sql.row.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (new RegExp(`(?<![.\\w$])${row}(?:\\.\\w+|\\[[^\\]]*\\])?\\s*(?:[-+*/]|\\?\\?|\\|\\||&&)?=(?![=>])|\\b(?:const|let|var)\\s+${row}\\b|[{,]\\s*${row}\\s*[,}=]|Object\\.assign\\(\\s*${row}\\b`).test(between)) {
       problems.push(`${file}: ${sql.row} is reassigned or shadowed between its pinned declaration and the refund call`);
     }

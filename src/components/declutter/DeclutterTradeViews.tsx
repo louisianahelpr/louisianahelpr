@@ -244,7 +244,7 @@ function OfferRow({ o }: { o: MyOffer }) {
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold truncate block">{o.item_title}</Link>
+          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
           <p className="text-sm">
             {formatPrice(o.amount_cents)}
             <span className="text-muted-foreground"> · price now {formatPrice(o.current_price_cents)}</span>
@@ -480,7 +480,7 @@ export function CartView() {
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
-                    <Link to={`/declutter/item/${l.item_id}`} className="truncate">{l.item_title}</Link>
+                    <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
                     <span className="shrink-0">{formatPrice(l.price_cents)}</span>
                   </li>
                 ))}

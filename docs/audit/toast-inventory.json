@@ -3787,7 +3787,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 401,
+      "line": 412,
       "kind": "toast.success",
       "title": {
         "form": "literal",

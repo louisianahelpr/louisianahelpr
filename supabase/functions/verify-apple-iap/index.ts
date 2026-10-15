@@ -37,6 +37,7 @@
 // safe move is to GRANT and FLAG. That asymmetry is deliberate.
 
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { TIER_FEE_PERCENT, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
@@ -78,7 +79,7 @@ async function isTestAccount(userId: string): Promise<boolean> {
     );
     return await isAppleTestAccount(admin, userId);
   } catch (e) {
-    console.error("[verify-apple-iap] test-account read failed; refusing sandbox:", e instanceof Error ? e.message : String(e));
+    console.error("[verify-apple-iap] test-account read failed; refusing sandbox:", caughtMessage(e));
     return false;
   }
 }

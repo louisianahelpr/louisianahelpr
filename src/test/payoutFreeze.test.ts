@@ -5,8 +5,13 @@
  * not happen and a restore that did not happen are both failures the caller
  * pages on, and nobody is left on manual with nothing remembering why.
  *
+ * @mutate supabase/functions/_shared/payoutFreeze.ts | if (current && current.interval !== "manual") { | if (current && JSON.stringify(current) !== JSON.stringify(MANUAL)) {
+ * @mutate supabase/functions/_shared/payoutFreeze.ts | out.delay_days = prior.delay_days; | void 0;
+ *
  * The state machine (_shared/payoutFreeze.ts) runs here against an in-memory
- * store and a FAKE Stripe client. No real connected account is touched.
+ * store and a FAKE Stripe client. No real connected account is touched here;
+ * the Q1410 block at the end replays the shapes a real Stripe TEST-mode
+ * account returned when the deployed functions froze and restored it.
  * The SQL half (triggers on payout_holds, the sweep) is proven by
  * src/test/pglite/payoutHoldFreezesStripePayouts.pglite.mjs; the edge wiring by
  * src/test/edge/payoutHoldStripeSync.test.ts.
@@ -424,5 +429,61 @@ describe("Q1221: a payout hold freezes Stripe automatic payouts", () => {
       monthly_anchor: 15,
     });
     expect(restorePayload({ interval: "manual", delay_days: 2 })).toEqual({ interval: "manual" });
+  });
+});
+
+/**
+ * Q1410 (2026-10-15): the same state machine against the schedule shapes Stripe
+ * TEST mode really returned. Measured on a test-mode Express account
+ * (acct_1UQigP3qNyg1xGcp, controller.type application, created by the deployed
+ * stripe-connect for the test helper 7b923b19 on STRIPE_TEST_SECRET_KEY; read
+ * with the Stripe MCP, livemode false): hold placed as seed-admin, the deployed
+ * payout-hold-stripe-sync run, the account read back, the hold released, the
+ * sync run again, the account read back. Real Stripe MERGES a partial schedule
+ * update: setting {interval: "manual"} kept delay_days 2 on the account, which
+ * a fake that replaces the whole schedule hides. This fake merges the way
+ * Stripe did.
+ */
+const MEASURED_BEFORE: PayoutSchedule = { delay_days: 2, interval: "daily" };
+const MEASURED_WHILE_HELD: PayoutSchedule = { delay_days: 2, interval: "manual" };
+
+function mergingStripe(start: PayoutSchedule) {
+  const port = fakeStripe(start);
+  const replace = port.setSchedule.bind(port);
+  port.setSchedule = async (accountId, s, key) => {
+    const before = port.state.schedule ?? {};
+    await replace(accountId, s, key);
+    port.state.schedule = { ...before, ...s } as PayoutSchedule;
+  };
+  return port;
+}
+
+describe("Q1410: the freeze against the schedules Stripe test mode returned", () => {
+  it("hold -> manual (delay_days kept by Stripe) -> release -> exactly the schedule it started with", async () => {
+    const stripe = mergingStripe(MEASURED_BEFORE);
+    const store = memoryStore({ state: "pause_requested" });
+
+    expect(await reconcilePayoutFreeze(H, store, stripe)).toMatchObject({ kind: "paused", changed: true });
+    expect(stripe.state.schedule).toEqual(MEASURED_WHILE_HELD);
+    // The row remembers what was there, as prod's payout_schedule_freezes did.
+    expect(store.row()?.prior_schedule).toEqual({ interval: "daily", delay_days: 2 });
+
+    // The release (admin_release_payout_hold's trigger) flips the row.
+    store.set({ ...(store.row() as Row), state: "restore_requested" });
+    expect(await reconcilePayoutFreeze(H, store, stripe)).toMatchObject({ kind: "restored", changed: true });
+    expect(stripe.calls.map((c) => c.schedule)).toEqual([{ interval: "manual" }, { interval: "daily", delay_days: 2 }]);
+    expect(stripe.state.schedule).toEqual(MEASURED_BEFORE);
+    expect(store.row()).toBeNull();
+  });
+
+  it("the sweep's check of a held account reads Stripe's manual-with-delay shape as paused (no drift page)", async () => {
+    const stripe = mergingStripe(MEASURED_WHILE_HELD);
+    const store = memoryStore({ state: "paused", stripe_account_id: ACCT, prior_schedule: MEASURED_BEFORE });
+
+    const out = await reconcilePayoutFreeze(H, store, stripe);
+
+    expect(out).toMatchObject({ kind: "paused", changed: false });
+    expect((out as { drifted?: boolean }).drifted).toBeFalsy();
+    expect(stripe.calls).toEqual([]);
   });
 });

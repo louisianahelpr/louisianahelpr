@@ -697,3 +697,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L18 | Maker has 24 h to accept, then the order expires and the hold drops |
 | L19 | Custom orders: request with details/photos -> maker quotes price + ready date -> buyer says yes -> charged (one quote, no bidding) |
 | L20 | "Ready now" items with a stock count; buying still goes to the maker to accept |
+| L21 | Ready dates: per-item lead time + shop's open days; buyer picks an open date |
+| L22 | Maker sets a max orders per day; full days grey out |
+| L23 | Handover same as Declutter: QR (4-digit backup) or buyer "I got it"; auto-done 24 h after the date unless the buyer reports a problem |
+| L24 | Delivery: pickup, maker delivers (maker's fee), or Helpr delivery with Declutter's per-mile pricing once built |

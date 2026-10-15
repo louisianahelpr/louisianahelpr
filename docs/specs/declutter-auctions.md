@@ -233,6 +233,13 @@ where no owner row decides. Each picks the option most consistent with the rows 
 - Uploaded-but-never-attached photos (app killed between upload and attach) are only removed by account deletion: add a
   sweep for unattached `<uid>/declutter/` objects older than ~24 h (should-fix 4).
 - Visual verification at 375/1440 of the three screens is pending the switch being on for test accounts.
+- Loading states MUST be re-measured once the switch is on for testers. `/declutter`, `/declutter/sell` and
+  `/declutter/item/:id` are in docs/audit/loading-states/measurements.json (src/test/loadingStateShape.test.ts COVERAGE)
+  from a prod run on 2026-10-14 23:59Z, when prod had no `declutter%` tables and no `declutter` row in
+  `feature_switches` (both read that day). So they record what prod served then, not the screens: members got the 404
+  page (only placeholder: the bottom nav's avatar bone), guests the sign-in redirect. Re-measure with
+  `ROUTES=/declutter,/declutter/sell,/declutter/item/<real id> node scripts/audit/measure-loading-states.mjs` (a ROUTES
+  run merges into the file), then fix or baseline any skeleton breach it finds.
 
 ### For slice 2 (screens)
 - Create switch audience testers (Admin -> Settings) after the screens land; describe Declutter in App Review notes (row 51).

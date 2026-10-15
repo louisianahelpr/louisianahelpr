@@ -180,6 +180,8 @@ describe("email-unsubscribe: the job-match link turns off job-match email only",
     expect(res.status).toBe(200);
     const prefs = scenario.writes.filter((w) => w.table === "notification_preferences");
     expect(prefs.map((w) => w.payload)).toEqual([{ user_id: "real-user-1", email_promotions: false }]);
-    expect(scenario.writes.filter((w) => w.table === "profiles")).toHaveLength(1);
+    // The consent flag, plus the record of what it turned off (Q?unsub-resubscribe-consent).
+    expect(scenario.writes.filter((w) => w.table === "profiles").map((w) => Object.keys(w.payload as object)).flat().sort())
+      .toEqual(["marketing_consent", "promotions_before_unsubscribe"]);
   });
 });

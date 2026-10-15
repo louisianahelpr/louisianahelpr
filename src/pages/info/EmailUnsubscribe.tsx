@@ -59,8 +59,12 @@ const COPY = {
     off: "You're unsubscribed",
     offBody: (email: string) => `We won't send news or offers to ${email} any more.`,
     undo: "Resubscribe",
-    on: "You're subscribed again",
-    onBody: (email: string) => `${email} will get Louisiana Helpr news and offers again.`,
+    // Resubscribe undoes only what the unsubscribe turned off (owner,
+    // 2026-10-15, Q?unsub-resubscribe-consent): an address that never agreed
+    // to news and offers still does not get them, so this never promises they
+    // will start again.
+    on: "Unsubscribe undone",
+    onBody: (email: string) => `${email} is back to the email settings it had before you unsubscribed.`,
   },
   job_matches: {
     ask: "Stop new-job emails?",

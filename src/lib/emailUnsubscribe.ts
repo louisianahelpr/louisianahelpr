@@ -69,9 +69,10 @@ export async function postUnsubscribe(
     // A transport failure (offline, blocked): the page says to try again.
     return { ok: false, error: "network" };
   }
-  let body: { ok?: unknown; action?: unknown; list?: unknown; email?: unknown; error?: unknown } | null = null;
+  type Answer = { ok?: unknown; action?: unknown; list?: unknown; email?: unknown; error?: unknown };
+  let body: Answer | null;
   try {
-    body = (await res.json()) as typeof body;
+    body = (await res.json()) as Answer;
   } catch {
     // A body that is not JSON (a gateway error page, or the plain one-click
     // text) is graded by its status below, and never as success.

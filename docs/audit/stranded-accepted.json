@@ -2386,6 +2386,12 @@
       "sha": "a0ecf760b01885d26968da551dfee85951849e67",
       "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-q1680-w9-held",
+      "sha": "b383d86756571beb3bb474c819d013d129bceb8a",
+      "reason": "Q1680's 'Require a W-9 From the Helpr' switch on Post a Job, built per the owner's 2026-10-14 call and held: the lh-authz-rls review found the W-9 behind it is only a typed name the poster can never see. Q1680 (docs/OPEN.md) decides it: the owner chooses a real W-9 first or plainer wording.",
+      "checked": "2026-10-14 (sec-b: held on purpose, nothing of it is on origin/main)"
     }
   ]
 }

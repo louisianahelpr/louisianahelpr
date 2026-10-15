@@ -81,6 +81,10 @@ const MONITOR_CLEARANCE = 30;
  */
 // @two-way src/test/prodWorkflowSpacing.test.ts:const staleExempt =
 export const EXEMPT: Record<string, string> = {
+  "prod-deploy.yml":
+    "The web deploy, not a test suite (Q1824): its only prod touch is one read-only Management API query of " +
+    "supabase_migrations.schema_migrations per run, to hold the deploy until prod has applied the migrations the " +
+    "shipped commit needs. It must stay on its 20-minute batch (Q271) and in its own non-cancelling prod-deploy group.",
   "uptime.yml":
     "Uptime is a monitor, not a test suite: one anonymous GET of index.html plus " +
     "one anonymous single-row select from open_jobs_browse every 10 minutes " +

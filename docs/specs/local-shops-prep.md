@@ -701,3 +701,14 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L22 | Maker sets a max orders per day; full days grey out |
 | L23 | Handover same as Declutter: QR (4-digit backup) or buyer "I got it"; auto-done 24 h after the date unless the buyer reports a problem |
 | L24 | Delivery: pickup, maker delivers (maker's fee), or Helpr delivery with Declutter's per-mile pricing once built |
+| L25 | Anything not on the banned list can be rented out (banned list still excludes vehicles, boats, firearms, etc.) |
+| L26 | Inflatables (bounce houses): only with State Fire Marshal registration, current inspection and insurance certificate, admin-checked, even for one |
+| L27 | Booking: item calendar, renter picks start/end, owner accepts, booked dates block out |
+| L28 | Pricing: per hour, per day, plus optional weekend/weekly prices |
+| L29 | Deposit: card HOLD from pickup to 48 h after return for rentals up to 5 days; longer rentals charge + refund after return |
+| L30 | Deposit set by the owner, up to item value, max $500 |
+| L31 | Deposit covers late fees + simple damage: owner may keep part for damage shown in pickup vs return photos; renter may object; admin decides only on disagreement; nothing beyond the deposit (owner first said "no claims", clarified by pop-up) |
+| L32 | Late returns: one day's price per late day from the deposit, strike after 3 days late |
+| L33 | One standard set of Louisiana rental terms, written by Claude from the primary law (no lawyer); no injury waivers (art. 2004) |
+| L34 | Insurance required for inflatables + tents; suggested for everything else |
+| L35 | Renter ID check (Stripe Identity) for deposits over $100 |

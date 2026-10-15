@@ -323,7 +323,7 @@ void hydrateStorage();
       try {
         const [
           { initSentry, setSentryUser, blockReplayForTestProfile },
-          { initPostHog, identifyUser, resetUser },
+          { initPostHog, identifyUser, resetUser, optOutTestProfile },
           { supabase },
         ] = await Promise.all([
           backgroundImport(() => import("./lib/sentry"), "sentry"),
@@ -332,7 +332,10 @@ void hydrateStorage();
         ]);
         // Q379: a test profile (is_seed) records no Session Replay.
         const replayPolicy = (userId: string) => {
-          blockReplayIfTestProfile(supabase, userId, blockReplayForTestProfile).catch(() => {
+          blockReplayIfTestProfile(supabase, userId, () => {
+            blockReplayForTestProfile();
+            optOutTestProfile();
+          }).catch(() => {
             /* a failed is_seed read leaves replay on — diagnostics only, never break boot */
           });
         };

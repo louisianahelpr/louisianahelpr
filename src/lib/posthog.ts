@@ -11,6 +11,7 @@
  * even before VITE_POSTHOG_KEY is wired into env vars.
  */
 import posthog from "posthog-js";
+import { automationReason, isLocalDevOrigin, markTestProfileSession } from "@/lib/automatedBrowser";
 
 import { redactInviteProps } from "./redactInviteToken";
 const KEY =
@@ -22,9 +23,14 @@ const HOST =
   "https://us.i.posthog.com";
 
 let initialized = false;
+let optedOutForTestProfile = false;
 
 export function initPostHog() {
   if (initialized || typeof window === "undefined" || !KEY) return;
+  // Q?analytics-test-traffic: a robot (webdriver, the lh_automation flag) or a
+  // dev/preview build on http://localhost never starts PostHog, so its
+  // automatic pageviews never reach the owner's funnel either.
+  if (automationReason() || isLocalDevOrigin()) return;
   try {
     posthog.init(KEY, {
       api_host: HOST,
@@ -80,6 +86,22 @@ export function captureException(err: unknown, props: Record<string, unknown> = 
   } catch { /* ignore */ }
 }
 
+/**
+ * A test profile (is_seed) signed in: stop capturing for the rest of the page.
+ * Called by the boot path's is_seed read (src/lib/replayTestProfile.ts).
+ */
+export function optOutTestProfile() {
+  // Tags this page's first-party analytics rows "seed_user" from now on.
+  markTestProfileSession(true);
+  if (!initialized) return;
+  try {
+    // Persisted by posthog-js and NOT cleared by reset(): resetUser() opts
+    // back in, or a real person signing in on this browser later stays dark.
+    optedOutForTestProfile = true;
+    posthog.opt_out_capturing();
+  } catch { /* ignore */ }
+}
+
 export function identifyUser(userId: string, props: Record<string, unknown> = {}) {
   if (!initialized) return;
   try {
@@ -88,9 +110,14 @@ export function identifyUser(userId: string, props: Record<string, unknown> = {}
 }
 
 export function resetUser() {
+  markTestProfileSession(false);
   if (!initialized) return;
   try {
     posthog.reset();
+    if (optedOutForTestProfile) {
+      optedOutForTestProfile = false;
+      posthog.opt_in_capturing({ captureEventName: false });
+    }
   } catch { /* ignore */ }
 }
 

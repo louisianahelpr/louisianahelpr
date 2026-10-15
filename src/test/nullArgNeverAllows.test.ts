@@ -34,7 +34,13 @@ import { readdirSync } from "./helpers/trackedFiles";
  * which must give exactly false). Its PGlite twin
  * src/test/pglite/nullArgNeverAllows.pglite.mjs runs the same file against the
  * newest migration definitions: ALL PASS 17; NEW_MIGRATION=skip -> 6 FAILED,
- * naming exactly the five functions above.
+ * naming exactly the five functions above. Re-run 2026-10-14 (Q1784, sec-c),
+ * after the twin had been crashing before any check since 2026-10-12 (no
+ * job_offer_cutoff, no ban_settlement_queue) and then reporting has_role,
+ * feature_enabled_for_user and user_may_see_job_address BASELINE_NOT_TRUE (its
+ * is_server_context() was a `SELECT false` stub; the newest bodies need it
+ * true for a uid-less caller): ALL PASS 17; NEW_MIGRATION=skip -> 6 FAILED,
+ * the same five.
  *
  * This file pins what CI cannot see from the replay alone:
  *   - the classification equals the boolean functions the migrations leave in

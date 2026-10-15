@@ -755,3 +755,16 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L79 | One yearly sales counter (jobs + Declutter + Shops) for the $100,000 facilitator point |
 | L80 | No tax on boosts (same as job boosts today) |
 | L81 | Federal INFORM rule followed: payout setup verifies bank/tax ID/contact; yearly reconfirm; sales pause after 10 days without answer; $20,000+ sellers show name + city |
+| L82 | Under 18: can't buy, order, rent or sell (greyed out + server refuses) |
+| L83 | One owner per shop (roadmap B3: one person per business) |
+| L84 | Vacation mode: pause button; new orders stop, open orders finish, boosts pause and resume |
+| L85 | Alerts: push + bell for everything; email only for receipts, refunds and accepted orders |
+| L86 | Build AFTER Declutter's checkout/handover/delivery work, reusing them (money code exists once) |
+| L87 | Launch: all of Louisiana, nearest first |
+| L88 | Open to all at once (owner chose; no invite-only tester phase, no free boost month) |
+| L89 | App Store: described in Review Notes + What's New, switched on for the Apple reviewer (same as Declutter row 51) |
+| L90 | ONE hidden switch for the whole Shops section (owner: "business and shops should be the same things" — a shop IS the business; an ads-only off switch can be added later if needed) |
+| L91 | Switch turned off mid-order: accepted orders/booked rentals finish, nothing new starts, no strikes (same as Declutter row 62) |
+| L92 | Follow button + "new from shops you follow" alerts at launch |
+
+ALL 92 local-shops questions answered (2026-10-14).

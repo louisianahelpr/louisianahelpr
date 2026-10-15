@@ -97,16 +97,18 @@ export function DeclutterNotice({ title, children, tone = "info" }: { title: str
 
 /**
  * Renders Declutter only when the hidden switch is on for this member.
- * While the server's answer is loading it renders nothing (a flash of the
- * 404 would be wrong for a tester); a settled "off" is the 404, exactly as
- * if the route did not exist. Never the protection: every RPC refuses too.
+ * While the server's answer is loading it renders the screen's own
+ * `skeleton` (DeclutterSkeletons.tsx: the page's real AppPage shell and
+ * title, bones where the data lands), never a blank page and never a flash
+ * of the 404 for a tester; a settled "off" is the 404, exactly as if the
+ * route did not exist. Never the protection: every RPC refuses too.
  */
-export function DeclutterGate({ children }: { children: ReactNode }) {
+export function DeclutterGate({ children, skeleton }: { children: ReactNode; skeleton: ReactNode }) {
   const enabled = useFeature("declutter");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
   const state = qc.getQueryState(["feature-enabled", "declutter", user?.id ?? null]);
   const settled = isReady && (!user || state?.status === "success" || state?.status === "error");
-  return settled ? <NotFound /> : null;
+  return settled ? <NotFound /> : <>{skeleton}</>;
 }

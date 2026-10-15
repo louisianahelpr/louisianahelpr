@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { usePermissionRationale, type PermissionKind } from "@/hooks/usePermissionRationale";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { persistUserLocation } from "@/lib/persistUserLocation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -80,7 +80,7 @@ export function getCachedUserLocation(): { lat: number; lng: number } | null {
  * columns mean "a device told us this", and poisoning them with a parish-scale
  * point would make every future distance read silently wrong.
  */
-async function deriveFallbackLocation(
+export async function deriveFallbackLocation(
   profile: {
     latitude?: number | string | null;
     longitude?: number | string | null;
@@ -127,7 +127,14 @@ async function deriveFallbackLocation(
   return null;
 }
 
-export function useUserLocation(enabled: boolean): GeoState {
+/**
+ * `rationale` picks the "why we want location" copy shown before the OS
+ * prompt. Every job surface uses the default ("location": jobs near you,
+ * Helpr arrival); Declutter passes its own kind so its explanation talks
+ * about items and miles, not jobs. The fetch, cache, profile write and
+ * fallback chain are identical whichever copy is shown.
+ */
+export function useUserLocation(enabled: boolean, rationale: PermissionKind = "location"): GeoState {
   const [state, setState] = useState<GeoState>({ status: "idle" });
   const { request } = usePermissionRationale();
   const { profile } = useCurrentUser();
@@ -262,7 +269,7 @@ export function useUserLocation(enabled: boolean): GeoState {
     // the OS prompt. The rationale hook session-gates itself, so this
     // only renders once per session per kind. iOS only shows its system
     // alert ONCE per install — a soft pre-prompt protects that one shot.
-    request("location", fetchLocation).then((granted) => {
+    request(rationale, fetchLocation).then((granted) => {
       if (!granted) {
         failWith("Location permission declined");
       }
@@ -271,7 +278,7 @@ export function useUserLocation(enabled: boolean): GeoState {
     return () => {
       alive = false;
     };
-  }, [enabled, request, profile]);
+  }, [enabled, request, profile, rationale]);
 
   return state;
 }

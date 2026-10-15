@@ -14,7 +14,8 @@ import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useUserLocation } from "@/hooks/useUserLocation";
+import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { DeclutterItemSkeleton } from "./DeclutterSkeletons";
 import {
   answerQuestion,
   askQuestion,
@@ -106,7 +107,8 @@ function QuestionRow({ q, isSeller, itemId }: { q: DeclutterQuestion; isSeller: 
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
-  const geo = useUserLocation(true);
+  // Miles from what we already know; this screen never asks for location.
+  const { origin: geo } = useDeclutterOrigin();
   const [question, setQuestion] = useState("");
   const item = useQuery({ queryKey: ["declutter", "item", itemId], queryFn: () => fetchItem(itemId) });
   const photos = useQuery({ queryKey: ["declutter", "item-photos", itemId], queryFn: () => fetchPhotos([itemId]) });
@@ -138,7 +140,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
-  if (item.isLoading) return <AppPage title="Item" backTo="/declutter"><p role="status" className="text-sm text-muted-foreground">Loading…</p></AppPage>;
+  if (item.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {
     return (
       <AppPage title="Item" backTo="/declutter">

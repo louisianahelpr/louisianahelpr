@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import {
   fetchLiveItems,
   fetchMyItems,
@@ -26,6 +25,7 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/declutter/distance";
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
+import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 
 type View = "browse" | "mine";
 
@@ -60,10 +60,29 @@ function ItemCard({ item, photoPath, miles }: { item: DeclutterItem; photoPath?:
   );
 }
 
+/** Where the miles are counted from, and the one place Declutter asks for the device's location. */
+function OriginLine({ origin, asked, asking, onUse }: { origin: DeclutterOrigin; asked: boolean; asking: boolean; onUse: () => void }) {
+  if (origin.status !== "ready" || origin.source === "device") return null;
+  const from = origin.source === "profile" ? "your saved location" : "your ZIP code's area";
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className="text-xs text-muted-foreground">Miles are counted from {from}.</p>
+      {!asked && (
+        <Button type="button" variant="outline" size="sm" onClick={onUse}>
+          Use my location
+        </Button>
+      )}
+      {asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
+    </div>
+  );
+}
+
 function BrowseView({ userId }: { userId: string }) {
   const [maxMiles, setMaxMiles] = useState<number | null>(25);
-  const geo = useUserLocation(true);
-  const from = geo.status === "ready" ? { lat: geo.lat, lng: geo.lng } : null;
+  // No location prompt on landing: miles come from what we already know, and
+  // the device is asked only from the "Use my location" button below.
+  const { origin, askDevice, asked, asking } = useDeclutterOrigin();
+  const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
   const photos = useQuery({
@@ -77,24 +96,32 @@ function BrowseView({ userId }: { userId: string }) {
   // paint instead of the list first and its photos in a second wave
   // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
   // loading) when there is nothing to show.
-  const listLoading = items.isLoading || photos.isLoading;
+  const listLoading = items.isLoading || photos.isLoading || origin.status === "pending";
 
   if (items.isError) {
     return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
   }
   return (
     <div className="space-y-4">
-      {from ? (
-        <SegmentedControl
-          ariaLabel="How far away"
-          layout="wrap"
-          value={maxMiles === null ? "any" : String(maxMiles)}
-          onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
-          options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
-        />
+      {origin.status === "pending" ? null : from ? (
+        <>
+          <SegmentedControl
+            ariaLabel="How far away"
+            layout="wrap"
+            value={maxMiles === null ? "any" : String(maxMiles)}
+            onChange={(v) => setMaxMiles(v === "any" ? null : Number(v))}
+            options={DISTANCE_CHOICES.map((m) => ({ value: m === null ? "any" : String(m), label: m === null ? "Any distance" : `${m} mi` }))}
+          />
+          <OriginLine origin={origin} asked={asked} asking={asking} onUse={askDevice} />
+        </>
       ) : (
         <DeclutterNotice title="Nearest items show first once we know where you are.">
-          Turn on location, or add your ZIP code in your profile, to see how far each item is.
+          <p>Use your location, or add your ZIP code in your profile, to see how far each item is.</p>
+          {!asked && (
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={askDevice}>
+              Use my location
+            </Button>
+          )}
         </DeclutterNotice>
       )}
       {listLoading ? (

@@ -689,3 +689,11 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L8 | Home-food yearly limit: baker confirms yearly; the app counts their app sales, warns at 80%, stops new home-food orders at the limit |
 | L9-L10 | Eggs from the seller's own hens only (kept cold, no cracked/dirty); whole, uncut, home-grown produce only |
 | L11-L12 | Plants/seedlings/flowers and homemade children's items: NOT at launch (plant-dealer permit question; federal children's product testing) |
+| L13 | Banned in Shops: Declutter's list + alcohol, CBD/THC, raw milk, home-canned vegetables/meat, meat or seafood without a permit, vapes, live animals, medicines and supplements |
+| L14 | Candles, crafts, decor, furniture, adult clothing, art: yes; soap/lotion/balms wait until Claude checks federal cosmetics rules |
+| L15 | Services (classes, photography, DJ, trades like welding) stay in Jobs; a shop page may link "Hire me" in Jobs |
+| L16 | No used items in Shops (Declutter) |
+| L17 | Order: buyer picks items + date; card HELD, charged only when the maker accepts; hold drops on decline/no answer |
+| L18 | Maker has 24 h to accept, then the order expires and the hold drops |
+| L19 | Custom orders: request with details/photos -> maker quotes price + ready date -> buyer says yes -> charged (one quote, no bidding) |
+| L20 | "Ready now" items with a stock count; buying still goes to the maker to accept |

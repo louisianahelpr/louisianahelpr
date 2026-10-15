@@ -67,6 +67,11 @@ interface DisputeCardProps {
    * re-open it to decide again. Optional: the card renders without it.
    */
   clearTestModeRecords?: (job: DisputedJob, note: string) => void;
+  /**
+   * Q1769: close a decided dispute on a Stripe TEST-mode payment between test
+   * accounts as a test, no money moved. Optional: the card renders without it.
+   */
+  closeAsTest?: (job: DisputedJob, note: string) => void;
   /** job.id currently being retried, if any. */
   retrying: string | null;
 }
@@ -94,6 +99,7 @@ export const DisputeCard = ({
   retrySettlement,
   closeWithoutPayment,
   clearTestModeRecords,
+  closeAsTest,
   retrying,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
@@ -121,6 +127,10 @@ export const DisputeCard = ({
   // re-checks every recorded id at Stripe before clearing anything.
   const ranInTestMode = unsettled && /Stripe test mode|test-mode records cleared by an admin/i.test(record?.execution_error ?? "");
   const [testModeNote, setTestModeNote] = useState("");
+  // Q1769: paid in Stripe TEST mode (a cs_test_ Checkout Session). The server
+  // closes it only when every party is a test account and nothing moved.
+  const paidInTestMode = unsettled && (job.stripe_session_id ?? "").startsWith("cs_test_");
+  const [testCloseNote, setTestCloseNote] = useState("");
   // What each side actually receives at the current slider position.
   const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
   const isActivePanel = activePanelJobId === job.id;
@@ -329,6 +339,30 @@ export const DisputeCard = ({
                     disabled={retrying === job.id || testModeNote.trim().length < 10}
                   >
                     Clear test-mode records and re-open
+                  </Button>
+                </div>
+              )}
+              {paidInTestMode && closeAsTest && (
+                <div className="space-y-1.5 border-t border-destructive/20 pt-2">
+                  <Label htmlFor={`test-close-note-${job.id}`} className="text-ds-11">
+                    This job was paid in Stripe test mode. If everyone on it is a test account, close it as a test: no real money moves. Say why:
+                  </Label>
+                  <Textarea
+                    id={`test-close-note-${job.id}`}
+                    value={testCloseNote}
+                    onChange={(e) => setTestCloseNote(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    placeholder="e.g. a test journey between the shared test accounts"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => closeAsTest(job, testCloseNote)}
+                    disabled={retrying === job.id || testCloseNote.trim().length === 0}
+                  >
+                    Close as a test, no money moved
                   </Button>
                 </div>
               )}

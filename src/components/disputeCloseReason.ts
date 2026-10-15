@@ -11,12 +11,16 @@
  *                    refund path other than the split) sent it all back.
  *   no_payment       rpc_settle_dispute_without_payment (20260924013122): an
  *                    admin closed it with no payment on file, both amounts $0.
+ *   test_mode        rpc_close_test_mode_dispute (20261015061949, Q1769): an
+ *                    admin closed a dispute on a Stripe TEST-mode payment
+ *                    between test accounts, both amounts $0.
  */
 export const CHARGEBACK_CLOSE_PREFIX = "closed by a lost card chargeback";
 export const OUTSIDE_REFUND_CLOSE_PREFIX = "closed by a full refund made outside the split";
 export const NO_PAYMENT_CLOSE_PREFIX = "closed by an admin, no payment on file";
+export const TEST_MODE_CLOSE_PREFIX = "closed by an admin, Stripe test mode between test accounts, no real money moved";
 
-export type DisputeCloseReason = "chargeback" | "outside_refund" | "no_payment";
+export type DisputeCloseReason = "chargeback" | "outside_refund" | "no_payment" | "test_mode";
 
 export function disputeCloseReason(
   dispute: { execution_status?: string | null; execution_error?: string | null } | null | undefined,
@@ -26,6 +30,7 @@ export function disputeCloseReason(
   if (note.startsWith(CHARGEBACK_CLOSE_PREFIX)) return "chargeback";
   if (note.startsWith(OUTSIDE_REFUND_CLOSE_PREFIX)) return "outside_refund";
   if (note.startsWith(NO_PAYMENT_CLOSE_PREFIX)) return "no_payment";
+  if (note.startsWith(TEST_MODE_CLOSE_PREFIX)) return "test_mode";
   return null;
 }
 
@@ -35,6 +40,7 @@ export const DISPUTE_CLOSE_COPY: Record<DisputeCloseReason, string> = {
   outside_refund:
     "Closed by a full refund: the whole payment went back to the card before the split ran, so the decision's split did not apply.",
   no_payment: "Closed by an admin: no payment was on file for this job, so nothing was split here.",
+  test_mode: "Closed by an admin as a test: this job was paid in Stripe test mode between test accounts, so no real money moved.",
 };
 
 /**
@@ -42,5 +48,6 @@ export const DISPUTE_CLOSE_COPY: Record<DisputeCloseReason, string> = {
  * nothing true (Q342 M2). An outside refund's amounts are real and stay.
  */
 export function closeMovedNothing(reason: DisputeCloseReason | null): boolean {
+  if (reason === "test_mode") return true;
   return reason === "chargeback" || reason === "no_payment";
 }

@@ -45,11 +45,17 @@ export const IDENTITY_BUCKETS = [
  * own media and are erased with the account. Declutter listing photos
  * (docs/specs/declutter-auctions.md B4) live at `job-photos/<uid>/declutter/`:
  * they belong to the seller's listings, which CASCADE away with the account,
- * so nothing survives that would need them as evidence. The rest of
+ * so nothing survives that would need them as evidence. Quote past-work
+ * photos live at `job-photos/<uid>/quotes/` (src/lib/quotes/api.ts
+ * quotePhotoPath): when the quoter's account goes, the
+ * quote_follows_quoter_deletion trigger (20261015091114_job_quotes.sql)
+ * already empties job_quotes.photo_paths, so the objects are referenced by
+ * nothing and would otherwise sit in a PUBLIC bucket forever. The rest of
  * job-photos stays out, for the reason above.
  */
 export const IDENTITY_SUBFOLDERS = [
   { bucket: "job-photos", folder: "declutter" },
+  { bucket: "job-photos", folder: "quotes" },
 ] as const;
 
 /** `<uid>/<folder>` for each IDENTITY_SUBFOLDERS entry. */

@@ -145,6 +145,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:poster_cancel_job": {
     uncovered: GAP("poster_cancel_job on an unfunded or unhired job (the notifying branches need a hired Helpr, which records a cancel_with_helper strike on the poster)"),
   },
+  "sql:quote_notify": {
+    uncovered:
+      "the 'quotes' switch is created OFF (feature_switches, 20261015091114) and every caller (submit_job_quote, respond_to_job_quote) refuses with feature_disabled until it is on for the shared accounts; a two-account quote journey waits for the switch to be on for testers",
+  },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
   "sql:request_job_detail_change": { uncovered: GAP("request_job_detail_change on a hired journey job (each booked Helpr answers with respond_job_detail_change)") },

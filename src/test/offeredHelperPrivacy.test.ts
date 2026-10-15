@@ -193,6 +193,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
    */
   const REVIEWED: Record<string, "returns-guarded" | "own-row-only" | "no-return"> = {
     "function:get_job_offer_targets": "own-row-only",
+    // Quotes slice 1 (20261015091114): WRITES the offeree (the agreed quoter) on the
+    // booked job's insert and returns only the new job id; never reads it back.
+    "function:quote_insert_job": "no-return",
     // Q1575: reads OLD.offered_to_helper_id to name who declined, for the POSTER's own notice; returns nothing.
     "function:record_backout_notice": "no-return",
     // Q1185: read the offeree to judge or clear a pending direct accept; none returns it.

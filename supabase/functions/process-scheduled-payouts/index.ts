@@ -73,10 +73,17 @@ serve(async (req) => {
 
     // Stripe mode (owner 2026-10-12): each payout runs on the key of its job's
     // own mode (test accounts on the test key); a job mixing test and real
-    // accounts is skipped as a defect. `stripe` (live) is kept only for the
-    // held-money re-drives at the end, which are not per job.
+    // accounts is skipped as a defect. The held-money re-drives at the end
+    // pick each row's client from its job too (Q1753); `stripe` (live) is
+    // only their fallback type, never used for a row.
     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const stripe = stripes.clientFor("live");
+    // Q1753: a re-drive row moves money ALREADY taken on its job out to its
+    // Helpr, so the job decides the key (a test account's held tip or won
+    // chargeback re-pay runs on the TEST key). A mixed job refuses; the
+    // re-drive counts that as a defect and the row waits.
+    const redriveStripeFor = async (jobId: string | null, payees: string[]) =>
+      (await stripes.clientForJob(jobId, "payout", payees)).stripe;
 
     const now = new Date().toISOString();
 
@@ -1975,11 +1982,12 @@ serve(async (req) => {
     // wait for the next run.
     const clawbackRedrive = await redriveHeldClawbackRepays({
       stripe,
+      stripeForJob: redriveStripeFor,
       supabase: supabaseAdmin,
       logStep: (step, details) => console.log(`[process-scheduled-payouts] ${step}`, details ?? ""),
     });
     for (const d of clawbackRedrive.defects) defects.record(d);
-    const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin);
+    const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin, redriveStripeFor);
     for (const d of tipRedrive.defects) defects.record(d);
     const heldRedrive = {
       clawback_disputes: clawbackRedrive.disputes,

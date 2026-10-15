@@ -932,11 +932,39 @@ async function settleCheckoutSession(
           logStep("ERROR: difference paid but the gift could not be consumed — job funded by the difference only", {
             giftCardId, sessionId: session.id, giftStatus: g?.status ?? "missing", giftJobId: g?.job_id ?? null,
           });
+          // Q1491 (lh-money-escrow review of Q1417 #2): the job still goes to
+          // escrow below, so hold its payout until an admin reconciles it:
+          // refuse_payout_claim_while_held refuses every payout claim on a job
+          // in job_payout_holds. Fail closed: a hold that did not land throws,
+          // so Stripe retries rather than the job paying out unreconciled.
+          if (giftJobId) {
+            // No .select(): zero rows is legitimate here (ignoreDuplicates:
+            // a redelivery finds the hold already placed), and the error is
+            // checked; the trigger reads the row, not this write's answer.
+            const { error: holdErr } = await supabase
+              .from("job_payout_holds")
+              .upsert(
+                { job_id: giftJobId, reason: `Q1491: gift card difference payment ${session.id} — gift ${giftCardId} was not reserved for this job (${g?.status ?? "missing"})` },
+                { onConflict: "job_id", ignoreDuplicates: true },
+              );
+            if (holdErr) {
+              await postSlackOpsAlert({
+                kind: "custom",
+                severity: "critical",
+                title: "Gift card difference payment — job underfunded, payout hold FAILED",
+                message: "The job is funded by the difference alone and its payout hold could not be written. Stripe will retry this event.",
+                fields: { session_id: session.id, gift_card_id: giftCardId, job_id: giftJobId, db_error: holdErr.message },
+              });
+              throw new Error(`job_payout_holds insert failed for session ${session.id}: ${holdErr.message}`);
+            }
+          }
           await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
             title: "Gift card difference payment — job underfunded",
-            message: "A recipient paid the shortfall but the gift it was meant to sit beside was not reserved for this job any more (spent elsewhere, revoked or missing). The job is funded by the difference alone. Reconcile before it pays out.",
+            message: giftJobId
+              ? "A recipient paid the shortfall but the gift it was meant to sit beside was not reserved for this job any more (spent elsewhere, revoked or missing). The job is funded by the difference alone, and its payout is ON HOLD (job_payout_holds). Reconcile, then release it in the SQL editor: select public.admin_release_job_payout_hold('<job_id>');"
+              : "A recipient paid the shortfall but the gift it was meant to sit beside was not reserved for this job any more (spent elsewhere, revoked or missing). The session names no job, so the difference payment is unapplied (no job was funded and nothing can pay out): refund it or apply it by hand.",
             fields: {
               session_id: session.id,
               gift_card_id: giftCardId,

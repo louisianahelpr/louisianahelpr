@@ -53,7 +53,7 @@ import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkPayoutHold, checkJobPayoutHold, isPayoutHeldRefusal, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { jobMoneyMode, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -462,6 +462,25 @@ serve(async (req) => {
         code: PAYOUT_HELD_CODE,
         hold_reason: hold.reason,
         denied: hold.denied,
+      },
+      409,
+    );
+  }
+  // Q1491: a JOB payout hold. The claim trigger would refuse it too, but with
+  // the Helpr-hold wording; asked here so the answer names the right hold.
+  const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id);
+  if (jobHold.kind === "error") {
+    console.error(`[release-payout] job payout hold check failed for job ${job.id}: ${jobHold.message}`);
+    return jsonResponse({ error: "job payout hold check failed — payout refused, retry" }, 500);
+  }
+  if (jobHold.kind === "held") {
+    console.warn(`[release-payout] job ${job.id} refused: the job's payout is on hold`);
+    return jsonResponse(
+      {
+        error: JOB_PAYOUT_HELD_MESSAGE,
+        code: PAYOUT_HELD_CODE,
+        hold_reason: jobHold.reason,
+        job_hold: true,
       },
       409,
     );

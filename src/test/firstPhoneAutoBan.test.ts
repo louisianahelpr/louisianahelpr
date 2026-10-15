@@ -50,7 +50,7 @@
  * @mutate supabase/migrations/20261012042748_phone_change_retained_ban.sql | SECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_full | SET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_full
  * @mutate supabase/migrations/20261012065930_retained_ban_marks_doubt_row.sql |         DO UPDATE SET auto_banned = true\n        WHERE NOT public.ban_evasion_matches.auto_banned; |         DO NOTHING;
  * @mutate supabase/migrations/20261012065930_retained_ban_marks_doubt_row.sql | UPDATE public.ban_evasion_matches m\n   SET auto_banned = true | UPDATE public.ban_evasion_matches m\n   SET auto_banned = m.auto_banned
- * @mutate supabase/migrations/20260923172405_retire_approval_status_reads.sql |   IF current_setting('app.trusted_ladder_write', true) = 'on' THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
+ * @mutate supabase/migrations/20261015005850_pin_subscription_source_self_write.sql |   IF current_setting('app.trusted_ladder_write', true) = 'on' THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

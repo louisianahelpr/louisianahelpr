@@ -267,6 +267,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/rotate-review-demo-password.mjs": "Q1790: on --apply only, a 0600 backup of the new reviewer password to ~/.lh-backups/ (outside the repo, a secret, never committed)",
   "scripts/land-queue.mjs": "the land queue's decision lines to $GITHUB_STEP_SUMMARY in land-queue.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-claims.mjs": "stale claim/* decisions to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",

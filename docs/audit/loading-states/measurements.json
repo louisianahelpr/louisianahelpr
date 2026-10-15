@@ -23163,18 +23163,22 @@
     {
       "url": "/declutter",
       "persona": "helper",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 2848,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3983,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/helper_declutter.loading.png",
       "loading": {
-        "found": 1,
+        "found": 7,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -23182,6 +23186,42 @@
         },
         "shifts": [],
         "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 6,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 671
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 26,
+            "textLeaves": 3,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 6,
+            "text": "DeclutterSell an itemBuy and sell used household items near you. Pick up in person."
+          },
           {
             "path": "div#root > nav > div:nth-of-type(3)",
             "placeholderCount": 1,
@@ -23225,14 +23265,14 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/helper_declutter.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
           },
           "div#root > nav": {
             "y": 748,
@@ -23241,6 +23281,36 @@
         },
         "shifts": [],
         "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 518
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 37,
+            "textLeaves": 14,
+            "media": 0,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "DeclutterSell an itemBuy and sell used household items near you. Pick up in person.BrowseMy listings5 mi10 mi25 mi50 miAny distanceMiles are counted from your Z"
+          },
           {
             "found": true,
             "rowRect": {
@@ -23269,13 +23339,65 @@
             "media": 3,
             "controls": 6,
             "placeholders": 1,
-            "text": "11HH"
+            "text": "12HH"
           }
         ]
       },
       "clsTotal": 0,
       "clsDuringSwap": 0,
       "clusters": [
+        {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 671
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 518
+          },
+          "skeletonContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -153,
+          "deltaContainerPx": 0,
+          "rows": [
+            4,
+            4
+          ],
+          "rowH": [
+            68,
+            68
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            2,
+            10
+          ],
+          "textLeaves": [
+            3,
+            14
+          ],
+          "placeholderCount": 6,
+          "shapeMatch": true
+        },
         {
           "path": "div#root > nav > div:nth-of-type(3)",
           "skeletonBox": {
@@ -23329,37 +23451,41 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 0,
+      "worstDeltaRowPx": -153,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 1,
+      "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 17
     },
     {
       "url": "/declutter",
       "persona": "customer",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 3881,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3985,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/customer_declutter.loading.png",
       "loading": {
-        "found": 1,
+        "found": 7,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -23367,6 +23493,42 @@
         },
         "shifts": [],
         "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 6,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 671
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 26,
+            "textLeaves": 3,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 6,
+            "text": "DeclutterSell an itemBuy and sell used household items near you. Pick up in person."
+          },
           {
             "path": "div#root > nav > div:nth-of-type(3)",
             "placeholderCount": 1,
@@ -23410,14 +23572,14 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/customer_declutter.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
           },
           "div#root > nav": {
             "y": 748,
@@ -23426,6 +23588,36 @@
         },
         "shifts": [],
         "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 518
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 37,
+            "textLeaves": 14,
+            "media": 0,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "DeclutterSell an itemBuy and sell used household items near you. Pick up in person.BrowseMy listings5 mi10 mi25 mi50 miAny distanceMiles are counted from your Z"
+          },
           {
             "found": true,
             "rowRect": {
@@ -23462,6 +23654,58 @@
       "clsDuringSwap": 0,
       "clusters": [
         {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 671
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 518
+          },
+          "skeletonContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -153,
+          "deltaContainerPx": 0,
+          "rows": [
+            4,
+            4
+          ],
+          "rowH": [
+            68,
+            68
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            2,
+            10
+          ],
+          "textLeaves": [
+            3,
+            14
+          ],
+          "placeholderCount": 6,
+          "shapeMatch": true
+        },
+        {
           "path": "div#root > nav > div:nth-of-type(3)",
           "skeletonBox": {
             "x": 307,
@@ -23514,26 +23758,26 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 0,
+      "worstDeltaRowPx": -153,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 1,
+      "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 17
     },
     {
       "url": "/declutter",
       "persona": "anon",
-      "base": "http://127.0.0.1:4687",
+      "base": "http://127.0.0.1:4199",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -23546,18 +23790,22 @@
     {
       "url": "/declutter/sell",
       "persona": "customer",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 3804,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3874,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter/sell",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter_sell.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/customer_declutter_sell.loading.png",
       "loading": {
         "found": 1,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -23608,14 +23856,22 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter_sell.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/customer_declutter_sell.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "h2#sell-details": {
+            "y": 85,
+            "h": 24
+          },
+          "testid:sell-form-problem": {
+            "y": 1014,
+            "h": 16
           },
           "div#root > nav": {
             "y": 748,
@@ -23719,30 +23975,34 @@
       "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 16
     },
     {
       "url": "/declutter/sell",
       "persona": "helper",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 2788,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3931,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter/sell",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter_sell.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/helper_declutter_sell.loading.png",
       "loading": {
         "found": 1,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -23793,21 +24053,34 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter_sell.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure2/helper_declutter_sell.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "h2#sell-details": {
+            "y": 235,
+            "h": 24
+          },
+          "testid:sell-form-problem": {
+            "y": 1164,
+            "h": 16
           },
           "div#root > nav": {
             "y": 748,
             "h": 64
           }
         },
-        "shifts": [],
+        "shifts": [
+          {
+            "t": 4392.699999928474,
+            "v": 0.1672644325268752
+          }
+        ],
         "clusters": [
           {
             "found": true,
@@ -23837,12 +24110,12 @@
             "media": 3,
             "controls": 6,
             "placeholders": 1,
-            "text": "11HH"
+            "text": "12HH"
           }
         ]
       },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
+      "clsTotal": 0.1673,
+      "clsDuringSwap": 0.1673,
       "clusters": [
         {
           "path": "div#root > nav > div:nth-of-type(3)",
@@ -23911,12 +24184,12 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 16
     },
     {
       "url": "/declutter/sell",
       "persona": "anon",
-      "base": "http://127.0.0.1:4687",
+      "base": "http://127.0.0.1:4199",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -23929,18 +24202,22 @@
     {
       "url": "/declutter/item/test",
       "persona": "customer",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 3814,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3850,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter/item/test",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter_item_test.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure/customer_declutter_item_test.loading.png",
       "loading": {
         "found": 1,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -23991,14 +24268,14 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/customer_declutter_item_test.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure/customer_declutter_item_test.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
           },
           "div#root > nav": {
             "y": 748,
@@ -24102,30 +24379,34 @@
       "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 17
     },
     {
       "url": "/declutter/item/test",
       "persona": "helper",
-      "base": "http://127.0.0.1:4687",
-      "capturedAt": 3812,
+      "base": "http://127.0.0.1:4199",
+      "capturedAt": 3865,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/declutter/item/test",
-      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter_item_test.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure/helper_declutter_item_test.loading.png",
       "loading": {
         "found": 1,
         "docH": 812,
         "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
           "div#root > nav": {
             "y": 748,
             "h": 64
@@ -24176,14 +24457,14 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading-1014/helper_declutter_item_test.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/declutter-loading/measure/helper_declutter_item_test.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
         "landmarks": {
-          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
-            "y": 136,
-            "h": 64
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
           },
           "div#root > nav": {
             "y": 748,
@@ -24220,7 +24501,7 @@
             "media": 3,
             "controls": 6,
             "placeholders": 1,
-            "text": "11HH"
+            "text": "12HH"
           }
         ]
       },
@@ -24287,19 +24568,19 @@
       "clustersMeasured": 1,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
-      "landmarksCompared": 1,
+      "landmarksCompared": 2,
       "docHDelta": 0,
       "status": "measured",
       "consoleErrors": [
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 15
+      "requests": 17
     },
     {
       "url": "/declutter/item/test",
       "persona": "anon",
-      "base": "http://127.0.0.1:4687",
+      "base": "http://127.0.0.1:4199",
       "stage": {
         "waves": 0,
         "ended": "empty"
@@ -24326,6 +24607,48 @@
         "anon /declutter/item/test"
       ],
       "replaced": []
+    },
+    {
+      "at": "2026-10-15T07:59:56.290Z",
+      "base": "http://127.0.0.1:4199",
+      "surfaces": [
+        "helper /declutter",
+        "customer /declutter",
+        "anon /declutter",
+        "customer /declutter/sell",
+        "helper /declutter/sell",
+        "anon /declutter/sell",
+        "customer /declutter/item/test",
+        "helper /declutter/item/test",
+        "anon /declutter/item/test"
+      ],
+      "replaced": [
+        "helper /declutter",
+        "customer /declutter",
+        "anon /declutter",
+        "customer /declutter/sell",
+        "helper /declutter/sell",
+        "anon /declutter/sell",
+        "customer /declutter/item/test",
+        "helper /declutter/item/test",
+        "anon /declutter/item/test"
+      ]
+    },
+    {
+      "at": "2026-10-15T08:20:38.521Z",
+      "base": "http://127.0.0.1:4199",
+      "surfaces": [
+        "helper /declutter",
+        "customer /declutter",
+        "customer /declutter/sell",
+        "helper /declutter/sell"
+      ],
+      "replaced": [
+        "helper /declutter",
+        "customer /declutter",
+        "customer /declutter/sell",
+        "helper /declutter/sell"
+      ]
     }
   ]
 }

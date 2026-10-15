@@ -38,7 +38,6 @@
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL\n |
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
@@ -48,7 +47,7 @@
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
- * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql | DROP FUNCTION IF EXISTS public.job_match_digest_rows(uuid[]); | SELECT 1;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -126,7 +125,7 @@ const SQL_PRODUCERS: Record<string, string> = {
  */
 const EDGE_MENTIONS: Record<string, "producer" | "not-a-producer"> = {
   "supabase/functions/instant-job-match/index.ts": "producer",
-  "supabase/functions/daily-match-digest/index.ts": "producer",
+  // daily-match-digest was retired with the digest (Q1657, 20261015065619).
   // Preference / type maps and the mailer for a row that already exists.
   "supabase/functions/_shared/notificationLog.ts": "not-a-producer",
   "supabase/functions/send-notification-email/index.ts": "not-a-producer",
@@ -329,16 +328,11 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(all).toContain("REVOKE ALL ON FUNCTION public.deliver_parish_match_alert(uuid, uuid) FROM PUBLIC, anon, authenticated;");
   });
 
-  it("daily-match-digest re-checks its rows against the gate before it summarises them", () => {
-    const src = edgeCode("supabase/functions/daily-match-digest/index.ts");
-    const ask = src.indexOf('supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds })');
-    expect(ask).toBeGreaterThan(0);
-    const skip = src.indexOf("if (!row.jobs || !sendable.has(row.id)) continue;");
-    expect(skip).toBeGreaterThan(ask);
-    expect(src.indexOf('.from("notifications").insert(')).toBeGreaterThan(skip);
-    const rows = body("job_match_digest_rows");
-    expect(rows).toContain("public.job_announceable_to(j, q.user_id)");
-    expect(rows).toContain("public.early_access_visible_at(q.user_id, j.created_at) > now()");
+  it("the job-match digest is retired: no edge function, no digest-rows RPC (Q1657)", () => {
+    // Q1585 removed the daily list; 20261015065619 retired its plumbing. A
+    // second producer of job_match rows must not come back without its gate.
+    expect(edgeFiles.some((f) => f.rel.startsWith("supabase/functions/daily-match-digest/"))).toBe(false);
+    expect(bodies.has("job_match_digest_rows"), "job_match_digest_rows is still defined by the newest migrations").toBe(false);
   });
 
   it("create-notification's job_match is admin free text only: no template emits it", () => {

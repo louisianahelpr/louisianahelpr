@@ -32,6 +32,23 @@ export const PAYOUT_HELD_CODE = "payout_held";
 export const PAYOUT_HOLD_SPLIT_ERROR = "the Helpr's payouts are on hold";
 
 /**
+ * The execution_error execute-dispute-split records when a JOB payout hold
+ * (public.job_payout_holds, Q1491) stopped the split. Its own text, so the
+ * admin is not sent to the Payout Queue for a Helpr hold that does not exist,
+ * and auto-resolve-disputes sets the split aside while the job is still held
+ * (lh-money-escrow review of the Q1491 rebuild, #1).
+ */
+export const PAYOUT_JOB_HOLD_SPLIT_ERROR = "this job's payout is on hold (job_payout_holds)";
+
+/**
+ * The refusal a payout path shows for a job hold. Generic on purpose: the
+ * table holds any job-level hold, and its recorded reason is internal (a
+ * Checkout Session and gift card id), so it goes in logs and the 409 body's
+ * hold_reason, never in the person-facing text (review of Q1491 #6).
+ */
+export const JOB_PAYOUT_HELD_MESSAGE = "This job's payout is on hold until an admin reconciles it. No money was moved.";
+
+/**
  * Did this insert fail because the payout_transfers trigger refused a claim
  * for a held Helpr (20261004162921: 23514, message payout_held)? That is a
  * hold landing between a function's own check and its claim, and is answered
@@ -82,6 +99,61 @@ export async function loadPayoutHolds(
     if (row && ids.includes(row.helper_id)) holds.set(row.helper_id, row);
   }
   return { ok: true, holds };
+}
+
+export type JobPayoutHoldCheck =
+  | { kind: "clear" }
+  | { kind: "held"; reason: string }
+  | { kind: "error"; message: string };
+
+/**
+ * Is this JOB's payout on hold (public.job_payout_holds, Q1491: a gift-card
+ * difference payment whose gift was not there any more)? The payout_transfers
+ * claim trigger refuses a held job; a path that transfers BEFORE writing its
+ * ledger row (Quick Release, the dispute split) asks this first. Fails closed;
+ * a missing table (the migration-lag window) holds no job.
+ */
+export async function checkJobPayoutHold(
+  supabaseAdmin: { from: (t: string) => any },
+  jobId: string | null | undefined,
+): Promise<JobPayoutHoldCheck> {
+  if (!jobId) return { kind: "clear" };
+  const { data, error } = await supabaseAdmin
+    .from("job_payout_holds")
+    .select("job_id, reason")
+    .eq("job_id", jobId)
+    .maybeSingle();
+  if (error) {
+    if (tableMissing(error)) return { kind: "clear" };
+    return { kind: "error", message: (error as { message?: string }).message ?? "job payout hold read failed" };
+  }
+  const row = data as { job_id?: string; reason?: string } | null;
+  return row?.job_id ? { kind: "held", reason: row.reason ?? "" } : { kind: "clear" };
+}
+
+/**
+ * Which of `jobIds` have a JOB payout hold. Fails closed (ok: false on a read
+ * error); a missing table (the migration-lag window) holds no job.
+ */
+export async function loadJobPayoutHolds(
+  supabaseAdmin: { from: (t: string) => any },
+  jobIds: ReadonlyArray<string | null | undefined>,
+): Promise<{ ok: true; jobs: Set<string> } | { ok: false; message: string }> {
+  const ids = [...new Set(jobIds.filter((x): x is string => typeof x === "string" && x.length > 0))];
+  const jobs = new Set<string>();
+  if (ids.length === 0) return { ok: true, jobs };
+  const { data, error } = await supabaseAdmin
+    .from("job_payout_holds")
+    .select("job_id")
+    .in("job_id", ids);
+  if (error) {
+    if (tableMissing(error)) return { ok: true, jobs };
+    return { ok: false, message: (error as { message?: string }).message ?? "job payout hold read failed" };
+  }
+  for (const row of (data ?? []) as Array<{ job_id?: string | null }>) {
+    if (row?.job_id && ids.includes(row.job_id)) jobs.add(row.job_id);
+  }
+  return { ok: true, jobs };
 }
 
 /** Is this one Helpr on hold? Call it before any money moves to them. */

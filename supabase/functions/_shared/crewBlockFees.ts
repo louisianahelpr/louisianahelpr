@@ -21,7 +21,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
-import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkJobPayoutHold, checkPayoutHold, type JobPayoutHoldCheck } from "../_shared/payoutHold.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents } from "../_shared/money.ts";
@@ -93,6 +93,12 @@ export async function payCrewBlockFees(
   };
 
   let allPaid = true;
+  // Q1491 (lh-money-escrow review of the rebuild, #2): a JOB payout hold (an
+  // underfunded gift-card job) pays nobody, block fees included: with no
+  // charge to link, a block fee would otherwise go out of the platform balance
+  // unbounded by what the poster paid. Read once per job, on the first fee
+  // that would move money.
+  let jobHold: JobPayoutHoldCheck | null = null;
   for (const row of unpaid) {
     const feeDollars = Number(row.fee_cents) / 100;
     if (!row.helper_id) {
@@ -124,6 +130,17 @@ export async function payCrewBlockFees(
     }
     if (hold.kind === "held") {
       // An outcome, not a defect: the job waits until the hold is released.
+      allPaid = false;
+      continue;
+    }
+    jobHold ??= await checkJobPayoutHold(admin, job.id);
+    if (jobHold.kind === "error") {
+      problems.push(`crew block fee job payout hold check ${row.id}: ${jobHold.message}`);
+      allPaid = false;
+      continue;
+    }
+    if (jobHold.kind === "held") {
+      // An outcome, like the Helpr hold: retried every run once it is released.
       allPaid = false;
       continue;
     }

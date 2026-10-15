@@ -611,6 +611,36 @@ describe("stripe-webhook edge function", () => {
         expect(giftWrites).toHaveLength(2);
         expect(titles).toContain("Gift card difference payment — job underfunded");
       });
+
+      // Q1491 (lh-money-escrow review of Q1417 #2): an underfunded job is held
+      // so no payout path can claim it before an admin reconciles (the claim
+      // trigger refuses a held job: src/test/pglite/jobPayoutHold.pglite.mjs).
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           if (giftJobId) {\n            // No .select(): zero rows | if (false) {\n            // No .select(): zero rows
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |               throw new Error(`job_payout_holds insert failed | console.log(`job_payout_holds insert failed
+      const holds = () => scenario.writes.filter((w) => w.table === "job_payout_holds");
+      it.each([
+        ["spent on another job", { id: "gc-1", status: "redeemed", job_id: "job-OTHER", payment_status: "paid" }],
+        ["revoked", { id: "gc-1", status: "sent", job_id: null, payment_status: "refunded" }],
+      ] as const)("an underfunded job (gift %s) gets a payout hold on THIS job", async (_label, gift) => {
+        const { res } = await deliver({ ...gift });
+        expect(res.status).toBe(200);
+        expect(holds()).toHaveLength(1);
+        expect(holds()[0].payload).toMatchObject({ job_id: "job-1" });
+      });
+
+      it("the harmless outcomes place no hold (re-claimed, or a redelivery)", async () => {
+        await deliver({ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" });
+        await deliver({ id: "gc-1", status: "redeemed", job_id: "job-1", payment_status: "paid" });
+        expect(holds()).toEqual([]);
+      });
+
+      it("a hold that could not be written fails the event (Stripe retries) instead of escrowing an unheld job", async () => {
+        scenario.writeErrors.job_payout_holds = { message: "connection reset" };
+        const { res, titles } = await deliver({ id: "gc-1", status: "redeemed", job_id: "job-OTHER", payment_status: "paid" });
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect(titles.some((t) => /payout hold FAILED/.test(t))).toBe(true);
+        expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as { payment_status?: string }).payment_status === "escrow")).toBe(false);
+      });
     });
 
     it("marks a tip as paid and notifies the helper on a tip checkout", async () => {

@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-14T22:59:15.536Z",
-  "guards": 1833,
-  "registered": 1833,
-  "unregistered": [],
+  "generated": "2026-10-15T00:28:27.280Z",
+  "guards": 1835,
+  "registered": 1834,
+  "unregistered": [
+    "src/lib/refundAmount.parity.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],

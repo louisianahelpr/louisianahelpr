@@ -5,7 +5,7 @@
  * The fast half, read from the NEWEST definitions (effectiveDefs), so a later
  * restatement that drops the gave-up alert or the hand-refund rules fails here.
  *
- * Behaviour (36 checks, 3x replay, migration skipped = RED):
+ * Behaviour (3x replay, migration skipped = RED):
  * src/test/pglite/declutterRefundHandSettle.pglite.mjs. Edge side:
  * src/test/edge/declutter-payments.test.ts and src/test/edge/declutter-money.test.ts.
  *

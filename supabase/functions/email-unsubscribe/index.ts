@@ -26,6 +26,9 @@
 //      profile, and writes the two reversible consent flags:
 //          profiles.marketing_consent                -> false
 //          notification_preferences.email_promotions -> false
+//      A resubscribe turns email_promotions back on, and marketing_consent
+//      only for someone whose sign-up consent record says they agreed
+//      (Q?unsub-resubscribe-consent; see setCommercialConsent).
 //   5. Every commercial sender re-reads both flags before its next send:
 //        • send-marketing-blast  — filters on both, FAIL-CLOSED on a read error
 //        • engagement-automations (welcome drip, win-back) — same
@@ -137,14 +140,39 @@ async function setCommercialConsent(
   userId: string,
   optOut: boolean,
 ): Promise<void> {
-  const { data: updated, error: profileError } = await supabase
-    .from('profiles')
-    .update({ marketing_consent: !optOut })
-    .eq('user_id', userId)
-    .select('user_id')
-  if (profileError) throw new Error(`marketing_consent write failed: ${profileError.message}`)
-  if (!updated || updated.length === 0) {
-    throw new Error('marketing_consent write matched no profile row')
+  // Q?unsub-resubscribe-consent (owner, 2026-10-15: "only undo what they
+  // turned off"). Resubscribe used to write `marketing_consent: true` whatever
+  // it was before, so anyone holding a promotions link (a sign-up lead
+  // reminder carries one too) could opt in an address that never ticked the
+  // sign-up box. Now an unsubscribe still turns consent OFF, but a resubscribe
+  // turns it back ON only for someone who agreed to it before: the sign-up
+  // consent record (`legal_acceptances.marketing_opted_in`, written by
+  // complete-signup when the box is ticked; measured 2026-10-15: all 24
+  // profiles with consent on have one). No record: consent is not written and
+  // stays off, and only the list they left (email_promotions) comes back.
+  // A failed read throws: it must never be read as "they agreed".
+  let restoreConsent = !optOut
+  if (!optOut) {
+    const { data: agreed, error: agreedError } = await supabase
+      .from('legal_acceptances')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('marketing_opted_in', true)
+      .limit(1)
+    if (agreedError) throw new Error(`consent record read failed: ${agreedError.message}`)
+    restoreConsent = Array.isArray(agreed) && agreed.length > 0
+  }
+
+  if (optOut || restoreConsent) {
+    const { data: updated, error: profileError } = await supabase
+      .from('profiles')
+      .update({ marketing_consent: !optOut })
+      .eq('user_id', userId)
+      .select('user_id')
+    if (profileError) throw new Error(`marketing_consent write failed: ${profileError.message}`)
+    if (!updated || updated.length === 0) {
+      throw new Error('marketing_consent write matched no profile row')
+    }
   }
 
   // Upsert, not update: `notification_preferences` rows are created lazily by

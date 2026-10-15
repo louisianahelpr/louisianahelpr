@@ -21,7 +21,7 @@
  *
  * @mutate supabase/functions/_shared/stripeFees.ts |   return cents / 100;\n} |   return (cents - stripePercentCostCents(cents)) / 100;\n}
  * @mutate src/lib/stripeFees.ts |   return cents / 100;\n} |   return (cents - stripePercentCostCents(cents)) / 100;\n}
- * @mutate supabase/migrations/20261005172816_urgent_bonus_full_to_helpr_payout_batches.sql |       + COALESCE(j.urgent_fee, 0)\n |       + (COALESCE(j.urgent_fee, 0) * (1 - 0.029))\n
+ * @mutate supabase/migrations/20261015034233_payout_batches_flat_fee.sql |       + COALESCE(j.urgent_fee, 0)\n |       + (COALESCE(j.urgent_fee, 0) * (1 - 0.029))\n
  * @mutate supabase/functions/_shared/posterFees.ts |   const prepaid = Math.max(0, prepaidCostCents); |   const prepaid = 0;
  * @mutate src/components/postjob/BudgetSection.tsx | gets all of your bonus | gets your bonus less card processing
  * @mutate supabase/functions/_shared/stripeFees.ts |   let fee = Math.ceil((urgentCents * STRIPE_PCT) / (1 - STRIPE_PCT));\n  while (fee > 0 && fee - 1 >= stripePercentCostCents(urgentCents + fee - 1)) fee--;\n  while (fee < stripePercentCostCents(urgentCents + fee)) fee++; |   const fee = stripePercentCostCents(urgentCents);

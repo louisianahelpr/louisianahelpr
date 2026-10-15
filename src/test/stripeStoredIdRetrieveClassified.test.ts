@@ -222,7 +222,7 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefundUpdated.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/_visitTaxReversal.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
-  // items-c-refund-notice (2026-10-12): pageVisitTaxForFailedRefund runs from the
+  // items-c-refund-notice (2026-10-12): undoVisitTaxForFailedRefund runs from the
   // charge.refund.updated event; piId is that refund's own PaymentIntent.
   "stripe-webhook/handlers/_visitTaxReversal.ts::stripe.paymentIntents.retrieve(piId)#2": EVENT,
   // Q1724: reverseVisitTaxForLostDispute runs from the charge.dispute.closed

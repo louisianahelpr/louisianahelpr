@@ -112,7 +112,8 @@ export interface StripeMock {
   /** charge-recurring-visits: tax quote, then the committed transaction (ME-014). */
   tax: {
     calculations: { create: ReturnType<typeof vi.fn> };
-    transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn> };
+    /** Q1782 (2): stripe-webhook reads a visit's tax transaction lines to size a refund's reversal. */
+    transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn>; listLineItems: ReturnType<typeof vi.fn> };
   };
   payouts: { create: ReturnType<typeof vi.fn> };
   charges: {
@@ -216,7 +217,7 @@ export const stripeMock: StripeMock = {
   },
   tax: {
     calculations: { create: vi.fn() },
-    transactions: { createFromCalculation: vi.fn(), createReversal: vi.fn() },
+    transactions: { createFromCalculation: vi.fn(), createReversal: vi.fn(), listLineItems: vi.fn() },
   },
   payouts: {
     create: vi.fn(),

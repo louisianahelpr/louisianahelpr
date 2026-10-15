@@ -481,9 +481,11 @@ export async function handleChargeRefunded(
     // sweep (void-cancelled-payments) is the safety net for a path that
     // stopped first. Not deferring through Stripe's retries: a re-run repeats
     // this whole event (third review of Q1714).
+    // Q1819: the duplicate-funding refund is ledgered by its path but NOT
+    // announced by it: this webhook tells the payer, as before the ledger row.
     const { data: pathRows, error: pathRowsErr } = await supabase.from("payment_refunds")
       .select("stripe_refund_id, source").in("stripe_refund_id", ordinaryRefunds.map((r) => r.id))
-      .neq("source", "stripe_dashboard");
+      .not("source", "in", "(stripe_dashboard,duplicate_funding)");
     if (pathRowsErr) logStep("WARN: path ledger read for the refund notice failed; sending from here", { error: pathRowsErr.message });
     const madeByAPath = new Set(((pathRows ?? []) as Array<{ stripe_refund_id: string }>).map((x) => x.stripe_refund_id));
     for (const r of ordinaryRefunds) {

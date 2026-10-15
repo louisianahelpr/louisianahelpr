@@ -246,9 +246,11 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     const res = await deliverChargeRefunded();
     expect(res.status).toBe(200);
     expect(posterNotices()).toHaveLength(0);
-    // Asked for path rows only: a Dashboard refund's own ledger row does not count.
+    // Asked for path rows only: a Dashboard refund's own ledger row does not
+    // count, nor does a duplicate-funding row (that path ledgers but does not
+    // announce, Q1819).
     const q = scenario.readQueries.find((r) => r.table === "payment_refunds" && r.cols.includes("source"));
-    expect(q?.filters).toContainEqual({ op: "neq", column: "source", value: "stripe_dashboard" });
+    expect(q?.filters).toContainEqual({ op: "not", column: "source", operator: "in", value: "(stripe_dashboard,duplicate_funding)" });
   });
 
   it("a released hold already announced is not announced again as a refund of the same amount made with it (review N8)", async () => {

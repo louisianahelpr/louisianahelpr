@@ -2957,6 +2957,100 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
+  /**
+   * Q1759 (lh-money-escrow review of the test-mode branch, 2026-10-12): a paid
+   * visit's refund is money ALREADY taken, so it runs where that money sits
+   * (the row's own cs_live_/cs_test_ Checkout, else its payer). It used to be
+   * decided as NEW money from every party on the series plus the visit's
+   * Helpr, so a real payer's series with a TEST Helpr on a visit was refused
+   * as a mix and its live money never refunded, every run.
+   *
+   * @mutate supabase/functions/charge-recurring-visits/index.ts |         ({ stripe } = await visitMoneyClient(row)); |         ({ stripe } = await stripes.clientForJob(String(row.parent_job_id), "new", [row.payer_id, row.helper_id]));
+   */
+  it("Q1759: a real payer's PAID visit with a TEST Helpr on it is refunded on the LIVE key, not skipped as a mix", async () => {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SECRET_KEY: "sb_secret_test",
+      STRIPE_SECRET_KEY: "sk_live_real_money",
+      STRIPE_TEST_SECRET_KEY: "sk_test_sandbox",
+      CRON_SECRET,
+    });
+    const fn = await loadEdgeFunction("charge-recurring-visits");
+    stripeMock.__trackClients = true;
+    seedHappyPath();
+    wireJobsReads({
+      series: { rows: [seriesParent({ budget: 300, series_ended_on: "2026-08-31" })] },
+      live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-31" }] },
+      over: { rows: [ENDED_PARENT] },
+    });
+    wireVisitPayments({ ahead: { rows: [{ ...aheadPaid, stripe_session_id: "cs_live_ahead" }] } });
+    // The visit's Helpr is an enrolled TEST account; the payer is real.
+    scenario.reads.test_accounts = { rows: [{ user_id: HELPER_ID }] };
+    scenario.reads.profiles = {
+      ...(scenario.reads.profiles ?? {}),
+      selectOverrides: [
+        { includes: "user_id, is_seed", result: { rows: [{ user_id: HELPER_ID, is_seed: true }] } },
+        ...(scenario.reads.profiles?.selectOverrides ?? []),
+      ],
+    };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue({ id: "pi_ahead", amount: 10000, metadata: {}, latest_charge: { balance_transaction: { fee: 320 } } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    const refundsOn = (key: string) => stripeMock.__calls.filter((c) => c.key === key && c.method === "refunds.create");
+    expect(refundsOn("sk_live_real_money")).toHaveLength(1);
+    expect(refundsOn("sk_test_sandbox")).toHaveLength(0);
+    // (The series itself, a real poster with a test standing Helpr, is refused as a mix: a NEW charge.)
+    expect(reasons(b)).not.toMatch(/visit payment vp-ahead: stripe mode/);
+  });
+
+  /**
+   * Q1759 review (lh-money-escrow #3, #6c): a failed test-account read fails
+   * CLOSED for a visit whose own session does not decide the key (a defect,
+   * no refund), and never holds back one whose cs_live_ session does.
+   *
+   * @mutate supabase/functions/charge-recurring-visits/index.ts |       const mode = stored === "live"\n        ? "live"\n        : | const mode = stored === "nope"\n        ? "live"\n        :
+   */
+  const runWithTestAccountReadFailing = async (sessionId: string) => {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SECRET_KEY: "sb_secret_test",
+      STRIPE_SECRET_KEY: "sk_live_real_money",
+      STRIPE_TEST_SECRET_KEY: "sk_test_sandbox",
+      CRON_SECRET,
+    });
+    const fn = await loadEdgeFunction("charge-recurring-visits");
+    stripeMock.__trackClients = true;
+    seedHappyPath();
+    wireJobsReads({
+      series: { rows: [seriesParent({ budget: 300, series_ended_on: "2026-08-31" })] },
+      live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-31" }] },
+      over: { rows: [ENDED_PARENT] },
+    });
+    wireVisitPayments({ ahead: { rows: [{ ...aheadPaid, stripe_session_id: sessionId }] } });
+    scenario.reads.test_accounts = { error: { message: "connection reset", code: "08006" } };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue({ id: "pi_ahead", amount: 10000, metadata: {}, latest_charge: { balance_transaction: { fee: 320 } } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    const b = await body(await runOn(fn, "2026-09-01"));
+    const refunds = stripeMock.__calls.filter((c) => c.method === "refunds.create");
+    return { b, refunds };
+  };
+
+  it("Q1759: a failed test-account read on a visit with no session prefix is a defect and refunds nothing", async () => {
+    const { b, refunds } = await runWithTestAccountReadFailing("cs_ahead");
+    expect(refunds).toHaveLength(0);
+    expect(reasons(b)).toMatch(/visit payment vp-ahead: stripe mode lookup_failed/);
+  });
+
+  it("Q1759: a cs_live_ visit is refunded on the live key even while the test-account read fails", async () => {
+    const { b, refunds } = await runWithTestAccountReadFailing("cs_live_ahead");
+    expect(refunds.map((c) => c.key)).toEqual(["sk_live_real_money"]);
+    expect(reasons(b)).not.toMatch(/visit payment vp-ahead: stripe mode/);
+  });
+
   // Review of Q750 (lh-money-escrow, 2026-10-03): the booked check must still
   // run first. If it stopped matching, the payer would be refunded on a
   // PaymentIntent the booked child's escrow still pays the Helpr from.

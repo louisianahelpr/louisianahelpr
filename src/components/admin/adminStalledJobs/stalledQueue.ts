@@ -55,21 +55,19 @@ export interface StalledQueueRow {
  * because "no stuck jobs" and "I could not ask" are opposite answers on a
  * screen about held escrow.
  *
- * 42883 is the Postgres-side spelling of the same thing, and PGRST100/PGRST203
- * cover a signature the deployed schema cache does not know.
+ * Q?admin-badge-not-deployed: ONLY PostgREST's PGRST202 with no hint. It used
+ * to accept 42883, PGRST203 and any message saying "does not exist" or "schema
+ * cache", so an error raised INSIDE the RPC (a dropped column, 42703; a dropped
+ * table, 42P01; a missing helper function, 42883) read as "not deployed yet".
+ * Measured on prod 2026-10-15 (lh-silent-failure review): a missing function
+ * answers PGRST202 with a null hint; the same code with a hint ("Perhaps you
+ * meant to call ...") means the function exists and its parameters changed,
+ * which is a real failure.
  */
-const MISSING_RPC_CODES = new Set(["PGRST202", "PGRST203", "42883"]);
-
 export function isMissingRpc(error: unknown): boolean {
   if (!error) return false;
-  const code = String((error as { code?: string }).code ?? "");
-  if (MISSING_RPC_CODES.has(code)) return true;
-  const message = String((error as { message?: string }).message ?? "").toLowerCase();
-  return (
-    message.includes("could not find the function") ||
-    message.includes("does not exist") ||
-    message.includes("schema cache")
-  );
+  const e = error as { code?: string; hint?: string | null };
+  return e.code === "PGRST202" && !e.hint;
 }
 
 /**

@@ -53,3 +53,10 @@ Declutter's own growth features (rows 71-90) live in docs/specs/declutter-auctio
 | T2 | Licensed trades | Anyone can apply by default; poster may choose "Licensed pros only" (existing CredentialTierSelector); Helprs with a checked license show a "Licensed" badge; Claude researches which jobs legally need a Louisiana license and warns posters on those |
 
 Owner rule (2026-10-14): "before building all ask me questions to make sure we are on the same page for all" — EVERY section/feature gets a question round before any build, including Declutter slice 4.
+
+## Fees across the hub (owner pop-ups 2026-10-14 night)
+| # | Decision |
+|---|----------|
+| F1 | Declutter AND Shops buyer fee = 5% + $0.70 (match Vinted's "usually 5% + $0.70", read on vinted.com/help/342 2026-10-14), card cost included in it; raise later once more people sign up. REPLACES Declutter row 20/21 (15%, min $1) and Shops L37 — the built Declutter code (slices 3/3b: 15% + $1 minimum, table CHECKs) must change before launch |
+| F2 | Pro shops: free boost days + badge only for now (no lower buyer fee) — replaces the "lower buyer fee" half of L38 |
+| F3 | JOBS: "the percentages should be the same across the board": job POSTER pays NO fee; the same 5% + $0.70 comes out of the HELPR's pay (replacing today's Helpr commission). Card-cost detail being confirmed with the owner. Live money change: not during the App Store review freeze without checking the 7119 client; lands as its own reviewed change |

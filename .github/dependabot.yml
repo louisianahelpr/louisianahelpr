@@ -96,6 +96,14 @@ updates:
       - dependency-name: "@rollup/plugin-terser"
       - dependency-name: "vite-plugin-pwa"
         update-types: ["version-update:semver-major"]
+      # Q1816 (2026-10-15): Playwright 1.64.0's Linux WebKit build stops
+      # painting while a backdrop-filter is on the page, so WebKit clicks never
+      # see their target "stable" (nightly-webkit run 38692697851; bisect runs
+      # 38697230656 and 38697854281). package.json pins 1.63.0 exactly; a newer
+      # release is offered (not this one) so it can be re-checked.
+      # Guard: src/test/playwrightWebkitLinuxPin.test.ts.
+      - dependency-name: "@playwright/test"
+        versions: ["1.64.x"]
 
   # ---------- GitHub Actions workflows ----------
   - package-ecosystem: "github-actions"

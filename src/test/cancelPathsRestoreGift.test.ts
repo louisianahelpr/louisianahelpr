@@ -32,9 +32,10 @@
  * failed restore pages, and by hand it can no longer double-pay. A path added
  * that drops the gift fails here.
  *
- * SQL writers are out of scope: the one SQL function that sets a job's
+ * SQL writers are out of scope: the two SQL functions that set a job's
  * payment_status to 'cancelled' (rpc_settle_dispute_without_payment,
- * 20260924013122) refuses any job with a redeemed or reserved gift.
+ * 20260924013122, and rpc_close_test_mode_dispute, 20261015061949, Q1769)
+ * refuse any job with a redeemed or reserved gift.
  */
 import { describe, expect, it } from "vitest";
 import { relative, resolve } from "node:path";

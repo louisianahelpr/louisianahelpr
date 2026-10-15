@@ -34,8 +34,8 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 17 | Strike count | One Declutter count for buyer + seller strikes, 3 total; separate from job strikes | 2026-10-14 |
 | 18 | Paid, never picked up in 7 days | Refund item price, keep the 15% premium, 1 strike; seller relists free | 2026-10-14 |
 | 19 | Seller strikes | No-show at a booked pickup; item gone after it sold; cancelling after bids (0 bids = free); not as described at handover. Buyer gets a full refund in each | 2026-10-14 |
-| 20 | Buyer's premium | 15% of the winning bid; Stripe card fee comes out of it (buyer sees one number) | 2026-10-14 |
-| 21 | Small items | Premium = 15% or $1, whichever is more; one minimum per combined checkout | 2026-10-14 |
+| 20 | Buyer's premium | SUPERSEDED by F1 (louisiana-hub-roadmap.md): 5% of the item total + $0.70, card cost inside it (buyer sees one number). Was: 15% of the winning bid | 2026-10-14 |
+| 21 | Small items | SUPERSEDED by F1: no minimum; the $0.70 is charged once per combined checkout. Was: 15% or $1, whichever is more | 2026-10-14 |
 | 22 | Seller fee | None: seller keeps 100% of the winning bid | 2026-10-14 |
 | 23 | Stripe payout setup | Required before a seller's FIRST LISTING (same gate as Helprs) | 2026-10-14 |
 | 24 | Handover options at launch | Pickup at seller's home, porch pickup, Helpr delivery. Shipping NOT at launch | 2026-10-14 |
@@ -434,6 +434,59 @@ where no owner row decides. Each picks the option most consistent with the rows 
   `declutter_order_<id>`, no `transfer_data` (money stays on the platform until slice 4). The webhook refuses to apply a
   payment whose page names other people than its order (authz review #2). Emails only for money (row 44): receipt when
   paid, refund notice only when Stripe took the refund; `charge.refunded` leaves Declutter refunds to this path.
+
+### Slice 4 build decisions (agent declutter-4, 2026-10-15)
+- B48. Buyer's fee F1 (migration 20261015023613_declutter_buyer_fee_f1): `premium_cents = round(items * 5%) + 70`,
+  once per order, card cost inside it; one function computes it (`declutter_buyer_fee_cents`, readable by members for
+  previews; src/lib/declutter/money.ts mirrors it). The platform never goes below zero on a US card: it nets
+  `0.01955 * items + 37.97` cents after Stripe's 2.9% + 30c on the whole charge, so the tightest order is $1 (fee 75c,
+  card cost 35c, 40c kept); checked for every whole-dollar order $1-$10,000 (money.test.ts) and on the server
+  (declutterFeeF1.pglite.mjs). Worked examples: $10 -> fee $1.20, total $11.20, card ~62c, kept 58c; $50 -> fee $3.20,
+  total $53.20, card ~$1.84, kept $1.36; $200 -> fee $10.70, total $210.70, card ~$6.41, kept $4.29. An international or
+  converted card (Stripe +1.5% / +1%) can cost more: on a $1 order 4.4% + 30c of $1.75 = 38c, still under 75c; not
+  checked for every card type. Orders frozen BEFORE F1 keep their number (`fee_rule = 'premium15'`, never rewritten);
+  every new order is forced to `'f1'` by a trigger; amounts and rule are frozen after checkout (trigger). Rows 18/95's
+  "keep the 15% premium" now means "keep the buyer's fee".
+
+### Slice 4 plan (agent declutter-4, 2026-10-15; NOT built yet past B48, the next agent builds it)
+Layers named, so no piece is called mechanical: DB tables/CHECKs/triggers, service-only RPCs, member RPCs, the edge
+function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), the screens, export_my_data.
+- Booking (rows 14, 52, 97, 98): `declutter_bookings` (one per PAID order; `slot_start`/`slot_end` inside one of the
+  seller's `declutter_pickup_windows` (America/Chicago), within 7 days of `paid_at`; `porch_mode` 'all_day' |
+  'until' + `porch_until` for porch orders; `buyer_reschedules`/`seller_reschedules` 0..1 by CHECK). The buyer books
+  AFTER paying (row 98 shows the address after paying "to plan and book"; row 52's "at checkout" read as the same
+  screen). `declutter_item_address`/`declutter_seller_item_private` lose the switch gate for a party to an
+  agreed/paid sale (row 62, authz NOTE 5) and return the exact address only to the PAID buyer.
+- Handover (rows 25, 28, 93): `declutter_handovers` per order: `code_hash` (4 digits, per order, shown to the buyer
+  only; the QR encodes order id + code), `confirmed_at`, `confirmed_by` 'scan' | 'code' | 'buyer' | 'auto' | 'admin',
+  attempts counter (5 wrong codes = locked, ask the buyer to tap "I got it"). One transition `paid -> handed_over`
+  under the order row lock with a status predicate, so scan vs "I got it" vs the auto-pay sweep vs a problem report
+  can never both win (race proof: two real sessions, scripts/declutter/race-accept.mjs style).
+- Porch (rows 26, 97): seller "Set out" photo (job-photos `<uid>/declutter/handover/<order>/`), buyer "Picked up" photo
+  + location (server compares to the private pickup point, ~200 m); auto-pay 24 h after the booked time unless a
+  problem is open.
+- Payout (rows 22, 93, B43): a `declutter_payouts` row per order (UNIQUE order_id: payout once), amount =
+  items_cents - declutter_consume_fee_debt(seller, 'declutter_order_<id>', items_cents); the money edge function
+  creates the Stripe transfer to the seller's Connect account with `source_transaction` = the order's charge,
+  `transfer_group` declutter_order_<id>, idempotency key = payout row id, and records the transfer id. Money review
+  #8: record a payout row even when 0 cents went out (debt took it all), so the answer is stable.
+- Problems (rows 15, 67, 96): `declutter_problems` (either side, until the payout row exists; reason + note + photos);
+  an open problem blocks handover, auto-pay and payout. Admin decides: refund buyer (reason code by fault: seller
+  fault = 'seller_backed_out' / not-as-described = full + seller strike; buyer fault = keep the buyer fee), pay the
+  seller, or split; strike to whom. Reuse: the job disputes table has `job_id NOT NULL`, so a separate table with an
+  admin card beside the job disputes screen (no change to job disputes' data model).
+- No-shows (rows 94, 95, 19): "They didn't show" from booked time + 15 min, by the waiting side. Buyer no-show: first
+  = one rebook within the 7 days; second (or no rebook by the 7-day end) = order refunded minus the buyer's fee (new
+  refund reason `buyer_no_show`, policy keep the buyer fee + card fee? -> OWNER: row 95 says "item price back minus
+  the premium": refund = items_cents exactly), 1 buyer strike, items relisted free. Seller no-show = full refund
+  (`seller_backed_out`, card fee to seller debt) + seller strike. The refunds table CHECK must gain the new reason
+  and a `refund_cents = paid - premium` policy.
+- Refund execution + retry (3b money review #7): the money edge function (cron every 10 min) executes `pending` and
+  `failed` refund rows (idempotency key = row id) and reports with `declutter_refund_executed`; `charge.refund.updated`
+  failures flip the row to `failed`.
+- Reviews (row 45): `reviews.job_id` is NOT NULL, so Declutter reviews need either a nullable job_id + order id on
+  the shared table (data-model change: lh-authz-rls + every reviews reader) or their own table folded into the
+  shared star average. Decide with the lead.
 
 ### Open after slice 3b (for the lead; owner order 10-13: no new OPEN.md items from agents)
 - Owner to confirm the two B40 calls marked OWNER TO CONFIRM.

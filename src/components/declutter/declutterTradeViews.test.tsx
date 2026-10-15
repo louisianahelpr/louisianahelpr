@@ -140,7 +140,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });
 
-  it("cart: one checkout per seller with one $1-minimum fee, delivery later, and a Pay button for the total (rows 20-22, 24, 38)", async () => {
+  it("cart: one checkout per seller with one 5% + 70c fee (F1), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
@@ -163,7 +163,7 @@ describe("Declutter slice 3 screens", () => {
     state.cart = [line, { ...line, line_id: "l9", item_id: "i9", item_title: "Chair", my_side: "seller", seller_id: "me" }];
     show(<FinishSalesView />);
     expect(await screen.findByText("Declutter is closed for now.")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Pay $4" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Pay $3.85" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel sale" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Buy for|Make an offer|Sell an item/ })).toBeNull();
   });

@@ -202,7 +202,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         </form>
       )}
       <p className="text-xs text-muted-foreground">
-        At checkout you pay the price plus a 15% buyer's fee (at least $1). The seller keeps the whole price.
+        At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
       </p>
     </section>
   );
@@ -492,7 +492,7 @@ export function CartView() {
               </ul>
               <dl className="text-sm space-y-1 border-t border-border pt-2">
                 <div className="flex justify-between"><dt>Items</dt><dd>{formatPrice(amounts.itemsCents)}</dd></div>
-                <div className="flex justify-between"><dt>Buyer's fee (15%, at least $1)</dt><dd>{formatPrice(amounts.premiumCents)}</dd></div>
+                <div className="flex justify-between"><dt>Buyer's fee (5% + 70¢)</dt><dd>{formatPrice(amounts.premiumCents)}</dd></div>
                 <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatPrice(amounts.totalCents)}</dd></div>
               </dl>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>

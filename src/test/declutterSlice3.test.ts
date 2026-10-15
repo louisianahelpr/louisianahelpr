@@ -19,6 +19,7 @@
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |         AND NOT public.declutter_seller_hidden(seller_id)) |         AND true)
+ * @mutate supabase/migrations/20261015023613_declutter_buyer_fee_f1.sql |   v_premium := public.declutter_buyer_fee_cents(v_items); |   v_premium := greatest(round(v_items * 0.15)::integer, 100);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -79,10 +80,14 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     expect(flat(body("declutter_my_offers"))).toContain("CASE WHEN o.seller_id = v_uid THEN p.floor_price_cents END");
   });
 
-  it("rows 20-22, 38: the premium rule lives in the table, and checkout freezes it", () => {
-    expect(flat(MIG)).toContain("CONSTRAINT declutter_orders_premium_rule CHECK (premium_cents = greatest(round(items_cents * 0.15)::integer, 100))");
+  it("F1 + rows 22, 38: the buyer-fee rule lives in the table, and checkout freezes it", () => {
     expect(flat(MIG)).toContain("CONSTRAINT declutter_orders_total CHECK (total_cents = items_cents + premium_cents + tax_cents)");
-    expect(flat(body("declutter_start_checkout"))).toContain("v_premium := greatest(round(v_items * 0.15)::integer, 100);");
+    // F1 (20261015023613_declutter_buyer_fee_f1) replaced rows 20-21: 5% of the items + 70c, card cost inside.
+    const f1 = flat(blankSqlComments(readFileSync(join(MIG_DIR, "20261015023613_declutter_buyer_fee_f1.sql"), "utf8")));
+    expect(f1).toContain("(fee_rule = 'f1' AND premium_cents = round(items_cents * 0.05)::integer + 70)");
+    expect(f1).toContain("NEW.fee_rule := 'f1';");
+    expect(flat(body("declutter_buyer_fee_cents"))).toContain("round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70");
+    expect(flat(body("declutter_start_checkout"))).toContain("v_premium := public.declutter_buyer_fee_cents(v_items);");
     expect(flat(body("declutter_start_checkout"))).toContain("RAISE EXCEPTION 'seller_tax_not_ready'");
   });
 

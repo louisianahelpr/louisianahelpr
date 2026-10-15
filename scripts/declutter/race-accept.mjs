@@ -28,7 +28,7 @@
  */
 import os from "node:os";
 import { mkdirSync, rmSync } from "node:fs";
-import { setupStatements, liveItemSql, CARDS_SQL, USERS } from "./slice3Harness.mjs";
+import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE } from "./slice3Harness.mjs";
 
 const PG_DIR = process.env.EMBEDDED_PG_DIR ?? `${os.homedir()}/.lh-embedded-pg`;
 const { default: EmbeddedPostgres } = await import(`${PG_DIR}/node_modules/embedded-postgres/dist/index.js`);
@@ -49,7 +49,9 @@ try {
   const conn = () => new pg.Client({ host: "127.0.0.1", port: PORT, user: "postgres", password: "race", database: "race" });
   const admin = conn();
   await admin.connect();
-  for (const sql of setupStatements({ times: 3, slice3Path: process.env.MIGRATION_PATH, times3b: 3, slice3bPath: process.env.MIGRATION_PATH_3B })) await admin.query(sql);
+  for (const sql of setupStatements({ times: 3, slice3Path: process.env.MIGRATION_PATH, times3b: 3, slice3bPath: process.env.MIGRATION_PATH_3B,
+    // F1 restates declutter_start_checkout: the races run on the newest checkout.
+    extra: [{ file: FEE_F1_FILE, times: 3 }] })) await admin.query(sql);
   await admin.query(`CREATE OR REPLACE FUNCTION public.log_cron_defect(a text, b text, c text) RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE WARNING 'cron defect % % %', a, b, c; END $f$;`);
   await admin.query(CARDS_SQL);
 

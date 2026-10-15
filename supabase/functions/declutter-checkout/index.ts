@@ -188,7 +188,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     { quantity: 1, price_data: { currency: "usd", unit_amount: order.items_cents,
       product_data: { name: "Declutter items", tax_code: NONTAXABLE_TAX_CODE } } },
     { quantity: 1, price_data: { currency: "usd", unit_amount: order.premium_cents,
-      product_data: { name: "Buyer's fee (15%, at least $1)", tax_code: NONTAXABLE_TAX_CODE } } },
+      product_data: { name: "Buyer's fee (5% + 70¢)", tax_code: NONTAXABLE_TAX_CODE } } },
   ];
   // now + 31 min, never less (lh-money-escrow review 3b #11); taps in the same
   // second share one page through the idempotency key, and a second page from

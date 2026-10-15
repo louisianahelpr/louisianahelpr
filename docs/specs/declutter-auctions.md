@@ -533,6 +533,49 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   (races I-N) written, NOT run yet (memory rule 2026-10-15). Static guard src/test/declutterSlice4.test.ts, not run yet.
 
 ### Open after slice 4 server half (for the lead; owner order 10-13: no new OPEN.md items from agents)
+- BUILT 2026-10-15 (lane J, branch wip/declutter-5; each proof red on the code before it): the before-testers
+  should-fixes. (1) money (a): a refund that gives up (12 tries) writes one error_logs row per refund row per day
+  (source declutter-refund-gave-up -> ops ledger item, verify_kind manual, re-raised daily while unsettled) and tells
+  the buyer once in-app "Your refund is being sent by hand" (declutter_refund_gave_up_check, from
+  declutter_refund_executed / _reversed and every declutter-money run; 20261015091757). (2) money (b): charge.refunded
+  on a Declutter charge (transfer_group declutter_order_*, metadata kind declutter_order, or a Declutter refund on it)
+  records a refund Declutter did not create in declutter_hand_refunds (idempotent per Stripe refund id); it settles the
+  payment's unsettled refund row only when it covers the row's amount, else it is recorded and pages; nothing moves.
+  (3) money (c): the webhook lists the PaymentIntent's refunds and adopts its row's refund before refunds.create (the
+  cron's list-and-adopt), so a redelivery 25 h later is one refund (edge test). (4) authz (a): porch and problem
+  photos live in the PRIVATE bucket declutter-handover (20261015092723): a party writes into their own folder, the two
+  parties and admins read (signed URL), no member update/delete; the two RPCs take photos only from it; account
+  deletion purges it. Prod measured read-only 2026-10-15 ~09:30Z: 0 objects under */declutter/*, no Declutter tables.
+  (5) export (a): export_my_data adds declutter_problems_about_me (problems filed against the member, minus
+  reporter_id, photo_paths, decided_by; 20261015092457, restated from 20261015084728).
+- Still open after lane J: a hand refund that does not cover the row (or two partial hand refunds summing to it) is
+  recorded and paged but settles nothing: a person decides; a hand refund on an order with no refund row leaves the
+  order 'paid' (its payout then refuses the refunded charge 12 times and pages). No screen shows a porch or problem
+  photo yet; when one does it must use createSignedUrl on declutter-handover.
+- Lane J review notes still open (lh-money-escrow and lh-authz-rls REVIEW-ONLY 2026-10-15, both approve-with-notes,
+  no must-fix): (a) no admin "settled by hand" RPC: a refund paid outside Stripe, or hand refunds that never cover
+  the row, re-raise the gave-up alert daily until a person can mark the row settled; (b) a row reopened under 12 tries
+  while other partial hand refunds are live is retried for its FULL amount (Stripe refuses it past the charge's
+  remaining amount: wasted tries, then the gave-up alert); (c) FIXED 2026-10-15 (lane J session 2): account
+  deletion no longer fails when declutter-handover is missing on prod (functions-deploy ships whatever the db-deploy
+  run concluded): that one bucket, by an exact allowlist (purgeBuckets.ts SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET), is
+  "not created yet, nothing to erase", logged; every other missing bucket still fails the step (Q219;
+  src/test/declutterPhotosPurged.test.ts, red on the old code). lh-authz-rls REVIEW-ONLY (e2d709110): approve-with-notes;
+  its should-fix for the lead: once 20261015092723 is live on prod (the bucket row exists), empty
+  SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET and set its EXACT test to [] in one commit (until then an out-of-band drop of
+  that bucket would read as a note, not a failed step); better long-term: a nightly probe that goes red while an
+  entry's bucket already exists;
+  (d) OWNER QUESTION (the lead asks): after a refund, both parties can still READ the order's handover and problem
+  photos (uploads stop once the order is not 'paid'). Should the other side lose access to the photos once the
+  order is refunded, or keep it (e.g. as evidence)?; (e) OWNER QUESTION (the lead asks): Download My Data leaves
+  the reporter's photos (photo_paths) and name (reporter_id) out of a problem filed AGAINST the member, but the
+  storage read rule lets that member open the reporter's problem photos in the app. Which rule is meant: may the
+  member see the photos the other side took of them (then the export should list them too), or not (then the
+  storage rule should stop them reading those photos)?; (f) origin/ready/rentals-s1's
+  20261015061259_rentals_maintenance_requests.sql also restates export_my_data (from 052622 + 5 rental sections):
+  whichever of rentals-s1 / declutter-5 lands second must restate the UNION at a newer timestamp, or one side's
+  sections are lost; (g) the purge erases a deleted member's handover/problem photos even on an open problem
+  (unchanged from job-photos).
 - BUILT 2026-10-15 (branch wip/declutter-4): edge function `declutter-money` (cron :08 every 10 min, verifyCronSecret):
   refunds_due -> reconcile (refunds.list by payment_intent, metadata.refund_id) -> refunds.create (key
   `declutter-refund-<id>`) -> declutter_refund_executed, buyer email once; payouts_due -> payout hold + ban review +

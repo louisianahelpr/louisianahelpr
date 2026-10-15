@@ -13,7 +13,7 @@
  * drawn with `<EmptyState>`. Inventory: every `<ErrorState` in src/ (comments
  * blanked), with a floor so a drifted scan cannot pass on nothing.
  *
- * @mutate src/components/dashboard/SavedOnlyState.tsx |         <EmptyState icon={Bookmark}\n          title="Nothing saved yet" |         <ErrorState\n          title="Nothing saved yet"
+ * @mutate src/components/dashboard/SavedOnlyState.tsx |         <EmptyState icon={Bookmark}\n          title={copy.title} |         <ErrorState\n          title={copy.title}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

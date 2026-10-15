@@ -151,7 +151,7 @@ jobs:
           WINDOW_MINUTES: "60"
         run: node scripts/db-saturation-check.mjs
 
-      # OPEN.md "auth-captcha-matches-client": Supabase Auth's captcha switch (Management
+      # OPEN.md item "captcha switch matches what the deployed clients send": Supabase Auth's captcha switch (Management
       # API) agrees with the deployed web build (does its Turnstile chunk carry a
       # site key). Server ON + web OFF refuses every email sign-in; the Vercel
       # flag and the auth switch live in two dashboards. Exit 2 on a failed read.

@@ -166,7 +166,11 @@ async function settleCheckoutSession(
   logStep("Checkout completed", { email: customerEmail, tier, mode: session.mode, isOneTimePass });
 
   if (tier) {
-    const updateData: any = { subscription_tier: tier };
+    // Q1797 (lh-silent-failure review of 1980d8554): a Stripe grant records
+    // that Stripe is the authority. Without it a former Apple member who
+    // subscribes on the web kept subscription_source 'apple', so Manage sent
+    // them to Apple (which has no record) and reconciliation skipped them.
+    const updateData: any = { subscription_tier: tier, subscription_source: "stripe" };
     if (subscriptionEnd) {
       updateData.subscription_expires_at = subscriptionEnd;
     }

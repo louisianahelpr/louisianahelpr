@@ -84,6 +84,8 @@ export async function handleCustomerSubscriptionUpdated(
         subscription_tier: tier,
         subscription_expires_at: expiresAt,
         ...subscriptionLinkage(subscription),
+        // Q1797: Stripe is the authority for this membership (see checkoutSessionCompleted).
+        subscription_source: "stripe",
       })
       .eq("user_id", userId)
       .select("user_id");

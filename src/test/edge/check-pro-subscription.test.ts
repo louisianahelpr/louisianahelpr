@@ -24,6 +24,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
+import { PRODUCT_TO_TIER } from "../../../supabase/functions/_shared/productTiers";
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -95,5 +96,37 @@ describe("check-pro-subscription — fail closed", () => {
     expect(res.status).toBe(503);
     const body = JSON.parse(await res.text());
     expect(body).not.toHaveProperty("subscribed");
+  });
+});
+
+// @mutate supabase/functions/check-pro-subscription/index.ts |               subscription_source: "stripe", |               // (stamp removed)
+describe("check-pro-subscription — a Stripe grant records Stripe as the authority", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+    resetEnv();
+  });
+
+  it("stamps subscription_source 'stripe' with the tier (lh-money-escrow review of 3b12e17b4, finding 7)", async () => {
+    // A row synced only by this dashboard poll kept 'apple' after a web
+    // subscription, so Apple notices and the Apple reconciliation graded it.
+    scenario.authUser = { id: "u-1", email: "member@test.dev" };
+    scenario.reads.profiles = { rows: [{ subscription_tier: null, subscription_expires_at: null }] };
+    const product = Object.keys(PRODUCT_TO_TIER)[0];
+    const periodEnd = Math.floor(Date.now() / 1000) + 30 * 86400;
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [{
+        id: "sub_1", customer: "cus_1", status: "active", cancel_at_period_end: false,
+        items: { data: [{ price: { id: "price_1", product, recurring: { interval: "month" } }, current_period_end: periodEnd }] },
+      }],
+    });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer good" }, body: {} }));
+    expect(res.status).toBe(200);
+    const grant = (scenario.writes ?? []).find((w) => w.table === "profiles" && w.op === "update");
+    expect(grant, "no grant was written").toBeTruthy();
+    expect(grant!.payload).toMatchObject({ subscription_tier: PRODUCT_TO_TIER[product], subscription_source: "stripe" });
   });
 });

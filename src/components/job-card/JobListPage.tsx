@@ -38,6 +38,7 @@ import {
   useActivityFilters,
   postedActivityBucket,
   appliedActivityBucket,
+  jobIsUnfundedDraft,
 } from "@/components/job-card/activityFilters";
 import { PostsHeader, POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JobsHeader, JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
@@ -174,6 +175,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // makes a genuinely new deep link re-resolve while still making re-runs for
   // the same one a no-op, which is what the ref was there for.
   const deepLinkResolvedFor = useRef<string | null>(null);
+  // Q1668: a link named a job this list does not hold (a cancelled or never-paid
+  // job My Posts hides). The page says so and opens on the first bucket that
+  // has anything, instead of an unexplained view.
+  const [linkedJobMissing, setLinkedJobMissing] = useState(false);
 
   // "Report" on a Done-tab My Posts card — same dialog Browse uses.
   const [reportJobId, setReportJobId] = useState<string | null>(null);
@@ -284,18 +289,24 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (!deepLinkKey) return;
     if (deepLinkResolvedFor.current === deepLinkKey) return;
     if (loading) return;
+    // Q1668: a never-paid job is in postedJobs but My Posts never shows it
+    // (jobIsUnfundedDraft), so it does not count as on the list.
     const named = tab === "posted"
-      ? postedJobs.some((j) => j.id === (deepLinkJobId ?? highlightJobId))
+      ? postedJobs.some((j) => j.id === (deepLinkJobId ?? highlightJobId) && !jobIsUnfundedDraft(j))
       : appliedApps.some((a) => (deepLinkJobId ? a.job_id === deepLinkJobId : a.id === highlightAppId));
     if (!deepLinkReady({ named, settled: activitySettled })) return;
     deepLinkResolvedFor.current = deepLinkKey;
+    // A ?job= the list does not hold: say so (Q1668). `named` was measured on
+    // the settled list above, so this is not a list that is still loading.
+    setLinkedJobMissing(!!deepLinkJobId && !named);
 
     let bucket: string | null = null;
     if (tab === "posted") {
       const job = deepLinkJobId
         ? postedJobs.find((j) => j.id === deepLinkJobId)
         : (highlightJobId ? postedJobs.find((j) => j.id === highlightJobId) : undefined);
-      if (job) {
+      // A never-paid job is hidden from My Posts: no bucket, no highlight (Q1668).
+      if (job && !jobIsUnfundedDraft(job)) {
         bucket = postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0);
         // Parity with the applied branch below: name the card, don't just pick
         // the bucket it lives in.
@@ -436,6 +447,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (next !== statusFilter) setStatusFilter(next);
   }, [loading, tab, activeCounts, activeStatusFilters, deepLinkHadFilter, deepLinkJobId, statusFilter, defaultFilter]);
 
+  /* Q1668: the linked job is not on this list, so the link names no bucket.
+     Fall back to the plain-open rule above: the first bucket that has
+     anything. Once per missing link. */
+  useEffect(() => {
+    if (!linkedJobMissing || loading) return;
+    const next = firstBucketWithItems(activeStatusFilters.map((f) => f.key), activeCounts, defaultFilter);
+    if (next !== statusFilter) setStatusFilter(next);
+    // Only when the missing link resolves; a bucket picked afterwards stays.
+  }, [linkedJobMissing, loading]);
+
   /* "Truly empty" — the underlying list has zero items, not merely filtered
      down to none — USED TO STRIP THE HEADER'S CONTROLS. It no longer strips
      anything; see the note on `activeStatusFilters` below for the screen that
@@ -551,6 +572,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           {/* No sr-only <h1> here: the page header's h1 renders on the empty
               list too, so a second one would give the document TWO h1s. */}
 
+          {/* Q1668: outside the scroll area, so it stays in view above the list. */}
+          {linkedJobMissing && (
+            <p
+              role="status"
+              data-testid="linked-job-missing"
+              className="mx-4 mt-3 shrink-0 rounded-ds-md border border-border bg-muted/40 px-3 py-2 text-ds-13 text-muted-foreground"
+            >
+              That job is no longer on {tab === "posted" ? "My Posts" : "My Jobs"}.
+            </p>
+          )}
           <PullToRefreshWrapper
             ref={containerRef}
             pullDistance={pullDistance}

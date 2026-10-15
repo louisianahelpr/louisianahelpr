@@ -156,9 +156,9 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
+const EmailUnsubscribe = lazyWithPreload(() => import("./pages/info/EmailUnsubscribe"));
 
 // Lazy load less-critical global components
-
 
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
@@ -189,7 +189,6 @@ const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page"
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
-
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -274,6 +273,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           back to /account-banned, losing the only appeal path. It also carries
           ?topic= / ?subject= prefill that the Profile tab does not read. */}
       <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/unsubscribe" element={<RouteErrorBoundary>{routeEl(<PageTransition><EmailUnsubscribe /></PageTransition>)}</RouteErrorBoundary>} />
 
       {/* PageTransition's animated motion.div sets `will-change:
           transform`, which makes it the containing block for a

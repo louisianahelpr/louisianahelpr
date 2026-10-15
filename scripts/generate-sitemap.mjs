@@ -70,6 +70,7 @@ const NOINDEX = {
   "/signup-pending": "post-signup interstitial; meaningless without the signup that preceded it",
   "/complete-profile": "onboarding step; requires a half-finished session",
   "/account-banned": "account-state screen",
+  "/unsubscribe": "reached only from an email's signed unsubscribe link",
   "/forgot-password": "transactional auth step, reached from /login",
   "/reset-password": "consumes a one-time token from an email; no canonical URL",
   "/payment-success": "post-checkout receipt screen, bound to one session",

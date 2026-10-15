@@ -61,14 +61,20 @@ export function DeclutterItemSkeleton() {
   );
 }
 
-/** /declutter/sell: the first form section ("1. The item") and the start of the next. */
+/**
+ * /declutter/sell: the real header, and NO bones. The form below it is static
+ * (nothing to wait for on a new listing) except its first row, the "Set up
+ * payouts" note, which only some members get. Bones for the form were
+ * measured 2026-10-15 (measure-loading-states, local build, prod backend):
+ * -652px and 2 -> 3 rows for the poster test account, -582px and 2 -> 4 rows
+ * for the Helpr one, because the note's row comes and goes with the member.
+ * A placeholder that cannot know its first row would lie about the shape, so
+ * the frame holds the title in its final place and says it is loading.
+ */
 export function DeclutterSellSkeleton() {
   return (
     <AppPage title="Sell an item" backTo="/declutter?view=mine">
-      <div className="space-y-4" role="status" aria-label="Loading the form">
-        <Skeleton className="h-[34rem] w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
+      <p role="status" className="sr-only">Loading the form</p>
     </AppPage>
   );
 }

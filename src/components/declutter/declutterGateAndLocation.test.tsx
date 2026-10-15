@@ -96,13 +96,17 @@ describe("Declutter loading frame (DeclutterGate)", () => {
   });
 
   it.each([
-    ["/declutter", <DeclutterPage key="h" />, "/declutter", "Declutter"],
-    ["/declutter/sell", <DeclutterSellPage key="s" />, "/declutter/sell", "Sell an item"],
-    ["/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage key="i" />, "/declutter/item/:id", "Item"],
-  ])("%s: the switch still loading paints the page's shell and bones, not a blank page", (path, el, route, title) => {
+    ["/declutter", <DeclutterPage key="h" />, "/declutter", "Declutter", true],
+    // The sell form's first row (the payout note) depends on the member, so
+    // its frame is the real header and a loading status, no bones.
+    ["/declutter/sell", <DeclutterSellPage key="s" />, "/declutter/sell", "Sell an item", false],
+    ["/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage key="i" />, "/declutter/item/:id", "Item", true],
+  ])("%s: the switch still loading paints the page's shell (and bones where data lands), not a blank page", (path, el, route, title, hasBones) => {
     const { container } = at(path, el, route);
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    expect(bones(container)).toBeGreaterThan(0);
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+    if (hasBones) expect(bones(container)).toBeGreaterThan(0);
+    else expect(bones(container)).toBe(0);
     expect(screen.queryByText("Page not found")).toBeNull();
   });
 

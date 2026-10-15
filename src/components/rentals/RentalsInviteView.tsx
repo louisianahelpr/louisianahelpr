@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { acceptInvite } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -31,9 +32,9 @@ export default function RentalsInviteView() {
           Join to send repair requests to your landlord in the app. Your landlord approves each request and pays for the
           Helpr who fixes it.
         </p>
-        <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" disabled={m.isPending || underAge} onClick={() => m.mutate()}>
+        <Button type="button" size="sm" disabled={m.isPending || underAge} onClick={() => m.mutate()}>
           {m.isPending ? "Joining…" : "Join"}
-        </button>
+        </Button>
         {underAge && <p className="text-sm">You must be 18 or older to join as a tenant.</p>}
       </RentalsCard>
     </AppPage>

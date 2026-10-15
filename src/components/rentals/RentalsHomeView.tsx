@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -29,6 +31,7 @@ import {
 import { OWNERSHIP_STATUS_LABEL, REQUEST_STATUS_LABEL, dollarsToCents, inviteUrl, rentalsErrorMessage } from "@/lib/rentals/copy";
 import { RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
+import { RentalsHomeSkeleton } from "./RentalsSkeletons";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
@@ -64,7 +67,6 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
     },
     onError: (e) => toast.error(rentalsErrorMessage(e)),
   });
-  const input = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm";
   return (
     <form
       className="space-y-2"
@@ -73,16 +75,16 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
         m.mutate();
       }}
     >
-      <input className={input} aria-label="Property name" placeholder="Name (e.g. Oak Street duplex)" value={label} onChange={(e) => setLabel(e.target.value)} required />
-      <input className={input} aria-label="Street address" placeholder="Street address" value={street} onChange={(e) => setStreet(e.target.value)} required />
+      <Input aria-label="Property name" placeholder="Name (e.g. Oak Street duplex)" value={label} onChange={(e) => setLabel(e.target.value)} required />
+      <Input aria-label="Street address" placeholder="Street address" value={street} onChange={(e) => setStreet(e.target.value)} required />
       <div className="flex gap-2">
-        <input className={input} aria-label="City" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
-        <input className={`${input} max-w-[7rem]`} aria-label="ZIP code" placeholder="ZIP" inputMode="numeric" value={zip} onChange={(e) => setZip(e.target.value)} required />
+        <Input aria-label="City" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
+        <Input className="max-w-[7rem]" aria-label="ZIP code" placeholder="ZIP" inputMode="numeric" value={zip} onChange={(e) => setZip(e.target.value)} required />
       </div>
       <p className="text-xs text-muted-foreground">Only the owner of a property can add it. You need a verified ID.</p>
-      <button type="submit" disabled={m.isPending} className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold">
+      <Button type="submit" size="sm" disabled={m.isPending}>
         {m.isPending ? "Adding…" : "Add property"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -154,49 +156,46 @@ function PropertyCard({ p, units, uid, onChange }: { p: RentalProperty; units: R
           <div key={u.id} className="space-y-1">
             <div className="flex items-center justify-between gap-2 text-sm">
               <span>{u.label}</span>
-              <button
-                type="button"
-                className="rounded-full border border-border px-3 py-1 text-xs font-semibold disabled:opacity-50"
-                disabled={!approved || invite.isPending}
-                onClick={() => invite.mutate(u.id)}
-              >
+              <Button type="button" size="sm" variant="outline" disabled={!approved || invite.isPending} onClick={() => invite.mutate(u.id)}>
                 Invite tenant
-              </button>
+              </Button>
             </div>
             {links[u.id] && (
               <div className="rounded-lg bg-muted p-2 text-xs break-all">
                 <p className="mb-1">Send this link to your tenant (works once, for 14 days):</p>
                 <code>{links[u.id]}</code>
-                <button
+                <Button
                   type="button"
-                  className="block mt-1 font-semibold underline"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
                   onClick={() => navigator.clipboard?.writeText(links[u.id]).then(() => toast.success("Link copied."), () => toast.error("Couldn't copy. Select the link and copy it."))}
                 >
                   Copy link
-                </button>
+                </Button>
               </div>
             )}
           </div>
         ))}
         {!approved && <p className="text-xs text-muted-foreground">You can invite tenants once your ownership proof is approved.</p>}
         <form
-          className="flex gap-2"
+          className="flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             unit.mutate();
           }}
         >
-          <input
-            className="flex-1 min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          <Input
+            className="flex-1 min-w-0"
             aria-label="New unit name"
             placeholder="Unit name (e.g. Apt 2)"
             value={unitLabel}
             onChange={(e) => setUnitLabel(e.target.value)}
             required
           />
-          <button type="submit" disabled={unit.isPending} className="rounded-full border border-border px-3 text-sm font-semibold">
+          <Button type="submit" size="sm" variant="outline" disabled={unit.isPending}>
             Add
-          </button>
+          </Button>
         </form>
       </div>
       <form
@@ -213,18 +212,18 @@ function PropertyCard({ p, units, uid, onChange }: { p: RentalProperty; units: R
           Auto-approve repairs up to $ (leave blank for off)
         </label>
         <p className="text-xs text-muted-foreground">Emergencies always wait for you. You still post and pay for every job.</p>
-        <div className="flex gap-2">
-          <input
+        <div className="flex items-center gap-2">
+          <Input
             id={`auto-${p.id}`}
-            className="flex-1 min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            className="flex-1 min-w-0"
             inputMode="decimal"
             placeholder="Off"
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
           />
-          <button type="submit" disabled={auto.isPending} className="rounded-full border border-border px-3 text-sm font-semibold">
+          <Button type="submit" size="sm" variant="outline" disabled={auto.isPending}>
             Save
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -250,14 +249,12 @@ export default function RentalsHomeView() {
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
 
+  // The page's own loading state is the gate's frame (RentalsSkeletons.tsx), so nothing moves between them.
+  if (!data.isError && !data.data) return <RentalsHomeSkeleton />;
   return (
     <AppPage title="Rentals">
-      {data.isError ? (
+      {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
-      ) : !data.data ? (
-        <p className="text-sm text-muted-foreground" role="status">
-          Loading…
-        </p>
       ) : (
         <div className="space-y-4">
           {underAge && (
@@ -288,9 +285,9 @@ export default function RentalsHomeView() {
             title="Properties you own"
             action={
               !adding && !underAge && (
-                <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap" onClick={() => setAdding(true)}>
+                <Button type="button" size="sm" onClick={() => setAdding(true)}>
                   Add a property
-                </button>
+                </Button>
               )
             }
           >

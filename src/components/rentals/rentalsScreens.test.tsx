@@ -11,6 +11,10 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isLandlord && r.status === "approved" && job.booking === "none" && ( |         {isLandlord && r.status === "approved" && !job.jobId && (
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |               onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))} |               onClick={() => navigate(`/post-job?maintenance=${r.id}`)}
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isTenant && r.status === "approved" && workStarted && ( |         {isTenant && r.status === "approved" && !!job.jobId && (
+ * @mutate src/components/rentals/rentalsUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
+ * @mutate src/pages/rentals/MaintenanceRequestPage.tsx | : <MaintenanceRequestUnavailable />}> | : <RentalsGateFrame title="Repair request" backTo="/rentals" label="Loading the request" />}>
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx |     enabled: validId && !!uid, |     enabled: !!id && !!uid,
+ * @mutate src/components/rentals/RentalsHomeView.tsx |   if (!data.isError && !data.data) return <RentalsHomeSkeleton />; |   if (!data.isError && !data.data) return null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -19,6 +23,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   feature: true,
+  /** false: the switch's answer has not arrived (the gate's loading frame). */
+  switchSettled: true,
+  requestReads: 0,
+  homeLoads: true,
   underAge: false,
   tenancies: [] as unknown[],
   request: null as unknown,
@@ -51,9 +59,12 @@ vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }
 vi.mock("@/lib/rentals/api", () => ({
   fetchMyProperties: async () => [],
   fetchUnits: async () => [],
-  fetchMyHomes: async () => state.tenancies,
+  fetchMyHomes: () => (state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {})),
   fetchMyRequests: async () => [],
-  fetchRequest: async () => state.request,
+  fetchRequest: async () => {
+    state.requestReads++;
+    return state.request;
+  },
   fetchRequestPhotos: async () => [],
   fetchRequestJobState: async () => state.job,
   signedFileUrl: async () => "https://signed/x",
@@ -75,7 +86,7 @@ import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 function renderAt(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   // RentalsGate waits for the switch query to settle before showing the 404.
-  qc.setQueryData(["feature-enabled", "rentals", "u1"], state.feature);
+  if (state.switchSettled) qc.setQueryData(["feature-enabled", "rentals", "u1"], state.feature);
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>
@@ -89,9 +100,10 @@ function renderAt(path: string) {
   );
 }
 
+const RID = "0f0e0d0c-0b0a-4908-8706-050403020100";
 const TENANCY = { tenancy_id: "t1", property_id: "p1", unit_id: "u9", label: "Oak Street duplex", unit_label: "A", street_address: "1 Oak", city: "Lafayette", zip_code: "70501" };
 const REQ = {
-  id: "r1", status: "submitted", landlord_id: "u1", tenant_id: "t9", category: "plumbing", description: "Sink drips all night.",
+  id: RID, status: "submitted", landlord_id: "u1", tenant_id: "t9", category: "plumbing", description: "Sink drips all night.",
   urgency: "soon", access_windows: "", pets_on_site: false, ok_to_enter_alone: false, property_label: "Oak", unit_label: "A",
   created_at: "2026-10-15T06:00:00Z", decided_at: null, decline_reason_code: null, decline_reason_text: null, job_id: null,
   tenant_answered_at: null, tenant_says_fixed: null, tenant_fixed_note: null, auto_approved: false,
@@ -99,6 +111,9 @@ const REQ = {
 
 beforeEach(() => {
   state.feature = true;
+  state.switchSettled = true;
+  state.requestReads = 0;
+  state.homeLoads = true;
   state.underAge = false;
   state.tenancies = [];
   state.request = null;
@@ -112,11 +127,50 @@ describe("Rentals screens", () => {
     expect(await screen.findByText("Page not found")).toBeTruthy();
   });
 
+  describe("loading frames: the page's own shell, never a blank page (measure-loading-states, 2026-10-15)", () => {
+    it("/rentals while the switch loads: the real header, no bones (the switch may still say off)", () => {
+      state.feature = false;
+      state.switchSettled = false;
+      renderAt("/rentals");
+      expect(screen.getByRole("heading", { name: "Rentals" })).toBeTruthy();
+      expect(screen.getByRole("status").textContent).toBe("Loading your rentals");
+      expect(screen.queryByText("Homes you rent")).toBeNull();
+      expect(screen.queryByText("Page not found")).toBeNull();
+    });
+    it("/rentals while its data loads: both cards with bones", async () => {
+      state.homeLoads = false;
+      renderAt("/rentals");
+      expect(await screen.findByRole("status", { name: "Loading your rentals" })).toBeTruthy();
+      expect(screen.getByText("Homes you rent")).toBeTruthy();
+      expect(screen.getByText("Properties you own")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
+    });
+    it("a request while the switch loads: the request page's header", () => {
+      state.feature = false;
+      state.switchSettled = false;
+      renderAt(`/rentals/requests/${RID}`);
+      expect(screen.getByRole("heading", { name: "Repair request" })).toBeTruthy();
+      expect(screen.getByRole("status").textContent).toBe("Loading the request");
+    });
+    it("a link that cannot name a request: 'isn't available' at once, and no read is sent", async () => {
+      state.feature = false;
+      state.switchSettled = false;
+      const { unmount } = renderAt("/rentals/requests/test");
+      expect(screen.getByText("This request isn't available.")).toBeTruthy();
+      unmount();
+      state.feature = true;
+      state.switchSettled = true;
+      renderAt("/rentals/requests/test");
+      expect(await screen.findByText("This request isn't available.")).toBeTruthy();
+      expect(state.requestReads).toBe(0);
+    });
+  });
+
   it("one page for everyone: both the renter and the owner sections show", async () => {
     renderAt("/rentals");
-    expect(await screen.findByText("Homes you rent")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Add a property" })).toBeTruthy();
+    expect(screen.getByText("Homes you rent")).toBeTruthy();
     expect(screen.getByText("Properties you own")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add a property" })).toBeTruthy();
   });
 
   it("an emergency shows the 911 / utility steps BEFORE anything is sent (Q40)", async () => {
@@ -142,7 +196,7 @@ describe("Rentals screens", () => {
 
   it("the landlord can only decline after picking a reason (Q46)", async () => {
     state.request = REQ;
-    renderAt("/rentals/requests/r1");
+    renderAt(`/rentals/requests/${RID}`);
     const decline = await screen.findByRole("button", { name: "Decline request" });
     expect((decline as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByLabelText("Already scheduled"));
@@ -151,7 +205,7 @@ describe("Rentals screens", () => {
 
   it("a declined request shows the landlord's reason to the tenant", async () => {
     state.request = { ...REQ, landlord_id: "l1", tenant_id: "u1", status: "declined", decline_reason_code: "not_my_responsibility", decline_reason_text: "Tenant damage", decided_at: "2026-10-15T07:00:00Z" };
-    renderAt("/rentals/requests/r1");
+    renderAt(`/rentals/requests/${RID}`);
     expect(await screen.findByText(/Not my responsibility under the lease/)).toBeTruthy();
     expect(screen.getByText(/Tenant damage/)).toBeTruthy();
     expect(screen.getByText("Answered")).toBeTruthy();
@@ -162,7 +216,7 @@ describe("Rentals screens", () => {
     it("landlord, payment failed or abandoned: the post button is back", async () => {
       state.request = approved;
       state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       fireEvent.click(await screen.findByRole("button", { name: "Post the repair job" }));
       expect(await screen.findByText("Post a Job form")).toBeTruthy();
     });
@@ -170,7 +224,7 @@ describe("Rentals screens", () => {
       state.underAge = true;
       state.request = approved;
       state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       const btn = await screen.findByRole("button", { name: "Post the repair job" });
       expect(btn.getAttribute("aria-disabled")).toBe("true");
       fireEvent.click(btn);
@@ -179,28 +233,28 @@ describe("Rentals screens", () => {
     it("landlord, checkout in flight: says so, and no second post", async () => {
       state.request = approved;
       state.job = { jobId: "j1", booking: "paying", jobStatus: "open" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText(/Checkout started/)).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Post the repair job" })).toBeNull();
     });
     it("landlord, mid-refund: 'Refund in progress', not 'paying'", async () => {
       state.request = approved;
       state.job = { jobId: "j1", booking: "refunding", jobStatus: "cancelled" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("Refund in progress.")).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Post the repair job" })).toBeNull();
     });
     it("tenant, linked but not funded: 'Approved, not booked yet' and no 'Was it fixed?'", async () => {
       state.request = { ...approved, landlord_id: "l1", tenant_id: "u1" };
       state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("Approved, not booked yet.")).toBeTruthy();
       expect(screen.queryByText("Was it fixed?")).toBeNull();
     });
     it("tenant, booked and work started: 'Was it fixed?' shows", async () => {
       state.request = { ...approved, landlord_id: "l1", tenant_id: "u1" };
       state.job = { jobId: "j1", booking: "booked", jobStatus: "in_progress" };
-      renderAt("/rentals/requests/r1");
+      renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
       expect(screen.getByText("Was it fixed?")).toBeTruthy();
     });

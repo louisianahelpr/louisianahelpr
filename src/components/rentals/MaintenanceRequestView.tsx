@@ -10,6 +10,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -24,6 +26,7 @@ import {
   type Urgency,
 } from "@/lib/rentals/copy";
 import { RentalsCard, fmtDate } from "./rentalsUi";
+import { MaintenanceRequestSkeleton, MaintenanceRequestUnavailable, isRequestId } from "./RentalsSkeletons";
 
 function Photo({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -58,9 +61,12 @@ export default function MaintenanceRequestView() {
   const [reasonText, setReasonText] = useState("");
   const [note, setNote] = useState("");
 
+  // A link that cannot name a request never queries (the database would answer
+  // a malformed id with an error, read as "something went wrong").
+  const validId = isRequestId(id);
   const q = useQuery({
     queryKey: ["rentals-request", id],
-    enabled: !!id && !!uid,
+    enabled: validId && !!uid,
     queryFn: async () => ({ r: await fetchRequest(id), photos: await fetchRequestPhotos(id), job: await fetchRequestJobState(id) }),
   });
   const done = () => qc.invalidateQueries({ queryKey: ["rentals-request", id] });
@@ -70,10 +76,11 @@ export default function MaintenanceRequestView() {
   const withdraw = useMutation({ mutationFn: () => withdrawRequest(id), onSuccess: done, onError });
   const fixed = useMutation({ mutationFn: (yes: boolean) => answerFixed(id, yes, note), onSuccess: done, onError });
 
+  if (!validId) return <MaintenanceRequestUnavailable />;
   if (q.isError) return <AppPage title="Repair request" backTo="/rentals"><ErrorState onRetry={() => q.refetch()} /></AppPage>;
-  if (!q.data) return <AppPage title="Repair request" backTo="/rentals"><p className="text-sm text-muted-foreground" role="status">Loading…</p></AppPage>;
+  if (!q.data) return <MaintenanceRequestSkeleton />;
   const r = q.data.r;
-  if (!r) return <AppPage title="Repair request" backTo="/rentals"><p className="text-sm">This request isn't available.</p></AppPage>;
+  if (!r) return <MaintenanceRequestUnavailable />;
 
   const isLandlord = r.landlord_id === uid;
   const isTenant = r.tenant_id === uid;
@@ -133,9 +140,9 @@ export default function MaintenanceRequestView() {
 
         {isLandlord && r.status === "submitted" && (
           <RentalsCard title="Your answer">
-            <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" disabled={approve.isPending} onClick={() => approve.mutate()}>
+            <Button type="button" size="sm" disabled={approve.isPending} onClick={() => approve.mutate()}>
               Approve
-            </button>
+            </Button>
             <fieldset className="space-y-1">
               <legend className="text-sm font-medium mb-1">Or say no, with a reason your tenant will see</legend>
               {(Object.keys(DECLINE_REASON_LABEL) as DeclineReason[]).map((k) => (
@@ -144,8 +151,7 @@ export default function MaintenanceRequestView() {
                   {DECLINE_REASON_LABEL[k]}
                 </label>
               ))}
-              <textarea
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              <Textarea
                 rows={2}
                 maxLength={500}
                 aria-label="Reason details"
@@ -153,14 +159,15 @@ export default function MaintenanceRequestView() {
                 value={reasonText}
                 onChange={(e) => setReasonText(e.target.value)}
               />
-              <button
+              <Button
                 type="button"
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                size="sm"
+                variant="outline"
                 disabled={!reason || decline.isPending}
                 onClick={() => decline.mutate()}
               >
                 Decline request
-              </button>
+              </Button>
             </fieldset>
           </RentalsCard>
         )}
@@ -168,14 +175,14 @@ export default function MaintenanceRequestView() {
         {isLandlord && r.status === "approved" && job.booking === "none" && (
           <RentalsCard title="Post the job">
             <p className="text-sm">We filled in a job from this request. Check the price, then post and pay like any job.</p>
-            <button
+            <Button
               type="button"
-              className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold"
+              size="sm"
               {...ageGatedProps("post")}
               onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))}
             >
               Post the repair job
-            </button>
+            </Button>
           </RentalsCard>
         )}
         {isLandlord && job.booking === "paying" && (
@@ -192,15 +199,14 @@ export default function MaintenanceRequestView() {
         )}
 
         {isTenant && r.status === "submitted" && (
-          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>
+          <Button type="button" size="sm" variant="outline" disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>
             Withdraw request
-          </button>
+          </Button>
         )}
         {isTenant && r.status === "approved" && workStarted && (
           <RentalsCard title="Was it fixed?">
             <p className="text-xs text-muted-foreground">Answer once the Helpr has been. Your landlord sees your answer before confirming the job.</p>
-            <textarea
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            <Textarea
               rows={2}
               maxLength={500}
               aria-label="Note for your landlord"
@@ -209,12 +215,12 @@ export default function MaintenanceRequestView() {
               onChange={(e) => setNote(e.target.value)}
             />
             <div className="flex gap-2">
-              <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" disabled={fixed.isPending} onClick={() => fixed.mutate(true)}>
+              <Button type="button" size="sm" disabled={fixed.isPending} onClick={() => fixed.mutate(true)}>
                 Yes, it's fixed
-              </button>
-              <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={fixed.isPending} onClick={() => fixed.mutate(false)}>
+              </Button>
+              <Button type="button" size="sm" variant="outline" disabled={fixed.isPending} onClick={() => fixed.mutate(false)}>
                 No, not fixed
-              </button>
+              </Button>
             </div>
           </RentalsCard>
         )}

@@ -225,7 +225,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/rentals/MaintenanceRequestForm.tsx` | input×6, textarea×1, select×1 | radio, file, text, checkbox | 2000, 300, 500 | Repair request · e.g. weekdays after 5pm |
+| `src/components/rentals/MaintenanceRequestForm.tsx` | input×4, textarea×1, select×2, checkbox/switch/radio×2 | radio, file, text | 2000, 300, 500 | Repair request · e.g. weekdays after 5pm |
 | `src/components/rentals/RentalsHomeView.tsx` | input×7 | text, file |  | Property name · Name (e.g. Oak Street duplex) · Street address · City · ZIP code · ZIP · New unit name · Unit name (e.g. Apt 2) |
 
 ## /rentals/requests/:id

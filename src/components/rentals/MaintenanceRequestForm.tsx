@@ -8,6 +8,10 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { fileRequest } from "@/lib/rentals/api";
 import { EMERGENCY_STEPS, MAINTENANCE_CATEGORIES, URGENCY_LABEL, rentalsErrorMessage, type Urgency } from "@/lib/rentals/copy";
 
@@ -53,14 +57,15 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
 
   if (!open) {
     return (
-      <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" onClick={() => setOpen(true)}>
+      <Button type="button" size="sm" onClick={() => setOpen(true)}>
         Request a repair
-      </button>
+      </Button>
     );
   }
 
   const showEmergencySteps = urgency === "emergency" && !emergencyAcknowledged;
-  const input = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm";
+  // The one native control left: a <select>, styled as the shared field (h-12, rounded-2xl, glass-field).
+  const select = "flex h-12 w-full rounded-2xl border border-[hsl(var(--ink-deep)/0.15)] glass-field px-4 text-ds-15";
 
   return (
     <form
@@ -75,7 +80,7 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
     >
       <label className="block text-sm">
         <span className="block mb-1 font-medium">What's wrong?</span>
-        <select className={input} value={category} onChange={(e) => setCategory(e.target.value)} required>
+        <select className={select} value={category} onChange={(e) => setCategory(e.target.value)} required>
           <option value="">Choose one</option>
           {MAINTENANCE_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -111,18 +116,18 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
               <li key={s}>{s}</li>
             ))}
           </ul>
-          <a href="tel:911" className="inline-block rounded-full border-2 border-destructive px-4 py-2 text-sm font-semibold">
-            Call 911
-          </a>
-          <button type="button" className="block text-sm font-semibold underline" onClick={() => setEmergencyAcknowledged(true)}>
+          <Button asChild size="sm" variant="destructive">
+            <a href="tel:911">Call 911</a>
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="block" onClick={() => setEmergencyAcknowledged(true)}>
             I'm safe. Tell my landlord now
-          </button>
+          </Button>
         </div>
       ) : (
         <>
           <label className="block text-sm">
             <span className="block mb-1 font-medium">Describe the problem</span>
-            <textarea className={input} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} required minLength={10} />
+            <Textarea rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} required minLength={10} />
           </label>
           <label className="block text-sm">
             <span className="block mb-1 font-medium">Photos (up to 10)</span>
@@ -140,28 +145,28 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
           </label>
           <label className="block text-sm">
             <span className="block mb-1 font-medium">When may someone come in?</span>
-            <input className={input} maxLength={300} placeholder="e.g. weekdays after 5pm" value={accessWindows} onChange={(e) => setAccessWindows(e.target.value)} />
+            <Input maxLength={300} placeholder="e.g. weekdays after 5pm" value={accessWindows} onChange={(e) => setAccessWindows(e.target.value)} />
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={petsOnSite} onChange={(e) => setPetsOnSite(e.target.checked)} />
+            <Checkbox checked={petsOnSite} onCheckedChange={(v) => setPetsOnSite(v === true)} />
             Pets are at home
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={okToEnterAlone} onChange={(e) => setOkToEnterAlone(e.target.checked)} />
+            <Checkbox checked={okToEnterAlone} onCheckedChange={(v) => setOkToEnterAlone(v === true)} />
             OK to enter without me
           </label>
           <label className="block text-sm">
             <span className="block mb-1 font-medium">Gate or lock info (private)</span>
-            <input className={input} maxLength={500} value={accessNotes} onChange={(e) => setAccessNotes(e.target.value)} />
+            <Input maxLength={500} value={accessNotes} onChange={(e) => setAccessNotes(e.target.value)} />
             <span className="block text-xs text-muted-foreground mt-1">Only your landlord and the booked Helpr see this.</span>
           </label>
           <div className="flex gap-2">
-            <button type="submit" disabled={m.isPending} className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold">
+            <Button type="submit" size="sm" disabled={m.isPending}>
               {m.isPending ? "Sending…" : "Send to my landlord"}
-            </button>
-            <button type="button" className="rounded-full border border-border px-4 py-2 text-sm" onClick={() => setOpen(false)}>
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </>
       )}

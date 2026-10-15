@@ -533,6 +533,14 @@ export const RPC_ERROR_COPY = {
     dispute_money_moved: "Test-mode refund or transfer records exist for this job. Press Clear test-mode records and re-open first.",
     admin_is_party: "You're a party to this job, so another admin has to close its settlement.",
   },
+  // AdminJobs — an admin ends a recurring series as the platform (Q417 (c),
+  // rpc_admin_end_recurring_series, 20261012194707). Admin-facing.
+  rpc_admin_end_recurring_series: {
+    end_series_needs_reason: "Write why the platform is ending this series (10 characters or more). It goes in the audit log.",
+    job_not_found: "This job no longer exists. Refresh and check.",
+    admin_is_party: "You're a party to this series, so another admin has to end it.",
+    not_a_series: "This job isn't part of a recurring series, so there's no series to end.",
+  },
   // DisputeTimelineDialog — adding evidence to a dispute an admin re-opened.
   rpc_add_dispute_evidence: {
     dispute_evidence_empty: "Attach between one and ten photos, then try again.",

@@ -105,3 +105,10 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 | B6 | Invoices for repeat customers, paid in the app with the flat fee | reuses recurring jobs where possible |
 | B7 | Business-to-business: local suppliers selling to businesses | sales tax: business buyers may resell (resale certificates) |
 | B8 | "Request a review" link to any customer, every review counts (no review gating: 16 CFR 465) | |
+| B1a | Appointments: any shop/business can turn them on (services + durations + prices, hours, days off) |
+| B1b | Instant booking into open slots; business can block times |
+| B1c | Deposit at booking (business sets % or $), rest paid in the app after; no-show loses the deposit; flat 5% + $0.70 |
+| B1d | Each business sets its own cancellation policy, shown before booking |
+| B2a | Dashboard shows parish search TOTALS (never who searched) |
+| B3 | TEAM ACCOUNTS ON HOLD: one person per business for now (owner); all money to that person |
+| B4 | Shift hiring: legal research running (worker classification) before its question round |

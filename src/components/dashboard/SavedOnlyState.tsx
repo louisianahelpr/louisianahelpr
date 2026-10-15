@@ -18,6 +18,15 @@ export interface SavedRead {
   total?: number;
 }
 
+const NOTHING_SAVED = {
+  title: "Nothing saved yet",
+  body: "Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled.",
+};
+const NONE_OPEN = {
+  title: "None of your saved jobs are open",
+  body: "Each one was filled or closed, or is one you applied to or passed on. Tap the bookmark on a job to keep it here.",
+};
+
 /**
  * What the saved-only browse feed shows when it has no saved job to list.
  * Moved out of BrowseTasksFeed (component-size ratchet).
@@ -32,14 +41,14 @@ export function SavedOnlyState({ savedRead }: { savedRead?: SavedRead }) {
        and action rows, so its circle, title and text sit where My Posts',
        My Jobs' and Messages' do (it sat 38px lower at 375 on prod,
        2026-10-13: the wrapper's pt-4 plus no button row). */
-    const noneOpen = (savedRead?.total ?? 0) > 0;
+    /* Q1739: jobs ARE saved, but every one is closed, filled, applied to or
+       passed on, so "Nothing saved yet" would be false. */
+    const copy = (savedRead?.total ?? 0) > 0 ? NONE_OPEN : NOTHING_SAVED;
     return (
       <div className="flex-1 min-h-0 flex">
         <EmptyState icon={Bookmark}
-          title={noneOpen ? "None of your saved jobs are open" : "Nothing saved yet"}
-          body={noneOpen
-            ? "Each one was filled or closed, or is one you applied to or passed on. Tap the bookmark on a job to keep it here."
-            : "Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."}
+          title={copy.title}
+          body={copy.body}
           bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
         />
       </div>

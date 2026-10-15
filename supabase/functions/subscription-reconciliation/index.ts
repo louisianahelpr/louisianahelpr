@@ -70,6 +70,7 @@
  * `expire-subscriptions`' business and not yet late.
  */
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
@@ -314,7 +315,7 @@ serve(async (req) => {
         } catch (e) {
           caps.push(
             `price ${priceId} (${tier}/${cycle}) could not be read: ${
-              e instanceof Error ? e.message : String(e)
+              caughtMessage(e)
             }`,
           );
         }
@@ -356,7 +357,7 @@ serve(async (req) => {
         startingAfter = page.data[page.data.length - 1].id;
       }
     } catch (e) {
-      caps.push(`active Price list could not be read: ${e instanceof Error ? e.message : String(e)}`);
+      caps.push(`active Price list could not be read: ${caughtMessage(e)}`);
     }
 
     // ── 1. Every profile that holds a tier, or claims a Stripe link ──────────
@@ -463,7 +464,7 @@ serve(async (req) => {
         return email;
       } catch (e) {
         // A single unreadable customer must degrade one row, not the run.
-        notes.push(`customer ${customerId} could not be read: ${e instanceof Error ? e.message : String(e)}`);
+        notes.push(`customer ${customerId} could not be read: ${caughtMessage(e)}`);
         emailForCustomer.set(customerId, null);
         return null;
       }
@@ -758,7 +759,7 @@ serve(async (req) => {
         tx = await fetchAppleTransaction(p.apple_original_transaction_id);
       } catch (e) {
         caps.push(
-          `Apple transaction for ${p.user_id} could not be read: ${e instanceof Error ? e.message : String(e)}`,
+          `Apple transaction for ${p.user_id} could not be read: ${caughtMessage(e)}`,
         );
         continue;
       }

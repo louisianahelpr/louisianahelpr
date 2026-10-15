@@ -676,3 +676,12 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 5. **Tax and seller identity** — shops are businesses (no occasional-sale exemption); R.S. 47:340.1 $100,000
    facilitator rule VERIFIED but its reach to in-state local sales NOT VERIFIED (CPA); rentals taxable
    (R.S. 47:302(B), VERIFIED); INFORM applies to makers' new goods (FTC page VERIFIED).
+
+## Owner answers (pop-ups 2026-10-14)
+| Q | Decision |
+|---|----------|
+| L1-L2 | Lives in the "Shops" bottom-bar tab (roadmap G2): makers, bakers, local trades, equipment rentals and businesses |
+| L3 | Any adult (18+) with Stripe payout setup (incl. the ID check, roadmap G10) can open a shop |
+| L4 | One free shop per member; it can sell items, take orders, rent things out and buy boosts (a shop IS the business profile) |
+| L5 | Home food: what Louisiana allows from a home kitchen (R.S. 40:4.9 list, no meat/fish) AND anything else from sellers who upload a health-department permit |
+| L6 | Permit foods (plate lunches, gumbo, boudin, meat pies, seafood): only from shops with a current health-department permit checked by an admin |

@@ -53,14 +53,27 @@
  *   PERSONAS=customer                          … narrow
  *   SETTLE_MS=600 CHUNK_DELAY=400              … how long a stage must hold still
  *   OUT=docs/audit/loading-states                … where the JSON + PNGs land
+ *
+ * A NARROWED RUN NEVER REPLACES THE CATALOG. measurements.json is the evidence
+ * for EVERY declared route (check-loading-state-shape.mjs fails on any route it
+ * does not hold), so a ROUTES=… run writing only its own surfaces would drop
+ * the other ~136 and their measured shapes. A ROUTES run into an OUT that
+ * already holds a measurements.json MERGES (mergeMeasurements): its surfaces
+ * replace the same persona + route, the rest stay byte-for-byte, and the file
+ * keeps the catalog run's `at` (the age of most of what it holds) and records
+ * the partial run under `merged`. A partial run kept elsewhere (OUT=~/.lh-shots/…)
+ * merges in later without a browser:
+ *
+ *   node scripts/audit/measure-loading-states.mjs --merge <partial measurements.json> [--into <evidence>]
  */
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
 import { createPressJob, mintAccounts, removeFixtureJob, removeInboxMessage, seedInboxMessage } from "./pressProdSafety.mjs";
 import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
+import { stableUrl } from "../check-loading-state-shape.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../..");
@@ -127,6 +140,71 @@ const SCREEN_SIG = (sel) => {
     [...e.childNodes].some((c) => c.nodeType === 3 && (c.textContent ?? "").trim().length > 0) && shown(e));
   return { count: n, booted, sig: `${n}|${document.documentElement.scrollHeight}|${booted ? 1 : 0}` };
 };
+
+/** Settings two runs must share for their surfaces to sit in one evidence file. */
+export const MEASUREMENT_SETTINGS = ["viewport", "capture", "settleMs", "chunkDelay"];
+
+/** A surface's identity across runs: persona + route (a /jobs id is per run). */
+const surfaceId = (r) => `${r.persona} ${stableUrl(r.url)}`;
+
+/**
+ * Merge a narrowed run's measurements into the catalog's (see "A NARROWED RUN"
+ * at the top). Pure: returns the new document, never touches disk.
+ *
+ *   - a partial surface REPLACES the same persona + route in place;
+ *   - a partial surface the catalog lacks is APPENDED;
+ *   - every other surface is kept exactly as it was;
+ *   - `at` stays the catalog's: most of the file is that old, and
+ *     check-staleness.mjs ages the file by it. The partial run's own stamp,
+ *     host and surfaces are recorded under `merged`.
+ * Refuses a partial run measured under other settings (viewport, capture
+ * mode, settle or chunk delay): its shapes are not comparable to the rest.
+ */
+export function mergeMeasurements(prev, partial) {
+  if (!prev || !Array.isArray(prev.results)) {
+    throw new Error("merge: there is no catalog measurements.json to merge into; measure the whole catalog first");
+  }
+  if (!partial || !Array.isArray(partial.results) || partial.results.length === 0) {
+    throw new Error("merge: the partial run holds no results");
+  }
+  for (const k of MEASUREMENT_SETTINGS) {
+    if (JSON.stringify(prev[k]) !== JSON.stringify(partial[k])) {
+      throw new Error(`merge: ${k} differs (catalog ${JSON.stringify(prev[k])}, partial ${JSON.stringify(partial[k])}); surfaces measured under other settings are not comparable, so re-measure the whole catalog`);
+    }
+  }
+  const incoming = new Map();
+  for (const r of partial.results) {
+    if (incoming.has(surfaceId(r))) throw new Error(`merge: the partial run measured ${surfaceId(r)} twice`);
+    incoming.set(surfaceId(r), r);
+  }
+  const replaced = [];
+  const results = prev.results.map((r) => {
+    const next = incoming.get(surfaceId(r));
+    if (!next) return r;
+    replaced.push(surfaceId(r));
+    incoming.delete(surfaceId(r));
+    return next;
+  });
+  results.push(...incoming.values());
+  return {
+    ...prev,
+    results,
+    merged: [
+      ...(Array.isArray(prev.merged) ? prev.merged : []),
+      { at: partial.at, base: partial.base, surfaces: partial.results.map(surfaceId), replaced },
+    ],
+  };
+}
+
+/** Merge a partial measurements file into an evidence file on disk. */
+export function mergeFile(partialPath, intoPath) {
+  const prev = JSON.parse(readFileSync(intoPath, "utf8"));
+  const partial = JSON.parse(readFileSync(partialPath, "utf8"));
+  const doc = mergeMeasurements(prev, partial);
+  writeFileSync(intoPath, JSON.stringify(doc, null, 2));
+  const last = doc.merged[doc.merged.length - 1];
+  return { total: doc.results.length, merged: last.surfaces.length, replaced: last.replaced.length };
+}
 
 // ---------------------------------------------------------------------------
 // In-page probes
@@ -813,8 +891,13 @@ async function main() {
     await browser.close();
 
     mkdirSync(OUT, { recursive: true });
-    writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
-    console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
+    const run = { base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results };
+    const evidence = resolve(OUT, "measurements.json");
+    // A narrowed run merges into the catalog already there (see "A NARROWED
+    // RUN" at the top); only a whole-catalog run replaces the file.
+    const doc = only && existsSync(evidence) ? mergeMeasurements(JSON.parse(readFileSync(evidence, "utf8")), run) : run;
+    writeFileSync(evidence, JSON.stringify(doc, null, 2));
+    console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${evidence}${doc === run ? "" : ` (merged: ${doc.results.length} surfaces in the file)`}`);
   } finally {
     if (inboxMessageId) {
       const gone = await removeInboxMessage(inboxToken, helper.userId, inboxMessageId);
@@ -840,5 +923,20 @@ async function main() {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  main().catch((e) => { console.error(e); process.exit(1); });
+  const at = process.argv.indexOf("--merge");
+  if (at !== -1) {
+    const partialPath = process.argv[at + 1];
+    const into = process.argv.indexOf("--into");
+    const intoPath = resolve(into !== -1 ? process.argv[into + 1] : resolve(OUT, "measurements.json"));
+    if (!partialPath) { console.error("usage: --merge <partial measurements.json> [--into <evidence>]"); process.exit(2); }
+    try {
+      const n = mergeFile(resolve(partialPath), intoPath);
+      console.log(`merged ${n.merged} surface(s) (${n.replaced} replaced) into ${intoPath}: ${n.total} surfaces in the file`);
+    } catch (e) {
+      console.error(String(e?.message ?? e));
+      process.exit(1);
+    }
+  } else {
+    main().catch((e) => { console.error(e); process.exit(1); });
+  }
 }

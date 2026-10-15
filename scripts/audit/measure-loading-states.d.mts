@@ -11,3 +11,17 @@ export declare function nextStage(s: {
   booted: boolean;
   settleMs?: number;
 }): StageStep;
+export declare const MEASUREMENT_SETTINGS: string[];
+export interface MeasurementDoc {
+  base?: string;
+  viewport?: unknown;
+  capture?: string;
+  settleMs?: number;
+  chunkDelay?: number;
+  at?: string;
+  results: Array<{ url: string; persona: string; [k: string]: unknown }>;
+  merged?: Array<{ at?: string; base?: string; surfaces: string[]; replaced: string[] }>;
+  [k: string]: unknown;
+}
+export declare function mergeMeasurements(prev: MeasurementDoc, partial: MeasurementDoc): MeasurementDoc & { merged: NonNullable<MeasurementDoc["merged"]> };
+export declare function mergeFile(partialPath: string, intoPath: string): { total: number; merged: number; replaced: number };

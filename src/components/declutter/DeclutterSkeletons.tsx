@@ -1,0 +1,73 @@
+/**
+ * What each Declutter screen looks like while the hidden 'declutter' switch
+ * (and then the screen's own data) loads.
+ *
+ * DeclutterGate used to render NOTHING while the switch loaded, so the first
+ * frame was a blank page and the whole screen arrived at once: measured
+ * 2026-10-15 06:27Z on prod (scripts/audit/measure-loading-states.mjs), a
+ * +754px jump on /declutter and /declutter/item/:id for both test accounts,
+ * and 10 check-loading-state-shape problems.
+ *
+ * Each skeleton wears the screen's real shell, AppPage, with the screen's
+ * real title (the ProfileTabFallback rule: the header is real, so nothing
+ * moves when the page replaces it), and shared <Skeleton> bones only where
+ * the page's data will land. The 404 for a member without the switch still
+ * comes after the switch's answer, never a flash of it for a tester.
+ */
+import { useNavigate } from "react-router-dom";
+import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+/** /declutter: the title row, the intro, the Browse / My listings tabs, the distance row and the first cards. */
+export function DeclutterHomeSkeleton() {
+  const navigate = useNavigate();
+  return (
+    <AppPage
+      title="Declutter"
+      titleActions={
+        <Button type="button" size="sm" className="whitespace-nowrap" onClick={() => navigate("/declutter/sell")}>
+          Sell an item
+        </Button>
+      }
+    >
+      <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
+      <Skeleton className="h-12 w-full rounded-full" aria-hidden />
+      <div className="space-y-4" role="status" aria-label="Loading items">
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} className="min-w-0">
+              <Skeleton className="aspect-square w-full rounded-2xl" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </AppPage>
+  );
+}
+
+/** /declutter/item/:id: the photo strip and the price-and-pickup card. Also the item's own loading state. */
+export function DeclutterItemSkeleton() {
+  return (
+    <AppPage title="Item" backTo="/declutter">
+      <div className="flex gap-2 overflow-hidden -mx-1 px-1" role="status" aria-label="Loading the item">
+        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl" />
+        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl" />
+      </div>
+      <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
+    </AppPage>
+  );
+}
+
+/** /declutter/sell: the first form section ("1. The item") and the start of the next. */
+export function DeclutterSellSkeleton() {
+  return (
+    <AppPage title="Sell an item" backTo="/declutter?view=mine">
+      <div className="space-y-4" role="status" aria-label="Loading the form">
+        <Skeleton className="h-[34rem] w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    </AppPage>
+  );
+}

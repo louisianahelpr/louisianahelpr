@@ -31,7 +31,11 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => state.payoutBlock }));
-vi.mock("@/hooks/useUserLocation", () => ({ useUserLocation: () => ({ status: "idle" }) }));
+vi.mock("@/hooks/useUserLocation", () => ({
+  useUserLocation: () => ({ status: "idle" }),
+  getCachedUserLocation: () => null,
+  deriveFallbackLocation: async () => null,
+}));
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children, titleActions }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode }) => (
     <main>

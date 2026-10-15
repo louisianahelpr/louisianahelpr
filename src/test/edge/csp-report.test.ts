@@ -146,6 +146,47 @@ describe("csp-report", () => {
     expect(inserts()).toHaveLength(0);
   });
 
+  // Q1821: MapKit's hillshade texture decoder asking for WebAssembly is MapKit's
+  // own fallback (it draws the map without terrain shading), the exact shape
+  // stored on prod 2026-10-12 and 10-13. Anything else asking for wasm-eval,
+  // or a look-alike of MapKit's script, is still kept.
+  // @mutate supabase/functions/csp-report/report.ts | noisy(v.sourceFile) \|\| isMapKitHillshadeWasm(v)) | noisy(v.sourceFile))
+  // @mutate supabase/functions/csp-report/report.ts | src.hostname === "cdn.apple-mapkit.com" && | src.hostname.endsWith("apple-mapkit.com") &&
+  // @mutate supabase/functions/csp-report/report.ts |     src.pathname.startsWith("/ti/csr/"); |     true;
+  // @mutate supabase/functions/csp-report/report.ts |   if (v.blockedURL.trim().toLowerCase() !== "wasm-eval") return false; |
+  // @mutate supabase/functions/csp-report/report.ts | return src.protocol === "https:" && !src.port && | return !src.port &&
+  it("drops MapKit's hillshade WebAssembly request before any database call (Q1821)", async () => {
+    const fn = await load();
+    const res = await post(fn, legacy({
+      "blocked-uri": "wasm-eval",
+      "violated-directive": "script-src",
+      "source-file": "https://cdn.apple-mapkit.com/ti/csr/1.x.x/mk-csr.js",
+      "document-uri": "https://www.louisianahelpr.com/home",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+    expect(rateLimitCalls).toHaveLength(0);
+  });
+
+  it.each([
+    ["wasm-eval from our own script", "wasm-eval", "https://www.louisianahelpr.com/assets/main.js"],
+    ["wasm-eval from a look-alike MapKit host", "wasm-eval", "https://cdn.apple-mapkit.com.evil.example/ti/csr/1.x.x/mk-csr.js"],
+    ["wasm-eval from another MapKit host", "wasm-eval", "https://evil.apple-mapkit.com/ti/csr/1.x.x/mk-csr.js"],
+    ["wasm-eval from another MapKit script", "wasm-eval", "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"],
+    ["wasm-eval over plain http", "wasm-eval", "http://cdn.apple-mapkit.com/ti/csr/1.x.x/mk-csr.js"],
+    ["eval (not wasm) from MapKit's csr script", "eval", "https://cdn.apple-mapkit.com/ti/csr/1.x.x/mk-csr.js"],
+  ])("keeps %s (Q1821)", async (_label, blocked, sourceFile) => {
+    const fn = await load();
+    const res = await post(fn, legacy({
+      "blocked-uri": blocked,
+      "violated-directive": "script-src",
+      "source-file": sourceFile,
+      "document-uri": "https://www.louisianahelpr.com/home",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(1);
+  });
+
   it("a Reporting API batch (application/reports+json) inserts ONE row from its csp-violation entries", async () => {
     const fn = await load();
     const res = await post(fn, reportingApi({}), "application/reports+json");

@@ -744,6 +744,14 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Declutter (2026-10-14): every Declutter form renders the 404 until the hidden 'declutter' switch is on for the
+  // member, and the switch is OFF on prod, so no URL sweep can reach them yet. Their server-side input rules (lengths,
+  // price bounds, contact-leak scan, area_label street check, admin review reason) are pinned by
+  // src/test/pglite/declutterFoundation.pglite.mjs and declutterSlice2.pglite.mjs. A FORMS sweep is OWED once the
+  // switch is on for testers (docs/specs/declutter-auctions.md, "Open after slice 2").
+  "src/components/declutter/DeclutterSellView.tsx": "behind the OFF 'declutter' switch (404 on prod); server rules pinned by PGlite; FORMS sweep owed at testers",
+  "src/components/declutter/DeclutterItemView.tsx": "behind the OFF 'declutter' switch (404 on prod); Q&A text rules pinned by PGlite; FORMS sweep owed at testers",
+  "src/components/admin/settings/DeclutterReviewCard.tsx": "admin-only and behind the OFF 'declutter' switch; reject-reason rules pinned by declutterSlice2.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated
   // by request_job_detail_change (blank, length, contact scan, map point) — pinned by src/test/pglite/jobDetailChange.pglite.mjs.

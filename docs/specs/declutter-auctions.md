@@ -227,6 +227,7 @@ where no owner row decides. Each picks the option most consistent with the rows 
   original (HEIC, no canvas, empty blob) or where an EXIF/XMP block survives (src/lib/declutter/photos.ts).
 
 ### Open after slice 2 (for the lead to file; owner order 10-13: no new OPEN.md items from agents)
+- OWED at testers: messy-input FORMS sweep (e2e/prod-audit/messyInputForms.ts) for DeclutterSellView, DeclutterItemView, DeclutterReviewCard — recorded as GAPS until the 'declutter' switch is on for testers (2026-10-14).
 - A ban does not hide a seller's live listings (items read policy has no seller-ban filter; withdraw refuses a banned
   seller): hide them in the read policy or withdraw them in the ban path before the switch goes past testers (lh-authz-rls
   should-fix 3).

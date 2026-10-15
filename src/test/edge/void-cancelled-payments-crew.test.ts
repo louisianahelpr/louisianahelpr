@@ -435,6 +435,31 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(true);
   });
 
+  // Q1736: on an UNCAPTURED hold the capture takes the crew's cancellation fee
+  // PLUS the block fees, and the job row is stamped with the cancellation fee
+  // alone (Spent adds the block fees from poster_crew_block_fee_cents), so
+  // stamp == (captured - blockCents) / 100.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const feeCents = Math.round(cancellationFee * 100) + blockCents; | const feeCents = Math.round(cancellationFee * 100);
+  it("an uncaptured crew hold captures the fee plus the block fee, and stamps the fee alone (Q1736)", async () => {
+    seedWithBlockFee();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_crew", status: "requires_capture", amount: 33000, amount_received: 0, latest_charge: "ch_crew",
+    });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_crew", status: "succeeded" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+    const capturedCents = stripeMock.paymentIntents.capture.mock.calls[0][1].amount_to_capture as number;
+    const blockCents = 2500;
+    expect(capturedCents).toBe(15000 + blockCents);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" &&
+      (w.payload as Record<string, unknown>).cancellation_fee_status === "charged");
+    expect(settle, "no settle write with cancellation_fee_status 'charged'").toBeDefined();
+    expect((settle!.payload as Record<string, unknown>).payment_status).toBe("refunded");
+    expect((settle!.payload as Record<string, unknown>).cancellation_fee).toBe((capturedCents - blockCents) / 100);
+  });
+
   // Q1381 review (lh-money-escrow, MEDIUM): Part A's first attempt times out
   // (Stripe may have made the transfer); Part F re-reads the row later in the
   // SAME run. It must retry under the SAME key so Stripe dedupes it, never a

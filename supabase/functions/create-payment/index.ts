@@ -2154,6 +2154,21 @@ serve(async (req) => {
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
           const setupFeeCents = setupFeeKeptCents(job);
+          // A retry of a cancel that already refunded (the job is left
+          // 'cancelling' when the gift restore below fails) must not refund
+          // again: the idempotency key only dedupes for ~24h, and past that a
+          // second refunds.create either errors (stranding the job) or, when
+          // the withholding is at least half the capture, pays out twice.
+          // The charge's own amount_refunded is the authority, and it comes
+          // off what this cancel may still return (Q1675): an earlier refund
+          // on the same charge (the duplicate $2 setup fee settleOnboardingFee
+          // refunds, an admin's partial refund) already went back, and
+          // pi.amount_received does not go down after it.
+          const alreadyRefundedCents = Number(
+            (pi.latest_charge && typeof pi.latest_charge === "object"
+              ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+              : 0) ?? 0,
+          );
           // THE refund amount (owner, 2026-10-14: never absorb a fee):
           // _shared/refundAmount.ts, the same definition every refund path uses.
           const cancelSplit = refundToPayerCents({
@@ -2161,29 +2176,32 @@ serve(async (req) => {
             actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
             customerFeeCents: serviceFeeCents,
             setupFeeCents,
+            alreadyRefundedCents,
           });
           const nonRefundableCents = cancelSplit.nonRefundableCents;
-          const refundAmount = cancelSplit.ceilingCents;
+          const refundAmount = cancelSplit.refundCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
           // the payment_status flip below makes the second 409 out.
           // Skip the refund entirely if the withholding consumes the whole
           // capture (Stripe rejects a $0 refund); the job still flips cancelled.
-          // A retry of a cancel that already refunded (the job is left
-          // 'cancelling' when the gift restore below fails) must not refund
-          // again: the idempotency key only dedupes for ~24h, and past that a
-          // second refunds.create either errors (stranding the job) or, when
-          // the withholding is at least half the capture, pays out twice.
-          // The charge's own amount_refunded is the authority.
-          const alreadyRefundedCents = Number(
-            (pi.latest_charge && typeof pi.latest_charge === "object"
-              ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
-              : 0) ?? 0,
-          );
-          if (refundAmount > 0 && alreadyRefundedCents >= refundAmount) {
+          if (refundAmount === 0 && cancelSplit.ceilingCents > 0 && alreadyRefundedCents > 0) {
             console.log(
-              `[create-payment] cancel_escrow: charge for job ${jobId} already refunded ${alreadyRefundedCents}¢ (>= ${refundAmount}¢) — not refunding again`,
+              `[create-payment] cancel_escrow: charge for job ${jobId} already refunded ${alreadyRefundedCents}¢ (>= ${cancelSplit.ceilingCents}¢ refundable) — not refunding again`,
             );
+            // More than this cancel may return went back already: the fee it
+            // keeps was given away by an earlier refund. Not a retry; a
+            // person must look (lh-money-escrow review of Q1675 #2).
+            if (alreadyRefundedCents > cancelSplit.ceilingCents + 1) {
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Cancelled job's charge was already refunded past what the cancel keeps",
+                message: "Earlier refunds on this charge returned more than a cancellation may (they ate into the card fee it keeps). Nothing more was refunded; reconcile by hand.",
+                fields: { job_id: jobId, payment_intent: cancelPaymentIntentId, refunded_cents: alreadyRefundedCents, refundable_cents: cancelSplit.ceilingCents },
+                oncePerDayKey: `cancel-refunded-past-kept:${jobId}`,
+              });
+            }
           } else if (refundAmount > 0) {
             const refund = await stripe.refunds.create(
               { payment_intent: cancelPaymentIntentId, amount: refundAmount },
@@ -2205,7 +2223,8 @@ serve(async (req) => {
             // in the amounts computed here.
             if (refund?.id) {
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
-              const keptCents = Math.max(0, capturedCents - refundedCents);
+              // An earlier refund on this charge (Q1675) went back too: not kept.
+              const keptCents = Math.max(0, capturedCents - alreadyRefundedCents - refundedCents);
               await announceRefund(supabaseAdmin, "cancel_escrow", {
                 key: `refund:${refund.id}`,
                 kind: "refund",
@@ -2860,14 +2879,47 @@ serve(async (req) => {
             // legacy 12% job Stripe's real fee is what is kept. execute-dispute-
             // split computes its poster leg the same way, so a 0/100 split and
             // this Quick Refund return the same cents.
+            // Q1675: refunds ANOTHER flow already made on this charge (the
+            // duplicate $2 setup fee settleOnboardingFee refunds, a Dashboard
+            // refund) went back already, and pi.amount_received does not go
+            // down after them, so they come off what this refund may return.
+            // This action's own earlier refund (metadata.source
+            // admin_refund_dispute) is NOT subtracted: a retry finds and reuses
+            // it below (Q1209). Listed only when the charge shows a refund.
+            const disputeChargeRefundedCents = Number(
+              (pi.latest_charge && typeof pi.latest_charge === "object"
+                ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+                : 0) ?? 0,
+            );
+            const disputePriorRefunds = disputeChargeRefundedCents > 0
+              ? (await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 })).data ?? []
+              : [];
+            const disputeOtherRefundedCents = disputePriorRefunds
+              .filter((r) => (r.status === "succeeded" || r.status === "pending") && r.metadata?.source !== "admin_refund_dispute")
+              .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
             const disputeSplit = refundToPayerCents({
               capturedCents,
               actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
               customerFeeCents: cardCostFeeCents(job),
               setupFeeCents: setupFeeKeptCents(job),
+              alreadyRefundedCents: disputeOtherRefundedCents,
             });
             const nonRefundableCents = disputeSplit.nonRefundableCents;
-            const refundAmount = disputeSplit.ceilingCents;
+            const refundAmount = disputeSplit.refundCents;
+            // Other flows already returned MORE than this refund may: the card
+            // fee it keeps was given away earlier. The $0 branch below would
+            // blame the processing fee; say what happened instead
+            // (lh-money-escrow review of Q1675 #2).
+            if (disputeOtherRefundedCents > disputeSplit.ceilingCents + 1) {
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Disputed job's charge was already refunded past what the refund keeps",
+                message: "Earlier refunds by another flow returned more than a dispute refund may (they ate into the card fee it keeps). Nothing more is refunded; reconcile by hand.",
+                fields: { job_id: jobId, payment_intent: paymentIntentId, refunded_cents: disputeOtherRefundedCents, refundable_cents: disputeSplit.ceilingCents },
+                oncePerDayKey: `dispute-refunded-past-kept:${jobId}`,
+              });
+            }
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
             // is rejected by Stripe with charge_already_refunded — still loud.
@@ -2975,7 +3027,8 @@ serve(async (req) => {
               }
               disputeRefundId = refund.id;
               disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
-              disputeKeptCents = Math.max(0, capturedCents - disputeRefundCents);
+              // Another flow's earlier refund (Q1675) went back too: not kept.
+              disputeKeptCents = Math.max(0, capturedCents - disputeOtherRefundedCents - disputeRefundCents);
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,

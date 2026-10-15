@@ -1861,17 +1861,52 @@ serve(async (req) => {
           const blockFeeCents = crewBlockFeeCents(blockFeeRows);
           // THE refund amount (owner, 2026-10-14: never absorb a fee), from
           // _shared/refundAmount.ts, the definition every refund path uses.
+          // Q1675: what earlier refunds on this charge already returned (the
+          // duplicate $2 setup fee settleOnboardingFee refunds, an admin's
+          // partial refund) comes off what this refund may return:
+          // pi.amount_received does not go down after them. The charge's own
+          // amount_refunded is the authority.
+          const chargeRefundedCents = Number(
+            (pi.latest_charge && typeof pi.latest_charge === "object"
+              ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+              : 0) ?? 0,
+          );
           const voidSplit = refundToPayerCents({
             capturedCents,
             actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
             customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents,
             setupFeeCents: setupFeeKeptCents(job),
             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents,
+            alreadyRefundedCents: chargeRefundedCents,
           });
           const nonRefundableCents = voidSplit.nonRefundableCents;
+          // Earlier refunds returned MORE than this cancel may (they ate into
+          // the cancellation fee or the fees it keeps; lh-money-escrow review
+          // of Q1675 #1). Settling would pay the Helpr's fee out of money that
+          // already went back to the poster, a fee the platform absorbs. Page
+          // and leave the job for a person; nothing more is moved (a crew's
+          // block fees, paid just above, already went out).
+          if (chargeRefundedCents > voidSplit.ceilingCents + 1) {
+            console.error(`[void-cancelled-payments] job ${job.id}: charge already refunded ${chargeRefundedCents}¢, more than the ${voidSplit.ceilingCents}¢ this cancel may return — not settled`);
+            defects.record(`refunded past kept fees ${job.id}: ${chargeRefundedCents}¢ > ${voidSplit.ceilingCents}¢`);
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "warning",
+              title: "Cancelled job's charge was already refunded past what the cancel keeps",
+              message: "Earlier refunds on this charge returned more than the cancellation may (they ate into the cancellation fee or the card fee). The job was NOT settled and no cancellation fee was paid; reconcile by hand.",
+              fields: { job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents },
+              oncePerDayKey: `void-refunded-past-kept:${job.id}`,
+            });
+            results.push({ job_id: job.id, title: job.title, status: "refunded_past_kept_fees" });
+            continue;
+          }
+          // The charge already returned everything this cancel could (Q1675;
+          // also a refund of ours whose ledger row was lost): settle the
+          // status only, never refund the ceiling again.
+          const refundedAtStripe = voidSplit.ceilingCents > 0 && voidSplit.remainingCents === 0 && chargeRefundedCents > 0;
           // Signed on purpose (not floored): the $0 branch below reports the
           // raw shortfall to ops, as it did before the shared helper.
-          const refundAmount = voidSplit.refundCents > 0
+          const refundAmount = voidSplit.refundCents > 0 || refundedAtStripe
             ? voidSplit.refundCents
             : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents;
           // ── Ledger guard against a SECOND real refund ────────────────────
@@ -1902,7 +1937,7 @@ serve(async (req) => {
             results.push({ job_id: job.id, title: job.title, status: "refund_dedupe_read_failed", error: priorRefundErr.message });
             continue;
           }
-          const alreadyRefunded = (priorRefunds ?? []).length > 0;
+          const alreadyRefunded = (priorRefunds ?? []).length > 0 || refundedAtStripe;
           let cancellationRefundNotice: Parameters<typeof tellPosterMoneyBack>[2] | null = null;
 
           if (refundAmount > 0 && !alreadyRefunded) {
@@ -1933,7 +1968,8 @@ serve(async (req) => {
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
               cancellationRefundNotice = {
                 key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,
-                keptCents: Math.max(0, capturedCents - refundedCents),
+                // An earlier refund on this charge (Q1675) went back too: not kept.
+                keptCents: Math.max(0, capturedCents - chargeRefundedCents - refundedCents),
                 keptReason: parts.length === 1 ? parts[0].replace(/^\$[\d,.]+ /, "the ") : parts.join(", ") || null,
               };
             }
@@ -1980,7 +2016,7 @@ serve(async (req) => {
             // through to the status flip so the job finally leaves escrow —
             // that flip failing is exactly how we ended up back here.
             console.log(
-              `[void-cancelled-payments] job ${job.id} already has a cancellation refund on the ledger; settling status only.`,
+              `[void-cancelled-payments] job ${job.id} already has a cancellation refund on the ledger or the charge already shows it refunded (${chargeRefundedCents}¢); settling status only.`,
             );
           } else {
             // The cancellation fee + non-refundable service fee consumed the

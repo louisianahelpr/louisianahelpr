@@ -62,7 +62,7 @@ async function mintItem(api: APIRequestContext, seller: Session, marker: string,
   for (let i = 0; i < 3; i++) {
     const path = `${seller.user.id}/declutter/${id}/fixture${i}.png`;
     const up = await api.post(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
-      headers: { ...rest(seller, { "Content-Type": "image/png", "x-upsert": "false" }) },
+      headers: { ...rest(seller, { "Content-Type": "image/png", "x-upsert": "false", "cache-control": "max-age=31536000" }) },
       data: PIXEL,
     });
     if (!up.ok()) throw new Error(`upload ${path}: ${up.status()} ${(await up.text()).slice(0, 200)}`);

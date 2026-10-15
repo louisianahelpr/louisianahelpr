@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LIVE ALERT (docs/OPEN.md "auth-captcha-matches-client"): email auth calls
+ * LIVE ALERT (docs/OPEN.md item "captcha switch matches what the deployed clients send"): email auth calls
  * that Supabase Auth refused for captcha (`error_code` captcha_failed in
  * auth_logs) from SEVERAL networks in the last window.
  *
@@ -95,7 +95,7 @@ try {
 console.log(`auth_logs: ${dayRows} row(s) in 24 h; captcha_failed in the last ${WINDOW_MIN} min: ${v.refusals} from ${v.addresses} address(es)`);
 if (v.fire) {
   console.error(
-    `::error::${v.refusals} email sign-in/sign-up/reset call(s) were refused for captcha from ${v.addresses} different networks in the last ${WINDOW_MIN} min (threshold ${MIN_ADDRESSES}). Our own probes come from one address; check whether a shipped client stopped sending Turnstile tokens (node scripts/check-auth-captcha-matches-client.mjs). docs/OPEN.md "auth-captcha-matches-client".`,
+    `::error::${v.refusals} email sign-in/sign-up/reset call(s) were refused for captcha from ${v.addresses} different networks in the last ${WINDOW_MIN} min (threshold ${MIN_ADDRESSES}). Our own probes come from one address; check whether a shipped client stopped sending Turnstile tokens (node scripts/check-auth-captcha-matches-client.mjs). docs/OPEN.md item "captcha switch matches what the deployed clients send".`,
   );
   process.exit(1);
 }

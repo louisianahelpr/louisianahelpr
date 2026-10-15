@@ -1504,6 +1504,57 @@ describe("execute-dispute-split edge function", () => {
       ]);
     });
 
+    // Q1764: an admin's Clear test-mode records (Q1732) that commits while a
+    // split is starting. The marker it writes is what its button reads to
+    // re-open the dispute, so no split may claim the cleared decision, and no
+    // refusal may overwrite the marker.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |       String(nowDispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER); |       false;
+    // @mutate supabase/functions/execute-dispute-split/index.ts |       .or(NOT_TEST_MODE_CLEARED)\n      .select("id");\n    if (error) { |       .select("id");\n    if (error) {
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     .or(NOT_TEST_MODE_CLEARED)\n    .select("id");\n  if (claimErr) { |     .select("id");\n  if (claimErr) {
+    // @mutate supabase/functions/execute-dispute-split/index.ts | const NOT_TEST_MODE_CLEARED = `execution_error.is.null,execution_error.not.like."${TEST_MODE_CLEARED_MARKER}*"`; | const NOT_TEST_MODE_CLEARED = `execution_error.is.null`;
+    const CLEARED_GUARD = { op: "or", column: "", value: 'execution_error.is.null,execution_error.not.like."test-mode records cleared by an admin*"' };
+    it("Q1764: test-mode records cleared after step 1 are seen under the claim: no split, the claim handed back, the marker never overwritten", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z", execution_status: "failed", execution_error: "this escrow was paid in Stripe test mode" } });
+      scenario.rpc.claim_dispute_settlement = () => {
+        // clear_test_mode_dispute_ledger committed between step 1 and the claim
+        // (a fresh object: the run's step-1 copy keeps what it read).
+        scenario.reads.disputes.rows![0] = {
+          ...scenario.reads.disputes.rows![0],
+          execution_error: "test-mode records cleared by an admin (checked at Stripe): paid before go-live",
+        };
+        return { verdict: "claimed", token: "tok-q1764" };
+      };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.rpcCalls!.filter((c) => c.name === "release_dispute_settlement_claim")).toEqual([
+        expect.objectContaining({ args: { _job_id: "job-1", _token: "tok-q1764" } }),
+      ]);
+      // Every failure stamp is scoped away from a row carrying the marker.
+      const failures = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed");
+      expect(failures.length).toBeGreaterThan(0);
+      for (const f of failures) expect(f.filters).toEqual(expect.arrayContaining([CLEARED_GUARD]));
+    });
+
+    it("Q1764: the execution claim (step 6) never claims a decision whose test-mode records were cleared", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      const fn = await load();
+      await invoke(fn);
+      const claimWrite = writeRecords("disputes").find((w) => (w.payload as { execution_status?: string }).execution_status === "executing")!;
+      expect(claimWrite.filters).toEqual(expect.arrayContaining([CLEARED_GUARD]));
+    });
+
+    it("Q1764: a refusal before the claim (markFailed) is scoped away from the cleared marker too", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: false, charges_enabled: true });
+      const fn = await load();
+      await invoke(fn);
+      const failure = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed").pop()!;
+      expect(failure.filters).toEqual(expect.arrayContaining([CLEARED_GUARD]));
+    });
+
     it("refuses when the decision changed under the claim (a different decided_at)", async () => {
       seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z" } });
       scenario.rpc.claim_dispute_settlement = () => {

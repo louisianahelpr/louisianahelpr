@@ -1,5 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
+
+// Q1777 (measured 2026-10-13 04:00Z): expire_unanswered_offers came back
+// "Internal server error." once. edge_logs: HTTP 555 from the API gateway,
+// text/plain, response.origin_time 10178 ms; postgres_logs in that window hold
+// no error (nine crons started at 04:00:00 and a 53 s checkpoint ended at
+// 04:00:10.97), and the RPC's other 22 calls in a day answered 200 in p50 95 ms,
+// max 608 ms. So the gateway gave up on one slow call: not a database defect.
+// Every sweep RPC here is set-based and idempotent (it acts only on rows still
+// past their deadline), so a gateway failure is retried ONCE before it counts
+// as a defect. A Postgres error always carries a SQLSTATE `code`; a code-less
+// 5xx is the gateway's, never the function's.
+type RpcResult = { data: unknown; error: { message: string; code?: string } | null; status?: number };
+function isGatewayFailure(res: RpcResult): boolean {
+  return !!res.error && !res.error.code && (res.status === undefined || res.status >= 500);
+}
+async function sweepRpc(call: () => PromiseLike<RpcResult>): Promise<RpcResult> {
+  const first = await call();
+  if (!isGatewayFailure(first)) return first;
+  console.warn("[auto-expire-jobs] gateway failure, retrying once:", first.error?.message);
+  return await call();
+}
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -225,7 +246,7 @@ serve(async (req) => {
     // and the guard in the loop below keeps such a crew from being cancelled.
     let crewsStarted = 0;
     {
-      const { data: crewRpc, error: crewRpcErr } = await supabase.rpc("start_underfilled_crews");
+      const { data: crewRpc, error: crewRpcErr } = await sweepRpc(() => supabase.rpc("start_underfilled_crews"));
       if (crewRpcErr) {
         if (crewRpcErr.code !== "PGRST202") {
           console.error("start_underfilled_crews error:", crewRpcErr);
@@ -352,7 +373,7 @@ serve(async (req) => {
     // db-deploy has not finished, which is expected for a few minutes on every
     // deploy. Any other RPC error is a real one.
     try {
-      const { data: unRpc, error: unRpcErr } = await supabase.rpc("expire_unanswered_offers");
+      const { data: unRpc, error: unRpcErr } = await sweepRpc(() => supabase.rpc("expire_unanswered_offers"));
       if (unRpcErr) {
         // PGRST202 = the migration has merged but db-deploy has not finished.
         // Expected for a few minutes on every deploy; not worth an error line.
@@ -373,7 +394,7 @@ serve(async (req) => {
     // direct_offer_expires_at — not a fixed 24h)
     let directOfferExpired = 0;
     try {
-      const { data: expRpc, error: expRpcErr } = await supabase.rpc("expire_pending_direct_offers");
+      const { data: expRpc, error: expRpcErr } = await sweepRpc(() => supabase.rpc("expire_pending_direct_offers"));
       if (expRpcErr) {
         console.error("expire_pending_direct_offers error:", expRpcErr);
         if (expRpcErr.code !== "PGRST202") defects.record(`expire_pending_direct_offers: ${expRpcErr.message}`);

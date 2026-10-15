@@ -249,3 +249,17 @@ Every slice: switch OFF by default, testers only, export_my_data sections + dele
 - S6. Leases: lawyer template + addenda, lead-paint auto-attach (year built), multi-signer e-signature with audit trail, PDF to both, retention rule (Q36), renewal reminders, deposit-return reminder; NO default/eviction notices. Requires L2, L7.
 - S7 (optional, later). Screening via partner (renter-ordered, partner-delivered, never stored) + automatic adverse-action notice. Requires L3 + partner contract.
 - S8 (optional, later). Rent/deposit payments by ACH to the landlord's connected account. Requires L5 and Q14-16.
+
+## Owner answers (pop-ups 2026-10-14)
+| Q | Decision |
+|---|----------|
+| 1-2 | Rentals lives inside Louisiana Helpr (under More in the bottom bar, roadmap G2), tab named "Rentals" |
+| 3 | Whole homes and apartments, leases of 1 month or longer (no rooms, no short stays) |
+| 4 | All of Louisiana, nearest first |
+| 5 | Property owners only (or the owner's own company), ID-verified |
+| 6 | Ownership proof (deed, tax bill or parish assessor page) checked by an admin before the first listing goes live |
+| 7 | Property managers: not at launch (follows from Q5) |
+| 8 | Renters see the landlord's first name + "ID verified" / "Owner verified" badges + star rating |
+| 9 | Set fields + a description checked for unfair-housing wording; the AI can also WRITE the description and make suggestions (owner: "option for ai to do this and make suggestion") |
+| 10 | Filters on home facts only (price, beds, baths, pets, area, available date, lease length, accepts vouchers); never who may live there |
+| 11 | 5 to 25 real photos |

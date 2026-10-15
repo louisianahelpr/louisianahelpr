@@ -105,8 +105,9 @@ export async function ensureDeclutterFixture(
       const r = await srFetch(serviceKey, "DELETE", `${SUPABASE_URL}/rest/v1/declutter_items?id=eq.${id}&seller_id=eq.${s.helper.user.id}&is_seed=eq.true`);
       out.push(`declutter_items/${id}: ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`);
     }
+      // The bucket is spelled out (not ${BUCKET}) so avatarRowObjectAgreement can see this delete never touches avatars.
     if (paths.length) {
-      const r = await a.delete(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, { headers: rest(s.helper), data: { prefixes: paths } });
+      const r = await a.delete(`${SUPABASE_URL}/storage/v1/object/job-photos`, { headers: rest(s.helper), data: { prefixes: paths } });
       const gone = r.ok() ? ((await r.json().catch(() => [])) as unknown[]).length : 0;
       out.push(`declutter photos: ${gone} of ${paths.length} removed${r.ok() ? "" : ` (${r.status()})`}`);
     }

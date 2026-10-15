@@ -43,6 +43,7 @@ export function FeatureSwitchesCard() {
   const reachesMe: Partial<Record<FeatureKey, boolean>> = {
     switch_canary: canaryReachesMe,
     declutter: useFeature("declutter"),
+    shops: useFeature("shops"),
   };
   const [pending, setPending] = useState<PendingChange | null>(null);
   const [saving, setSaving] = useState(false);

@@ -16,6 +16,8 @@ const AUTH_PREFIXES = [
   "/messages", "/user",
   // Declutter (hidden switch; each page is the 404 while it is off).
   "/declutter",
+  // Shops (hidden switch; each page is the 404 while it is off).
+  "/shops",
   "/browse",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
   // shares their prefix. They belong to the signed-in app chrome, so the

@@ -6648,6 +6648,209 @@ export type Database = {
           },
         ]
       }
+      shop_categories: {
+        Row: {
+          group_label: string
+          group_slug: string
+          label: string
+          position: number
+          slug: string
+        }
+        Insert: {
+          group_label: string
+          group_slug: string
+          label: string
+          position: number
+          slug: string
+        }
+        Update: {
+          group_label?: string
+          group_slug?: string
+          label?: string
+          position?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      shop_follows: {
+        Row: {
+          created_at: string
+          shop_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          shop_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          shop_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_follows_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_hours: {
+        Row: {
+          closes_local: string
+          id: string
+          opens_local: string
+          shop_id: string
+          weekday: number
+        }
+        Insert: {
+          closes_local: string
+          id?: string
+          opens_local: string
+          shop_id: string
+          weekday: number
+        }
+        Update: {
+          closes_local?: string
+          id?: string
+          opens_local?: string
+          shop_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_hours_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_photos: {
+        Row: {
+          created_at: string
+          id: string
+          photo_kind: string
+          owner_id: string
+          position: number
+          shop_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_kind: string
+          owner_id: string
+          position: number
+          shop_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_kind?: string
+          owner_id?: string
+          position?: number
+          shop_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_photos_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shops: {
+        Row: {
+          about: string
+          area_label: string
+          category: string
+          created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
+          id: string
+          is_seed: boolean
+          name: string
+          offers_quotes: boolean
+          offers_selling: boolean
+          owner_id: string
+          parishes_served: string[]
+          paused: boolean
+          pin_lat: number
+          pin_lng: number
+          sos_number: string | null
+          sos_verified_at: string | null
+          sos_verified_by: string | null
+          storefront: boolean
+          updated_at: string
+        }
+        Insert: {
+          about?: string
+          area_label: string
+          category: string
+          created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_seed?: boolean
+          name: string
+          offers_quotes?: boolean
+          offers_selling?: boolean
+          owner_id: string
+          parishes_served?: string[]
+          paused?: boolean
+          pin_lat: number
+          pin_lng: number
+          sos_number?: string | null
+          sos_verified_at?: string | null
+          sos_verified_by?: string | null
+          storefront?: boolean
+          updated_at?: string
+        }
+        Update: {
+          about?: string
+          area_label?: string
+          category?: string
+          created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_seed?: boolean
+          name?: string
+          offers_quotes?: boolean
+          offers_selling?: boolean
+          owner_id?: string
+          parishes_served?: string[]
+          paused?: boolean
+          pin_lat?: number
+          pin_lng?: number
+          sos_number?: string | null
+          sos_verified_at?: string | null
+          sos_verified_by?: string | null
+          storefront?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shops_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "shop_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       signup_leads: {
         Row: {
           completed_at: string | null
@@ -10288,6 +10491,86 @@ export type Database = {
         Args: { p_user: string }
         Returns: Json
       }
+      shop_badges: { Args: { p_shop_id: string }; Returns: Json }
+      shop_owner_in_good_standing: {
+        Args: { p_owner_id: string }
+        Returns: boolean
+      }
+      shop_owner_rating: {
+        Args: { p_owner_id: string }
+        Returns: {
+          rating: number
+          review_count: number
+        }[]
+      }
+      shop_publicly_visible: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_visible_to: {
+        Args: { p_shop_id: string; p_viewer: string }
+        Returns: boolean
+      }
+      shops_admin_check_registration: {
+        Args: { p_shop_id: string; p_verified: boolean }
+        Returns: boolean
+      }
+      shops_admin_set_hidden: {
+        Args: { p_hidden: boolean; p_reason: string; p_shop_id: string }
+        Returns: boolean
+      }
+      shops_assert_owner_eligible: { Args: never; Returns: string }
+      shops_attach_photo: {
+        Args: { p_kind: string; p_storage_path: string }
+        Returns: Json
+      }
+      shops_browse: {
+        Args: {
+          p_category?: string
+          p_group?: string
+          p_lat: number
+          p_limit?: number
+          p_lng: number
+          p_offset?: number
+        }
+        Returns: {
+          area_label: string
+          badges: Json
+          category: string
+          id: string
+          logo_path: string
+          miles: number
+          name: string
+          paused: boolean
+          pin_lat: number
+          pin_lng: number
+          rating: number
+          review_count: number
+        }[]
+      }
+      shops_close_my_shop: { Args: never; Returns: string[] }
+      shops_get_shop: { Args: { p_shop_id: string }; Returns: Json }
+      shops_my_shop_id: { Args: never; Returns: string }
+      shops_remove_photo: { Args: { p_photo_id: string }; Returns: string }
+      shops_save_my_shop: {
+        Args: {
+          p_about: string
+          p_area_label: string
+          p_category: string
+          p_name: string
+          p_offers_quotes: boolean
+          p_offers_selling: boolean
+          p_parishes_served: string[]
+          p_pin_lat: number
+          p_pin_lng: number
+          p_sos_number: string
+          p_storefront: boolean
+        }
+        Returns: string
+      }
+      shops_set_follow: {
+        Args: { p_follow: boolean; p_shop_id: string }
+        Returns: boolean
+      }
+      shops_set_hours: { Args: { p_hours: Json }; Returns: number }
+      shops_set_paused: { Args: { p_paused: boolean }; Returns: boolean }
       split_special_requirements: {
         Args: { p_text: string }
         Returns: { access: string; materials: string }[]

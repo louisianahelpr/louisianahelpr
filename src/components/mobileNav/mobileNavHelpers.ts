@@ -67,6 +67,8 @@ export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
 export const authPages = ["/home", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Declutter (hidden switch): the dock stays on its screens.
   "/declutter",
+  // Shops (hidden switch): the same.
+  "/shops",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -120,5 +122,5 @@ export const tabStacks: Record<string, string[]> = {
   "/posts": [],
   "/jobs": [],
   "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/declutter"],
+  "/profile": ["/support", "/user", "/admin", "/declutter", "/shops"],
 };

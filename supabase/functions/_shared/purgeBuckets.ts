@@ -50,6 +50,9 @@ export const IDENTITY_BUCKETS = [
  */
 export const IDENTITY_SUBFOLDERS = [
   { bucket: "job-photos", folder: "declutter" },
+  // Shop logos, covers and photos (20261015123029): the shop CASCADEs away
+  // with the account, so nothing survives that would need them.
+  { bucket: "job-photos", folder: "shops" },
 ] as const;
 
 /** `<uid>/<folder>` for each IDENTITY_SUBFOLDERS entry. */

@@ -18,24 +18,8 @@ import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 // Per-route Suspense fallbacks, in the shape each route's own loading branch
 // uses — see the block comment in DashboardRouteSkeleton for why three
 // different-shaped frames in a row read as three loading screens.
-//
-// Q178: lazy, each behind the plain page ground. Imported statically they put
-// every route's skeleton (and DashboardTitleBar -> NotificationPanel ->
-// popover -> Radix, ~45 KB gzip) on EVERY cold load, the landing's included,
-// competing for the same bandwidth as the page actually being opened. Since the
-// entry now starts the page chunk in the first round, a skeleton chunk lands
-// in the same round as the page it stands in for.
-const skeletonOnDemand = <P extends object>(load: () => Promise<{ default: ComponentType<P> }>) => {
-  // Typed back to the plain component: LazyExoticComponent widens props to
-  // PropsWithRef<P>, which a generic P cannot be proven to satisfy.
-  const Lazy = lazy(load) as unknown as ComponentType<P>;
-  const Skeleton = (props: P) => (
-    <Suspense fallback={<div className="min-h-screen bg-premium-page" aria-busy="true" />}>
-      <Lazy {...props} />
-    </Suspense>
-  );
-  return Skeleton;
-};
+// Q178: each is lazy (src/lib/skeletonOnDemand.tsx says why).
+import { skeletonOnDemand } from "@/lib/skeletonOnDemand";
 const GuestBrowseSkeleton = skeletonOnDemand(() => import("@/components/GuestBrowseSkeleton"));
 const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/DashboardRouteSkeleton"));
 const ActivityRouteSkeleton = skeletonOnDemand(() => import("@/components/ActivityRouteSkeleton"));
@@ -150,6 +134,11 @@ const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
+// Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless
+// the hidden 'shops' switch is on for the member (ShopsGate).
+const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
+const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
+const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
 
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
@@ -262,6 +251,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

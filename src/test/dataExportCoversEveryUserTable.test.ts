@@ -294,7 +294,11 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // declutter_seller_hidden (Declutter slice 3, 20261014210518, B36): hides a
     // banned / 3-strike seller's live listings from OTHER readers; it only
     // narrows, and the seller's own column is spelled out beside it.
-    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_seller_hidden", "feature_enabled_for", "has_role", "is_series_party", "seed_review_hidden", "user_may_see_job_address"]);
+    // shop_publicly_visible (Shops, 20261015123029): a shop seen by a member
+    // other than its owner (switch on for the caller, not hidden, not a test
+    // shop while seeds are hidden, owner in good standing); it admits no user
+    // by id, and the shops policy spells the owner's own column out beside it.
+    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_seller_hidden", "feature_enabled_for", "has_role", "is_series_party", "seed_review_hidden", "shop_publicly_visible", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

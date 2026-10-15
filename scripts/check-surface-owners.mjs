@@ -92,6 +92,10 @@ const OWNERS = {
   "/declutter": ["lh-long-tail-features"],
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/item/:id": ["lh-long-tail-features", "lh-trust-safety"],
+  // Shops (hidden switch 'shops', docs/specs/local-shops-prep.md).
+  "/shops": ["lh-long-tail-features", "lh-browse-discovery"],
+  "/shops/mine": ["lh-long-tail-features", "lh-input-boundary"],
+  "/shops/:id": ["lh-long-tail-features", "lh-trust-safety"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
   "?tab=profile": ["lh-input-boundary"],

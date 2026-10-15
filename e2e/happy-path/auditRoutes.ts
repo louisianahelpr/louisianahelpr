@@ -359,6 +359,11 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "str-settings", url: "/profile?tab=str_settings" },
   { name: "work-record", url: "/profile?tab=work_record" },
   { name: "wrapped", url: "/profile?tab=wrapped" },
+  // Shops slice 1 (hidden switch 'shops', created OFF): the NotFound page while
+  // it is off for the sweep account, the real screens once testers include it.
+  { name: "shops", url: "/shops" },
+  { name: "shops-mine", url: "/shops/mine" },
+  { name: "shop-missing", url: "/shops/10000000-0000-4000-8000-00000000dead" },
 ];
 
 

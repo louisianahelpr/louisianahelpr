@@ -73,4 +73,4 @@ describe("ai-job-builder prompt: canonical-noun rule", () => {
   });
 });
 
-// @mutate supabase/functions/ai-job-builder/index.ts | enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "other"], | enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "other"],
+// @mutate supabase/functions/ai-job-builder/index.ts | enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "electrical", | enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "electrical",

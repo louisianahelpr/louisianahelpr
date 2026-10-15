@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Check, Sparkles } from "lucide-react";
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { SuggestCategory } from "@/components/SuggestCategory";
 import { categories } from "./detailsSectionConstants";
 
 interface CategoryPickerProps {
@@ -124,7 +125,11 @@ export function CategoryPicker({
                     grid, and the longest label ("Storm Prep", 70.2px) needs
                     every pixel of the 76.5px the unselected state already
                     has. So the check stops taking width, and both states
-                    lay out identically. */}
+                    lay out identically.
+                    The trade labels (T1, 2026-10-15: "Auto & Small Engine",
+                    "Concrete & Masonry", "Pressure Washing") are wider than
+                    76.5px, so the label wraps to two lines (line-clamp-2)
+                    instead of truncating; the grid row grows to fit. */}
                 {active && (
                   <span
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
@@ -143,7 +148,7 @@ export function CategoryPicker({
                 )}
               </span>
               <span
-                className="font-sans font-semibold leading-tight truncate text-ds-12"
+                className="font-sans font-semibold leading-tight line-clamp-2 break-words text-ds-12 text-left"
                 style={{
                   color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                 }}
@@ -154,6 +159,9 @@ export function CategoryPicker({
           );
         })}
       </div>
+      {/* I1: "Other" above always works; this sends a missing category to
+          the admin queue (hidden switch suggest_category). */}
+      <SuggestCategory area="jobs" />
     </div>
   );
 }

@@ -4,13 +4,23 @@
 // activityConstants) and against impossible ranges (min > max).
 
 import { describe, it, expect } from "vitest";
-import { categoryPricing, getSmartPrice } from "./pricingGuide";
+import { categoryPricing, getSmartPrice, UNPRICED_CATEGORIES } from "./pricingGuide";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 
 describe("categoryPricing data validation", () => {
-  it("includes a price entry for every category in categoryLabels", () => {
+  it("includes a price entry for every category in categoryLabels, except the listed unpriced ones", () => {
     for (const key of Object.keys(categoryLabels)) {
+      if (UNPRICED_CATEGORIES.has(key)) continue;
       expect(categoryPricing[key], `${key} missing from categoryPricing`).toBeDefined();
+    }
+  });
+
+  it("UNPRICED_CATEGORIES is exact: every entry is a real category with no range (Q1834)", () => {
+    expect(UNPRICED_CATEGORIES.size).toBeGreaterThan(0);
+    for (const key of UNPRICED_CATEGORIES) {
+      expect(categoryLabels[key], `${key} is not a category`).toBeDefined();
+      expect(categoryPricing[key], `${key} has a range now: remove it from UNPRICED_CATEGORIES`).toBeUndefined();
+      expect(getSmartPrice(key)).toBeNull();
     }
   });
 

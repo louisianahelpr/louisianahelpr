@@ -15,6 +15,18 @@ export const categoryPricing: Record<string, { min: number; max: number; label: 
 };
 
 /**
+ * Categories with NO range yet, on purpose: the twelve trades added
+ * 2026-10-15 (T1). A range is a price claim, and none was researched or given
+ * by the owner (docs/OPEN.md Q1834), so getSmartPrice() returns null for them
+ * rather than a guess. Exact both ways (pricingGuide.test.ts): give a trade a
+ * range and it must leave this set.
+ */
+export const UNPRICED_CATEGORIES: ReadonlySet<string> = new Set([
+  "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry", "auto_repair",
+  "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing",
+]);
+
+/**
  * Returns the market midpoint for a category, rounded to the nearest $5.
  * Used by Smart Price mode to auto-fill the budget.
  */

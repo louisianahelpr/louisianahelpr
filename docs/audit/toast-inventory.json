@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 634,
-    "files": 163,
-    "rendering": 599,
-    "suppressedByPolicy": 35,
+    "calls": 638,
+    "files": 165,
+    "rendering": 601,
+    "suppressedByPolicy": 37,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 495,
+      "toast.error": 497,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 41,
+      "toast.success": 43,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 330,
-      "template": 79,
-      "dynamic": 266,
+      "literal": 331,
+      "template": 80,
+      "dynamic": 268,
       "jsx": 0
     }
   },
@@ -1221,6 +1221,26 @@
       "description": {
         "form": "literal",
         "text": "Sharing without it — turn on location access and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SuggestCategory.tsx",
+      "line": 49,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Thanks! We'll look at your suggestion. Pick \"Other\" for now."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/SuggestCategory.tsx",
+      "line": 54,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "suggestionErrorMessage(err)"
       },
       "renders": true
     },
@@ -2971,6 +2991,26 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/settings/CategorySuggestionsCard.tsx",
+      "line": 31,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${approve ? \"Approved\" : \"Declined\"}${n > 1 ? ` (${n} matching suggestions)` : \"\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/CategorySuggestionsCard.tsx",
+      "line": 34,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "suggestionErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/settings/DeclutterReviewCard.tsx",
       "line": 46,
       "kind": "toast.success",
@@ -3002,7 +3042,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3012,7 +3052,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

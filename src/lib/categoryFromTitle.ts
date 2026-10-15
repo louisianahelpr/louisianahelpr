@@ -14,6 +14,33 @@
 
 /** Keyword (lower-case word, matched word-boundary) → category slug. */
 const KEYWORD_TO_CATEGORY: Array<[RegExp, string]> = [
+  // ── Trades (T1, 2026-10-14) ── FIRST, because first match wins and a trade
+  // word is more specific than the generic "fix"/"repair"/"clean" below.
+  // Each pattern names the TRADE, not an object: "move a fridge" stays
+  // moving, "mop the floor" stays cleaning, "paint the fence" stays painting.
+  [/\b(?:pressure|power)\s*wash(?:ing|er)?\b/i, "pressure_washing"],
+  [/\belectric(?:al|ian)\b/i, "electrical"],
+  [/\b(?:outlets?|rewir(?:e|ing)|wiring|breaker\s*(?:box|panel)?)\b/i, "electrical"],
+  [/\bplumb(?:ing|er)\b/i, "plumbing"],
+  [/\b(?:faucet|toilet|water\s*heater|unclog|clogged)\b/i, "plumbing"],
+  [/\b(?:leak(?:y|ing)?)\s+(?:pipe|sink|faucet)\b/i, "plumbing"],
+  [/\b(?:hvac|furnace|heat\s*pump|ductwork|air\s*condition(?:er|ing))\b/i, "hvac"],
+  [/\ba\/?c\s+(?:unit|repair|service|install|not\s+cooling)\b/i, "hvac"],
+  [/\b(?:roof(?:ing|er)?|shingles?)\b/i, "roofing"],
+  [/\bweld(?:ing|er)?\b/i, "welding"],
+  [/\b(?:carpent(?:ry|er)|trim\s*carpentry|cabinets?|deck\s*(?:build|repair|boards?))\b/i, "carpentry"],
+  [/\b(?:mechanic|oil\s*change|brake\s*(?:pads?|job)|small\s*engine|carburet(?:or|tor)|mower\s*repair)\b/i, "auto_repair"],
+  [/\b(?:car|auto|truck)\s+(?:repair|maintenance)\b/i, "auto_repair"],
+  [/\bappliance\s*repair\b/i, "appliance_repair"],
+  [/\b(?:fix|repair)\s+(?:my\s+|the\s+|a\s+|our\s+)?(?:washer|dryer|dishwasher|fridge|refrigerator|freezer|oven|stove|microwave)\b/i, "appliance_repair"],
+  [/\b(?:washer|dryer|dishwasher|fridge|refrigerator|freezer|oven|stove|microwave)\s+(?:repair|fix)\b/i, "appliance_repair"],
+  [/\b(?:flooring|retil(?:e|ing)|grout\s*repair)\b/i, "flooring"],
+  [/\b(?:install|lay|replace)\s+(?:\w+\s+)?(?:tile|tiles|floor|floors|laminate|hardwood|carpet)\b/i, "flooring"],
+  [/\b(?:concrete|masonry|mason|brick\s*(?:work|wall|repair)|bricklay(?:ing|er))\b/i, "concrete_masonry"],
+  [/\bfencing\b/i, "fencing"],
+  [/\b(?:install|repair|build|replace|fix)\s+(?:a\s+|the\s+|my\s+|our\s+)?(?:\w+\s+)?fence\b/i, "fencing"],
+  [/\bfence\s+(?:install|repair|posts?|build)\b/i, "fencing"],
+
   // yard / lawn
   [/\bmow(?:ing|er)?\b/i, "yard_work"],
   [/\blawn\b/i, "yard_work"],

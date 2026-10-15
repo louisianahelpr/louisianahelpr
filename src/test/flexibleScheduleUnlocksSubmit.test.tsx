@@ -6,6 +6,10 @@ import { render, renderHook, screen, cleanup } from "@testing-library/react";
 // No network (Q55a, src/test/prodNetworkGuard.ts): the real hooks below fetch
 // price stats, Helpr activity and a MapKit token from Supabase on mount. None
 // of that bears on the submit gate this spec proves.
+// The category picker's "Suggest a category" link reads the hidden switch
+// through React Query; this render has no QueryClientProvider, and the switch
+// is not what this test is about.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useHelprActivity", () => ({
   useHelprActivity: () => ({ activity: null, loading: false }),
 }));

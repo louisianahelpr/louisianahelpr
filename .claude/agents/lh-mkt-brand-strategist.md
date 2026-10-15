@@ -79,7 +79,7 @@ each one — this repo moves**:
 | "Helprs are approved before they can work." | `profiles.approval_status`, gated in `src/components/ProtectedRoute.tsx:334` | Process, not outcome. Never "guaranteed safe" (§4.1). |
 | "Verify your ID once, then work." | `HowItWorksSection.tsx:55` — shipped verbatim | Process only. **Be precise about *when*:** the comment at `HowItWorksSection.tsx:42-43` records that the ID gate fires when a Helpr **accepts their first job** (`useOfferHandlers.ts` `handleHelperResponse`) — applying never triggers it. So "verified before they can apply" is false; "verify your ID once, then work" is what shipped and what is true. |
 | "Some Helprs have a verified license on file." | `src/lib/careerLadder.ts:66-73` (`licensed_pro`, `credentialTier: 2`) | Never a count, never a rate. |
-| The 12 categories, by label | `src/lib/jobCategories.ts:22-34` | Use the labels exactly: "Yard Work", "Pet Care". |
+| The 24 categories, by label (counted 2026-10-15) | `src/lib/jobCategories.ts:23-50` | Use the labels exactly: "Yard Work", "Pet Care". |
 | "All 64 parishes." | `src/lib/parishes.ts` — 64 entries | Structural fact, needs no number-hedging. |
 
 **And the other column, which matters more: what we may NOT say.** Write it out,

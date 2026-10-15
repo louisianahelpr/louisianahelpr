@@ -38,6 +38,18 @@ export const categoryHues: Record<string, string> = {
   assembly: "6 42% 53%",
   storm_prep: "210 30% 47%",
   events: "43 46% 46%",
+  electrical: "50 52% 46%",
+  plumbing: "200 40% 46%",
+  hvac: "165 32% 46%",
+  roofing: "352 30% 46%",
+  welding: "24 58% 46%",
+  carpentry: "30 30% 46%",
+  auto_repair: "222 18% 46%",
+  appliance_repair: "248 26% 46%",
+  flooring: "300 20% 46%",
+  concrete_masonry: "25 8% 46%",
+  fencing: "95 26% 46%",
+  pressure_washing: "188 44% 46%",
   other: "40 10% 55%",
 };
 

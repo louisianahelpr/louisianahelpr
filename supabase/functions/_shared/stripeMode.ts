@@ -423,6 +423,22 @@ export function stripeSecretKeyFor(mode: StripeMode): string {
   return key;
 }
 
+/**
+ * The test key for a READ-ONLY config check (stripe-webhook-config-check reads
+ * the TEST-mode webhook endpoints, Q1820): the same rules as
+ * stripeSecretKeyFor("test"), returned instead of thrown, so a missing or
+ * non-test key is reported, never read around. This module stays the only
+ * reader of the test key (src/test/stripeKeyChosenByMode.test.ts).
+ */
+export function testModeKeyForConfigCheck(): { key: string; error?: undefined } | { key?: undefined; error: string } {
+  try {
+    return { key: stripeSecretKeyFor("test") };
+  } catch (e) {
+    if (e instanceof StripeModeRefused) return { error: e.message };
+    throw e;
+  }
+}
+
 /** The mode a Checkout Session id was minted in, from its prefix (null when it has none). */
 export function sessionIdMode(sessionId: string | null | undefined): StripeMode | null {
   if (typeof sessionId !== "string") return null;

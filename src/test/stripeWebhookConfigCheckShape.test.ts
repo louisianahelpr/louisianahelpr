@@ -10,7 +10,10 @@
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |     delivery_success: "false", |     delivery_success: "true",
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts | truncated: events.hasMore, | truncated: false,
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   const since = until - UNDELIVERED_WINDOW_S; |   const since = 0;
-import { describe, expect, it } from "vitest";
+// @mutate supabase/functions/stripe-webhook-config-check/shape.ts |     testError = testKeyError ?? "the test-mode Stripe key is not set in the edge-function env"; |     testError = "the test-mode Stripe key is not set in the edge-function env";
+// @mutate supabase/functions/_shared/stripeMode.ts |     if (e instanceof StripeModeRefused) return { error: e.message }; |     if (e instanceof StripeModeRefused) return { key: "sk_live_x" } as never;
+import { describe, expect, it, afterEach } from "vitest";
+import { testModeKeyForConfigCheck } from "../../supabase/functions/_shared/stripeMode";
 import {
   RETURNED_TAX_FIELDS,
   STRIPE_TAX_REGISTRATIONS_URL,
@@ -170,7 +173,7 @@ describe("readWebhookConfig", () => {
     expect(Object.keys(r.body).sort()).toEqual(["endpoints", "keyIsLive", "taxRegistrations", "testEndpoints", "testError", "testKeyIsTest", "undelivered"]);
     // Q1820: no test key given, so the test half is null + a reason, never [].
     expect(r.body.testEndpoints).toBeNull();
-    expect(r.body.testError).toMatch(/STRIPE_TEST_SECRET_KEY is not set/);
+    expect(r.body.testError).toMatch(/test-mode Stripe key is not set/);
     expect(r.body.taxRegistrations).toEqual([{ country: "US", state: "LA", status: "active" }]);
     expect(r.body.keyIsLive).toBe(true);
     for (const e of r.body.endpoints) {
@@ -317,5 +320,41 @@ describe("readWebhookConfig, TEST-mode half (Q1820)", () => {
   it("testKeyIsTest is false for a live key passed as the test key", async () => {
     const r = await readWebhookConfig(FAKE_LIVE_KEY, byKey(list([]), []), 15000, NOW, "rk_live_OOPS");
     expect(r.ok && r.body.testKeyIsTest).toBe(false);
+  });
+});
+
+// The test key reaches the config check ONLY through _shared/stripeMode.ts
+// (src/test/stripeKeyChosenByMode.test.ts: that module is its single reader).
+describe("testModeKeyForConfigCheck (the only way the check gets the test key)", () => {
+  const g = globalThis as { Deno?: unknown };
+  const withEnv = (env: Record<string, string>) => {
+    g.Deno = { env: { get: (k: string) => env[k] } };
+  };
+  afterEach(() => {
+    delete g.Deno;
+  });
+
+  it("returns a test-mode key", () => {
+    withEnv({ STRIPE_TEST_SECRET_KEY: "rk_test_FAKE" });
+    expect(testModeKeyForConfigCheck()).toEqual({ key: "rk_test_FAKE" });
+  });
+
+  it("reports an unset key as an error, never a key", () => {
+    withEnv({});
+    const r = testModeKeyForConfigCheck();
+    expect(r.key).toBeUndefined();
+    expect(r.error).toMatch(/is not set/);
+  });
+
+  it("refuses a LIVE key set as the test key", () => {
+    withEnv({ STRIPE_TEST_SECRET_KEY: "rk_live_OOPS" });
+    const r = testModeKeyForConfigCheck();
+    expect(r.key).toBeUndefined();
+    expect(r.error).toMatch(/not a test-mode key/);
+  });
+
+  it("readWebhookConfig carries the helper's reason into testError", async () => {
+    const r = await readWebhookConfig(FAKE_LIVE_KEY, stub(list([])), 15000, NOW, undefined, "the test key is not a test-mode key; refusing");
+    expect(r.ok && r.body.testError).toBe("the test key is not a test-mode key; refusing");
   });
 });

@@ -57,4 +57,4 @@ export const JOB_CARD_META = "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-ti
  * as the real cards landed.
  */
 export const JOB_CATEGORY_TAB_FRAME =
-  "inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm";
+  "job-category-tab inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm";

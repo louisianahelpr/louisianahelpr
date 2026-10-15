@@ -29,7 +29,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
 import { getAppUrl } from "../../_shared/appUrl.ts";
 
-export const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order"]);
+const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order"]);
 
 /** True for a Checkout Session Declutter created. */
 export function isDeclutterSession(session: { metadata?: unknown } | null | undefined): boolean {
@@ -182,6 +182,14 @@ async function settleOrder(
     return;
   }
   if (answer.result === "already_paid") return;
+  // The payment's Stripe mode goes on the refund row (money review 3.6), so a
+  // retry by declutter-money refunds on the key that took it, even when the
+  // row has no order (order_missing) and so no parties to decide the mode by.
+  const { error: modeErr } = await supabase.rpc("declutter_refund_set_mode", {
+    p_refund_id: answer.refund_id,
+    p_livemode: event.livemode === true,
+  });
+  if (modeErr) throw new Error(`declutter_refund_set_mode failed: ${modeErr.message}`);
   const refunded = await executeRefund(ctx, paymentIntentId, answer, orderId);
   // Only a refund Stripe took is announced (lh-money-escrow review 3b #4).
   if (refunded === "sent") {

@@ -41,6 +41,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { checkoutAmounts, minOfferCents } from "@/lib/declutter/money";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
+import { PaidOrdersSection } from "./DeclutterHandoverViews";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -356,7 +357,8 @@ function SalesWaiting() {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && (l.status === "in_cart" || l.status === "paid"));
+  // Paid sales are handled by PaidOrdersSection (slice 4) in the cart view.
+  const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
@@ -368,25 +370,19 @@ function SalesWaiting() {
         {waiting.map((l) => (
           <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
             <p className="font-semibold">{l.item_title} · {formatPrice(l.price_cents)}</p>
-            {l.status === "paid" ? (
-              <p className="text-sm text-muted-foreground">Paid. You get the whole price when the buyer has the item.</p>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">Waiting for the buyer to pay · {timeLeft(l.checkout_by)}</p>
-                <button
-                  type="button"
-                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
-                  disabled={cancel.isPending}
-                  onClick={() => {
-                    if (window.confirm("Cancel this sale? You'll get a Declutter strike, and the buyer is told. 3 strikes pause Declutter for you.")) {
-                      cancel.mutate(l.item_id);
-                    }
-                  }}
-                >
-                  Cancel sale
-                </button>
-              </>
-            )}
+            <p className="text-sm text-muted-foreground">Waiting for the buyer to pay · {timeLeft(l.checkout_by)}</p>
+            <button
+              type="button"
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
+              disabled={cancel.isPending}
+              onClick={() => {
+                if (window.confirm("Cancel this sale? You'll get a Declutter strike, and the buyer is told. 3 strikes pause Declutter for you.")) {
+                  cancel.mutate(l.item_id);
+                }
+              }}
+            >
+              Cancel sale
+            </button>
           </li>
         ))}
       </ul>
@@ -468,7 +464,6 @@ export function CartView() {
   // Only lines still inside their 48 h: checkout drops expired ones (money review #10).
   const now = Date.now();
   const waiting = mine.filter((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now);
-  const paid = mine.filter((l) => l.status === "paid");
   const bySeller = new Map<string, CartLine[]>();
   for (const l of waiting) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
   return (
@@ -501,18 +496,8 @@ export function CartView() {
           );
         })
       )}
-      {paid.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-base font-semibold">Paid</h2>
-          <ul className="space-y-2">
-            {paid.map((l) => (
-              <li key={l.line_id} className="rounded-xl border border-border p-3 text-sm">
-                {l.item_title} · {formatPrice(l.price_cents)} · paid. Pick-up details come next.
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Slice 4: book the pickup, hand over, porch photos, no-shows, problems, payout, reviews (both sides). */}
+      <PaidOrdersSection cart={cart.data ?? []} />
     </div>
   );
 }

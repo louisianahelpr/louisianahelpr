@@ -344,7 +344,7 @@ export async function reviewListing(itemId: string, approve: boolean, note: stri
  * 36, 38, 56-59, build decisions B25-B37). Nothing here charges a card.
  * ------------------------------------------------------------------------ */
 
-export type OfferAction = "accept" | "decline" | "counter" | "withdraw";
+type OfferAction = "accept" | "decline" | "counter" | "withdraw";
 
 export interface MyOffer {
   offer_id: string;

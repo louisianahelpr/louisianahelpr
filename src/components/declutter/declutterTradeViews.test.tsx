@@ -49,6 +49,8 @@ vi.mock("@/lib/declutter/api", () => ({
     return { url: "https://checkout.stripe.test/pay", paid: false };
   },
 }));
+// Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
+vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.opened.push(url); } }));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 

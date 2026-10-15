@@ -29,6 +29,7 @@ vi.mock("@/lib/biometricGate", () => ({
 vi.mock("./settings/FeatureSwitchesCard", () => ({ FeatureSwitchesCard: () => null }));
 // The Declutter review card (hidden switch) has its own test; stubbed the same way.
 vi.mock("./settings/DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
+vi.mock("./settings/DeclutterProblemsCard", () => ({ DeclutterProblemsCard: () => null }));
 
 const ADMIN_USER_ID = "admin-user-1";
 const ADMIN_ROLE_ID = "role-1";

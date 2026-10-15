@@ -87,10 +87,17 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
   });
 
   it("1. every client-callable Declutter RPC starts with require_feature('declutter')", () => {
-    const missing = [...callable].filter(
+    // Slice 4 (20261015042253, row 62): the two readers skip the switch ONLY for
+    // a side of an agreed sale on that item (and the paid buyer's address).
+    const missing = [...callable].filter((fn) => !READ_RPCS.includes(fn)).filter(
       (fn) => !/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);/i.test(body(fn)),
     );
     expect(missing).toEqual([]);
+    for (const fn of READ_RPCS) {
+      expect(flat(body(fn)), fn).toMatch(
+        /NOT public\.declutter_in_agreed_sale\(p_item_id, \(SELECT auth\.uid\(\)\)\) THEN PERFORM public\.require_feature\('declutter'\); END IF;/,
+      );
+    }
   });
 
   it("2. every write RPC names is_caller_banned() and runs the member gates (sellers with the under-18 rule)", () => {
@@ -146,9 +153,12 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
     }
     // The readers: the seller's private half is the seller's; the address goes through the hook.
     expect(flat(body("declutter_seller_item_private"))).toContain("AND p.seller_id = (SELECT auth.uid());");
-    expect(flat(body("declutter_item_address"))).toContain("IF public.declutter_address_access(p_item_id, (SELECT auth.uid())) IS NULL THEN");
+    expect(flat(body("declutter_item_address"))).toContain("v_access text := public.declutter_address_access(p_item_id, (SELECT auth.uid()));");
+    expect(flat(body("declutter_item_address"))).toContain("IF v_access IS NULL THEN RAISE EXCEPTION 'item_not_found'");
     expect(flat(body("declutter_item_address"))).not.toMatch(/floor/);
-    expect(flat(body("declutter_address_access"))).toContain("SELECT CASE WHEN i.seller_id = p_user_id THEN 'seller' END");
+    // The seller, and (slice 4, row 98) the buyer of a PAID order holding the item: nobody else.
+    expect(flat(body("declutter_address_access"))).toContain("WHEN i.seller_id = p_user_id THEN 'seller'");
+    expect(flat(body("declutter_address_access"))).toContain("AND o.status = 'paid' AND o.buyer_id = p_user_id) THEN 'paid_buyer' END");
   });
 
   it("4b. no app code reads the private table directly", () => {

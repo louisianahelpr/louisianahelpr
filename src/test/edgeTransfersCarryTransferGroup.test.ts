@@ -40,6 +40,9 @@ const NOT_JOB_SCOPED: Record<string, string> = {
   // the Helpr's job payout) and by the chargeback clawback as a job payout.
   // It carries its own tip_<tipId> group, which its adopt-before-create reads.
   "supabase/functions/_shared/heldTipRepay.ts": "held-tip re-pay after a payout hold; its own tip_<tipId> group, never job money",
+  // Declutter slice 4 (B53): a Declutter order is not a job; its own
+  // declutter_order_<orderId> group, which its reconcile-before-create reads.
+  "supabase/functions/declutter-money/index.ts": "Declutter seller payout; its own declutter_order_<orderId> group, never job money",
 };
 
 /**

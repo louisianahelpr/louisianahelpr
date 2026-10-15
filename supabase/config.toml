@@ -211,6 +211,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stuck-payment-check]
     verify_jwt = false
+  # declutter-money: pg_cron posts `Bearer <service_role_key>`; the function
+  # checks it itself with verifyCronSecret.
+  [functions.declutter-money]
+    verify_jwt = false
   # signup-lead-reminders: pg_cron posts `Bearer <service_role_key>` (not a
   # JWT); the function checks it itself with verifyCronSecret.
   [functions.signup-lead-reminders]

@@ -298,6 +298,13 @@ describe("every fixture literal could be inserted", () => {
   // Object literals that look like a table row but are not one. Each entry names
   // the file and the keys that identify the non-row shape.
   const NOT_ROWS = [
+    // Declutter slices 3-4 (2026-10-15) made `expires_at`, `series`-adjacent and `stars` columns shared or new, so
+    // three non-row shapes became attributable to one table: a Certificial webhook payload (not a
+    // helper_credentials row), the charge-recurring-visits mock reads `{ rows, count }` (not an ops_alert_ledger
+    // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
+    { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
+    { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
+    { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
     { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
     // A test BODY (`{ scenario.reads.jobs = …; scenario.reads.disputes = …;
     // fn.request({ headers, body: { action } }) }`), not a row: a jobs row, a

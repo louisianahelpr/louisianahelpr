@@ -780,6 +780,16 @@ export const GAPS: Record<string, string> = {
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.
   "src/components/SuggestCategory.tsx": "behind the 'suggest_category' switch (testers only); text rules pinned by categorySuggestions.test.tsx and 20261015051141; FORMS sweep owed past testers",
   "src/components/admin/settings/CategorySuggestionsCard.tsx": "admin-only, behind the 'suggest_category' switch; the decline note is length-capped server-side (20261015051141); FORMS sweep owed past testers",
+  // Declutter slice 4 (2026-10-15): the paid-order cards and the admin problems card render only behind the OFF
+  // 'declutter' switch AND only for a PAID Declutter order (LIVE Stripe: no fixture can pay one). Every field is
+  // length-capped client-side and validated server-side (slot inside the seller's windows, 4-digit code with 5-try
+  // lock, porch photo path + 200 m, problem reason/note 1-1000, review stars 1-5 + contact-leak scan, admin
+  // decision/fault/strike), pinned by src/test/pglite/declutterSlice4.pglite.mjs. FORMS sweep owed at testers.
+  // Declutter slice 3/3b (2026-10-14): the offer, buy-now and cart screens (DeclutterTradeViews) are behind the same
+  // OFF switch; offer amounts, floor/price bounds and the one-open-offer rule are pinned by declutterSlice3.pglite.mjs.
+  "src/components/declutter/DeclutterTradeViews.tsx": "behind the OFF 'declutter' switch (404 on prod); offer/buy-now rules pinned by declutterSlice3.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/declutter/DeclutterHandoverViews.tsx": "behind the OFF 'declutter' switch and a PAID order (live Stripe); server rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/admin/settings/DeclutterProblemsCard.tsx": "admin-only, behind the OFF 'declutter' switch, needs an open problem on a PAID order; decide rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated
   // by request_job_detail_change (blank, length, contact scan, map point) — pinned by src/test/pglite/jobDetailChange.pglite.mjs.

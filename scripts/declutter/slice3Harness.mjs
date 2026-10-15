@@ -28,7 +28,9 @@ export const SLICE3B_FILE = "20261014224914_declutter_slice3b_payments.sql";
 export const PRICE_CAP_FILE = "20261014230342_declutter_price_cap_1000.sql";
 /** Slice 4 (F1 buyer fee, handover + payout), applied after the cap by `extra`. */
 export const FEE_F1_FILE = "20261015023613_declutter_buyer_fee_f1.sql";
-const LOADED_BY_HAND = [SLICE1_FILE, SLICE2_FILE, SLICE3_FILE, SLICE3B_FILE, PRICE_CAP_FILE, FEE_F1_FILE].map((f) => f.slice(0, 14));
+/** Slice 4 handover + payout, applied after F1 by `extra`. */
+export const SLICE4_FILE = "20261015042253_declutter_slice4_handover_payout.sql";
+const LOADED_BY_HAND = [SLICE1_FILE, SLICE2_FILE, SLICE3_FILE, SLICE3B_FILE, PRICE_CAP_FILE, FEE_F1_FILE, SLICE4_FILE].map((f) => f.slice(0, 14));
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 export function newestDefinition(name) {
@@ -75,6 +77,8 @@ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;
 CREATE TABLE public.user_blocks (blocker_id uuid NOT NULL, blocked_id uuid NOT NULL);
 CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+-- Q552's seed switch, OFF here (slice 4's declutter_visible_reviews reads it; proven ON in seedSwitchHidesProfiles).
+CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TYPE public.app_role AS ENUM ('admin', 'customer', 'helper');
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL);
 CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'

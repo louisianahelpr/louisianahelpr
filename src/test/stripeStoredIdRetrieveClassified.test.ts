@@ -191,6 +191,10 @@ const EXEMPT: Record<string, string> = {
   // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "the paid session's own PaymentIntent, from the event, on the event's mode",
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.setupIntents.retrieve(setupIntentId)": "the setup session's own SetupIntent, from the event, on the event's mode",
+  // Declutter (slice 4): a Declutter order's PaymentIntent, read on the client its parties pick (the mode it was paid
+  // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a
+  // failed read is a failed payout attempt that backs off (declutter_payout_executed).
+  "declutter-money/index.ts::stripe.paymentIntents.retrieve(p.payment_intent_id)": "a Declutter order's own payment, on its parties' mode; minted after the live switch",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

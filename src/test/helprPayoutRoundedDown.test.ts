@@ -71,12 +71,15 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
     "re-pays exactly the cents a clawback reversed (row.reversed_cents); the original transfer was already rounded",
   "supabase/functions/_shared/heldTipRepay.ts":
     "re-pays exactly the tip cents a payout hold reversed (Q1222); a tip goes to the Helpr in full, never rounded",
+  "supabase/functions/declutter-money/index.ts":
+    "a Declutter SELLER's item price minus their card-fee debt (row 93, B53), not a Helpr's job payout; the SQL payout row fixes the exact cents",
 };
 
 /** EXACT per-file count of `transfers.create(` (comments blanked). */
 const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/cash-out-credits/index.ts": 1,
   "supabase/functions/create-payment/index.ts": 1,
+  "supabase/functions/declutter-money/index.ts": 1,
   "supabase/functions/execute-dispute-split/index.ts": 1,
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
@@ -118,7 +121,7 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       if (n > 0) found[f] = n;
     }
     expect(found).toEqual(EXPECTED_TRANSFER_CALLS);
-    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(11);
+    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(12);
     // Every file is classified exactly once.
     for (const f of Object.keys(found)) {
       const classes = [f in HELPR_PAYOUT_SITES, f in NOT_A_JOB_PAYOUT].filter(Boolean).length;

@@ -168,6 +168,8 @@ describe("the checks are wired", () => {
   };
   it("prod-errors.yml runs both hourly with the Management API token", () => {
     const s = steps("prod-errors.yml", "ledger");
+    // The ledger job has 6 steps (checkout, node, db saturation, these two, sync; 2026-10-15).
+    expect(s.length).toBeGreaterThan(4);
     for (const script of ["check-auth-captcha-matches-client.mjs", "check-captcha-refusals.mjs"]) {
       const step = s.find((x) => x.run === `node scripts/${script}`);
       expect(step, script).toBeDefined();

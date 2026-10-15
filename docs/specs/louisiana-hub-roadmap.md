@@ -126,3 +126,6 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 ## Maybe later (owner 2026-10-14: "maybe later for these") — not approved, revisit after launch
 Google pages per town + service (SEO); local price guide; text-a-job for non-app users; Helpr of the month.
 Declined: first-job credit, gift a job, satisfaction promise.
+
+## Landing page (owner 2026-10-14): update it when the new sections go live
+The landing page must present the whole hub (Jobs, Declutter, Shops, Rentals) once they launch. NOTE: the landing HERO is LOCKED by CLAUDE.md (H1 "Louisiana's Local Job Partner." in Bodoni Moda + subhead "Hire a Helpr or find local work..."): any change to font, colour or copy of those two needs the owner's explicit instruction naming them — ask in that question round. Everything below the hero can be redesigned.

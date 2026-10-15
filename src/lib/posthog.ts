@@ -22,6 +22,11 @@ const HOST =
 
 let initialized = false;
 
+/** True for the /unsubscribe page's URL while it still carries its token fragment. */
+function unsubscribeUrlWithToken(url: string): boolean {
+  return /^[^#?]*\/unsubscribe(?:\?[^#]*)?#./.test(url);
+}
+
 export function initPostHog() {
   if (initialized || typeof window === "undefined" || !KEY) return;
   try {
@@ -52,6 +57,17 @@ export function initPostHog() {
       // and toolbar are off, and exception capture is disabled here and
       // handled by Sentry instead.
       disable_external_dependency_loading: true,
+      // Q1655: an email's unsubscribe link opens /unsubscribe#e=…&sig=…, and
+      // that fragment is a signed token carrying the member's address. The
+      // page removes it on mount, but PostHog can start first, so the
+      // recorded URL never keeps the fragment of that page.
+      before_send: (event) => {
+        const url = event?.properties?.$current_url;
+        if (event && typeof url === "string" && unsubscribeUrlWithToken(url)) {
+          event.properties.$current_url = url.split("#")[0];
+        }
+        return event;
+      },
       loaded: (ph) => {
         if (import.meta.env.DEV) ph.debug(false);
       },

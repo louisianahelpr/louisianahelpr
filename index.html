@@ -152,7 +152,7 @@
           imagesizes="40px" />
     <script>
       (function () {
-        var noEmblem = ["/login", "/signup", "/signup-pending", "/complete-profile", "/account-banned", "/forgot-password", "/reset-password", "/payment-success"];
+        var noEmblem = ["/login", "/signup", "/signup-pending", "/complete-profile", "/account-banned", "/forgot-password", "/reset-password", "/payment-success", "/unsubscribe"];
         var link = document.getElementById("emblem-preload");
         var path = location.pathname.replace(/\/+$/, "") || "/";
         if (link && noEmblem.indexOf(path) === -1) link.media = "all";

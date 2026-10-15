@@ -69,6 +69,7 @@ const NEVER_RESTORE = [
   "/signup-pending",
   "/account-banned",
   "/payment-success",
+  "/unsubscribe",
 ];
 
 /**

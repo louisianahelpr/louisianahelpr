@@ -115,7 +115,6 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   reports: { by: ["reporter_id"] },
   user_blocks: { by: ["blocker_id"] },
   user_bans: { by: ["user_id"] },
-  user_strikes: { by: ["user_id"] },
   user_violations: { by: ["user_id"] },
   user_roles: { by: ["user_id"] },
   // Declutter (20261014200728, build decision B9 in docs/specs/declutter-auctions.md).
@@ -453,7 +452,6 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "payout_transfers.initiated_by_user_id": { reason: "who pressed release: staff or a function", stripped: true },
   "payment_refunds.initiated_by_user_id": { reason: "who issued the refund: staff", stripped: true },
   "user_bans.banned_by": { reason: "staff id", stripped: true },
-  "user_strikes.issued_by": { reason: "staff id", stripped: true },
   "user_violations.reported_by": { reason: "who reported the violation (GDPR Art. 15(4))", stripped: true },
 };
 

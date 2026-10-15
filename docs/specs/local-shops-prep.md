@@ -685,3 +685,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L4 | One free shop per member; it can sell items, take orders, rent things out and buy boosts (a shop IS the business profile) |
 | L5 | Home food: what Louisiana allows from a home kitchen (R.S. 40:4.9 list, no meat/fish) AND anything else from sellers who upload a health-department permit |
 | L6 | Permit foods (plate lunches, gumbo, boudin, meat pies, seafood): only from shops with a current health-department permit checked by an admin |
+| L7 | Home-food label: the app shows the required "made in a home kitchen" notice on every home-food item AND the baker ticks "my package label says it" |
+| L8 | Home-food yearly limit: baker confirms yearly; the app counts their app sales, warns at 80%, stops new home-food orders at the limit |
+| L9-L10 | Eggs from the seller's own hens only (kept cold, no cracked/dirty); whole, uncut, home-grown produce only |
+| L11-L12 | Plants/seedlings/flowers and homemade children's items: NOT at launch (plant-dealer permit question; federal children's product testing) |

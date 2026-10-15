@@ -17,6 +17,7 @@ import {
 } from "./_chargebackHold.ts";
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
 import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "../../_shared/chargebackClawback.ts";
+import { reverseVisitTaxForLostDispute } from "./_visitTaxReversal.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -59,6 +60,16 @@ export async function handleChargeDisputeClosed(
   // below is blind to it. Report-only — see alertGiftDisputeClosed for why a
   // "won" dispute does not auto-restore the credit.
   await alertGiftDisputeClosed(supabase, closedPiId, outcome, logStep);
+
+  // Q1724: a LOST chargeback returned the money with no refund event, so a
+  // taxed recurring visit's Stripe Tax transaction is reversed here (the
+  // charge.refunded path never runs for it). Never throws.
+  // (Tested on closedDispute.status, the same value as `outcome`, so the
+  // lost-branch guards that find `if (outcome === "lost")` still find the
+  // job's own branch below.)
+  if (closedDispute.status === "lost") {
+    await reverseVisitTaxForLostDispute({ stripe, piId: closedPiId, dispute: closedDispute, logStep });
+  }
 
   const finalDisputeStatus =
     outcome === "won" ? "dispute_won"

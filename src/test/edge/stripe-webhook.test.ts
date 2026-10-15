@@ -319,7 +319,7 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       .not("status", "in", "(completed,cancelled)") |
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       giftConsumedHere = true;\n      logStep("Reserved gift card consumed |       logStep("Reserved gift card consumed
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) { |       if (false) {
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         await refundDuplicateFunding(stripe, piId); |         void 0;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const dupRefund = await refundDuplicateFunding(stripe, piId); |         const dupRefund = { id: "re_none", amount: 0 };
     describe("a checkout completing on a job already funded another way (Q1419)", () => {
       const completed = () =>
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -346,8 +346,109 @@ describe("stripe-webhook edge function", () => {
         stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded" });
         const res = await fn.fetch(webhookRequest(fn, "{}"));
         expect(res.status).toBe(200);
-        expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_second" }, { idempotencyKey: "duplicate-funding-refund:pi_second" });
+        expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+          { payment_intent: "pi_second", metadata: { source: "duplicate_funding" } },
+          { idempotencyKey: "duplicate-funding-refund:pi_second" },
+        );
         expect((slackAlerts as Array<{ title: string }>).some((a) => /second payment on an already-funded job was refunded/.test(a.title))).toBe(true);
+      });
+
+      // Q1819: the duplicate-funding refund writes its payment_refunds ledger row.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         await ledgerDuplicateFundingRefund(supabase, dupRefund, { |         if (false) await ledgerDuplicateFundingRefund(supabase, dupRefund, {
+      it("ledgers the duplicate-funding refund once, on its Stripe refund id (Q1819)", async () => {
+        const fn = await loadConfigured();
+        completed();
+        scenario.writeSelectRows.jobs = [];
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 5150, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const rows = scenario.writes.filter((x) => x.table === "payment_refunds");
+        expect(rows).toHaveLength(1);
+        // job_id stays EMPTY: this money never funded the job, and every
+        // job-keyed reader (Release, the split, the settle RPCs, reconciliation)
+        // would read a row on it as the job's escrow gone back (review of 5f292defa).
+        // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |       job_id: null, |       job_id: args.jobId,
+        expect(rows[0].payload).toMatchObject({
+          job_id: null, customer_id: "poster-1", stripe_refund_id: "re_dup", stripe_payment_intent_id: "pi_second",
+          amount_cents: 5150, is_partial: false, source: "duplicate_funding",
+          metadata: { checkout_session_id: "cs_second", job_id: "job-1", funded_nothing: true },
+        });
+      });
+
+      it("a failed ledger write pages and fails the event so Stripe redelivers it (Q1819)", async () => {
+        // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     throw new Error(`duplicate-funding refund ${refund.id} not ledgered: ${error.message}`); |     void 0;
+        const fn = await loadConfigured();
+        completed();
+        scenario.writeSelectRows.jobs = [];
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+        scenario.writeErrors.payment_refunds = { message: "db down" };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 5150, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect((slackAlerts as Array<{ title: string }>).some((a) => /Duplicate-funding refund ledger write failed/.test(a.title))).toBe(true);
+      });
+
+      it("a retry that finds several live refunds ledgers the one stamped as ours, and none when none is (Q1819)", async () => {
+        // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     return live.length === 1 ? live[0] : null; |     return live[0];
+        const setup = async (list: unknown[]) => {
+          const fn = await loadConfigured();
+          completed();
+          scenario.writes.length = 0;
+          scenario.writeSelectRows.jobs = [];
+          scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+          stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("already refunded"), { code: "charge_already_refunded" }));
+          stripeMock.refunds.list.mockResolvedValue({ data: list, has_more: false });
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBe(200);
+          return scenario.writes.filter((x) => x.table === "payment_refunds").map((r) => (r.payload as { stripe_refund_id?: string }).stripe_refund_id);
+        };
+        expect(await setup([
+          { id: "re_other", status: "succeeded", amount: 300, currency: "usd", metadata: {} },
+          { id: "re_ours", status: "succeeded", amount: 5150, currency: "usd", metadata: { source: "duplicate_funding" } },
+        ])).toEqual(["re_ours"]);
+        expect(await setup([
+          { id: "re_a", status: "succeeded", amount: 300, currency: "usd", metadata: {} },
+          { id: "re_b", status: "succeeded", amount: 4850, currency: "usd", metadata: {} },
+        ])).toEqual([]);
+        expect((slackAlerts as Array<{ title: string }>).some((a) => /which refund is ours is unclear/.test(a.title))).toBe(true);
+      });
+
+      it("charge.refunded still tells the payer about a duplicate-funding refund its path ledgered (Q1819)", async () => {
+        // The path ledgers but does not announce; the webhook's "a path tells
+        // them itself" skip must not cover it.
+        // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       .not("source", "in", "(stripe_dashboard,duplicate_funding)"); |       .neq("source", "stripe_dashboard");
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_dup_refunded",
+          type: "charge.refunded",
+          data: { object: { id: "ch_dup", payment_intent: "pi_second", amount: 5150, amount_refunded: 5150 } },
+        });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dup", amount: 5150, status: "succeeded", created: Math.floor(Date.now() / 1000), metadata: { source: "duplicate_funding" } }], has_more: false });
+        scenario.reads.jobs = { rows: [] };
+        scenario.reads.payment_refunds = { rows: [] };
+        await fn.fetch(webhookRequest(fn, "{}"));
+        const q = scenario.readQueries.find((r) => r.table === "payment_refunds" && r.cols.includes("source"));
+        expect(q, "the path-ledger read ran").toBeDefined();
+        const not = q!.filters.find((f) => f.op === "not" && f.column === "source");
+        expect(String(not?.value)).toContain("duplicate_funding");
+        expect(String(not?.value)).toContain("stripe_dashboard");
+      });
+
+      it("a retry after the refund key expired ledgers the live refund it finds (Q1819)", async () => {
+        const fn = await loadConfigured();
+        completed();
+        scenario.writeSelectRows.jobs = [];
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", payment_status: "escrow", stripe_payment_intent_id: "pi_first" }] };
+        stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("already refunded"), { code: "charge_already_refunded" }));
+        stripeMock.refunds.list.mockResolvedValue({ data: [
+          { id: "re_failed", status: "failed", amount: 5150 },
+          { id: "re_live", status: "succeeded", amount: 5150, currency: "usd" },
+        ], has_more: false });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const rows = scenario.writes.filter((x) => x.table === "payment_refunds");
+        expect(rows.map((r) => (r.payload as { stripe_refund_id?: string }).stripe_refund_id)).toEqual(["re_live"]);
       });
 
       it("a late redelivery of the payment that DID fund the job is ignored, never refunded", async () => {
@@ -358,6 +459,25 @@ describe("stripe-webhook edge function", () => {
         const res = await fn.fetch(webhookRequest(fn, "{}"));
         expect(res.status).toBe(200);
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      it("a ledger write error after a gift was consumed still puts the gift back first (Q1819 re-review)", async () => {
+        // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const dupRefund = await refundDuplicateFunding(stripe, piId);\n |         const dupRefund = await refundDuplicateFunding(stripe, piId);\n        await ledgerDuplicateFundingRefund(supabase, dupRefund, { jobId, customerId: null, pi: piId, sessionId: session.id });\n
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_dup_gift_ledger",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_diff3", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_diff3", metadata: { job_id: "job-1", gift_card_id: "gc-1" } } },
+        });
+        scenario.writeSelectRows.gift_cards = [{ id: "gc-1" }];
+        scenario.writeSelectRows.jobs = [];
+        scenario.writeErrors.payment_refunds = { message: "db down" };
+        scenario.reads.jobs = { rows: [{ id: "job-1", status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_card" }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_dup3", status: "succeeded", amount: 2000, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        const giftWrites = scenario.writes.filter((x) => x.table === "gift_cards" && x.op === "update");
+        expect(giftWrites.map((x) => (x.payload as { status?: string }).status)).toEqual(["redeemed", "sent"]);
       });
 
       it("a gift this payment consumed is put back when the payment is refunded", async () => {
@@ -1097,6 +1217,73 @@ describe("stripe-webhook edge function", () => {
       stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
       await fn.fetch(webhookRequest(fn, "{}"));
       expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+    });
+
+    // Q1724: a LOST chargeback on a taxed recurring visit returns the money
+    // with no charge.refunded event, so charge.dispute.closed reverses the tax.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |     await reverseVisitTaxForLostDispute({ stripe, piId: closedPiId, dispute: closedDispute, logStep }); |     void reverseVisitTaxForLostDispute;
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!(chargedCents > 0) \|\| refundedCents > 0 \|\| disputedCents < chargedCents) { |   if (!(chargedCents > 0) \|\| refundedCents > 0) {
+    it("reverses a taxed visit's Stripe Tax transaction when its chargeback is LOST, in full only for a whole-charge dispute (Q1724)", async () => {
+      const lostEvent = (id: string, amount: number, status = "lost") => ({
+        id,
+        type: "charge.dispute.closed",
+        data: { object: { id: `dp_${id}`, status, amount, payment_intent: "pi_visit", charge: "ch_visit" } },
+      });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", amount_received: 5000, metadata: { tax_transaction_id: "tax_txn_9" } });
+      stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_visit", amount: 5000, amount_refunded: 0 });
+      stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "tax_txn_rev" });
+      scenario.reads.jobs = { rows: [] };
+
+      let fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(lostEvent("evt_lost_full", 5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).toHaveBeenCalledTimes(1);
+      const [args, opts] = stripeMock.tax.transactions.createReversal.mock.calls[0];
+      expect(args).toEqual({ mode: "full", original_transaction: "tax_txn_9", reference: "dispute:dp_evt_lost_full" });
+      expect(opts).toEqual({ idempotencyKey: "visit-tax-reversal-dispute:dp_evt_lost_full" });
+
+      // A dispute of part of the charge is paged for a hand reversal.
+      stripeMock.tax.transactions.createReversal.mockClear();
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(lostEvent("evt_lost_part", 2000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      expect((slackAlerts as Array<{ title?: string }>).some((a) => /Lost chargeback on a taxed recurring visit/.test(a.title ?? ""))).toBe(true);
+
+      // A WON dispute keeps the money: nothing is reversed.
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(lostEvent("evt_won_full", 5000, "won"));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+
+      // Refunded BEFORE the dispute (review of 5f292defa #2): fully refunded =
+      // the refund path already reversed it; partly = a full reversal would
+      // reverse that share twice, so it is paged instead.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!(chargedCents > 0) \|\| refundedCents > 0 \|\| disputedCents < chargedCents) { |   if (!(chargedCents > 0) \|\| disputedCents < chargedCents) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (chargedCents > 0 && refundedCents >= chargedCents) { |   if (false) {
+      for (const refunded of [5000, 1000]) {
+        (slackAlerts as unknown[]).length = 0;
+        stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_visit", amount: 5000, amount_refunded: refunded });
+        fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(lostEvent(`evt_lost_after_${refunded}`, 5000));
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+        const paged = (slackAlerts as Array<{ title?: string }>).some((a) => /Lost chargeback on a taxed recurring visit/.test(a.title ?? ""));
+        expect(paged, `refunded ${refunded} before the dispute`).toBe(refunded < 5000);
+      }
+    });
+
+    it("a lost chargeback whose PaymentIntent cannot be found is paged for the tax check, never dropped (Q1724)", async () => {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       oncePerDayKey: `visit-tax-dispute-nopi:${dispute.id}`,\n    });\n    return "failed_paged"; |       oncePerDayKey: `visit-tax-dispute-nopi:${dispute.id}`,\n    });\n    return "none";
+      stripeMock.charges.retrieve.mockRejectedValue(new Error("stripe down"));
+      scenario.reads.jobs = { rows: [] };
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_lost_nopi", type: "charge.dispute.closed",
+        data: { object: { id: "dp_nopi", status: "lost", amount: 5000, payment_intent: null, charge: "ch_x" } },
+      });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect((slackAlerts as Array<{ title?: string }>).some((a) => /Lost chargeback: could not check/.test(a.title ?? ""))).toBe(true);
     });
 
     it("leaves the job status unchanged on a PARTIAL refund (funds still in escrow)", async () => {

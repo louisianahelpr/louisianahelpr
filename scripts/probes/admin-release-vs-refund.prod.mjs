@@ -106,7 +106,7 @@ async function cleanup(job) {
   // dispute_settlement_claims is keyed by job_id and cascades with the job, but
   // it is deleted explicitly so a wedged round does not silently protect the
   // next one from the very race this probe is measuring.
-  for (const t of ["payout_transfers", "payment_refunds", "disputes", "user_violations", "user_strikes", "dispute_settlement_claims"]) {
+  for (const t of ["payout_transfers", "payment_refunds", "disputes", "user_violations", "dispute_settlement_claims"]) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); }
     catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }

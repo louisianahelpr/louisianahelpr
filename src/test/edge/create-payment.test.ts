@@ -1976,7 +1976,7 @@ describe("create-payment edge function", () => {
     // A retry of a cancel left 'cancelling' by a failed restore, after Stripe's
     // ~24h idempotency window: the charge already carries the refund, so a
     // second refunds.create must not be sent (lh-money-escrow review, SC-005).
-    // @mutate supabase/functions/create-payment/index.ts | if (refundAmount > 0 && alreadyRefundedCents >= refundAmount) { | if (false) {
+    // @mutate supabase/functions/create-payment/index.ts |             setupFeeCents,\n            alreadyRefundedCents,\n |             setupFeeCents,\n
     it("a retried cancel does not refund a charge that is already refunded, and still restores and flips", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -1997,6 +1997,63 @@ describe("create-payment edge function", () => {
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
       expect((jobUpdates[jobUpdates.length - 1]?.payload as Record<string, unknown>).status).toBe("cancelled");
+    });
+
+    // Q1675: settleOnboardingFee refunds a duplicate $2 setup fee off the job's
+    // own charge, and pi.amount_received does not go down after it, so the
+    // cancel refunded those $2 a second time out of platform money. The
+    // charge's amount_refunded now comes off the refund
+    // (lh-money-escrow@c4e1df1bb#4). $100 + $3.30 fee + the duplicate $2 =
+    // $105.30 captured; Stripe kept $3.36; $101.94 refundable, less $2 = $99.94.
+    // @mutate supabase/functions/create-payment/index.ts |           const refundAmount = cancelSplit.refundCents; |           const refundAmount = cancelSplit.ceilingCents;
+    it("Q1675: a cancel after a duplicate $2 setup-fee refund does not return the $2 again", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_dup", budget: 100, customer_fee_amount: 3.3 }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_dup", status: "succeeded", amount: 10_530, amount_received: 10_530,
+        latest_charge: { id: "ch_dup", amount_refunded: 200, balance_transaction: { fee: 336 } },
+      });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_c", amount: 9_994 });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      scenario.writeSelectRows.notifications = [{ id: "notice-c" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+        { payment_intent: "pi_dup", amount: 9_994 },
+        { idempotencyKey: "cancel-escrow-job-1" },
+      );
+      // The notice keeps only the card fee: the $2 already went back, it was not kept.
+      // @mutate supabase/functions/create-payment/index.ts |              const keptCents = Math.max(0, capturedCents - alreadyRefundedCents - refundedCents); |              const keptCents = Math.max(0, capturedCents - refundedCents);
+      const notice = scenario.writes
+        .filter((w) => w.table === "notifications" && w.op === "insert")
+        .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
+        .find((m) => m.includes("We kept"));
+      expect(notice).toMatch(/We kept \$3\.36\b/);
+    });
+
+    // lh-money-escrow review of Q1675 #2: earlier refunds that returned MORE
+    // than the cancel may (an admin partial past the card fee) are paged, not
+    // logged as a retry.
+    // @mutate supabase/functions/create-payment/index.ts |             if (alreadyRefundedCents > cancelSplit.ceilingCents + 1) { |             if (false) {
+    it("Q1675: a cancel whose charge was already refunded past the kept fee refunds nothing and pages", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_over", budget: 100, customer_fee_amount: 3.3 }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_over", status: "succeeded", amount: 10_330, amount_received: 10_330,
+        latest_charge: { id: "ch_over", amount_refunded: 10_330, balance_transaction: { fee: 330 } },
+      });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(slackAlerts.map((a) => (a as { title?: string }).title)).toContain("Cancelled job's charge was already refunded past what the cancel keeps");
     });
 
     it("skips the refund but ALERTS ops when withholding consumes the whole capture ($0 refund)", async () => {
@@ -2335,7 +2392,7 @@ describe("create-payment edge function", () => {
             // withheld. cancel_escrow keeps the service fee; this must not.
             // Owner rule via the lead, 2026-10-14: a dispute keeps the CARD
             // cost only, never a legacy service fee.
-            // @mutate supabase/functions/create-payment/index.ts |               customerFeeCents: cardCostFeeCents(job),\n              setupFeeCents: setupFeeKeptCents(job),\n            }); |               customerFeeCents: Math.round(Number(job.customer_fee_amount ?? 0) * 100),\n              setupFeeCents: setupFeeKeptCents(job),\n            });
+            // @mutate supabase/functions/create-payment/index.ts |               customerFeeCents: cardCostFeeCents(job),\n              setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents, |               customerFeeCents: Math.round(Number(job.customer_fee_amount ?? 0) * 100),\n              setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents,
             customer_fee_amount: 10,
           },
         ],
@@ -2430,7 +2487,7 @@ describe("create-payment edge function", () => {
 
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
     // the poster wins the dispute, and the refund notice says so.
-    // @mutate supabase/functions/create-payment/index.ts |               setupFeeCents: setupFeeKeptCents(job),\n            });\n            const nonRefundableCents = disputeSplit |               setupFeeCents: 0,\n            });\n            const nonRefundableCents = disputeSplit
+    // @mutate supabase/functions/create-payment/index.ts |               setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents,\n            });\n            const nonRefundableCents = disputeSplit |               setupFeeCents: 0,\n              alreadyRefundedCents: disputeOtherRefundedCents,\n            });\n            const nonRefundableCents = disputeSplit
     // @mutate supabase/functions/create-payment/index.ts | : null, disputeSetupKeptCents) | : null, 0)
     it("admin_refund_dispute on a first job keeps the $2 setup fee and the notice says so (Q1674)", async () => {
       seedAuth(scenario, ADMIN);
@@ -3899,6 +3956,8 @@ describe("create-payment edge function", () => {
     // reads amount_refunded): an existing refund that covers it is reused.
     describe("Q1209 an admin refund retried after the refund already went out", () => {
       // @mutate supabase/functions/create-payment/index.ts | const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount, "admin_refund_dispute"); | const reusedDispute = null;
+      // Q1675: the dispute's OWN earlier refund is never subtracted as "another flow's".
+      // @mutate supabase/functions/create-payment/index.ts | (r.status === "succeeded" \|\| r.status === "pending") && r.metadata?.source !== "admin_refund_dispute") | (r.status === "succeeded" \|\| r.status === "pending"))
       it("admin_refund_dispute reuses the existing refund, records it, and finishes the job", async () => {
         seedAuth(scenario, ADMIN);
         scenario.rpc.has_role = true;
@@ -3948,16 +4007,57 @@ describe("create-payment edge function", () => {
         scenario.reads.jobs = {
           rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "Disputed job", stripe_payment_intent_id: "pi_r" }],
         };
+        // Q1675: the other flow's $50 comes off this refund ($96.80 - $50 =
+        // $46.80), and $50 already refunded still "covers" $46.80, so the
+        // reuse check runs and must not take re_dash as this action's.
         stripeMock.paymentIntents.retrieve.mockResolvedValue({
           id: "pi_r", status: "succeeded", amount: 10000, amount_received: 10000,
-          latest_charge: { id: "ch_r", amount_refunded: 9680 },
+          latest_charge: { id: "ch_r", amount_refunded: 5000, balance_transaction: { fee: 320 } },
         });
-        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 9680, status: "succeeded", metadata: {} }] });
-        stripeMock.refunds.create.mockResolvedValue({ id: "re_mine", amount: 9680 });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 5000, status: "succeeded", metadata: {} }] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_mine", amount: 4680 });
         const fn = await load();
         await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
         expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ amount: 4680 });
         expect(scenario.writes.some((w) => w.table === "payment_refunds" && (w.payload as Record<string, unknown>).stripe_refund_id === "re_dash")).toBe(false);
+      });
+
+      // Q1675: a duplicate $2 setup-fee refund (settleOnboardingFee, no
+      // metadata.source) already went back off this charge; the dispute refund
+      // returns the rest, not the $2 again. This action's OWN earlier refund
+      // is not subtracted (the reuse test above stays green), and neither is a
+      // FAILED refund, which returned nothing.
+      // @mutate supabase/functions/create-payment/index.ts |               alreadyRefundedCents: disputeOtherRefundedCents,\n |
+      // @mutate supabase/functions/create-payment/index.ts | (r.status === "succeeded" \|\| r.status === "pending") && r.metadata?.source !== "admin_refund_dispute") | r.metadata?.source !== "admin_refund_dispute")
+      // @mutate supabase/functions/create-payment/index.ts |               disputeKeptCents = Math.max(0, capturedCents - disputeOtherRefundedCents - disputeRefundCents); |               disputeKeptCents = Math.max(0, capturedCents - disputeRefundCents);
+      it("Q1675: admin_refund_dispute after a duplicate $2 setup-fee refund does not return the $2 again", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "Disputed job", stripe_payment_intent_id: "pi_r", customer_fee_amount: 3.3, platform_fee_percent: 0 }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_r", status: "succeeded", amount: 10_530, amount_received: 10_530,
+          latest_charge: { id: "ch_r", amount_refunded: 200, balance_transaction: { fee: 336 } },
+        });
+        stripeMock.refunds.list.mockResolvedValue({ data: [
+          { id: "re_dup", amount: 200, status: "succeeded", metadata: { reason: "duplicate_onboarding_fee" } },
+          { id: "re_failed", amount: 500, status: "failed", metadata: {} },
+        ] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_d", amount: 9_994 });
+        scenario.writeSelectRows.notifications = [{ id: "notice-d" }];
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ payment_intent: "pi_r", amount: 9_994 });
+        // The notice keeps only the card fee: the $2 already went back.
+        const notice = scenario.writes
+          .filter((w) => w.table === "notifications" && w.op === "insert")
+          .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
+          .find((m) => m.includes("We kept"));
+        expect(notice).toMatch(/We kept \$3\.36\b/);
       });
 
       it("control: a PARTIAL prior refund does not count as the full one (the rest is refunded)", async () => {

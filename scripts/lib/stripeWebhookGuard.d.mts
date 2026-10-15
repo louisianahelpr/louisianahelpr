@@ -7,8 +7,19 @@ export interface WebhookEndpoint {
   enabled_events?: string[];
 }
 export function gradeConfigCheckResponse(
-  body: { keyIsLive?: unknown; endpoints?: WebhookEndpoint[]; undelivered?: unknown; taxRegistrations?: unknown; taxError?: unknown } | null | undefined,
+  body: {
+    keyIsLive?: unknown; endpoints?: WebhookEndpoint[]; undelivered?: unknown; taxRegistrations?: unknown; taxError?: unknown;
+    testEndpoints?: unknown; testError?: unknown; testKeyIsTest?: unknown;
+  } | null | undefined,
   handlers: string[],
+  url: string,
+  testModeEvents?: string[] | null,
+): { failures: string[]; notes: string[] };
+/** Q1820: grade the TEST-mode webhook endpoints the config check returned. */
+export function gradeTestEndpoints(
+  body: { testEndpoints?: unknown; testError?: unknown; testKeyIsTest?: unknown } | null | undefined,
+  handlers: string[],
+  expected: string[],
   url: string,
 ): { failures: string[]; notes: string[] };
 export function gradeLiveEndpoints(

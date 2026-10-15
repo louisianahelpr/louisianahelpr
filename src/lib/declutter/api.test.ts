@@ -19,6 +19,9 @@
  * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
+ * @mutate src/lib/declutter/api.ts | { body: { itemId, mode }, timeout: AI_TIMEOUT_MS } | { body: { itemId, mode } }
+ * @mutate src/lib/declutter/api.ts | (error as { context?: { name?: unknown } }).context?.name === "AbortError"; | false;
+ * @mutate src/lib/declutter/api.ts | const aborted = (error as { name?: unknown }).name === "AbortError" \|\| | const aborted =
  * @mutate src/lib/declutter/api.ts |   return rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), |   return rpcData(await supabase.rpc("declutter_publish_items", { p_item_id: itemId }),
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -104,6 +107,7 @@ import {
   removePhoto,
   requestAiCheck,
   requestAiDraft,
+  AI_TIMEOUT_MS,
   reviewListing,
   setPickupWindows,
   setWatch,
@@ -596,13 +600,27 @@ describe("the AI helpers", () => {
     const draft = { title: "Oak desk", description: "d", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false };
     h.queue.push(ok(draft));
     await expect(requestAiDraft("i1")).resolves.toEqual(draft);
-    expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "draft" } }]]);
+    expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "draft" }, timeout: AI_TIMEOUT_MS }]]);
+  });
+
+  it("the photo tool has a client timeout above the edge function's own worst case, and a timeout says so", async () => {
+    // declutter-ai-draft: 25 s model call + a short pause + one 25 s retry on a busy answer, plus its own reads.
+    expect(AI_TIMEOUT_MS).toBeGreaterThan(51_500);
+    expect(AI_TIMEOUT_MS).toBeLessThanOrEqual(60_000);
+    // Aborted before the headers: functions-js wraps the AbortError.
+    h.queue.push(failing(new DOMException("signal is aborted without reason", "AbortError")));
+    const e = await rejection(requestAiDraft("i1"));
+    expect(e.message).toBe("ai_timed_out");
+    expect(declutterErrorMessage(e)).toBe(DECLUTTER_CLIENT_ERROR_COPY.ai_timed_out);
+    // Aborted while the body was read: the AbortError itself comes back.
+    h.queue.push({ data: null, error: new DOMException("signal is aborted without reason", "AbortError") });
+    expect((await rejection(requestAiCheck("i1"))).message).toBe("ai_timed_out");
   });
 
   it("requestAiCheck invokes the same function in check mode", async () => {
     h.queue.push(ok({ checked: true, flagged: false }));
     await expect(requestAiCheck("i1")).resolves.toEqual({ checked: true, flagged: false });
-    expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "check" } }]]);
+    expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "check" }, timeout: AI_TIMEOUT_MS }]]);
   });
 
   it.each([

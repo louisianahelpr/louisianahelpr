@@ -22,6 +22,7 @@ import {
   CHARGEBACK_CLOSE_PREFIX,
   OUTSIDE_REFUND_CLOSE_PREFIX,
   NO_PAYMENT_CLOSE_PREFIX,
+  TEST_MODE_CLOSE_PREFIX,
   DISPUTE_CLOSE_COPY,
   disputeCloseReason,
   closeMovedNothing,
@@ -38,6 +39,8 @@ describe("Q1191: why a decided dispute closed outside its split", () => {
       ["settle_dispute_by_chargeback", `execution_error = '${CHARGEBACK_CLOSE_PREFIX} (`],
       ["settle_dispute_by_external_refund", `execution_error = '${OUTSIDE_REFUND_CLOSE_PREFIX} (`],
       ["rpc_settle_dispute_without_payment", `execution_error = '${NO_PAYMENT_CLOSE_PREFIX}: '`],
+      // Q1769: the test-mode close (20261015061949).
+      ["rpc_close_test_mode_dispute", `execution_error = '${TEST_MODE_CLOSE_PREFIX}: '`],
     ];
     for (const [fn, stamp] of writers) {
       expect(squash(fn).length, fn).toBeGreaterThan(500);
@@ -54,6 +57,15 @@ describe("Q1191: why a decided dispute closed outside its split", () => {
     // An outside refund's amounts are real money that moved back: keep them.
     expect(closeMovedNothing("outside_refund")).toBe(false);
     expect(closeMovedNothing(null)).toBe(false);
+  });
+
+  it("an admin test-mode close (Q1769) says so and hides its $0 · $0 line", () => {
+    const d = { execution_status: "executed", execution_error: `${TEST_MODE_CLOSE_PREFIX}: a test journey` };
+    expect(disputeCloseReason(d)).toBe("test_mode");
+    expect(DISPUTE_CLOSE_COPY.test_mode).toMatch(/no real money moved/);
+    expect(closeMovedNothing("test_mode")).toBe(true);
+    // The no-payment prefix is not a prefix of this one, and the other way round.
+    expect(disputeCloseReason({ execution_status: "executed", execution_error: `${NO_PAYMENT_CLOSE_PREFIX}: x` })).toBe("no_payment");
   });
 
   it("an outside full refund reads as its own close, with its own sentence", () => {
@@ -95,3 +107,5 @@ describe("Q1191: why a decided dispute closed outside its split", () => {
 // @mutate src/components/DisputeTimelineDialog.tsx |                 {closeReason && ( |                 {false && (
 // @mutate src/components/DisputeTimelineDialog.tsx |                 {dispute?.execution_status === "executed" && !movedNothing && |                 {dispute?.execution_status === "executed" &&
 // @mutate src/components/disputeCloseReason.ts | export const OUTSIDE_REFUND_CLOSE_PREFIX = "closed by a full refund made outside the split"; | export const OUTSIDE_REFUND_CLOSE_PREFIX = "closed by a full refund outside the split";
+// @mutate src/components/disputeCloseReason.ts |   if (note.startsWith(TEST_MODE_CLOSE_PREFIX)) return "test_mode"; |
+// @mutate src/components/disputeCloseReason.ts |   if (reason === "test_mode") return true; |

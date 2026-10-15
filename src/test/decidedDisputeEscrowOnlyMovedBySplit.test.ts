@@ -22,7 +22,12 @@
  * crons only net.http_post to the edge functions listed here), so it has no
  * entry; its only jobs.payment_status writers were measured live:
  * redeem_gift_card (funds TO escrow) and rpc_settle_dispute_without_payment
- * (only from unpaid/abandoned/failed).
+ * (only from unpaid/abandoned/failed). Since Q1769 (20261015061949) a third,
+ * rpc_close_test_mode_dispute, moves a decided dispute's job from escrow to
+ * 'cancelled' with NO Stripe call, only for a Stripe TEST-mode payment between
+ * test accounts with no gift card on it (PGlite:
+ * src/test/pglite/closeTestModeDispute.pglite.mjs); it records the dispute
+ * executed in the same transaction, so no path moves that money afterwards.
  *
  * The map must name EXACTLY that set (both directions). Then per kind:
  *   unsettled-check  `const v = await checkUnsettledDispute(...)`, then an

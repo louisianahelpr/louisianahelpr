@@ -417,7 +417,7 @@ const AdminDisputes = () => {
   };
 
   // Q235 close-without-payment and Q1732 clear-test-mode (adminDisputes/settlementEscapes.ts).
-  const { closeWithoutPayment, clearTestModeRecords } = settlementEscapes({ disputeRecords, setRetrying, loadDisputes });
+  const escapes = settlementEscapes({ disputeRecords, setRetrying, loadDisputes });
 
   // Record the formal decision (text + split), then EXECUTE it: the recorded
   // split now moves real money via the `execute-dispute-split` edge function —
@@ -727,8 +727,7 @@ const AdminDisputes = () => {
               setActivePanelJobId={setActivePanelJobId}
               decide={decide}
               retrySettlement={retrySettlement}
-              closeWithoutPayment={closeWithoutPayment}
-              clearTestModeRecords={clearTestModeRecords}
+              {...escapes}
               retrying={retrying}
             />
           ))

@@ -9040,6 +9040,10 @@ export type Database = {
         Args: { _dispute_id: string; _reason: string; _transfer_id: string }
         Returns: undefined
       }
+      rpc_close_test_mode_dispute: {
+        Args: { _dispute_id: string; _note: string }
+        Returns: undefined
+      }
       rpc_decide_crew_dispute: {
         Args: {
           _decision_text: string

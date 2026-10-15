@@ -89,3 +89,7 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 | Q2 | Poster may INVITE specific businesses from Shops AND the job stays open for any Helpr or business to quote; invited businesses get an alert |
 | Q3 | Business rate cards produce an instant ESTIMATE for matching jobs; the business confirms or adjusts it into a real quote |
 | Q4 | Quote window chosen by the poster (24 h / 48 h / 3 days), default 48 h |
+| Q5 | Quotes are PRIVATE: only the poster sees them (no race to the bottom; keeps it "quotes", not an auction) |
+| Q6 | Counter-offers back and forth, 48 h for each side to answer (accept / decline / counter) |
+| Q7 | A quote = total price + short note (what's included, materials) + when they can do it; optional photos of past work |
+| Q8 | An accepted quote becomes a normal job at that price: paid and held like any job, flat 5% + $0.70 from the Helpr's pay, arrival/done/reviews as today |

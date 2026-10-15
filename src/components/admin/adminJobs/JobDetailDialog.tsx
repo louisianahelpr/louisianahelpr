@@ -11,6 +11,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { openableDocumentUrl } from "@/lib/storagePath";
 import { JobNotes } from "@/components/job-card/JobNotes";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
+import { EndSeriesSection } from "./EndSeriesSection";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -233,6 +234,9 @@ export const JobDetailDialog = ({
                 )}
               </div>
             )}
+            {/* Q417 (c): end a recurring series as the platform (renders only
+                for a series or one of its visits). */}
+            {!(detailJob as { removal_reason?: string }).removal_reason && <EndSeriesSection job={detailJob} />}
           </div>
         )}
       </DialogContent>

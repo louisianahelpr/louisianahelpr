@@ -83,11 +83,26 @@ interface CdvTransaction {
   transactionId?: string;
   finish: () => void;
 }
+/** A product's purchasable offer. `order()` is how v13 buys it. */
+interface CdvOffer {
+  productId: string;
+  order: () => Promise<{ isError?: boolean; code?: number; message?: string } | void>;
+}
 interface CdvStore {
   register: (products: Array<{ id: string; type: string; platform: string }>) => void;
   initialize: (platforms: string[]) => Promise<void>;
   restorePurchases: () => Promise<unknown>;
-  order: (productId: string) => Promise<{ isError?: boolean; message?: string } | void>;
+  /** v13: the registered product, once the store has loaded it from Apple. */
+  get: (productId: string, platform?: string) => { getOffer: () => CdvOffer | undefined } | undefined;
+  /**
+   * The buyer's id. With StoreKit 1 and the default 'legacy' obfuscator the
+   * plugin passes it unchanged as SKPayment.applicationUsername (store.js
+   * resolveBridgeUsername), and Apple returns a UUID there as the
+   * transaction's appAccountToken, which verify-apple-iap binds the grant to.
+   */
+  applicationUsername?: string | (() => string | undefined);
+  /** How applicationUsername is transformed before it reaches Apple. */
+  obfuscator?: string;
   when: () => {
     approved: (cb: (tx: CdvTransaction) => void) => unknown;
   };
@@ -96,6 +111,8 @@ interface CdvPurchaseGlobal {
   store: CdvStore;
   ProductType: { PAID_SUBSCRIPTION: string; NON_RENEWING_SUBSCRIPTION: string };
   Platform: { APPLE_APPSTORE: string };
+  /** Only PAYMENT_CANCELLED is read: the buyer closing Apple's sheet. */
+  ErrorCode?: { PAYMENT_CANCELLED?: number };
 }
 
 function getCdv(): CdvPurchaseGlobal | null {
@@ -225,8 +242,48 @@ async function assertMayPurchase(): Promise<void> {
 export async function purchaseTier(tier: IapTier, cadence: IapCadence): Promise<void> {
   await assertMayPurchase();
   const cdv = await ensureInitialized();
-  const result = await cdv.store.order(productIdFor(tier, cadence));
+  await orderProduct(cdv, productIdFor(tier, cadence));
+}
+
+/**
+ * Buy one registered product: bind the buyer, then order its OFFER.
+ *
+ * Q?iap-order-offer: this called `store.order(productId)` with a STRING.
+ * cordova-plugin-purchase v13's store.order(offer) reads `offer.platform` and
+ * `offer.productId`; the Apple adapter passes `offer.productId` (undefined) to
+ * its SK1 bridge, which refuses an unregistered id without ever answering, so
+ * the order promise never settled: nothing was charged and the Upgrade button
+ * spun forever (lh-silent-failure review of 094308d53). The API is
+ * `store.get(id, platform).getOffer().order()`. Nothing set
+ * applicationUsername either, so Apple's appAccountToken was never set and
+ * verify-apple-iap could only grant-and-flag every purchase as legacy.
+ *
+ * obfuscator 'disabled': the raw user id (a UUID) goes to Apple on StoreKit 1
+ * AND 2. Under the default 'legacy' a StoreKit 2 bridge (the Capacitor or SK2
+ * add-on) would send md5toUUID(userId), which never equals the user id, and
+ * verify-apple-iap would 403 every purchase after the buyer paid.
+ */
+async function orderProduct(cdv: CdvPurchaseGlobal, productId: string): Promise<void> {
+  const { data: auth, error: authErr } = await supabase.auth.getUser();
+  const userId = auth?.user?.id;
+  if (authErr || !userId) {
+    throw new IapBlockedError("Please sign in again before buying.");
+  }
+  cdv.store.obfuscator = "disabled";
+  cdv.store.applicationUsername = userId;
+  const offer = cdv.store.get(productId, cdv.Platform.APPLE_APPSTORE)?.getOffer();
+  if (!offer) {
+    // The store has not loaded this product from Apple (not yet approved in
+    // App Store Connect, or the device is offline). Nothing was charged.
+    report(new Error(`IAP product not loaded: ${productId}`), { tags: { source: "iap.product_missing" } });
+    // IapBlockedError: its message is shown as written. The store loads
+    // products once per launch, so a retry needs a relaunch.
+    throw new IapBlockedError("This purchase isn't available right now. Close and reopen the app, then try again.");
+  }
+  const result = await offer.order();
   if (result && "isError" in result && result.isError) {
+    // The buyer closed Apple's sheet: their choice, not an error to show.
+    if (result.code !== undefined && result.code === cdv.ErrorCode?.PAYMENT_CANCELLED) return;
     throw new Error(result.message || "Purchase failed");
   }
 }

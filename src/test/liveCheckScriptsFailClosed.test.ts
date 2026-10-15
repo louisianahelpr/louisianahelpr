@@ -320,6 +320,18 @@ const HERMETIC: Record<string, Case[]> = {
     // src/test/nativeSignInConfig.test.ts.)
     { label: "a provider still disabled while the switch is on", env: MGMT("nobundle"), says: /FAIL external_google_enabled is true/ },
   ],
+  // OPEN.md "auth-captcha-matches-client" (prod-errors.yml hourly, prod-deploy.yml):
+  // GET /config/auth, then the web build's chunks (LH_WEB_BASE, same stub).
+  "scripts/check-auth-captcha-matches-client.mjs": [
+    { label: "no credentials", says: /could not check auth captcha against the web build: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: { ...MGMT("fail"), LH_WEB_BASE: "@HTTP@/fail" }, says: /could not check auth captcha against the web build: .*\/config\/auth: HTTP 500/ },
+    { label: "site and API answer []", env: { ...MGMT("empty"), LH_WEB_BASE: "@HTTP@/empty" }, says: /references no assets\/\*\.js chunk — refusing to report clean/ },
+  ],
+  "scripts/check-captcha-refusals.mjs": [
+    { label: "no credentials", says: /could not read the captcha refusals: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not read the captcha refusals: logs query: Management API 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /logs query: no result list in the answer — refusing to report quiet/ },
+  ],
   // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
   // A 500 or a bare 200 carries no x-lh-build header, so every function is a
   // mismatch — never "0 of 0 checked, clean".

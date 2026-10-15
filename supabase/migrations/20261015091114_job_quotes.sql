@@ -612,8 +612,13 @@ BEGIN
     -- Q5: a stranger learns nothing, not even that the quote exists.
     RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
   END IF;
-  IF v_other IS NULL OR public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN
+  IF v_other IS NULL THEN
     RAISE EXCEPTION 'quote_unavailable' USING ERRCODE = '55000';
+  END IF;
+  -- Q345: no hire across a block, either direction, on every action (an
+  -- accept here is the hire). Same code and errcode as accept_application.
+  IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN
+    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';
   END IF;
   IF v_req.status <> 'open' OR v_q.status <> 'pending' THEN
     RAISE EXCEPTION 'quote_closed' USING ERRCODE = '55000';
@@ -740,8 +745,10 @@ BEGIN
   IF NOT FOUND OR v_q.quoter_id IS NULL THEN
     RAISE EXCEPTION 'no_agreed_quote' USING ERRCODE = '55000';
   END IF;
+  -- Q345: booking offers the job to the quoter, so it is refused across a
+  -- block exactly as respond_to_job_quote's accept is.
   IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN
-    RAISE EXCEPTION 'quote_unavailable' USING ERRCODE = '55000';
+    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';
   END IF;
 
   -- Whole dollars: job_quotes CHECKs price_cents % 100 = 0.

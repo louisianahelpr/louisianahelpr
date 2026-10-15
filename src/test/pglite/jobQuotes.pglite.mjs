@@ -29,6 +29,8 @@
  *   Q7  contact details refused in the note; own / duplicate / under-18 /
  *       banned / blocked quotes refused; the poster's notice names the quoter
  *       in its link (?user=, the seed boundary's actor)
+ *   Q345 a block after the quote: accept / counter and booking refused with
+ *       applicant_blocked (as accept_application), no job inserted
  *   Q8  accept closes the other quotes; a second accept loses; the one-accepted
  *       index refuses a second accepted row; book_accepted_quote (poster only)
  *       inserts ONE unpaid job at the agreed price offered to the quoter,
@@ -357,6 +359,29 @@ await step("Q1 switch to my own price: quotes close, an open unoffered UNPAID jo
       job.payment_status === "unpaid" && job.status === "open" && qs === "closed" && rs.status === "closed" && rs.job_id === j &&
       /quotes_closed/.test(late ?? ""),
     `${notPoster} | ${job.budget} ${job.offered_to_helper_id} ${job.payment_status} | ${qs} ${rs.status} | ${late}`,
+  );
+});
+
+await step("Q345 a block after the quote: answering and booking refused with applicant_blocked", async () => {
+  // Blocked AFTER the quote went in: the quote stays readable, but no side may
+  // agree, counter or book across the block (the accept is the hire).
+  const rb = (await one(POSTER, REQ("Paint a shed"))).id;
+  const qbk = (await one(QB, `SELECT public.submit_job_quote('${rb}', 9000, 'Two coats', 'Friday') AS id`)).id;
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${QB}', '${POSTER}')`);
+  const acc = await err(POSTER, `SELECT public.respond_to_job_quote('${qbk}', 'accept')`);
+  const ctr = await err(POSTER, `SELECT public.respond_to_job_quote('${qbk}', 'counter', 8000)`);
+  await db.exec(`DELETE FROM public.stub_blocks WHERE a = '${QB}'`);
+  // Agreed before the block, booked after it.
+  await one(POSTER, `SELECT public.respond_to_job_quote('${qbk}', 'accept') AS r`);
+  await db.exec(`INSERT INTO public.stub_blocks VALUES ('${POSTER}', '${QB}')`);
+  const book = await err(POSTER, `SELECT public.book_accepted_quote('${rb}')`);
+  const jobs = (await svc(`SELECT count(*)::int AS n FROM public.jobs WHERE offered_to_helper_id = '${QB}' AND title = 'Paint a shed'`))[0].n;
+  await db.exec(`DELETE FROM public.stub_blocks WHERE a = '${POSTER}' AND b = '${QB}'`);
+  await svc(`UPDATE public.job_quote_requests SET status = 'cancelled' WHERE id = '${rb}'`);
+  check(
+    "Q345 a block after the quote: answering and booking refused with applicant_blocked",
+    /applicant_blocked/.test(acc ?? "") && /applicant_blocked/.test(ctr ?? "") && /applicant_blocked/.test(book ?? "") && jobs === 0,
+    `${acc} | ${ctr} | ${book} | jobs=${jobs}`,
   );
 });
 

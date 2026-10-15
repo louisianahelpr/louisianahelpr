@@ -34,7 +34,10 @@ const HIRE_WRITE =
 // visit stamps it accepted and inserts an accepted application, so it hires.
 // complete_direct_offer_accept (20261003214350, Q1185) holds the direct
 // offer's hiring writes that respond_to_direct_offer used to make itself.
-const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept"];
+// respond_to_job_quote (20261015091114, quotes on jobs): an accept agrees the
+// quote at its price, which is the hire (book_accepted_quote then offers the
+// job to that quoter and refuses across a block too).
+const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept", "respond_to_job_quote"];
 
 /**
  * Hire functions no client can call (EXECUTE revoked from authenticated): the
@@ -150,5 +153,6 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
+// @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

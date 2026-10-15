@@ -90,6 +90,16 @@ describe("mapkit-token — which origins get a token (Q249)", () => {
     return { status: res.status, claims };
   }
 
+  // Q1670: the cached token is per-origin, so the cache must key on Origin.
+  // @mutate supabase/functions/mapkit-token/index.ts |         Vary: "Origin", |
+  it("a minted token's cached response varies by Origin (Q1670)", async () => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(fn.request({ method: "GET", headers: { origin: "https://www.louisianahelpr.com" } }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toMatch(/^private, max-age=\d+$/);
+    expect((res.headers.get("Vary") ?? "").split(",").map((v) => v.trim().toLowerCase())).toContain("origin");
+  });
+
   // @mutate supabase/functions/mapkit-token/index.ts |   return { kind: "refused" }; |   return { kind: "locked", origin: raw };
   it.each([
     ["another site", "https://evil.example.com"],

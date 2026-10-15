@@ -105,10 +105,8 @@ const TermsReconsentDialog = lazy(() =>
   import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog }))
 );
 
-// Lazy load all pages including landing
+// Every page is lazy, the landing included.
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
-
-// Lazy load all other pages
 const Login = lazyWithPreload(() => import("./pages/auth/Login"));
 const Signup = lazyWithPreload(() => import("./pages/auth/Signup"));
 const SignupPending = lazyWithPreload(() => import("./pages/auth/SignupPending"));
@@ -126,16 +124,17 @@ const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsPage"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
-// Declutter (docs/specs/declutter-auctions.md): each page renders the 404
-// unless the hidden 'declutter' switch is on for the member (DeclutterGate).
+// Hidden-switch sections (Declutter, Quotes on jobs, Shops; docs/specs/): each page renders
+// the 404 unless its switch is on for the member (DeclutterGate, QuotesGate, ShopsGate).
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
-// Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden
-// 'quotes' switch is on for the member (QuotesGate).
 const QuotesPage = lazyWithPreload(() => import("./pages/quotes/QuotesPage"));
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
 const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage"));
+const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
+const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
+const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
 
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
@@ -149,8 +148,6 @@ const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
-
-
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
@@ -251,6 +248,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/quotes" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuotesPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

@@ -50,6 +50,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "job-photos", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "job-photos", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
   { table: "job_quotes", column: "photo_paths", array: true, bucket: "job-photos", writer: "src/lib/quotes/api.ts uploadQuotePhoto (path <uid>/quotes/<file>; submit_job_quote refuses a path outside the quoter's own folder)" },
+  { table: "shop_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/api.ts addShopPhoto -> shops_attach_photo RPC (path <uid>/shops/<file>)" },
 ];
 
 /**
@@ -66,6 +67,7 @@ export const NOT_STORAGE_COLUMNS = {
   "jobs.require_photo_proof": "a boolean setting",
   "platform_settings.social_webhook_url": "an outbound webhook endpoint",
   "profiles.hourly_rate": "a number ('hourly' contains 'url')",
+  "shop_photos.photo_kind": "which slot the photo fills: 'logo', 'cover' or 'gallery' (a CHECK enum)",
   "str_calendar_connections.ical_url": "an external iCal feed URL",
 };
 

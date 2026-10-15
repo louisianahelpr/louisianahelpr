@@ -681,7 +681,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
               label="Only Saved Jobs"
               hint={
                 <p className="text-ds-11 text-muted-foreground leading-snug">
-                  {savedCount > 0 ? `${savedCount} saved` : "You haven't saved any yet"}
+                  {savedCount > 0 ? `${savedCount} saved` : "None open right now"}
                 </p>
               }
               checked={savedOnly}

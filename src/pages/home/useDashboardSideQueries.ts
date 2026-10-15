@@ -121,6 +121,7 @@ export function useDashboardSideQueries({ userId, allJobs }: UseDashboardSideQue
       failed: savedJobsError && savedJobsData === undefined,
       onRetry: () => { void refetchSavedJobs(); },
       retrying: savedJobsFetching === true,
+      total: savedJobIds.size,
     },
     setSavedJobIds,
     dismissedJobIds,

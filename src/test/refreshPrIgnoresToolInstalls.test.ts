@@ -1,7 +1,8 @@
 // @mutate .gitignore | /vendor/bundle/ | /vendor/bundle-off/
 // @mutate .gitignore | /.bundle/ | /.bundle-off/
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { parse } from "yaml";

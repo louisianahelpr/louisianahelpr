@@ -3818,6 +3818,31 @@ html.senior-mode .job-meta-row {
   row-gap: 0.25rem;
 }
 
+/* The job-card TITLE grows with the rungs above (Q1661). The ds rungs stop at
+   ds-15 so headings do not wrap at 375, but a job card's title is
+   `--headline-card` (15.2px at 375) while its own meta line grows 11 -> 14px,
+   so at the Senior rung the title ended up barely larger than the line under it
+   (measured on the iOS simulator at accessibility-XXXL, 2026-10-11). The title
+   takes the same ~1.25x the small rungs take (11 -> 14, 12 -> 15, 13 -> 16),
+   which keeps it the biggest text on the card; it is prose, so it also opts
+   into `.senior-clamp-2` and wraps to two lines instead of losing more of
+   itself to the ellipsis. `job-card-title` is on the three job-card titles
+   only (JobCardTitleBar, Browse's JobCard, the Schedule card); other
+   `--headline-card` sites are section headings and keep the token.
+   Guard: src/test/jobCardTitleFollowsSeniorScale.test.ts. */
+html.senior-mode .job-card-title {
+  font-size: calc(var(--headline-card) * 1.25);
+  line-height: 1.3;
+}
+/* The corner category tab is a one-line `leading-none` label, but the senior
+   rung restates `.text-ds-10` with `line-height: 1.45 !important`, which made
+   the tab ~28px tall over a title bar that clears 24px (`pt-6`): measured on
+   prod /posts at 375, the "Cleaning" tab sat on the title's top edge. The tab
+   keeps its own leading at every rung; its text still grows 10 -> 13px. */
+html.senior-mode .job-category-tab {
+  line-height: 1 !important;
+}
+
 /* ── The OS asks; the app answers ─────────────────────────────────────────
    iOS exposes three accessibility settings this app already had the CSS for
    and simply never listened to. Every accommodation below is the SAME

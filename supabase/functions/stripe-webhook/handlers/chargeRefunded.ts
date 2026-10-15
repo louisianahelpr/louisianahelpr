@@ -526,6 +526,8 @@ export async function handleChargeRefunded(
         method,
         extra: r.id === latestRefund?.id ? noticeExtra : null,
         loadMetadata,
+        // Q1761: sandbox money is told only to a test account.
+        testMode: event.livemode === false,
       });
       // in_flight: another sender is writing it now. duplicate / dropped:
       // done. failed: nothing was written and the claim was given back; it is

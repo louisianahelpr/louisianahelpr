@@ -85,7 +85,7 @@ import { refundToPayerCents } from "../_shared/refundAmount.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 /**
  * The client type these helpers accept.
@@ -511,9 +511,11 @@ serve(async (req) => {
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
     { global: { fetch: boundedFetch() } },
   );
-  // Stripe mode (owner 2026-10-12): every series and visit row is charged,
-  // expired and refunded on the key of its series' own mode (test accounts on
-  // the test key); one mixing test and real accounts is skipped as a defect.
+  // Stripe mode (owner 2026-10-12): NEW money (a series charge, a visit
+  // Checkout) runs on the key of its series' own mode (test accounts on the
+  // test key; a mix is skipped as a defect). Money ALREADY taken (expiring a
+  // visit's open Checkout, refunding a paid visit) runs where it sits: the
+  // visit row's own session prefix, else its payer (Q1759, visitMoneyClient).
   const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
   const today = louisianaToday();
@@ -739,10 +741,30 @@ serve(async (req) => {
       }
     }
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
+    // Q1759 (lh-money-escrow review of the test-mode branch): closing a visit's
+    // open Checkout or refunding a PAID visit moves money ALREADY taken, so it
+    // runs where that money sits: the row's own Checkout Session (cs_test_ /
+    // cs_live_), else its payer alone (a refund needs only the payer). It used
+    // to be decided as NEW money from every party on the series plus the
+    // visit's Helpr, so a real payer's series with a test Helpr on a visit was
+    // skipped as a mix instead of refunded, every run. Sandbox money of a real
+    // payer stays on the live key (the payer alone decides that here, where
+    // jobMoneyMode would count every party on a job; a deleted payer counts as
+    // live): only sandbox money can land on the wrong key, and it is then
+    // skipped as a test object under the live key, never moved.
+    const visitMoneyClient = async (row: Record<string, unknown>) => {
+      const stored = sessionIdMode(row.stripe_session_id as string | null);
+      // A cs_live_ session is real money whoever the payer is: no lookup, so a
+      // failed test-account read never holds back a live refund or expiry.
+      const mode = stored === "live"
+        ? "live"
+        : (await stripes.modeForParties([row.payer_id as string | null])) === "live" ? "live" : stored ?? "test";
+      return { mode, stripe: stripes.clientFor(mode) };
+    };
     for (const row of [...(stale ?? []), ...seriesOverRows]) {
       let stripe: Stripe;
       try {
-        ({ stripe } = await stripes.clientForJob(String(row.parent_job_id), "new", [row.payer_id, row.helper_id]));
+        ({ stripe } = await visitMoneyClient(row));
       } catch (modeErr) {
         if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
         fail(`visit payment ${row.id}: stripe mode ${modeErr.reason}: ${modeErr.message}`);

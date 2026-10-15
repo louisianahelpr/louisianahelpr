@@ -152,6 +152,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/requireConfirmedEmail.ts";`,
   );
 
+  // Hidden feature switch (Declutter): `_shared/featureSwitch.ts` imports only
+  // caughtMessage, so the REAL fail-closed gate serves; the decision itself is
+  // the `feature_enabled_for_user` rpc the scenario answers.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/featureSwitch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/featureSwitch.ts";`,
+  );
+
   // Function-to-function fetch: `_shared/functionFetch.ts` has ZERO imports and
   // calls the global `fetch` at call time, so the real module still hits each
   // test's stubbed fetch while its trace-limit retry stays exercised.

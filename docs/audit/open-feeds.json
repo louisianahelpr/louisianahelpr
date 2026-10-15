@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T04:35Z",
+  "measured_at": "2026-10-15T06:27Z",
   "issues": {
     "readable": true,
     "open": [
@@ -64,7 +64,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38666593316",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38684819715",
         "runTruncated": false
       },
       {
@@ -93,6 +93,13 @@
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38656878328",
+        "runTruncated": false
+      },
+      {
+        "number": 3135,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38684819527",
         "runTruncated": false
       }
     ]
@@ -373,14 +380,6 @@
         "issue": null
       },
       {
-        "fingerprint": "31d4f960f703659ed5212c0369ddde28",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: mapkit falling back to the unrestricted build-time token: fetch is aborted",
-        "issue": null
-      },
-      {
         "fingerprint": "a0597e872e21b8e38a6e743453dbb87a",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
@@ -430,6 +429,7 @@
     "issue #2940": "Q1816",
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
+    "issue #3135": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

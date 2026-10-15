@@ -56,6 +56,7 @@ import { useSaveJob } from "./useSaveJob";
 import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
 import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
+import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
 
 
 const Dashboard = () => {
@@ -166,11 +167,9 @@ const Dashboard = () => {
     // Same rate the feed cards render with (`effectiveFee` below is this
     // value) — the pay sorts have to order by the number on the card.
     effectiveFee: platformFee,
-    // Threaded into the header count so it excludes what the feed hides (B1),
-    // and now into `filteredJobs` itself so the rendered list, the count and
-    // the map are all built from the same exclusions (2026-09-19).
-    appliedJobIds, blockedUserIds,
-    dismissedJobIds,
+    // Threaded into the header count so it excludes what the feed hides (B1), and into `filteredJobs`
+    // so the list, the count and the map share the exclusions (2026-09-19); savedJobIds: the bookmark count (Q1739).
+    appliedJobIds, blockedUserIds, dismissedJobIds, savedJobIds,
     savedOnlyJobIds: exclusions.savedOnlyJobIds,
   });
 
@@ -182,6 +181,7 @@ const Dashboard = () => {
     listedCount: filters.filteredJobs.length,
     listComplete: !hasNextPage,
   });
+  useSavedOnlyPaging({ savedOnly, listedCount: filters.filteredJobs.length, serverCount: filters.totalMatchingCount, hasNextPage, isFetchingNextPage, fetchNextPage });
 
   // The greeting card's "stat of the day" line was removed — it added a
   // third line to the title card and pushed the job feed down. The
@@ -464,7 +464,7 @@ const Dashboard = () => {
                 filtersButtonRef={filtersButtonRef}
                 savedOnly={savedOnly}
                 onToggleSavedOnly={toggleSavedOnly}
-                savedCount={savedJobIds.size}
+                savedCount={filters.savedShownCount ?? 0}
                 // Phone + native: emblem, search, filter, bell. Search is no
                 // longer folded into the sheet — the row this cluster has to
                 // fit is nothing like the five-control row that argument was
@@ -620,7 +620,7 @@ const Dashboard = () => {
                           filtersButtonRef={filtersButtonRef}
                           savedOnly={savedOnly}
                           onToggleSavedOnly={toggleSavedOnly}
-                          savedCount={savedJobIds.size}
+                          savedCount={filters.savedShownCount ?? 0}
                         />
                         {/* Show / hide the map column. It sits with search
                             and filters because it is the same kind of
@@ -673,7 +673,7 @@ const Dashboard = () => {
                     // buildJobFilterSections, not from this flag.
                     savedOnly={savedOnly}
                     onToggleSavedOnly={toggleSavedOnly}
-                    savedCount={savedJobIds.size}
+                    savedCount={filters.savedShownCount ?? 0}
                     onClearAllFilters={() => {
                       // After clearing filters, snap the feed back to the top
                       // so the user lands on the fresh unfiltered head of the

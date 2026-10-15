@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LIVE (docs/OPEN.md "auth-captcha-matches-client"): Supabase Auth's captcha
+ * LIVE (docs/OPEN.md item "captcha switch matches what the deployed clients send"): Supabase Auth's captcha
  * switch agrees with the deployed web build.
  *
  * Reads GET /v1/projects/{ref}/config/auth (security_captcha_enabled,
@@ -104,7 +104,7 @@ console.log(`read ${seen.size} chunk(s); Turnstile loader in ${loaderChunk.path}
 console.log(`auth config: security_captcha_enabled=${config.security_captcha_enabled} provider=${config.security_captcha_provider ?? "(none)"}`);
 if (!verdict.ok) {
   console.log(`FAIL ${verdict.detail}`);
-  console.error(`::error::auth captcha and the deployed web build disagree: ${verdict.detail}. docs/OPEN.md "auth-captcha-matches-client".`);
+  console.error(`::error::auth captcha and the deployed web build disagree: ${verdict.detail}. docs/OPEN.md item "captcha switch matches what the deployed clients send".`);
   process.exit(1);
 }
 console.log(`OK: ${verdict.detail}.`);

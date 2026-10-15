@@ -251,25 +251,42 @@ const PaymentSuccess = () => {
   const fireReturnEvents = useCallback(() => {
     if (returnEventsFired.current) return;
     returnEventsFired.current = true;
-    const jobId = searchParams.get("job_id") || null;
+    // OPEN.md "payment-made-bare-visit": only a checkout RETURN counts, and
+    // every one names its job in the link (create-payment's success_url and
+    // its gift-covered return are both `/payment-success?job_id=<id>`). A
+    // visit without a well-formed job_id in the URL (a bookmark, the browser
+    // history, a robot, or the stored last-posted fallback above) is not a
+    // payment: measured 2026-10-15, such visits were 2378 of 2487
+    // payment_made rows.
+    const urlJobId = searchParams.get("job_id");
+    if (!urlJobId || !UUID_RE.test(urlJobId)) return;
+    const jobId = urlJobId;
     const ppoProps = ppoTrackingProps();
     // Funnel: customer returned from checkout — closes the customer funnel
     // that previously stopped at job_posted with no record of payment.
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
 
-    // First-payment aha — fire only when this is the user's first
-    // successful payment. Mirrors the count-query pattern from
-    // first_job_posted / first_job_application_sent.
+    // First-payment aha. OPEN.md "first-payment-zero-paid": it used to fire
+    // whenever the paid-job count was `<= 1`, so a poster with NO paid job
+    // (and every visit of a poster with one) counted as a first payment, and
+    // a failed count read (count null) did too. Now: the poster's paid jobs
+    // must be exactly ONE and it must be THIS job; an unreadable read fires
+    // nothing (we do not know it is the first).
     void (async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { count } = await supabase
+        const { data: paid, error: paidError } = await supabase
           .from("jobs")
-          .select("id", { count: "exact", head: true })
+          .select("id")
           .eq("customer_id", user.id)
-          .not("stripe_payment_intent_id", "is", null);
-        if ((count ?? 0) <= 1) {
+          .not("stripe_payment_intent_id", "is", null)
+          .limit(2);
+        if (paidError) {
+          report(paidError, { tags: { source: "PaymentSuccess.firstPaymentCount" } });
+          return;
+        }
+        if (paid?.length === 1 && paid[0].id === jobId) {
           track(AhaEvent.FirstPaymentCollected, { job_id: jobId, ...ppoProps });
         }
       } catch (e) {

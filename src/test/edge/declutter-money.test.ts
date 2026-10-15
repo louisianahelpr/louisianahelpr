@@ -19,6 +19,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |   const refused = verifyCronSecret(req);\n  if (refused) return refused; |
  * @mutate supabase/functions/declutter-money/index.ts |             destination: p.stripe_account_id,\n            transfer_group: group, |             destination: p.stripe_account_id,
  * @mutate supabase/functions/declutter-money/index.ts |   if (p.attempts + 1 < 12) return; |   return;
+ * @mutate supabase/functions/declutter-money/index.ts |   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`); |   if (gaveUp.error) void 0;
+ * @mutate supabase/functions/declutter-money/index.ts |   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`); |   if (gaveUp.error) return cronError(FN, `declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
  * @mutate supabase/functions/declutter-money/index.ts |       defects.record(`payout ${p.payout_id}: ${msg}`.slice(0, 200)); |
  * @mutate supabase/functions/declutter-money/index.ts |       const existing = mine.find((x) => tookIt(x.status)); |       const existing = mine[0];
  * @mutate supabase/functions/declutter-money/index.ts |         if (pi.status !== "succeeded" \|\| !ch \|\| ch.amount_refunded > 0 \|\| ch.disputed) { |         if (false) {
@@ -26,6 +28,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |     if (!hasParties) return null; |
  * @mutate supabase/functions/declutter-money/index.ts |         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`); |
  * @mutate supabase/functions/declutter-money/index.ts |     const byPage = sessionIdMode(r.checkout_session_id); |     const byPage = null;
+ * @mutate supabase/functions/declutter-money/index.ts |   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {}); |   const gaveUp = { error: null, data: 0 };
+ * @mutate supabase/functions/declutter-money/index.ts |     message: /charge is not whole/.test(why) |     message: false
  * @mutate supabase/functions/declutter-money/index.ts |     if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`); |
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -280,6 +284,46 @@ describe("declutter-money: refund retry and reconcile (3b money review #7, B57)"
     expect(stripeMock.refunds.list).not.toHaveBeenCalled();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(body.refunds_failed).toBe(1);
+  });
+
+  // lh-money-escrow should-fix (a): every run asks the SQL to raise the gave-up alert (ops ledger, once a day per
+  // row) and tell the buyer once, even on a run with nothing due; a failed check is a defect, never a 500.
+  // lh-money-escrow review of lane J, should-fix 3: a payout over a refunded charge is never "pay it by hand".
+  it("a payout that gave up because the charge was refunded says do NOT pay by hand", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 500, disputed: false },
+    });
+    await run({ payouts: [{
+      payout_id: "po-last", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER, amount_cents: 4000,
+      stripe_account_id: "acct_seller1", payment_intent_id: "pi_order1", attempts: 11,
+    }] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    const page = slackAlerts.find((a: any) => /gave up/.test(a.title)) as any;
+    expect(page?.message).toMatch(/Do NOT pay the seller by hand/);
+    expect(page?.message).not.toMatch(/\. Pay it by hand\./);
+  });
+
+  it("every run asks for the gave-up refunds alert, even with nothing due", async () => {
+    scenario.rpc.declutter_refund_gave_up_check = 2;
+    const { status, body } = await run();
+    expect(status).toBe(200);
+    expect((scenario.rpcCalls ?? []).filter((c) => c.name === "declutter_refund_gave_up_check")).toHaveLength(1);
+    expect(JSON.stringify(body)).toMatch(/"refunds_gave_up":2/);
+  });
+  it("a failed gave-up check is reported as a defect and still moves the money that is due", async () => {
+    scenario.rpcErrors = { declutter_refund_gave_up_check: { message: "boom" } };
+    const { status, body } = await run({ refunds: [{
+      refund_id: "rf-g", reason: "superseded", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER,
+      payment_intent_id: "pi_order1", refund_cents: 4600, attempts: 0, livemode: true, checkout_session_id: "cs_live_x",
+    }] });
+    // A defect answers 500 by the cron-result convention (_shared/cron-result.ts: the
+    // watcher pages on non-2xx); the money that is due still moves in the same run.
+    expect(status).toBe(500);
+    expect(body.defects).toBeGreaterThan(0);
+    expect(JSON.stringify(body.defectReasons)).toMatch(/declutter_refund_gave_up_check failed: boom/);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(body.refunds_sent).toBe(1);
+    expect(rpcs("declutter_refund_executed").map((c) => (c.args as { p_succeeded?: boolean }).p_succeeded)).toEqual([true]);
   });
 
   it("nothing due: a clean, quiet run", async () => {

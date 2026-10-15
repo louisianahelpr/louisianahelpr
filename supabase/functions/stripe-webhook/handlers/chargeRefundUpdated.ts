@@ -6,6 +6,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { pageVisitTaxForFailedRefund } from "./_visitTaxReversal.ts";
+import { handleDeclutterHandRefundFailed } from "./declutterCheckout.ts";
 
 /**
  * charge.refund.updated (Q1325 (a); owner approved the subscription
@@ -67,6 +68,9 @@ export async function handleChargeRefundUpdated(
     });
     return;
   }
+
+  // A Declutter refund made by hand in the Dashboard carries no kind: if we recorded it, its row reopens.
+  if (await handleDeclutterHandRefundFailed(refund, { supabase })) return;
 
   const { data: removed, error: delErr } = await supabase
     .from("payment_refunds")

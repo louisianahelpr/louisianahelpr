@@ -1,3 +1,6 @@
+// @mutate supabase/functions/verify-apple-iap/index.ts | if (!reviewer) { | if (false) {
+// @mutate supabase/functions/verify-apple-iap/index.ts | if (enrolledErr \|\| !enrolled) return false; | if (enrolledErr) return false;
+// @mutate supabase/functions/verify-apple-iap/index.ts | return (prof as { is_seed?: boolean }).is_seed === true; | return true;
 /**
  * verify-apple-iap — executed, because a grep cannot prove a grant happened.
  *
@@ -159,6 +162,63 @@ describe("MS-4 · a SANDBOX transaction never grants in production", () => {
     const res = await post({ transactionId: TX });
     expect(res.status).toBe(200);
     expect((await res.json()).tier).toBe("plus");
+  });
+});
+
+// Q1794 (lh-compliance-store@c16b0f0dc#1): App Review buys with SANDBOX Apple
+// IDs on the production build. A sandbox purchase is accepted ONLY for a test
+// account (a test_accounts row AND profiles.is_seed); everyone else is refused.
+describe("Q1794 · a SANDBOX transaction grants only for a test account (App Review)", () => {
+  const profile = (isSeed: boolean) => ({
+    user_id: USER.id, is_seed: isSeed, subscription_tier: null, subscription_source: null, stripe_subscription_id: null,
+  });
+
+  it("grants a Sandbox purchase to an enrolled, is_seed test account (the App Review account)", async () => {
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.test_accounts = { rows: [{ user_id: USER.id }] };
+    scenario.reads.profiles = { rows: [profile(true)] };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(200);
+    expect((await res.json()).tier).toBe("plus");
+  });
+
+  it("refuses a Sandbox purchase from an account not in test_accounts, and writes nothing", async () => {
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.reads.profiles = { rows: [profile(true)] };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(400);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
+  });
+
+  it("fails closed: a test_accounts read error refuses the Sandbox purchase", async () => {
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.test_accounts = { error: { message: "boom" } };
+    scenario.reads.profiles = { rows: [profile(true)] };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(400);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
+  });
+
+  it("fails closed: a profiles.is_seed read error refuses the Sandbox purchase", async () => {
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.test_accounts = { rows: [{ user_id: USER.id }] };
+    scenario.reads.profiles = {
+      rows: [profile(true)],
+      selectOverrides: [{ includes: "is_seed", result: { error: { message: "boom" } } }],
+    };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(400);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
+  });
+
+  it("refuses a Sandbox purchase from an enrolled account that is not is_seed", async () => {
+    appleReturns(baseTx({ environment: "Sandbox" }));
+    scenario.reads.test_accounts = { rows: [{ user_id: USER.id }] };
+    scenario.reads.profiles = { rows: [profile(false)] };
+    const res = await post({ transactionId: TX });
+    expect(res.status).toBe(400);
+    expect((scenario.writes ?? []).filter((w) => w.table === "profiles")).toHaveLength(0);
   });
 });
 

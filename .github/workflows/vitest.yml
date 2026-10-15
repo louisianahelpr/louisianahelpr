@@ -146,7 +146,11 @@ jobs:
     # and the floor step fails closed when the summary is missing.
     name: Coverage floor
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # 45, was 35 (2026-10-15). Measured test step: 1673 s on main run
+    # 38655704203 (job 28.3 min), 2050 s on run 38669954504 (job 34.6 min of
+    # 35). Main's red run 38659872759 also ran 34.6 min before its heap crash.
+    # One slow runner from a cancelled, never-green floor; the suite grows.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout

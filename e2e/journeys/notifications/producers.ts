@@ -193,7 +193,6 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "edge:create-notification": { driven: { spec: NOTIF, evidence: 'template: "test"' } },
   "edge:create-payment": { driven: { spec: MONEY, evidence: '"Refund issued: $*"' } },
-  "edge:daily-match-digest": { uncovered: SCHEDULED_EDGE },
   "edge:execute-dispute-split": { uncovered: DISPUTE },
   "edge:expire-subscriptions": { uncovered: SCHEDULED_EDGE },
   "edge:expiring-jobs-push": { uncovered: SCHEDULED_EDGE },

@@ -21,11 +21,15 @@
  * The probes need ~/.lh-pglite and run by hand:
  *   node src/test/pglite/autoStartDueJobsClock.pglite.mjs   (25 PASS; RED with
  *   AUTO_START_AS_UTC=1: 9 FAILED)
+ *   node src/test/pglite/opsMonitorWindowsClock.pglite.mjs   (ALL PASS; RED with
+ *   OPS_MONITOR_EDGES_MOVED=1: 8 FAILED, measured 2026-10-15)
  */
 // @mutate src/test/clockFunctionsProven.test.ts |   auto_start_due_jobs: "autoStartDueJobsClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/autoStartDueJobsClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
 // @mutate src/test/pglite/pruneRetentionClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
 // @mutate src/test/clockFunctionsProven.test.ts |   start_underfilled_crews: "startUnderfilledCrewsClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   check_db_saturation: "opsMonitorWindowsClock.pglite.mjs",\n | \n
+// @mutate src/test/pglite/opsMonitorWindowsClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -57,6 +61,9 @@ const PROVEN: Record<string, string> = {
   check_push_token_health: "monitorWindowsClock.pglite.mjs",
   send_ops_daily_digest: "monitorWindowsClock.pglite.mjs",
   detect_suspicious_user_patterns: "suspiciousPatternsClock.pglite.mjs",
+  check_ops_alert_pending: "opsMonitorWindowsClock.pglite.mjs",
+  check_user_reports_reach_ledger: "opsMonitorWindowsClock.pglite.mjs",
+  check_db_saturation: "opsMonitorWindowsClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -64,10 +71,7 @@ const PROVEN: Record<string, string> = {
 const NOT_PROVEN: Record<string, string> = {
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
   check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
-  check_db_saturation: "named by dbSaturation.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
-  check_ops_alert_pending: "named by opsAlertPendingWatchdog.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
   check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",
-  check_user_reports_reach_ledger: "named by userReportsReachTheLedgerCheck.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge",
   declutter_deadline_sweep: "named by declutterSlice3.pglite.mjs (it moves row timestamps, not the clock); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Declutter slice 3, 2026-10-14).",
   declutter_handover_sweep: "named by declutterSlice4.pglite.mjs (it moves slot_start / created_at, not the clock: the 24 h auto-pay and the 7-day cancel); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Declutter slice 4, 2026-10-15).",
   declutter_price_drop_sweep: "named by declutterSlice3.pglite.mjs (it moves last_price_drop_on / live_at, not the clock); no probe runs it on fixedClock.mjs across a Louisiana midnight (2026-10-14).",

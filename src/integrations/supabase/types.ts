@@ -1443,6 +1443,7 @@ export type Database = {
           close_reason: string | null
           closed_at: string | null
           created_at: string
+          fee_rule: string
           handover: string
           id: string
           is_seed: boolean
@@ -1463,6 +1464,7 @@ export type Database = {
           close_reason?: string | null
           closed_at?: string | null
           created_at?: string
+          fee_rule?: string
           handover: string
           id?: string
           is_seed?: boolean
@@ -1483,6 +1485,7 @@ export type Database = {
           close_reason?: string | null
           closed_at?: string | null
           created_at?: string
+          fee_rule?: string
           handover?: string
           id?: string
           is_seed?: boolean
@@ -8015,6 +8018,7 @@ export type Database = {
         Args: { p_expected_price_cents: number; p_item_id: string }
         Returns: string
       }
+      declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
       declutter_cancelled_sale_session: { Args: { p_item_id: string; p_seller: string }; Returns: string }
       declutter_card_fee_estimate: { Args: { p_amount_cents: number }; Returns: number }
       declutter_consume_fee_debt: {

@@ -114,6 +114,19 @@ CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
+-- job_announceable_to (newest body) also reads these: Q1401's cutoff and Q1411's ban review queue.
+CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
+CREATE FUNCTION public.job_offer_cutoff(p_date date, p_start time) RETURNS timestamptz LANGUAGE sql STABLE
+  AS $$ SELECT (p_date + coalesce(p_start, '00:00'::time))::timestamptz $$;
+-- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's
+-- 'declutter' fixture step inserts an item, a cart line and a window).
+CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text, title text, category text,
+  condition_stars smallint, delivery_size text, price_cents integer, current_price_cents integer, area_label text,
+  area_lat numeric, area_lng numeric);
+CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
+  seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
+CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
+  weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
@@ -133,7 +146,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
-  "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for"];
+  "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
+  "declutter_in_agreed_sale", "declutter_slot_in_windows"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

@@ -68,6 +68,9 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),
   ('declutter_member_out',          'deny',     'TRUE = banned or 3 Declutter strikes: the trade is refused (20261014210518)'),
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
+  ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
+  ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
+  ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_retire_order',        'deny',     'TRUE = the order was retired (its Stripe page timed out); service only, a NULL argument matches no order and answers FALSE (20261014224914)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
@@ -131,7 +134,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);
--- R a completed, released job A may review.
+-- R a completed, released job A may review; I a Declutter item (seller A) in B's cart.
 CREATE TEMP TABLE q140_case (fn text NOT NULL, sub uuid, args text[] NOT NULL, null_at int[] NOT NULL) ON COMMIT DROP;
 INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('can_message_in_job',            NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
@@ -165,7 +168,11 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A posts J, so A (the caller) is a party to it as a series (the poster branch).
-  ('is_series_party',               '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]);
+  ('is_series_party',               '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
+  -- B has Declutter item I (seller A) in the cart (the 'declutter' fixture step), so the non-NULL call is TRUE.
+  ('declutter_in_agreed_sale',      NULL, ARRAY['''00000000-0000-4000-8140-000000000301''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
+  -- A's Monday window is 09:00-18:00 Louisiana time; 20:00Z on Monday 2026-10-19 is 15:00 CDT, inside it.
+  ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]);
 
 DO $q140$
 DECLARE
@@ -188,14 +195,15 @@ BEGIN
   -- the ROLLBACK at the end restores them). Measured in db-smoke 35862895416:
   -- with triggers on, the admin-role guard refuses a non-service_role grant and
   -- the application notifier's pg_net call dies on a NULL url.
-  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers'] LOOP
+  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
+                              'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -226,6 +234,20 @@ BEGIN
           EXECUTE $q$INSERT INTO public.job_detail_change_requests (id, job_id, requested_by, changed_fields, expires_at)
                    VALUES ('00000000-0000-4000-8140-000000000201', '00000000-0000-4000-8140-000000000101',
                            '00000000-0000-4000-8140-00000000000a', '{title}', now() + interval '1 day')$q$;
+        END IF;
+      WHEN 'declutter' THEN
+        -- Declutter item I (seller A, a draft is enough) in B's cart, and A's Monday pickup window
+        -- (to_regclass: before 20261014193955 there are no Declutter tables).
+        IF to_regclass('public.declutter_cart_items') IS NOT NULL AND to_regclass('public.declutter_pickup_windows') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_items (id, seller_id, status, title, category, condition_stars, delivery_size,
+                                                        price_cents, current_price_cents, area_label, area_lat, area_lng)
+                   VALUES ('00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000a', 'draft', '[q140] lamp',
+                           'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
+          EXECUTE $q$INSERT INTO public.declutter_cart_items (item_id, buyer_id, seller_id, price_cents, source, status, checkout_by)
+                   VALUES ('00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 1000, 'buy', 'in_cart', now() + interval '1 day')$q$;
+          EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
+                   VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
         END IF;
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;

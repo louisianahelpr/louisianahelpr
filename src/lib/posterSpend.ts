@@ -47,8 +47,9 @@ import { cardCostFeeCents } from "@/lib/refundAmount";
  *    refund row, cancellation_fee_status 'charged'): that job counts its
  *    cancellation_fee, capped at the charge (since Q1345 the cron stamps
  *    the cancellation fee it captured there; older rows carry the
- *    client-written figure; a crew's block fees captured with it are not
- *    counted yet, Q1663).
+ *    client-written figure), PLUS the crew block fees captured with it
+ *    (Q1736: every crew_block_fees row but a void one, read through
+ *    poster_crew_block_fee_cents, the sum the capture used).
  *  - A 'refunded' status with no ledger rows and no charged cancellation fee
  *    counts $0: the status is the stronger claim that the money went back.
  *  - A card chargeback: payment_status 'chargeback' counts $0 — the poster's
@@ -93,6 +94,12 @@ export interface PosterRefundRow {
   source?: string | null;
 }
 
+/** One of the poster's jobs and the crew block fees owed on it (poster_crew_block_fee_cents, Q1736). */
+export interface PosterBlockFeeRow {
+  job_id: string;
+  fee_cents: number;
+}
+
 export interface PosterGiftRow {
   job_id: string | null;
   amount: number;
@@ -110,7 +117,7 @@ export interface PosterTipRow {
 const cents = (dollars: number) => Math.round(dollars * 100);
 
 /** Card cents the poster kept paying for one job's own charge (0 when nothing was spent). */
-export function posterSpentCents(job: PosterSpendJob, refundedCents: number, giftDollars: number): number {
+export function posterSpentCents(job: PosterSpendJob, refundedCents: number, giftDollars: number, blockFeeCents = 0): number {
   if (!job.stripe_payment_intent_id) return 0;
   // 'cancelled' with a PaymentIntent is either cancel_escrow's refunded capture
   // (a refund row; what was withheld is spent) or a hold that was never
@@ -122,9 +129,10 @@ export function posterSpentCents(job: PosterSpendJob, refundedCents: number, gif
   const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars)));
   const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents);
   if (job.payment_status === "refunded" && refundedCents <= 0) {
-    // Uncaptured-hold cancellation: only the fee was captured, nothing refunded.
+    // Uncaptured-hold cancellation: only the fees were captured, nothing
+    // refunded: the cancellation fee and the crew's block fees (Q1736).
     if (job.cancellation_fee_status === "charged") {
-      return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)));
+      return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) || 0));
     }
     return 0;
   }
@@ -164,7 +172,10 @@ export function spentRows<J extends PosterSpendJob>(
   refunds: readonly PosterRefundRow[],
   gifts: readonly PosterGiftRow[],
   tips: readonly PosterTipRow[] = [],
+  blockFees: readonly PosterBlockFeeRow[] = [],
 ): SpentRow<J>[] {
+  const blockFeeByJob = new Map<string, number>();
+  for (const b of blockFees) if (b.job_id) blockFeeByJob.set(b.job_id, (blockFeeByJob.get(b.job_id) ?? 0) + (Number(b.fee_cents) || 0));
   const refundedByPi = new Map<string, number>();
   for (const r of refunds) {
     if (r.stripe_payment_intent_id) refundedByPi.set(r.stripe_payment_intent_id, (refundedByPi.get(r.stripe_payment_intent_id) ?? 0) + (r.amount_cents ?? 0));
@@ -195,7 +206,7 @@ export function spentRows<J extends PosterSpendJob>(
   const rows: SpentRow<J>[] = [];
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
-    const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0) + tipCents;
+    const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents;
     if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
   }
   for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false });

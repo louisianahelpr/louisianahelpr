@@ -89,7 +89,7 @@ function rewriteExternalImports(src: string): string {
   // supabase-js via esm.sh: `import { createClient } from
   // "https://esm.sh/@supabase/supabase-js@2"` (also `@2.99.0`). Functions are
   // split roughly half and half between this form and the `npm:` form above —
-  // verification-webhook and daily-match-digest use esm.sh — and without this
+  // verification-webhook uses esm.sh (daily-match-digest did, until Q1657) — and without this
   // rule their `createClient` resolved to the REAL library, which then tried to
   // reach the network instead of the in-memory table store.
   out = out.replace(

@@ -28,16 +28,16 @@
  *   - the early-access tier ladder has ONE definition, early_access_delay_minutes,
  *     which both the feed cutoff and the alert delay read.
  *
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR v_job.customer_id IS NULL\n |
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |      OR v_job.customer_id IS NULL\n |
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;\n      IF public.deliver |      IF public.deliver
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id\n     LIMIT 1000\n       FOR UPDATE OF q SKIP LOCKED | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id\n     LIMIT 1000\n       FOR UPDATE OF q
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.id
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   SELECT now() - make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid()))); |   SELECT now() - make_interval(mins => 20 - COALESCE((SELECT CASE WHEN p.subscription_tier = 'elite' THEN 20 WHEN p.subscription_tier = 'plus' THEN 15 WHEN p.subscription_tier = 'pro' THEN 10 WHEN p.subscription_tier = 'basic' THEN 5 ELSE 0 END FROM public.profiles p WHERE p.user_id = (SELECT auth.uid())), 0));
- * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |          FOR UPDATE\n    ) x; |     ) x;
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |          FOR UPDATE\n    ) x; |     ) x;
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       WHEN OTHERS THEN\n        -- One row |       WHEN division_by_zero THEN\n        -- One row
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | REVOKE ALL ON TABLE public.saved_search_alert_queue FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.saved_search_alert_queue TO authenticated;
  */
@@ -82,7 +82,7 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     expect(bodies.size).toBeGreaterThan(300);
   });
 
-  it("the trigger never sends and never locks: every non-digest match is queued (it runs inside the funding write)", () => {
+  it("the trigger never sends and never locks: every match is queued (it runs inside the funding write; the digest is retired, Q1657)", () => {
     const { file, body } = get("notify_saved_searches_on_new_job");
     const b = ws(body);
     expect(b, file).not.toMatch(/deliver_saved_search_alert/i);
@@ -100,7 +100,8 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     const b = ws(body);
     const refuse = b.indexOf("IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN RETURN false;");
     expect(refuse, `${file}: no visibility refusal`).toBeGreaterThan(0);
-    for (const write of ["UPDATE public.saved_searches", "INSERT INTO public.notifications", "net.http_post", "INSERT INTO public.match_digest_queue"]) {
+    // (INSERT INTO public.match_digest_queue left with the digest, Q1657.)
+    for (const write of ["UPDATE public.saved_searches", "INSERT INTO public.notifications", "net.http_post"]) {
       expect(b.indexOf(write), `${file}: ${write} missing`).toBeGreaterThan(0);
       expect(b.indexOf(write), `${file}: ${write} before the visibility refusal`).toBeGreaterThan(refuse);
     }

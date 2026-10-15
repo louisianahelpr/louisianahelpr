@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T20:32Z",
+  "measured_at": "2026-10-15T20:38Z",
   "issues": {
     "readable": true,
     "open": [
@@ -96,13 +96,6 @@
         "runTruncated": false
       },
       {
-        "number": 3153,
-        "title": "nightly-red: core-loop-canary",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38776899703",
-        "runTruncated": false
-      },
-      {
         "number": 3154,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
@@ -187,6 +180,14 @@
         "issue": 2244
       },
       {
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-drift-detect",
+        "issue": 3154
+      },
+      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -240,7 +241,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 3153
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -436,7 +437,6 @@
     "issue #2940": "Q1816",
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
-    "issue #3153": "Q1816",
     "issue #3154": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
@@ -478,6 +478,7 @@
     "ledger 779af65c258e": "Q1596",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
+    "ledger 8018e82cb167": "Q1816",
     "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 87d1722faa1d": "Q1596",

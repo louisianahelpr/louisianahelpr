@@ -46,8 +46,9 @@ serve(async (req) => {
 
     // Roadmap F4 (owner 2026-10-14/15): memberships are OFF. A new membership
     // checkout is refused unless the hidden "memberships" switch is on for
-    // this caller (off for everyone; only an admin flip in Settings turns it
-    // back on). The app hides every upgrade entry point behind the same
+    // this caller (created at testers: test accounts incl. the App Review
+    // account keep it, every member is off; only an admin flip in Settings
+    // widens it). The app hides every upgrade entry point behind the same
     // switch; this is the protection, the hidden button is not. Asked with
     // the service role (feature_enabled_for_user is service_role only), for
     // the VERIFIED user, before any Stripe call.

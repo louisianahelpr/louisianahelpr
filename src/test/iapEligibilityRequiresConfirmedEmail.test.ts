@@ -10,9 +10,16 @@
  * on allowed === false and show the reason. Behaviour:
  * src/test/pglite/iapEligibilityRequiresConfirmedEmail.pglite.mjs (2 FAILED on
  * the live body, ALL PASS applied 3x).
+ *
+ * Roadmap F4/F4a (20261015073024): the same function refuses, FIRST, anyone
+ * the 'memberships' switch is off for (code memberships_off). Build 7119's
+ * Apple path cannot change, and this is the only stop before Apple charges.
+ * Behaviour: src/test/pglite/iapEligibilityMembershipsOff.pglite.mjs (5 FAILED
+ * on the previous body, ALL PASS applied 3x).
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261005065813_iap_eligibility_requires_confirmed_email.sql |   IF public.session_email_unconfirmed() THEN |   IF false THEN
+// @mutate supabase/migrations/20261015073024_subscription_eligibility_memberships_off.sql |   IF public.session_email_unconfirmed() THEN |   IF false THEN
+// @mutate supabase/migrations/20261015073024_subscription_eligibility_memberships_off.sql |   IF NOT public.feature_enabled_for_user('memberships', v_user) THEN |   IF false THEN
 // @mutate src/lib/iap.ts |   if (verdict && verdict.allowed === false) { |   if (verdict && verdict.allowed === false && false) {
 // @mutate supabase/functions/create-pro-checkout/index.ts |     if (verdict && verdict.allowed === false) { |     if (verdict && verdict.allowed === false && false) {
 import { describe, expect, it } from "vitest";
@@ -30,6 +37,13 @@ describe("Q1200: subscription eligibility refuses an unconfirmed-email session",
     const tiers = body.indexOf("SELECT subscription_tier");
     expect(gate, "the unconfirmed-email refusal is missing").toBeGreaterThan(-1);
     expect(tiers).toBeGreaterThan(gate);
+  });
+
+  it("F4/F4a: the newest definition refuses memberships_off before the email and tier logic", () => {
+    const gate = body.search(/IF NOT public\.feature_enabled_for_user\('memberships', v_user\) THEN RETURN jsonb_build_object\( 'allowed', false, 'code', 'memberships_off', 'reason', '[^']{20,}'\); END IF;/);
+    expect(gate, "the memberships_off refusal is missing").toBeGreaterThan(-1);
+    expect(body.indexOf("IF public.session_email_unconfirmed()")).toBeGreaterThan(gate);
+    expect(body.indexOf("SELECT subscription_tier")).toBeGreaterThan(gate);
   });
 
   it("both callers refuse on allowed === false and show the reason", () => {

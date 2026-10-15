@@ -85,10 +85,22 @@ describe("awaitingHuman", () => {
 });
 
 describe("isMissingRpc", () => {
-  it("recognises the deploy-lag window in every spelling PostgREST uses", () => {
+  it("recognises the deploy-lag window: PostgREST's PGRST202 with no hint", () => {
+    expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function", hint: null })).toBe(true);
     expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function" })).toBe(true);
-    expect(isMissingRpc({ code: "42883", message: "function does not exist" })).toBe(true);
-    expect(isMissingRpc({ message: "Could not find the function public.admin_stalled_job_queue" })).toBe(true);
+  });
+
+  it("an error raised inside the RPC, or a changed signature, is a real failure (Q?admin-badge-not-deployed)", () => {
+    expect(isMissingRpc({ code: "42703", message: "column j.no_such_col does not exist" })).toBe(false);
+    expect(isMissingRpc({ code: "42P01", message: 'relation "public.x" does not exist' })).toBe(false);
+    expect(isMissingRpc({ code: "42883", message: "function public.helper(uuid) does not exist" })).toBe(false);
+    expect(isMissingRpc({ code: "PGRST203", message: "Could not choose the best candidate function" })).toBe(false);
+    expect(isMissingRpc({
+      code: "PGRST202",
+      message: "Could not find the function public.admin_stalled_job_queue(p_nope) in the schema cache",
+      hint: "Perhaps you meant to call the function public.admin_stalled_job_queue(p_include_resolved)",
+    })).toBe(false);
+    expect(isMissingRpc({ message: "Could not find the function public.admin_stalled_job_queue" })).toBe(false);
   });
 
   it("does NOT swallow a real failure — those must reach the error state", () => {

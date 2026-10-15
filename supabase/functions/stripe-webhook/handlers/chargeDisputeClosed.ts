@@ -872,18 +872,32 @@ function preDecisionPaymentStatus(job: {
 /**
  * Q1818: when a won dispute's clawback rows ended in DIFFERENT ways, one line
  * per kind naming its payouts (original transfer ids), so only the refused
- * ones are paid by hand. null when every row that is not paid ended the same
- * way (the single wording above already says it right).
+ * ones are paid by hand. null when every row ended the same way (the single
+ * wording above already says it right).
+ *
+ * Every kind counts, not only the unpaid ones (lh-money-escrow review of
+ * ea5fe0719): a refused row next to a row paid back now, or one whose money
+ * was never taken, used to get the single "Pay it by hand" wording with no
+ * ids, so an admin could pay both rows (the paid one twice). A hold that
+ * could not be READ is its own kind (it is re-paid once the hold reads clear,
+ * not "once released"). And a refused row on a multi-row dispute always names
+ * its ids: a row an earlier delivery already paid back counts in no kind here.
  */
 function wonRowSteps(repaid: RepayResult): string | null {
   const byHand = repaid.failed.map((f) => f.transferId);
-  const onHold = [...repaid.held, ...repaid.holdErrors.map((h) => h.transferId)];
+  const onHold = repaid.held;
+  const holdUnread = repaid.holdErrors.map((h) => h.transferId);
   const onBalance = repaid.balanceShort;
-  const kinds = [byHand, onHold, onBalance].filter((k) => k.length > 0).length;
-  if (kinds < 2) return null;
+  const paidNow = repaid.repaidNowCents > 0;
+  const kinds = [byHand.length, onHold.length, holdUnread.length, onBalance.length, paidNow ? 1 : 0, repaid.neverTaken]
+    .filter((n) => n > 0).length;
+  if (kinds < 2 && !(byHand.length > 0 && repaid.rows > 1)) return null;
   const parts: string[] = [];
-  if (byHand.length) parts.push(`Pay by hand from the Admin panel (Stripe refused): ${byHand.join(", ")}.`);
+  if (byHand.length) parts.push(`Pay ONLY these by hand from the Admin panel (Stripe refused): ${byHand.join(", ")}.`);
   if (onHold.length) parts.push(`Paid automatically once the Helpr's payout hold is released, do NOT pay by hand: ${onHold.join(", ")}.`);
+  if (holdUnread.length) parts.push(`Paid automatically once the Helpr's payout hold can be read (the read failed), do NOT pay by hand: ${holdUnread.join(", ")}.`);
   if (onBalance.length) parts.push(`Paid automatically once the platform balance is topped up, do NOT pay by hand: ${onBalance.join(", ")}.`);
+  if (paidNow) parts.push(`$${(repaid.repaidNowCents / 100).toFixed(2)} was paid back automatically, do NOT pay it again.`);
+  if (repaid.neverTaken > 0) parts.push(`${repaid.neverTaken} payout(s) were never taken back: nothing to pay.`);
   return `The payouts taken back when it was filed ended differently: ${parts.join(" ")}`;
 }

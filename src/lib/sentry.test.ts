@@ -185,6 +185,23 @@ describe("beforeSend noise filter", () => {
     }
   });
 
+  // Q1615 (Sentry JAVASCRIPT-2M): functions-js wraps the same dropped fetch
+  // in FunctionsFetchError, whose message is its own wording, so the blip
+  // filter above never saw it. Measured 2026-10-15: the 10-14 14:49:46Z event
+  // (stripe-connect list_payout_methods, iOS Facebook in-app browser) has no
+  // stripe-connect row at that second in function_edge_logs, and the same
+  // calls answered 200 at 14:49:51Z: the request never left the phone.
+  // A server-side edge failure is a status (FunctionsHttpError), never this.
+  // @mutate src/lib/sentry.ts | /Failed to send a request to the Edge Function/i, | /(?!)/i,
+  it("drops functions-js's dropped-fetch error (FunctionsFetchError), and only that wording", async () => {
+    const beforeSend = await getBeforeSend();
+    expect(
+      beforeSend({ exception: { values: [{ type: "FunctionsFetchError", value: "Failed to send a request to the Edge Function" }] } }),
+    ).toBeNull();
+    const httpError = { exception: { values: [{ type: "FunctionsHttpError", value: "Edge Function returned a non-2xx status code" }] } };
+    expect(beforeSend(httpError)).not.toBeNull();
+  });
+
   it("drops browser-extension errors via stack frame URLs", async () => {
     const beforeSend = await getBeforeSend();
     const event = {

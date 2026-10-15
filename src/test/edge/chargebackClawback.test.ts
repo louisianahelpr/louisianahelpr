@@ -410,7 +410,7 @@ describe("card-dispute clawback (Q202)", () => {
     // Q1818: a crew dispute whose rows end differently (one refused, one
     // balance-short) tells the admin each row's own step, never "pay it by
     // hand" for the whole dispute (the balance-short row would be paid twice).
-    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (kinds < 2) return null; |   return null;
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (kinds < 2 && !(byHand.length > 0 && repaid.rows > 1)) return null; |   return null;
     it("Q1818: a won dispute with one refused and one balance-short row lists each row's step", async () => {
       const fn = await load();
       event("evt_w_mixed", "charge.dispute.closed", dispute("won"));
@@ -427,9 +427,88 @@ describe("card-dispute clawback (Q202)", () => {
       expect(res.status).toBe(200);
       const admin = notices().find((n) => n.user_id === "admin-1" && /Chargeback WON/.test(n.title));
       expect(admin?.title).toBe("Chargeback WON — Helpr re-pays need different steps");
-      expect(admin?.message).toMatch(/Pay by hand from the Admin panel \(Stripe refused\): tr_refused\./);
+      expect(admin?.message).toMatch(/Pay ONLY these by hand from the Admin panel \(Stripe refused\): tr_refused\./);
       expect(admin?.message).toMatch(/platform balance is topped up, do NOT pay by hand: tr_short\./);
-      expect(admin?.message).not.toMatch(/tr_short.*Pay by hand|Pay by hand[^.]*tr_short/);
+      expect(admin?.message).not.toMatch(/by hand[^.]*\(Stripe refused\)[^.]*tr_short/);
+    });
+
+    // Q1818 follow-up (lh-money-escrow review of ea5fe0719): every kind counts,
+    // so a refused row next to one paid back now names ONLY the refused one,
+    // and a refused row on a multi-row dispute always names its ids.
+    const twoRows = () => ({ rows: [
+      row({ id: "cb-1", original_transfer_id: "tr_refused", helper_id: "helper-1" }),
+      row({ id: "cb-2", original_transfer_id: "tr_paid", helper_id: "helper-2" }),
+    ] });
+    const wonAdminNotice = () => notices().find((n) => n.user_id === "admin-1" && /Chargeback WON/.test(n.title));
+
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   const kinds = [byHand.length, onHold.length, holdUnread.length, onBalance.length, paidNow ? 1 : 0, repaid.neverTaken] |   const kinds = [byHand.length, onHold.length, holdUnread.length, onBalance.length]
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (paidNow) parts.push( |   if (false) parts.push(
+    it("Q1818: a won dispute with one refused and one repaid-now row names ONLY the refused one for a hand payment", async () => {
+      const fn = await load();
+      event("evt_w_mixed_paid", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.chargeback_clawbacks = twoRows();
+      stripeMock.transfers.create.mockImplementation(async (_params: unknown, opts?: { idempotencyKey?: string }) => {
+        if (String(opts?.idempotencyKey ?? "").includes("tr_refused")) {
+          throw Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" });
+        }
+        return { id: "tr_repay_2" };
+      });
+      expect((await post(fn)).status).toBe(200);
+      const msg = wonAdminNotice()?.message ?? "";
+      expect(msg).toMatch(/Pay ONLY these by hand from the Admin panel \(Stripe refused\): tr_refused\./);
+      expect(msg).toMatch(/was paid back automatically, do NOT pay it again\./);
+      expect(msg).not.toMatch(/tr_paid/);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (holdUnread.length) parts.push( |   if (false) parts.push(
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (repaid.neverTaken > 0) parts.push( |   if (false) parts.push(
+    it("Q1818: a hold that could not be READ is its own step, and a never-taken row says nothing to pay", async () => {
+      const fn = await load();
+      event("evt_w_mixed_unread", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.chargeback_clawbacks = { rows: [
+        row({ id: "cb-1", original_transfer_id: "tr_never", helper_id: "helper-1", status: "reverse_failed", stripe_reversal_id: null }),
+        row({ id: "cb-2", original_transfer_id: "tr_unread", helper_id: "helper-2" }),
+      ] };
+      scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
+      expect((await post(fn)).status).toBe(200);
+      const msg = wonAdminNotice()?.message ?? "";
+      expect(msg).toMatch(/once the Helpr's payout hold can be read \(the read failed\), do NOT pay by hand: tr_unread\./);
+      expect(msg).toMatch(/1 payout\(s\) were never taken back: nothing to pay\./);
+      expect(msg).not.toMatch(/once the Helpr's payout hold is released/);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |   if (kinds < 2 && !(byHand.length > 0 && repaid.rows > 1)) return null; |   if (kinds < 2) return null;
+    it("Q1818: a refused row next to a row an earlier delivery already paid back still names only the refused id", async () => {
+      const fn = await load();
+      event("evt_w_mixed_replay", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.chargeback_clawbacks = { rows: [
+        row({ id: "cb-1", original_transfer_id: "tr_refused", helper_id: "helper-1" }),
+        row({ id: "cb-2", original_transfer_id: "tr_paid", helper_id: "helper-2", status: "repaid", repay_transfer_id: "tr_repay_2" }),
+      ] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      expect((await post(fn)).status).toBe(200);
+      const msg = wonAdminNotice()?.message ?? "";
+      expect(msg).toMatch(/Pay ONLY these by hand from the Admin panel \(Stripe refused\): tr_refused\./);
+      expect(msg).not.toMatch(/tr_paid/);
+    });
+
+    it("Q1818 control: a single refused row keeps the one plain wording", async () => {
+      const fn = await load();
+      event("evt_w_single", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      expect((await post(fn)).status).toBe(200);
+      const msg = wonAdminNotice()?.message ?? "";
+      expect(msg).toMatch(/could not be paid back to the Helpr\. Pay it by hand from the Admin panel\./);
+      expect(msg).not.toMatch(/ended differently/);
     });
 
     // Q1322: a refused re-pay whose 'repay_failed' write matched no row is

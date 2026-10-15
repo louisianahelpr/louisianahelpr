@@ -740,23 +740,46 @@ export const FORMS: FormSpec[] = [
     },
     covers: ["src/pages/posts/postedJobs/DeclineApplicantSheet.tsx"],
   },
+  // Declutter (switch at testers on prod since 2026-10-15 05:14Z; every shared test account is a tester). Until then
+  // these three were GAPS ("behind the OFF 'declutter' switch"). The item and review forms open only on a LIVE item
+  // the viewer does not sell and on a listing WAITING for a review: messy-input.spec.ts's beforeAll mints both as the
+  // shared helper (declutterFixture.ts) and its afterAll deletes them. The sweep never presses Save, Ask, Approve or
+  // Reject (write firewall).
+  {
+    name: "declutter-sell", url: "/declutter/sell", as: "helper",
+    prepare: async (page) => { await page.locator("#sell-title").waitFor({ timeout: 20_000 }); },
+    covers: ["src/components/declutter/DeclutterSellView.tsx"],
+  },
+  {
+    name: "declutter-ask", url: "/declutter", as: "poster",
+    prepare: async (page) => {
+      const id = runtime.declutter.liveId;
+      if (!id) throw new Error("declutter-ask needs the live Declutter fixture item (declutterFixture.ts); none was minted");
+      await page.goto(`/declutter/item/${id}`);
+      await settle(page);
+      await page.locator("#declutter-question").waitFor({ timeout: 20_000 });
+    },
+    covers: ["src/components/declutter/DeclutterItemView.tsx"],
+  },
+  {
+    name: "declutter-review", url: "/admin?view=settings", as: "admin",
+    prepare: async (page) => {
+      await recoverAdminGate(page);
+      const id = runtime.declutter.pendingId;
+      if (!id) throw new Error("declutter-review needs the pending Declutter fixture item (declutterFixture.ts); none was minted");
+      await page.locator(`#dcl-note-${id}`).waitFor({ timeout: 20_000 });
+    },
+    covers: ["src/components/admin/settings/DeclutterReviewCard.tsx"],
+  },
 ];
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
-  // Declutter (2026-10-14): every Declutter form renders the 404 until the hidden 'declutter' switch is on for the
-  // member, and the switch is OFF on prod, so no URL sweep can reach them yet. Their server-side input rules (lengths,
-  // price bounds, contact-leak scan, area_label street check, admin review reason) are pinned by
-  // src/test/pglite/declutterFoundation.pglite.mjs and declutterSlice2.pglite.mjs. A FORMS sweep is OWED once the
-  // switch is on for testers (docs/specs/declutter-auctions.md, "Open after slice 2").
-  "src/components/declutter/DeclutterSellView.tsx": "behind the OFF 'declutter' switch (404 on prod); server rules pinned by PGlite; FORMS sweep owed at testers",
-  "src/components/declutter/DeclutterItemView.tsx": "behind the OFF 'declutter' switch (404 on prod); Q&A text rules pinned by PGlite; FORMS sweep owed at testers",
   // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
   // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.
   "src/components/SuggestCategory.tsx": "behind the 'suggest_category' switch (testers only); text rules pinned by categorySuggestions.test.tsx and 20261015051141; FORMS sweep owed past testers",
   "src/components/admin/settings/CategorySuggestionsCard.tsx": "admin-only, behind the 'suggest_category' switch; the decline note is length-capped server-side (20261015051141); FORMS sweep owed past testers",
-  "src/components/admin/settings/DeclutterReviewCard.tsx": "admin-only and behind the OFF 'declutter' switch; reject-reason rules pinned by declutterSlice2.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated
   // by request_job_detail_change (blank, length, contact scan, map point) — pinned by src/test/pglite/jobDetailChange.pglite.mjs.

@@ -678,11 +678,14 @@ export const runtime: {
   email: Partial<Record<Account, string>>;
   /** Q100: the funded open job of poster-e2e with helper-e2e's PENDING application (fundedApplicantJob.ts). */
   applicantJob: { id: string; title: string } | null;
+  /** The Declutter fixture items (declutterFixture.ts): live (for sale) and waiting for a review. */
+  declutter: { liveId: string | null; pendingId: string | null };
 } = {
   fixtures: null,
   userId: {},
   email: {},
   applicantJob: null,
+  declutter: { liveId: null, pendingId: null },
 };
 
 /**

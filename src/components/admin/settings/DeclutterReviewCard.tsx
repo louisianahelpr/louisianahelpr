@@ -55,9 +55,9 @@ function PendingItem({ row }: { row: PendingRow }) {
           <img key={p} src={photoPublicUrl(p)} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover bg-muted" />
         ))}
       </div>
-      <p className="font-semibold">{row.title} · {formatPrice(row.price_cents)}</p>
+      <p className="font-semibold [overflow-wrap:anywhere]">{row.title} · {formatPrice(row.price_cents)}</p>
       <p className="text-xs text-muted-foreground">{row.area_label} · {whyWaiting(row)}</p>
-      {row.description && <p className="text-sm whitespace-pre-line">{row.description}</p>}
+      {row.description && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.description}</p>}
       <label className="block text-xs font-medium" htmlFor={`dcl-note-${row.item_id}`}>Reason, if you reject it (the seller sees this)</label>
       <input
         id={`dcl-note-${row.item_id}`}

@@ -6,7 +6,7 @@
  *
  * Source-read: Signup's funnel needs the whole auth stack to render.
  *
- * @mutate src/pages/auth/Signup.tsx | result = await withTimeout(completeProfile(userId), "Finishing your account"); | result = await completeProfile(userId);
+ * @mutate src/pages/auth/Signup.tsx | result = await withTimeout(completeProfile(userId, gaveUp.signal), "Finishing your account").finally(() => gaveUp.abort()); | result = await completeProfile(userId, gaveUp.signal);
  * @mutate src/pages/auth/Signup.tsx | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        navigate("/signup-pending", { state: { email } }); | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        throw completionErr;
  */
 import { describe, it, expect } from "vitest";
@@ -18,7 +18,7 @@ const src = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Signup.
 
 describe("signup completion failure is not a dead end (OA-001)", () => {
   it("the complete-signup call is time-bounded", () => {
-    expect(src).toMatch(/await withTimeout\(completeProfile\(userId\)/);
+    expect(src).toMatch(/await withTimeout\(completeProfile\(userId\b/);
   });
   it("its failure routes to /signup-pending instead of rethrowing", () => {
     const block = /catch \(completionErr\) \{([\s\S]*?)\n {6}\}/.exec(src)?.[1] ?? "";

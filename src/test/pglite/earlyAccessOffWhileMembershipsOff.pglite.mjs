@@ -82,7 +82,18 @@ if (!RED) {
 const delay = async (id) =>
   (await db.query("SELECT public.early_access_delay_minutes($1::uuid) AS m", [id])).rows[0].m;
 
-// Memberships OFF (the shipped state): nobody gets a head start.
+// 20261015033658 creates the switch at TESTERS (the App Review account keeps Pro
+// during the 1.0.4 review; members are off), and a replay never undoes an admin's choice.
+{
+  const a0 = (await db.query("SELECT audience FROM public.feature_switches WHERE key = 'memberships'")).rows[0]?.audience;
+  check("migration creates memberships at testers (review freeze: testers keep Pro, members off)", a0 === "testers", `got ${a0}`);
+  await db.exec("UPDATE public.feature_switches SET audience = 'off' WHERE key = 'memberships'");
+  await db.exec(readFileSync(MIG_DIR + "20261015033658_memberships_switch_off.sql", "utf8"));
+  const a1 = (await db.query("SELECT audience FROM public.feature_switches WHERE key = 'memberships'")).rows[0]?.audience;
+  check("a replay keeps the admin's off", a1 === "off", `got ${a1}`);
+}
+
+// Memberships OFF (the owner's F4 state, once she flips it): nobody gets a head start.
 for (const k of Object.keys(U)) {
   check(`switch off: ${k} waits the full 20 minutes`, (await delay(U[k])) === 20, `got ${await delay(U[k])}`);
 }

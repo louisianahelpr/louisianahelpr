@@ -120,6 +120,12 @@ function sweep(env: Record<string, string>, s: Scenario) {
   });
 }
 
+// The walk's first leg for these rows. They are offered, not accepted (no
+// helper_confirmed_at), so settleJobForward opens with the Helpr's
+// accept_job_offer (scripts/e2e/settleForward.mjs step 0, Q1816) before
+// mark_helper_arrival; the stub refuses it, so the walk stops there.
+const WALK_FIRST_LEG = "/rest/v1/rpc/accept_job_offer";
+
 const staleHiredFunded: Row = {
   id: "aaaaaaaa-0000-4000-8000-000000000001",
   title: `${MARKER} J stale`,
@@ -149,7 +155,7 @@ describe("the sweeper fails closed", () => {
     );
     expect(r.code, r.out).toBe(1);
     expect(r.out).toMatch(/were NOT settled forward although this sweep held both seats/);
-    expect(seen.some((s) => s.url.includes("/rpc/mark_helper_arrival")), "the walk was attempted").toBe(true);
+    expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), "the walk was attempted").toBe(true);
   }, 30_000);
 
   it("never settles forward unless E2E_STRIPE_MODE says test (L2)", async () => {
@@ -207,7 +213,7 @@ describe("the sweeper fails closed", () => {
       { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
       { rows: [fixture] },
     );
-    expect(seen.some((s) => s.url.includes("/rpc/mark_helper_arrival")), r.out).toBe(true);
+    expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), r.out).toBe(true);
   }, 30_000);
 
   it("a hired+funded row with NO Checkout Session is held with a warning, not a teardown failure", async () => {

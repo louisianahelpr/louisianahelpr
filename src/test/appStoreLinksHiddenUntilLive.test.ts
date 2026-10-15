@@ -24,6 +24,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const REPO = resolve(__dirname, "..", "..");
 const SRC = join(REPO, "src");
 
+const APPLE_ACCOUNT_SUBSCRIPTIONS = "https://apps.apple.com/account/subscriptions";
+
 const appFiles = () =>
   walkSource([SRC]).filter(
     (f) => /\.tsx?$/.test(f) && !f.startsWith(join(SRC, "test") + "/") && !/\.test\.tsx?$/.test(f) && !f.endsWith(".d.ts"),
@@ -61,7 +63,10 @@ describe("Q1124: App Store links and badges stay hidden until the listing is liv
     const own = files
       .filter((f) => !f.endsWith(join("lib", "appStore.ts")))
       .filter((f) => {
-        const text = blankComments(readFileSync(f, "utf8"));
+        // Apple's own manage-subscriptions page (src/lib/appleSubscriptions.ts, Q1797) is
+        // not our listing: it is live whatever the listing state, so only that exact URL is
+        // taken out before the check.
+        const text = blankComments(readFileSync(f, "utf8")).split(APPLE_ACCOUNT_SUBSCRIPTIONS).join("");
         return /\b(?:apps|itunes)\.apple\.com\b/.test(text);
       })
       .map((f) => relative(REPO, f));

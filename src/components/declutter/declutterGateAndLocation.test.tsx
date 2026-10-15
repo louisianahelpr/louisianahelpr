@@ -9,7 +9,7 @@
  *     asked only from "Use my location", with Declutter's own words; the job
  *     screens' default wording is unchanged.
  *
- * @mutate src/components/declutter/declutterUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
+ * @mutate src/components/declutter/declutterUi.tsx |   if (!settled) return <>{skeleton}</>; |   if (!settled) return null;
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const [asked, setAsked] = useState(false); |   const [asked, setAsked] = useState(true);
  * @mutate src/components/declutter/useDeclutterOrigin.ts |   const device = useUserLocation(asked, "declutter_location"); |   const device = useUserLocation(asked);
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"

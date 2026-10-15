@@ -69,3 +69,13 @@ Owner rule (2026-10-14): "before building all ask me questions to make sure we a
 | I2 | Interest groups & clubs for any hobby (posts + events), found locally |
 | I3 | Profile skills & interests tags, searchable |
 | I4 | Spanish + Vietnamese translations (after launch) |
+
+## Spanish (owner 2026-10-14: "I really want Spanish residents to feel welcomed")
+| # | Decision |
+|---|----------|
+| S1 | When: after all sections launch (owner chose; Claude recommended earlier) |
+| S2 | Language chosen automatically from the phone's language, plus an "English / Español" switch on sign-up and in Settings |
+| S3 | Messages: "Translate" button on each message (same AI as the app uses), original always visible |
+| S4 | Job posts, listings and reviews: "Translate" button; anyone may write in either language |
+
+Ownership (owner via lead session, 2026-10-14): THIS session builds the jobs flat fee (F3) and memberships off (F4); the lead session stays on the open list; landing on main stays one at a time.

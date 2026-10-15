@@ -116,3 +116,9 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 | B6a | Invoices: customer taps Pay; optional autopay the customer turns on (cancel anytime); never charged automatically otherwise |
 | B7a | Business-to-business: same Shops, items may be tagged "For businesses" (bulk prices), ordered the normal way |
 | B8a | "Request a review" link: no extra questions (every review counts) |
+
+## Navigation update (owner 2026-10-14 night) — supersedes G2
+| # | Decision |
+|---|----------|
+| G2b | Main pages: Home (central page) + Jobs, Declutter, Shops, Rentals (houses for rent). Bottom bar: Home · Jobs · Declutter · Shops · Rentals (order chosen by Claude per owner "in whatever order"). No "More" tab: extras (events, storm hub, community board, interest groups, deals) live as tiles on Home. Messages + Profile stay top-corner icons (G3) |
+| B4x | SHIFT HIRING DROPPED (owner: "dont do shift hiring"); research stopped |

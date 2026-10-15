@@ -15,7 +15,6 @@ import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { AdminUserSearchField } from "./settings/AdminUserSearchField";
 import { FeatureSwitchesCard } from "./settings/FeatureSwitchesCard";
 import { FeeModelCard } from "./settings/FeeModelCard";
-import { RentalsOwnershipCard } from "./settings/RentalsOwnershipCard";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -561,7 +560,6 @@ const AdminSettings = () => {
       </AdminCard>
 
       <FeatureSwitchesCard />
-      <RentalsOwnershipCard />
       {/* Admin Management */}
       {/* surface="none": each admin below is its own `liquid-glass` row, so the
           default card put white bordered rows inside a white bordered card.

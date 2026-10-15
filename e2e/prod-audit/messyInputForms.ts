@@ -780,6 +780,18 @@ export const GAPS: Record<string, string> = {
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.
   "src/components/SuggestCategory.tsx": "behind the 'suggest_category' switch (testers only); text rules pinned by categorySuggestions.test.tsx and 20261015051141; FORMS sweep owed past testers",
   "src/components/admin/settings/CategorySuggestionsCard.tsx": "admin-only, behind the 'suggest_category' switch; the decline note is length-capped server-side (20261015051141); FORMS sweep owed past testers",
+  // Rentals S1 (2026-10-15): every Rentals form renders the 404 until the hidden 'rentals' switch is on for the member,
+  // and the switch is created OFF (20261015061259), so no URL sweep can reach them yet. Their server-side input rules
+  // live in that migration: property name 2-60, street 5-200, city 2-80, ZIP exactly 5 digits, unit label 1-40 (CHECKs);
+  // request description 10-2000, access windows <= 300 and notes <= 500, <= 10 photos, contact-leak scan; decline
+  // reason required ('other' needs >= 5 chars, <= 500, contact scan); "Was it fixed?" note <= 500 with contact scan;
+  // auto-approve limit $1-$10,000; admin rejection needs a >= 5-char reason. src/test/pglite/rentalsMaintenance.pglite.mjs
+  // proves the contact-leak refusal, both reason_required paths, bad_limit and the admin reason (97 PASS, 0/97 with the
+  // migration skipped). A FORMS sweep is OWED once the switch is on for testers (Q?rentals-visual).
+  "src/components/rentals/RentalsHomeView.tsx": "behind the OFF 'rentals' switch (404 on prod); property/unit/limit rules are CHECKs and RAISEs in 20261015061259, bad_limit pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/rentals/MaintenanceRequestForm.tsx": "behind the OFF 'rentals' switch (404 on prod); description/access lengths and the contact-leak scan in rentals_file_request (20261015061259), contact refusal pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/rentals/MaintenanceRequestView.tsx": "behind the OFF 'rentals' switch (404 on prod); decline reason and fixed-note rules in 20261015061259, reason_required pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/admin/settings/RentalsOwnershipCard.tsx": "admin-only and behind the OFF 'rentals' switch; a rejection needs a >= 5-char note (rentals_admin_review_property), pinned by rentalsMaintenance.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated
   // by request_job_detail_change (blank, length, contact scan, map point) — pinned by src/test/pglite/jobDetailChange.pglite.mjs.

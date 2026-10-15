@@ -733,11 +733,6 @@ export const RPC_ERROR_COPY = {
     too_long: RC.too_long,
     under_18: RC.under_18,
   },
-  rentals_end_tenancy: {
-    feature_disabled: RC.feature_disabled,
-    not_authenticated: RC.not_authenticated,
-    tenancy_not_found: RC.tenancy_not_found,
-  },
   rentals_file_request: {
     account_restricted: RC.account_restricted,
     bad_category: RC.bad_category,

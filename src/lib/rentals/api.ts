@@ -13,12 +13,11 @@ import { RentalsCopyError } from "./copy";
 type Tables = Database["public"]["Tables"];
 export type RentalProperty = Tables["rental_properties"]["Row"];
 export type RentalUnit = Tables["rental_units"]["Row"];
-export type RentalTenancy = Tables["rental_tenancies"]["Row"];
 export type MaintenanceRequest = Tables["maintenance_requests"]["Row"];
 export type MaintenancePhoto = Tables["maintenance_request_photos"]["Row"];
 
 /** Private bucket: owner-folder writes, owner + admin reads, plus the landlord-photo policy. */
-export const RENTALS_BUCKET = "user-documents";
+const RENTALS_BUCKET = "user-documents";
 
 /** Each call site names its RPC's words: rpcErrorMessage("<rpc>", e) (rpcErrorCopyCoverage). */
 type Words = (e: unknown) => string | null;
@@ -39,10 +38,6 @@ export async function fetchMyProperties(uid: string): Promise<RentalProperty[]> 
 export async function fetchUnits(propertyIds: string[]): Promise<RentalUnit[]> {
   if (propertyIds.length === 0) return [];
   return (unwrap(await supabase.from("rental_units").select("*").in("property_id", propertyIds).order("label")) ?? []) as RentalUnit[];
-}
-/** Tenancies where I am the landlord or the tenant (RLS). */
-export async function fetchMyTenancies(): Promise<RentalTenancy[]> {
-  return (unwrap(await supabase.from("rental_tenancies").select("*").order("created_at", { ascending: false })) ?? []) as RentalTenancy[];
 }
 export interface MyHome {
   tenancy_id: string;
@@ -125,8 +120,6 @@ export const setAutoApprove = (propertyId: string, limitCents: number | null) =>
 export const inviteTenant = (unitId: string) => rpcValue(supabase.rpc("rentals_invite_tenant", { p_unit_id: unitId }), (e) => rpcErrorMessage("rentals_invite_tenant", e));
 
 export const acceptInvite = (token: string) => rpcValue(supabase.rpc("rentals_accept_invite", { p_token: token }), (e) => rpcErrorMessage("rentals_accept_invite", e));
-
-export const endTenancy = (tenancyId: string) => rpcVoid(supabase.rpc("rentals_end_tenancy", { p_tenancy_id: tenancyId }), (e) => rpcErrorMessage("rentals_end_tenancy", e));
 
 export interface NewRequest {
   tenancyId: string;

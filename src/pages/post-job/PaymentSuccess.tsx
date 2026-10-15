@@ -31,7 +31,7 @@ import { formatPriceExact } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
-import { PaymentLifecycleSteps } from "@/components/postjob/PaymentLifecycleSteps";
+import { PaymentLifecycleSteps, lifecycleStepFor } from "@/components/postjob/PaymentLifecycleSteps";
 import {
   paymentHeading,
   paymentPageTitle,
@@ -148,6 +148,9 @@ const PaymentSuccess = () => {
   const [confirmAttempt, setConfirmAttempt] = useState(0);
 
   const isHeld = confirmState === "held";
+  // Q1788: the job's real stage (jobs.status), read with the payment state.
+  const [jobStatus, setJobStatus] = useState<string | null>(null);
+  const lifecycleStep = lifecycleStepFor(jobStatus, alreadyReleased);
 
   usePageTitle(paymentPageTitle(confirmState));
 
@@ -300,7 +303,7 @@ const PaymentSuccess = () => {
         }
         const { data, error } = await supabase
           .from("jobs")
-          .select("budget, category, payment_status, customer_id")
+          .select("budget, category, payment_status, customer_id, status")
           .eq("id", resolvedJobId)
           .maybeSingle();
         if (cancelled) return;
@@ -327,6 +330,8 @@ const PaymentSuccess = () => {
 
         if (typeof data.budget === "number") setEscrowAmount(data.budget);
         if (typeof data.category === "string") setCategory(data.category);
+        // Q1788: the stepper and the primary follow the job's real stage.
+        setJobStatus(typeof data.status === "string" ? data.status : null);
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {
@@ -479,7 +484,7 @@ const PaymentSuccess = () => {
           <>
             <div className="space-y-3 text-left">
               {/* mt-3: the space-y-3 gap the hidden eyebrow gave it (Q1129). */}
-              <PaymentLifecycleSteps />
+              <PaymentLifecycleSteps current={lifecycleStep} />
               <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 If one side confirms and the other doesn't respond within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released automatically.
               </p>
@@ -499,7 +504,8 @@ const PaymentSuccess = () => {
                 className="w-full rounded-ds-md"
               >
                 <UsersIcon className="w-4 h-4 mr-2" />
-                View Applicants
+                {/* Q1788: applicants only matter while the job is still open. */}
+                {lifecycleStep === 0 ? "View Applicants" : "View Job"}
               </Button>
               {/* Secondary CTA row — share + post-another-like-this. Side by
                   side only where both labels fit at full size (12rem a

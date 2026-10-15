@@ -38,10 +38,10 @@
 #     scripting — none of which is wired here.
 #
 # USAGE
-#   scripts/ios-state-probe.sh                       # default routes, light+dark
-#   DEVICE_ID=<udid> scripts/ios-state-probe.sh
-#   ROUTES="/posts /jobs" scripts/ios-state-probe.sh
-#   OUT=/tmp/ios-probe SWEEP=full scripts/ios-state-probe.sh   # + type sizes,
+#   scripts/archive/ios-state-probe.sh                       # default routes, light+dark
+#   DEVICE_ID=<udid> scripts/archive/ios-state-probe.sh
+#   ROUTES="/posts /jobs" scripts/archive/ios-state-probe.sh
+#   OUT=/tmp/ios-probe SWEEP=full scripts/archive/ios-state-probe.sh   # + type sizes,
 #                                                              #   contrast,
 #                                                              #   landscape
 #

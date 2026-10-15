@@ -112,3 +112,7 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 | B2a | Dashboard shows parish search TOTALS (never who searched) |
 | B3 | TEAM ACCOUNTS ON HOLD: one person per business for now (owner); all money to that person |
 | B4 | Shift hiring: legal research running (worker classification) before its question round |
+| B5a | Punch cards: the business scans the customer's code (or the purchase was in the app); the business sets and pays for the reward; free for businesses to use |
+| B6a | Invoices: customer taps Pay; optional autopay the customer turns on (cancel anytime); never charged automatically otherwise |
+| B7a | Business-to-business: same Shops, items may be tagged "For businesses" (bulk prices), ordered the normal way |
+| B8a | "Request a review" link: no extra questions (every review counts) |

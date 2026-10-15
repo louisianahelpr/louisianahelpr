@@ -52,6 +52,9 @@ describe("a time wheel never picks a time on its own", () => {
     render(<Harness />);
     fireEvent.pointerDown(list("Hour"));
     scrollTo(list("Hour"), 2 * 44);
-    expect(value()).toBe("02:00");
+    // The hour is held until AM or PM is picked (Q1733, timeWheelMakesThemPickAmPm.test.tsx).
+    expect(screen.getByRole("option", { name: "2" }).getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "PM" }));
+    expect(value()).toBe("14:00");
   });
 });

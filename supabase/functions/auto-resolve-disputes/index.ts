@@ -5,7 +5,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
-import { loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
@@ -962,6 +962,31 @@ serve(async (req) => {
                   if (heldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
                 }
                 stuck = stuck.filter((row) => !heldIds.has(row.id as string));
+              }
+            }
+
+            // ── Job payout holds (Q1491) ───────────────────────────────────
+            // The same rule for a JOB hold (job_payout_holds: an underfunded
+            // gift-card job): execute-dispute-split refuses it before any leg
+            // moves and records PAYOUT_JOB_HOLD_SPLIT_ERROR. Set aside only
+            // while that job is still held; FAIL CLOSED on an unreadable read.
+            const jobHoldCandidates = stuck.filter((row) =>
+              typeof row.execution_error === "string" &&
+              (row.execution_error as string).startsWith(PAYOUT_JOB_HOLD_SPLIT_ERROR)
+            );
+            if (jobHoldCandidates.length) {
+              const jobHolds = await loadJobPayoutHolds(supabase, jobHoldCandidates.map((row) => row.job_id as string));
+              if (!jobHolds.ok) {
+                console.error("[auto-resolve-disputes] job payout hold read failed; every stuck split stays stuck:", jobHolds.message);
+                defects.record(`stuck split job-payout-hold read: ${jobHolds.message}`);
+              } else {
+                const jobHeldIds = new Set(
+                  jobHoldCandidates.filter((row) => jobHolds.jobs.has(row.job_id as string)).map((row) => row.id as string),
+                );
+                for (const row of stuck) {
+                  if (jobHeldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+                }
+                stuck = stuck.filter((row) => !jobHeldIds.has(row.id as string));
               }
             }
           }

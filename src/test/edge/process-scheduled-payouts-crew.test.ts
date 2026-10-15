@@ -626,6 +626,18 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
   });
 
+  // Q1491 (lh-money-escrow review of the rebuild, #2): a JOB payout hold (an
+  // underfunded gift-card job) pays nobody, block fees included; a fee with
+  // no charge to link would go out of the platform balance.
+  // @mutate supabase/functions/_shared/crewBlockFees.ts |     if (jobHold.kind === "held") { |     if (jobHold.kind === "held" && false) {
+  it("Q1491: a job under a JOB payout hold sends no block fee (the row stays owed)", async () => {
+    seedBlocked();
+    scenario.reads.job_payout_holds = { rows: [{ job_id: "job-crew", reason: "Q1491: underfunded" }] };
+    await run();
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "paid")).toBe(false);
+  });
+
   it("a fee transfer that fails never holds up the poster: the fee is still withheld, the rest refunded, the job released, the row failed for the sweep", async () => {
     seedBlocked();
     stripeMock.transfers.create.mockImplementation(async (params: { destination: string; metadata?: { type?: string } }) => {

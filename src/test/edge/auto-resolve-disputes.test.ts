@@ -760,6 +760,60 @@ describe("auto-resolve-disputes", () => {
       });
     });
 
+    // Q1491 (lh-money-escrow review of the rebuild, #1): a JOB payout hold
+    // (job_payout_holds, an underfunded gift-card job) stops the split before
+    // any leg moves, recorded as PAYOUT_JOB_HOLD_SPLIT_ERROR. Same rule as the
+    // Helpr hold: set aside while the job is held, paged once it is not, and
+    // an unreadable job-hold read exempts nothing.
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |                 stuck = stuck.filter((row) => !jobHeldIds.has(row.id as string)); |                 void jobHeldIds;
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |                 defects.record(`stuck split job-payout-hold read: ${jobHolds.message}`); |                 stuck = []; void jobHolds;
+    describe("a split a JOB payout hold is keeping back (Q1491)", () => {
+      const jobHeldSplit = {
+        id: DISPUTE_ID,
+        job_id: "job-7",
+        execution_status: "failed",
+        execution_started_at: "2026-08-30T10:00:00Z",
+        execution_error: "this job's payout is on hold (job_payout_holds)",
+      };
+      const withJob = () =>
+        scenario.reads.jobs!.selectOverrides!.push({
+          includes: "is_seed",
+          result: { rows: [{ id: "job-7", is_seed: false, helper_id: "helper-7" }] },
+        });
+
+      it("is set aside while the job is held: no defect, no admin page, answers 200", async () => {
+        seedStuck(scenario, [jobHeldSplit]);
+        withJob();
+        scenario.reads.job_payout_holds = { rows: [{ job_id: "job-7" }] };
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(200);
+        expect(body.stuck_splits).toEqual([]);
+        expect(body.held_stuck_splits).toEqual([{ id: DISPUTE_ID, job_id: "job-7" }]);
+        expect(writesTo("notifications", "insert")).toHaveLength(0);
+      });
+
+      it("pages again once the job hold is released", async () => {
+        seedStuck(scenario, [jobHeldSplit]);
+        withJob();
+        scenario.reads.job_payout_holds = { rows: [] };
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+
+      it("FAILS CLOSED: an unreadable job hold exempts nothing", async () => {
+        seedStuck(scenario, [jobHeldSplit]);
+        withJob();
+        scenario.reads.job_payout_holds = { error: { message: "connection reset", code: "08006" } };
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(500);
+        expect(body.stuck_splits).toHaveLength(1);
+        expect((body.defectReasons as string[]).join(" ")).toContain("job-payout-hold read");
+      });
+    });
+
     it("skips a stuck split on an is_seed job: no defect, no admin page, answers 200", async () => {
       seedStuck(scenario, [seedSplit]);
       scenario.reads.jobs!.selectOverrides!.push({

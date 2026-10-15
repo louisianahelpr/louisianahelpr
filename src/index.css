@@ -2667,6 +2667,17 @@ button,
     hsl(var(--bark)) 46%,
     hsl(var(--bark-deep)) 100%
   );
+  /* THE INK COMES WITH THE SURFACE (Q?btn-grad-text-contrast). The class used
+     to paint only the gradient and leave the text colour to each call site;
+     <Button> pins parchment, and a hand-rolled <button> that stated nothing
+     inherited the page's --foreground (olivewood), the same family as the
+     gradient: 1.2-2.5:1 on its stops in light, 1.8-2.5:1 in dark
+     (SeriesDatesPanel's "Pick N dates" did). Parchment is >= 4.69:1 on every
+     stop in both themes. Unlayered and after `@tailwind utilities`, so it also
+     wins over a `text-*` utility on the same element (a `text-white`, 2.8:1 on
+     the dark-theme --bark, included); a descendant that sets its own colour is
+     measured by e2e/happy-path/gradInkContrast.spec.ts, light and dark. */
+  color: hsl(var(--parchment));
 }
 
 /* UNDER 18: GREYED OUT, NOT GONE (owner, 2026-10-12, Q1586(c)). An Apply or

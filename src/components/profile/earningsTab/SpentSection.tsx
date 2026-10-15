@@ -9,7 +9,7 @@ import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { setupFeeReceiptNote, spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob, type PosterTipRow, type SpentRow } from "@/lib/posterSpend";
+import { setupFeeReceiptNote, spentRows, spentTotalCents, type PosterBlockFeeRow, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob, type PosterTipRow, type SpentRow } from "@/lib/posterSpend";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
 import { formatCents } from "./earningsTabHelpers";
 
@@ -31,6 +31,8 @@ interface SpentData {
   refunds: PosterRefundRow[];
   tips: PosterTipRow[];
   gifts: PosterGiftRow[];
+  /** Crew block fees owed on the poster's own jobs (Q1736). */
+  blockFees: PosterBlockFeeRow[];
 }
 
 /** When a posted job counts as spent: the poster's confirmation, falling back
@@ -73,7 +75,7 @@ export function SpentSection() {
     queryKey: ["payment", "posterSpend", "charged", user?.id],
     queryFn: async () => {
       const posterId = user!.id;
-      const [jobs, refunds, gifts, tips] = await Promise.all([
+      const [jobs, refunds, gifts, tips, blockFees] = await Promise.all([
         // EVERY job this person posted, whatever its status: money held in
         // escrow on an open or in-progress job has left the card too, and a
         // cancellation can keep a fee (owner, 2026-10-05: "everything that
@@ -88,12 +90,19 @@ export function SpentSection() {
         supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", user!.id).eq("status", "redeemed"),
         // Tips this person PAID (tips RLS also shows tips they received).
         supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, created_at").eq("tipper_id", user!.id),
+        // Q1736: the crew block fees an uncaptured hold's capture took with the
+        // cancellation fee. The ledger has no client grant, so a definer RPC
+        // answers the poster's own jobs only.
+        supabase.rpc("poster_crew_block_fee_cents"),
       ]);
       return {
         jobs: (unwrap(jobs) ?? []) as unknown as SpentJobRow[],
         refunds: (unwrap(refunds) ?? []) as PosterRefundRow[],
         gifts: (unwrap(gifts) ?? []) as PosterGiftRow[],
         tips: (unwrap(tips) ?? []) as PosterTipRow[],
+        // Deployed before its migration (functions and db deploy separately):
+        // no rows, the Spent figure as it was. Any other error is thrown.
+        blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]),
       };
     },
     enabled: !!user?.id,
@@ -115,7 +124,7 @@ export function SpentSection() {
     : scope === "year" ? new Date(now.getFullYear(), 0, 1).getTime()
     : null;
   // ONE source for the total and the list (posterSpend.ts), then the range.
-  const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []);
+  const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []);
   // ONE source for the total and the list (posterSpend.ts).
   const rows = since === null ? allRows : allRows.filter((r) => rowMs(r) >= since);
   const totalSpent = spentTotalCents(rows) / 100;

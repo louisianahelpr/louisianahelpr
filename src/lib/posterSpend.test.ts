@@ -12,10 +12,13 @@
  * poster's card").
  */
 // @mutate src/lib/posterSpend.ts | if (tip.payment_status !== "paid") return 0; | if (tip.payment_status === "__never__") return 0;
-// @mutate src/lib/posterSpend.ts | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0) + tipCents; | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0);
+// @mutate src/lib/posterSpend.ts | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents; | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0);
 // @mutate src/lib/posterSpend.ts | for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false }); | for (const o of orphanTips) void o;
 // @mutate src/lib/posterSpend.ts | if (pi && jobPi.get(r.job_id) && pi !== jobPi.get(r.job_id)) continue; | if (false) continue;
-// @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0))); | return 0;
+// @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) \|\| 0)); | return 0;
+// Q1736: the crew block fees captured with the cancellation fee count too.
+// @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) \|\| 0)); | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)));
+// @mutate src/lib/posterSpend.ts | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0)
 // @mutate src/lib/posterSpend.ts | return Math.max(0, charged - Math.max(0, refundedCents)); | return Math.max(0, charged);
 // @mutate src/lib/posterSpend.ts | const charged = tipChargeBreakdown(cents(tip.amount ?? 0)).chargeCents; | const charged = cents(tip.amount ?? 0);
 // @mutate src/lib/posterSpend.ts | job.payment_status === "cancelled" && (refundedCents > 0 \|\| job.cancellation_fee_status === "charged"); | false;
@@ -30,7 +33,7 @@
 // @mutate src/lib/posterSpend.ts | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling"] as const; | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling", "chargeback", "cancelled"] as const;
 import { describe, it, expect } from "vitest";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
-import { posterSpentCents, tipSpentCents, spentRows, spentTotalCents, CHARGED_PAYMENT_STATUSES, type PosterSpendJob, type PosterTipRow } from "./posterSpend";
+import { posterSpentCents, tipSpentCents, spentRows, spentTotalCents, CHARGED_PAYMENT_STATUSES, type PosterSpendJob, type PosterTipRow, type PosterBlockFeeRow } from "./posterSpend";
 
 const job = (over: Partial<PosterSpendJob> = {}): PosterSpendJob => ({
   id: "j1",
@@ -219,6 +222,26 @@ describe("cancellation fees count (owner, 2026-10-05)", () => {
     expect(posterSpentCents(cancelled, 0, 0)).toBe(2500);
     // Never more than the charge.
     expect(posterSpentCents({ ...cancelled, cancellation_fee: 500 }, 0, 0)).toBe(11200);
+  });
+
+  it("Q1736: an uncaptured crew hold counts the crew block fees captured with the fee", () => {
+    // void-cancelled-payments captured $25 cancellation fee + $35 of block fees from the hold.
+    const cancelled = job({ id: "crew", payment_status: "refunded", cancellation_fee: 25, cancellation_fee_status: "charged" });
+    expect(posterSpentCents(cancelled, 0, 0, 3500)).toBe(6000);
+    // Only block fees (no cancellation fee owed): the capture still left the card.
+    expect(posterSpentCents({ ...cancelled, cancellation_fee: 0 }, 0, 0, 3500)).toBe(3500);
+    // Never more than the charge.
+    expect(posterSpentCents(cancelled, 0, 0, 50000)).toBe(11200);
+    // A job refunded less the fees already withheld them from the refund row:
+    // the block fees are not added twice.
+    expect(posterSpentCents(cancelled, 7500, 0, 3500)).toBe(3700);
+    // And the list carries them, by job id, never onto another job.
+    const blockFees: PosterBlockFeeRow[] = [{ job_id: "crew", fee_cents: 2000 }, { job_id: "crew", fee_cents: 1500 }, { job_id: "elsewhere", fee_cents: 9900 }];
+    const rows = spentRows([cancelled, job({ id: "plain" })], [], [], [], blockFees);
+    expect(rows.map((r) => [r.job?.id, r.cents])).toEqual([["crew", 6000], ["plain", 11200]]);
+    expect(spentTotalCents(rows)).toBe(17200);
+    // Without the RPC answer (deployed before its migration) the old figure stands.
+    expect(spentRows([cancelled], [], [])[0].cents).toBe(2500);
   });
 
   it("a free cancellation (hold voided, payment_status cancelled, no refund row) counts $0", () => {

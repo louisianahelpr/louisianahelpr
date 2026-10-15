@@ -388,3 +388,97 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
     expect((settle!.payload as Record<string, unknown>).cancellation_fee).toBe(capturedCents / 100);
   });
 });
+
+// ── Q1675: an earlier refund on the same charge comes off this refund ────────
+//
+// settleOnboardingFee refunds a duplicate $2 setup fee off the job's own
+// charge (payment_refunds source duplicate_onboarding_fee, job_id NULL), and
+// pi.amount_received does not go down after it, so this cancellation refunded
+// the $2 a second time out of platform money. The charge's amount_refunded is
+// now subtracted (lh-money-escrow@c4e1df1bb#4).
+describe("void-cancelled-payments — Q1675: a charge already partly refunded", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  // $100 job + $10 fee = $110 captured; the fee is kept, so $100 is refundable,
+  // less the $2 duplicate setup fee already refunded = $98.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             alreadyRefundedCents: chargeRefundedCents,\n |
+  it("a prior duplicate $2 setup-fee refund is not refunded again", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_decided", status: "succeeded", amount: 11000, amount_received: 11000,
+      latest_charge: { id: "ch_dup", amount: 11000, amount_refunded: 200, balance_transaction: { fee: 349 } },
+    });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_void", amount: 9800 });
+    scenario.writeSelectRows.notifications = [{ id: "notice-v" }];
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_decided", amount: 9800 },
+      { idempotencyKey: "cancel-refund-job-decided" },
+    );
+    // The notice keeps only the $10 fee: the $2 already went back, it was not kept.
+    // @mutate supabase/functions/void-cancelled-payments/index.ts |                 keptCents: Math.max(0, capturedCents - chargeRefundedCents - refundedCents), |                 keptCents: Math.max(0, capturedCents - refundedCents),
+    const notice = scenario.writes
+      .filter((w) => w.table === "notifications" && w.op === "insert")
+      .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
+      .find((m) => m.includes("We kept"));
+    expect(notice).toMatch(/We kept \$10(\.00)?\b/);
+  });
+
+  // lh-money-escrow review of Q1675 #1: earlier refunds that returned MORE
+  // than this cancel may ($105 back of $110, $100 refundable) are paged and the job
+  // is left alone; settling would pay the Helpr's fee out of money that
+  // already went back to the poster.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (chargeRefundedCents > voidSplit.ceilingCents + 1) { |           if (false) {
+  it("a charge already refunded past what the cancel keeps is not settled and pages", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_decided", status: "succeeded", amount: 11000, amount_received: 11000,
+      latest_charge: { id: "ch_over", amount: 11000, amount_refunded: 10500, balance_transaction: { fee: 349 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(slackAlerts.map((a) => (a as { title?: string }).title)).toContain("Cancelled job's charge was already refunded past what the cancel keeps");
+    const settle = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" &&
+      (w.payload as Record<string, unknown>).payment_status === "refunded");
+    expect(settle).toHaveLength(0);
+  });
+
+  // A charge Stripe already shows refunded down to what this cancel keeps (its
+  // own refund whose ledger row was lost, past the 24 h key) settles the status
+  // only: the old fallback refunded the whole refundable amount again.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const alreadyRefunded = (priorRefunds ?? []).length > 0 \|\| refundedAtStripe; |           const alreadyRefunded = (priorRefunds ?? []).length > 0;
+  it("a charge already refunded to the kept amount is not refunded again", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_decided", status: "succeeded", amount: 11000, amount_received: 11000,
+      latest_charge: { id: "ch_done", amount: 11000, amount_refunded: 10000, balance_transaction: { fee: 349 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    // Settled as already refunded, not reported as a $0 cancellation.
+    expect(slackAlerts.map((a) => (a as { title?: string }).title)).not.toContain("Escrow cancellation resolved with $0 refund");
+  });
+
+  it("control: a charge with no earlier refund is refunded in full less the kept fee", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_decided", status: "succeeded", amount: 11000, amount_received: 11000,
+      latest_charge: { id: "ch_none", amount: 11000, amount_refunded: 0, balance_transaction: { fee: 349 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_decided", amount: 10000 },
+      { idempotencyKey: "cancel-refund-job-decided" },
+    );
+  });
+});

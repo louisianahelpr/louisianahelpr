@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T06:33Z",
+  "measured_at": "2026-10-15T08:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38199842917",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38689259675",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 2937,
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38364628121",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38695098520",
         "runTruncated": false
       },
       {
@@ -85,7 +85,7 @@
         "number": 2962,
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38434750617",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851",
         "runTruncated": false
       },
       {

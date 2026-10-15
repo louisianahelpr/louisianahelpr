@@ -19,8 +19,11 @@
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | : j.poster_completed_at ?? j.helper_completed_at; | : j.poster_completed_at;
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | ? j.cancelled_at | ? j.created_at
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const rows = since === null ? allRows : allRows.filter((r) => rowMs(r) >= since); | const rows = allRows;
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []); | const allRows = spentRows(data?.jobs ?? [], [], data?.gifts ?? [], data?.tips ?? []);
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], []);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], [], data?.blockFees ?? []);
+// Q1736: the crew block fees an uncaptured hold's capture took.
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]), | blockFees: (unwrap(blockFees) ?? []) as PosterBlockFeeRow[],
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | {formatCents(r.cents)} | {formatCents(Math.round((r.job?.budget ?? 0) * 100))}
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | .eq("customer_id", posterId), | .eq("customer_id", posterId).eq("status", "completed"),
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | .eq("tipper_id", user!.id), | .eq("helper_id", user!.id),
@@ -43,6 +46,9 @@ let rows: Row[];
 let refundRows: { job_id: string; amount_cents: number }[] = [];
 let giftRows: { job_id: string | null; amount: number }[] = [];
 let tipRows: { id: string; job_id: string | null; amount: number; payment_status: string; stripe_payment_intent_id: string | null; created_at: string }[] = [];
+/** poster_crew_block_fee_cents (Q1736): the answer, or the error it returns. */
+let blockFeeResult: { data: { job_id: string; fee_cents: number }[] | null; error: { message: string; code: string } | null } = { data: [], error: null };
+let rpcCalls: string[] = [];
 const paid = (r: Row): Row => ({ status: "completed", cancelled_at: null, payment_status: "released", stripe_payment_intent_id: `pi_${r.id}`, ...r });
 let filters: [string, string, unknown][] = [];
 let failRead = false;
@@ -62,7 +68,13 @@ function builder(table: string) {
   return b;
 }
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: (t: string) => builder(t) },
+  supabase: {
+    from: (t: string) => builder(t),
+    rpc: (fn: string) => {
+      rpcCalls.push(fn);
+      return Promise.resolve(failRead ? { data: null, error: { message: "permission denied", code: "42501" } } : blockFeeResult);
+    },
+  },
 }));
 
 import { SpentSection } from "./SpentSection";
@@ -92,6 +104,8 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     refundRows = [];
     giftRows = [];
     tipRows = [];
+    blockFeeResult = { data: [], error: null };
+    rpcCalls = [];
     rows = [
       { id: "p1", title: "Gutter cleaning", budget: 30, poster_completed_at: "2026-09-01T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
       { id: "p2", title: "Old fence", budget: 20.5, poster_completed_at: "2025-12-01T12:00:00", helper_completed_at: null, created_at: "2025-11-30T12:00:00" },
@@ -160,6 +174,26 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     // The cancellation is dated when it was cancelled: inside this week's range.
     await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This Week" })); });
     expect(text()).toMatch(/Total spent\s*\$15\.00\s*across 1 job(?!s)/);
+  });
+
+  it("Q1736: a crew whose uncaptured hold paid the cancellation fee AND block fees counts both", async () => {
+    rows = [
+      // $200 crew hold; void-cancelled-payments captured the $30 fee + $25 of block fees, no refund row.
+      { id: "c1", title: "Crew move", budget: 200, status: "cancelled", payment_status: "refunded", cancellation_fee: 30, cancellation_fee_status: "charged", cancelled_at: "2026-10-02T12:00:00", poster_completed_at: null, helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+    ];
+    blockFeeResult = { data: [{ job_id: "c1", fee_cents: 2500 }], error: null };
+    renderSpent();
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$55\.00\s*across 1 job(?!s)/));
+    expect(rpcCalls).toEqual(["poster_crew_block_fee_cents"]);
+  });
+
+  it("Q1736: before the RPC is deployed (PGRST202) Spent still loads, with the cancellation fee alone", async () => {
+    rows = [
+      { id: "c1", title: "Crew move", budget: 200, status: "cancelled", payment_status: "refunded", cancellation_fee: 30, cancellation_fee_status: "charged", cancelled_at: "2026-10-02T12:00:00", poster_completed_at: null, helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+    ];
+    blockFeeResult = { data: null, error: { message: "Could not find the function", code: "PGRST202" } };
+    renderSpent();
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$30\.00\s*across 1 job(?!s)/));
   });
 
   it("only real charges count: closed unpaid $0, full refund out, partial refund = kept, chargeback $0, gift part out, rows show the charge", async () => {

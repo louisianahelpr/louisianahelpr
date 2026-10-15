@@ -381,15 +381,15 @@ export async function testEventScope(
 }
 
 /** The metadata.kind of every checkout a mode-routed function creates. */
-const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order"]);
+const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "recurring_visit", "declutter_order", "gift_card_purchase"]);
 
 /**
  * True when a Checkout Session came from a function that decides its Stripe
  * mode (create-payment escrow / tip / recurring visit, create-boost-payment,
- * pay-onboarding-fee, create-bgc-payment, declutter-checkout, declutter-card),
- * so a TEST-mode event about it may
- * run. Anything else is refused: a subscription or Pro pass (metadata.tier,
- * billing_cycle), a gift card (gift_card_purchase), or a kind nobody routes.
+ * pay-onboarding-fee, create-bgc-payment, declutter-checkout, declutter-card,
+ * create-gift-card-checkout), so a TEST-mode event about it may run. Anything
+ * else is refused: a subscription or Pro pass (metadata.tier, billing_cycle),
+ * or a kind nobody routes. A gift card must ALSO pass testGiftIsTestToTest.
  */
 // deno-lint-ignore no-explicit-any
 export function isRoutedTestCheckout(session: any): boolean {
@@ -404,6 +404,37 @@ export function isRoutedTestCheckout(session: any): boolean {
   if (typeof meta.kind === "string") return ROUTED_TEST_CHECKOUT_KINDS.has(meta.kind);
   // An escrow checkout (create-payment action "escrow"): names its job, no kind or type.
   return meta.type === undefined && typeof meta.job_id === "string" && meta.job_id.length > 0;
+}
+
+/**
+ * Q1750: a TEST-mode gift card (metadata.kind gift_card_purchase) is applied
+ * only when its donor AND the account its recipient email belongs to are both
+ * test accounts. testEventScope lets an email that names nobody through, but a
+ * gift to an address with no account would leave sandbox credit claimable by
+ * whoever signs up with it, so a gift needs its recipient to BE a test account.
+ * Any other session: true (nothing to add). Throws StripeModeRefused("lookup_failed").
+ */
+export async function testGiftIsTestToTest(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  // deno-lint-ignore no-explicit-any
+  session: any,
+): Promise<boolean> {
+  const meta = (session && typeof session === "object" && session.metadata && typeof session.metadata === "object"
+    ? session.metadata
+    : {}) as Record<string, unknown>;
+  if (meta.kind !== "gift_card_purchase") return true;
+  const donor = typeof meta.donor_id === "string" ? canonicalUuid(meta.donor_id) : null;
+  const email = typeof meta.recipient_email === "string" ? meta.recipient_email.trim().toLowerCase() : "";
+  if (!donor || !EMAIL_RE.test(email)) return false;
+  const res = await db.from("profiles").select("user_id").eq("email", email);
+  if (res?.error || !Array.isArray(res?.data)) {
+    throw new StripeModeRefused("lookup_failed", `gift recipient by email read failed: ${res?.error?.message ?? "no rows array"}`);
+  }
+  const owners = uniqIds((res.data as Array<{ user_id?: string | null }>).map((r) => r.user_id));
+  if (owners.length !== 1) return false;
+  const tests = await loadTestAccountIds(db, [donor, owners[0]]);
+  return tests.has(donor) && tests.has(owners[0]);
 }
 
 /** True for a test-mode key prefix. */

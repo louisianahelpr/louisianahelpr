@@ -251,7 +251,7 @@ const PaymentSuccess = () => {
   const fireReturnEvents = useCallback(() => {
     if (returnEventsFired.current) return;
     returnEventsFired.current = true;
-    // OPEN.md "payment-made-bare-visit": only a checkout RETURN counts, and
+    // OPEN.md item "payment_made fires on any /payment-success visit": only a checkout RETURN counts, and
     // every one names its job in the link (create-payment's success_url and
     // its gift-covered return are both `/payment-success?job_id=<id>`). A
     // visit without a well-formed job_id in the URL (a bookmark, the browser
@@ -266,7 +266,7 @@ const PaymentSuccess = () => {
     // that previously stopped at job_posted with no record of payment.
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
 
-    // First-payment aha. OPEN.md "first-payment-zero-paid": it used to fire
+    // First-payment aha. OPEN.md item "first_payment_collected fires for posters who have never paid": it used to fire
     // whenever the paid-job count was `<= 1`, so a poster with NO paid job
     // (and every visit of a poster with one) counted as a first payment, and
     // a failed count read (count null) did too. Now: the poster's paid jobs

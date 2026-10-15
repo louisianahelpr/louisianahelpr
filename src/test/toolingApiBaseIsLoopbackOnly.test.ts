@@ -50,7 +50,7 @@ import { ensureTestAccountsEnrolled } from "../../scripts/lib/testAccountEnrolme
 import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
-const APIBASE_CALL_SITES = 27; // measured 2026-10-15: 17 single-seam scripts (+ check-native-sign-in-config, Q1323; + check-auth-captcha-matches-client 2 and check-captcha-refusals 1, OPEN.md "auth-captcha-matches-client"; + check-job-access-notes-live, Q1461; + check-performance-advisor, perf-advisor lane) + quota 3 + stripe-balance 2 + opsAlertLedger 1 + stripe-test-topup 1
+const APIBASE_CALL_SITES = 27; // measured 2026-10-15: 17 single-seam scripts (+ check-native-sign-in-config, Q1323; + check-auth-captcha-matches-client 2 and check-captcha-refusals 1, OPEN.md item "captcha switch matches what the deployed clients send"; + check-job-access-notes-live, Q1461; + check-performance-advisor, perf-advisor lane) + quota 3 + stripe-balance 2 + opsAlertLedger 1 + stripe-test-topup 1
 const SUPABASEBASE_CALL_SITES = 15; // measured 2026-10-15 (+ rotate-review-demo-password, Q1790); 14 on 2026-10-12 (+ seedStateFixtures): pressProdSafety, prod-seed, check-test-account-strikes, prod-audit-sweeper, create-app-review-demo-account, launch-go, load-test, probes/lib/prodEnv, test-signin-link, audit-capture, probe-state-matrix, lib/adminSession (Q1314), lib/testAccountEnrolment (PR #2711)
 // Scripts that hold a service-role key and make an HTTP call WITHOUT supabaseBase()/apiBase(),
 // measured 2026-10-11. Exact and two-way: a new unpinned sender fails, and an entry that gains

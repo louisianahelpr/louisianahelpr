@@ -66,6 +66,7 @@ import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { SHARED_TEST_ACCOUNTS, ensureTestAccountsEnrolled, findUnenrolled } from "../lib/testAccountEnrolment.mjs";
 import { stateFixtureJobIds } from "../e2e/seedStateFixtures.mjs";
+import { upsertJobsPastOpenJobCap } from "./openJobCapFallback.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -154,7 +155,13 @@ async function upsert(table, rows, onConflict = "id", { verifyByIdInstead = fals
   const out = [];
   for (let i = 0; i < rows.length; i += 100) {
     const chunk = rows.slice(i, i + 100);
-    out.push(...(await rest("POST", `${table}?on_conflict=${onConflict}`, chunk, { prefer: "resolution=merge-duplicates,return=representation" })));
+    const post = (rows) => rest("POST", `${table}?on_conflict=${onConflict}`, rows, { prefer: "resolution=merge-duplicates,return=representation" });
+    // jobs: an existing seed job is repaired past the 5-open-job cap by PATCH (./openJobCapFallback.mjs).
+    out.push(...(table === "jobs" && onConflict === "id" ? await upsertJobsPastOpenJobCap(chunk, {
+      post,
+      existingIds: async (ids) => (await select(`jobs?id=${inList(ids)}&select=id`)).map((r) => r.id),
+      patch: (id, values) => rest("PATCH", `jobs?id=eq.${id}&select=id`, values, { prefer: "return=representation" }),
+    }) : await post(chunk)));
   }
   if (out.length !== rows.length) {
     // A BEFORE INSERT trigger may return NULL for a row that already exists

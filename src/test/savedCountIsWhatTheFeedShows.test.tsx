@@ -126,7 +126,6 @@ describe("an empty saved-only list (Q1739)", () => {
   });
 });
 
-// @mutate src/pages/home/Dashboard.tsx |                           savedCount={filters.savedShownCount ?? 0} |                           savedCount={savedJobIds.size}
 // @mutate src/pages/home/Dashboard.tsx | serverCount: filters.totalMatchingCount, hasNextPage | serverCount: null, hasNextPage
 // @mutate src/pages/home/Dashboard.tsx | appliedJobIds, blockedUserIds, dismissedJobIds, savedJobIds, | appliedJobIds, blockedUserIds, dismissedJobIds,
 // @mutate src/hooks/useDashboardFilters.ts |     savedOnlyJobIds: savedAllIdsKey, |     savedOnlyJobIds: savedOnlyIdsKey,
@@ -135,5 +134,5 @@ describe("an empty saved-only list (Q1739)", () => {
 // @mutate src/pages/home/useSavedOnlyPaging.ts |   if (typeof i.serverCount !== "number") return false; |
 // @mutate src/pages/home/useSavedOnlyPaging.ts |   if (!i.savedOnly) return false; |
 // @mutate src/pages/home/useSavedOnlyPaging.ts |   return i.hasNextPage === true && !i.isFetchingNextPage; |   return true;
-// @mutate src/components/dashboard/SavedOnlyState.tsx |     const noneOpen = (savedRead?.total ?? 0) > 0; |     const noneOpen = false;
+// @mutate src/components/dashboard/SavedOnlyState.tsx | (savedRead?.total ?? 0) > 0 ? NONE_OPEN : NOTHING_SAVED | NOTHING_SAVED
 // @mutate src/pages/home/useDashboardSideQueries.ts |       total: savedJobIds.size, |

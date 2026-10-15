@@ -129,3 +129,14 @@ Declined: first-job credit, gift a job, satisfaction promise.
 
 ## Landing page (owner 2026-10-14): update it when the new sections go live
 The landing page must present the whole hub (Jobs, Declutter, Shops, Rentals) once they launch. NOTE: the landing HERO is LOCKED by CLAUDE.md (H1 "Louisiana's Local Job Partner." in Bodoni Moda + subhead "Hire a Helpr or find local work..."): any change to font, colour or copy of those two needs the owner's explicit instruction naming them — ask in that question round. Everything below the hero can be redesigned.
+
+## Jobs fee details (owner pop-up 2026-10-15) — for lane B (ready/fee-flat; handoff ~/.lh-shots/handoffs-1015/fee-flat.md)
+| # | Decision |
+|---|----------|
+| F3a | Helpr payouts KEEP rounding down to whole dollars (Q236): a $100 job pays the Helpr $94 (computed $94.30) |
+| F3b | Urgent bonus is part of the job price set at posting ("urgent is added on the original job post"): the same 5% + $0.70 applies to the whole amount; NO separate card-cost line for the poster |
+| F3c | The $2 one-time setup fee on a poster's first job is KEPT |
+| F3d | Dispute splits follow the normal rules: poster's part refunded minus card cost (our-mistake = full); Helpr's part pays 5% + $0.70 like any payout |
+| F3e | Sales tax on taxable categories is still added (legally required) |
+Declutter row 95 confirmed: buyer double no-show refund = exactly the item price; the 5% + $0.70 buyer's fee is kept; 1 strike.
+OPEN (not verified): who pays Stripe Connect account/payout fees (e.g. per active account per month, per payout) under this platform's Connect setup — at 5% + $0.70 the margin on very small sales could go negative if the platform pays them. Check the Stripe account's Connect pricing before launch.

@@ -3,7 +3,7 @@
  * (20261015092723_declutter_handover_private_bucket; lh-authz-rls review of
  * slice 4, should-fix (a)). Read from the NEWEST definitions (effectiveDefs), so
  * a later restatement that points the RPCs back at the public job-photos bucket
- * fails here. Behaviour (18 checks, 3x replay, migration skipped = RED):
+ * fails here. Behaviour (3x replay, migration skipped = RED):
  * src/test/pglite/declutterHandoverBucket.pglite.mjs.
  *
  * @mutate supabase/migrations/20261015092723_declutter_handover_private_bucket.sql | VALUES ('declutter-handover', 'declutter-handover', false, | VALUES ('declutter-handover', 'declutter-handover', true,

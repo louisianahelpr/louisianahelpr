@@ -34,7 +34,7 @@ permissions:
 # old test-mode check was red every day (#1966). No Stripe key lives in GitHub:
 # the live half calls the edge function stripe-webhook-config-check with
 # CRON_SECRET, and that function reads the live key from its own
-# Supabase env, makes two GETs (/v1/webhook_endpoints, and Q854's
+# Supabase env, makes four GETs (Q1820: plus the TEST-mode endpoints) (/v1/webhook_endpoints, and Q854's
 # /v1/events?delivery_success=false over a bounded window, owner pop-up
 # 2026-09-30), and returns only {id, url, status, livemode, enabled_events} per
 # endpoint, `keyIsLive`, and an `undelivered` count with {id, type} per event
@@ -135,6 +135,27 @@ jobs:
             exit 1
           fi
           echo "Guard correctly failed (exit $code) on the undelivered-events fixture."
+      - name: Self-test — the guard must go red on the 2026-10-12 TEST-mode endpoints (Q1820)
+        run: |
+          set +e
+          out=$(node scripts/check-stripe-webhook-events.mjs \
+            --test-fixture scripts/fixtures/stripe-webhook-endpoints/test-mode-2026-10-12-all-disabled.json 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The guard PASSED on the all-disabled TEST-mode fixture. A dead test-mode webhook is no longer detected."
+            exit 1
+          fi
+          if ! printf '%s' "$out" | grep -q "No enabled TEST-mode webhook endpoint"; then
+            echo "::error::The guard failed on the TEST-mode fixture, but not for the missing test-mode endpoint."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the TEST-mode fixture."
+      - name: Self-test — the guard passes today's TEST-mode endpoints (Q1820)
+        run: |
+          node scripts/check-stripe-webhook-events.mjs \
+            --test-fixture scripts/fixtures/stripe-webhook-endpoints/test-mode-2026-10-15-enabled.json
 
   live-secret-present:
     name: CRON_SECRET is configured

@@ -37,7 +37,7 @@
  * prevent. Skipping it must be asked for explicitly (--static), and that run
  * says so in its own PASS line.
  *
- * READ ONLY. The function makes two GETs and nothing else: /v1/webhook_endpoints,
+ * READ ONLY. The function makes four GETs and nothing else (the fourth, Q1820, lists the TEST-mode endpoints with the test key): /v1/webhook_endpoints,
  * and /v1/events?delivery_success=false over a bounded window (Q854, owner
  * pop-up 2026-09-30). From the second it returns only a count plus {id, type}
  * per event. RED when that count is above zero (a live event Stripe has not
@@ -51,16 +51,18 @@
  *   node scripts/check-stripe-webhook-events.mjs --require-live  # accepted no-op
  *   node scripts/check-stripe-webhook-events.mjs --fixture <endpoints.json>      # prove the endpoint half red
  *   node scripts/check-stripe-webhook-events.mjs --events-fixture <shaped.json>  # prove the undelivered half red
+ *   node scripts/check-stripe-webhook-events.mjs --test-fixture <body.json>      # prove the TEST-mode half red (Q1820)
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import {
   handlerEventTypes,
+  testModeEventTypes,
   WEBHOOK_URL,
   WEBHOOK_INDEX,
 } from "./stripe-webhook-events.mjs";
-import { gradeConfigCheckResponse, gradeLiveEndpoints, gradeUndelivered } from "./lib/stripeWebhookGuard.mjs";
+import { gradeConfigCheckResponse, gradeLiveEndpoints, gradeTestEndpoints, gradeUndelivered } from "./lib/stripeWebhookGuard.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const SANDBOX_ON = join(root, "scripts/e2e/stripe-sandbox-on.sh");
@@ -91,6 +93,11 @@ const FIXTURE = argv.includes("--fixture") ? argv[argv.indexOf("--fixture") + 1]
  * so the undelivered-events half can be PROVEN RED without a key. Q854.
  */
 const EVENTS_FIXTURE = argv.includes("--events-fixture") ? argv[argv.indexOf("--events-fixture") + 1] : null;
+/**
+ * --test-fixture <file>: grade a recorded config-check body's TEST-mode half
+ * ({testEndpoints, testKeyIsTest}) so Q1820 can be PROVEN RED without a key.
+ */
+const TEST_FIXTURE = argv.includes("--test-fixture") ? argv[argv.indexOf("--test-fixture") + 1] : null;
 
 const failures = [];
 const notes = [];
@@ -174,7 +181,7 @@ const FUNCTIONS_BASE_OK =
 
 /**
  * The ONLY request this guard makes: an authenticated GET of the edge function,
- * which itself makes two GETs to Stripe (webhook_endpoints, undelivered events).
+ * which itself makes four GETs to Stripe (webhook_endpoints, undelivered events, tax registrations, TEST-mode webhook_endpoints).
  * There is no write path.
  */
 async function readConfigCheck(serviceKey) {
@@ -211,6 +218,11 @@ async function liveHalf() {
     record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL));
     return;
   }
+  if (TEST_FIXTURE) {
+    notes.push(`FIXTURE MODE: grading ${TEST_FIXTURE} instead of the Stripe account's TEST-mode endpoints.`);
+    record(gradeTestEndpoints(JSON.parse(readFileSync(TEST_FIXTURE, "utf8")), handlers, testModeEventTypes(handlers), WEBHOOK_URL));
+    return;
+  }
   if (EVENTS_FIXTURE) {
     notes.push(`FIXTURE MODE: grading ${EVENTS_FIXTURE} instead of the live Stripe account's undelivered events.`);
     record(gradeUndelivered(JSON.parse(readFileSync(EVENTS_FIXTURE, "utf8")).undelivered));
@@ -240,7 +252,7 @@ async function liveHalf() {
     fail(`Could not read Stripe live-mode webhook endpoints and undelivered events: ${e.message}`);
     return;
   }
-  record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL));
+  record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers)));
 }
 
 if (!STATIC_ONLY) await liveHalf();

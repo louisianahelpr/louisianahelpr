@@ -211,6 +211,8 @@ export async function readWebhookConfig(
   timeoutMs = 15000,
   nowSec = Math.floor(Date.now() / 1000),
   testKey?: string,
+  /** Why there is no test key (from _shared/stripeMode.ts testModeKeyForConfigCheck). */
+  testKeyError?: string,
 ): Promise<ConfigCheckResult> {
   if (!key) {
     return { ok: false, status: 500, error: "STRIPE_SECRET_KEY is not set in the edge-function env" };
@@ -242,7 +244,7 @@ export async function readWebhookConfig(
   let testEndpoints: ShapedEndpoint[] | null = null;
   let testError: string | undefined;
   if (!testKey) {
-    testError = "STRIPE_TEST_SECRET_KEY is not set in the edge-function env";
+    testError = testKeyError ?? "the test-mode Stripe key is not set in the edge-function env";
   } else {
     const test = await getStripeList(STRIPE_WEBHOOK_ENDPOINTS_URL, "test-mode webhook_endpoints", testKey, fetchImpl, timeoutMs);
     if (!test.ok) testError = test.error;

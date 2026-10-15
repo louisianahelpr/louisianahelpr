@@ -23,9 +23,9 @@
  *      server's live-application statuses.
  *
  * Shown red on the old code (the button removed) and on planted server holes:
- * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <MessageApplicantButton jobId={selectedJob.id} | <span data-jobid={selectedJob.id}
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <MessageApplicantButton jobId={jobId} helperId={helperId} helperName={helperName} className="flex-1 sm:flex-none" /> | <span data-jobid={jobId} />
  * @mutate src/components/series/SeriesDatesPanel.tsx | <MessageApplicantButton jobId={jobId} helperId={a.id} helperName={a.name} appearance="row" /> | {null}
- * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {canMessageApplicant(app.status) && ( | {true && (
+ * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status !== "pending" && canMessageApplicant(app.status) && ( | {app.status !== "pending" && (
  * @mutate src/components/jobs/MessageApplicantButton.tsx | `/messages?jobId=${encodeURIComponent(jobId)}&userId=${id}` | `/messages?jobId=${encodeURIComponent(jobId)}`
  * @mutate src/components/jobs/MessageApplicantButton.tsx | ["pending", "accepted"] as const | ["pending", "accepted", "rejected"] as const
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |             AND m.sender_id = j.customer_id\n            AND m.receiver_id = _sender | AND m.sender_id = _sender

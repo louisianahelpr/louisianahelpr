@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 614,
-    "files": 159,
-    "rendering": 586,
-    "suppressedByPolicy": 28,
+    "calls": 634,
+    "files": 163,
+    "rendering": 599,
+    "suppressedByPolicy": 35,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 482,
+      "toast.error": 495,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 34,
+      "toast.success": 41,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 324,
+      "literal": 330,
       "template": 79,
-      "dynamic": 252,
+      "dynamic": 266,
       "jsx": 0
     }
   },
@@ -2971,8 +2971,38 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/settings/DeclutterReviewCard.tsx",
+      "line": 46,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"live\" ? \"Approved: it's for sale now.\" : \"Rejected. The seller will see your reason.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Approved: it's for sale now."
+          },
+          {
+            "form": "literal",
+            "text": "Rejected. The seller will see your reason."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/DeclutterReviewCard.tsx",
+      "line": 49,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 67,
+      "line": 68,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -2982,7 +3012,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3111,6 +3141,206 @@
       "description": {
         "form": "literal",
         "text": "We saved your pitch. Try again once you're back online."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 125,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Taken down."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterItemView.tsx",
+      "line": 70,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterItemView.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterItemView.tsx",
+      "line": 134,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Question posted. The seller's answer will show here."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterItemView.tsx",
+      "line": 137,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 187,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 214,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 221,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. Now add photos."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 224,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 235,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "A listing can have up to 12 photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 241,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 255,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 272,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "d.flagged ? \"Filled in. Check every detail. This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up.\" : \"Filled in. Check every detail, then save.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Filled in. Check every detail. This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up."
+          },
+          {
+            "form": "literal",
+            "text": "Filled in. Check every detail, then save."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 278,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 287,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "All four statements need a check before you can list this item."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 304,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"live\" ? \"Your item is for sale.\" : \"Sent for a review. We'll let you know when it's up for sale.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Your item is for sale."
+          },
+          {
+            "form": "literal",
+            "text": "Sent for a review. We'll let you know when it's up for sale."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellView.tsx",
+      "line": 309,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

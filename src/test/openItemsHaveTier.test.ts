@@ -25,8 +25,13 @@ const TIER = /\b(HIGH|MEDIUM|LOW)\b/;
 // `**Q362** (HIGH, ...`), else the first word. Anywhere
 // in the line was too loose: Q7 kept passing with its tier deleted because its
 // text says "LOW" elsewhere (vacuity run 37156530397, 2026-10-03).
+// A placeholder `Q?<tag>` (scripts/open-assign-numbers.mjs: numbers are assigned
+// at landing) is read like a number (sec-b, 2026-10-14: the first placeholder
+// filed failed here as "no tier").
 const TIER_AT = (l: string) =>
-  /^- \[[ ~]\] \*\*Q\d+/.test(l) ? /^- \[[ ~]\] \*\*Q\d+(?:\*\*)? \(?(HIGH|MEDIUM|LOW)\b/.test(l) : /^- \[[ ~]\] \**(HIGH|MEDIUM|LOW)\b/.test(l);
+  /^- \[[ ~]\] \*\*Q(?:\d+|\?[a-z0-9-]+)/.test(l)
+    ? /^- \[[ ~]\] \*\*Q(?:\d+|\?[a-z0-9-]+)(?:\*\*)? \(?(HIGH|MEDIUM|LOW)\b/.test(l)
+    : /^- \[[ ~]\] \**(HIGH|MEDIUM|LOW)\b/.test(l);
 
 describe("every open OPEN.md item has a tier", () => {
   const items = md.split("\n").map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => /^- \[[ ~]\] /.test(l));

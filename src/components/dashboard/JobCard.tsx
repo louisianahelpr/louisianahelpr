@@ -17,6 +17,7 @@ import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroid
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
+import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
 import { JobPrice, computeNet } from "./JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import type { EnrichedJob } from "./types";
@@ -186,24 +187,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       : null,
   );
   const distanceMiles = isCommutableDistance(rawTripMiles) ? rawTripMiles : null;
-  // EVERY value here is approximate and the visible text now says so.
-  //
-  // It always was: open_jobs_browse masks precise job coordinates on purpose,
-  // so the destination is a PARISH CENTROID in every case — the pill has
-  // never been able to mean "1634 miles", only "about that far". The header
-  // comment above and the aria-label below both already said "~X mi" /
-  // "Approximately X away"; the pixels were the one place that claimed a
-  // measurement. A viewer cannot audit an origin, so the only honest answer
-  // is to mark the claim, and a tilde costs ~4px on the one no-wrap row.
-  // "<1 mi" keeps its own wording — "~<1 mi" reads as noise, and "less than a
-  // mile" is already a range rather than a point.
-  const distanceLabel = distanceMiles == null
-    ? null
-    : distanceMiles < 1
-      ? "<1 mi"
-      : distanceMiles < 10
-        ? `~${distanceMiles.toFixed(1)} mi`
-        : `~${Math.round(distanceMiles)} mi`;
+  // EVERY value here is approximate and the visible text says so; the rule and
+  // its rationale live with the formatter (see ./jobCardDistance).
+  const distanceLabel = formatDistanceLabel(distanceMiles);
   // The same figure without the typographic "~" — see the aria-label below.
   const spokenDistance = distanceLabel?.replace(/^~/, "") ?? null;
 
@@ -218,11 +204,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     destCentroid?.lng ?? null,
     distanceMiles,
   );
-  const drivingLabel = drivingMinutes == null
-    ? null
-    : drivingMinutes < 60
-      ? `${drivingMinutes} min`
-      : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m`;
+  const drivingLabel = formatDrivingLabel(drivingMinutes);
 
   // How long the work takes — jobs.estimated_hours, collected on every post
   // and returned by BOTH feed sources (the `open_jobs_browse` view the

@@ -64,11 +64,9 @@ export function helprFlatFeeCents(
   return Math.min(share, Math.round((share * pct) / 100) + flat);
 }
 
-/** What one Helpr receives on a flat-model job, in cents. */
-export function helprFlatTakeHomeCents(perHelperBudgetCents: number, job?: FlatFeeStamp | null): number {
-  const share = Math.max(0, Math.round(Number(perHelperBudgetCents) || 0));
-  return share - helprFlatFeeCents(share, job);
-}
+// No `helprFlatTakeHomeCents` here: the server only ever needs the fee (it pays
+// out budget minus fee); the take-home display is client-only
+// (`src/lib/helprFlatFee.ts`), and an edge copy nothing calls is an unused export.
 
 /**
  * The percent a flat-model job was stamped with (5 today), or null on a

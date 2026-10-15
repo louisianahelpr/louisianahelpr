@@ -26,7 +26,7 @@
  * src/test/pglite/jobAccessNotes.pglite.mjs. Live: the
  * scripts/check-job-access-notes-live.mjs read of prod's catalog.
  *
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     materials_note\n   FROM jobs |     materials_note,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
+ * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |     helper_fee_flat_cents\n   FROM jobs |     helper_fee_flat_cents,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO authenticated | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO anon, authenticated
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |          OR public.can_read_job_access_notes(job_id)); |          OR true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated; | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO anon, authenticated;
@@ -96,7 +96,7 @@ describe("Q1461: no browse surface carries the access notes", () => {
 
   it("open_jobs_browse projects materials_note (public by owner decision) and stays a definer view", () => {
     const browse = views.get("open_jobs_browse")!;
-    expect(browse.body).toMatch(/\bmaterials_note\s*$/m);
+    expect(browse.body).toMatch(/\bmaterials_note,?\s*$/m);
     expect(browse.body).toMatch(/security_invoker\s*=\s*false/i);
   });
 });

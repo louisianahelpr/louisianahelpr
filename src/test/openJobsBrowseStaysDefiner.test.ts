@@ -25,9 +25,9 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     materials_note\n   FROM jobs |     materials_note,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |     helper_fee_flat_cents\n   FROM jobs |     helper_fee_flat_cents,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -109,6 +109,9 @@ const PINNED_COLUMNS = [
   // Parking notes are NOT here: they live in job_access_notes, which no
   // browse surface reads (src/test/jobAccessNotesNeverBrowse.test.ts).
   "materials_note",
+  // 20261015034054: the flat-fee stamp a new job carries, so the card shows the
+  // Helpr's take-home. A cents amount fixed at posting; nothing personal.
+  "helper_fee_flat_cents",
 ];
 
 /** Live jobs SELECT policies, replayed from the ledger. */

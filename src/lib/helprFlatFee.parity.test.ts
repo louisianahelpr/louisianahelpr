@@ -15,14 +15,14 @@ import * as edgeEarnings from "../../supabase/functions/_shared/helperEarnings";
 
 describe("Helpr flat fee (F3): edge and client agree, and match the owner's numbers", () => {
   it("$100 job: the Helpr receives $94.30 (owner's example)", () => {
-    for (const m of [client, edge]) {
-      expect(m.helprFlatFeeCents(10_000)).toBe(570);
-      expect(m.helprFlatTakeHomeCents(10_000)).toBe(9_430);
-    }
+    for (const m of [client, edge]) expect(m.helprFlatFeeCents(10_000)).toBe(570);
+    expect(client.helprFlatTakeHomeCents(10_000)).toBe(9_430);
+    expect(10_000 - edge.helprFlatFeeCents(10_000)).toBe(9_430);
   });
 
   it("$20 job: the Helpr receives $18.30", () => {
-    for (const m of [client, edge]) expect(m.helprFlatTakeHomeCents(2_000)).toBe(1_830);
+    expect(client.helprFlatTakeHomeCents(2_000)).toBe(1_830);
+    expect(2_000 - edge.helprFlatFeeCents(2_000)).toBe(1_830);
   });
 
   it("the platform never absorbs the card cost: 5% + 70c covers Stripe's cost on the job price at every price from $1 to $5,000", () => {
@@ -52,8 +52,9 @@ describe("Helpr flat fee (F3): edge and client agree, and match the owner's numb
       expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: null, helper_fee_percent: 12 })).toBe(570);
       // Never more than the share.
       expect(m.helprFlatFeeCents(50)).toBe(50);
-      expect(m.helprFlatTakeHomeCents(50)).toBe(0);
     }
+    expect(client.helprFlatTakeHomeCents(50)).toBe(0);
+    expect(50 - edge.helprFlatFeeCents(50)).toBe(0);
   });
 
   it("flatFeePercentOf: the stamped percent on a flat job, null on a legacy job", () => {

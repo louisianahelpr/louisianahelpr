@@ -15,6 +15,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
+import { BILLING_OPTIONS, BILLING_PILL_STYLE } from "@/components/profile/subscriptionTab/billingPill";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -39,11 +40,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // pricing, and defaulting here to the one-time pass meant the same tier
   // quoted a different price depending on which surface you arrived at.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
-  // Roadmap F4a (owner 2026-10-15): while memberships are off, nothing sells
-  // one. The Membership row is hidden, but /profile?tab=subscription is still
-  // a deep link, and on iOS the purchase goes through Apple (verify-apple-iap
-  // grants after Apple has the money), so the refusal sits here, before
-  // either payment path. create-pro-checkout refuses on the same switch.
+  // Roadmap F4a (owner 2026-10-15): while memberships are off, nothing sells one.
+  // The row is hidden but /profile?tab=subscription is still a deep link, and on
+  // iOS Apple takes the money before verify-apple-iap grants, so the refusal
+  // sits here, before either payment path. create-pro-checkout uses the same switch.
   const membershipsOn = useFeature("memberships");
   const [refreshing, setRefreshing] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -271,11 +271,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           looking like an oversized empty box (owner, 2026-08-30: "doesn't
           need such a large box, make it smaller and others bigger"). */}
       <div className="grid grid-cols-[1fr_1fr_1fr_44px] items-center gap-1 rounded-2xl p-1 bg-transparent">
-        {([
-          { key: "one_time" as const, label: "Once" },
-          { key: "monthly" as const, label: "Monthly" },
-          { key: "annual" as const, label: "Annual" },
-        ]).map((opt) => {
+        {BILLING_OPTIONS.map((opt) => {
           const active = billingInterval === opt.key;
           return (
             <button
@@ -297,14 +293,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   layoutId="membershipBillingPill"
                   transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                   className="absolute inset-0 rounded-ds-md btn-grad-primary"
-                  style={{
-                    border: "1px solid hsl(var(--bark-border))",
-                    boxShadow:
-                      "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
-                      "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
-                      "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
-                      "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
-                  }}
+                  style={BILLING_PILL_STYLE}
                 />
               )}
               <span className="relative">{opt.label}</span>

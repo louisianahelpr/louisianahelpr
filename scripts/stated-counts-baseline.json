@@ -211,7 +211,6 @@
     "src/components/dashboard/jobDetailDialog/JobStatTiles.test.tsx :: fix this was 2 cells in 3 columns",
     "src/components/job-card/activityConstants.test.ts :: seven attributed to the 20260504 state-machine trigger",
     "src/components/job-card/jobStepOneRow.test.tsx :: // …and the REAL 320 row",
-    "src/components/profile/HelperScheduleStrip.test.tsx :: ay cell that summarises 3 jobs",
     "src/components/profile/HelperStreakBadge.test.tsx :: // A REAL 2 reached the component",
     "src/components/profile/ReviewsTab.attribution.test.tsx :: one wins the space. At 375 a real job",
     "src/components/profile/profileTabScroll.test.ts :: assName literals across 5 tab",

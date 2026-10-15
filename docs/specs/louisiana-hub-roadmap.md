@@ -122,3 +122,7 @@ Legal note (Claude's reading, not verified by a lawyer): Louisiana's auction def
 |---|----------|
 | G2b | Main pages: Home (central page) + Jobs, Declutter, Shops, Rentals (houses for rent). Bottom bar: Home · Jobs · Declutter · Shops · Rentals (order chosen by Claude per owner "in whatever order"). No "More" tab: extras (events, storm hub, community board, interest groups, deals) live as tiles on Home. Messages + Profile stay top-corner icons (G3) |
 | B4x | SHIFT HIRING DROPPED (owner: "dont do shift hiring"); research stopped |
+
+## Maybe later (owner 2026-10-14: "maybe later for these") — not approved, revisit after launch
+Google pages per town + service (SEO); local price guide; text-a-job for non-app users; Helpr of the month.
+Declined: first-job credit, gift a job, satisfaction promise.

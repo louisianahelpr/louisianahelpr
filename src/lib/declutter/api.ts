@@ -297,9 +297,24 @@ export interface AiDraft {
   flagged: boolean;
 }
 
+/**
+ * How long the app waits for the photo tool (draft or banned-item check)
+ * before it gives up and says so. The edge function's model calls alone can
+ * take ~51.5 s (a 25 s call, a short pause, one 25 s retry on a busy answer),
+ * plus its reads, photo downloads and a cold start, so this is a minute: a
+ * bound on a hung connection, not a race with a slow answer. A check that
+ * times out is handled like any failed check (the listing goes to review).
+ */
+export const AI_TIMEOUT_MS = 60_000;
+
 async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body: { itemId, mode } });
+  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body: { itemId, mode }, timeout: AI_TIMEOUT_MS });
   if (error) {
+    // The client timeout aborted the request: before the answer's headers
+    // (FunctionsFetchError around an AbortError) or while its body was read
+    // (the AbortError itself).
+    const aborted = (error as { name?: unknown }).name === "AbortError" || (error as { context?: { name?: unknown } }).context?.name === "AbortError";
+    if (aborted) throw new Error("ai_timed_out");
     // FunctionsHttpError keeps the JSON body on its context.
     const ctx = (error as { context?: Response }).context;
     const body: { error?: unknown } | null = ctx && typeof ctx.json === "function"

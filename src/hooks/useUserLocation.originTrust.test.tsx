@@ -162,7 +162,7 @@ describe("a position we received is a position we keep (the write side)", () => 
     const { result } = renderHook(() => useUserLocation(true));
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(getCachedUserLocation()).toEqual({ lat: MENLO_PARK.lat, lng: MENLO_PARK.lng });
+    expect(getCachedUserLocation()).toEqual({ lat: MENLO_PARK.lat, lng: MENLO_PARK.lng, approximate: false });
   });
 
   it("persists it, because a precise fix is a precise fix wherever it is", async () => {
@@ -193,7 +193,7 @@ describe("a position we received is a position we keep (the write side)", () => 
     expect(state.lat).toBe(BATON_ROUGE.lat);
     expect(state.lng).toBe(BATON_ROUGE.lng);
     expect(state.source).toBe("device");
-    expect(getCachedUserLocation()).toEqual({ lat: BATON_ROUGE.lat, lng: BATON_ROUGE.lng });
+    expect(getCachedUserLocation()).toEqual({ lat: BATON_ROUGE.lat, lng: BATON_ROUGE.lng, approximate: true });
   });
 
   it("but FLAGS it approximate, so nothing quotes it as a measurement", async () => {
@@ -235,7 +235,7 @@ describe("a position we received is a position we keep (the write side)", () => 
     if (state.status !== "ready") throw new Error("expected ready");
     expect(state.source).toBe("device");
     expect(state.approximate).toBe(false);
-    expect(getCachedUserLocation()).toEqual({ lat: BATON_ROUGE.lat, lng: BATON_ROUGE.lng });
+    expect(getCachedUserLocation()).toEqual({ lat: BATON_ROUGE.lat, lng: BATON_ROUGE.lng, approximate: false });
     expect(persistMock).toHaveBeenCalledWith(BATON_ROUGE.lat, BATON_ROUGE.lng);
   });
 

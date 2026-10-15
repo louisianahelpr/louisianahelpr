@@ -610,7 +610,6 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
     it.each([
       ["a Pro pass", { tier: "pro", user_id: "TEST" }],
       ["a Pro subscription billing cycle", { billing_cycle: "one_time", user_id: "TEST" }],
-      ["a gift card", { kind: "gift_card_purchase", recipient_email: "someone@example.com" }],
       ["an unknown kind", { kind: "something_new" }],
     ])("a TEST-endpoint checkout for %s is NOT applied (only mode-routed checkouts run in test mode)", async (_label, metadata) => {
       env();

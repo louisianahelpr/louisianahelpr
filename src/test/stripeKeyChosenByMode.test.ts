@@ -17,6 +17,7 @@
  * @mutate supabase/functions/create-payment/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(stripeMode), { |     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "", {
  * @mutate supabase/functions/release-payout/index.ts |     stripeKey = stripeSecretKeyFor(stripeMode); |     stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" })); |     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? key, { apiVersion: "2025-08-27.basil" }));
+ * @mutate supabase/functions/create-gift-card-checkout/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(stripeMode), { |     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "", {
  * @mutate supabase/functions/stripe-connect/index.ts |     const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), { |     const stripe = new Stripe(Deno.env.get("STRIPE_TEST_SECRET_KEY") ?? "", {
  */
 import { describe, it, expect } from "vitest";
@@ -53,6 +54,7 @@ const ROUTED = [
   "charge-recurring-visits/index.ts",
   "create-bgc-payment/index.ts",
   "create-boost-payment/index.ts",
+  "create-gift-card-checkout/index.ts",
   "create-payment/index.ts",
   "execute-dispute-split/index.ts",
   "instant-payout/index.ts",
@@ -77,7 +79,6 @@ const LIVE_ONLY: Record<string, string> = {
   "_shared/accountPurge.ts": "account deletion removes the person's LIVE Stripe customer; a test account has none, so the purge finds nothing to delete",
   "calculate-tax/index.ts": "a tax QUOTE on the post screen: it creates no charge and moves no money; the checkout's own tax is computed in the checkout's mode",
   "check-pro-subscription/index.ts": PRO,
-  "create-gift-card-checkout/index.ts": "a gift can be sent to ANY email, so a test buyer could hand test credit to a real person: needs a recipient rule first, filed as its own OPEN item",
   "create-pro-checkout/index.ts": PRO,
   "money-reconciliation/index.ts": "reconciles the LIVE ledger against live Stripe (read only); seed jobs are out of its default scope, and a test job read under the live key is the classified test-object skip",
   "pro-customer-portal/index.ts": PRO,

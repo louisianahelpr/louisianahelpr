@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T06:27Z",
+  "measured_at": "2026-10-15T06:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -137,7 +137,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 3135
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -442,7 +442,6 @@
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
-    "ledger 31d4f960f703": "Q1638",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
@@ -492,7 +491,6 @@
     "ledger bc6810c9f1ab": "Q1596",
     "ledger bd4c3063280b": "Q1596",
     "ledger c1ad0c081216": "Q1596",
-    "ledger c31b9a387af0": "Q1638",
     "ledger c4af5413ec6a": "Q1596",
     "ledger caab19e71ae9": "Q1596",
     "ledger cd2127b53ee7": "Q1596",

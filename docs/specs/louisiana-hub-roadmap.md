@@ -140,3 +140,4 @@ The landing page must present the whole hub (Jobs, Declutter, Shops, Rentals) on
 | F3e | Sales tax on taxable categories is still added (legally required) |
 Declutter row 95 confirmed: buyer double no-show refund = exactly the item price; the 5% + $0.70 buyer's fee is kept; 1 strike.
 OPEN (not verified): who pays Stripe Connect account/payout fees (e.g. per active account per month, per payout) under this platform's Connect setup — at 5% + $0.70 the margin on very small sales could go negative if the platform pays them. Check the Stripe account's Connect pricing before launch.
+| F4a | With memberships off, formerly Pro-only features (instant cash-out, earnings analytics, boost discounts, early access) are OFF FOR EVERYONE until memberships return; no upgrade screens (owner pop-up 2026-10-15) |

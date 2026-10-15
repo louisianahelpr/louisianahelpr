@@ -17,7 +17,7 @@ heavy tests: targeted files + parsecheck while other lanes run; the FULL suite o
 | 3 | Declutter buyer fee -> 5% + $0.70 (replace 15%/$1) + slice 4 (handover QR/4-digit, I-got-it, porch, auto-pay, seller payout + fee-debt, Report a problem/disputes, no-shows, address after paying) + slice-3b open items | declutter-auctions.md rows 13-28, 60, 67, 91-98, F1 | slices 3/3b branch | lane C |
 | 4 | Trade categories in Jobs (T1-T2) + "Suggest a category" (I1) | roadmap T1-T2, I1 | — | READY ready/trades 79c401884 |
 | 5 | Declutter slice 6: admin (storm pause, strike appeals, review queue polish) + alerts | declutter-auctions.md rows 39, 44, 49 | 3 | queued |
-| 6 | Rentals S1: maintenance requests -> Helpr jobs (invited tenants, approve -> draft job, emergencies, entry, done, recurring upkeep, auto-approve limit) | landlord-hub-prep.md Q37-Q48 | 2 | queued |
+| 6 | Rentals S1: maintenance requests -> Helpr jobs (invited tenants, approve -> draft job, emergencies, entry, done, recurring upkeep, auto-approve limit) | landlord-hub-prep.md Q37-Q48 | 2 | BUILT 2026-10-15 07:4xZ: ready/rentals-s1 e56f15b16 (on top of ready/fee-flat; money + authz reviews OK), owes land-vitest-changed; lands AFTER fee-flat. LEFT: 6b visual pass 375/1440 (HIGH) + 6 Q?rentals-* items |
 | 7 | Quotes on jobs (Q1-Q8) | roadmap Q1-Q8 | 2 | queued |
 | 8 | Declutter slice 5: Helpr delivery (after launch) | declutter-auctions.md rows 29-30, 40-43 | 3 | queued |
 | 9 | Shops (makers, bakers, rentals of equipment, business profiles, boosts, appointments, punch cards, invoices, B2B, review links, rate cards) | local-shops-prep.md L1-L92, roadmap B1-B8 | 3 | queued |

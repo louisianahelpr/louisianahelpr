@@ -171,7 +171,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/detailsSection/TitleField.tsx` | input×1 | text |  | title · title-too-long · title-contact-leak |
 | `src/components/postjob/detailsSection/VideoScope.tsx` | input×1 | file |  | Remove video |
 | `src/components/postjob/LogisticsSection.tsx` | input×4, textarea×2, checkbox/switch/radio×2 | text, number | 200, 10, 500 | location-label · streetAddress · Street address · city · state · State (Louisiana) · zipCode · ZIP code |
-| `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  |  |
+| `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |
 | `src/components/TypedDateInput.tsx` | input×1 | text | 10 | MM/DD/YYYY |
 | `src/lib/offerResponseWindow.ts` | select×1 |  |  |  |
 | `src/pages/post-job/DirectOfferBanner.tsx` | select×1 |  |  | Cancel direct offer · direct-offer-window |

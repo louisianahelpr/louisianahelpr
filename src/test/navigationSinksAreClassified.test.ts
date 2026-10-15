@@ -148,6 +148,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
   "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
+  "components/declutter/DeclutterTradeViews.tsx::await startCardSave()": STRIPE_EDGE_URL,
+  "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
 };
 

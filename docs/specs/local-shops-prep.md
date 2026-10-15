@@ -741,3 +741,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L63 | (Pro: free monthly boost days count for business boosts — L38) |
 | L65 | iPhone app: boosts bought via Apple IN-APP PURCHASE (owner chose; Apple keeps its share, 15% under the Small Business Program if enrolled — not checked); website purchases use Stripe |
 | L67 | Monthly boosts do NOT auto-renew: reminder 3 days before the end, one tap to buy again |
+| L64 | Boost refunds only for unused days when we remove an ad by mistake; none if it broke the rules |
+| L66 | Android: Google Play billing for in-app boost purchases |
+| L68 | AI checks ad photo + text; flagged ads wait for admin; others run at once |
+| L69 | Non-ad order: nearest first, then rating |

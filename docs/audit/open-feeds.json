@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T00:27Z",
+  "measured_at": "2026-10-15T04:35Z",
   "issues": {
     "readable": true,
     "open": [
@@ -64,7 +64,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38651055503",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38666593316",
         "runTruncated": false
       },
       {
@@ -125,6 +125,14 @@
         "issue": 2353
       },
       {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
+      },
+      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -173,14 +181,6 @@
         "issue": 2244
       },
       {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 3096
-      },
-      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -205,14 +205,6 @@
         "issue": 2937
       },
       {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 2995
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -235,14 +227,6 @@
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
-      },
-      {
-        "fingerprint": "18539240a894224e952b88b2b21bb927",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: core-loop-canary",
-        "issue": 2941
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -454,9 +438,7 @@
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 16e6e91f6701": "Q1816",
-    "ledger 18539240a894": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
-    "ledger 1ef4b10bb74a": "Q1816",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
@@ -488,7 +470,6 @@
     "ledger 779af65c258e": "Q1596",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
-    "ledger 8018e82cb167": "Q1816",
     "ledger 8114e0acbcb0": "Q1813",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 87d1722faa1d": "Q1596",
@@ -530,6 +511,7 @@
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
+    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596"
   }
 }

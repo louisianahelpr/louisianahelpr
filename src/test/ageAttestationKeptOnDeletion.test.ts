@@ -8,7 +8,7 @@
  * migration (effectiveDefs) and fails if either one starts clearing it.
  *
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |            date_of_birth            = NULL, |            date_of_birth            = NULL, age_attested_at = NULL,
- * @mutate supabase/migrations/20261004194257_pre_verification_takeover_wipe.sql |          date_of_birth           = NULL, |          date_of_birth           = NULL, age_attested_at = NULL,
+ * @mutate supabase/migrations/20261015020859_promotions_before_unsubscribe.sql |          date_of_birth           = NULL, |          date_of_birth           = NULL, age_attested_at = NULL,
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";

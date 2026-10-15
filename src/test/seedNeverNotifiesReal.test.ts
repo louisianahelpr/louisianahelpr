@@ -66,7 +66,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate .github/workflows/functions-deploy.yml |         run: node scripts/check-edge-rpcs-live.mjs --wait 300\n |         run: echo skipped\n
 // @mutate supabase/functions/create-notification/index.ts |         p_actor: user.id, |         p_actor: null,
 // @mutate supabase/functions/create-notification/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === "never") {
-// @mutate supabase/functions/daily-match-digest/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: userId, title, message, type: "job_match" })
+// @mutate supabase/functions/saved-helper-availability-push/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: "x", title: "t", message: "m", type: "job_match" })
 // @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=people',
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n    VALUES (\n      _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n    VALUES (\n      _admin,
 // @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job completed!", |             user_id: job.helper_id,\n            title: "Job completed!",

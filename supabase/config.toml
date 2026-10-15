@@ -193,8 +193,7 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # service-role key>` in its handler (instant-job-match and str-ical-sync also
   # accept a user JWT, validated with auth.getUser); the gateway JWT check was
   # an accident of the legacy JWT key. Guard: src/test/cronFunctionsDeclareVerifyJwt.test.ts.
-  [functions.daily-match-digest]
-    verify_jwt = false
+  # daily-match-digest's stanza left with the function (Q1657, 2026-10-15).
   [functions.saved-helper-availability-push]
     verify_jwt = false
   [functions.str-ical-sync]

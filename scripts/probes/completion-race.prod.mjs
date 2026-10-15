@@ -88,7 +88,7 @@ async function cleanup(job) {
   for (const uid of [POSTER, HELPER]) {
     await rest(`notifications?user_id=eq.${uid}&created_at=gte.${since}&message=ilike.*${encodeURIComponent("RACE-COMPLETE")}*`, { method: "DELETE" });
   }
-  for (const t of ["user_violations", "user_strikes", "notification_logs"]) {
+  for (const t of ["user_violations", "notification_logs"]) {
     try { await rest(`${t}?job_id=eq.${job.id}`, { method: "DELETE" }); } catch (e) { console.log(`  cleanup ${t}: ${e.message.slice(0, 120)}`); }
   }
   try { await rest(`job_tracking?job_id=eq.${job.id}`, { method: "DELETE" }); } catch { /* none */ }

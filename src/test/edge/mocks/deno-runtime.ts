@@ -45,7 +45,7 @@ export const __denoStub = {
   /**
    * `Deno.serve(handler)` — the newer entry point. Roughly half the functions
    * use it instead of importing `serve` from deno.land (verification-webhook
-   * and daily-match-digest do), and without it the harness threw
+   * does; daily-match-digest did until Q1657), and without it the harness threw
    * "did not call serve() — no handler captured" for every one of them, so
    * none of them could be tested at all.
    */

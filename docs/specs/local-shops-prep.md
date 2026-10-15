@@ -724,3 +724,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L46 | Reviews both ways after handover, on the one shared star rating with a "shop" breakdown |
 | L47 | Badges: "ID checked", "Permit on file", "Insured", "Licensed", each admin-checked via the credentials queue |
 | L48 | Private messages ANY time (incl. before ordering), still through the contact-leak filter (blocks phones/emails/payment apps) |
+| L49 | No phone, email or website on shop pages; Message button only |
+| L50 | Full shop page (name, logo, cover, about, area, order days/hours, items, reviews, badges, Follow) PLUS a map pin (owner chose; for storefront businesses — a home maker's pin must stay approximate/area-level, never their house) |
+| L51 | AI help from photos (title, description, category; flags banned / not-allowed home food); maker edits |
+| L52 | New shop's first 3 items wait for admin OK; every permit/inflatable registration/insurance/license upload checked; AI-flagged items wait |

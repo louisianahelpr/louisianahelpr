@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Database } from "@/integrations/supabase/types";
-import { FunctionsClient } from "@supabase/functions-js";
+import { supabase } from "@/integrations/supabase/client";
 import { SubscriptionTab } from "./SubscriptionTab";
 import { APPLE_SUBSCRIPTIONS_URL } from "@/lib/appleSubscriptions";
 
@@ -70,10 +70,13 @@ function renderTab(profile: Profile | null) {
   );
 }
 
+// FunctionsClient.prototype, reached through the real client: @supabase/functions-js is
+// not a direct dependency (knip: unlisted), and supabase-js does not re-export the class.
+const FunctionsClient: typeof supabase.functions = Object.getPrototypeOf(supabase.functions);
 let invoke: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   openApple.mockReset();
-  invoke = vi.spyOn(FunctionsClient.prototype, "invoke").mockResolvedValue({ data: null, error: null } as never);
+  invoke = vi.spyOn(FunctionsClient, "invoke").mockResolvedValue({ data: null, error: null } as never);
 });
 afterEach(() => invoke.mockRestore());
 

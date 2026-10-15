@@ -46,6 +46,9 @@ describe("a time wheel never picks a time on its own", () => {
     scrollTo(list("Hour"), 1);
     scrollTo(list("Minute"), 1);
     expect(value()).toBe("");
+    // Not even held as a pick waiting for AM/PM (Q1733 holds a tapped hour).
+    expect(screen.queryByTestId("time-pick-period")).toBeNull();
+    expect(screen.queryAllByRole("option", { selected: true })).toHaveLength(0);
   });
 
   it("a scroll the person makes still picks (touch, then scroll to the 3rd hour row)", () => {

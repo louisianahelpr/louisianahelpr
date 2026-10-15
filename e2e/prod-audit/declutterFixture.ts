@@ -121,6 +121,9 @@ export async function ensureDeclutterFixture(
     log.push(`pending item ${pending.id}: published -> ${pending.status}`);
     return { liveId: live.id, pendingId: pending.status === "pending_review" ? pending.id : null, log, undo };
   } catch (err) {
+    // Not swallowed: the failure is printed with the fixture log, the two sweeps that need these
+    // items then fail loudly in their prepare ("none was minted"), and the undo still removes
+    // whatever was created before the failure (ids/paths are recorded as each one is made).
     log.push(`declutter fixture failed: ${(err as Error).message}`);
     return { liveId: null, pendingId: null, log, undo };
   }

@@ -335,9 +335,50 @@ describe("PaymentSuccess", () => {
   });
 });
 
+// Q1788: the stepper's YOU ARE HERE and the primary follow the job's status
+// (prod 2026-10-13: an in_progress job still said "Posted — YOU ARE HERE" and
+// "View Applicants").
+describe("PaymentSuccess follows the job's stage (Q1788)", () => {
+  beforeEach(() => {
+    navigateMock.mockReset();
+    viewerId = POSTER;
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  const cases: Array<[string, string, string]> = [
+    ["open", "Posted", "View Applicants"],
+    ["accepted", "Accepted", "View Job"],
+    ["in_progress", "In progress", "View Job"],
+    ["revision_requested", "In progress", "View Job"],
+    ["disputed", "In progress", "View Job"],
+    ["completed", "Released", "View Job"],
+  ];
+
+  it.each(cases)("status %s marks %s and offers %s", async (status, step, primary) => {
+    jobsLookup = {
+      data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status },
+      error: null,
+    };
+    renderAt();
+    await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+    const pill = screen.getByText(/you are here/i);
+    expect(pill.parentElement?.textContent ?? "").toContain(step);
+    expect(screen.getAllByText(/you are here/i)).toHaveLength(1);
+    expect(screen.getByRole("button", { name: new RegExp(primary, "i") })).toBeInTheDocument();
+    if (primary !== "View Applicants") expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
+  });
+
+  it("the cases reach every one of the four steps", () => {
+    expect(new Set(cases.map(([, step]) => step))).toEqual(new Set(["Posted", "Accepted", "In progress", "Released"]));
+  });
+});
+
 // Proof this guard can fail: the screen may claim the money is held ONLY for a
 // status that proves it is. Widening the held set to the two states that mean
 // "we do not know" (unpaid: webhook not landed) and "taken then given back"
 // (refunded) makes the page print "Payment authorized / held securely" over
 // both — the exact claim this file exists to forbid.
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released", "unpaid", "refunded"]);
+// @mutate src/components/postjob/PaymentLifecycleSteps.tsx |         const isFirst = i === current; |         const isFirst = i === 0;
+// @mutate src/pages/post-job/PaymentSuccess.tsx |                 {lifecycleStep === 0 ? "View Applicants" : "View Job"} |                 View Applicants

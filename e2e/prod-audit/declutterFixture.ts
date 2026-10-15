@@ -14,9 +14,10 @@
  * (declutter_create_item, declutter_add_item_photo, declutter_attest_item,
  * declutter_set_pickup_windows, declutter_publish_item,
  * declutter_admin_review_item); photos are a 1x1 PNG in the seller's own
- * `<uid>/declutter/<item>/` folder. The undo removes the storage objects as the
- * seller and the item rows with the service role (photos, private row,
- * confirmations, questions and watches cascade). Rows are deleted rather than
+ * `<uid>/declutter/<item>/` folder. The undo runs the service role's item-row
+ * delete first (photos, private row, confirmations,
+ * questions and watches cascade), then the now-unattached objects as the seller,
+ * counted from the response, and the helper's fixture pickup time. Rows are deleted rather than
  * withdrawn so the helper's approved-listing count never reaches 3: past 3 a
  * new listing goes live without a review and the review card would be empty.
  * The items carry MARKER in their title and are is_seed (the seller is a test
@@ -88,12 +89,14 @@ export async function ensureDeclutterFixture(
   const log: string[] = [];
   const ids: string[] = [];
   const paths: string[] = [];
+  let windowsSet = false;
   const undo = async (a: APIRequestContext): Promise<string[]> => {
     const out: string[] = [];
-    if (paths.length) {
-      const r = await a.delete(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, { headers: rest(s.helper), data: { prefixes: paths } });
-      out.push(`declutter photos (${paths.length}): ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`);
-    }
+    // ROWS FIRST, THEN OBJECTS. A seller may delete only an UNATTACHED declutter photo (storage policy
+    // "Sellers delete own unattached declutter photos"): while its declutter_item_photos row exists the
+    // DELETE answers 200 with an empty list and removes nothing (measured 2026-10-15: the first version of
+    // this undo said "removed" and left all 6 objects). So the item rows go first (photos cascade), and the
+    // object delete is counted from the response, never assumed.
     for (const id of ids) {
       if (!serviceKey) {
         out.push(`declutter_items/${id}: NOT removed (no service-role key)`);
@@ -102,12 +105,22 @@ export async function ensureDeclutterFixture(
       const r = await srFetch(serviceKey, "DELETE", `${SUPABASE_URL}/rest/v1/declutter_items?id=eq.${id}&seller_id=eq.${s.helper.user.id}&is_seed=eq.true`);
       out.push(`declutter_items/${id}: ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`);
     }
+    if (paths.length) {
+      const r = await a.delete(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, { headers: rest(s.helper), data: { prefixes: paths } });
+      const gone = r.ok() ? ((await r.json().catch(() => [])) as unknown[]).length : 0;
+      out.push(`declutter photos: ${gone} of ${paths.length} removed${r.ok() ? "" : ` (${r.status()})`}`);
+    }
+    if (serviceKey && windowsSet) {
+      const r = await srFetch(serviceKey, "DELETE", `${SUPABASE_URL}/rest/v1/declutter_pickup_windows?seller_id=eq.${s.helper.user.id}`);
+      out.push(`declutter_pickup_windows of the helper: ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`);
+    }
     return out;
   };
   // Nothing is created that could not be removed.
   if (!serviceKey) return { liveId: null, pendingId: null, log: ["no service-role key: declutter fixture not minted"], undo };
   try {
     await rpc(api, s.helper, "declutter_set_pickup_windows", { p_windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }] });
+    windowsSet = true;
     const live = await mintItem(api, s.helper, marker, "Fixture rocking chair", paths);
     ids.push(live.id);
     if (live.status === "pending_review") {

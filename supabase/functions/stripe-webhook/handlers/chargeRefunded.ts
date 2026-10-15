@@ -13,6 +13,7 @@ import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
+import { isDeclutterCharge, recordDeclutterHandRefunds } from "./declutterCheckout.ts";
 import { pathAnnouncesRefund, paymentMethodFromCharge, refundNoticeProblem, releasedCentsAlreadyTold, sendRefundNotice } from "../../_shared/refundNotice.ts";
 
 /**
@@ -107,6 +108,13 @@ export async function handleChargeRefunded(
   // lh-money-escrow review 3b #3).
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "declutter_refund")) {
     logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  // A refund made by hand (Stripe Dashboard) on a Declutter charge carries no
+  // kind: it is recorded against the order, never sent down the jobs path
+  // (lh-money-escrow should-fix (b)).
+  if (isDeclutterCharge(charge, allRefunds)) {
+    await recordDeclutterHandRefunds(event, charge, refundPiId, allRefunds, { stripe, supabase, logStep });
     return;
   }
   // Only a FULL refund flips the job to "refunded". A partial refund (e.g. a

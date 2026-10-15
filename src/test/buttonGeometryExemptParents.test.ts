@@ -46,5 +46,6 @@ describe("buttonGeometry EXEMPT_PARENTS is two-way", () => {
   });
 });
 
-// Renaming the exempt strip must turn the entry stale.
-// @mutate src/components/profile/HelperScheduleStrip.tsx | aria-label="Upcoming 7 days" | aria-label="Next 7 days"
+// Renaming an exempt list must turn its entry stale. (Q1681, 2026-10-14: the
+// HelperScheduleStrip entry left with the deleted strip.)
+// @mutate src/components/admin/AdminUsers.tsx |           listAriaLabel="People" |           listAriaLabel="Accounts"

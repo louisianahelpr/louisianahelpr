@@ -44,6 +44,7 @@ import {
   computeExpiry,
   expectsProduction,
   fetchAppleTransaction,
+  isAppleTestAccount,
   isSandboxTransaction,
   resolveProduct,
 } from "../_shared/appleAppStore.ts";
@@ -63,20 +64,19 @@ function tierRank(tier: string | null | undefined): number {
   return -(TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT);
 }
 
-/** Q1794: a test account = a public.test_accounts row AND profiles.is_seed. Fails closed. */
+/**
+ * Q1794: a test account = a public.test_accounts row AND profiles.is_seed.
+ * Fails closed. The rule lives in _shared/appleAppStore.ts (isAppleTestAccount)
+ * so apple-app-store-notifications and subscription-reconciliation apply the
+ * same one.
+ */
 async function isTestAccount(userId: string): Promise<boolean> {
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
     );
-    const { data: enrolled, error: enrolledErr } = await admin
-      .from("test_accounts").select("user_id").eq("user_id", userId).maybeSingle();
-    if (enrolledErr || !enrolled) return false;
-    const { data: prof, error: profErr } = await admin
-      .from("profiles").select("is_seed").eq("user_id", userId).maybeSingle();
-    if (profErr || !prof) return false;
-    return (prof as { is_seed?: boolean }).is_seed === true;
+    return await isAppleTestAccount(admin, userId);
   } catch (e) {
     console.error("[verify-apple-iap] test-account read failed; refusing sandbox:", e instanceof Error ? e.message : String(e));
     return false;

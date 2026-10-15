@@ -1,6 +1,6 @@
 // @mutate supabase/functions/verify-apple-iap/index.ts | if (!reviewer) { | if (false) {
-// @mutate supabase/functions/verify-apple-iap/index.ts | if (enrolledErr \|\| !enrolled) return false; | if (enrolledErr) return false;
-// @mutate supabase/functions/verify-apple-iap/index.ts | return (prof as { is_seed?: boolean }).is_seed === true; | return true;
+// @mutate supabase/functions/_shared/appleAppStore.ts | if (!enrolled) return "not_test"; | if (false) return "not_test";
+// @mutate supabase/functions/_shared/appleAppStore.ts | return (prof as { is_seed?: boolean }).is_seed === true ? "test" : "not_test"; | return "test";
 /**
  * verify-apple-iap — executed, because a grep cannot prove a grant happened.
  *

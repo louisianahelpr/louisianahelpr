@@ -24,14 +24,19 @@
 // is the stable identity of a subscription across every renewal, and
 // profiles.apple_original_transaction_id is stamped with it at purchase and
 // deliberately never cleared — including when a tier lapses — precisely so a
-// later renewal can still find the member it belongs to.
+// later renewal can still find the member it belongs to. Because it is never
+// cleared, finding the row is not enough: the row must still say Apple is its
+// authority (subscription_source 'apple'), and a Sandbox transaction counts
+// only for a test account. Either failing leaves the row untouched.
 
 import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   computeExpiry,
   decodeJwsPayload,
+  environmentVerdict,
   fetchAppleTransaction,
   isEntitled,
   resolveProduct,
@@ -107,7 +112,7 @@ serve(async (req) => {
     // The only link back to a person.
     const { data: profile, error: findErr } = await admin
       .from("profiles")
-      .select("user_id, subscription_tier, subscription_source")
+      .select("user_id, subscription_tier, subscription_source, subscription_expires_at, stripe_subscription_id")
       .eq("apple_original_transaction_id", tx.originalTransactionId)
       .maybeSingle();
     if (findErr) throw findErr;
@@ -122,6 +127,27 @@ serve(async (req) => {
       return ack("no_linked_profile", { notificationType });
     }
 
+    // ── The App Store environment must count for this account ────────────────
+    // A Sandbox purchase is free. verify-apple-iap grants one only to a test
+    // account (Q1794), and a renewal or refund notice is held to the same
+    // rule: in a production deployment a Sandbox transaction changes nothing
+    // on a real member's row, whatever the notification says. Checked FIRST,
+    // so a Sandbox notice can never reclaim a row either (below).
+    const verdict = await environmentVerdict(tx, admin, profile.user_id);
+    if (verdict === "unknown") {
+      // The test-account read failed: not "ignored for good". 500, so Apple
+      // retries (lh-money-escrow re-review of 18f0d5fb3, finding 5).
+      console.error(`[assn] ${notificationType}: test-account status for ${profile.user_id} unreadable; Apple will retry`);
+      return jsonResponse({ ok: false, outcome: "environment_unknown" }, 500, corsHeaders);
+    }
+    if (verdict === "does_not_count") {
+      console.error(
+        `[assn] ${notificationType}: SANDBOX transaction ${tx.transactionId} for ` +
+          `non-test account ${profile.user_id} in production; ignored`,
+      );
+      return ack("sandbox_ignored", { notificationType });
+    }
+
     // Entitled or not, decided from Apple's own transaction rather than from
     // the notification type. The types are many and overlapping (DID_RENEW,
     // EXPIRED, GRACE_PERIOD_EXPIRED, REFUND, REVOKE, DID_CHANGE_RENEWAL_STATUS
@@ -131,6 +157,65 @@ serve(async (req) => {
     // which is exactly the behaviour we want: keep access while Apple retries.
     const entitled = isEntitled(tx, meta);
     const expiresAt = computeExpiry(tx, meta);
+
+    // ── Apple must still be the authority for this row ──────────────────────
+    // apple_original_transaction_id is never cleared (see the header), so it
+    // still finds a FORMER Apple member who has since subscribed on the web.
+    // stripe-webhook and check-pro-subscription stamp subscription_source
+    // 'stripe' on that grant, and from then on Stripe decides their tier.
+    // Without this check a late EXPIRED / REFUND for the old Apple
+    // subscription nulled the tier they pay Stripe for, and a late DID_RENEW
+    // overwrote it with the Apple tier.
+    //
+    // One exception, so nobody pays Apple for nothing (lh-money-escrow review
+    // of 3b12e17b4, finding 1): when Apple says this subscription IS paid and
+    // Stripe holds nothing on the row any more (no subscription id, no tier
+    // still running), Apple takes the row back. That is the member whose
+    // double subscription was settled by cancelling the Stripe side.
+    if (profile.subscription_source !== "apple") {
+      const expiresMs = profile.subscription_expires_at ? Date.parse(profile.subscription_expires_at) : null;
+      const stripeHoldsIt = !!profile.stripe_subscription_id ||
+        (!!profile.subscription_tier && (expiresMs === null || expiresMs > Date.now()));
+      if (!entitled || stripeHoldsIt) {
+        console.error(
+          `[assn] ${notificationType}: user ${profile.user_id} is billed by ` +
+            `${profile.subscription_source ?? "nobody"}, not Apple; tier left alone`,
+        );
+        if (entitled) {
+          // A member Apple is charging while Stripe holds their row: a double
+          // subscription a human must settle. Never let the alert fail the ack.
+          try {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Apple is billing a member whose tier Stripe holds",
+              message:
+                "An App Store notice says this member's Apple subscription is paid, but their row is billed by Stripe, so the notice changed nothing. They are paying twice: settle which subscription to keep and refund the other.",
+              fields: { user_id: profile.user_id, notification: notificationType, product: tx.productId },
+            });
+          } catch (e) {
+            console.error("[assn] ops alert failed:", e instanceof Error ? e.message : String(e));
+          }
+        }
+        // The billing system is not echoed: this endpoint is unauthenticated
+        // (finding 6 of the same review).
+        return ack("not_apple_authority", { notificationType });
+      }
+      console.warn(
+        `[assn] ${notificationType}: Apple reclaims user ${profile.user_id} ` +
+          `(was ${profile.subscription_source ?? "nobody"}, Stripe holds nothing)`,
+      );
+    }
+
+    // An 'apple' row that ALSO carries a live Stripe subscription (verify-apple-iap's
+    // double-subscription branch) is paid by Stripe too: an Apple refund or
+    // expiry must not null the tier Stripe is charging for (re-review finding 2).
+    if (!entitled && profile.subscription_source === "apple" && profile.stripe_subscription_id) {
+      console.error(
+        `[assn] ${notificationType}: Apple ended user ${profile.user_id}'s subscription but a Stripe subscription still bills them; tier left alone`,
+      );
+      return ack("stripe_still_billing", { notificationType });
+    }
 
     const patch = entitled
       ? {
@@ -150,10 +235,20 @@ serve(async (req) => {
           subscription_source: "apple",
         };
 
-    const { data: updated, error: updateErr } = await admin
+    // The write repeats the state the decision was made on (re-review finding
+    // 1): a Stripe checkout landing between the read and this write makes it
+    // match zero rows, and the 500 below makes Apple retry against the new row.
+    let write = admin
       .from("profiles")
       .update(patch)
-      .eq("user_id", profile.user_id)
+      .eq("user_id", profile.user_id);
+    write = profile.subscription_source === null
+      ? write.is("subscription_source", null)
+      : write.eq("subscription_source", profile.subscription_source);
+    write = profile.stripe_subscription_id === null
+      ? write.is("stripe_subscription_id", null)
+      : write.eq("stripe_subscription_id", profile.stripe_subscription_id);
+    const { data: updated, error: updateErr } = await write
       // A zero-row UPDATE returns { data: [], error: null }. Without this, a
       // refund that silently failed to revoke would look exactly like a refund
       // that worked. Never remove it.

@@ -36,7 +36,7 @@ function tsxFiles(): string[] {
 }
 
 const HOVER_UNDERLINE_SITE_COUNT = 34;
-const LINK_STANDARD_FILE_COUNT = 8; // 8 on 2026-10-14: the Declutter item page's "See the seller" link uses the standard, not a raw hover:underline (7 on 2026-10-12: the admin Sign-up leads card's "Show all" uses the standard, not a raw hover:underline (6 on 2026-10-07: HelpCenter's "Report a bug", Q1028))
+const LINK_STANDARD_FILE_COUNT = 9; // 9 on 2026-10-15: "Suggest a category" (SuggestCategory.tsx) uses the standard, not a raw hover:underline (8 on 2026-10-14: the Declutter item page's "See the seller" link uses the standard, not a raw hover:underline) (7 on 2026-10-12: the admin Sign-up leads card's "Show all" uses the standard, not a raw hover:underline (6 on 2026-10-07: HelpCenter's "Report a bug", Q1028))
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
   const files = tsxFiles();

@@ -73,7 +73,7 @@ export function CategoryPicker({
               }}
               aria-pressed={active}
               aria-label={c.label}
-              className="flex items-center gap-2.5 p-2 rounded-ds-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex items-center gap-2.5 p-2 text-left rounded-ds-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               style={
                 active
                   ? {

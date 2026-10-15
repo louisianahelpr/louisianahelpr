@@ -751,6 +751,11 @@ export const GAPS: Record<string, string> = {
   // switch is on for testers (docs/specs/declutter-auctions.md, "Open after slice 2").
   "src/components/declutter/DeclutterSellView.tsx": "behind the OFF 'declutter' switch (404 on prod); server rules pinned by PGlite; FORMS sweep owed at testers",
   "src/components/declutter/DeclutterItemView.tsx": "behind the OFF 'declutter' switch (404 on prod); Q&A text rules pinned by PGlite; FORMS sweep owed at testers",
+  // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
+  // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by
+  // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.
+  "src/components/SuggestCategory.tsx": "behind the 'suggest_category' switch (testers only); text rules pinned by categorySuggestions.test.tsx and 20261015051141; FORMS sweep owed past testers",
+  "src/components/admin/settings/CategorySuggestionsCard.tsx": "admin-only, behind the 'suggest_category' switch; the decline note is length-capped server-side (20261015051141); FORMS sweep owed past testers",
   "src/components/admin/settings/DeclutterReviewCard.tsx": "admin-only and behind the OFF 'declutter' switch; reject-reason rules pinned by declutterSlice2.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none
   // (LIVE Stripe forbids funding a fixture), and its four fields are length-capped on the client and validated

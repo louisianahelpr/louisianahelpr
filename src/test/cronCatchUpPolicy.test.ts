@@ -57,7 +57,7 @@ const CATCH_UP_SAFE = [
   "cleanup-notifications",
   "cleanup-observability-tables",
   "cleanup-stripe-webhook-events",
-  "daily-match-digest",
+  // daily-match-digest left with the digest itself (Q1657, 20261015065619).
   "detect-suspicious-user-patterns",
   "engagement-automations",
   // expiring-jobs-push left the list in 20261005060246 (Q994): it runs hourly

@@ -33,6 +33,7 @@
  * @mutate supabase/functions/email-unsubscribe/index.ts |         await setJobMatchEmails(supabase, profile.user_id, action !== 'resubscribe') |         await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
+ * @mutate supabase/migrations/20261015065619_retire_job_match_digest.sql |       ARRAY_AGG(s.id)                                   AS matched_search_ids\n    FROM |       ARRAY_AGG(s.id)                                   AS matched_search_ids,\n      COALESCE(BOOL_OR(np.match_digest_mode), false)    AS digest_mode\n    FROM
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)
  */
 import { readFileSync, readdirSync } from "node:fs";
@@ -68,6 +69,13 @@ describe("a new job is announced to every member, any parish", () => {
   });
 });
 
+/** EXACT (two-way): the functions still allowed to name the retired digest. */
+const DIGEST_NAMERS = [
+  "export_my_data", // a member's data export still includes the (empty) queue table
+  "hold_match_digest_mode_off", // holds the column false: the 7119 build still sends it
+  "match_digest_queue_seed_boundary", // the table's own BEFORE INSERT seed check
+];
+
 describe("Q1585: every member, every new job, no daily list, nothing dropped", () => {
   const FANOUT = ["notify_helpers_on_job_post", "deliver_parish_match_alert", "deliver_job_match"];
 
@@ -84,6 +92,17 @@ describe("Q1585: every member, every new job, no daily list, nothing dropped", (
       expect(b, fn).not.toMatch(/match_digest_queue/);
       expect(b, fn).not.toMatch(/'digested'/);
     }
+  });
+
+  it("Q1657: the digest is retired: only the hold trigger, the export and the queue's own seed check still name it", () => {
+    // THE CLASS, from every function the migrations leave defined. The daily
+    // match digest's reader (daily-match-digest, job_match_digest_rows) is gone
+    // (20261015065619), so any other function that reads match_digest_mode or
+    // writes match_digest_queue would park a match where nobody is told.
+    const naming = [...defs.keys()].filter((n) => /match_digest/.test(body(n))).sort();
+    expect(defs.size).toBeGreaterThan(300);
+    expect(naming).toEqual(DIGEST_NAMERS);
+    expect(defs.has("job_match_digest_rows"), "job_match_digest_rows is defined again").toBe(false);
   });
 
   it("(b) nothing can turn digest mode back on (an older build still sends it)", () => {

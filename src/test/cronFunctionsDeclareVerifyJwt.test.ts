@@ -10,6 +10,7 @@
  * the handler would have accepted the call. On 2026-09-10 three had no stanza
  * (daily-match-digest, saved-helper-availability-push, str-ical-sync), by an
  * acknowledged omission in config.toml. 2026-10-05: stanzas added.
+ * (daily-match-digest itself was retired with the job-match digest, Q1657.)
  *
  * The class is derived from the functions' own source (a handler that reads
  * CRON_SECRET into `cronSecret`, or calls verifyCronSecret), not a list. 2026-10-05 the class found SEVEN without a
@@ -21,8 +22,8 @@
  */
 // Registered mutations - each turns this guard RED on its own:
 // @mutate supabase/config.toml |   [functions.str-ical-sync]\n    verify_jwt = false |   [functions.str-ical-sync-gone]\n    verify_jwt = false
-// @mutate supabase/config.toml |   [functions.daily-match-digest]\n    verify_jwt = false |   [functions.daily-match-digest]\n    verify_jwt = true
-// @mutate supabase/functions/daily-match-digest/index.ts |     if (!authHeader \|\| ((!cronSecret \|\| authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey \|\| authHeader !== `Bearer ${serviceRoleKey}`))) { |     if (false) {
+// @mutate supabase/config.toml |   [functions.saved-helper-availability-push]\n    verify_jwt = false |   [functions.saved-helper-availability-push]\n    verify_jwt = true
+// @mutate supabase/functions/cleanup-notifications/index.ts |   if (!authHeader \|\| ((!cronSecret \|\| authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey \|\| authHeader !== `Bearer ${serviceRoleKey}`))) { |   if (false) {
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

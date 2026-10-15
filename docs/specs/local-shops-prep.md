@@ -716,3 +716,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L38 | Pro for shops: BOTH free boost days each month + "Pro" badge AND a lower buyer fee at Pro shops (e.g. 10% instead of 15%; exact % to confirm when building) |
 | L39 | Card fee: inside the buyer's one total (never absorbed beyond the premium, as Declutter) |
 | L40 | Shop paid at handover (QR / "I got it" / auto after 24 h) |
+| L41 | Buyer cancels after accept: the MAKER sets their own cancellation policy (shown before ordering) |
+| L42 | Maker cancels after accepting: buyer full refund, card fee charged to the maker, maker strike |
+| L43 | Problem with an order: buyer reports at handover or within 24 h with a photo; admin decides; refund of the price, card fee kept unless our mistake |
+| L44 | Equipment rental cancellation: the OWNER sets their own policy (shown before booking) |

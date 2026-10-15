@@ -576,7 +576,12 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   });
 
   const seedGiftCrew = (blockRows: Array<Record<string, unknown>>) => {
-    seedCancelledCrew();
+    // Uncommitted members owe no late-cancel fee, so these cases test the
+    // block fee alone (Q1806's gift-funded crew FEE is proved in
+    // void-cancelled-payments-gift-fee.test.ts).
+    seedCancelledCrew(MEMBERS.map((m, i) => ({
+      id: `share-${i + 1}`, helper_id: m, committed: false, share_basis_cents: 10000, share_amount: "0.00", status: "pending", stripe_transfer_id: null,
+    })));
     const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
     jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
     // Copies: the fee payer marks its rows in place (paid, void).
@@ -591,7 +596,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
   const BLOCK = { id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | "no payment found", crewBlockFeeCents(blockFeeRows)); | "no payment found");
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           giftFeeCents + giftBlockCents, |           giftFeeCents,
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const target = Math.max(0, applied - withholdCents); |           const target = applied;
   it("restores the gift less the block fee, never a cent of the fee", async () => {
     seedGiftCrew([BLOCK]);
@@ -611,7 +616,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   // platform balance (no charge to link); review #6: the gift notice says
   // what the gift kept.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid the cancellation fee for the crew spots you closed.` |                 ? ""
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.` |                 ? ""
   it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
     seedGiftCrew([BLOCK]);
     const h = await load();

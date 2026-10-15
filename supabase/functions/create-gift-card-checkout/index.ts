@@ -7,6 +7,7 @@ import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
+import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,6 +115,8 @@ serve(async (req) => {
     // recipient_id wins if both are somehow present — it came from an actual
     // profile row, not free text.
     let recipientEmail = recipientEmailRaw.trim().toLowerCase();
+    // The recipient's account id when the gift names one (picked by name).
+    let recipientUserId: string | null = null;
     if (recipientIdRaw) {
       if (recipientIdRaw === user.id) {
         return fail(400, "You can't send a gift to yourself.");
@@ -149,6 +152,8 @@ serve(async (req) => {
         return fail(400, "We couldn't find that person. Try searching again.");
       }
       recipientEmail = targetAuthUser.user.email.toLowerCase();
+      // The id as the database spells it, not as the client sent it.
+      recipientUserId = String(eligibleProfile.user_id);
     }
     if (!EMAIL_RE.test(recipientEmail)) {
       return fail(400, "Enter a valid email for the person you're gifting.");
@@ -171,7 +176,45 @@ serve(async (req) => {
       (user.user_metadata?.name as string | undefined)?.trim() ||
       user.email.split("@")[0];
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // ── Stripe mode (Q1750; lead decision 2026-10-15) ──
+    // The BUYER's money decides. A real buyer pays LIVE whoever receives the
+    // gift: real money is real, even when a test account gets it. A TEST
+    // account buyer pays on the TEST key, and may gift ONLY another test
+    // account: test credit sent to anyone else could be spent by a real
+    // person on real jobs. A typed email counts as a test account only when it
+    // is a test account's own email; an address with no account is not one.
+    let stripeMode: StripeMode;
+    try {
+      stripeMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+      if (stripeMode === "test") {
+        if (!recipientUserId) {
+          const { data: byEmail, error: byEmailErr } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id")
+            .eq("email", recipientEmail)
+            .maybeSingle();
+          if (byEmailErr) throw new StripeModeRefused("lookup_failed", `gift recipient by email read failed: ${byEmailErr.message}`);
+          recipientUserId = (byEmail as { user_id?: string | null } | null)?.user_id ?? null;
+        }
+        // Both test accounts -> test. A real (or unknown) recipient -> refused.
+        const bothTest = recipientUserId !== null &&
+          await stripeModeForParties(supabaseAdmin, [user.id, recipientUserId]).then(
+            (mode) => mode === "test",
+            (err) => {
+              if (err instanceof StripeModeRefused && err.reason === "mixed_parties") return false;
+              throw err;
+            },
+          );
+        if (!bothTest) {
+          return fail(409, "A test account can send a gift only to another test account. Nothing was charged.");
+        }
+      }
+    } catch (modeErr) {
+      if (modeErr instanceof StripeModeRefused) return stripeModeRefusedResponse(modeErr, corsHeaders);
+      throw modeErr;
+    }
+
+    const stripe = new Stripe(stripeSecretKeyFor(stripeMode), {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -235,7 +278,10 @@ serve(async (req) => {
       // or network retry. A deliberate second identical gift is rare enough that
       // sharing the key is the money-safe default; changing any field mints a new
       // session.
-      idempotencyKey: `gift-card:${user.id}:${recipientEmail}:${amountCents}`,
+      // The mode is in a TEST key (lh-money-escrow review of Q1750, finding 4),
+      // so the two Stripe environments never rely on keys being separate; the
+      // LIVE key is unchanged.
+      idempotencyKey: `gift-card:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}`,
     });
 
     // ── Pre-register the gift BEFORE the donor can pay ──
@@ -298,6 +344,8 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
+    // A missing or non-test STRIPE_TEST_SECRET_KEY for a test buyer (stripeSecretKeyFor).
+    if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
     console.error("[create-gift-card-checkout] error:", error);
     return fail(500, "Something went wrong starting your gift. Please try again.");
   }

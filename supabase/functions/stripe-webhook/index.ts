@@ -14,6 +14,7 @@ import {
   stripeSecretKeyFor,
   isRoutedTestCheckout,
   testEventScope,
+  testGiftIsTestToTest,
   TEST_WEBHOOK_SECRET_ENV,
 } from "../_shared/stripeMode.ts";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted.ts";
@@ -258,10 +259,10 @@ serve(async (req) => {
       }
       const eventObject = (event.data as { object?: unknown } | undefined)?.object;
       // A test-mode checkout is applied only when a mode-routed function
-      // created it. Pro and gift-card checkout stay live-only, and their
-      // branches grant by email or credit a recipient email, so a sandbox
-      // session must never reach them (lh-authz-rls review of the rebuild,
-      // finding 1).
+      // created it. Pro checkout stays live-only: its branch grants by email,
+      // so a sandbox session must never reach it (lh-authz-rls review of the
+      // rebuild, finding 1). A gift card is routed (Q1750) but credits a
+      // recipient EMAIL, so it also needs testGiftIsTestToTest below.
       if (event.type.startsWith("checkout.session.") && !isRoutedTestCheckout(eventObject)) {
         console.error(JSON.stringify({ event: "stripe_test_checkout_not_routed", event_id: event.id, event_type: event.type }));
         return new Response(JSON.stringify({ received: true, ignored: "test_checkout_not_routed" }), {
@@ -283,6 +284,23 @@ serve(async (req) => {
           oncePerDayKey: `stripe-test-event-real-account-${event.type}`,
         });
         return new Response(JSON.stringify({ received: true, ignored: "test_event_names_real_account" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      // Q1750: sandbox gift credit goes from a test account to a test account
+      // only; a recipient email with no account, or a real one, is not applied.
+      if (event.type.startsWith("checkout.session.") && !(await testGiftIsTestToTest(supabase, eventObject))) {
+        console.error(JSON.stringify({ event: "stripe_test_gift_not_test_to_test", event_id: event.id, event_type: event.type }));
+        await postSlackOpsAlert({
+          kind: "stripe_webhook_error",
+          severity: "warning",
+          title: "Stripe TEST-mode gift card is not test-to-test: not processed",
+          message: `\`${event.type}\` (${event.id}) is a test-mode gift card whose donor or recipient is not a test account. It was acknowledged and NOT applied.`,
+          fields: { "Event ID": event.id },
+          oncePerDayKey: `stripe-test-gift-not-test-to-test-${event.type}`,
+        });
+        return new Response(JSON.stringify({ received: true, ignored: "test_gift_not_test_to_test" }), {
           headers: { "Content-Type": "application/json" },
           status: 200,
         });

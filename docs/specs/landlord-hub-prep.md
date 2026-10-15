@@ -263,3 +263,16 @@ Every slice: switch OFF by default, testers only, export_my_data sections + dele
 | 9 | Set fields + a description checked for unfair-housing wording; the AI can also WRITE the description and make suggestions (owner: "option for ai to do this and make suggestion") |
 | 10 | Filters on home facts only (price, beds, baths, pets, area, available date, lease length, accepts vouchers); never who may live there |
 | 11 | 5 to 25 real photos |
+| 12 | Exact address: street name + area before; exact address once a tour is booked or an application approved |
+| 13 | Landlords pay nothing for rentals at launch; money comes from maintenance repair jobs (avoids the real-estate "for a fee" license question until the lawyer/LREC answer in writing) |
+| 14 | No rent payments through the app at launch |
+| 15 | Security deposits NOT through the app; the lease records the amount; the app reminds the landlord of the one-month return + itemized statement rule |
+| 16 | (moot at launch — no money in the app for rentals) |
+| 17 | NO application fees |
+| 18 | One standard application form for everyone (move-in date, number of adults/children only, income, job, current + past addresses, pets, vehicles, references) |
+| 19 | Proof of income: upload pay stubs or attach the Louisiana Helpr Work Record; stored privately; deleted 90 days after the landlord decides |
+| 20 | Landlord picks any complete application; app records arrival order and a reason for every "no" |
+| 21 | No credit/eviction/background checks at launch (later via a renter-orders partner, report straight to the landlord) |
+| 25-26 | Tours booked in the app from landlord-set times, in person, reminders to both; NO self-tours/lockbox codes |
+| 29 | Lease: the landlord either fills our lawyer-written Louisiana template OR uploads their own lease PDF; sent and signed in the app (owner: "add applications when the house is for rent, then send leases also") |
+| 29b | Saving: "Download PDF" opens the phone's Save/Share sheet (Files, Google Drive, iCloud, email); both sides get a copy; it also stays in the app (owner: "landlords can save them on their drive") |

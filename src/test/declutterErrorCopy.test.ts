@@ -8,13 +8,15 @@
  *
  * @mutate src/lib/declutter/errors.ts |   photos_required: "Add at least 3 photos of the item (up to 12).",\n | \n
  * @mutate src/lib/declutter/errors.ts |   ai_check_stale: "The listing changed while it was being checked. Try again.",\n | \n
+ * @mutate src/lib/declutter/errors.ts |   if (err instanceof ListingPhotoError && err.message) return err.message;\n | \n
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
-import { DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
+import { DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY, ListingPhotoError, declutterErrorMessage } from "@/lib/declutter/errors";
+import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
 
 const DIR = join(process.cwd(), "supabase/migrations");
 const DECLUTTER_FILES = ["20261014193955_declutter_foundation.sql", "20261014200728_declutter_slice2_followups.sql"];
@@ -60,5 +62,12 @@ describe("Declutter error copy is exact (both ways)", () => {
     expect(declutterErrorMessage({ message: 'new row for relation "declutter_items" violates check constraint', code: "23514" })).not.toMatch(/relation|constraint/);
     expect(declutterErrorMessage({ message: "some_unknown_code" })).toBe("Something went wrong. Please try again.");
     expect(declutterErrorMessage(null)).toBe("Something went wrong. Please try again.");
+  });
+
+  it("shows a refused photo's own plain words (the app wrote them), and hides any other Error's text", () => {
+    // The photo picker's toast reads declutterErrorMessage only (toastCopy.test.ts:
+    // no toast shows an error's raw .message).
+    expect(declutterErrorMessage(new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE))).toBe(LISTING_PHOTO_UNCLEANABLE);
+    expect(declutterErrorMessage(new Error("Failed to fetch"))).toBe("Something went wrong. Please try again.");
   });
 });

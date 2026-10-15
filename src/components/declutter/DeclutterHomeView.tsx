@@ -72,6 +72,11 @@ function BrowseView({ userId }: { userId: string }) {
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   const rows = nearestFirst(others, from, from ? maxMiles : null);
+  // ONE gate for the list and its cover photos, so the cards arrive in one
+  // paint instead of the list first and its photos in a second wave
+  // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
+  // loading) when there is nothing to show.
+  const listLoading = items.isLoading || photos.isLoading;
 
   if (items.isError) {
     return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
@@ -91,7 +96,7 @@ function BrowseView({ userId }: { userId: string }) {
           Turn on location, or add your ZIP code in your profile, to see how far each item is.
         </DeclutterNotice>
       )}
-      {items.isLoading ? (
+      {listLoading ? (
         <p className="text-sm text-muted-foreground" role="status">Loading items…</p>
       ) : rows.length === 0 ? (
         <DeclutterNotice title={others.length === 0 ? "Nothing for sale yet." : "Nothing for sale this close."}>

@@ -13,8 +13,7 @@
  * plain words, never uploaded as it is.
  */
 import { compressImage } from "@/lib/imageCompression";
-
-export class ListingPhotoError extends Error {}
+import { ListingPhotoError } from "./errors";
 
 /**
  * What a listing photo is once cleaned: always a re-encoded JPEG. A subset of

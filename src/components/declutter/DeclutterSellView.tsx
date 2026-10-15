@@ -43,7 +43,6 @@ import {
   type PickupWindow,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { ListingPhotoError } from "@/lib/declutter/photos";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, WEEKDAYS } from "./declutterUi";
 
 const TAX_STATEMENTS = [
@@ -239,7 +238,7 @@ export default function SellFlow() {
       try {
         await addPhoto(user!.id, itemId, f);
       } catch (err) {
-        toast.error(err instanceof ListingPhotoError ? err.message : declutterErrorMessage(err));
+        toast.error(declutterErrorMessage(err));
       } finally {
         setUploading((n) => n - 1);
       }
@@ -422,11 +421,11 @@ export default function SellFlow() {
                     {WEEKDAYS.map((d, n) => <option key={d} value={n}>{d}</option>)}
                   </select>
                   <label className="sr-only" htmlFor={`pw-start-${i}`}>From</label>
-                  <input id={`pw-start-${i}`} type="time" className="rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.starts}
+                  <input id={`pw-start-${i}`} type="time" className="min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.starts}
                     onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, starts: e.target.value } : x)))} />
                   <span className="text-sm">to</span>
                   <label className="sr-only" htmlFor={`pw-end-${i}`}>Until</label>
-                  <input id={`pw-end-${i}`} type="time" className="rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.ends}
+                  <input id={`pw-end-${i}`} type="time" className="min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.ends}
                     onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, ends: e.target.value } : x)))} />
                   {windows.length > 1 && (
                     <button type="button" className="text-sm underline" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}>Remove</button>

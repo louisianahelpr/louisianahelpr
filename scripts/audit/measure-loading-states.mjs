@@ -67,7 +67,7 @@
  *   node scripts/audit/measure-loading-states.mjs --merge <partial measurements.json> [--into <evidence>]
  */
 import { chromium } from "@playwright/test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
@@ -895,7 +895,19 @@ async function main() {
     const evidence = resolve(OUT, "measurements.json");
     // A narrowed run merges into the catalog already there (see "A NARROWED
     // RUN" at the top); only a whole-catalog run replaces the file.
-    const doc = only && existsSync(evidence) ? mergeMeasurements(JSON.parse(readFileSync(evidence, "utf8")), run) : run;
+    // Read-and-catch, not exists-then-read: the file is rewritten just below,
+    // and a check before it is a race window (noCheckThenActInTooling.test.ts).
+    let catalog = null;
+    if (only) {
+      try {
+        catalog = JSON.parse(readFileSync(evidence, "utf8"));
+      } catch (e) {
+        // No catalog yet: this narrowed run starts it. Anything else (an
+        // unreadable or corrupt file) still fails the run, as before.
+        if (e?.code !== "ENOENT") throw e;
+      }
+    }
+    const doc = catalog ? mergeMeasurements(catalog, run) : run;
     writeFileSync(evidence, JSON.stringify(doc, null, 2));
     console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${evidence}${doc === run ? "" : ` (merged: ${doc.results.length} surfaces in the file)`}`);
   } finally {

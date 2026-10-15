@@ -56,11 +56,19 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   ai_photos_required: "Add at least one photo first, so the photo tool can see the item.",
 };
 
+/**
+ * A listing photo refused before upload (src/lib/declutter/photos.ts). Its
+ * message is plain words this app wrote for the member, so
+ * declutterErrorMessage shows it as it is.
+ */
+export class ListingPhotoError extends Error {}
+
 const GENERIC = "Something went wrong. Please try again.";
 
 /** The plain-words message for any error a Declutter call threw or returned. */
 export function declutterErrorMessage(err: unknown): string {
   if (!err) return GENERIC;
+  if (err instanceof ListingPhotoError && err.message) return err.message;
   const e = err as { message?: unknown; code?: unknown; userMessage?: unknown };
   // Set by src/lib/declutter/api.ts from RPC_ERROR_COPY at the call site.
   if (typeof e.userMessage === "string" && e.userMessage) return e.userMessage;

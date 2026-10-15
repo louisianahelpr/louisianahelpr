@@ -43,7 +43,7 @@ function SellerLine({ sellerId }: { sellerId: string }) {
   const reviews = stats.data?.count ?? 0;
   return (
     <p className="text-sm">
-      <Link to={`/user/${sellerId}`} className="font-semibold underline-offset-2 hover:underline">
+      <Link to={`/user/${sellerId}`} className="link-standard font-semibold">
         See the seller
       </Link>
       <span className="text-muted-foreground">
@@ -172,7 +172,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         ) : undefined
       }
     >
-      <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-1 px-1" aria-label="Photos">
+      <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-1 px-1" role="group" aria-label="Photos">
         {(photos.data ?? []).map((p, i) => (
           <img
             key={p.id}

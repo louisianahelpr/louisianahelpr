@@ -67,7 +67,7 @@ export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
 export function ConditionStars({ stars, showLabel = true }: { stars: number; showLabel?: boolean }) {
   const label = CONDITION_LABEL[stars] ?? "";
   return (
-    <span className="inline-flex items-center gap-1.5" aria-label={`Condition: ${stars} of 5 stars, ${label}`}>
+    <span className="inline-flex items-center gap-1.5" role="img" aria-label={`Condition: ${stars} of 5 stars, ${label}`}>
       <span className="inline-flex" aria-hidden>
         {[1, 2, 3, 4, 5].map((n) => (
           <Star

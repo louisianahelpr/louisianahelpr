@@ -164,7 +164,6 @@ const Signup = () => {
     }
   };
 
-
   // Validates the "About you" content (UI step 2, the final step).
   // Collects ALL field errors at once so the user sees every problem on a
   // single Continue tap — no more "fix one, tap again, get next error" loop.
@@ -241,7 +240,6 @@ const Signup = () => {
     return true;
   };
 
-
   const completeProfile = async (userId: string, gaveUp?: AbortSignal) => {
     // The photo is optional: a failed read must not stop the profile write,
     // which runs after the account already exists (CC-006).
@@ -265,10 +263,8 @@ const Signup = () => {
     //     which has an input for each.
     //   • Hourly rate is NOT — it was retired 2026-08-27 (poster-set pricing),
     //     so nothing in the app ever sets it and no editor is coming.
-    // Either way the edge function defaults every omitted field to null, same
-    // as a skip.
-    // One more send when the first never got an answer (Q1810): see
-    // retrySignupCompletion.ts for why a second send is safe.
+    // Either way the edge function defaults every omitted field to null, same as a skip.
+    // One more send when the first never got an answer (Q1810); why that is safe: retrySignupCompletion.ts.
     const { data: result, error: fnError } = await invokeWithOneRetryIfUnsent(() => supabase.functions.invoke("complete-signup", {
       body: {
         userId,
@@ -387,8 +383,7 @@ const Signup = () => {
       // re-consent gate, which records the consent this call would have.
       let result: Awaited<ReturnType<typeof completeProfile>>;
       try {
-        // Aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810).
-        const gaveUp = new AbortController();
+        const gaveUp = new AbortController(); // aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810)
         result = await withTimeout(completeProfile(userId, gaveUp.signal), "Finishing your account").finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)

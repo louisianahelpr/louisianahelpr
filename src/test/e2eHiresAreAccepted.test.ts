@@ -48,7 +48,7 @@ describe("a journey that hires also accepts (Q1816)", () => {
   it("every hiring journey calls accept_job_offer or settles through settleJobForward", () => {
     const missing = hiring.filter((f) => {
       const src = read(f);
-      return !/rpc\/accept_job_offer|"accept_job_offer"/.test(src) && !/settleJobForward\(/.test(src);
+      return !/rpc\/accept_job_offer\b|"accept_job_offer"/.test(src) && !/settleJobForward\(/.test(src);
     });
     expect(missing).toEqual([]);
   });

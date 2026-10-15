@@ -1,4 +1,11 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (body.keyIsLive !== true) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!enabled.length) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   const unhandled = subscribed.filter((e) => !expected.includes(e)); |   const unhandled = subscribed.filter((e) => !handlers.includes(e));
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (enabled.length >= 2) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Array.isArray(list)) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (body.testKeyIsTest !== true) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   const missing = expected.filter((e) => !subscribed.includes(e)); |   const missing = [];
+// @mutate scripts/lib/stripeWebhookGuard.mjs |     ? gradeTestEndpoints(body, handlers, testModeEvents, url) |     ? { failures: [], notes: [] }
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Array.isArray(body.endpoints)) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (enabled.length > 1) { |   if (enabled.length > 2) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (ours.some((e) => e.livemode !== true)) { |   if (false) {
@@ -9,7 +16,7 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!undelivered \|\| typeof undelivered !== "object") { |   if (!undelivered) return { failures, notes }; if (typeof undelivered !== "object") {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(count) \|\| count < 0 \|\| !Array.isArray(events)) { |   if (!Array.isArray(events)) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count > 0 \|\| truncated === true) { |   if (count > 1) {
-// @mutate scripts/lib/stripeWebhookGuard.mjs |     failures: [...config.failures, ...undelivered.failures, ...tax.failures], |     failures: [...config.failures, ...undelivered.failures],
+// @mutate scripts/lib/stripeWebhookGuard.mjs |     failures: [...config.failures, ...undelivered.failures, ...tax.failures, ...test.failures], |     failures: [...config.failures, ...undelivered.failures, ...test.failures],
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const la = regs.some((r) => r?.country === "US" && r?.state === "LA" && r?.status === "active"); |   const la = regs.length > 0;
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Array.isArray(regs)) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(since) \|\| !Number.isInteger(until) \|\| since >= until) { |   if (false) {
@@ -23,6 +30,7 @@ import {
   gradeConfigCheckResponse,
   gradeLiveEndpoints,
   gradeTaxRegistrations,
+  gradeTestEndpoints,
   gradeUndelivered,
   type WebhookEndpoint,
 } from "../../scripts/lib/stripeWebhookGuard.mjs";
@@ -318,7 +326,7 @@ describe("workflow wiring", () => {
   it("the live job never grades a --fixture (fixture mode skips the keyIsLive check)", () => {
     const live = yml.slice(yml.indexOf("\n  live:\n"), yml.indexOf("\n  notify:\n"));
     expect(live).toContain("check-stripe-webhook-events.mjs");
-    expect(live).not.toMatch(/--(events-)?fixture/);
+    expect(live).not.toMatch(/--(events-|test-)?fixture/);
   });
 
   it("the static job proves the undelivered-events half red on the committed fixture", () => {
@@ -339,5 +347,78 @@ describe("workflow wiring", () => {
     // The script holds no Stripe key: its one request goes to the edge function.
     expect(src).toContain("stripe-webhook-config-check");
     expect(src).not.toContain("api.stripe.com");
+  });
+});
+
+describe("gradeTestEndpoints (Q1820: the TEST-mode webhook endpoint)", () => {
+  // The webhook's own test-mode set, read from its source (the script module
+  // cannot be imported under jsdom; see `handlers` above).
+  const setSrc = readFileSync(join(ROOT, "supabase/functions/stripe-webhook/index.ts"), "utf8")
+    .match(/const TEST_MODE_EVENT_TYPES = new Set\(\[([^\]]*)\]\)/)?.[1] ?? "";
+  const expected = [...setSrc.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  const tep = (over: Record<string, unknown> = {}) => ({
+    id: "we_test_1", url: WEBHOOK_URL, status: "enabled", livemode: false, enabled_events: [...expected], ...over,
+  });
+  const body = (endpoints: unknown, extra: Record<string, unknown> = {}) => ({ testKeyIsTest: true, testEndpoints: endpoints, ...extra });
+  const fx = (name: string) =>
+    JSON.parse(readFileSync(join(ROOT, `scripts/fixtures/stripe-webhook-endpoints/${name}`), "utf8"));
+
+  it("reads a real handler set (floor)", () => {
+    expect(expected.length).toBeGreaterThan(10);
+  });
+
+  it("is red on the committed 2026-10-12 state (every test endpoint disabled or mis-pointed)", () => {
+    const r = gradeTestEndpoints(fx("test-mode-2026-10-12-all-disabled.json"), handlers, expected, WEBHOOK_URL);
+    expect(r.failures[0]).toMatch(/No enabled TEST-mode webhook endpoint/);
+  });
+
+  it("is green on the committed 2026-10-15 state (we_1UNfFl enabled with the 14 events)", () => {
+    const r = gradeTestEndpoints(fx("test-mode-2026-10-15-enabled.json"), handlers, expected, WEBHOOK_URL);
+    expect(r.failures).toEqual([]);
+  });
+
+  it("is red when the block is missing, says why when the function reported an error", () => {
+    expect(gradeTestEndpoints({}, handlers, expected, WEBHOOK_URL).failures[0]).toMatch(/no `testEndpoints` array/);
+    expect(gradeTestEndpoints({ testEndpoints: null, testError: "STRIPE_TEST_SECRET_KEY is not set" }, handlers, expected, WEBHOOK_URL).failures[0])
+      .toMatch(/could not read the TEST-mode webhook endpoints \(STRIPE_TEST_SECRET_KEY is not set\)/);
+  });
+
+  it("is red when the key is not a test key, or a live endpoint comes back", () => {
+    expect(gradeTestEndpoints(body([tep()], { testKeyIsTest: false }), handlers, expected, WEBHOOK_URL).failures).toHaveLength(1);
+    expect(gradeTestEndpoints(body([tep({ livemode: true })]), handlers, expected, WEBHOOK_URL).failures[0]).toMatch(/live-mode endpoint/);
+  });
+
+  it("is red on two enabled test endpoints (#1586 in test mode)", () => {
+    const r = gradeTestEndpoints(body([tep(), tep({ id: "we_test_2" })]), handlers, expected, WEBHOOK_URL);
+    expect(r.failures[0]).toMatch(/2 ENABLED TEST-mode webhook endpoints/);
+  });
+
+  it("is red when a needed event is missing, or an event has no handler", () => {
+    const missing = gradeTestEndpoints(body([tep({ enabled_events: expected.slice(1) })]), handlers, expected, WEBHOOK_URL);
+    expect(missing.failures[0]).toMatch(/does NOT subscribe to 1 event/);
+    const extra = gradeTestEndpoints(body([tep({ enabled_events: [...expected, "customer.subscription.updated"] })]), handlers, expected, WEBHOOK_URL);
+    expect(extra.failures[0]).toMatch(/drops in test mode \(not in TEST_MODE_EVENT_TYPES\): customer.subscription.updated/);
+  });
+
+  it("gradeConfigCheckResponse grades the test half when the caller names the test-mode events", () => {
+    const live = {
+      keyIsLive: true,
+      endpoints: [ep()],
+      undelivered: { since: 1, until: 2, count: 0, truncated: false, events: [] },
+      taxRegistrations: [{ country: "US", state: "LA", status: "active" }],
+    };
+    const r = gradeConfigCheckResponse({ ...live, testKeyIsTest: true, testEndpoints: [] }, handlers, WEBHOOK_URL, expected);
+    expect(r.failures.join("\n")).toMatch(/No enabled TEST-mode webhook endpoint/);
+  });
+
+  it("the script grades the test half on every live run", () => {
+    const src = readFileSync(join(ROOT, "scripts/check-stripe-webhook-events.mjs"), "utf8");
+    expect(src).toContain("record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers)));");
+  });
+
+  it("the static job proves the test half red on the committed fixture", () => {
+    const yml = readFileSync(join(ROOT, ".github/workflows/stripe-webhook-guard.yml"), "utf8");
+    expect(yml).toContain("--test-fixture scripts/fixtures/stripe-webhook-endpoints/test-mode-2026-10-12-all-disabled.json");
+    expect(yml).toContain('grep -q "No enabled TEST-mode webhook endpoint"');
   });
 });

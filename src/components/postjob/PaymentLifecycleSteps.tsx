@@ -29,13 +29,42 @@ const LIFECYCLE_STEPS = [
   { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
 ];
 
+/**
+ * Q1788: which step the job is ACTUALLY on. The page used to mark "Posted" for
+ * every job, so a poster reopening it for a job already in progress (prod
+ * 2026-10-13, SEED Repaint a porch railing) was told the wrong stage. Driven by
+ * jobs.status; a released payment is the last step whatever the status says.
+ * No status read yet means the job just posted (step 0, as before). A
+ * cancelled job, or a status this list does not know, marks no step.
+ */
+export function lifecycleStepFor(status: string | null | undefined, released = false): number | null {
+  if (released) return 3;
+  switch (status) {
+    case null:
+    case undefined:
+    case "open":
+    case "pending_approval":
+      return 0;
+    case "accepted":
+      return 1;
+    case "in_progress":
+    case "revision_requested":
+    case "disputed":
+      return 2;
+    case "completed":
+      return 3;
+    default:
+      return null;
+  }
+}
+
 /** The four-step "what happens next" list on the confirmed-payment screen. */
-export function PaymentLifecycleSteps() {
+export function PaymentLifecycleSteps({ current = 0 }: { current?: number | null }) {
   return (
     <ol className="space-y-2.5 mt-3">
       {LIFECYCLE_STEPS.map((step, i) => {
         const Icon = step.icon;
-        const isFirst = i === 0;
+        const isFirst = i === current;
         return (
           <li key={step.label} className="flex items-start gap-3">
             <div

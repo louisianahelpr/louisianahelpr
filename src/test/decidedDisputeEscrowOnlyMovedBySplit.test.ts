@@ -120,6 +120,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "Declutter (slice 3b): refunds a Declutter order's own payment (metadata.kind declutter_order); a Declutter order is not a job escrow",
   },
+  "supabase/functions/declutter-money/index.ts": {
+    kind: "not-job-escrow",
+    why: "Declutter (slice 4): pays a seller and retries refunds for Declutter orders (metadata.kind declutter_payout / declutter_refund); a Declutter order is not a job escrow",
+  },
   "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts": {
     kind: "not-job-escrow",
     why: "refunds the onboarding-fee charge, which is not a job escrow",

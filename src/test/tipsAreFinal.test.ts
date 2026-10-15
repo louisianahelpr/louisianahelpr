@@ -52,7 +52,9 @@ describe("tips are final", () => {
     // it excludes tip sessions (sessionType "tip"), so it cannot reach a tip.
     // 9 (2026-10-14): stripe-webhook/handlers/declutterCheckout.ts refunds only a Declutter
     // order's own PaymentIntent (metadata.kind declutter_order); a tip is never a Declutter order.
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(9);
+    // 10 (2026-10-15): declutter-money retries refunds from declutter_refunds rows only (a Declutter
+    // order's own PaymentIntent, recorded by the webhook or the slice 4 SQL); it never reads tips.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(10);
   });
 
   it("no refund path reads the tips table", () => {

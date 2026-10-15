@@ -115,6 +115,7 @@ describe("no test or seed recipient reaches Resend (Q840)", () => {
       "admin-update-email/index.ts",
       "admin-user-actions/index.ts",
       "auth-email-hook/index.ts",
+      "declutter-money/index.ts",
       "engagement-automations/index.ts",
       "signup-lead-reminders/index.ts",
       "stripe-webhook/handlers/declutterCheckout.ts",

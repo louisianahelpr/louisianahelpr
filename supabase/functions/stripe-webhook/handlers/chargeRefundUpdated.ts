@@ -39,6 +39,30 @@ export async function handleChargeRefundUpdated(
   logStep("Charge refund updated", { refundId: refund.id, status: refund.status });
   if (refund.status !== "failed" && refund.status !== "canceled") return;
 
+  // Declutter (slice 4): its refunds live in declutter_refunds, not the job
+  // ledger. The row Stripe took is reopened (failed, due now) so declutter-money
+  // sends a NEW refund under a new key; only the refund the row recorded does
+  // that (declutter_refund_reversed). A Declutter charge is not a job: nothing
+  // below applies.
+  const meta = (refund.metadata ?? {}) as Record<string, string>;
+  if (meta.kind === "declutter_refund") {
+    if (!meta.refund_id) throw new Error(`Declutter refund ${refund.id} turned ${refund.status} without its refund_id`);
+    const { data: reopened, error: dErr } = await supabase.rpc("declutter_refund_reversed", {
+      p_refund_id: meta.refund_id,
+      p_stripe_refund_id: refund.id,
+      p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
+    });
+    if (dErr) throw new Error(`declutter_refund_reversed failed for ${refund.status} refund ${refund.id}: ${dErr.message}`);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: reopened === "reopened" ? "critical" : "warning",
+      title: reopened === "reopened" ? "Declutter refund failed after Stripe took it: retrying" : "Declutter refund failed (row not reopened)",
+      message: `Stripe moved Declutter refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The refund row did not record this refund (an older attempt, or already reopened): nothing changed."}`,
+      fields: { "Refund row": meta.refund_id, "Order": meta.order_id ?? "none" },
+    });
+    return;
+  }
+
   const { data: removed, error: delErr } = await supabase
     .from("payment_refunds")
     .delete()

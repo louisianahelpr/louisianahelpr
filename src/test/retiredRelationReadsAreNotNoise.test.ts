@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20260925234342_retired_relation_reads_from_stale_builds.sql | ('broadcast_dismissals', | ('broadcast_dismissalz',
 // @mutate supabase/migrations/20260925234342_retired_relation_reads_from_stale_builds.sql | IF to_regclass(format('public.%I', v_rel)) IS NOT NULL THEN | IF false THEN
 // @mutate supabase/migrations/20260925234342_retired_relation_reads_from_stale_builds.sql | IF coalesce(NEW.tags ->> 'origin', '') <> 'client' THEN | IF false THEN
-// @mutate src/integrations/supabase/types.ts |       reviews: {\n        Row: { |       broadcast_messages: {\n        Row: {}\n      }\n      reviews: {\n        Row: {
+// @mutate src/integrations/supabase/types.ts | Relationships: []\n      }\n      reviews: {\n        Row: { | Relationships: []\n      }\n      broadcast_messages: {\n        Row: {}\n      }\n      reviews: {\n        Row: {
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

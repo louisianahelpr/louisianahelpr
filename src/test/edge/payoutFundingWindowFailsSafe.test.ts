@@ -95,6 +95,14 @@ const CLASSIFIED: Record<string, { proven: boolean; why: string }> = {
     proven: false,
     why: "Links the charge on refund/transfer admin paths, not on the scheduled payout path.",
   },
+  "declutter-money": {
+    proven: false,
+    why: "Declutter seller payouts (slice 4) fund the transfer from the order's own charge. Once those funds have " +
+      "left pending, Stripe refuses the transfer; declutter-money records a FAILED attempt (declutter_payout_executed), " +
+      "backs off, retries up to 12 times and pages on the last try, so the payout row stays unpaid and visible, " +
+      "never marked sent. Whether the platform should float it, use manual payouts or pay faster is money " +
+      "review 2.2, held for the owner (docs/specs/declutter-auctions.md). Failure branch: src/test/edge/declutter-money.test.ts.",
+  },
   "void-cancelled-payments": {
     proven: false,
     why: "Cancellation sweep; a failed transfer there leaves escrow held, which is the safe direction.",

@@ -25,6 +25,9 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     payer_id: user.id, |
  * @mutate supabase/functions/declutter-card/index.ts |   const refused = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (refused) return refused; |
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (session.mode === "setup") return meta.kind === "declutter_card"; |   if (session.mode === "setup") return false;
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (modeErr) throw new Error(`declutter_refund_set_mode failed: ${modeErr.message}`); |
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "declutter_refund") { |   if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -176,6 +179,37 @@ describe("stripe-webhook: Declutter order paid", () => {
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     expect(res.status).toBe(200);
     expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+  });
+
+  it("money review 3.6: the refund row records the payment's Stripe mode BEFORE Stripe is asked to refund", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_dc", status: "succeeded" });
+    const res = await deliver({ result: "refund", refund_id: "rf-6", reason: "order_missing", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending" });
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_refund_set_mode")[0]?.args).toEqual({ p_refund_id: "rf-6", p_livemode: true });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("an unrecorded mode is a 500 (Stripe redelivers) and no refund is sent yet", async () => {
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), declutter_refund_set_mode: { message: "boom" } };
+    const res = await deliver({ result: "refund", refund_id: "rf-7", reason: "order_missing", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending" });
+    expect(res.status).toBe(500);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it("charge.refund.updated: a Declutter refund Stripe failed reopens its row for a new refund and pages; no job ledger is touched", async () => {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    scenario.rpc.declutter_refund_reversed = "reopened";
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_ru", type: "charge.refund.updated", livemode: true, created: 1_760_000_000,
+      data: { object: { id: "re_dc", object: "refund", status: "failed", failure_reason: "expired_or_canceled_card", amount: 4437,
+        payment_intent: "pi_dc", charge: "ch_dc", metadata: { kind: "declutter_refund", refund_id: "rf-1", order_id: ORDER } } },
+    });
+    const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_refund_reversed")[0]?.args).toEqual({ p_refund_id: "rf-1", p_stripe_refund_id: "re_dc", p_why: "failed: expired_or_canceled_card" });
+    expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+    expect(slackAlerts.some((a: any) => a.severity === "critical" && /retrying/.test(a.title))).toBe(true);
   });
 
   it("a refund already done (replayed event) is never sent to Stripe again", async () => {

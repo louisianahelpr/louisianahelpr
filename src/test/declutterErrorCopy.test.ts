@@ -23,9 +23,11 @@ const DECLUTTER_FILES = [
   "20261014193955_declutter_foundation.sql",
   "20261014200728_declutter_slice2_followups.sql",
   "20261014210518_declutter_slice3_offers_checkout.sql",
+  "20261015042253_declutter_slice4_handover_payout.sql",
 ];
-// require_feature (20261012031120) raises feature_disabled on every RPC.
-const SHARED = ["feature_disabled"];
+// require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
+// other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
+const SHARED = ["feature_disabled", "invalid_payout"];
 
 function raisedCodes(): Set<string> {
   const out = new Set<string>(SHARED);
@@ -42,7 +44,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(3);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(4);
     expect(codes.size).toBeGreaterThan(25);
   });
 

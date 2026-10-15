@@ -161,6 +161,9 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         .replace(/AND t\.created_at >= v_created/g, "")
         .replace(/AND t\.(?:user_id|recipient_id) IS NULL/g, "")
         .replace(/AND t\.status = 'published'\s+AND t\.feedback_visible_at IS NOT NULL AND t\.feedback_visible_at <= now\(\)/g, "")
+        // declutter_reviews (20261015042253): a review ABOUT the caller is theirs once public (both sides
+        // reviewed, or 14 days after handover); the blind-period rule is this exact sub-select.
+        .replace(/AND\s+EXISTS\s+\(SELECT\s+1\s+FROM\s+public\.declutter_orders\s+o\s+WHERE\s+o\.id\s+=\s+t\.order_id\s+AND\s+\(o\.handed_over_at\s+<=\s+now\(\)\s+-\s+interval\s+'14 days'\s+OR\s+\(SELECT\s+count\(\*\)\s+FROM\s+public\.declutter_reviews\s+r2\s+WHERE\s+r2\.order_id\s+=\s+t\.order_id\)\s+=\s+2\)\)/g, "")
         .replace(/\bt\.(?:id|job_id|parent_job_id|item_id) IN\b/g, "");
       // Every legitimate sub-select was stripped above, so a SELECT left over is
       // unknown (`t.job_id IN (SELECT j.id ... WHERE j.status = 'open')` would

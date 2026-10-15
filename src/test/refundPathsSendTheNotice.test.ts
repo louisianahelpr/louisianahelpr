@@ -87,6 +87,8 @@ const REFUND_OWN_NOTICE: Record<string, string> = {
     "refunds a second payment inside the webhook itself; the charge.refunded it raises sends the notice (recipient from the payment's metadata)",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
     "Declutter (slice 3b): refunds carry metadata.kind declutter_refund (pathAnnouncesRefund) and are announced by this path itself: a money email once Stripe took the refund, plus the SQL bell notice; charge.refunded leaves them alone",
+  "supabase/functions/declutter-money/index.ts":
+    "Declutter (slice 4): retries the same declutter_refund rows as the webhook (metadata.kind declutter_refund) and announces them itself (tellBuyerRefunded: a money email once Stripe took it; the SQL bell notice was written when the row was); charge.refunded leaves them alone",
 };
 
 /**
@@ -124,7 +126,7 @@ function refundWordsInNotices(): Map<string, number> {
 describe("Q1714: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(12);
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(13);
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(3);
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

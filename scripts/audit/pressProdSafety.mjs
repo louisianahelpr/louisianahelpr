@@ -843,6 +843,7 @@ export const STRIPE_WRITE_FUNCTIONS = new Set([
   "create-boost-payment",
   "declutter-card", // Checkout (setup) + customers.create
   "declutter-checkout", // Checkout sessions create / expire
+  "declutter-money", // cron: refunds.create + transfers.create (Declutter slice 4)
   "create-gift-card-checkout",
   "create-payment",
   "create-pro-checkout",

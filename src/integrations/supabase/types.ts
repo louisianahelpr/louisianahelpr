@@ -1040,6 +1040,65 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_bookings: {
+        Row: {
+          buyer_id: string
+          buyer_missed_at: string | null
+          buyer_rebooked: boolean
+          buyer_reschedules: number
+          created_at: string
+          is_seed: boolean
+          order_id: string
+          porch_mode: string | null
+          porch_until: string | null
+          seller_id: string
+          seller_reschedules: number
+          slot_end: string | null
+          slot_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_missed_at?: string | null
+          buyer_rebooked?: boolean
+          buyer_reschedules?: number
+          created_at?: string
+          is_seed?: boolean
+          order_id: string
+          porch_mode?: string | null
+          porch_until?: string | null
+          seller_id: string
+          seller_reschedules?: number
+          slot_end?: string | null
+          slot_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_missed_at?: string | null
+          buyer_rebooked?: boolean
+          buyer_reschedules?: number
+          created_at?: string
+          is_seed?: boolean
+          order_id?: string
+          porch_mode?: string | null
+          porch_until?: string | null
+          seller_id?: string
+          seller_reschedules?: number
+          slot_end?: string | null
+          slot_start?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_buyer_cards: {
         Row: {
           brand: string | null
@@ -1175,6 +1234,56 @@ export type Database = {
             columns: ["debt_id"]
             isOneToOne: false
             referencedRelation: "declutter_seller_fee_debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_handovers: {
+        Row: {
+          code: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          order_id: string
+          picked_up_at: string | null
+          picked_up_distance_m: number | null
+          picked_up_photo_path: string | null
+          set_out_at: string | null
+          set_out_photo_path: string | null
+          wrong_attempts: number
+        }
+        Insert: {
+          code: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          order_id: string
+          picked_up_at?: string | null
+          picked_up_distance_m?: number | null
+          picked_up_photo_path?: string | null
+          set_out_at?: string | null
+          set_out_photo_path?: string | null
+          wrong_attempts?: number
+        }
+        Update: {
+          code?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          order_id?: string
+          picked_up_at?: string | null
+          picked_up_distance_m?: number | null
+          picked_up_photo_path?: string | null
+          set_out_at?: string | null
+          set_out_photo_path?: string | null
+          wrong_attempts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_handovers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1444,6 +1553,7 @@ export type Database = {
           closed_at: string | null
           created_at: string
           fee_rule: string
+          handed_over_at: string | null
           handover: string
           id: string
           is_seed: boolean
@@ -1465,6 +1575,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           fee_rule?: string
+          handed_over_at?: string | null
           handover: string
           id?: string
           is_seed?: boolean
@@ -1486,6 +1597,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           fee_rule?: string
+          handed_over_at?: string | null
           handover?: string
           id?: string
           is_seed?: boolean
@@ -1501,6 +1613,65 @@ export type Database = {
           total_cents?: number
         }
         Relationships: [
+        ]
+      }
+      declutter_payouts: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          created_at: string
+          debt_cents: number
+          executed_at: string | null
+          id: string
+          is_seed: boolean
+          items_cents: number
+          last_error: string | null
+          next_attempt_at: string
+          order_id: string
+          seller_id: string | null
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          created_at?: string
+          debt_cents: number
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents: number
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id: string
+          seller_id?: string | null
+          status: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          created_at?: string
+          debt_cents?: number
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          items_cents?: number
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          seller_id?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_payouts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
         ]
       }
       declutter_pickup_windows: {
@@ -1529,6 +1700,71 @@ export type Database = {
           weekday?: number
         }
         Relationships: []
+      }
+      declutter_problems: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          fault: string | null
+          id: string
+          is_seed: boolean
+          note: string
+          order_id: string
+          photo_paths: string[]
+          reason: string
+          reporter_id: string | null
+          reporter_side: string
+          status: string
+          strike_given: boolean
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          fault?: string | null
+          id?: string
+          is_seed?: boolean
+          note: string
+          order_id: string
+          photo_paths?: string[]
+          reason: string
+          reporter_id?: string | null
+          reporter_side: string
+          status?: string
+          strike_given?: boolean
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          fault?: string | null
+          id?: string
+          is_seed?: boolean
+          note?: string
+          order_id?: string
+          photo_paths?: string[]
+          reason?: string
+          reporter_id?: string | null
+          reporter_side?: string
+          status?: string
+          strike_given?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_problems_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       declutter_questions: {
         Row: {
@@ -1573,12 +1809,17 @@ export type Database = {
       }
       declutter_refunds: {
         Row: {
+          attempts: number
           card_fee_cents: number
           created_at: string
           executed_at: string | null
           fee_policy: string
           id: string
           is_seed: boolean
+          kept_cents: number
+          last_error: string | null
+          payment_livemode: boolean | null
+          next_attempt_at: string
           order_id: string | null
           paid_cents: number
           reason: string
@@ -1588,12 +1829,17 @@ export type Database = {
           stripe_refund_ref: string | null
         }
         Insert: {
+          attempts?: number
           card_fee_cents: number
           created_at?: string
           executed_at?: string | null
           fee_policy: string
           id?: string
           is_seed?: boolean
+          kept_cents?: number
+          last_error?: string | null
+          payment_livemode?: boolean | null
+          next_attempt_at?: string
           order_id?: string | null
           paid_cents: number
           reason: string
@@ -1603,12 +1849,17 @@ export type Database = {
           stripe_refund_ref?: string | null
         }
         Update: {
+          attempts?: number
           card_fee_cents?: number
           created_at?: string
           executed_at?: string | null
           fee_policy?: string
           id?: string
           is_seed?: boolean
+          kept_cents?: number
+          last_error?: string | null
+          payment_livemode?: boolean | null
+          next_attempt_at?: string
           order_id?: string | null
           paid_cents?: number
           reason?: string
@@ -1620,6 +1871,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "declutter_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          is_seed: boolean
+          order_id: string
+          reviewee_id: string | null
+          reviewer_id: string | null
+          reviewer_side: string
+          stars: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          order_id: string
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+          reviewer_side: string
+          stars: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          order_id?: string
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+          reviewer_side?: string
+          stars?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_reviews_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "declutter_orders"
@@ -7964,6 +8259,16 @@ export type Database = {
         Args: { p_item_id: string; p_user_id: string }
         Returns: string
       }
+      declutter_admin_decide_problem: {
+        Args: {
+          p_decision: string
+          p_fault: string
+          p_note: string
+          p_problem_id: string
+          p_strike: boolean
+        }
+        Returns: Json
+      }
       declutter_admin_pending_items: {
         Args: never
         Returns: {
@@ -8014,6 +8319,7 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_book_pickup: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
       declutter_buy_now: {
         Args: { p_expected_price_cents: number; p_item_id: string }
         Returns: string
@@ -8021,6 +8327,21 @@ export type Database = {
       declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
       declutter_cancelled_sale_session: { Args: { p_item_id: string; p_seller: string }; Returns: string }
       declutter_card_fee_estimate: { Args: { p_amount_cents: number }; Returns: number }
+      declutter_close_paid_order: {
+        Args: {
+          p_order_id: string
+          p_reason: string
+          p_strike_reason: string
+          p_strike_side: string
+          p_why: string
+        }
+        Returns: Json
+      }
+      declutter_complete_handover: { Args: { p_by: string; p_order_id: string }; Returns: Json }
+      declutter_confirm_handover: {
+        Args: { p_code: string; p_method: string; p_order_id: string }
+        Returns: Json
+      }
       declutter_consume_fee_debt: {
         Args: { p_max_cents: number; p_payout_ref: string; p_seller: string }
         Returns: number
@@ -8053,7 +8374,9 @@ export type Database = {
         }
         Returns: number
       }
+      declutter_handover_sweep: { Args: never; Returns: Json }
       declutter_has_agreed_sales: { Args: never; Returns: boolean }
+      declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
       declutter_item_address: {
         Args: { p_item_id: string }
         Returns: {
@@ -8062,9 +8385,44 @@ export type Database = {
           pickup_lng: number
         }[]
       }
+      declutter_leave_review: {
+        Args: { p_comment: string; p_order_id: string; p_stars: number }
+        Returns: string
+      }
       declutter_lock_buyable_item: {
         Args: { p_buyer: string; p_item_id: string }
         Returns: Record<string, unknown>
+      }
+      declutter_lock_order: {
+        Args: { p_order_id: string }
+        Returns: {
+          buyer_id: string
+          card_fee_cents: number | null
+          close_reason: string | null
+          closed_at: string | null
+          created_at: string
+          fee_rule: string
+          handed_over_at: string | null
+          handover: string
+          id: string
+          is_seed: boolean
+          items_cents: number
+          paid_at: string | null
+          premium_cents: number
+          seller_id: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_paid_at: string | null
+          stripe_payment_intent_id: string | null
+          tax_cents: number
+          total_cents: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "declutter_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       declutter_make_offer: {
         Args: { p_amount_cents: number; p_item_id: string }
@@ -8099,6 +8457,7 @@ export type Database = {
           total_cents: number | null
         }[]
       }
+      declutter_my_handover: { Args: { p_order_id: string }; Returns: Json }
       declutter_my_item_review: {
         Args: { p_item_id: string }
         Returns: {
@@ -8123,6 +8482,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      declutter_new_handover_code: { Args: never; Returns: string }
       declutter_notify: {
         Args: {
           p_link: string
@@ -8134,7 +8494,42 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_order_side: {
+        Args: { p_buyer: string; p_seller: string; p_uid: string }
+        Returns: string
+      }
+      declutter_payout_executed: {
+        Args: {
+          p_error: string
+          p_payout_id: string
+          p_succeeded: boolean
+          p_transfer_id: string
+        }
+        Returns: string
+      }
+      declutter_payouts_due: {
+        Args: { p_limit: number }
+        Returns: {
+          amount_cents: number
+          attempts: number
+          buyer_id: string
+          order_id: string
+          payment_intent_id: string
+          payout_id: string
+          seller_id: string
+          stripe_account_id: string
+        }[]
+      }
       declutter_pick_drop_stop: { Args: { p_floor: number }; Returns: number }
+      declutter_porch_photo: {
+        Args: {
+          p_lat: number
+          p_lng: number
+          p_order_id: string
+          p_photo_path: string
+        }
+        Returns: Json
+      }
       declutter_price_drop_sweep: { Args: never; Returns: number }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
       declutter_record_ai_check: {
@@ -8169,7 +8564,39 @@ export type Database = {
         Returns: string
       }
       declutter_refund_paid_order: { Args: { p_order_id: string; p_reason: string }; Returns: Json }
+      declutter_refund_reversed: {
+        Args: { p_refund_id: string; p_stripe_refund_id: string; p_why: string }
+        Returns: string
+      }
+      declutter_refund_set_mode: {
+        Args: { p_livemode: boolean; p_refund_id: string }
+        Returns: boolean
+      }
+      declutter_refunds_due: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          buyer_id: string
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          reason: string
+          refund_cents: number
+          refund_id: string
+          seller_id: string
+        }[]
+      }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
+      declutter_report_no_show: { Args: { p_order_id: string }; Returns: Json }
+      declutter_report_problem: {
+        Args: {
+          p_note: string
+          p_order_id: string
+          p_photo_paths: string[]
+          p_reason: string
+        }
+        Returns: string
+      }
       declutter_respond_offer: {
         Args: { p_action: string; p_amount_cents: number | null; p_offer_id: string }
         Returns: string
@@ -8202,9 +8629,17 @@ export type Database = {
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
+      declutter_set_porch_time: {
+        Args: { p_mode: string; p_order_id: string; p_until: string }
+        Returns: undefined
+      }
       declutter_set_watch: {
         Args: { p_item_id: string; p_watch: boolean }
         Returns: string
+      }
+      declutter_slot_in_windows: {
+        Args: { p_seller: string; p_start: string }
+        Returns: boolean
       }
       declutter_start_checkout: {
         Args: { p_handover: string; p_seller_id: string }
@@ -8244,6 +8679,16 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      declutter_visible_reviews: {
+        Args: { p_user_id: string }
+        Returns: {
+          comment: string
+          created_at: string
+          id: string
+          reviewer_side: string
+          stars: number
+        }[]
       }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       end_recurring_series_by_platform: {

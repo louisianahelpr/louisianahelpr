@@ -40,6 +40,7 @@ describe("poster service fee — Stripe's card cost only, no percentage (owner, 
   //   src/pages/info/legal/TermsSection.tsx
   //   src/pages/info/helpCenter/helpCenterContent.ts
   //   src/components/profile/SubscriptionTab.tsx
+  //   src/components/profile/subscriptionTab/MembershipFootnotes.tsx (the fee note, moved out of SubscriptionTab)
   //   src/components/postjob/CheckoutStep.tsx
 
   it("charges no platform percentage", () => {
@@ -63,6 +64,7 @@ describe("poster service fee — Stripe's card cost only, no percentage (owner, 
       "src/pages/info/legal/TermsSection.tsx",
       "src/pages/info/helpCenter/helpCenterContent.ts",
       "src/components/profile/SubscriptionTab.tsx",
+      "src/components/profile/subscriptionTab/MembershipFootnotes.tsx",
       "src/components/postjob/CheckoutStep.tsx",
     ]) {
       const code = blankComments(readFileSync(resolve(__dirname, "../..", file), "utf8"));

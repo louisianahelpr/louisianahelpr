@@ -1,3 +1,5 @@
+// @mutate supabase/functions/stripe-webhook/handlers/customerSubscriptionUpdated.ts |         subscription_source: "stripe", |         // source dropped
+// @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const updateData: any = { subscription_tier: tier, subscription_source: "stripe" }; | const updateData: any = { subscription_tier: tier };
 /**
  * Unit tests for the `stripe-webhook` Supabase edge function.
  *
@@ -2238,7 +2240,18 @@ describe("stripe-webhook edge function", () => {
         stripe_subscription_id: "sub_1UAgVbKp2H4b7tECgY5A6IO8",
         subscription_billing_cycle: "monthly",
         subscription_cancel_at_period_end: false,
+        // Q1797: a Stripe grant says Stripe is the authority, so Manage opens
+        // the Stripe portal even for a former Apple member.
+        subscription_source: "stripe",
       });
+    });
+
+    it("Q1797: a Stripe checkout tier grant stamps subscription_source 'stripe' (source pin)", async () => {
+      const { readFileSync } = await import("node:fs");
+      const { resolve } = await import("node:path");
+      const { blankComments } = await import("../helpers/blankNonCode");
+      const src = blankComments(readFileSync(resolve(__dirname, "../../../supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts"), "utf8"));
+      expect(src).toMatch(/const updateData: any = \{ subscription_tier: tier, subscription_source: "stripe" \};/);
     });
 
     it("keeps the tier but drops the renewal claim on a REAL cancelled subscription", async () => {

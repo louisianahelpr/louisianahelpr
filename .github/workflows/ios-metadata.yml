@@ -38,6 +38,10 @@ jobs:
       DEVELOPER_TEAM_ID: ${{ secrets.DEVELOPER_TEAM_ID }}
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
       ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+      # Q1790: the reviewer's demo password, staged by the Fastfile into the
+      # temporary upload copy only. Unset until scripts/rotate-review-demo-password.mjs
+      # runs (after Apple decides on build 7119); until then the tracked file is used.
+      ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
 
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"

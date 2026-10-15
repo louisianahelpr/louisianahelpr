@@ -43,7 +43,7 @@ import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -62,6 +62,8 @@ type RefundDue = {
   attempts: number;
   /** The payment's Stripe mode, recorded by the webhook (null: not recorded). */
   livemode: boolean | null;
+  /** The order's Checkout Session id (null: no order, or no page): its cs_live_/cs_test_ prefix names the mode. */
+  checkout_session_id?: string | null;
 };
 type PayoutDue = {
   payout_id: string;
@@ -120,12 +122,19 @@ serve(async (req) => {
   const modes = createStripeModeResolver(admin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
   const defects = defectTracker();
   // Money review 3.6: a refund runs on the key that took the payment. The row's
-  // recorded mode wins; parties (when the row has an order) must agree with it.
-  // An orderless row with no recorded mode is never guessed: it waits for a person.
+  // recorded mode wins; with none recorded (rows written by SQL: no-shows,
+  // problem decisions), the order's Checkout Session id prefix names it
+  // (re-review should-fix 3). Every source present must agree (recorded vs
+  // page, and the parties when the row has an order); any disagreement moves
+  // nothing. An orderless row with no recorded mode is never guessed: it waits
+  // for a person.
   const refundClient = async (r: RefundDue): Promise<{ stripe: Stripe } | null> => {
     const hasParties = !!(r.buyer_id || r.seller_id);
-    if (r.livemode === true || r.livemode === false) {
-      const mode = r.livemode ? "live" : "test";
+    const recorded = r.livemode === true ? "live" : r.livemode === false ? "test" : null;
+    const byPage = sessionIdMode(r.checkout_session_id);
+    if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`);
+    const mode = recorded ?? byPage;
+    if (mode) {
       if (hasParties) {
         const byParties = await modes.modeForParties([r.buyer_id, r.seller_id]);
         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`);
@@ -180,7 +189,8 @@ serve(async (req) => {
         {
           payment_intent: r.payment_intent_id,
           amount: r.refund_cents,
-          // Same parameters as the webhook (stripe-webhook/handlers/declutterCheckout.ts) under the same key.
+          // Same parameters as the webhook (stripe-webhook/handlers/declutterCheckout.ts) under the same key,
+          // both built from the refund ROW (an order_missing row: order_id ""). Pinned by declutter-payments.test.ts.
           metadata: { kind: "declutter_refund", refund_id: r.refund_id, reason: r.reason, order_id: r.order_id ?? "" },
         },
         { idempotencyKey: retries === 0 ? `declutter-refund-${r.refund_id}` : `declutter-refund-${r.refund_id}-r${retries}` },

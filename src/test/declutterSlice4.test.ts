@@ -23,7 +23,8 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RAISE EXCEPTION 'sale_final' |   o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    RAISE EXCEPTION 'sale_final'
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'; |    WHERE id = p_refund_id AND status = 'succeeded';
+ * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts; |    WHERE id = p_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts;
+ * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END; |   RETURN 'reopened';
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id AND payment_livemode IS NULL; |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
  */
@@ -129,8 +130,13 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_porch_photo"))).toContain("WHERE c.order_id = o.id AND p.pickup_lat IS NOT NULL AND p.pickup_lng IS NOT NULL;");
     expect(flat(body("declutter_porch_photo"))).toMatch(/SELECT min\(round\(2 \* 6371000/);
     expect(flat(body("declutter_refund_set_mode"))).toContain("WHERE id = p_refund_id AND payment_livemode IS NULL;");
-    expect(flat(body("declutter_refund_reversed"))).toContain("WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded';");
+    expect(flat(body("declutter_refund_reversed"))).toContain("WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded' RETURNING attempts INTO v_attempts;");
     expect(flat(body("declutter_refunds_due"))).toContain("r.payment_livemode");
+    // Re-review should-fixes 1 and 3: a reversal at the 12-try cap gives up (same cap as the queue); the queue hands
+    // declutter-money the order's Checkout Session id.
+    expect(flat(body("declutter_refund_reversed"))).toContain("RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END;");
+    expect(flat(body("declutter_refunds_due"))).toContain("AND r.attempts < 12");
+    expect(flat(body("declutter_refunds_due"))).toContain("o.stripe_checkout_session_id");
   });
 
   it("member writes refuse banned callers and never need the switch (row 62); internals are service-only", () => {

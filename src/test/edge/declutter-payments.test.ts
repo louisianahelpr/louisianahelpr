@@ -28,6 +28,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (modeErr) throw new Error(`declutter_refund_set_mode failed: ${modeErr.message}`); |
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "declutter_refund") { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     const gaveUp = reopened === "gave_up"; |     const gaveUp = false;
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | order_id: refund.order_id ?? "" }, | order_id: orderId },
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -211,6 +213,56 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
     expect(slackAlerts.some((a: any) => a.severity === "critical" && /retrying/.test(a.title))).toBe(true);
   });
+
+  // lh-money-escrow re-review should-fix 1: a reversal of the row's last try is not promised a retry.
+  it("charge.refund.updated: a reversal that used the row's LAST try pages 'refund it by hand', never 'a new refund within 10 minutes'", async () => {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    scenario.rpc.declutter_refund_reversed = "gave_up";
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_ru12", type: "charge.refund.updated", livemode: true, created: 1_760_000_000,
+      data: { object: { id: "re_dc12", object: "refund", status: "failed", failure_reason: "lost_or_stolen_card", amount: 4437,
+        payment_intent: "pi_dc", charge: "ch_dc", metadata: { kind: "declutter_refund", refund_id: "rf-12", order_id: ORDER } } },
+    });
+    const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+    expect(res.status).toBe(200);
+    const page = slackAlerts.find((a: any) => a.severity === "critical") as any;
+    expect(page?.title).toMatch(/by hand/);
+    expect(page?.message).toMatch(/refund it by hand/i);
+    expect(page?.message).not.toMatch(/within 10 minutes/);
+  });
+
+  // lh-money-escrow re-review should-fix 2: both paths use the key `declutter-refund-<row id>`, and Stripe refuses
+  // a reused key with other parameters, so both must send the SAME parameters for the same row.
+  async function runMoney(row: Record<string, unknown>) {
+    env();
+    scenario.rpc.declutter_payouts_due = [];
+    scenario.rpc.declutter_refunds_due = [row];
+    scenario.rpc.declutter_refund_executed = "succeeded";
+    scenario.reads.ban_settlement_queue = { rows: [] };
+    const fn = await loadEdgeFunction("declutter-money");
+    const res = await fn.fetch(fn.request({ url: "https://edge.test/declutter-money", headers: { Authorization: "Bearer service-key" }, body: {} }));
+    return res.status;
+  }
+  for (const c of [
+    { name: "an order_missing row (no order; the page still names one)", order: null as string | null, reason: "order_missing" },
+    { name: "a row with its order", order: ORDER as string | null, reason: "seller_backed_out" },
+  ]) {
+    it(`the webhook and declutter-money send identical refunds.create parameters under the same key: ${c.name}`, async () => {
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_same", status: "succeeded" });
+      await deliver({ result: "refund", refund_id: "rf-same", reason: c.reason, fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending", order_id: c.order });
+      const fromWebhook = stripeMock.refunds.create.mock.calls[0];
+      stripeMock.refunds.create.mockClear();
+      expect(await runMoney({
+        refund_id: "rf-same", reason: c.reason, order_id: c.order, buyer_id: c.order ? BUYER : null, seller_id: c.order ? SELLER : null,
+        payment_intent_id: "pi_dc", refund_cents: 4600, attempts: 0, livemode: true, checkout_session_id: c.order ? "cs_live_dc" : null,
+      })).toBe(200);
+      const fromCron = stripeMock.refunds.create.mock.calls[0];
+      expect(fromWebhook?.[1]).toEqual({ idempotencyKey: "declutter-refund-rf-same" });
+      expect(fromWebhook?.[0]?.metadata).toEqual({ kind: "declutter_refund", refund_id: "rf-same", reason: c.reason, order_id: c.order ?? "" });
+      expect(fromCron).toEqual(fromWebhook);
+    });
+  }
 
   it("a refund already done (replayed event) is never sent to Stripe again", async () => {
     await deliver({ result: "refund", refund_id: "rf-1", reason: "superseded", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "succeeded" });

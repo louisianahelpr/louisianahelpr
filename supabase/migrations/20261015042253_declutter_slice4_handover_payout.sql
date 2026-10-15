@@ -230,23 +230,59 @@ GRANT EXECUTE ON FUNCTION public.declutter_refund_set_mode(uuid, boolean) TO ser
 -- the money never left). Only the refund the row RECORDED reopens it (an older
 -- failed attempt's late event changes nothing): the row goes back to 'failed',
 -- due now, so declutter-money sends a NEW refund under a new key (its reconcile
--- never adopts a failed refund). Returns 'reopened' or 'unchanged'.
+-- never adopts a failed refund).
+-- The reversal COUNTS as a try (lh-money-escrow re-review should-fix 1): a
+-- refund Stripe takes and then fails usually fails for a reason a new refund
+-- to the same card repeats (closed or expired card), so an uncounted reversal
+-- could loop forever, a new refund and a critical page every 10 minutes. The
+-- 12-try cap (declutter_refunds_due offers attempts < 12) stays the one bound;
+-- when this reversal reaches it the row is NOT offered again and the answer
+-- is 'gave_up', so the webhook pages "refund it by hand" instead of promising
+-- a new refund. Returns 'reopened', 'gave_up' or 'unchanged'.
 CREATE OR REPLACE FUNCTION public.declutter_refund_reversed(p_refund_id uuid, p_stripe_refund_id text, p_why text)
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
+DECLARE
+  v_attempts integer;
 BEGIN
   UPDATE public.declutter_refunds
      SET status = 'failed', attempts = least(attempts + 1, 100), next_attempt_at = now(),
          last_error = left('Stripe moved refund ' || p_stripe_refund_id || ' to ' || COALESCE(p_why, 'failed'), 500)
-   WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded';
-  RETURN CASE WHEN FOUND THEN 'reopened' ELSE 'unchanged' END;
+   WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'
+  RETURNING attempts INTO v_attempts;
+  IF NOT FOUND THEN
+    RETURN 'unchanged';
+  END IF;
+  -- Same cap as declutter_refunds_due (attempts < 12).
+  RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_refund_reversed(uuid, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_refund_reversed(uuid, text, text) TO service_role;
+
+-- The answer the webhook acts on (restated from 20261014224914) now carries the
+-- row's order_id (lh-money-escrow re-review should-fix 2): the webhook and
+-- declutter-money both send refunds.create under `declutter-refund-<row id>`,
+-- and Stripe refuses a reused key with other parameters. Both now build the
+-- metadata from the ROW (order_id NULL -> ""), never from the Checkout page's
+-- metadata (an order_missing row has no order, while its page still names one).
+-- VOLATILE on purpose: it reads the row declutter_record_refund just wrote.
+CREATE OR REPLACE FUNCTION public.declutter_refund_answer(p_refund_id uuid)
+RETURNS jsonb
+LANGUAGE sql
+VOLATILE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT jsonb_build_object('result', 'refund', 'refund_id', r.id, 'reason', r.reason, 'fee_policy', r.fee_policy,
+                            'refund_cents', r.refund_cents, 'refund_status', r.status, 'order_id', r.order_id)
+    FROM public.declutter_refunds r WHERE r.id = p_refund_id;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_refund_answer(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_refund_answer(uuid) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2. Tables.
@@ -1466,9 +1502,13 @@ GRANT EXECUTE ON FUNCTION public.declutter_payout_executed(uuid, text, boolean, 
 -- Refunds to (re)execute (3b money review #7, B57): pending rows older than
 -- 2 minutes (the webhook executes fresh ones itself; the idempotency key = row
 -- id makes an overlap harmless) and failed rows whose back-off is over.
+-- checkout_session_id (lh-money-escrow re-review should-fix 3): rows written
+-- by SQL (declutter_close_paid_order, problem decisions) carry no recorded
+-- payment_livemode; declutter-money then reads the mode off the order's
+-- Checkout Session id prefix (cs_live_ / cs_test_) before the parties.
 CREATE OR REPLACE FUNCTION public.declutter_refunds_due(p_limit integer)
 RETURNS TABLE (refund_id uuid, reason text, order_id uuid, buyer_id uuid, seller_id uuid, payment_intent_id text,
-               refund_cents integer, attempts integer, livemode boolean)
+               refund_cents integer, attempts integer, livemode boolean, checkout_session_id text)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -1476,7 +1516,7 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
   -- buyer/seller pick the Stripe mode (test accounts on the test key) in declutter-money.
   SELECT r.id, r.reason, r.order_id, o.buyer_id, o.seller_id, r.stripe_payment_intent_id, r.refund_cents, r.attempts,
-         r.payment_livemode
+         r.payment_livemode, o.stripe_checkout_session_id
     FROM public.declutter_refunds r
     LEFT JOIN public.declutter_orders o ON o.id = r.order_id
    WHERE ((r.status = 'pending' AND r.created_at <= now() - interval '2 minutes')

@@ -40,7 +40,11 @@ export function isDeclutterSession(session: { metadata?: unknown } | null | unde
 type MarkPaidAnswer =
   | { result: "paid" }
   | { result: "already_paid" }
-  | { result: "refund"; refund_id: string; reason: string; fee_policy: string; refund_cents: number; refund_status: string };
+  | {
+    result: "refund"; refund_id: string; reason: string; fee_policy: string; refund_cents: number; refund_status: string;
+    /** The refund ROW's order (null for order_missing): the refund's metadata is built from the row, like declutter-money. */
+    order_id?: string | null;
+  };
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -211,7 +215,9 @@ async function executeRefund(
       {
         payment_intent: paymentIntentId,
         amount: refund.refund_cents,
-        metadata: { kind: "declutter_refund", refund_id: refund.refund_id, reason: refund.reason, order_id: orderId },
+        // Built from the refund ROW exactly as declutter-money builds it (same key, so the same parameters:
+        // Stripe refuses a reused key with others). An order_missing row has no order: "", whatever the page named.
+        metadata: { kind: "declutter_refund", refund_id: refund.refund_id, reason: refund.reason, order_id: refund.order_id ?? "" },
       },
       // One Stripe refund per refund row, whatever the retries.
       { idempotencyKey: `declutter-refund-${refund.refund_id}` },

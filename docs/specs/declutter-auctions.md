@@ -568,10 +568,51 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   the edge function functions-deploy ships on the same merge; until the function is live a run gets a 404 and moves
   nothing. After landing, check its first runs (cron.job_run_details / net._http_response) or dispatch
   functions-deploy first.
+- Re-review should-fixes applied 2026-10-15 (session 4; lh-money-escrow re-review of session 3 was approve-with-notes;
+  each proof red on the code before it): (1) a Stripe reversal of a Declutter refund still COUNTS as a try (an
+  uncounted one could loop forever: a refund to a closed card fails again, a new refund and a critical page every
+  10 minutes); when it reaches the 12-try cap declutter_refund_reversed answers 'gave_up', the queue does not offer
+  the row again, and the page says "refund it by hand" instead of "a new refund within 10 minutes". (2) The webhook
+  and declutter-money both build the refunds.create metadata from the refund ROW (declutter_refund_answer now carries
+  order_id; an order_missing row sends ""), so the shared key `declutter-refund-<id>` always carries identical
+  parameters; a test runs both paths on the same row and compares. (3) A row with no recorded mode (written by SQL:
+  no-shows, problem decisions) takes the mode from the order's Checkout Session id prefix (cs_live_/cs_test_,
+  declutter_refunds_due.checkout_session_id) before the parties; recorded vs page vs parties must all agree, any
+  disagreement moves nothing. (4) Edge test: a recorded mode that disagrees with the parties moves nothing.
 - HELD FOR THE OWNER (not decided by the lane; code left as built): authz must-fix 2.1 (minimum booking lead time;
-  who reports a no-show first wins, money 2.3; a buyer who withholds the code on pickup_home), money 2.2 (Stripe
-  payouts measured AUTOMATIC on the live platform account: a seller transfer days after the charge may fail
-  balance_insufficient; owner picks manual payouts / float / faster payout), QR library (the 4-digit code stays).
+  who reports a no-show first wins, money 2.3; a buyer who withholds the code on pickup_home), money 2.2 (see the
+  next point), QR library (the 4-digit code stays).
+- Money 2.2, CORRECTED 2026-10-15 (the lh-money-escrow re-reviewer measured it that day; the earlier "AUTOMATIC" here
+  was wrong): the live AND test platform payout schedules are {interval: "manual", delay_days: 2}, not automatic; the
+  last automatic payout was 2026-04-21 ($0). So today the platform balance holds the buyer's money until the seller
+  transfer. Remaining risk, stated plainly: a MANUAL payout of the whole available balance, or switching automatic
+  payouts back on, empties the balance a delayed seller transfer is paid from; that transfer then fails
+  balance_insufficient, is retried 12 times with back-off, and then pages "pay it by hand". Never pay out the whole
+  balance by hand while Declutter orders are waiting on a handover.
+- lh-money-escrow review of the session 4 fixes (2026-10-15, approve-with-notes, no must-fix): four should-fixes for
+  BEFORE the switch goes past testers, not built yet: (a) a refund that gave up (12 tries) lives only in a Slack page or
+  a cron defect; add a check that alerts on declutter_refunds with status 'failed' and attempts >= 12, and tell the
+  buyer in-app when a refund is reversed or gives up (they already got "on its way back"); (b) "refund it by hand" has
+  no way back into the books: a Dashboard refund lacks metadata kind=declutter_refund, so chargeRefunded.ts sends it
+  down the jobs path and the row stays 'failed'; give the runbook the metadata to set (kind, refund_id) or add an
+  admin RPC that marks a row settled by hand with the Stripe refund id; (c) older code: the webhook's executeRefund
+  always uses the plain key, and a checkout.session.completed redelivery more than 24 h later (Stripe retries for 3
+  days; keys live 24 h) while the row is pending/failed can create a second refund (only possible when the refund is
+  at most half the charge); fix: list-and-adopt like declutter-money, or execute only pending rows with 0 attempts and
+  leave the rest to the cron; (d) a refund failure event processed before declutter_refund_executed stored that
+  refund's id answers 'unchanged' and the row is then marked succeeded over a failed refund; the (a) check catches it.
+- lh-authz-rls review of the session 3 authz fixes 2.6/2.7 + session 4 (2026-10-15, approve-with-notes, no must-fix;
+  2.6 code bias measured ~2.3e-6, 2.7 distance and address readers probed in PGlite): should-fix (a) porch and
+  problem photos sit in the job-photos bucket, which is PUBLIC on prod (storage.buckets.public = true, measured): the
+  seller's porch photo is a picture of their home, and declutter_my_handover hands its path to the other side, whose
+  public URL never expires (a refunded buyer keeps a working link). Before the switch goes past testers: a private
+  bucket with signed URLs for declutter/handover/ and declutter/problem/, or the owner accepts the risk. (b) Product
+  note: on a porch order whose items sit at different addresses, one "picked up" photo at any of them pays the seller
+  for the whole order. Its proof-pin should-fixes (far point refused, no address after handover or refund, members
+  cannot call declutter_refund_answer) were added to declutterSlice4.pglite.mjs in session 4.
+- When Declutter sales tax arrives (should-fix 5; the jobs rule the owner set 2026-10-15): keep paying tax on the fees
+  we keep (a kept buyer's fee or card fee stays taxed); reverse ONLY the tax on money returned to the buyer (the
+  refunded item price and its own tax). Every order's tax is 0 today, so nothing changes until tax is built.
 
 ### Open after slice 3b (for the lead; owner order 10-13: no new OPEN.md items from agents)
 - Owner to confirm the two B40 calls marked OWNER TO CONFIRM.

@@ -1,3 +1,7 @@
+// @mutate supabase/functions/_shared/refundAmount.ts |   const feeKeptCents = Math.max(cents(i.customerFeeCents), cents(i.actualFeeCents)); |   const feeKeptCents = cents(i.customerFeeCents);
+// @mutate supabase/functions/_shared/refundAmount.ts |   const remainingCents = Math.max(0, ceilingCents - cents(i.alreadyRefundedCents)); |   const remainingCents = ceilingCents;
+// @mutate supabase/functions/_shared/refundAmount.ts |   if (pct == null \|\| pct === "" \|\| Number(pct) !== 0) return 0; |   if (pct == null \|\| pct === "") return 0;
+// @mutate src/lib/refundAmount.ts |   const feeKeptCents = Math.max(cents(i.customerFeeCents), cents(i.actualFeeCents)); |   const feeKeptCents = cents(i.customerFeeCents);
 import { describe, it, expect } from "vitest";
 import {
   refundToPayerCents as uiRefund,

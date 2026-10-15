@@ -392,6 +392,11 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // Quotes slice 1 (20261015091114): NOT exported yet, tracked by docs/OPEN.md
+  // Q?quotes-export. ready/rentals-s1 also restates export_my_data, so the quotes
+  // sections wait for it to land; the 'quotes' switch stays off until they do.
+  "job_quote_requests.poster_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
+  "job_quotes.quoter_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },

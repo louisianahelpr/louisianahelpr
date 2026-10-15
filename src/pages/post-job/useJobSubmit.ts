@@ -29,7 +29,7 @@ import {
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { isNativePlatform } from "@/lib/nativeInit";
+import { requestEscrowCheckout } from "@/lib/escrowCheckout";
 import { removeJobPhotos } from "@/lib/storageCleanup";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
@@ -696,25 +696,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
    */
   const startPayment = async (jobId: string, geocodePromise: Promise<unknown>) => {
     try {
-      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
-        body: {
-          action: "escrow",
-          jobId: jobId,
-          native: isNativePlatform,
-          // Optional opt-in: ask Stripe to save the card for off-session
-          // future-use. The edge function decides whether to honor it.
-          //
-          // FORCED for a recurring series. Every later visit is charged
-          // off-session by charge-recurring-visits, and with no saved card
-          // that cron can only decline — which means the poster books a
-          // 12-week series and silently gets one visit. Saving the card is not
-          // a preference here, it is what the series is made of, and the
-          // checkout screen says so before they pay.
-          saveCardForFuture: saveCardForFuture || isRecurring,
-          // Gift card redemption: when present, create-payment settles
-          // the gift instead of charging the full escrow (see edge fn).
-          ...(giftCardId ? { giftCardId } : {}),
-        },
+      // One escrow door for every caller (src/lib/escrowCheckout.ts).
+      // saveCardForFuture is an opt-in the edge function may honor, FORCED
+      // for a recurring series: every later visit is charged off-session by
+      // charge-recurring-visits, and with no saved card that cron can only
+      // decline, so the poster would book a 12-week series and silently get
+      // one visit (the checkout screen says so before they pay). A gift card
+      // makes create-payment settle the gift instead of the full escrow.
+      const { data: paymentData, error: paymentError } = await requestEscrowCheckout(jobId, {
+        saveCardForFuture: saveCardForFuture || isRecurring,
+        giftCardId,
       });
 
 

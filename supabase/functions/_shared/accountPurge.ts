@@ -466,6 +466,14 @@ async function cancelStripeSubscription(
  * exist — a null error here genuinely does not mean anything was removed,
  * which is why the count comes from the LIST, not from the remove.
  */
+/** Storage caps one `list` page at 1000 rows and silently truncates past it. */
+const STORAGE_LIST_PAGE = 1000;
+/**
+ * Pages read per prefix before giving up (200k objects). A real folder never
+ * gets near it; the bound only stops a runaway loop.
+ */
+const STORAGE_LIST_MAX_PAGES = 200;
+
 /**
  * Every FILE under a prefix, recursing into sub-prefixes.
  *
@@ -501,29 +509,37 @@ export async function listAllObjects(
   while (queue.length > 0 && visited < 500) {
     const current = queue.shift()!;
     visited++;
-    const { data, error }: StorageListLike = await admin.storage
-      .from(bucket)
-      .list(current, { limit: 1000 });
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) continue;
-
-    for (const entry of data) {
-      const path = `${current}/${entry.name}`;
-      // `id === null` marks a sub-prefix rather than a stored object.
-      if ((entry as { id?: string | null }).id == null) {
-        queue.push(path);
-      } else {
-        found.push(path);
+    // Page through the prefix. A folder can legitimately hold more than one
+    // page: quote photos sit flat in <uid>/quotes/ with a fresh name per
+    // upload (lh-silent-failure review, 2026-10-15). The old single-page read
+    // threw at 1000 entries, so one busy quoter's deletion failed on every
+    // retry. A full page means "read the next one"; a short page is the end.
+    for (let page = 0; ; page++) {
+      if (page >= STORAGE_LIST_MAX_PAGES) {
+        throw new Error(
+          `listing ${bucket}/${current} passed ${STORAGE_LIST_MAX_PAGES} pages — refusing to claim a complete purge`,
+        );
       }
-    }
+      const { data, error }: StorageListLike = await admin.storage
+        .from(bucket)
+        .list(current, {
+          limit: STORAGE_LIST_PAGE,
+          offset: page * STORAGE_LIST_PAGE,
+          sortBy: { column: "name", order: "asc" },
+        });
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) break;
 
-    // A full page means there may be more; Storage caps `list` at 1000 and
-    // silently truncates rather than erroring, so say so instead of reporting
-    // a clean purge over an unread remainder.
-    if (data.length >= 1000) {
-      throw new Error(
-        `listing ${bucket}/${current} hit the 1000-object page limit — refusing to claim a complete purge`,
-      );
+      for (const entry of data) {
+        const path = `${current}/${entry.name}`;
+        // `id === null` marks a sub-prefix rather than a stored object.
+        if ((entry as { id?: string | null }).id == null) {
+          queue.push(path);
+        } else {
+          found.push(path);
+        }
+      }
+      if (data.length < STORAGE_LIST_PAGE) break;
     }
   }
 
@@ -648,17 +664,20 @@ async function purgeIdentityStorage(
   targets.push(...extraPaths);
 
   for (const { bucket, paths } of targets) {
-    if (paths.length === 0) continue;
-
-    const { error: rmErr }: { error: { message: string } | null } =
-      await admin.storage.from(bucket).remove(paths);
-    if (rmErr) {
-      console.error(`[accountPurge] remove ${paths.length} from ${bucket} failed:`, rmErr.message);
-      failures.push(`${bucket}: ${rmErr.message}`);
-      allOk = false;
-      continue;
+    // One remove call per page-sized batch: a listing can now return more
+    // than one page, and Storage takes at most that many paths per call.
+    for (let i = 0; i < paths.length; i += STORAGE_LIST_PAGE) {
+      const batch = paths.slice(i, i + STORAGE_LIST_PAGE);
+      const { error: rmErr }: { error: { message: string } | null } =
+        await admin.storage.from(bucket).remove(batch);
+      if (rmErr) {
+        console.error(`[accountPurge] remove ${batch.length} from ${bucket} failed:`, rmErr.message);
+        failures.push(`${bucket}: ${rmErr.message}`);
+        allOk = false;
+        continue;
+      }
+      totalRemoved += batch.length;
     }
-    totalRemoved += paths.length;
   }
 
   // Verify by re-listing rather than trusting the null error. This is the

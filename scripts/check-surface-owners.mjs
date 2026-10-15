@@ -92,6 +92,10 @@ const OWNERS = {
   "/declutter": ["lh-long-tail-features"],
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/item/:id": ["lh-long-tail-features", "lh-trust-safety"],
+  // Quotes on jobs (hidden switch 'quotes', created off).
+  "/quotes": ["lh-long-tail-features"],
+  "/quotes/request/:id": ["lh-long-tail-features", "lh-money-escrow"],
+  "/quotes/send/:id": ["lh-long-tail-features", "lh-input-boundary"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
   "?tab=profile": ["lh-input-boundary"],

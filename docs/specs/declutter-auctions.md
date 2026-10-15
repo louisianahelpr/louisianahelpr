@@ -551,6 +551,13 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   the card fee (row 100). Still not special-cased: an international card whose fee exceeds the kept buyer's fee.
 - Restore check (scripts/lib/stripeRestoreReconcile.mjs): add declutter_payouts.stripe_transfer_id to DB_ID_COLUMNS
   before the switch goes past testers.
+- export_my_data reconcile (20261015084728, lh-authz-rls REVIEW-ONLY 2026-10-15: approve-with-notes) should-fixes:
+  (a) the declutter_problems export section covers only problems the member REPORTED (t.reporter_id), but RLS lets
+  both sides of the order read a problem, so one filed AGAINST the member is missing from their Download My Data
+  (a coverage gap, not a leak; carried verbatim from 20261015042253; fix in the next export_my_data restatement,
+  starting from 20261015084728's body). (b) db-deploy applies the branch's pending migrations one by one: if one
+  between 20261014210518 and 20261015084728 fails, prod keeps an export without category_suggestions until the
+  next deploy; confirm db-deploy's red alert covers a partial apply.
 - Review notes fixed 2026-10-15 (session 3, before landing; PGlite/edge proofs red on the old code):
   money 1.1 the amounts-frozen trigger names tax_cents too (it was already tied to the frozen three by the total
   CHECK; now the freeze itself refuses it); money 2.4 the buyer no-show refund notice speaks to the buyer ("Your

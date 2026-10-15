@@ -104,6 +104,10 @@
       "destination": "/api/share?_og=noindex&_id=unsubscribe"
     },
     {
+      "source": "/(assets|fonts)/(.*)",
+      "destination": "/api/missing-file"
+    },
+    {
       "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
       "destination": "/index.html"
     }

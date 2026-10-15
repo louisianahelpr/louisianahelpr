@@ -80,6 +80,7 @@ import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
 import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../_shared/proTiers.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
+import { environmentVerdict, fetchAppleTransaction } from "../_shared/appleAppStore.ts";
 
 /** Sample ids carried in a finding. Keeps the Slack fields and body readable. */
 const MAX_IDS_PER_CHECK = 10;
@@ -105,6 +106,12 @@ const EXPIRE_GRACE_HOURS = 26;
  * disagreement bigger than a day means the stored date is actually wrong.
  */
 const EXPIRY_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+/**
+ * Wall-clock budget for the Apple environment pass (section 2d). The cron's
+ * pg_net call waits 90s for the whole run; Apple rows past this budget are
+ * reported as a partial scan rather than holding up the Stripe repairs.
+ */
+const APPLE_PASS_BUDGET_MS = 30_000;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -146,6 +153,8 @@ interface ProfileRow {
   stripe_subscription_id: string | null;
   /** Which billing system is the authority for this row: 'stripe' | 'apple' | null. */
   subscription_source: string | null;
+  /** The App Store subscription this row was granted from (verify-apple-iap). */
+  apple_original_transaction_id?: string | null;
   subscription_billing_cycle: string | null;
   subscription_cancel_at_period_end: boolean | null;
   /** Fixture/E2E profile. Only a literal `true` makes a hit seed (Q91). */
@@ -259,6 +268,11 @@ serve(async (req) => {
         "warning",
         "An ACTIVE Stripe Price belongs to a product that is not in PRODUCT_TO_TIER. A checkout against it completes and grants nothing. Archive the Price and product, or map the product (SC-015).",
       ),
+      appleSandboxGrant: new Check(
+        "apple_sandbox_grant",
+        "critical",
+        "An Apple-billed profile holds a paid tier granted from an App Store SANDBOX transaction (free) on an account that is not a test account, in a production deployment. Cleared: a sandbox purchase pays nothing.",
+      ),
     };
 
     // ── 0. Do our prices still say what Stripe charges? ─────────────────────
@@ -354,7 +368,7 @@ serve(async (req) => {
     let profileQuery = admin
       .from("profiles")
       .select(
-        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end, subscription_source, is_seed",
+        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end, subscription_source, apple_original_transaction_id, is_seed",
       )
       .or("subscription_tier.not.is.null,stripe_subscription_id.not.is.null")
       .limit(SCAN_LIMIT);
@@ -556,6 +570,15 @@ serve(async (req) => {
       const patch: Record<string, unknown> = {};
       const reasons: string[] = [];
 
+      // A live Stripe subscription pays this row, so Stripe is its authority,
+      // as stripe-webhook and check-pro-subscription record. Without the stamp a
+      // row left 'apple' kept being graded by Apple notices, which could null
+      // the tier Stripe charges for (lh-money-escrow re-review of 18f0d5fb3, 2).
+      if (profile.subscription_source !== "stripe") {
+        patch.subscription_source = "stripe";
+        reasons.push(`subscription_source ${profile.subscription_source ?? "null"} -> stripe`);
+      }
+
       if (profile.subscription_tier !== expectedTier) {
         const c = profile.subscription_tier === null ? checks.paidButNoTier : checks.tierMismatch;
         c.add({
@@ -699,6 +722,76 @@ serve(async (req) => {
           },
         });
       }
+    }
+
+    // ── 2d. Apple rows: does the App Store environment count? ────────────────
+    //
+    // Section 2c skips every 'apple' row (Stripe has no say over it), which
+    // left those rows graded by nobody here. verify-apple-iap and
+    // apple-app-store-notifications now refuse a SANDBOX transaction (free)
+    // for anyone but a test account, but a tier granted before that rule (or
+    // while a deployment had APPLE_IAP_ENVIRONMENT=sandbox and then dropped
+    // it) would stand forever. So each Apple row that holds a tier re-reads its
+    // subscription from Apple by apple_original_transaction_id and applies the
+    // same rule (environmentVerdict, _shared/appleAppStore.ts). Measured
+    // 2026-10-15: prod holds 0 such rows, so this costs no Apple call today.
+    // An Apple read that fails is a partial scan (caps), never a clearing.
+    //
+    // Only `environment` is read from that record: Get Transaction Info on an
+    // ORIGINAL id returns the first purchase, so its expiry and revocation
+    // describe the first period, not today. Never grade entitlement from it.
+    //
+    // Bounded (lh-money-escrow review of 3b12e17b4, finding 4): every Apple
+    // call has its own timeout (fetchAppleTransaction) and the pass stops at
+    // APPLE_PASS_BUDGET_MS, sending the rest to caps, so a slow App Store can
+    // never keep the Stripe repairs below from being applied.
+    const applePassEnds = Date.now() + APPLE_PASS_BUDGET_MS;
+    for (const p of profiles) {
+      if (p.subscription_source !== "apple" || !p.subscription_tier) continue;
+      if (!p.apple_original_transaction_id) continue;
+      if (Date.now() > applePassEnds) {
+        caps.push(`Apple environment pass stopped at its ${APPLE_PASS_BUDGET_MS / 1000}s budget; ${p.user_id} and later rows not checked`);
+        break;
+      }
+      let tx;
+      try {
+        tx = await fetchAppleTransaction(p.apple_original_transaction_id);
+      } catch (e) {
+        caps.push(
+          `Apple transaction for ${p.user_id} could not be read: ${e instanceof Error ? e.message : String(e)}`,
+        );
+        continue;
+      }
+      // Three answers, not two (finding 3): a failed test-account read is
+      // "don't know", and "don't know" never clears anyone's tier.
+      const verdict = await environmentVerdict(tx, admin, p.user_id);
+      if (verdict === "counts") continue;
+      if (verdict === "unknown") {
+        caps.push(`test-account status for ${p.user_id} could not be read; Apple environment not graded`);
+        continue;
+      }
+      checks.appleSandboxGrant.add({
+        user_id: p.user_id,
+        tier: p.subscription_tier,
+        original_transaction_id: p.apple_original_transaction_id,
+        environment: tx.environment ?? null,
+      });
+      // A row a LIVE Stripe subscription was matched to above (section 2b)
+      // is paid for by Stripe: report it, never clear it, or 2b re-grants and
+      // this clears again every day (finding 2).
+      if (matchedUserIds.has(p.user_id)) continue; // Stripe pays for it: report only
+      repairs.push({
+        user_id: p.user_id,
+        reason: `cleared tier '${p.subscription_tier}' granted from an App Store Sandbox transaction`,
+        // subscription_source and apple_original_transaction_id are KEPT, as
+        // apple-app-store-notifications keeps them on a revoke: Apple stays
+        // this row's authority.
+        patch: {
+          subscription_tier: null,
+          subscription_expires_at: null,
+          subscription_billing_cycle: null,
+        },
+      });
     }
 
     // ── 3. Apply repairs, or refuse to ───────────────────────────────────────

@@ -114,6 +114,13 @@ const BENIGN_MESSAGE_PATTERNS: RegExp[] = [
   /NetworkError when attempting to fetch resource/i,
   /Failed to fetch/i,
   /Network request failed/i,
+  // functions-js's wrapper for the SAME dropped fetch (FunctionsFetchError):
+  // its message is its own, so the patterns above never matched it (Q1615,
+  // Sentry JAVASCRIPT-2M: the request never reached the edge, and its retry
+  // 5 s later answered 200). A server-side edge failure arrives as a status
+  // (FunctionsHttpError) and still reports. src/lib/networkFailure.ts lists
+  // the same wording as a transport failure.
+  /Failed to send a request to the Edge Function/i,
   // User-initiated aborts (navigation, AbortController). Expected flow.
   /AbortError/i,
   /The (?:user )?aborted a request/i,

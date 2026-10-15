@@ -720,3 +720,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L42 | Maker cancels after accepting: buyer full refund, card fee charged to the maker, maker strike |
 | L43 | Problem with an order: buyer reports at handover or within 24 h with a photo; admin decides; refund of the price, card fee kept unless our mistake |
 | L44 | Equipment rental cancellation: the OWNER sets their own policy (shown before booking) |
+| L45 | One marketplace strike count shared with Declutter (3 = out of both; each expires after 1 year) |
+| L46 | Reviews both ways after handover, on the one shared star rating with a "shop" breakdown |
+| L47 | Badges: "ID checked", "Permit on file", "Insured", "Licensed", each admin-checked via the credentials queue |
+| L48 | Private messages ANY time (incl. before ordering), still through the contact-leak filter (blocks phones/emails/payment apps) |

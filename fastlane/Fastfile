@@ -61,6 +61,24 @@ end
 
 CHANGELOG_PATH = ENV["CHANGELOG_PATH"] || File.join(REPO_ROOT, "fastlane/changelog.txt")
 
+# Q1790: the App Store reviewer's demo password comes from the
+# ASC_REVIEW_DEMO_PASSWORD secret, written ONLY into the temporary staged
+# metadata copy that `deliver` uploads, never into the repo. While the tracked
+# fastlane/metadata/review_information/demo_password.txt still exists (until
+# Apple decides on build 7119, owner 2026-10-15), an unset secret leaves that
+# file in place; once it is deleted, the secret is required.
+def stage_review_demo_password!(staged_metadata_dir)
+  secret = ENV["ASC_REVIEW_DEMO_PASSWORD"].to_s.strip
+  target = File.join(staged_metadata_dir, "review_information", "demo_password.txt")
+  if secret.empty?
+    return if File.exist?(target)
+    UI.user_error!("ASC_REVIEW_DEMO_PASSWORD is not set and no demo_password.txt is staged: App Review would get no demo password (Q1790)")
+  end
+  FileUtils.mkdir_p(File.dirname(target))
+  File.write(target, secret)
+  UI.message("Review demo password staged from ASC_REVIEW_DEMO_PASSWORD (not printed)")
+end
+
 def xcode_build_target
   if File.exist?(WORKSPACE)
     UI.message("Using Xcode workspace: #{WORKSPACE}")
@@ -885,6 +903,7 @@ platform :ios do
 
         FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
       end
+      stage_review_demo_password!(staged_metadata_dir)
 
       staged_screenshots_dir = File.join(staging_root, "screenshots")
       screenshots_present = Dir.exist?(source_screenshots_dir) &&
@@ -953,6 +972,7 @@ platform :ios do
         next unless File.exist?(source)
         FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
       end
+      stage_review_demo_password!(staged_metadata_dir)
 
       screenshots_present = Dir.exist?(source_screenshots_dir) &&
                             !Dir.glob(File.join(source_screenshots_dir, "**/*.{png,jpg,jpeg}")).empty?

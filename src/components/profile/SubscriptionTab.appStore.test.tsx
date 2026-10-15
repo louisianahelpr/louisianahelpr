@@ -1,6 +1,6 @@
 // @mutate src/components/profile/SubscriptionTab.tsx | if (profile?.subscription_source === "apple") { | if (false) {
-// @mutate src/components/profile/SubscriptionTab.tsx | to="/legal?tab=terms" | to="/legal"
-// @mutate src/components/profile/SubscriptionTab.tsx | to="/legal?tab=privacy" | to="/legal"
+// @mutate src/components/profile/subscriptionTab/MembershipFootnotes.tsx | to="/legal?tab=terms" | to="/legal"
+// @mutate src/components/profile/subscriptionTab/MembershipFootnotes.tsx | to="/legal?tab=privacy" | to="/legal"
 // @mutate src/lib/appleSubscriptions.ts | "https://apps.apple.com/account/subscriptions" | "https://www.louisianahelpr.com/profile"
 // @mutate fastlane/metadata/en-US/description.txt | Terms of Use: https://www.louisianahelpr.com/terms | Terms: see the app
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

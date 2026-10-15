@@ -9,13 +9,14 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { BILLING_OPTIONS, BILLING_PILL_STYLE } from "@/components/profile/subscriptionTab/billingPill";
+import { MembershipFeeNote, MembershipLegalLinks } from "@/components/profile/subscriptionTab/MembershipFootnotes";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { openAppleSubscriptions } from "@/lib/appleSubscriptions";
@@ -843,24 +844,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         })}
       </div>
 
-      {/* POSTING IS FREE OF PLATFORM FEES (owner, 2026-10-11). The tier
-          sets only the cut on jobs you do; posting costs a service fee that
-          covers card processing, on every tier. Stated once, in the place a
-          reader looks for the catch, so nobody buys a tier expecting it to
-          cut what they pay to post.
-
-          Deliberately a single line rather than a fourth explainer box: the
-          card list above is `flex-1 … justify-between`, so anything tall added
-          here takes height from the cards. */}
-      <p
-        className="mt-3 text-center font-sans leading-snug text-ds-11"
-        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-      >
-        <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-          Posting has no platform fee.
-        </span>{" "}
-        Your tier sets the cut on what you earn. Posting a job costs only a service fee that covers card processing.
-      </p>
+      <MembershipFeeNote />
 
       {/* RESTORE PURCHASES. Apple requires this control in any app selling
           subscriptions — a build without one is rejected at review, and it is
@@ -881,27 +865,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      {/* Q1795 (App Store 3.1.2 / lh-compliance-store@c16b0f0dc#2): an app
-          selling auto-renewing subscriptions must link its Terms of Use and
-          Privacy Policy on the purchase surface itself. Shown everywhere: the
-          same terms govern a membership bought on the web. */}
-      <p className="mt-3 text-center text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        <Link
-          to="/legal?tab=terms"
-          data-testid="membership-terms-link"
-          className="underline underline-offset-2 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          Terms of Use
-        </Link>
-        {" · "}
-        <Link
-          to="/legal?tab=privacy"
-          data-testid="membership-privacy-link"
-          className="underline underline-offset-2 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          Privacy Policy
-        </Link>
-      </p>
+      <MembershipLegalLinks />
     </ProfileTabBody>
   );
 };

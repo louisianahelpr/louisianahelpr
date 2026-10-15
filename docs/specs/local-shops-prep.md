@@ -745,3 +745,13 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L66 | Android: Google Play billing for in-app boost purchases |
 | L68 | AI checks ad photo + text; flagged ads wait for admin; others run at once |
 | L69 | Non-ad order: nearest first, then rating |
+| L70 | Paying never changes or hides reviews (federal rule 16 CFR 465.7) — no question needed |
+| L71 | Low-rated shops may boost; the ad always shows the real star rating |
+| L72 | One boost per business per section per parish (L59) |
+| L73 | One "Shops" admin queue (first items, paperwork, AI flags, ads, damage disagreements, strike appeals) |
+| L74 | Same storm pause as Declutter (order/pickup/rental clocks freeze, no strikes, boosts get paused days back) |
+| L75 | Admin removes a shop: open orders refunded IN FULL (our decision), unused boost days refunded, shop hidden |
+| L77-L78 | Sales tax: the APP collects state + parish tax on Shops sales AND rentals and files it, from day one (Etsy/eBay way; Stripe Tax calculates) |
+| L79 | One yearly sales counter (jobs + Declutter + Shops) for the $100,000 facilitator point |
+| L80 | No tax on boosts (same as job boosts today) |
+| L81 | Federal INFORM rule followed: payout setup verifies bank/tax ID/contact; yearly reconfirm; sales pause after 10 days without answer; $20,000+ sellers show name + city |

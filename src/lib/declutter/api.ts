@@ -13,7 +13,8 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
-export type Handover = "pickup_home" | "porch";
+/** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
+export type Handover = "pickup_home" | "porch" | "delivery";
 
 const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
@@ -424,6 +425,10 @@ export interface CartLine {
   total_cents: number | null;
   /** Row 101: the item allows porch pickup. */
   porch_ok: boolean;
+  /** Slice 5: the order's frozen Helpr delivery fee (0 for a pickup; kept after a no-Helpr fallback). */
+  delivery_cents?: number | null;
+  /** Slice 5: the order's Helpr task (read with helpr_task_view), null for a pickup. */
+  delivery_task_id?: string | null;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

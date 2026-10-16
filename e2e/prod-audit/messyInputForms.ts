@@ -781,6 +781,12 @@ export const GAPS: Record<string, string> = {
   "src/pages/quotes/SendQuotePage.tsx": "behind the 'quotes' switch (off); price/note/when rules pinned by src/test/pglite/jobQuotes.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/quotes/QuoteAnswerControls.tsx": "behind the 'quotes' switch (off); the counter price/note are checked by respond_to_job_quote and the job_quotes CHECKs (jobQuotes.pglite.mjs); FORMS sweep owed once on for testers",
   "src/pages/quotes/QuoteRequestPage.tsx": "behind the 'quotes' switch (off); the own-price field is checked by switch_quote_request_to_set_price and jobs_budget_range (jobQuotes.pglite.mjs); FORMS sweep owed once on for testers",
+  // Declutter slice 5, Helpr delivery (2026-10-16): the checkout drop-off address, the Helpr's vehicle form, the pickup
+  // time and the 4-digit code render only behind the 'declutter' switch, for a PAID delivery order (LIVE Stripe: no
+  // fixture can pay one) and after 20261016053945 is on prod. The address is checked server-side (5-300 chars with a
+  // letter and a digit, then geocoded), the code is 4 digits with a 5-try lock, the slot inside the seller's windows,
+  // all pinned by src/test/pglite/declutterDelivery.pglite.mjs. FORMS sweep owed with Q?delivery-visual-pass.
+  "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
   // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
   // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.

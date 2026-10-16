@@ -306,6 +306,9 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
     { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
     { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
+    // Slice 5 (20261016053945) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
+    // object of a dispute split (`{ decision: "split", helper_cents, refund_cents }`) became attributable to it.
+    { file: "e2e/happy-path/seedData.ts", keys: ["decision", "helper_cents", "refund_cents"] },
     // A test BODY (`{ scenario.reads.jobs = …; scenario.reads.disputes = …;
     // fn.request({ headers, body: { action } }) }`), not a row: a jobs row, a
     // disputes row and a request share one brace. It was skipped as ambiguous

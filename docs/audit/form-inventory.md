@@ -83,9 +83,11 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/declutter/DeclutterDeliveryViews.tsx` | input×9, date/calendar×2 | datetime-local, checkbox, file, text | 4 | Your vehicle · Your deliveries · Deliveries near you |
 | `src/components/declutter/DeclutterHandoverViews.tsx` | input×5, textarea×2, select×1, date/calendar×3 | datetime-local, text, file | 4, 1000 | Paid sales · Out until · Stars · Review (optional) |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio |  | Buy or make an offer · declutter-offer · declutter-offer-help · Your price, like 30 |
 | `src/components/declutter/DeclutterWantedViews.tsx` | input×2, select×1 | text | 60 | wanted-form-title · wanted-what · Crib · wanted-category · wanted-max · 80 · wanted-mine-title |
+| `src/components/declutter/DeclutterTradeViews.tsx` | input×4 | text, radio | 300 | Buy or make an offer · declutter-offer · declutter-offer-help · Your price, like 30 |
 
 ## /declutter/item/:id
 

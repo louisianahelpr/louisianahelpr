@@ -10,6 +10,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -41,6 +42,11 @@ vi.mock("@/lib/declutter/handover", () => ({
   leaveReview: async (...a: unknown[]) => { state.calls.push(["review", ...a]); return "r1"; },
 }));
 
+// Slice 5: the delivery card has its own test (declutterDeliveryViews.test.tsx).
+vi.mock("./DeclutterDeliveryViews", () => ({
+  OrderDeliveryPanel: ({ taskId, side }: { taskId: string; side: string }) => <p>Delivery card {taskId} for the {side}</p>,
+}));
+
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 
 function show(cart: unknown[]) {
@@ -69,6 +75,16 @@ describe("Declutter slice 4: paid-order cards", () => {
     const { container } = show([line({ status: "in_cart", order_id: null, order_status: null })]);
     await new Promise((r) => setTimeout(r, 10));
     expect(container.textContent).toBe("");
+  });
+
+  it("slice 5: a delivery order shows the delivery card, never a booking, the address or a no-show button", async () => {
+    show([line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400 })]);
+    expect(await screen.findByText("Delivery card t1 for the buyer")).toBeInTheDocument();
+    expect(screen.getByText(/Helpr delivery · you are the buyer/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
+    expect(screen.queryByText("1234 Example St, Baton Rouge")).toBeNull();
+    expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
   });
 
   it("the buyer sees the address and books the pickup; the seller waits for the buyer (rows 14, 98)", async () => {

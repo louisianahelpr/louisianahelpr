@@ -109,6 +109,7 @@ export const EXPORT_SECTIONS = [
   "declutter_seller_fee_debts",
   "declutter_bookings", "declutter_problems", "declutter_problems_about_me", "declutter_payouts", "declutter_reviews",
   "declutter_wanted",
+  "helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs",
   "storage_objects",
 ];
 

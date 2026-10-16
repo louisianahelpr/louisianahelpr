@@ -12,7 +12,11 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             await openExternalUrl(await startCardSave(), | await openExternalUrl("https://example.invalid",
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = order.includes(handover) ? handover : order[0]; |   const chosen = handover;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
+ * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote)} |         disabled={opening}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents; |   const payCents = totalCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <SalesWaiting />\n    </AppPage> |       <SalesWaiting />\n    </AppPage>
  */
@@ -30,9 +34,18 @@ const state = {
   sent: [] as unknown[],
   paid: [] as unknown[],
   opened: [] as string[],
+  deliveryOn: false,
+  quotes: [] as unknown[],
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.deliveryOn }));
+vi.mock("@/lib/declutter/delivery", () => ({
+  fetchDeliveryQuote: async (sellerId: string, address: string) => {
+    state.quotes.push({ sellerId, address });
+    return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
+  },
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyCard: async () => state.card,
@@ -89,6 +102,8 @@ describe("Declutter slice 3 screens", () => {
     state.sent = [];
     state.paid = [];
     state.opened = [];
+    state.deliveryOn = false;
+    state.quotes = [];
   });
 
   it("no saved card: says why, shows no Buy or offer button, and Save a card opens Stripe's page (row 36)", async () => {
@@ -154,7 +169,8 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("$7")).toBeInTheDocument();
     expect(screen.getByText("$1.05")).toBeInTheDocument();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
-    expect(screen.getByText("Delivery by a Helpr is coming later.")).toBeInTheDocument();
+    // Declutter is not open for this member (the switch reads false): no Helpr delivery to choose.
+    expect(screen.queryByLabelText(/Helpr delivery/)).toBeNull();
     expect(screen.queryByText(/next test round/)).toBeNull();
     // Row 101: porch is listed first and already chosen; no tap needed.
     const radios = screen.getAllByRole("radio");
@@ -163,6 +179,42 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]));
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
+  });
+
+  it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {
+    state.deliveryOn = true;
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    const radios = await screen.findAllByRole("radio");
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "delivery"]);
+    expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    // No price yet: Pay waits for the server's quote.
+    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    expect(await screen.findByText(/Helpr delivery, about 5 miles/)).toBeInTheDocument();
+    expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
+    fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+    state.deliveryOn = false;
+  });
+
+  it("slice 5: changing the address drops the old price until it is priced again", async () => {
+    state.deliveryOn = true;
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+    fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    await screen.findByRole("button", { name: "Pay $43.85" });
+    fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "12 Other St, Zachary, LA" } });
+    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    state.deliveryOn = false;
   });
 
   it("row 101: the buyer can still choose to meet at the seller's home", async () => {

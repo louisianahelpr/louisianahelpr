@@ -704,7 +704,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38939285895. feed: issue #3154 · feed: ledger 8018e82cb167
-  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38963399867. feed: issue #3178 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38964278977. feed: issue #3178 · feed: ledger e41c806b9175
   - ui-sweep: issue #3181, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38879950659. feed: issue #3181 · feed: ledger 2e4f3e726722
 
 ## CARRIED — still open from the sections archived 2026-09-23

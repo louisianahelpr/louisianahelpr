@@ -63,6 +63,9 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   handover_unavailable: "Choose pickup at the seller's home or porch pickup. Helpr delivery is coming later.",
   seller_tax_not_ready: "Checkout for this seller isn't available yet.",
   cart_empty: "Nothing from this seller is waiting for checkout.",
+  // Row 101 porch default (20261016050402).
+  porch_unavailable: "The seller asked to meet at their home for this item, so porch pickup isn't available. Choose pickup at the seller's home.",
+  invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
   order_not_payable: "This checkout is no longer open. Start checkout again.",
   no_sale_to_cancel: "There's no sale to cancel on this item.",
   sale_already_paid: "The buyer already paid. Contact support to cancel.",

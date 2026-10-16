@@ -38,8 +38,8 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 21 | Small items | SUPERSEDED by F1: no minimum; the $0.70 is charged once per combined checkout. Was: 15% or $1, whichever is more | 2026-10-14 |
 | 22 | Seller fee | None: seller keeps 100% of the winning bid | 2026-10-14 |
 | 23 | Stripe payout setup | Required before a seller's FIRST LISTING (same gate as Helprs) | 2026-10-14 |
-| 24 | Handover options at launch | Pickup at seller's home, porch pickup, Helpr delivery. Shipping NOT at launch | 2026-10-14 |
-| 25 | Confirming handover (in person) | Owner: "both": seller/Helpr scans the buyer's QR (4-digit code backup) OR buyer taps "I got it" (auto-release rule: round 7) | 2026-10-14 |
+| 24 | Handover options at launch | Pickup at seller's home, porch pickup, Helpr delivery. Shipping NOT at launch. Porch is the default and listed first (row 101) | 2026-10-14 |
+| 25 | Confirming handover (in person) | Owner: "both": seller/Helpr scans the buyer's QR (4-digit code backup) OR buyer taps "I got it" (auto-release rule: round 7). Only when the buyer meets at the seller's home (row 101); porch uses row 99 | 2026-10-14 |
 | 26 | Porch pickup | Seller posts a photo of the item on the porch when it's set out; buyer takes a photo + taps "Picked up" while at the address; seller auto-paid 24 h after the booked time unless the buyer reports a problem | 2026-10-14 |
 | 27 | Location before paying | Area + miles only; exact address to the paid buyer or the Helpr who accepted the delivery | 2026-10-14 |
 | 28 | Auto-pay rule | Seller is paid when the seller/Helpr scans the buyer's QR (or types the 4-digit code) OR the buyer taps "I got it"; if neither, auto-paid 24 h after the booked time unless the buyer reported a problem | 2026-10-14 |
@@ -95,6 +95,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 98 | Exact address | Shown to the buyer right after paying (to plan and book); before paying only area + miles (row 27) | 2026-10-14 |
 | 99 | Porch "Picked up" | The buyer's photo + "Picked up" tap pays the seller RIGHT AWAY (same as "I got it"); the 24 h auto-pay only covers buyers who never tap (supersedes row 26's wait) | 2026-10-15 |
 | 100 | No-fault admin refund | Keeps the card fee (never-absorb rule); only refunds caused by our own mistakes are full | 2026-10-15 |
+| 101 | Porch is the default | Owner: "I'd rather porch pick up and not having to meet someone for a code or qr code." Porch pickup is pre-selected at checkout and shown first. The SELLER can turn porch off per item when listing (too valuable / too big to leave out); an order with any such item offers only pickup at the seller's home, and the server refuses porch for it. The buyer can still choose to meet at the seller's home; the code/QR is used only then (rows 25, 28). The listing says "Porch pickup available" or "Meet at the seller's home only". Helpr delivery (row 63) unchanged | 2026-10-16 |
 
 ## Approved for later slices (details still to ask the owner)
 Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give to a local charity".

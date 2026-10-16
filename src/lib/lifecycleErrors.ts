@@ -737,6 +737,11 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
   },
+  declutter_my_move_out_date: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_my_offers: {
     not_authenticated: DC.not_authenticated,
   },
@@ -786,11 +791,17 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
   },
+  declutter_seller_moving_sale: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_set_move_out_date: {
     account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_move_out_date: DC.invalid_move_out_date,
     not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
   },
   declutter_set_pickup_windows: {
     account_restricted: DC.account_restricted,

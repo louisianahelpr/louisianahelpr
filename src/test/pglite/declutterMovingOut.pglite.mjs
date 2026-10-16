@@ -13,6 +13,11 @@
  * leak), is all-or-nothing, is capped, cannot publish (publish stays per item
  * and still needs photos), and the date RPC touches only the caller's items.
  *
+ * Measured 2026-10-16: 74 PASS; NEW_MIGRATION=skip 69 FAIL; 9 planted defects,
+ * 8 caught here. The 9th (the bulk RPC's own member check removed) stays green
+ * because declutter_create_item refuses the same members underneath; the
+ * static guard src/test/declutterMovingOut.test.ts pins that check.
+ *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite.
  */
 import os from "node:os";
@@ -20,7 +25,7 @@ import { setupStatements, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scrip
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const { SELLER, SELLER2, OUTSIDER, MINOR, BANNED, STRUCK, NOPAYOUT } = USERS;
+const { SELLER, SELLER2, BUYER, OUTSIDER, MINOR, BANNED, STRUCK, NOPAYOUT } = USERS;
 const skip = process.env.NEW_MIGRATION === "skip";
 const MOVING_FILE = "20261016053625_declutter_moving_out.sql";
 
@@ -46,6 +51,7 @@ async function me(uid, sql) {
   }
 }
 const refused = (r, re) => !Array.isArray(r) && re.test(r.error);
+const rows2 = (r) => (Array.isArray(r) ? r : [{ error: r.error }]);
 const one = (r) => (Array.isArray(r) && r[0] ? Object.values(r[0])[0] : undefined);
 const today = `(now() AT TIME ZONE 'America/Chicago')::date`;
 
@@ -73,10 +79,10 @@ ok(one(await svc(`SELECT audience FROM public.feature_switches WHERE key = 'decl
 const made = await create(SELLER, [item(), item({ title: "Floor lamp", category: "home_decor", delivery_size: "small", price_cents: 1500, floor_price_cents: 1500 }), item({ title: "Box fan", description: null })]);
 const ids = Array.isArray(made) ? made[0].ids : [];
 ok(Array.isArray(ids) && ids.length === 3, "three drafts come back from one call");
-const rows = Array.isArray(made) ? await svc(`SELECT i.status, i.move_out_on = ${today} + 20 AS dated, i.seller_id, p.pickup_address, p.floor_price_cents
+const rows = Array.isArray(made) ? await svc(`SELECT i.status, i.in_moving_sale AND p.move_out_on = ${today} + 20 AS dated, i.seller_id, p.pickup_address, p.floor_price_cents
   FROM public.declutter_items i JOIN public.declutter_item_private p ON p.item_id = i.id WHERE i.id = ANY('{${ids.join(",")}}'::uuid[])`) : [];
 ok(Array.isArray(rows) && rows.length === 3 && rows.every((r) => r.status === "draft" && r.dated && r.seller_id === SELLER),
-  "each is the seller's own DRAFT carrying the move-out date");
+  "each is the seller's own DRAFT, in the moving sale, its date on the PRIVATE half");
 ok(Array.isArray(rows) && rows.every((r) => r.pickup_address.startsWith("1234 Example")), "each has its private pickup half (the one create path)");
 ok(one(await svc(`SELECT area_lat FROM public.declutter_items WHERE id = '${ids[0]}'`)) === "30.45" || Number(one(await svc(`SELECT area_lat FROM public.declutter_items WHERE id = '${ids[0]}'`))) === 30.45,
   "the public coordinates are rounded like a single listing's");
@@ -129,17 +135,52 @@ ok(one(await svc(`SELECT count(*) FROM pg_proc WHERE proname ~ '^declutter_.*pub
 // G. Moving the date / ending the moving sale.
 await svc(`INSERT INTO public.declutter_items (seller_id, status, title, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng)
   VALUES ('${SELLER}', 'draft', 'Ordinary listing', 'other', 3, 'small', 500, 500, 'Mid-City', 30.45, -91.15)`);
-const moved = await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} + 30) AS n`);
-ok(one(moved) === 3, "moving the date changes the seller's 3 moving-sale items");
-ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_items WHERE seller_id = '${SELLER}' AND move_out_on = ${today} + 30`))) === 3, "they carry the new date");
-ok(one(await svc(`SELECT move_out_on FROM public.declutter_items WHERE title = 'Ordinary listing'`)) === null, "an ordinary listing is never pulled into the moving sale");
-ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_items WHERE seller_id = '${SELLER2}' AND move_out_on = ${today} + 30`))) === 0, "another seller's items are untouched");
+const datedCount = async (uid, d) => Number(one(await svc(`SELECT count(*) FROM public.declutter_item_private p JOIN public.declutter_items i ON i.id = p.item_id
+  WHERE i.seller_id = '${uid}' AND i.in_moving_sale AND p.move_out_on = ${d}`)));
+ok(one(await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} + 30) AS n`)) === 3, "moving the date changes the seller's 3 moving-sale items");
+ok(await datedCount(SELLER, `${today} + 30`) === 3, "they carry the new date");
+ok(one(await svc(`SELECT in_moving_sale FROM public.declutter_items WHERE title = 'Ordinary listing'`)) === false, "an ordinary listing is never pulled into the moving sale");
+ok(await datedCount(SELLER2, `${today} + 30`) === 0, "another seller's items are untouched");
+ok(one(await me(SELLER, `SELECT public.declutter_my_move_out_date() AS d`)) !== null, "the seller reads their own date");
+ok(one(await me(SELLER2, `SELECT public.declutter_my_move_out_date() AS d`)) !== one(await me(SELLER, `SELECT public.declutter_my_move_out_date() AS d`)), "... and only their own");
 ok(refused(await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} - 3)`), /invalid_move_out_date/), "a past date is refused");
 ok(refused(await me(OUTSIDER, `SELECT public.declutter_set_move_out_date(NULL)`), /feature_disabled/), "the date RPC is behind the switches too");
 ok(refused(await me(BANNED, `SELECT public.declutter_set_move_out_date(NULL)`), /account_restricted/), "and refuses a banned member");
+ok(refused(await me(STRUCK, `SELECT public.declutter_set_move_out_date(${today} + 9)`), /declutter_strikes_blocked/), "a seller with 3 strikes cannot set a date (review nit 3)");
+ok(one(await me(STRUCK, `SELECT public.declutter_set_move_out_date(NULL) AS n`)) === 0, "but may always end a moving sale");
+
+// G2. What OTHER members can learn (lh-authz-rls review 1-2).
+const SALE_ITEM = ids[0];
+await svc(`UPDATE public.declutter_items SET status = 'live', live_at = now() WHERE id = '${SALE_ITEM}'`);
+ok(refused(await me(BUYER, `SELECT move_out_on FROM public.declutter_items LIMIT 1`), /column .*move_out_on.* does not exist/),
+  "the listing row carries no date at all");
+ok(refused(await me(BUYER, `SELECT move_out_on FROM public.declutter_item_private LIMIT 1`), /permission denied/),
+  "and the private half (where the date is) is closed to every member");
+const seen = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
+ok(Array.isArray(seen) && seen.length === 1 && Object.keys(seen[0]).sort().join() === "move_month,moving_soon",
+  "another member gets only 'soon' and the month, never the date");
+ok(Array.isArray(seen) && seen[0]?.moving_soon === false, "30 days out is not 'soon'");
+await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} + 3)`);
+ok(one(await me(BUYER, `SELECT moving_soon FROM public.declutter_seller_moving_sale('${SELLER}')`)) === true, "3 days out is 'soon'");
+await svc(`UPDATE public.declutter_item_private SET move_out_on = ${today} - 1 WHERE item_id = '${SALE_ITEM}'`);
+const after = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
+ok(Array.isArray(after) && after.length === 0, "after the date has passed, nothing (never 'moved out')");
+await svc(`UPDATE public.declutter_item_private SET move_out_on = ${today} + 3 WHERE item_id = '${SALE_ITEM}'`);
+ok(refused(await me(OUTSIDER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`), /feature_disabled/), "the reader is behind the switches");
+await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'declutter_moving_out'`);
+ok(refused(await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`), /feature_disabled/),
+  "with the moving-out switch off, even a Declutter tester learns nothing (review 2)");
+await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter_moving_out'`);
+await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${SELLER}', '${BUYER}')`);
+const blocked = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
+ok(Array.isArray(blocked) && blocked.length === 0, "a blocked pair learns nothing");
+await svc(`DELETE FROM public.user_blocks`);
+ok(rows2(await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${STRUCK}')`)).length === 0, "a seller with no moving sale has no row");
+
 await svc(`UPDATE public.declutter_items SET status = 'sold' WHERE id = '${ids[2]}'`);
 ok(one(await me(SELLER, `SELECT public.declutter_set_move_out_date(NULL) AS n`)) === 2, "ending the moving sale clears the 2 items still in play");
-ok(one(await svc(`SELECT move_out_on IS NOT NULL FROM public.declutter_items WHERE id = '${ids[2]}'`)) === true, "a sold item keeps the date it sold under");
+ok(one(await svc(`SELECT in_moving_sale FROM public.declutter_items WHERE id = '${ids[2]}'`)) === true, "a sold item keeps its place in the sale it sold under");
+ok(rows2(await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`)).length === 0, "after it ends, other members see no moving sale");
 ok(one(await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} + 5) AS n`)) === 0, "after it ends, a new date changes nothing (0 rows, not an error)");
 
 // ---------------------------------------------------------------------------
@@ -148,15 +189,16 @@ for (const sig of [
   "public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb)",
   "public.declutter_set_move_out_date(date)",
   "public.declutter_assert_can_scan_room()",
+  "public.declutter_my_move_out_date()",
+  "public.declutter_seller_moving_sale(uuid)",
 ]) {
   ok(one(await svc(`SELECT has_function_privilege('anon', '${sig}', 'EXECUTE')`)) === false, `anon cannot execute ${sig}`);
   ok(one(await svc(`SELECT has_function_privilege('authenticated', '${sig}', 'EXECUTE')`)) === true, `authenticated can execute ${sig}`);
 }
 ok(one(await svc(`SELECT has_function_privilege('authenticated', 'public.declutter_move_out_date_problem(date)', 'EXECUTE')`)) === false,
   "the date helper is internal (authenticated cannot call it)");
-ok(refused(await me(SELLER, `UPDATE public.declutter_items SET move_out_on = ${today} + 2 WHERE seller_id = '${SELLER}' RETURNING id`), /permission denied|violates/i)
-  || Number(one(await svc(`SELECT count(*) FROM public.declutter_items WHERE seller_id = '${SELLER}' AND move_out_on = ${today} + 2`))) === 0,
-  "a seller cannot write the date directly (no client write on declutter_items)");
+ok(refused(await me(SELLER, `UPDATE public.declutter_items SET in_moving_sale = true WHERE seller_id = '${SELLER}' RETURNING id`), /permission denied/i),
+  "a seller cannot write the moving-sale flag directly (no client write on declutter_items)");
 // NOPAYOUT may still make drafts (row 23 gates publishing, not writing).
 ok(Array.isArray(await create(NOPAYOUT, [item()])), "a seller without payouts may still save drafts (payouts gate the listing, as for one item)");
 

@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
@@ -37,6 +38,7 @@ import {
   chunk,
   createMoveDrafts,
   fetchMyMoveItems,
+  fetchMyMoveOutDate,
   formatMoveDate,
   louisianaToday,
   MOVE_ROOM_PHOTOS_MAX,
@@ -116,23 +118,27 @@ export default function MoveFlow() {
   const ready = drafts.filter((d) => (photoCount.get(d.id) ?? 0) >= 3);
   const chosen = ready.filter((d) => (picked ? picked.has(d.id) : true));
   const savedWindows = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
-  const current = inPlay[0]?.move_out_on ?? null;
+  const myDate = useQuery({ queryKey: ["declutter", "my-move-date", user?.id], queryFn: fetchMyMoveOutDate, enabled: !!user });
+  const current = myDate.data ?? null;
   const prefillFrom = inPlay[0]?.id ?? null;
   const priv = useQuery({ queryKey: ["declutter", "private", prefillFrom], queryFn: () => fetchMyItemPrivate(prefillFrom!), enabled: !!prefillFrom });
 
   // Carry the move's date, area and address forward from what is saved.
   const prefilled = useRef(false);
   useEffect(() => {
-    if (prefilled.current || !inPlay[0] || !priv.data) return;
+    if (prefilled.current || !inPlay[0] || !priv.data || !myDate.isSuccess) return;
     prefilled.current = true;
-    setDate((d) => d || inPlay[0].move_out_on);
+    setDate((d) => d || myDate.data || "");
     setAreaLabel((a) => a || inPlay[0].area_label);
     setPickupAddress((p) => p || priv.data.pickup_address);
-  }, [inPlay, priv.data]);
+  }, [inPlay, priv.data, myDate.isSuccess, myDate.data]);
+  const windowsLoaded = useRef(false);
   useEffect(() => {
     const saved = savedWindows.data ?? [];
+    if (windowsLoaded.current || !savedWindows.isSuccess) return;
+    windowsLoaded.current = true;
     if (saved.length > 0) setWindows(saved.map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) })));
-  }, [savedWindows.data]);
+  }, [savedWindows.data, savedWindows.isSuccess]);
 
   if (!user) return null;
   if (underAge) {
@@ -187,20 +193,24 @@ export default function MoveFlow() {
       return;
     }
     setSaving(true);
+    let saved = 0;
     try {
       const g = await geocodeAddress(pickupAddress);
       if (!g) throw new Error("invalid_location");
       const place = { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: g.latitude, pickupLng: g.longitude };
-      let saved = 0;
       for (const batch of chunk(kept, MOVE_SAVE_BATCH)) {
-        await createMoveDrafts(date, place, batch);
-        saved += batch.length;
+        const ids = await createMoveDrafts(date, place, batch);
+        if (ids.length !== batch.length) throw new Error("invalid_items");
+        saved += ids.length;
         const done = new Set(batch.map((r) => r.key));
         setRows((rs) => rs.filter((r) => !done.has(r.key)));
       }
       toast.success(`Saved ${saved} ${saved === 1 ? "item" : "items"}. Next, add photos of each one.`);
     } catch (err) {
-      toast.error(declutterErrorMessage(err));
+      // A later batch refused after an earlier one saved: say both.
+      toast.error(saved > 0
+        ? `Saved ${saved} of ${kept.length}. The other ${kept.length - saved} didn't save: ${declutterErrorMessage(err)}`
+        : declutterErrorMessage(err));
     } finally {
       setSaving(false);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -249,7 +259,8 @@ export default function MoveFlow() {
     setChangingDate(true);
     try {
       const n = await setMoveOutDate(next);
-      toast.success(next === null ? "Moving sale ended. Your items stay up as ordinary listings." : `Move-out date changed on ${n} ${n === 1 ? "item" : "items"}.`);
+      if (n === 0) toast("None of your moving-sale items are still up, so nothing changed.");
+      else toast.success(next === null ? "Moving sale ended. Your items stay up as ordinary listings." : `Move-out date changed on ${n} ${n === 1 ? "item" : "items"}.`);
       if (next === null) setDate("");
     } catch (err) {
       toast.error(declutterErrorMessage(err));
@@ -275,7 +286,7 @@ export default function MoveFlow() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-date">Move-out date</label>
-            <input id="move-date" type="date" className={input} value={date} min={today} onChange={(e) => setDate(e.target.value)} />
+            <input id="move-date" type="date" className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm" value={date} min={today} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-area">Area buyers see</label>
@@ -285,7 +296,7 @@ export default function MoveFlow() {
         <label className="block text-sm font-medium" htmlFor="move-address">Pickup address</label>
         <input id="move-address" className={input} maxLength={300} value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
         <p className="text-xs text-muted-foreground">
-          Buyers see your area and your move-out date. Only the buyer who pays sees the address.
+          Buyers see your area and roughly when you move ("soon" or the month), never the date. Only the buyer who pays sees the address.
         </p>
         {current && date && date !== current && !dateProblem && (
           <Button type="button" variant="outline" size="sm" disabled={changingDate} onClick={() => void onChangeDate(date)}>
@@ -322,7 +333,7 @@ export default function MoveFlow() {
                       {CATEGORY_LABEL[r.category] ?? "Other"} · {SIZE_LABEL[r.deliverySize]} · {r.conditionStars} stars: {CONDITION_LABEL[r.conditionStars]}
                     </p>
                     {r.flagged && (
-                      <p className="text-xs text-amber-800 dark:text-amber-200">This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up.</p>
+                      <p className="text-xs text-amber-800 dark:text-amber-200">This item may not be allowed. Check our list of items you can't sell; its own photos get a closer check when you list it.</p>
                     )}
                     {r.keep && (
                       <div className="grid grid-cols-2 gap-2">
@@ -351,8 +362,13 @@ export default function MoveFlow() {
       )}
 
       <Section id="move-items" title="4. Your moving-sale items">
-        {moveItems.isError ? (
-          <p className="text-sm text-muted-foreground">{declutterErrorMessage(moveItems.error)}</p>
+        {moveItems.isError || photos.isError ? (
+          <ErrorState
+            variant="inline"
+            title="We couldn't load your moving-sale items."
+            body={declutterErrorMessage(moveItems.error ?? photos.error)}
+            onRetry={() => void (moveItems.isError ? moveItems.refetch() : photos.refetch())}
+          />
         ) : moveItems.isLoading || photos.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your items…</p>
         ) : inPlay.length === 0 ? (
@@ -400,11 +416,17 @@ export default function MoveFlow() {
         )}
       </Section>
 
-      {ready.length > 0 && (
+      {ready.length > 0 && !photos.isError && (
         <Section id="move-list" title={`5. List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>
           <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
-          <PickupTimesEditor windows={windows} setWindows={setWindows} />
+          {savedWindows.isError ? (
+            <ErrorState variant="inline" title="We couldn't load your pickup times." body={declutterErrorMessage(savedWindows.error)} onRetry={() => void savedWindows.refetch()} />
+          ) : savedWindows.isSuccess ? (
+            <PickupTimesEditor windows={windows} setWindows={setWindows} />
+          ) : (
+            <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
+          )}
           <h3 className="text-sm font-semibold pt-2">Confirm about these items</h3>
           <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Each statement counts for every item you list now.</p>
           {TAX_STATEMENTS.map((s, i) => (
@@ -417,7 +439,7 @@ export default function MoveFlow() {
           {payoutBlock ? (
             <p className="text-sm text-muted-foreground">Set up payouts first (see the note at the top).</p>
           ) : (
-            <Button type="button" disabled={!!progress || chosen.length === 0} onClick={() => void onListAll()}>
+            <Button type="button" disabled={!!progress || chosen.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
               {progress ? `Listing ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…` : `List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}
             </Button>
           )}

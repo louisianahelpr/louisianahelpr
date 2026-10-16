@@ -245,8 +245,6 @@ const ROOM_GATE_CODES = ["feature_disabled", "account_restricted", "declutter_st
 
 /** Mode 'room': list the items in 1-4 room photos. Saves nothing, stores no photo. */
 async function roomScan(req: Request, anon: Client, admin: Client, user: Parameters<typeof requireFeature>[2], body: Record<string, unknown>): Promise<Response> {
-  const hourly = await checkRateLimit(req, { windowMs: 3_600_000, maxRequests: 20, keyPrefix: "declutter-ai-room" });
-  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
   const refused = await requireFeature(admin, "declutter_moving_out", user, corsHeaders);
   if (refused) return refused;
   // The selling gates (ban, 3 strikes, under 18), as the caller.
@@ -256,6 +254,9 @@ async function roomScan(req: Request, anon: Client, admin: Client, user: Paramet
     if (!code) console.error("[declutter-ai-draft] room gate failed:", gateErr.message);
     return json({ error: code ?? "ai_unavailable" }, code ? 403 : 500);
   }
+  // Counted after the gates, so a refused caller spends nothing (review nit 5).
+  const hourly = await checkRateLimit(req, { windowMs: 3_600_000, maxRequests: 20, keyPrefix: "declutter-ai-room" });
+  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
   const photos = roomPhotosFromBody(body.photos);
   if (!photos) return json({ error: "room_photos_invalid" }, 400);
 
@@ -288,7 +289,14 @@ Always answer with the list_room_items tool.`;
   }
   const data = await response.json();
   const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  const items = args ? sanitizeRoom(JSON.parse(args)) : [];
+  const parsed = args ? JSON.parse(args) : null;
+  // No tool call, or no list in it, is a model fault, not an empty room:
+  // say so (as the one-item path does) instead of "nothing found".
+  if (!parsed || !Array.isArray((parsed as { items?: unknown }).items)) {
+    console.error("[declutter-ai-draft] room answer had no item list");
+    return json({ error: "ai_unavailable" }, 502);
+  }
+  const items = sanitizeRoom(parsed);
   return json({
     items: items.map((d) => ({
       title: d.title,

@@ -6,13 +6,15 @@
  * rule the one-item path enforces.
  *
  * Behaviour (red/green, 3x replay): src/test/pglite/declutterMovingOut.pglite.mjs
- * (55 PASS; NEW_MIGRATION=skip 52 FAIL; 7 planted defects each caught,
- * measured 2026-10-16).
+ * (74 PASS; NEW_MIGRATION=skip 69 FAIL; 8 of 9 planted defects caught there,
+ * the 9th pinned here; measured 2026-10-16).
  *
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |     v_id := public.declutter_create_item( |     v_id := public.declutter_create_item_fast(
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   v_uid := public.declutter_assert_member(true);\n\n  IF public.declutter_move_out_date_problem | v_uid := (SELECT auth.uid());\n\n  IF public.declutter_move_out_date_problem
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC;
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |    WHERE seller_id = v_uid\n     AND move_out_on IS NOT NULL | WHERE move_out_on IS NOT NULL
+ * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
+ * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'
+ * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   IF v_date IS NULL OR v_date < v_today THEN |   IF v_date IS NULL THEN
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | VALUES ('declutter_moving_out', 'testers', | VALUES ('declutter_moving_out', 'everyone',
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, "declutter_moving_out", user, corsHeaders); |   const refused = null;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { error: gateErr } = await anon.rpc("declutter_assert_can_scan_room"); |   const gateErr = null as { message?: string } \| null;
@@ -31,7 +33,8 @@ const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const EDGE = blankComments(readFileSync(join(process.cwd(), "supabase/functions/declutter-ai-draft/index.ts"), "utf8"));
 
-const CLIENT_RPCS = ["declutter_create_move_drafts", "declutter_set_move_out_date", "declutter_assert_can_scan_room"];
+const WRITE_RPCS = ["declutter_create_move_drafts", "declutter_set_move_out_date", "declutter_assert_can_scan_room"];
+const CLIENT_RPCS = [...WRITE_RPCS, "declutter_my_move_out_date", "declutter_seller_moving_sale"];
 
 describe("Declutter moving-out mode (20261016053625)", () => {
   it("reads a real inventory (floors)", () => {
@@ -43,8 +46,8 @@ describe("Declutter moving-out mode (20261016053625)", () => {
   it("every client RPC requires BOTH switches first and names is_caller_banned()", () => {
     for (const fn of CLIENT_RPCS) {
       expect(body(fn), fn).toMatch(/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);\s+PERFORM\s+public\.require_feature\('declutter_moving_out'\);/);
-      expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
     }
+    for (const fn of WRITE_RPCS) expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
   });
 
   it("the bulk create keeps every listing rule: member gates, then each draft through declutter_create_item", () => {
@@ -66,7 +69,21 @@ describe("Declutter moving-out mode (20261016053625)", () => {
 
   it("the date RPC changes only the caller's own items still in play", () => {
     const b = flat(body("declutter_set_move_out_date"));
-    expect(b).toContain("WHERE seller_id = v_uid AND move_out_on IS NOT NULL AND status IN ('draft', 'pending_review', 'live', 'reserved')");
+    expect(b).toContain("AND i.seller_id = v_uid AND p.seller_id = v_uid AND i.in_moving_sale AND i.status IN ('draft', 'pending_review', 'live', 'reserved')");
+    expect(b).toContain("WHERE seller_id = v_uid AND in_moving_sale AND status IN ('draft', 'pending_review', 'live', 'reserved')");
+    // Setting a date takes the selling gates (review nit 3).
+    expect(b).toMatch(/IF p_move_out_on IS NOT NULL THEN PERFORM public\.declutter_assert_member\(true\);/);
+  });
+
+  it("the date lives on the private half; other members get only 'soon' or the month, and nothing after the date", () => {
+    expect(flat(MIG)).toContain("ALTER TABLE public.declutter_item_private ADD COLUMN IF NOT EXISTS move_out_on date;");
+    expect(MIG).not.toMatch(/ALTER TABLE public\.declutter_items ADD COLUMN IF NOT EXISTS move_out_on/);
+    const r = flat(body("declutter_seller_moving_sale"));
+    expect(r).toContain("RETURNS TABLE(moving_soon boolean, move_month date)");
+    expect(r).toContain("IF v_date IS NULL OR v_date < v_today THEN RETURN;");
+    expect(r).toContain("public.declutter_seller_hidden(p_seller_id)");
+    expect(r).toContain("public.are_users_blocked(v_uid, p_seller_id)");
+    expect(r).toContain("move_month := date_trunc('month', v_date)::date;");
   });
 
   it("anon is revoked from each client RPC, and the date helper is internal", () => {
@@ -74,6 +91,8 @@ describe("Declutter moving-out mode (20261016053625)", () => {
       "declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb)",
       "declutter_set_move_out_date(date)",
       "declutter_assert_can_scan_room()",
+      "declutter_my_move_out_date()",
+      "declutter_seller_moving_sale(uuid)",
     ]) expect(MIG).toContain(`REVOKE ALL ON FUNCTION public.${sig} FROM PUBLIC, anon;`);
     expect(MIG).toContain("REVOKE ALL ON FUNCTION public.declutter_move_out_date_problem(date) FROM PUBLIC, anon, authenticated;");
   });

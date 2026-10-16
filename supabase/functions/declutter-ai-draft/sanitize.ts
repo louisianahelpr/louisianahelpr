@@ -49,7 +49,7 @@ export function sanitizeDraft(raw: unknown): DeclutterDraft | null {
 }
 
 /** Moving-out mode (docs/specs/declutter-moving-out.md): items the model found in room photos. */
-export const ROOM_MAX_PHOTOS = 4;
+const ROOM_MAX_PHOTOS = 4;
 export const ROOM_MAX_ITEMS = 15;
 /** Decoded bytes per room photo (the app sends 1280px JPEGs, well under this). */
 export const ROOM_MAX_PHOTO_BYTES = 1_500_000;

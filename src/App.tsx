@@ -145,13 +145,11 @@ const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsPage"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
-// Declutter (docs/specs/declutter-auctions.md): each page renders the 404
-// unless the hidden 'declutter' switch is on for the member (DeclutterGate).
+// Declutter (docs/specs/declutter-*.md): each page is the 404 unless its hidden switch is on (DeclutterGate).
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
 const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/DeclutterMovePage"));
-
 const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
 const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
 const JobDetail = lazyWithPreload(() => import("./pages/jobs/JobDetail"));

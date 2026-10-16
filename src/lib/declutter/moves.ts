@@ -34,8 +34,7 @@ export interface MoveRow extends RoomItem {
 /** The server's limits (declutter_create_move_drafts, declutter-ai-draft room mode). */
 export const MOVE_ROOM_PHOTOS_MAX = 4;
 export const MOVE_SAVE_BATCH = 15;
-export const MOVE_OPEN_DRAFTS_MAX = 60;
-export const MOVE_DATE_MAX_DAYS = 180;
+const MOVE_DATE_MAX_DAYS = 180;
 /** declutter-ai-draft allows 6 calls a minute per member: one photo check every 10.5 s stays under it. */
 export const AI_CHECK_GAP_MS = 10_500;
 
@@ -67,14 +66,17 @@ export function formatMoveDate(date: string): string {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-/** The banner's line, plain words. */
-export function movingSaleLine(moveOutOn: string, count: number, today: string): string {
-  const left = daysBetween(today, moveOutOn);
-  const items = `${count} ${count === 1 ? "item" : "items"} for sale`;
-  if (left < 0) return `Moved out. ${items}.`;
-  if (left === 0) return `Moving out today. ${items}.`;
-  if (left === 1) return `Moving out tomorrow. ${items}.`;
-  return `Moving out ${formatMoveDate(moveOutOn)}. ${items}.`;
+/**
+ * The banner's line, plain words. Other members never get the exact date
+ * (declutter_seller_moving_sale returns "soon" or the month only): a date and
+ * an address together say when a home will be empty.
+ */
+export function movingSaleLine(soon: boolean, moveMonth: string, count: number, more = false): string {
+  const items = more ? `${count}+ items for sale` : `${count} ${count === 1 ? "item" : "items"} for sale`;
+  if (soon) return `Moving out soon. ${items}.`;
+  const [y, m] = moveMonth.split("-").map(Number);
+  const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
+  return `Moving out in ${month}. ${items}.`;
 }
 
 /** Dollars as typed -> whole cents, or null. */
@@ -159,7 +161,9 @@ export async function scanRoom(files: File[]): Promise<RoomItem[]> {
     throw new Error(code || "ai_unavailable");
   }
   const items = (data as { items?: unknown } | null)?.items;
-  return Array.isArray(items) ? (items as RoomItem[]) : [];
+  // An answer without a list is a fault, never "nothing in this room".
+  if (!Array.isArray(items)) throw new Error("ai_unavailable");
+  return items as RoomItem[];
 }
 
 export interface PickupPlace {
@@ -169,7 +173,7 @@ export interface PickupPlace {
   pickupLng: number;
 }
 
-function rpcFail(fn: "declutter_create_move_drafts" | "declutter_set_move_out_date", error: { message: string }): never {
+function rpcFail(fn: "declutter_create_move_drafts" | "declutter_set_move_out_date" | "declutter_my_move_out_date" | "declutter_seller_moving_sale", error: { message: string }): never {
   const e = Object.assign(new Error(error.message), error) as Error & { userMessage?: string };
   const words = rpcErrorMessage(fn, error);
   if (words) e.userMessage = words;
@@ -204,10 +208,9 @@ export interface MoveItem {
   title: string;
   current_price_cents: number;
   area_label: string;
-  move_out_on: string;
 }
 
-const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label, move_out_on";
+const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label";
 
 /** The seller's own moving-sale listings, every status still worth showing. */
 export async function fetchMyMoveItems(userId: string): Promise<MoveItem[]> {
@@ -216,30 +219,48 @@ export async function fetchMyMoveItems(userId: string): Promise<MoveItem[]> {
       .from("declutter_items")
       .select(MOVE_ITEM_COLUMNS)
       .eq("seller_id", userId)
-      .not("move_out_on", "is", null)
+      .eq("in_moving_sale", true)
       .in("status", ["draft", "pending_review", "live", "reserved", "sold", "completed", "ended", "rejected"])
       .order("created_at", { ascending: true }),
   );
   return (rows ?? []) as MoveItem[];
 }
 
-/** A seller's moving sale as other members see it: their live moving-sale items. */
-export async function fetchSellerMovingSale(sellerId: string): Promise<{ moveOutOn: string; items: MoveItem[] } | null> {
+/** The seller's own move-out date (YYYY-MM-DD), or null when no moving sale is running. */
+export async function fetchMyMoveOutDate(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("declutter_my_move_out_date");
+  if (error) rpcFail("declutter_my_move_out_date", error);
+  return typeof data === "string" ? data : null;
+}
+
+const MOVING_SALE_READ_LIMIT = 100;
+
+export interface SellerMovingSale {
+  soon: boolean;
+  /** First of the move-out month, YYYY-MM-DD. Never the date itself. */
+  moveMonth: string;
+  items: MoveItem[];
+  more: boolean;
+}
+
+/** A seller's moving sale as other members see it, or null (none, ended, hidden, blocked). */
+export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMovingSale | null> {
+  const { data, error } = await supabase.rpc("declutter_seller_moving_sale", { p_seller_id: sellerId });
+  if (error) rpcFail("declutter_seller_moving_sale", error);
+  const sale = ((data ?? []) as { moving_soon: boolean; move_month: string }[])[0];
+  if (!sale) return null;
   const rows = (unwrap(
     await supabase
       .from("declutter_items")
       .select(MOVE_ITEM_COLUMNS)
       .eq("seller_id", sellerId)
-      .not("move_out_on", "is", null)
+      .eq("in_moving_sale", true)
       .in("status", ["live", "reserved"])
       .order("live_at", { ascending: false })
-      .limit(100),
+      .limit(MOVING_SALE_READ_LIMIT + 1),
   ) ?? []) as MoveItem[];
   if (rows.length === 0) return null;
-  // One date per moving sale; the latest wins if an old one lingers.
-  const dates = rows.map((r) => r.move_out_on).sort();
-  const moveOutOn = dates[dates.length - 1];
-  return { moveOutOn, items: rows };
+  return { soon: sale.moving_soon, moveMonth: sale.move_month, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
 }
 
 export type PublishOutcome = { id: string; status: "live" | "pending_review" } | { id: string; error: unknown };

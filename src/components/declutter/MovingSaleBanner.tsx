@@ -2,8 +2,8 @@
  * The moving-sale banner on a seller's profile (/user/:id), moving-out mode
  * (docs/specs/declutter-moving-out.md): the move-out date over the seller's
  * moving-sale items that are for sale now. Nothing at all unless both hidden
- * switches are on for the viewer and the seller has such items. Area and
- * date only; never an address (spec row 27).
+ * switches are on for the viewer and the seller has such items. Never the
+ * exact date (only "soon" or the month) and never an address (spec row 27, M6).
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -12,7 +12,7 @@ import { Truck } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
-import { fetchSellerMovingSale, louisianaToday, movingSaleLine } from "@/lib/declutter/moves";
+import { fetchSellerMovingSale, movingSaleLine } from "@/lib/declutter/moves";
 
 const SHOWN = 6;
 
@@ -36,7 +36,7 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
         <Truck className="h-5 w-5 shrink-0 mt-0.5" aria-hidden />
         <div className="min-w-0">
           <h2 id="moving-sale-title" className="text-base font-semibold">Moving sale</h2>
-          <p className="text-sm text-muted-foreground">{movingSaleLine(sale.data.moveOutOn, sale.data.items.length, louisianaToday())}</p>
+          <p className="text-sm text-muted-foreground">{movingSaleLine(sale.data.soon, sale.data.moveMonth, sale.data.items.length, sale.data.more)}</p>
         </div>
       </div>
       <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">

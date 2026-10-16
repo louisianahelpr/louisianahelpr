@@ -14,6 +14,7 @@
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);
  * @mutate src/lib/declutter/moves.ts |     if (status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail("declutter_create_move_drafts", error); |   if (false) rpcFail("declutter_create_move_drafts", error);
+ * @mutate src/lib/declutter/moves.ts |   if (!Array.isArray(items)) throw new Error("ai_unavailable"); |   if (!Array.isArray(items)) return [];
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -71,6 +72,7 @@ import {
   createMoveDrafts,
   daysBetween,
   fetchMyMoveItems,
+  fetchMyMoveOutDate,
   fetchSellerMovingSale,
   formatMoveDate,
   louisianaToday,
@@ -130,11 +132,10 @@ describe("dates", () => {
     expect(formatMoveDate("2026-11-14")).toBe("Saturday, Nov 14");
   });
 
-  it("the banner line says when, in plain words", () => {
-    expect(movingSaleLine("2026-11-14", 12, "2026-10-16")).toBe("Moving out Saturday, Nov 14. 12 items for sale.");
-    expect(movingSaleLine("2026-10-17", 1, "2026-10-16")).toBe("Moving out tomorrow. 1 item for sale.");
-    expect(movingSaleLine("2026-10-16", 2, "2026-10-16")).toBe("Moving out today. 2 items for sale.");
-    expect(movingSaleLine("2026-10-10", 3, "2026-10-16")).toBe("Moved out. 3 items for sale.");
+  it("the banner line says roughly when (never the date), in plain words", () => {
+    expect(movingSaleLine(false, "2026-11-01", 12)).toBe("Moving out in November. 12 items for sale.");
+    expect(movingSaleLine(true, "2026-10-01", 1)).toBe("Moving out soon. 1 item for sale.");
+    expect(movingSaleLine(false, "2027-01-01", 100, true)).toBe("Moving out in January. 100+ items for sale.");
   });
 });
 
@@ -204,26 +205,43 @@ describe("server calls", () => {
     expect(declutterErrorMessage(await setMoveOutDate("2020-01-01").catch((e) => e))).toBe(DECLUTTER_ERROR_COPY.invalid_move_out_date);
   });
 
-  it("reads the seller's own moving-sale items, and a seller's live ones for the banner", async () => {
+  it("reads the seller's own moving-sale items and date, and a seller's sale for the banner", async () => {
     h.queue.push({ data: [{ id: "a" }], error: null });
     expect(await fetchMyMoveItems("me")).toEqual([{ id: "a" }]);
     const mine = h.queries[0];
     expect(mine.table).toBe("declutter_items");
     expect(mine.ops).toContainEqual(["eq", ["seller_id", "me"]]);
-    expect(mine.ops).toContainEqual(["not", ["move_out_on", "is", null]]);
+    expect(mine.ops).toContainEqual(["eq", ["in_moving_sale", true]]);
+    h.queue.push({ data: "2026-11-14", error: null }, { data: null, error: null });
+    expect(await fetchMyMoveOutDate()).toBe("2026-11-14");
+    expect(await fetchMyMoveOutDate()).toBeNull();
 
-    h.queue.push({ data: [{ id: "x", move_out_on: "2026-11-01" }, { id: "y", move_out_on: "2026-11-14" }], error: null });
+    // The coarse reader first, then the items (RLS).
+    h.queue.push({ data: [{ moving_soon: false, move_month: "2026-11-01" }], error: null }, { data: [{ id: "x" }, { id: "y" }], error: null });
     const sale = await fetchSellerMovingSale("seller");
-    expect(sale?.moveOutOn).toBe("2026-11-14");
+    expect(sale).toMatchObject({ soon: false, moveMonth: "2026-11-01", more: false });
     expect(sale?.items).toHaveLength(2);
-    expect(h.queries[1].ops).toContainEqual(["in", ["status", ["live", "reserved"]]]);
+    expect(h.rpcs[h.rpcs.length - 1]).toEqual(["declutter_seller_moving_sale", { p_seller_id: "seller" }]);
+    expect(h.queries[h.queries.length - 1].ops).toContainEqual(["in", ["status", ["live", "reserved"]]]);
 
+    // No sale (none, ended, past, hidden, blocked): no items read at all.
+    const before = h.queries.length;
     h.queue.push({ data: [], error: null });
     expect(await fetchSellerMovingSale("nobody")).toBeNull();
+    expect(h.queries.length).toBe(before);
+
+    h.queue.push({ data: [{ moving_soon: true, move_month: "2026-10-01" }], error: null }, { data: Array.from({ length: 101 }, (_, i) => ({ id: String(i) })), error: null });
+    const big = await fetchSellerMovingSale("busy");
+    expect([big?.items.length, big?.more]).toEqual([100, true]);
+  });
+
+  it("a refused coarse read surfaces (never 'no sale')", async () => {
+    h.queue.push({ data: null, error: { message: "feature_disabled" } });
+    expect(declutterErrorMessage(await fetchSellerMovingSale("seller").catch((e) => e))).toBe(DECLUTTER_ERROR_COPY.feature_disabled);
   });
 
   it("a failed read throws (unwrap), it is never an empty list", async () => {
-    h.queue.push({ data: null, error: { message: "boom", code: "42501" } });
+    h.queue.push({ data: [{ moving_soon: true, move_month: "2026-10-01" }], error: null }, { data: null, error: { message: "boom", code: "42501" } });
     await expect(fetchSellerMovingSale("seller")).rejects.toBeTruthy();
   });
 });
@@ -264,9 +282,11 @@ describe("scanRoom", () => {
     expect((await scanRoom([file("a.jpg")]).catch((e) => e)).message).toBe("ai_unavailable");
   });
 
-  it("an answer with no list is no items", async () => {
+  it("an answer with no list is a fault (never 'nothing found'); an empty list is empty", async () => {
     h.clean.mockImplementation(async (f: File) => f);
     h.queue.push({ data: {}, error: null });
+    expect((await scanRoom([file("a.jpg")]).catch((e) => e)).message).toBe("ai_unavailable");
+    h.queue.push({ data: { items: [] }, error: null });
     expect(await scanRoom([file("a.jpg")])).toEqual([]);
   });
 });

@@ -36,6 +36,10 @@ export const FEATURE_SWITCH_KEYS = [
   // the quote form and counters. Created OFF by 20261015091114; every job quote
   // RPC refuses without it (require_feature).
   "quotes",
+  // Declutter haul-away (docs/specs/declutter-haul-away.md): book a Helpr job to
+  // take unsold items to donation or the dump. Created 'testers' by
+  // 20261016053639; its three RPCs refuse without it AND 'declutter'.
+  "declutter_haul_away",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

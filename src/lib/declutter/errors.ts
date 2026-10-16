@@ -101,6 +101,19 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_transfer: "The payout couldn't be recorded. Please try again.",
   invalid_payout: "The payout couldn't be worked out. Please try again.",
   payout_not_found: "That payout wasn't found.",
+  // Haul-away (20261016053639).
+  haul_away_too_many: "One haul-away can take up to 10 items.",
+  haul_away_job_not_found: "That job isn't open any more. Post the haul-away again.",
+  haul_away_job_taken: "That job is already hauling other items. Post a new one.",
+  haul_away_addresses_differ: "These items are at different pickup addresses. Book one haul-away per address.",
+  haul_away_already_booked: "A Helpr is already booked to haul this away. To change that, cancel the job first.",
+  haul_away_in_sale: "A buyer is getting this item, so it can't be hauled away.",
+  haul_away_too_soon: "Give it a little longer. An item can be hauled away 14 days after it went up for sale.",
+  haul_away_not_unsold: "Only an item that's for sale or off sale without selling can be hauled away.",
+  haul_away_not_found: "There's no haul-away to cancel on this item.",
+  haul_away_checkout_open:
+    "A checkout for this haul-away is still open. Pay there, or try again in an hour when it runs out.",
+  haul_away_job_open: "The unpaid haul-away job is still open. Try again in a moment.",
 };
 
 /**
@@ -108,6 +121,9 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
  * does). Kept apart so the two-way check against the migrations stays exact.
  */
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
+  // My listings: a never-paid haul-away job its poster can't delete (a declined card).
+  haul_away_job_stuck:
+    "This haul-away job can't be removed from here because its card payment didn't go through. We've been told and will clear it.",
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",
   ai_photos_required: "Add at least one photo first, so the photo tool can see the item.",
   // declutter-card / declutter-checkout (slice 3b) when no code came back.

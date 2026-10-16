@@ -38,6 +38,12 @@ import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 
+// Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
+const haulAwayLib = () =>
+  Promise.all([import("@/lib/declutter/haulAway"), import("@/lib/declutter/errors")]).then(([h, e]) => ({ ...h, ...e }));
+/** The same, or null when the chunk could not load (the caller then has nothing to undo or word). */
+const haulAwayLibOrNull = () => haulAwayLib().catch((err: unknown) => { report(err, { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } }); return null; });
+
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
  *
@@ -163,6 +169,8 @@ export interface UseJobSubmitParams {
   giftCardId: string | null;
   /** Q768: the imported STR turnover this post was opened from (`?turnover=`), linked to the new job. */
   turnoverId?: string | null;
+  /** Declutter haul-away: the seller's items this post hauls away (`?haulAway=`), linked to the new job. */
+  haulAwayItemIds?: string[] | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -211,6 +219,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     saveCardForFuture,
     giftCardId,
     turnoverId,
+    haulAwayItemIds,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -468,6 +477,32 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // This attempt's job already exists; only its payment hand-off failed,
       // and on the wire, so we never heard whether it worked. Pay for THAT
       // job; posting again would create a second one.
+      // A Declutter haul-away links again first (a no-op while it is still
+      // linked): if the seller put the items back on sale or booked them on
+      // another job meanwhile, this job must not be paid for them.
+      if (haulAwayItemIds && haulAwayItemIds.length > 0) {
+        try {
+          await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, attempt.jobId);
+        } catch (linkErr) {
+          report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.relinkHaulAway" }, context: { job_id: attempt.jobId } });
+          // A refusal (not a lost answer): this attempt is dead. Remove its
+          // never-paid job (the delete is refused while a checkout is live)
+          // and start fresh next time.
+          if (!isNetworkFailure(linkErr)) {
+            await cleanupOrphanJob(attempt.jobId);
+            attemptRef.current = null;
+            safeStorage.removeItem(COOLDOWN_KEY);
+          }
+          hapticError();
+          const haul = await haulAwayLibOrNull();
+          toast.error(`Couldn't book the haul-away: ${haul ? haul.declutterErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+          setSaving(false);
+          setStep("checkout");
+          setConfirmed(false);
+          submittingRef.current = false;
+          return;
+        }
+      }
       safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
       await startPayment(attempt.jobId, Promise.resolve());
       return;
@@ -604,6 +639,33 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
+    /* Declutter haul-away (docs/specs/declutter-haul-away.md): link the items
+       to this job and take them off sale BEFORE payment, so nobody buys an
+       item a Helpr is about to haul. NOT best effort: if the server refuses
+       (a buyer got one meanwhile, or a Helpr is already booked), paying for
+       this job would haul the wrong thing, so the unpaid job is removed, any
+       item the link did take off sale is put back, and the seller is told why. */
+    if (haulAwayItemIds && haulAwayItemIds.length > 0) {
+      try {
+        await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, jobData.id);
+      } catch (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkHaulAway" }, context: { job_id: jobData.id } });
+        await cleanupOrphanJob(jobData.id);
+        const haul = await haulAwayLibOrNull();
+        if (haul) await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id);
+        attemptRef.current = null;
+        safeStorage.removeItem(COOLDOWN_KEY);
+        hapticError();
+        toast.error(`Couldn't book the haul-away: ${haul ? haul.declutterErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+        setSaving(false);
+        setRedirecting(false);
+        setStep("checkout");
+        setConfirmed(false);
+        submittingRef.current = false;
+        return;
+      }
+    }
+
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this
     // CTAs without re-querying Supabase. Cheap to write, the success
@@ -728,6 +790,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           // setup failed — don't leave orphan jobs.
           await cleanupOrphanJob(jobId);
           attemptRef.current = null;
+          // A haul-away took its items off sale for this job: put them back.
+          if (haulAwayItemIds && haulAwayItemIds.length > 0) await (await haulAwayLibOrNull())?.undoHaulAwayForJob(haulAwayItemIds, jobId);
         }
         safeStorage.removeItem(COOLDOWN_KEY);
         // Not `paymentError.message`: on a non-2xx that is supabase-js's
@@ -754,11 +818,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // job is never saved anywhere in Posts). A cancelled checkout lands on
       // /post-job, where "Load Draft" brings the form back; PaymentSuccess
       // clears it once the job is actually paid.
-      flushDraft();
-      // Q769: remember which job this draft is paying for, so Post a Job can
-      // tell a paid or still-payable checkout apart from a cancelled one
-      // before it offers "Load Draft" again (useDraftCheckoutState).
-      safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
+      // Not for a Declutter haul-away: a draft cannot carry its items, so a
+      // job posted again from it would be paid with no link (lh-money-escrow
+      // review 2026-10-16). The seller books it again from My listings.
+      if (!haulAwayItemIds || haulAwayItemIds.length === 0) {
+        flushDraft();
+        // Q769: remember which job this draft is paying for, so Post a Job can
+        // tell a paid or still-payable checkout apart from a cancelled one
+        // before it offers "Load Draft" again (useDraftCheckoutState).
+        safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
+      }
       // The instant-job-match fan-out USED to happen here. It has moved to
       // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
       // was never true at this point: create-payment only mints a Checkout

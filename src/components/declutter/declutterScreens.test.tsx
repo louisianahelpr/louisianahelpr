@@ -48,6 +48,11 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
+// Haul-away (its own screens' tests: declutterHaulAway.test.tsx); here only no network.
+vi.mock("@/lib/declutter/haulAway", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/haulAway")>()),
+  fetchHaulAwayState: async () => [],
+}));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,

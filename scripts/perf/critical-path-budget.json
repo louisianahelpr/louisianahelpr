@@ -1,6 +1,6 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-10-11, production vite build: Navbar.tsx was importing isDesktopRailRoute + useIsWebDesktop from @/components/DesktopSidebarNav instead of their zero-dep sources (@/lib/desktopNavRoutes and @/hooks/useIsWebDesktop). DesktopSidebarNav and its deps (useNavUnreadCount, notificationFeed, adminBadgeStore) were being pulled into app-shared and on to every public page's critical path. Fixing the import moves those modules into signed-in-shared. boot graph 264 -> 256 KB gz; / 280 -> 267 KB gz; /login 285 -> 271 KB gz; /signup 297 -> 283 KB gz. Previous: /posts 2026-10-09: 341 KB gz on main (features landed 10-04..10-09) and 342 with the admin Team thread (+1 KB on the messages path); raised to the measured 342; trimming /posts is open work. 2026-10-07, production vite build (Q1170: the entry refreshes a returning web visitor's expired token beside the download, entry 4.1 -> 4.6 KB gz; /jobs --expired LCP 5628 -> 4900 ms, median of 3, scripts/perf/cwv-lab.mjs, 375 Slow 4G + 4x CPU).",
+  "_measured": "2026-10-16, production vite build: /posts 359 KB gz on main 025fd32a7 (the +5% ceiling of 342) and 360 with Declutter haul-away: its server calls are in their own lazily loaded chunk, but the per-RPC plain-words error copy (RPC_ERROR_COPY + DECLUTTER_ERROR_COPY, required by rpcErrorCopyCoverage) lives in signed-in-shared (+1.3 KB gz); raised to the measured 360, trimming /posts is Q1593. 2026-10-11, production vite build: Navbar.tsx was importing isDesktopRailRoute + useIsWebDesktop from @/components/DesktopSidebarNav instead of their zero-dep sources (@/lib/desktopNavRoutes and @/hooks/useIsWebDesktop). DesktopSidebarNav and its deps (useNavUnreadCount, notificationFeed, adminBadgeStore) were being pulled into app-shared and on to every public page's critical path. Fixing the import moves those modules into signed-in-shared. boot graph 264 -> 256 KB gz; / 280 -> 267 KB gz; /login 285 -> 271 KB gz; /signup 297 -> 283 KB gz. Previous: /posts 2026-10-09: 341 KB gz on main (features landed 10-04..10-09) and 342 with the admin Team thread (+1 KB on the messages path); raised to the measured 342; trimming /posts is open work. 2026-10-07, production vite build (Q1170: the entry refreshes a returning web visitor's expired token beside the download, entry 4.1 -> 4.6 KB gz; /jobs --expired LCP 5628 -> 4900 ms, median of 3, scripts/perf/cwv-lab.mjs, 375 Slow 4G + 4x CPU).",
   "entry": {
     "staticChunks": 2,
     "kb": 4.6
@@ -29,7 +29,7 @@
     "/posts": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 342
+      "jsKB": 360
     }
   }
 }

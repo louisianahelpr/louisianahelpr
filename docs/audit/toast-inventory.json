@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 685,
-    "files": 173,
-    "rendering": 627,
-    "suppressedByPolicy": 58,
+    "calls": 694,
+    "files": 174,
+    "rendering": 635,
+    "suppressedByPolicy": 59,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 40,
-      "toast.error": 523,
+      "toast": 42,
+      "toast.error": 529,
       "toast.info": 1,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 63,
+      "toast.success": 64,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 349,
-      "template": 83,
-      "dynamic": 296,
+      "literal": 350,
+      "template": 87,
+      "dynamic": 300,
       "jsx": 0
     }
   },
@@ -3417,7 +3417,47 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 181,
+      "line": 215,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"live\" ? \"Back on sale.\" : \"Haul-away cancelled. The item is off sale.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Back on sale."
+          },
+          {
+            "form": "literal",
+            "text": "Haul-away cancelled. The item is off sale."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 218,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 223,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 228,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3427,7 +3467,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 184,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6538,6 +6578,56 @@
       "renders": true
     },
     {
+      "file": "src/pages/post-job/useHaulAwayPrefill.ts",
+      "line": 72,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't load your items: ${words(err)}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useHaulAwayPrefill.ts",
+      "line": 86,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "rows.some((r) => r.state === \"booked\" || r.state === \"paying\") ? \"A Helpr is already booked, or a checkout is open, for this haul-away.\" : \"These items can't be hauled away right now.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "A Helpr is already booked, or a checkout is open, for this haul-away."
+          },
+          {
+            "form": "literal",
+            "text": "These items can't be hauled away right now."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useHaulAwayPrefill.ts",
+      "line": 92,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${left} ${left === 1 ? \"item\" : \"items\"} couldn't be included (sold, booked, or not ready yet)."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useHaulAwayPrefill.ts",
+      "line": 101,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load the pickup address. Type it in below."
+      },
+      "renders": true
+    },
+    {
       "file": "src/pages/post-job/useJobFormEffects.ts",
       "line": 246,
       "kind": "toast.error",
@@ -6579,7 +6669,7 @@
     },
     {
       "file": "src/pages/post-job/useJobMediaUpload.ts",
-      "line": 39,
+      "line": 46,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6589,7 +6679,7 @@
     },
     {
       "file": "src/pages/post-job/useJobMediaUpload.ts",
-      "line": 66,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6599,7 +6689,7 @@
     },
     {
       "file": "src/pages/post-job/useJobMediaUpload.ts",
-      "line": 70,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6609,7 +6699,7 @@
     },
     {
       "file": "src/pages/post-job/useJobMediaUpload.ts",
-      "line": 189,
+      "line": 209,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6619,7 +6709,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 220,
+      "line": 229,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6629,7 +6719,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 227,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6639,7 +6729,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 236,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6649,7 +6739,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 238,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6659,7 +6749,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 242,
+      "line": 251,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6669,7 +6759,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 248,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6679,7 +6769,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 250,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6689,7 +6779,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 251,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6699,7 +6789,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 255,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6709,7 +6799,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 256,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6719,7 +6809,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 257,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6729,7 +6819,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 258,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6739,7 +6829,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 259,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6749,7 +6839,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 264,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6759,7 +6849,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 265,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6769,7 +6859,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 274,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6779,7 +6869,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 287,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6789,7 +6879,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 288,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6799,7 +6889,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 289,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6809,7 +6899,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 293,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6819,7 +6909,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 300,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6829,7 +6919,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 345,
+      "line": 354,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6839,7 +6929,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 354,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6849,7 +6939,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 370,
+      "line": 379,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6859,7 +6949,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 376,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6869,7 +6959,17 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 532,
+      "line": 498,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't book the haul-away: ${haul ? haul.declutterErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 567,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6919,7 +7019,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 569,
+      "line": 604,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6933,7 +7033,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 591,
+      "line": 626,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6947,7 +7047,17 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 743,
+      "line": 659,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't book the haul-away: ${haul ? haul.declutterErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 807,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6967,7 +7077,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 804,
+      "line": 873,
       "kind": "toast.error",
       "title": {
         "form": "literal",

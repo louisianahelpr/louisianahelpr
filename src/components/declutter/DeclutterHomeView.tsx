@@ -27,6 +27,13 @@ import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/d
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
+import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
+import { useFeature } from "@/hooks/useFeature";
+import { report } from "@/lib/errorLogger";
+import { haulAwayPostJobPath, haulJobToDelete, oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";
+
+/** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
+const haulLib = () => import("@/lib/declutter/haulAway");
 
 type View = "browse" | "mine" | "offers" | "cart";
 const VIEWS: View[] = ["browse", "mine", "offers", "cart"];
@@ -175,6 +182,46 @@ function MyListingsView({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
+  // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch.
+  const haulOn = useFeature("declutter_haul_away");
+  const haul = useQuery({
+    queryKey: ["declutter", "haul-away", userId],
+    enabled: haulOn,
+    queryFn: async () => (await haulLib()).fetchHaulAwayState(),
+  });
+  const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data ?? []).map((r) => [r.item_id, r])), [haul.data]);
+  // An unpaid haul-away's job is deleted first (its checkout can then never
+  // be opened again), then the item is put back or booked on a new job.
+  // Only a 'job_open' job is deleted (never a cancelled one, whose photos and
+  // record stay). A delete the poster's policy refuses (a declined card) is
+  // reported; the seller is told it can't be removed from here.
+  const releaseJob = async (row: HaulAwayRow) => {
+    const jobId = haulJobToDelete(row);
+    if (jobId && !(await (await haulLib()).deleteNeverPaidHaulJob(jobId))) {
+      report(new Error("haul-away job could not be deleted (delete matched no row)"), {
+        severity: "warning",
+        tags: { source: "DeclutterHome.releaseHaulJob" },
+        context: { job_id: jobId },
+      });
+      throw new Error("haul_away_job_stuck");
+    }
+  };
+  const putBack = useMutation({
+    mutationFn: async (row: HaulAwayRow) => {
+      await releaseJob(row);
+      return (await haulLib()).cancelHaulAway(row.item_id);
+    },
+    onSuccess: (status) => {
+      toast.success(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const bookAgain = useMutation({
+    mutationFn: releaseJob,
+    onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const takeDown = useMutation({
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSuccess: () => {
@@ -193,48 +240,63 @@ function MyListingsView({ userId }: { userId: string }) {
     return <DeclutterNotice title="You haven't listed anything yet.">Tap "Sell an item" to start.</DeclutterNotice>;
   }
   return (
-    <ul className="space-y-3">
-      {list.map((item) => (
-        <li key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-start justify-between gap-3 min-w-0">
-            <div className="min-w-0">
-              <p className="font-semibold truncate">{item.title}</p>
-              <p className="text-sm text-muted-foreground">{formatPrice(item.current_price_cents)}</p>
+    <div className="space-y-3">
+      {haulOn && !haul.isError && <HaulAwayCard group={oneTripGroup(haul.data ?? [])} />}
+    {haulOn && haul.isError && (
+      <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
+    )}
+      <ul className="space-y-3">
+        {list.map((item) => (
+          <li key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
+            <div className="flex items-start justify-between gap-3 min-w-0">
+              <div className="min-w-0">
+                <p className="font-semibold truncate">{item.title}</p>
+                <p className="text-sm text-muted-foreground">{formatPrice(item.current_price_cents)}</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={item.status}>
+                {STATUS_LABEL[item.status]}
+              </span>
             </div>
-            <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={item.status}>
-              {STATUS_LABEL[item.status]}
-            </span>
-          </div>
-          {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
-          <div className="flex flex-wrap gap-2">
-            {item.status === "draft" ? (
-              <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
-                Finish listing
-              </Button>
-            ) : (
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/declutter/item/${item.id}`}>View</Link>
-              </Button>
-            )}
-            {(item.status === "draft" || item.status === "pending_review" || item.status === "live") && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={takeDown.isPending}
-                onClick={() => {
-                  if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
-                    takeDown.mutate(item.id);
-                  }
-                }}
-              >
-                {item.status === "draft" ? "Delete" : "Take down"}
-              </Button>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+            {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
+            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} />}
+            <div className="flex flex-wrap gap-2">
+              {item.status === "draft" ? (
+                <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
+                  Finish listing
+                </Button>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/declutter/item/${item.id}`}>View</Link>
+                </Button>
+              )}
+              {(item.status === "draft" || item.status === "pending_review" || item.status === "live") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={takeDown.isPending}
+                  onClick={() => {
+                    if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
+                      takeDown.mutate(item.id);
+                    }
+                  }}
+                >
+                  {item.status === "draft" ? "Delete" : "Take down"}
+                </Button>
+              )}
+              {haulOn && (
+                <HaulAwayItemActions
+                  row={haulById.get(item.id)}
+                  onBookAgain={(row) => bookAgain.mutate(row)}
+                  onPutBack={(row) => putBack.mutate(row)}
+                  pending={putBack.isPending || bookAgain.isPending}
+                />
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

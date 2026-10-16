@@ -103,7 +103,7 @@ Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give t
 |---|---------|-------------------------|------|
 | 71 | "Declutter it for me" | Book a Helpr who comes over, photographs, lists the items for the owner, and hands them over at pickup | 2026-10-14 |
 | 72 | "Sold it? Get help" | After a sale, offer the buyer a Helpr job to carry/assemble/install it | 2026-10-14 |
-| 73 | Unsold next step | After the 3rd relist, one tap to have a Helpr haul it to donation or post it as a free giveaway | 2026-10-14 |
+| 73 | Unsold next step | After the 3rd relist, one tap to have a Helpr haul it to donation or post it as a free giveaway (haul-away half built 2026-10-16: [declutter-haul-away.md](declutter-haul-away.md)) | 2026-10-14 |
 | 74 | Move-out + storm pushes | "Moving sale" bundle for a whole house; storm-season help clearing damaged furniture | 2026-10-14 |
 | 75 | ID-verified seller badge | Badge from the existing Stripe identity check | 2026-10-14 |
 | 76 | "Wanted" posts | Buyers post what they're looking for; sellers listing a match and the buyer both get alerts | 2026-10-14 |

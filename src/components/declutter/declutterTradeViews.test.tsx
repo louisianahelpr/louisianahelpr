@@ -71,7 +71,7 @@ function show(el: React.ReactNode) {
 const ITEM = {
   id: "i1", seller_id: "s1", status: "live" as const, title: "Oak rocking chair", description: "", category: "furniture",
   condition_stars: 4, delivery_size: "large" as const, price_cents: 4000, current_price_cents: 4000,
-  area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: "2026-10-14",
+  area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: "2026-10-14", porch_ok: true,
 };
 const OFFER = {
   offer_id: "o1", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", amount_cents: 2500, awaiting: "seller",

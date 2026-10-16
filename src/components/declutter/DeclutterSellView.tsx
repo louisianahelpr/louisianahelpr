@@ -37,6 +37,7 @@ import {
   photoPublicUrl,
   publishItem,
   removePhoto,
+  setPorchOk,
   requestAiCheck,
   requestAiDraft,
   setPickupWindows,
@@ -125,6 +126,8 @@ export default function SellFlow() {
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [publishing, setPublishing] = useState(false);
+  // Row 101: porch pickup is the default; the seller turns it off per item.
+  const [porchOk, setPorchOkChoice] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   // Where the price hint looks (W12): the pickup address once found, else the
   // saved listing's area, else what we already know about the member.
@@ -158,6 +161,7 @@ export default function SellFlow() {
       pickupAddress: priv.data.pickup_address,
     });
     setCoords({ lat: Number(priv.data.pickup_lat), lng: Number(priv.data.pickup_lng), address: priv.data.pickup_address });
+    setPorchOkChoice(it.porch_ok !== false);
   }, [itemId, item.data, priv.data]);
 
   useEffect(() => {
@@ -220,6 +224,7 @@ export default function SellFlow() {
       };
       if (itemId) {
         await updateDraft(itemId, fields);
+        if (porchOk !== (item.data?.porch_ok !== false)) await setPorchOk(itemId, porchOk);
         toast.success("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
@@ -227,6 +232,9 @@ export default function SellFlow() {
       const id = await createDraft(fields);
       loadedFor.current = id;
       setParams({ item: id }, { replace: true });
+      // A new draft allows porch; only a seller who turned it off needs the second
+      // call. If it fails the draft still exists with porch on, and the next save retries it.
+      if (!porchOk) await setPorchOk(id, false);
       toast.success("Saved. Now add photos.");
       return id;
     } catch (err) {
@@ -388,6 +396,15 @@ export default function SellFlow() {
         <label className="block text-sm font-medium" htmlFor="sell-address">Pickup address</label>
         <input id="sell-address" className={input} maxLength={300} value={form.pickupAddress} onChange={(e) => set("pickupAddress", e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
         <p className="text-xs text-muted-foreground">Private. Only the buyer who pays sees it.</p>
+        <div className="flex items-start gap-3 text-sm">
+          <Checkbox id="sell-porch" className="mt-0.5" checked={porchOk} onCheckedChange={(v) => setPorchOkChoice(v === true)} />
+          <label htmlFor="sell-porch">
+            <span className="font-medium">Porch pickup</span>
+            <span className="block text-xs text-muted-foreground">
+              You leave the item out and the buyer picks it up, so you don't have to meet. Turn this off for anything too valuable or too big to leave outside. Buyers then meet you at your home.
+            </span>
+          </label>
+        </div>
         {problem && <p className="text-xs text-muted-foreground" data-testid="sell-form-problem">{problem}</p>}
         <Button type="button" size="sm" disabled={saving} onClick={() => void saveDetails()}>
           {saving ? "Saving…" : itemId ? "Save details" : "Save and add photos"}

@@ -32,12 +32,13 @@ const h = vi.hoisted(() => {
     const q: { table: string; ops: [string, unknown[]][] } = { table, ops: [] };
     queries.push(q);
     const b: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "maybeSingle"]) {
-      b[m] = (...args: unknown[]) => {
-        q.ops.push([m, args]);
-        return b;
-      };
-    }
+    const op = (m: string) => (...args: unknown[]) => {
+      q.ops.push([m, args]);
+      return b;
+    };
+    b.select = op("select");
+    b.eq = op("eq");
+    b.maybeSingle = op("maybeSingle");
     b.then = (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve(next()).then(res, rej);
     return b;
   };
@@ -116,6 +117,7 @@ beforeEach(() => {
 
 describe("delivery price mirror (row 29) agrees with the SQL", () => {
   it("uses the same constants as declutter_delivery_price_cents", () => {
+    expect(MIGRATION.length).toBeGreaterThan(100_000); // the migration was read, not an empty file
     expect(MIGRATION).toContain("SELECT 1000 + 200 * greatest(COALESCE(p_miles, 1), 1)");
     expect(MIGRATION).toContain("CASE s WHEN 'large' THEN 2000 WHEN 'xl' THEN 4000 ELSE 0 END");
     expect([DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS]).toEqual([1000, 200]);

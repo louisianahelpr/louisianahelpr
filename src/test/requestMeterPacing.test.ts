@@ -23,12 +23,18 @@
  * @mutate e2e/requestMeter.mjs | await this.pace(pageKey(name === "goto" ? args[0] : page.url?.())); | await this.pace();
  * @mutate e2e/requestMeter.mjs | const used = (this.minutes[m] \|\| 0) + (this.prior[m] \|\| 0); | const used = this.minutes[m] \|\| 0;
  * @mutate e2e/requestMeter.mjs |       page[name] = async (...args) => { |       page[`${name}Unpaced`] = async (...args) => {
- * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
+ * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers, followSiblings: true }); | void ceilingFor;
  * @mutate e2e/requestMeter.mjs |     page.__requestMeterGate = (path) => this.pace(pageKey(path)); |
  * @mutate e2e/prodTest.ts | if (running.timeout > 0) running.setTimeout(running.timeout + ms); | void running;
+ * @mutate e2e/requestMeter.mjs | this.ceiling = Math.floor(this.ceilingTotal / Math.max(1, this.workers - finished)); | this.ceiling = Math.floor(this.ceilingTotal / this.workers);
+ * @mutate e2e/requestMeter.mjs | if (sameRun && s.live !== false) continue; | if (sameRun) continue;
+ * @mutate e2e/requestMeter.mjs | const sameRun = s.ppid === ppid; | const sameRun = true;
+ * @mutate e2e/requestMeter.mjs | if (sameRun) finished++; | if (sameRun && s.live === true) finished++;
+ * @mutate e2e/requestMeter.mjs |     this.live = false; |     this.live = true;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { RequestMeter, ceilingFor, gateClientNav } from "../../e2e/requestMeter.mjs";
 import { aggregate } from "../../scripts/e2e/request-budget.mjs";
@@ -209,6 +215,94 @@ describe("the request meter paces a run under its ceiling", () => {
     expect(meter.ceiling).toBe(200);
   });
 
+  describe("a worker's share follows the run's other workers (nightly-red #2375)", () => {
+    const T0 = 1_790_000_000_000;
+    const MINUTE = Math.floor(T0 / 60_000);
+    /** A sibling sample as a worker of THIS run (same ppid) or another invocation writes it. */
+    const sibling = (dir: string, name: string, fields: Record<string, unknown>) =>
+      writeFileSync(join(dir, `${name}.json`), JSON.stringify({ label: "a11y-prod", minutes: {}, ppid: process.ppid, ...fields }));
+    const meterIn = (dir: string, clock: ReturnType<typeof fakeClock>) =>
+      new RequestMeter("a11y-prod").paceTo(400, { workers: 2, prior: {}, followSiblings: true, siblingsDir: dir, now: clock.now, sleep: clock.sleep });
+
+    it("the red: a lone worker kept half the ceiling after its sibling finished (a11y-prod held 1862 s, 38911703338)", async () => {
+      // The sweep's shape: reduced-motion's worker is done, a11y-prod walks
+      // 22-request pages alone. Fixed split: every minute stops at 200.
+      const run = async (follow: boolean) => {
+        const dir = mkdtempSync(join(tmpdir(), "rm-share-"));
+        sibling(dir, "done", { live: false });
+        const clock = fakeClock(T0);
+        const meter = new RequestMeter("a11y-prod").paceTo(400, { workers: 2, prior: {}, followSiblings: follow, siblingsDir: dir, now: clock.now, sleep: clock.sleep });
+        const page = meter.pacePage({ goto: async (_url: string) => undefined, reload: async () => undefined });
+        for (let nav = 0; nav < 180; nav++) {
+          await page.goto(`/p${nav % 30}`);
+          for (let r = 0; r < 22; r++) {
+            meter.record(URL, "GET", clock.now());
+            clock.advance(25);
+          }
+        }
+        return { meter, ms: clock.now() - T0 };
+      };
+      const fixed = await run(false);
+      const following = await run(true);
+      expect(fixed.meter.total).toBe(180 * 22);
+      expect(following.meter.total).toBe(180 * 22);
+      expect(peak(fixed.meter), "the fixed split never uses the finished sibling's half").toBeLessThanOrEqual(200);
+      expect(peak(following.meter), "the lone worker uses the whole ceiling").toBeGreaterThan(200);
+      expect(peak(following.meter), "and never more").toBeLessThanOrEqual(400);
+      expect(following.meter.paceWaitMs, "it is held less").toBeLessThan(fixed.meter.paceWaitMs);
+      expect(following.ms).toBeLessThan(fixed.ms);
+    });
+
+    it("a sibling still running keeps its half", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "rm-share-"));
+      sibling(dir, "running", { live: true, minutes: { [MINUTE]: 150 } });
+      const clock = fakeClock(T0);
+      const meter = meterIn(dir, clock);
+      await meter.pace();
+      expect(meter.ceiling).toBe(200);
+      expect(meter.prior[MINUTE] ?? 0, "a live sibling's requests sit in its own share").toBe(0);
+    });
+
+    it("a sibling killed before teardown (no live:false) keeps its half: the safe side", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "rm-share-"));
+      sibling(dir, "killed", { minutes: { [MINUTE]: 10 } });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling).toBe(200);
+    });
+
+    it("a finished sibling's requests still count in the minutes they landed in", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "rm-share-"));
+      sibling(dir, "done", { live: false, minutes: { [MINUTE]: 390 } });
+      const clock = fakeClock(T0);
+      const meter = meterIn(dir, clock);
+      meter.record(URL, "GET", clock.now());
+      const held = await meter.pace();
+      expect(meter.ceiling).toBe(400);
+      expect(held, "390 + this worker's own request + a reserve does not fit this minute").toBeGreaterThan(0);
+      expect(Math.floor(clock.now() / 60_000)).toBe(MINUTE + 1);
+    });
+
+    it("a finished process of ANOTHER invocation never shrinks the split", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "rm-share-"));
+      sibling(dir, "earlier", { live: false, ppid: process.ppid + 1, minutes: { [MINUTE]: 50 } });
+      const meter = meterIn(dir, fakeClock(T0));
+      await meter.pace();
+      expect(meter.ceiling, "an earlier step's worker was never one of this run's").toBe(200);
+      expect(meter.prior[MINUTE], "but its requests count").toBe(50);
+    });
+
+    it("close() writes live:false; the samples carry the runner's ppid", () => {
+      const meter = new RequestMeter("a11y-prod");
+      expect(meter.toJSON().live).toBe(true);
+      expect(meter.toJSON().ppid).toBe(process.ppid);
+      meter.live = false;
+      expect(meter.toJSON().live).toBe(false);
+      const src = blankComments(read("e2e/requestMeter.mjs"));
+      expect(src).toMatch(/close\(\) \{\s*this\.live = false;\s*return this\.flush\(\);/);
+    });
+  });
+
   it("pacing is off unless a run turns it on (the node scripts measure without it)", async () => {
     const meter = new RequestMeter("press-every-control");
     for (let i = 0; i < 5000; i++) meter.record(URL, "GET", 1_790_000_000_000);
@@ -217,7 +311,8 @@ describe("the request meter paces a run under its ceiling", () => {
 
   it("the metered fixture turns pacing on for every run, gates each test and lengthens its timeout by the hold", () => {
     const src = blankComments(read("e2e/prodTest.ts"));
-    expect(src).toMatch(/meter\.paceTo\(ceilingFor\(label\), \{ workers: workerInfo\.config\.workers \}\);/);
+    expect(src).toMatch(/meter\.paceTo\(ceilingFor\(label\), \{ workers: workerInfo\.config\.workers, followSiblings: true \}\);\s*meter\.flush\(\);/);
+    expect(src, "worker teardown marks the sample finished, so its share goes back to the run").toMatch(/await use\(meter\);\s*meter\.close\(\);/);
     expect(src).toMatch(/await _requestMeter\.pace\(\);\s*await use\(\);/);
     expect(src).toMatch(/meter\.onPaceWait = \(ms\) => \{[\s\S]*?running = base\.info\(\);[\s\S]*?if \(running\.timeout > 0\) running\.setTimeout\(running\.timeout \+ ms\);/);
     const meter = blankComments(read("e2e/requestMeter.mjs"));

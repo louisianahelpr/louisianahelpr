@@ -113,6 +113,46 @@ export function ceilingFor(label, file = join(process.cwd(), "e2e", "request-bud
   return c;
 }
 
+/**
+ * SHARE THAT FOLLOWS THE RUN (nightly-red #2375, a11y-webkit-prod 38911703338):
+ * a run's `workers` split the ceiling evenly, and a worker kept its fixed share
+ * after its siblings had finished. The a11y sweep's two spec files run one per
+ * worker; reduced-motion ends after ~14 min and a11y-prod then ran alone for
+ * ~30 min at 200/min of the 400 ceiling: its chromium leg was held 1862 s
+ * (31 of its 43.6 min) and the webkit leg ran into its 52-min step timeout
+ * (38580933416). So a sibling of the SAME run (same Playwright runner process,
+ * `ppid`) whose sample says `live: false` (written by `close()` at worker
+ * teardown, after its last request) gives its share back, and its requests
+ * still count against every minute they landed in. A sibling still running,
+ * or killed before teardown (no `live: false`), keeps its share: the error
+ * only ever runs toward the old fixed split, never past the ceiling.
+ */
+export function siblingState(label, { ownFile = null, ppid = process.ppid, dir = REQUEST_BUDGET_DIR } = {}) {
+  const minutes = {};
+  let finished = 0;
+  if (!existsSync(dir)) return { minutes, finished };
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".json") || f === "summary.json") continue;
+    const path = join(dir, f);
+    if (ownFile && path === ownFile) continue;
+    let s;
+    try {
+      s = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      continue; // a sample mid-write: treated as still running, the safe side
+    }
+    if (s.label !== label) continue;
+    const sameRun = s.ppid === ppid;
+    // A live sibling of this run has its own share and is not counted here;
+    // anything else (an earlier process, a finished sibling) already spent
+    // its requests in the minutes it recorded.
+    if (sameRun && s.live !== false) continue;
+    if (sameRun) finished++;
+    for (const [m, n] of Object.entries(s.minutes ?? {})) minutes[m] = (minutes[m] ?? 0) + n;
+  }
+  return { minutes, finished };
+}
+
 /** Requests per epoch minute that earlier processes of `label` already wrote to `dir`. */
 export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
   const out = {};
@@ -176,6 +216,13 @@ export class RequestMeter {
     this.startedAt = Date.now();
     /** Pacing is off until paceTo(): the metered node scripts measure without it. */
     this.ceiling = 0;
+    /** The label's whole-run ceiling and worker count (see siblingState). */
+    this.ceilingTotal = 0;
+    this.workers = 1;
+    /** Re-read the run's siblings at every gate (paceTo's `followSiblings`). */
+    this.followSiblings = false;
+    /** false once close() ran: this process sends nothing more. */
+    this.live = true;
     this.prior = {};
     this.reserve = PACE_MIN_RESERVE;
     this.sinceGate = 0;
@@ -193,9 +240,13 @@ export class RequestMeter {
    * `workers` processes may share it at once, so each gets its share.
    * `prior` is what earlier processes of the label recorded, per epoch minute.
    */
-  paceTo(ceilingPerMinute, { workers = 1, prior = priorMinutes(this.label), now, sleep } = {}) {
-    this.ceiling = Math.floor(ceilingPerMinute / Math.max(1, workers));
+  paceTo(ceilingPerMinute, { workers = 1, prior = priorMinutes(this.label), followSiblings = false, siblingsDir = REQUEST_BUDGET_DIR, now, sleep } = {}) {
+    this.ceilingTotal = ceilingPerMinute;
+    this.workers = Math.max(1, workers);
+    this.ceiling = Math.floor(ceilingPerMinute / this.workers);
     this.prior = prior;
+    this.followSiblings = followSiblings;
+    this.siblingsDir = siblingsDir;
     if (now) this.clock.now = now;
     if (sleep) this.clock.sleep = sleep;
     return this;
@@ -208,6 +259,11 @@ export class RequestMeter {
    */
   async pace(key = "") {
     if (!this.ceiling) return 0;
+    if (this.followSiblings) {
+      const { minutes, finished } = siblingState(this.label, { ownFile: this.file ?? null, dir: this.siblingsDir });
+      this.prior = minutes;
+      this.ceiling = Math.floor(this.ceilingTotal / Math.max(1, this.workers - finished));
+    }
     if (this.lastKey !== null) this.bursts[this.lastKey] = Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate);
     this.reserve = Math.max(this.reserve, this.sinceGate);
     const known = this.bursts[key];
@@ -350,6 +406,8 @@ export class RequestMeter {
       ),
       byShape: this.byShape,
       paceWaitMs: this.paceWaitMs,
+      ppid: process.ppid,
+      live: this.live,
       startedAt: this.startedAt,
       endedAt: Date.now(),
     };
@@ -362,5 +420,11 @@ export class RequestMeter {
     if (!this.file) this.file = join(REQUEST_BUDGET_DIR, `${safe}.${process.pid}.${this.startedAt}.json`);
     writeFileSync(this.file, JSON.stringify(this.toJSON(), null, 2));
     return this.file;
+  }
+
+  /** The last flush, at worker teardown: marks the sample `live: false` (see siblingState). */
+  close() {
+    this.live = false;
+    return this.flush();
   }
 }

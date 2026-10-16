@@ -704,7 +704,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
-  - main: Supabase DB Deploy: issue #3162, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083553. feed: issue #3162
+  - stripe-webhook-guard: issue #3170, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307. feed: issue #3170 · feed: ledger b61865c6db7b
 - [ ] **Q1851 MEDIUM db-deploy failed on main.** Mirrored 2026-10-16 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23

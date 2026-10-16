@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T11:49Z",
+  "measured_at": "2026-10-16T12:13Z",
   "issues": {
     "readable": true,
     "open": [
@@ -113,7 +113,7 @@
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38896231699",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38898804762",
         "runTruncated": false
       },
       {
@@ -246,7 +246,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: sensitive review record",
-        "issue": null
+        "issue": 3178
       },
       {
         "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
@@ -263,6 +263,14 @@
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
+      },
+      {
+        "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: ui-sweep",
+        "issue": 3181
       },
       {
         "fingerprint": "b61865c6db7ba6a448063a8d185e8c98",
@@ -482,6 +490,7 @@
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
+    "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",

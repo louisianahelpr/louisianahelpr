@@ -246,6 +246,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   // Declutter (20261014210518): no job_id exists for an item sale, so the
   // trigger cannot judge the row; the producers apply Q137 themselves.
   "sql:declutter_notify#1": "Declutter notice: the counterpart is passed as p_other and the insert is skipped when p_other is seed and the recipient is not (the Q137 rule inside the producer; PGlite: declutterSlice3 'a seed (test) seller's sale never notifies a real buyer')",
+  "sql:declutter_wanted_notify#1": "Declutter wanted alert: never called for a seed/real mix, because declutter_wanted_pairs (20261016053541) matches a post and a listing only when both the row stamps (w.is_seed = i.is_seed) and both LIVE profiles' is_seed agree, before any alert or cap (PGlite: declutterWantedPriceHint 'a test (seed) post never meets a real listing' and 'an account marked test after it posted')",
   "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for

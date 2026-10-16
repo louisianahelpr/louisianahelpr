@@ -36,6 +36,15 @@ export const FEATURE_SWITCH_KEYS = [
   // the quote form and counters. Created OFF by 20261015091114; every job quote
   // RPC refuses without it (require_feature).
   "quotes",
+  // Declutter wanted posts (docs/specs/declutter-wanted-price-hint.md, W1):
+  // created at TESTERS by 20261016053541; declutter_create_wanted /
+  // _close_wanted / _my_wanted refuse without it AND 'declutter', and no wanted
+  // alert reaches a member it is off for.
+  "declutter_wanted",
+  // Declutter fair-price hint ("Most similar items sold for $X-$Y near you",
+  // W9-W12): created at TESTERS by 20261016053541; declutter_price_hint
+  // refuses without it AND 'declutter'.
+  "declutter_price_hint",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

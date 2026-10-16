@@ -22,7 +22,7 @@ const DECLUTTER_PHOTO_BUCKET = "job-photos";
  * (RPC_ERROR_COPY via rpcErrorMessage at each call site, the rpcErrorCopyCoverage
  * rule) on `userMessage`, the original error kept as `cause` for reporting.
  */
-function rpcData<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
+export function rpcData<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
   try {
     unwrap(result);

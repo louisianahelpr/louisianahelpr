@@ -794,6 +794,10 @@ export const GAPS: Record<string, string> = {
   // Declutter slice 3/3b (2026-10-14): the offer, buy-now and cart screens (DeclutterTradeViews) are behind the same
   // OFF switch; offer amounts, floor/price bounds and the one-open-offer rule are pinned by declutterSlice3.pglite.mjs.
   "src/components/declutter/DeclutterTradeViews.tsx": "behind the OFF 'declutter' switch (404 on prod); offer/buy-now rules pinned by declutterSlice3.pglite.mjs; FORMS sweep owed at testers",
+  // Declutter wanted posts (2026-10-16): behind the 'declutter' AND 'declutter_wanted' switches; the post form's
+  // text (3-60 ASCII, no link or phone, contact-leak scan), whole-dollar price, radius and caps are pinned by
+  // src/test/pglite/declutterWantedPriceHint.pglite.mjs and src/lib/declutter/wanted.test.ts. FORMS sweep owed at testers.
+  "src/components/declutter/DeclutterWantedViews.tsx": "behind the 'declutter' + 'declutter_wanted' switches; text, price, radius and caps pinned by declutterWantedPriceHint.pglite.mjs and wanted.test.ts; FORMS sweep owed at testers",
   "src/components/declutter/DeclutterHandoverViews.tsx": "behind the OFF 'declutter' switch and a PAID order (live Stripe); server rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   "src/components/admin/settings/DeclutterProblemsCard.tsx": "admin-only, behind the OFF 'declutter' switch, needs an open problem on a PAID order; decide rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none

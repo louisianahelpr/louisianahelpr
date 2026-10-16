@@ -2090,6 +2090,119 @@ export type Database = {
           },
         ]
       }
+      declutter_wanted: {
+        Row: {
+          area_lat: number
+          area_lng: number
+          category: string
+          closed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          is_seed: boolean
+          max_price_cents: number
+          radius_miles: number
+          status: string
+          user_id: string
+          what: string
+        }
+        Insert: {
+          area_lat: number
+          area_lng: number
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_seed?: boolean
+          max_price_cents: number
+          radius_miles: number
+          status?: string
+          user_id: string
+          what: string
+        }
+        Update: {
+          area_lat?: number
+          area_lng?: number
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_seed?: boolean
+          max_price_cents?: number
+          radius_miles?: number
+          status?: string
+          user_id?: string
+          what?: string
+        }
+        Relationships: []
+      }
+      declutter_wanted_matches: {
+        Row: {
+          created_at: string
+          item_id: string
+          poster_notified_at: string | null
+          seller_notified_at: string | null
+          wanted_id: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          poster_notified_at?: string | null
+          seller_notified_at?: string | null
+          wanted_id: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          poster_notified_at?: string | null
+          seller_notified_at?: string | null
+          wanted_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_wanted_matches_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_wanted_matches_wanted_id_fkey"
+            columns: ["wanted_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_wanted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_wanted_queue: {
+        Row: {
+          attempts: number
+          item_id: string
+          queued_at: string
+        }
+        Insert: {
+          attempts?: number
+          item_id: string
+          queued_at?: string
+        }
+        Update: {
+          attempts?: number
+          item_id?: string
+          queued_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_wanted_queue_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_watchlist: {
         Row: {
           created_at: string
@@ -8543,6 +8656,7 @@ export type Database = {
         }
         Returns: Json
       }
+      declutter_close_wanted: { Args: { p_wanted_id: string }; Returns: string }
       declutter_complete_handover: { Args: { p_by: string; p_order_id: string }; Returns: Json }
       declutter_confirm_handover: {
         Args: { p_code: string; p_method: string; p_order_id: string }
@@ -8565,6 +8679,17 @@ export type Database = {
           p_pickup_lng: number
           p_price_cents: number
           p_title: string
+        }
+        Returns: string
+      }
+      declutter_create_wanted: {
+        Args: {
+          p_category: string
+          p_lat: number
+          p_lng: number
+          p_max_price_cents: number
+          p_radius_miles: number
+          p_what: string
         }
         Returns: string
       }
@@ -8645,6 +8770,11 @@ export type Database = {
         Returns: Json
       }
       declutter_member_out: { Args: { p_user: string }; Returns: boolean }
+      declutter_miles: {
+        Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
+        Returns: number
+      }
+      declutter_money_words: { Args: { p_cents: number }; Returns: string }
       declutter_my_cart: {
         Args: never
         Returns: {
@@ -8686,6 +8816,20 @@ export type Database = {
           respond_by: string
           status: string
           updated_at: string
+        }[]
+      }
+      declutter_my_wanted: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          expires_at: string
+          id: string
+          matches: Json
+          max_price_cents: number
+          radius_miles: number
+          status: string
+          what: string
         }[]
       }
       declutter_new_handover_code: { Args: never; Returns: string }
@@ -8737,6 +8881,19 @@ export type Database = {
         Returns: Json
       }
       declutter_price_drop_sweep: { Args: never; Returns: number }
+      declutter_price_hint: {
+        Args: {
+          p_category: string
+          p_condition_stars: number
+          p_lat: number
+          p_lng: number
+        }
+        Returns: {
+          high_cents: number
+          low_cents: number
+          sales: number
+        }[]
+      }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
       declutter_record_ai_check: {
         Args: {
@@ -8897,6 +9054,36 @@ export type Database = {
           stars: number
         }[]
       }
+      declutter_wanted_alert_block: {
+        Args: { p_user: string }
+        Returns: string
+      }
+      declutter_wanted_match_item: {
+        Args: { p_item: string }
+        Returns: number
+      }
+      declutter_wanted_notify: {
+        Args: { p_link: string; p_message: string; p_title: string; p_user: string }
+        Returns: number
+      }
+      declutter_wanted_pairs: {
+        Args: { p_item: string; p_wanted: string; p_with_blocked: boolean }
+        Returns: {
+          item_id: string
+          miles: number
+          wanted_id: string
+        }[]
+      }
+      declutter_wanted_record_match: {
+        Args: {
+          p_item: string
+          p_tell_poster: boolean
+          p_tell_seller: boolean
+          p_wanted: string
+        }
+        Returns: number
+      }
+      declutter_wanted_sweep: { Args: never; Returns: Json }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       end_recurring_series_by_platform: {
         Args: {

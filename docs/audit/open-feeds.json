@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T09:49Z",
+  "measured_at": "2026-10-16T09:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -107,6 +107,13 @@
         "title": "nightly-red: stripe-webhook-guard",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307",
+        "runTruncated": false
+      },
+      {
+        "number": 3178,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38883812039",
         "runTruncated": false
       }
     ]
@@ -225,6 +232,14 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
+      },
+      {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
+        "issue": null
       },
       {
         "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
@@ -446,6 +461,7 @@
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
     "issue #3170": "Q1816",
+    "issue #3178": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -470,7 +486,6 @@
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4b5ace7af165": "Q1596",
-    "ledger 54ef0bfdcec3": "Q1851",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
     "ledger 60298a019ea3": "Q1776",
@@ -524,6 +539,7 @@
     "ledger de37efb6fa8e": "Q1596",
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
+    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",

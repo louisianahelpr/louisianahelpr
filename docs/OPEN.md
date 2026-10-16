@@ -696,7 +696,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38911703338. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38882683467. notes: Q1429. feed: issue #2436 · feed: ledger 43d77e26f272
-  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38801077733. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
+  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38958608457. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - staleness-watch: issue #2660, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38923523130. notes: Q1507. feed: issue #2660 · feed: ledger db0fb15c4ec3
   - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38898804723. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38858111043. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
@@ -704,7 +704,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38939285895. feed: issue #3154 · feed: ledger 8018e82cb167
-  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38960027727. feed: issue #3178 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38960973280. feed: issue #3178 · feed: ledger e41c806b9175
   - ui-sweep: issue #3181, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38879950659. feed: issue #3181 · feed: ledger 2e4f3e726722
 
 ## CARRIED — still open from the sections archived 2026-09-23

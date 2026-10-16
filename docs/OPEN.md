@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 197** (157 to do, 40 fixed with protection pending; 1323 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 16 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 198** (158 to do, 40 fixed with protection pending; 1323 done). Feeds mirrored in: 13 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 17 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 12 stale, 0 unknown, 49 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-15T22:24Z)_
@@ -96,7 +96,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1520 items — 1323 done, 40 partly done (fixed, protection pending), 157 open.**
+**Queue: 1521 items — 1323 done, 40 partly done (fixed, protection pending), 158 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -689,7 +689,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [~] **Q1777 MEDIUM cron http failure: auto-expire-jobs returned 500 (# defect(s) reported).** Mirrored 2026-10-13 from alert-ledger row 41f88aeb227f (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 41f88aeb227f. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '41f88aeb227f0f23692853cc857a3f79'` => closed **ROOT CAUSE MEASURED + FIXED 2026-10-14 (sec-c, ready/sec-c-2).** The row holds two events. (1) 2026-10-13 04:00Z: expire_unanswered_offers answered "Internal server error.": edge_logs show HTTP 555 from the API gateway, text/plain, origin_time 10178 ms; postgres_logs 03:59:55-04:00:15Z hold no error (nine crons started at 04:00:00, a 53 s checkpoint ended 04:00:10.97); the RPC's 22 calls in the last 24 h answered 200, p50 95 ms, max 608 ms. A one-off gateway timeout, so the three idempotent sweep RPCs now retry ONCE on a code-less (gateway) failure; a Postgres error (SQLSTATE code) and a repeated gateway failure still count. Guard src/test/edge/auto-expire-jobs-gateway-retry.test.ts (3 cases, 3 @mutate). (2) 2026-10-08 17:00Z: "job 75aae101 was reopened but no accepted application was found to reject": that job no longer exists on prod (deleted, so not re-measurable); since 20261003214350 a direct-offer accept inserts the applications row, so only a row stamped accepted without one (a seed producer) reaches it; the defect is right to fire. Left: deploy, then the ledger row closes by its done-when above after clean runs.
 - [ ] **Q1810 MEDIUM error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.** Mirrored 2026-10-14 from alert-ledger row 0411d219f410 (sentry: sentry:?(assets/Signup-DIXUrngk); `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0411d219f410. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3c0d6b003e080de5479e1faf4a1df45a'` => closed **2026-10-14:** the Sentry fold (supabase/migrations/20261014184909_sentry_alerts_fold_bundle_hashes.sql) re-keys this row without its bundle hash: feed: ledger 3c0d6b003e08.
 - [ ] **Q1813 MEDIUM a credential or certificate expires within # days.** Mirrored 2026-10-14 from alert-ledger row 8114e0acbcb0 (workflow: expiry-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 8114e0acbcb0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '8114e0acbcb0b5370d95baf9346598cb'` => closed
-- [ ] **Q1816 MEDIUM Fix the test robots: 16 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
+- [ ] **Q1816 MEDIUM Fix the test robots: 17 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
   - nightly-red-age: issue #2244, newest red run: see the issue's latest comment. notes: Q1275. feed: issue #2244 · feed: ledger ab6fdbe8c882
   - prod-audit: issue #2245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38689259675. notes: Q785. feed: issue #2245 · feed: ledger 16e6e91f6701
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38536821617. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
@@ -705,7 +705,8 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
   - stripe-webhook-guard: issue #3170, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307. feed: issue #3170 · feed: ledger b61865c6db7b
-  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38883812039. feed: issue #3178 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38884799569. feed: issue #3178 · feed: ledger e41c806b9175
+  - ui-sweep: issue #3181, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38879950659. feed: issue #3181
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

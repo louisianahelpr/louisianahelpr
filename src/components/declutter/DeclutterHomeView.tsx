@@ -27,9 +27,11 @@ import { DISTANCE_CHOICES, formatPrice, milesLabel, nearestFirst } from "@/lib/d
 import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
+import { WantedView } from "./DeclutterWantedViews";
+import { useFeature } from "@/hooks/useFeature";
 
-type View = "browse" | "mine" | "offers" | "cart";
-const VIEWS: View[] = ["browse", "mine", "offers", "cart"];
+type View = "browse" | "mine" | "offers" | "cart" | "wanted";
+const VIEWS: View[] = ["browse", "mine", "offers", "cart", "wanted"];
 
 function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -242,8 +244,10 @@ export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  // W14: "Wanted" exists only while its own switch is on for this member.
+  const wantedOn = useFeature("declutter_wanted");
   const asked = params.get("view") as View | null;
-  const view: View = asked && VIEWS.includes(asked) ? asked : "browse";
+  const view: View = asked && VIEWS.includes(asked) && (asked !== "wanted" || wantedOn) ? asked : "browse";
   if (!user) return null;
   return (
     <AppPage
@@ -266,13 +270,15 @@ export default function DeclutterHome() {
           { value: "mine", label: "My listings" },
           { value: "offers", label: "Offers" },
           { value: "cart", label: "Cart" },
+          ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
         ]}
       />
       <StrikeCount userId={user.id} />
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "mine" ? <MyListingsView userId={user.id} />
           : view === "offers" ? <OffersView />
-            : <CartView />}
+            : view === "wanted" ? <WantedView />
+              : <CartView />}
     </AppPage>
   );
 }

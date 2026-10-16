@@ -128,6 +128,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_tax_attestations: { by: ["seller_id"] },
   declutter_strikes: { by: ["user_id"] },
   declutter_seller_flags: { by: ["user_id"] },
+  // Wanted posts (20261016053541). declutter_wanted_matches has no person column.
+  declutter_wanted: { by: ["user_id"] },
   // "Suggest a category" (20261015051141 + 20261015052622, I1).
   category_suggestions: { by: ["user_id"] },
   // Declutter slice 3 (20261014210518): both sides of a trade.

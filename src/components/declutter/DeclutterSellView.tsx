@@ -47,6 +47,8 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, WEEKDAYS } from "./declutterUi";
+import PriceHint from "./DeclutterPriceHint";
+import { useDeclutterOrigin } from "./useDeclutterOrigin";
 
 const TAX_STATEMENTS = [
   "I bought this item for my own personal or household use.",
@@ -124,6 +126,10 @@ export default function SellFlow() {
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [publishing, setPublishing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Where the price hint looks (W12): the pickup address once found, else the
+  // saved listing's area, else what we already know about the member.
+  // Never asks for location.
+  const { origin } = useDeclutterOrigin();
 
   const item = useQuery({ queryKey: ["declutter", "item", itemId], queryFn: () => fetchItem(itemId!), enabled: !!itemId });
   const priv = useQuery({ queryKey: ["declutter", "private", itemId], queryFn: () => fetchMyItemPrivate(itemId!), enabled: !!itemId });
@@ -362,6 +368,20 @@ export default function SellFlow() {
         <p className="text-xs text-muted-foreground">
           Only you see your lowest price. If the item doesn't sell, the price drops 5% each evening until it reaches your lowest price. Set it the same as your price for no drops.
         </p>
+        <PriceHint
+          category={form.category}
+          conditionStars={form.conditionStars}
+          place="near_you"
+          at={
+            coords
+              ? { lat: coords.lat, lng: coords.lng }
+              : item.data
+                ? { lat: Number(item.data.area_lat), lng: Number(item.data.area_lng) }
+                : origin.status === "ready"
+                  ? { lat: origin.lat, lng: origin.lng }
+                  : null
+          }
+        />
         <label className="block text-sm font-medium" htmlFor="sell-area">Area buyers see</label>
         <input id="sell-area" className={input} maxLength={80} value={form.areaLabel} onChange={(e) => set("areaLabel", e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <p className="text-xs text-muted-foreground">Your neighborhood or town, never your street address.</p>

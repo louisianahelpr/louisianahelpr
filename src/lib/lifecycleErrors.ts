@@ -690,6 +690,35 @@ export const RPC_ERROR_COPY = {
     sale_mode_unavailable: DC.sale_mode_unavailable,
     under_18: DC.under_18,
   },
+  // Wanted posts + fair-price hint (20261016053541).
+  declutter_close_wanted: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    wanted_not_found: DC.wanted_not_found,
+  },
+  declutter_create_wanted: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_category: DC.invalid_category,
+    invalid_max_price: DC.invalid_max_price,
+    invalid_radius: DC.invalid_radius,
+    invalid_wanted_text: DC.invalid_wanted_text,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+    wanted_area_unknown: DC.wanted_area_unknown,
+    wanted_open_limit: DC.wanted_open_limit,
+    wanted_rate_limited: DC.wanted_rate_limited,
+  },
+  declutter_my_wanted: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_price_hint: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_create_item: {
     account_restricted: DC.account_restricted,
     area_looks_like_address: DC.area_looks_like_address,

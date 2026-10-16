@@ -39,6 +39,7 @@ import {
   STATUS_LABEL,
 } from "./declutterUi";
 import { OfferPanel } from "./DeclutterTradeViews";
+import PriceHint from "./DeclutterPriceHint";
 
 function SellerLine({ sellerId }: { sellerId: string }) {
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
@@ -198,6 +199,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
         <p className="text-xs text-muted-foreground">The exact address is shared after you pay.</p>
         {!isSeller && <SellerLine sellerId={it.seller_id} />}
       </section>
+
+      <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />
 
       {isSeller && (
         <DeclutterNotice title={`Your listing: ${STATUS_LABEL[it.status]}`}>

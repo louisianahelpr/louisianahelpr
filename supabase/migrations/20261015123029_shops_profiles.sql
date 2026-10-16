@@ -474,8 +474,11 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_badges(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_badges(uuid) TO service_role;
 
--- The owner's one star rating (G11, L46): published reviews past their reveal,
--- the same rows the reviews read policy shows a stranger.
+-- The owner's one star rating (G11, L46): EXACTLY the number their profile
+-- shows, read from get_public_profile_stats (newest 20261015051301: job
+-- reviews past their reveal on jobs not cancelled, plus public Declutter
+-- reviews), never a second copy of that rule. Replay-safe: that function
+-- exists from earlier migrations, and this body is resolved at call time.
 CREATE OR REPLACE FUNCTION public.shop_owner_rating(p_owner_id uuid)
 RETURNS TABLE (rating numeric, review_count integer)
 LANGUAGE sql
@@ -483,13 +486,8 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT round(avg(r.rating)::numeric, 2), count(*)::integer
-    FROM public.reviews r
-   WHERE r.reviewee_id = p_owner_id
-     AND r.status = 'published'
-     AND r.feedback_visible_at IS NOT NULL
-     AND r.feedback_visible_at <= now()
-     AND NOT public.seed_review_hidden(r.reviewer_id, r.reviewee_id, r.job_id);
+  SELECT st.avg_rating, COALESCE(st.review_count, 0)
+    FROM public.get_public_profile_stats(ARRAY[p_owner_id]) st;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_owner_rating(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_owner_rating(uuid) TO service_role;
@@ -705,6 +703,7 @@ DECLARE
   v_pos smallint;
   v_old text;
   v_id uuid;
+  v_constraint text;
 BEGIN
   PERFORM public.require_feature('shops');
   IF public.is_caller_banned() THEN
@@ -751,14 +750,19 @@ BEGIN
   END IF;
 
   -- A path already attached (to this shop) is bad input, not a raw 23505:
-  -- review finding 4. The shop row is locked FOR UPDATE above, so the only
-  -- unique key this insert can hit is storage_path.
+  -- review finding 4. Only the storage_path key maps to it; any other unique
+  -- violation (a position clash would be a bug: the shop row is locked FOR
+  -- UPDATE above) is re-raised as it is (re-review note 3).
   BEGIN
     INSERT INTO public.shop_photos (shop_id, owner_id, photo_kind, storage_path, position)
     VALUES (v_shop, v_uid, p_kind, p_storage_path, v_pos)
     RETURNING id INTO v_id;
   EXCEPTION WHEN unique_violation THEN
-    RAISE EXCEPTION 'photo_already_attached' USING ERRCODE = '22023';
+    GET STACKED DIAGNOSTICS v_constraint = CONSTRAINT_NAME;
+    IF v_constraint = 'shop_photos_storage_path_key' THEN
+      RAISE EXCEPTION 'photo_already_attached' USING ERRCODE = '22023';
+    END IF;
+    RAISE;
   END;
   UPDATE public.shops SET updated_at = now() WHERE id = v_shop;
   RETURN jsonb_build_object('id', v_id, 'replaced_path', v_old);
@@ -866,13 +870,9 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.shops s WHERE s.id = p_shop_id AND s.owner_id = v_uid) THEN
     RAISE EXCEPTION 'own_shop' USING ERRCODE = '22023';
   END IF;
-  IF p_follow THEN
-    INSERT INTO public.shop_follows (user_id, shop_id) VALUES (v_uid, p_shop_id)
-    ON CONFLICT (user_id, shop_id) DO NOTHING;
-  ELSE
-    DELETE FROM public.shop_follows WHERE user_id = v_uid AND shop_id = p_shop_id;
-  END IF;
-  RETURN COALESCE(p_follow, false);
+  INSERT INTO public.shop_follows (user_id, shop_id) VALUES (v_uid, p_shop_id)
+  ON CONFLICT (user_id, shop_id) DO NOTHING;
+  RETURN true;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_set_follow(uuid, boolean) FROM PUBLIC, anon;

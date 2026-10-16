@@ -84,11 +84,21 @@ CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
   stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
   ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
-  idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false);
+  idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false,
+  email_verified boolean NOT NULL DEFAULT true, background_check_status text);
 CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
   credential_type text NOT NULL, status text NOT NULL DEFAULT 'pending', expiration_date date, license_number text);
 CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, reviewer_id uuid, reviewee_id uuid NOT NULL,
   rating integer NOT NULL, status text NOT NULL DEFAULT 'published', feedback_visible_at timestamptz);
+-- The one star rating (get_public_profile_stats, newest definition loaded
+-- below) reads these: job reviews join their job, Declutter reviews their order.
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid, status text NOT NULL,
+  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false);
+CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_arrived_at timestamptz);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz);
+CREATE TABLE public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL, reviewer_id uuid,
+  reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false);
+CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TABLE public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), feature_flags jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz DEFAULT now());
 INSERT INTO public.platform_settings (feature_flags) VALUES ('{}'::jsonb);
@@ -114,6 +124,7 @@ await db.exec(`
 await db.exec(SWITCHES);
 await db.exec(DECLUTTER);
 await db.exec(newestDefinition("declutter_area_label_problem").stmt);
+await db.exec(newestDefinition("get_public_profile_stats").stmt);
 await db.exec(`
   INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 9) g;
   INSERT INTO public.profiles (user_id, stripe_account_id, stripe_payouts_enabled, date_of_birth, ban_status, idv_status, is_seed) VALUES
@@ -132,9 +143,19 @@ await db.exec(`
     SELECT '${STRUCK}', 'seller', 'seller_no_show', now() + interval '1 year' FROM generate_series(1, 3);
   INSERT INTO public.helper_credentials (user_id, credential_type, status) VALUES
     ('${OWNER}', 'trade_license', 'verified'), ('${OWNER}', 'insurance', 'pending');
-  INSERT INTO public.reviews (reviewer_id, reviewee_id, rating, feedback_visible_at) VALUES
-    ('${FAN}', '${OWNER}', 5, now() - interval '1 day'), ('${ORDINARY}', '${OWNER}', 4, now() - interval '1 day'),
-    ('${ORDINARY}', '${OWNER}', 1, now() + interval '5 days');
+  INSERT INTO public.jobs (id, customer_id, helper_id, status) VALUES
+    ('00000000-0000-0000-0000-0000000000a1', '${FAN}', '${OWNER}', 'completed'),
+    ('00000000-0000-0000-0000-0000000000a2', '${ORDINARY}', '${OWNER}', 'completed'),
+    ('00000000-0000-0000-0000-0000000000a3', '${ORDINARY}', '${OWNER}', 'cancelled');
+  INSERT INTO public.reviews (job_id, reviewer_id, reviewee_id, rating, feedback_visible_at) VALUES
+    ('00000000-0000-0000-0000-0000000000a1', '${FAN}', '${OWNER}', 5, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-0000000000a2', '${ORDINARY}', '${OWNER}', 4, now() - interval '1 day'),
+    ('00000000-0000-0000-0000-0000000000a2', '${ORDINARY}', '${OWNER}', 1, now() + interval '5 days'),
+    ('00000000-0000-0000-0000-0000000000a3', '${ORDINARY}', '${OWNER}', 1, now() - interval '1 day');
+  INSERT INTO public.declutter_orders (id, status, handed_over_at) VALUES
+    ('00000000-0000-0000-0000-0000000000b1', 'handed_over', now() - interval '20 days');
+  INSERT INTO public.declutter_reviews (order_id, reviewer_id, reviewee_id, reviewer_side, stars) VALUES
+    ('00000000-0000-0000-0000-0000000000b1', '${FAN}', '${OWNER}', 'buyer', 3);
   INSERT INTO storage.objects (bucket_id, name, owner_id, metadata) VALUES
     ('job-photos', '${OWNER}/shops/logo1.jpg', '${OWNER}', '{"mimetype":"image/jpeg","size":"1000"}'),
     ('job-photos', '${OWNER}/shops/logo2.jpg', '${OWNER}', '{"mimetype":"image/jpeg","size":"1000"}'),
@@ -288,7 +309,11 @@ const page = one(await as("authenticated", FAN, `SELECT public.shops_get_shop('$
 ok(page?.badges?.id_checked === true && page?.badges?.licensed === true && page?.badges?.insured === false
    && page?.badges?.registered === false && page?.badges?.permit === false,
   "badges: ID checked + Licensed (verified credential); Insured not (pending); Registered and Permit not");
-ok(Number(page?.rating) === 4.5 && page?.review_count === 2, "rating counts only revealed reviews (4.5 from 2)");
+ok(Number(page?.rating) === 4 && page?.review_count === 3,
+  "the one star rating: revealed job reviews on jobs not cancelled plus a public Declutter review (4.0 from 3)");
+const profileStats = one(await as("authenticated", FAN, `SELECT row_to_json(s) AS r FROM public.get_public_profile_stats(ARRAY['${OWNER}'::uuid]) s`));
+ok(Number(profileStats?.avg_rating) === Number(page?.rating) && profileStats?.review_count === page?.review_count,
+  "the shop shows exactly the rating the owner's profile shows (G11)");
 ok(page?.mine === false && page?.sos_number === null && page?.hidden_reason === null, "a visitor gets no owner-only fields");
 ok(Array.isArray(page?.hours) && page.hours.length === 2, "the page carries the opening hours");
 ok(page && !("phone" in page) && !("email" in page) && !("website" in page), "the page has no phone, email or website (L49)");

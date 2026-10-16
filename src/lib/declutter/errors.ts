@@ -113,6 +113,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",
   ai_photos_required: "Add at least one photo first, so the photo tool can see the item.",
+  // The app's own timeout on the photo tool (AI_TIMEOUT_MS, api.ts).
+  ai_timed_out: "The photo tool took too long. Try again, or fill in the details yourself.",
   // declutter-card / declutter-checkout (slice 3b) when no code came back.
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
 };

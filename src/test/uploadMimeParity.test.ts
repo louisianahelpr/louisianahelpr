@@ -82,8 +82,8 @@ const SITES: Site[] = [
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/pages/post-job/useJobMediaUpload.ts", "allowedImageTypes"], via: ["allowedImageTypes"] },
   // Declutter listing photos: cleaned to JPEG first (src/lib/declutter/photos.ts).
   { file: "src/lib/declutter/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
-  // Declutter porch and problem photos (slice 4): the same JPEG clean as listing photos.
-  { file: "src/lib/declutter/handover.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Declutter porch and problem photos (20261015092723): the same JPEG clean, into the PRIVATE handover bucket.
+  { file: "src/lib/declutter/handover.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/lib/scopeVideo.ts", "SCOPE_VIDEO_TYPES"], via: ["scopeVideoFileProblem", "SCOPE_VIDEO_BUCKET"], bucketSrc: "src/lib/scopeVideo.ts" },
 ];
 
@@ -106,7 +106,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterSellView.tsx": { bucket: "job-photos" },
-  "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "job-photos" },
+  "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",
     constSrc: "src/components/admin/marketing/marketingMedia.ts",

@@ -301,6 +301,41 @@ describe("useUserLocation", () => {
 
       await waitFor(() => expect(result.current.status).toBe("error"));
     });
+
+    // The read no longer re-runs when the profile object changes (it reopened
+    // the rationale dialog with no tap: declutter-loading review, finding 7),
+    // so a profile that arrives AFTER a failed read is picked up by its own
+    // effect, without asking the device again.
+    it("a profile that arrives after a failed read is still used, and the device is not asked again", async () => {
+      requestMock.mockResolvedValue(false);
+      resolveParishByZipMock.mockResolvedValue({ status: "resolved", parish: "East Baton Rouge" });
+      const { useUserLocation } = await load();
+      const { result, rerender } = renderHook(() => useUserLocation(true));
+      await waitFor(() => expect(result.current.status).toBe("error"));
+
+      profileMock = { latitude: null, longitude: null, zip_code: "70801", parish: null };
+      rerender();
+      await waitFor(() => expect(result.current).toMatchObject({ status: "ready", source: "zip", approximate: true }));
+      expect(requestMock).toHaveBeenCalledTimes(1);
+
+      // A refetch handing back an equal profile: no new ask, no new lookup.
+      profileMock = { ...profileMock };
+      rerender();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(requestMock).toHaveBeenCalledTimes(1);
+      expect(resolveParishByZipMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("a failed read that already tried this profile does not look its ZIP up twice", async () => {
+      requestMock.mockResolvedValue(false);
+      profileMock = { latitude: null, longitude: null, zip_code: "77002", parish: null };
+      resolveParishByZipMock.mockResolvedValue({ status: "unknown-zip", zip: "77002" });
+      const { useUserLocation } = await load();
+      const { result } = renderHook(() => useUserLocation(true));
+      await waitFor(() => expect(result.current.status).toBe("error"));
+      await new Promise((r) => setTimeout(r, 0));
+      expect(resolveParishByZipMock).toHaveBeenCalledTimes(1);
+    });
   });
   /**
    * A SUCCESS IS KEPT; ONLY THE PROFILE WRITE IS GATED BY ACCURACY.
@@ -374,3 +409,6 @@ describe("useUserLocation", () => {
 // mean "a precise device fix, and nothing else" — get_neighbor_hire_count runs
 // a sub-mile test on them, so a 40 km-accurate point must never land there.
 // @mutate src/hooks/useUserLocation.ts | if (precise) void persistUserLocation(lat, lng); | void persistUserLocation(lat, lng);
+// @mutate src/hooks/useUserLocation.ts |     if (!failedNoFallback \|\| !hasProfile) return; |     if (true) return;
+// @mutate src/hooks/useUserLocation.ts |     if (triedRef.current === fallbackKey(onFile)) return; |     if (false) return;
+// @mutate src/hooks/useUserLocation.ts |   }, [enabled, request, rationale, attempt]); |   }, [enabled, request, rationale, attempt, profile]);

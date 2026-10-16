@@ -42,7 +42,7 @@
  */
 
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
-import { IDENTITY_BUCKETS, identitySubfolderPrefixes, missingBuckets } from "./purgeBuckets.ts";
+import { classifyMissingSubfolderBuckets, IDENTITY_BUCKETS, identitySubfolderPrefixes, missingBuckets } from "./purgeBuckets.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 import { recurringVisitDates } from "./recurringSchedule.ts";
 import { louisianaToday } from "./louisianaDate.ts";
@@ -582,6 +582,7 @@ async function purgeIdentityStorage(
   let allOk = true;
   let totalRemoved = 0;
   const failures: string[] = [];
+  const notes: string[] = [];
 
   const targets: { bucket: string; paths: string[] }[] = [];
 
@@ -595,7 +596,13 @@ async function purgeIdentityStorage(
   let presentSubfolders: { bucket: string; prefix: string }[] = [];
   try {
     const missingSub = await missingBuckets(admin, [...new Set(subfolders.map((s) => s.bucket))]);
-    for (const bucket of missingSub) {
+    const { notCreatedYet, failing } = classifyMissingSubfolderBuckets(missingSub);
+    // A bucket whose migration has not run yet holds nothing: nothing to erase, logged (purgeBuckets.ts).
+    for (const bucket of notCreatedYet) {
+      console.warn(`[accountPurge] subfolder bucket ${bucket} is not created yet; nothing can be stored there, nothing to erase`);
+      notes.push(`${bucket}: not created yet, nothing to erase`);
+    }
+    for (const bucket of failing) {
       console.error(`[accountPurge] identity subfolder bucket ${bucket} does not exist`);
       failures.push(`${bucket}: bucket does not exist — nothing there could be erased`);
       allOk = false;
@@ -696,8 +703,8 @@ async function purgeIdentityStorage(
     step: "storage",
     ok: allOk,
     detail: allOk
-      ? `removed ${totalRemoved} object(s)`
-      : `removed ${totalRemoved}, failures: ${failures.join("; ")}`,
+      ? `removed ${totalRemoved} object(s)${notes.length > 0 ? `; ${notes.join("; ")}` : ""}`
+      : `removed ${totalRemoved}, failures: ${failures.join("; ")}${notes.length > 0 ? `; ${notes.join("; ")}` : ""}`,
   });
   return allOk;
 }

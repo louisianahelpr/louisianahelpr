@@ -211,7 +211,18 @@ async function executeRefund(
   if (refund.refund_status === "succeeded") return "already";
   let stripeRefund: Stripe.Refund;
   try {
-    stripeRefund = await stripe.refunds.create(
+    // List-and-adopt first, exactly like declutter-money: Stripe keeps an
+    // idempotency key for 24 hours, and it redelivers a failed event for 3
+    // days. A redelivery more than 24 h after a refund Stripe TOOK (the row
+    // was not recorded: declutter_refund_executed failed) would otherwise be a
+    // second refund whenever the refund is at most half the charge
+    // (lh-money-escrow should-fix (c)). A refund Stripe failed or cancelled
+    // is not adopted; the next one goes under a new key (`-r<n>`, the cron's).
+    const listed = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+    if (listed?.has_more) throw new Error(`more than 100 refunds on ${paymentIntentId}; refusing to read a partial list`);
+    const mine = (listed?.data ?? []).filter((x) => (x.metadata as Record<string, string> | null)?.refund_id === refund.refund_id);
+    const existing = mine.find((x) => x.status !== "failed" && x.status !== "canceled");
+    stripeRefund = existing ?? await stripe.refunds.create(
       {
         payment_intent: paymentIntentId,
         amount: refund.refund_cents,
@@ -220,7 +231,7 @@ async function executeRefund(
         metadata: { kind: "declutter_refund", refund_id: refund.refund_id, reason: refund.reason, order_id: refund.order_id ?? "" },
       },
       // One Stripe refund per refund row, whatever the retries.
-      { idempotencyKey: `declutter-refund-${refund.refund_id}` },
+      { idempotencyKey: mine.length === 0 ? `declutter-refund-${refund.refund_id}` : `declutter-refund-${refund.refund_id}-r${mine.length}` },
     );
   } catch (e) {
     await postSlackOpsAlert({
@@ -282,4 +293,104 @@ async function sendMoneyEmail(
   } catch (e) {
     logStep("Declutter email threw", { template: templateName, error: String(e) });
   }
+}
+
+/**
+ * True for a charge Declutter's own Checkout took (declutter-checkout sets
+ * kind=declutter_order and transfer_group declutter_order_<id> on the
+ * PaymentIntent, which Stripe copies to its charge), or one already carrying a
+ * Declutter refund.
+ */
+export function isDeclutterCharge(charge: Stripe.Charge, refunds: Stripe.Refund[]): boolean {
+  const meta = (charge.metadata ?? {}) as Record<string, string>;
+  return meta.kind === "declutter_order"
+    || (typeof charge.transfer_group === "string" && charge.transfer_group.startsWith("declutter_order_"))
+    || refunds.some((r) => (r?.metadata as Record<string, string> | null)?.kind === "declutter_refund");
+}
+
+/** What a person must check after a hand refund that settled nothing (declutter_record_hand_refund's answer). */
+const HAND_REFUND_PAGES: Record<string, string> = {
+  recorded_short: "It is recorded, but the hand refunds on this payment do not yet cover what its refund row owes, so the row is not settled.",
+  recorded_no_row: "It is recorded against the order, which had no refund row: Declutter did not decide a refund here.",
+  recorded_row_already_settled: "Its refund row was ALREADY settled: the buyer may have been refunded twice.",
+  not_declutter: "No Declutter order or refund row knows this payment; nothing was recorded.",
+};
+
+/**
+ * charge.refunded on a Declutter charge (lh-money-escrow should-fix (b)): a
+ * refund Declutter did not create (no metadata kind, e.g. "refund it by hand"
+ * in the Stripe Dashboard) is recorded against the order with
+ * declutter_record_hand_refund, once per Stripe refund id. When it covers the
+ * payment's unsettled refund row, the row is settled; anything else is
+ * recorded and a person is paged to check it. Nothing here moves money.
+ * A failed record THROWS, so Stripe redelivers.
+ */
+export async function recordDeclutterHandRefunds(
+  event: Stripe.Event,
+  charge: Stripe.Charge,
+  paymentIntentId: string | undefined,
+  refunds: Stripe.Refund[],
+  { supabase, logStep }: WebhookContext,
+): Promise<void> {
+  const hand = refunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled"
+    && (r.metadata as Record<string, string> | null)?.kind !== "declutter_refund");
+  if (hand.length === 0) {
+    logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
+    return;
+  }
+  if (!paymentIntentId) throw new Error(`Declutter charge ${charge.id} was refunded but names no PaymentIntent`);
+  for (const r of hand) {
+    const { data, error } = await supabase.rpc("declutter_record_hand_refund", {
+      p_payment_intent_id: paymentIntentId,
+      p_stripe_refund_id: r.id,
+      p_amount_cents: Number(r.amount ?? 0),
+      p_livemode: event.livemode ? true : false,
+    });
+    if (error) throw new Error(`declutter_record_hand_refund failed for ${r.id}: ${error.message}`);
+    logStep("Declutter refund made outside Declutter", { refund: r.id, result: data });
+    const why = HAND_REFUND_PAGES[String(data)];
+    if (why) {
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Declutter refund made outside Declutter: check the order",
+        message: `Refund ${r.id} (${dollars(Number(r.amount ?? 0))}) on ${paymentIntentId} was made outside Declutter. ${why} Nothing was moved. Check the order's seller payout: declutter-money never pays from a refunded charge, but a payout already sent before this refund is not taken back.`,
+        fields: { Charge: charge.id },
+      });
+    }
+  }
+}
+
+/**
+ * charge.refund.updated for a refund with no Declutter kind (lh-money-escrow
+ * review of lane J, should-fix 1): when it is a hand refund we recorded and
+ * Stripe moved it to failed / canceled, the row it settled reopens
+ * (declutter_hand_refund_failed) and a person is paged. Answers true when the
+ * refund was Declutter's (the caller then stops); false lets the jobs path run.
+ * A function not deployed yet (PGRST202) is "not Declutter": the jobs path
+ * must never stop on it. Any other failure THROWS, so Stripe redelivers.
+ */
+export async function handleDeclutterHandRefundFailed(
+  refund: Stripe.Refund,
+  { supabase }: Pick<WebhookContext, "supabase">,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("declutter_hand_refund_failed", {
+    p_stripe_refund_id: refund.id,
+    p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
+  });
+  if (error) {
+    if ((error as { code?: string }).code === "PGRST202") return false;
+    throw new Error(`declutter_hand_refund_failed failed for ${refund.id}: ${error.message}`);
+  }
+  // Only the function's own Declutter answers stop the jobs path; anything else (not_declutter) lets it run.
+  if (data === "already") return true;
+  if (data !== "reopened" && data !== "recorded_failed") return false;
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: "Declutter refund made by hand FAILED",
+    message: `Stripe moved hand refund ${refund.id} (${dollars(Number(refund.amount ?? 0))}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). The buyer has NOT been repaid. ${data === "reopened" ? "Its refund row is open again (the buyer was told)." : "It did not reopen a refund row (it settled none, or the other hand refunds on the payment still cover it)."} Refund it again by hand.`,
+    fields: { Refund: refund.id },
+  });
+  return true;
 }

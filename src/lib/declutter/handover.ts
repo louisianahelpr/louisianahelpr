@@ -141,13 +141,18 @@ export async function porchPhoto(
  * Clean (metadata stripped, like listing photos) and upload one handover
  * photo to `<uid>/declutter/handover/<order>/<file>`, the only path the SQL
  * accepts. Returns the path for porchPhoto / reportProblem.
+ *
+ * The bucket is PRIVATE (20261015092723): a porch photo shows the seller's
+ * home, so it is never a public URL. Only the two sides of the order and
+ * admins can read it, through a signed URL (storage createSignedUrl).
  */
+const DECLUTTER_HANDOVER_BUCKET = "declutter-handover";
 export async function uploadHandoverPhoto(userId: string, orderId: string, file: File): Promise<string> {
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
   const path = `${userId}/declutter/handover/${orderId}/${nonce}.jpg`;
-  const { error } = await supabase.storage.from("job-photos").upload(path, cleaned, {
+  const { error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).upload(path, cleaned, {
     contentType: "image/jpeg",
     upsert: false,
     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,

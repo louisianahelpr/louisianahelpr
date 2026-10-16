@@ -125,6 +125,7 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NUL
   area_lat numeric, area_lng numeric);
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid);
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
@@ -147,7 +148,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
-  "declutter_in_agreed_sale", "declutter_slot_in_windows"];
+  "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

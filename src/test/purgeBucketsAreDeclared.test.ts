@@ -31,7 +31,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { declaredBuckets } from "./helpers/declaredBuckets";
-import { IDENTITY_BUCKETS, missingBuckets } from "../../supabase/functions/_shared/purgeBuckets";
+import { IDENTITY_BUCKETS, IDENTITY_SUBFOLDERS, missingBuckets, SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET } from "../../supabase/functions/_shared/purgeBuckets";
 import { jobMediaPrefixes as denoJobPrefixes } from "../../supabase/functions/_shared/jobMedia";
 import { USER_BUCKETS, IDENTITY_DOCUMENT_BUCKETS } from "../../scripts/lib/storageOrphans.mjs";
 import {
@@ -49,6 +49,9 @@ const JOB = { id: J, customer_id: U, helper_id: U };
 /** Every list a deletion or sweep path acts on, by where it lives. */
 const LISTS: Record<string, readonly string[]> = {
   "purgeBuckets.ts IDENTITY_BUCKETS (account deletion)": IDENTITY_BUCKETS,
+  "purgeBuckets.ts IDENTITY_SUBFOLDERS (account deletion)": IDENTITY_SUBFOLDERS.map((s) => s.bucket),
+  // A typo here would turn "bucket missing" into "nothing to erase": it must name a declared bucket.
+  "purgeBuckets.ts SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET": SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET,
   "storageOrphans.mjs USER_BUCKETS (weekly orphan sweep)": USER_BUCKETS,
   "storageOrphans.mjs IDENTITY_DOCUMENT_BUCKETS": IDENTITY_DOCUMENT_BUCKETS,
   "jobMediaRest.mjs userStoragePrefixes (seed/E2E teardown)": userStoragePrefixes(U).map((p) => p.bucket),

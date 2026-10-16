@@ -3416,7 +3416,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 181,
+      "line": 187,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3426,7 +3426,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 184,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

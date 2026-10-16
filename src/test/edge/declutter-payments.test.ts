@@ -11,7 +11,13 @@
  * answers exactly once.
  *
  * Registered mutations - each turns this file RED on its own:
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | { idempotencyKey: `declutter-refund-${refund.refund_id}` }, | {},
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | { idempotencyKey: mine.length === 0 ? `declutter-refund-${refund.refund_id}` : `declutter-refund-${refund.refund_id}-r${mine.length}` }, | {},
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     stripeRefund = existing ?? await stripe.refunds.create( |     stripeRefund = await stripe.refunds.create(
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (isDeclutterCharge(charge, allRefunds)) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     \|\| (typeof charge.transfer_group === "string" && charge.transfer_group.startsWith("declutter_order_")) |
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if (why) { |     if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (await handleDeclutterHandRefundFailed(refund, { supabase })) return; |
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if ((error as { code?: string }).code === "PGRST202") return false; |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refund.refund_status === "succeeded") return "already"; |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const paidAt = new Date((facts.chargedAt ?? event.created) * 1000).toISOString(); |   const paidAt = new Date().toISOString();
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (isDeclutterSession(session)) { |   if (false) {
@@ -264,6 +270,139 @@ describe("stripe-webhook: Declutter order paid", () => {
       expect(fromCron).toEqual(fromWebhook);
     });
   }
+
+  // lh-money-escrow should-fix (c): Stripe keeps an idempotency key for 24 h and redelivers a failed event for 3 days.
+  // A Stripe double that honours keys for exactly 24 h: the first delivery's refund is taken but not recorded
+  // (declutter_refund_executed fails, 500); Stripe redelivers 25 h later, after the key expired.
+  it("two redeliveries 25 h apart create ONE refund, even after Stripe's 24 h idempotency key expired", async () => {
+    const taken: Array<{ id: string; status: string; amount: number; metadata: Record<string, string> }> = [];
+    const keys = new Map<string, { at: number; refund: (typeof taken)[number] }>();
+    let clock = 0;
+    stripeMock.refunds.create.mockImplementation(async (params: any, opts: any) => {
+      const hit = opts?.idempotencyKey ? keys.get(opts.idempotencyKey) : undefined;
+      if (hit && clock - hit.at < 24 * 3600) return hit.refund;
+      const refund = { id: `re_25h_${taken.length + 1}`, status: "succeeded", amount: params.amount, metadata: params.metadata };
+      taken.push(refund);
+      if (opts?.idempotencyKey) keys.set(opts.idempotencyKey, { at: clock, refund });
+      return refund;
+    });
+    stripeMock.refunds.list.mockImplementation(async () => ({ data: [...taken].reverse(), has_more: false }));
+    const answer = { result: "refund", refund_id: "rf-25h", reason: "superseded", fee_policy: "full_platform_absorbs", refund_cents: 2000, refund_status: "pending" };
+    scenario.rpcErrors = { declutter_refund_executed: { message: "connection reset" } };
+    expect((await deliver(answer)).status).toBe(500);
+    expect(taken).toHaveLength(1);
+    clock += 25 * 3600;
+    scenario.rpcErrors = {};
+    expect((await deliver(answer)).status).toBe(200);
+    expect(taken).toHaveLength(1);
+    const executed = rpcs("declutter_refund_executed");
+    expect(executed[executed.length - 1]?.args).toEqual({ p_refund_id: "rf-25h", p_stripe_refund_id: "re_25h_1", p_succeeded: true });
+  });
+
+  it("a refund Stripe failed is not adopted: the webhook's next refund goes under a new key", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ has_more: false, data: [{ id: "re_old", status: "failed", amount: 4600, metadata: { refund_id: "rf-f" } }] });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_next", status: "succeeded" });
+    await deliver({ result: "refund", refund_id: "rf-f", reason: "superseded", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "failed" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0]?.[1]).toEqual({ idempotencyKey: "declutter-refund-rf-f-r1" });
+  });
+
+  // lh-money-escrow should-fix (b): "refund it by hand" in the Stripe Dashboard makes a refund with no metadata kind.
+  async function deliverChargeRefunded(charge: Record<string, unknown>) {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_hand", type: "charge.refunded", livemode: true, created: 1_760_000_000, data: { object: charge },
+    });
+    return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+  }
+  const handCharge = (refunds: unknown[], extra: Record<string, unknown> = {}) => ({
+    id: "ch_dc", payment_intent: "pi_dc", amount: 4600, amount_refunded: 4600, currency: "usd",
+    transfer_group: `declutter_order_${ORDER}`, refunds: { has_more: false, data: refunds }, ...extra,
+  });
+
+  it("a refund made by hand on a Declutter charge is recorded against the order, never sent down the jobs path", async () => {
+    scenario.rpc.declutter_record_hand_refund = "settled";
+    const res = await deliverChargeRefunded(handCharge([{ id: "re_hand", amount: 4600, status: "succeeded", metadata: {} }]));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_record_hand_refund").map((c) => c.args)).toEqual([
+      { p_payment_intent_id: "pi_dc", p_stripe_refund_id: "re_hand", p_amount_cents: 4600, p_livemode: true },
+    ]);
+    expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+    expect(slackAlerts.some((a: any) => a.severity === "critical")).toBe(false);
+  });
+
+  it("a Declutter charge is known by its PaymentIntent's metadata too, and only the hand refund is recorded next to a Declutter one", async () => {
+    scenario.rpc.declutter_record_hand_refund = "settled";
+    const res = await deliverChargeRefunded(handCharge([
+      { id: "re_hand2", amount: 100, status: "succeeded", metadata: {} },
+      { id: "re_ours", amount: 4500, status: "succeeded", metadata: { kind: "declutter_refund", refund_id: "rf-1" } },
+      { id: "re_dead", amount: 4500, status: "failed", metadata: {} },
+    ], { transfer_group: null, metadata: { kind: "declutter_order", order_id: ORDER } }));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_record_hand_refund").map((c) => (c.args as Record<string, unknown>).p_stripe_refund_id)).toEqual(["re_hand2"]);
+    expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+  });
+
+  for (const [answer, says] of [
+    ["recorded_short", /do not yet cover/],
+    ["recorded_no_row", /had no refund row/],
+    ["recorded_row_already_settled", /refunded twice/],
+  ] as const) {
+    it(`a hand refund that settles nothing (${answer}) is recorded and pages a person with the reason`, async () => {
+      scenario.rpc.declutter_record_hand_refund = answer;
+      const res = await deliverChargeRefunded(handCharge([{ id: "re_part", amount: 1000, status: "succeeded", metadata: {} }]));
+      expect(res.status).toBe(200);
+      const page = slackAlerts.find((a: any) => a.severity === "critical") as any;
+      expect(page?.title).toMatch(/outside Declutter/);
+      expect(page?.message).toMatch(says);
+      expect(page?.message).toMatch(/Nothing was moved/);
+      // Never claims the payout is safe: a payout sent before the refund is not taken back.
+      expect(page?.message).toMatch(/not taken back/);
+    });
+  }
+
+  // lh-money-escrow review of lane J, should-fix 1: a hand refund Stripe fails AFTER we recorded it.
+  async function deliverRefundUpdated(refund: Record<string, unknown>) {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_hand_fail", type: "charge.refund.updated", livemode: true, created: 1_760_000_000, data: { object: refund },
+    });
+    return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+  }
+  const failedHand = { id: "re_hand_f", object: "refund", status: "failed", failure_reason: "lost_or_stolen_card", amount: 4600,
+    payment_intent: "pi_dc", charge: "ch_dc", metadata: {} };
+
+  it("a hand refund Stripe fails reopens its Declutter row and pages 'NOT repaid'; the jobs ledger is not touched", async () => {
+    scenario.rpc.declutter_hand_refund_failed = "reopened";
+    const res = await deliverRefundUpdated(failedHand);
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_hand_refund_failed")[0]?.args).toEqual({ p_stripe_refund_id: "re_hand_f", p_why: "failed: lost_or_stolen_card" });
+    expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+    const page = slackAlerts.find((a: any) => a.severity === "critical") as any;
+    expect(page?.title).toMatch(/by hand FAILED/);
+    expect(page?.message).toMatch(/NOT been repaid/);
+  });
+
+  it("a failed refund that is not a Declutter hand refund goes on down the jobs path", async () => {
+    scenario.rpc.declutter_hand_refund_failed = "not_declutter";
+    await deliverRefundUpdated(failedHand);
+    expect(scenario.writes.some((w) => w.table === "payment_refunds" && w.op === "delete")).toBe(true);
+  });
+
+  it("before the function is deployed (PGRST202) the jobs path still runs", async () => {
+    scenario.rpcErrors = { declutter_hand_refund_failed: { message: "not found", code: "PGRST202" } };
+    const res = await deliverRefundUpdated(failedHand);
+    expect(res.status).toBe(200);
+    expect(scenario.writes.some((w) => w.table === "payment_refunds" && w.op === "delete")).toBe(true);
+  });
+
+  it("a hand refund that cannot be recorded is a 500 (Stripe redelivers)", async () => {
+    scenario.rpcErrors = { declutter_record_hand_refund: { message: "deadlock detected" } };
+    const res = await deliverChargeRefunded(handCharge([{ id: "re_hand3", amount: 4600, status: "succeeded", metadata: {} }]));
+    expect(res.status).toBe(500);
+  });
 
   it("a refund already done (replayed event) is never sent to Stripe again", async () => {
     await deliver({ result: "refund", refund_id: "rf-1", reason: "superseded", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "succeeded" });

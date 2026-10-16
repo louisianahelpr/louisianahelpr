@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T16:57Z",
+  "measured_at": "2026-10-16T17:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -106,7 +106,7 @@
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38935822036",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38936536960",
         "runTruncated": false
       },
       {
@@ -264,14 +264,6 @@
         "status": "open",
         "title": "nightly-red: ui-sweep",
         "issue": 3181
-      },
-      {
-        "fingerprint": "b61865c6db7ba6a448063a8d185e8c98",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: stripe-webhook-guard",
-        "issue": 3170
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -527,7 +519,6 @@
     "ledger afd194b74d95": "Q1596",
     "ledger afffce6dd514": "Q1596",
     "ledger b4de6dae32de": "Q1633",
-    "ledger b61865c6db7b": "Q1816",
     "ledger b7cb40a7f712": "Q1596",
     "ledger ba752f27944d": "Q1596",
     "ledger bbdaee370c35": "Q1631",

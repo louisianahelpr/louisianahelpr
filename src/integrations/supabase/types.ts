@@ -6672,6 +6672,78 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_cottage_confirmations: {
+        Row: {
+          confirmed_at: string
+          owner_id: string
+          year: number
+        }
+        Insert: {
+          confirmed_at?: string
+          owner_id: string
+          year: number
+        }
+        Update: {
+          confirmed_at?: string
+          owner_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      shop_cottage_sales: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          is_seed: boolean
+          owner_id: string
+          sold_at: string
+          source_ref: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          owner_id: string
+          sold_at?: string
+          source_ref: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          owner_id?: string
+          sold_at?: string
+          source_ref?: string
+        }
+        Relationships: []
+      }
+      shop_cottage_settings: {
+        Row: {
+          cap_cents: number
+          id: boolean
+          note: string
+          updated_at: string
+          warn_percent: number
+        }
+        Insert: {
+          cap_cents: number
+          id?: boolean
+          note?: string
+          updated_at?: string
+          warn_percent?: number
+        }
+        Update: {
+          cap_cents?: number
+          id?: boolean
+          note?: string
+          updated_at?: string
+          warn_percent?: number
+        }
+        Relationships: []
+      }
       shop_follows: {
         Row: {
           created_at: string
@@ -6730,6 +6802,204 @@ export type Database = {
           },
         ]
       }
+      shop_item_attestations: {
+        Row: {
+          attested_at: string
+          item_id: string
+          owner_id: string
+          statements: string[]
+        }
+        Insert: {
+          attested_at?: string
+          item_id: string
+          owner_id: string
+          statements: string[]
+        }
+        Update: {
+          attested_at?: string
+          item_id?: string
+          owner_id?: string
+          statements?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_item_attestations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_item_photos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          owner_id?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_item_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_item_private: {
+        Row: {
+          ai_checked_at: string | null
+          ai_flag_reason: string | null
+          item_id: string
+          owner_id: string
+          review_note: string | null
+          text_flag_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_checked_at?: string | null
+          ai_flag_reason?: string | null
+          item_id: string
+          owner_id: string
+          review_note?: string | null
+          text_flag_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_checked_at?: string | null
+          ai_flag_reason?: string | null
+          item_id?: string
+          owner_id?: string
+          review_note?: string | null
+          text_flag_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_item_private_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_item_subtypes: {
+        Row: {
+          kind: string
+          label: string
+          position: number
+          slug: string
+        }
+        Insert: {
+          kind: string
+          label: string
+          position: number
+          slug: string
+        }
+        Update: {
+          kind?: string
+          label?: string
+          position?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      shop_items: {
+        Row: {
+          admin_approved_at: string | null
+          created_at: string
+          description: string
+          id: string
+          is_seed: boolean
+          kind: string
+          lead_time_days: number
+          live_at: string | null
+          owner_id: string
+          price_cents: number
+          shop_id: string
+          status: string
+          stock_count: number | null
+          submitted_at: string | null
+          subtype: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_approved_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_seed?: boolean
+          kind: string
+          lead_time_days?: number
+          live_at?: string | null
+          owner_id: string
+          price_cents: number
+          shop_id: string
+          status?: string
+          stock_count?: number | null
+          submitted_at?: string | null
+          subtype: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_approved_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_seed?: boolean
+          kind?: string
+          lead_time_days?: number
+          live_at?: string | null
+          owner_id?: string
+          price_cents?: number
+          shop_id?: string
+          status?: string
+          stock_count?: number | null
+          submitted_at?: string | null
+          subtype?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_items_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_items_subtype_fkey"
+            columns: ["subtype"]
+            isOneToOne: false
+            referencedRelation: "shop_item_subtypes"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       shop_photos: {
         Row: {
           created_at: string
@@ -6774,6 +7044,7 @@ export type Database = {
           area_label: string
           category: string
           created_at: string
+          daily_order_cap: number | null
           hidden_at: string | null
           hidden_by: string | null
           hidden_reason: string | null
@@ -6798,6 +7069,7 @@ export type Database = {
           area_label: string
           category: string
           created_at?: string
+          daily_order_cap?: number | null
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -6822,6 +7094,7 @@ export type Database = {
           area_label?: string
           category?: string
           created_at?: string
+          daily_order_cap?: number | null
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -10492,6 +10765,23 @@ export type Database = {
         Returns: Json
       }
       shop_badges: { Args: { p_shop_id: string }; Returns: Json }
+      shop_cottage_cap_reached: {
+        Args: { p_owner_id: string }
+        Returns: boolean
+      }
+      shop_cottage_sales_cents: {
+        Args: { p_owner_id: string }
+        Returns: number
+      }
+      shop_cottage_year: { Args: never; Returns: number }
+      shop_item_required_statements: {
+        Args: { p_kind: string; p_subtype: string }
+        Returns: string[]
+      }
+      shop_item_text_flag: {
+        Args: { p_description: string; p_kind: string; p_title: string }
+        Returns: string
+      }
       shop_owner_in_good_standing: {
         Args: { p_owner_id: string }
         Returns: boolean
@@ -10508,6 +10798,30 @@ export type Database = {
         Args: { p_shop_id: string; p_viewer: string }
         Returns: boolean
       }
+      shops_add_item_photo: {
+        Args: { p_item_id: string; p_storage_path: string }
+        Returns: string
+      }
+      shops_admin_pending_items: {
+        Args: never
+        Returns: {
+          ai_checked_at: string
+          ai_flag_reason: string
+          approved_items: number
+          description: string
+          item_id: string
+          kind: string
+          owner_id: string
+          photo_paths: string[]
+          price_cents: number
+          shop_id: string
+          shop_name: string
+          submitted_at: string
+          subtype: string
+          text_flag_reason: string
+          title: string
+        }[]
+      }
       shops_admin_check_registration: {
         Args: { p_shop_id: string; p_verified: boolean }
         Returns: boolean
@@ -10516,7 +10830,15 @@ export type Database = {
         Args: { p_hidden: boolean; p_reason: string; p_shop_id: string }
         Returns: boolean
       }
+      shops_admin_review_item: {
+        Args: { p_approve: boolean; p_item_id: string; p_note: string }
+        Returns: string
+      }
       shops_assert_owner_eligible: { Args: never; Returns: string }
+      shops_attest_item: {
+        Args: { p_item_id: string; p_statements: string[] }
+        Returns: string
+      }
       shops_attach_photo: {
         Args: { p_kind: string; p_storage_path: string }
         Returns: Json
@@ -10545,9 +10867,88 @@ export type Database = {
           review_count: number
         }[]
       }
+      shops_check_item_fields: {
+        Args: {
+          p_description: string
+          p_kind: string
+          p_lead_time_days: number
+          p_price_cents: number
+          p_stock_count: number
+          p_subtype: string
+          p_title: string
+        }
+        Returns: undefined
+      }
       shops_close_my_shop: { Args: never; Returns: string[] }
+      shops_confirm_cottage_year: { Args: never; Returns: number }
+      shops_create_item: {
+        Args: {
+          p_description: string
+          p_kind: string
+          p_lead_time_days: number
+          p_price_cents: number
+          p_stock_count: number
+          p_subtype: string
+          p_title: string
+        }
+        Returns: string
+      }
       shops_get_shop: { Args: { p_shop_id: string }; Returns: Json }
+      shops_lock_own_item: {
+        Args: { p_item_id: string; p_uid: string }
+        Returns: {
+          admin_approved_at: string | null
+          created_at: string
+          description: string
+          id: string
+          is_seed: boolean
+          kind: string
+          lead_time_days: number
+          live_at: string | null
+          owner_id: string
+          price_cents: number
+          shop_id: string
+          status: string
+          stock_count: number | null
+          submitted_at: string | null
+          subtype: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "shop_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      shops_my_cottage_status: { Args: never; Returns: Json }
+      shops_my_item_review: {
+        Args: { p_item_id: string }
+        Returns: {
+          ai_checked: boolean
+          ai_flagged: boolean
+          attested: boolean
+          review_note: string
+          text_flagged: boolean
+        }[]
+      }
       shops_my_shop_id: { Args: never; Returns: string }
+      shops_publish_item: { Args: { p_item_id: string }; Returns: string }
+      shops_record_item_ai_check: {
+        Args: {
+          p_flag_reason: string
+          p_judged_description: string
+          p_judged_kind: string
+          p_judged_photo_ids: string[]
+          p_judged_subtype: string
+          p_judged_title: string
+          p_item_id: string
+          p_owner_id: string
+        }
+        Returns: string
+      }
+      shops_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
       shops_remove_photo: { Args: { p_photo_id: string }; Returns: string }
       shops_save_my_shop: {
         Args: {
@@ -10565,12 +10966,32 @@ export type Database = {
         }
         Returns: string
       }
+      shops_set_daily_order_cap: { Args: { p_cap: number }; Returns: number }
       shops_set_follow: {
         Args: { p_follow: boolean; p_shop_id: string }
         Returns: boolean
       }
       shops_set_hours: { Args: { p_hours: Json }; Returns: number }
       shops_set_paused: { Args: { p_paused: boolean }; Returns: boolean }
+      shops_set_item_stock: {
+        Args: { p_item_id: string; p_lead_time_days: number; p_stock_count: number }
+        Returns: number
+      }
+      shops_shop_items: { Args: { p_shop_id: string }; Returns: Json }
+      shops_update_item: {
+        Args: {
+          p_description: string
+          p_item_id: string
+          p_kind: string
+          p_lead_time_days: number
+          p_price_cents: number
+          p_stock_count: number
+          p_subtype: string
+          p_title: string
+        }
+        Returns: string
+      }
+      shops_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       split_special_requirements: {
         Args: { p_text: string }
         Returns: { access: string; materials: string }[]

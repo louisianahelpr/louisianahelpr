@@ -1712,15 +1712,14 @@ BEGIN
 
   -- Shops slice 1 (20261015123029) and slice 2 (20261016212915): the
   -- member's own shop (who checked its registration and who hid it are staff
-  -- ids, dropped; the hide reason is about them and stays), its hours, photo
-  -- paths, the shops they follow, their items and item photos, the item
+  -- ids, dropped; the hide reason is about them and stays), photo paths, the shops they follow, their items and item photos, the item
   -- review state (the AI and word-check reasons are staff-only, dropped; the
   -- admin's note stays), the confirmations they ticked, and the home-food
-  -- yearly confirmations and counted sales.
+  -- yearly confirmations and counted sales. Opening hours (shop_hours) carry
+  -- no person column and are public on the shop page, so they stay out, as
+  -- every table without one does.
   v_out := v_out || jsonb_build_object('shops', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'sos_verified_by' - 'hidden_by'), '[]'::jsonb) FROM public.shops t
       WHERE t.owner_id = v_uid));
-  v_out := v_out || jsonb_build_object('shop_hours', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_hours t
-      WHERE t.shop_id IN (SELECT s.id FROM public.shops s WHERE s.owner_id = v_uid)));
   v_out := v_out || jsonb_build_object('shop_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_photos t
       WHERE t.owner_id = v_uid));
   v_out := v_out || jsonb_build_object('shop_follows', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_follows t

@@ -780,6 +780,12 @@ export const GAPS: Record<string, string> = {
   // contact-leak trigger on name/about/area) as pinned by src/test/pglite/shopsProfiles.pglite.mjs. A FORMS sweep is owed
   // once the switch reaches testers.
   "src/components/shops/ShopEditView.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsProfiles.pglite.mjs; FORMS sweep owed once on for testers",
+  // Shops slice 2 (2026-10-16): items, behind the same switch (off). The server refuses each field (fixed kind/type
+  // list, title 3-80, description <= 2000, price $1-$1,000, lead time 0-60, stock 0-9999, daily limit 1-200,
+  // contact-leak trigger on title/description) as pinned by src/test/pglite/shopsItems.pglite.mjs.
+  "src/components/shops/ShopItemEditor.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
+  "src/components/shops/ShopItemsSection.tsx": "behind the 'shops' switch (off); the daily order limit (1-200) is pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
+  "src/components/admin/settings/ShopItemsReviewCard.tsx": "admin-only, behind the 'shops' switch (off); the reject reason (required, <= 500) is pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
   // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
   // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.

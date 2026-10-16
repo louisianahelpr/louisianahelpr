@@ -77,6 +77,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
+  ('shop_cottage_cap_reached',      'deny',     'Shops slice 2 (20261016212915): TRUE = the owner is at the yearly home-food limit, so new home-food listings (and orders) are refused; a NULL owner is TRUE (fails safe)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),

@@ -98,7 +98,7 @@ function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
 const ITEM = {
   id: "i1", seller_id: "u1", status: "pending_review", title: "Oak rocking chair", description: "Solid oak.",
   category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 4000, current_price_cents: 4000,
-  area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null,
+  area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null, porch_ok: true,
 };
 
 describe("Declutter screens", () => {
@@ -230,11 +230,13 @@ describe("Declutter controls are the shared ones", () => {
     expect(seen).toBeGreaterThan(5);
   });
 
-  it("the four tax confirmations are the shared Checkbox, not native inputs", async () => {
+  it("the four tax confirmations and the porch switch are the shared Checkbox, not native inputs", async () => {
     state.item = { ...ITEM, status: "draft" };
     at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
     const boxes = await screen.findAllByRole("checkbox");
-    expect(boxes.length).toBe(4);
+    expect(boxes.length).toBe(5);
+    // Row 101: porch pickup is on by default for a listing.
+    expect(screen.getByRole("checkbox", { name: /Porch pickup/ })).toHaveAttribute("aria-checked", "true");
     for (const b of boxes) expect(b.tagName).toBe("BUTTON");
     expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
     // Each statement is the box's label.

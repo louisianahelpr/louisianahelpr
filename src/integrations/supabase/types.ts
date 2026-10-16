@@ -1394,6 +1394,7 @@ export type Database = {
           last_price_drop_on: string | null
           live_at: string | null
           in_moving_sale: boolean
+          porch_ok: boolean
           price_cents: number
           price_dropped_at: string | null
           relist_count: number
@@ -1421,6 +1422,7 @@ export type Database = {
           last_price_drop_on?: string | null
           live_at?: string | null
           in_moving_sale?: boolean
+          porch_ok?: boolean
           price_cents: number
           price_dropped_at?: string | null
           relist_count?: number
@@ -1448,6 +1450,7 @@ export type Database = {
           last_price_drop_on?: string | null
           live_at?: string | null
           in_moving_sale?: boolean
+          porch_ok?: boolean
           price_cents?: number
           price_dropped_at?: string | null
           relist_count?: number
@@ -8806,6 +8809,7 @@ export type Database = {
           my_side: string
           order_id: string | null
           order_status: string | null
+          porch_ok: boolean
           premium_cents: number | null
           price_cents: number
           seller_id: string
@@ -9036,6 +9040,10 @@ export type Database = {
         Returns: number
       }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
+      declutter_set_porch_ok: {
+        Args: { p_item_id: string; p_porch_ok: boolean }
+        Returns: boolean
+      }
       declutter_set_porch_time: {
         Args: { p_mode: string; p_order_id: string; p_until: string }
         Returns: undefined

@@ -977,16 +977,15 @@ async function settleCheckoutSession(
     const updateData: any = {
       stripe_payment_intent_id: piId,
       // Sync (card/Link): capture escrow status immediately.
-      // Async (ACH): money is not captured yet — leave payment_status alone.
-      // Clear stripe_session_id for async so that if the debit bounces,
-      // paymentIntentPaymentFailed sees sessionAlreadyExpired = true and
-      // notifies the poster. checkout.session.expired only fires for sessions
-      // that time out from "open"; a completed ACH session never expires, so
-      // without this clear the session ID would remain set forever and the
-      // bounce notification would be permanently silenced.
-      ...(!isAsyncPayment
-        ? { payment_status: "escrow" }
-        : { stripe_session_id: null }),
+      // Async (ACH): money is not captured yet — leave payment_status alone until
+      // payment_intent.succeeded confirms capture. Do NOT clear stripe_session_id
+      // here: void-cancelled-payments treats a null session_id on an unpaid open
+      // job as "no checkout session ever started" and marks it abandoned within
+      // 1h — killing a live ACH job mid-debit-settlement.
+      // paymentIntentPaymentFailed instead checks the session status from Stripe
+      // directly: if session.status !== "open", the poster cannot retry on the
+      // same page and is notified immediately.
+      ...(!isAsyncPayment ? { payment_status: "escrow" } : {}),
     };
     // Q343: a `metadata.repay === "true"` branch used to flip the job straight
     // to payout_pending here. No checkout creator ever wrote that key (0 of the

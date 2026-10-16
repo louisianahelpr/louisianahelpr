@@ -318,11 +318,12 @@ describe("stripe-webhook edge function", () => {
     });
 
     // ME-046: ACH checkout completes with payment_status !== "paid". The job
-    // update must clear stripe_session_id so that paymentIntentPaymentFailed's
-    // sessionAlreadyExpired gate works: checkout.session.expired never fires
-    // for a completed session, so without this clear the session ID stays set
-    // forever and a bounced debit never notifies the poster.
-    it("clears stripe_session_id on async (ACH) checkout completion", async () => {
+    // update records the PI id but does NOT touch payment_status or
+    // stripe_session_id. void-cancelled-payments treats null stripe_session_id
+    // + unpaid + open as "no checkout ever started" and marks the job abandoned
+    // within 1h — clearing it would kill a live ACH job mid-settlement.
+    // paymentIntentPaymentFailed checks the Stripe session status directly instead.
+    it("does not touch payment_status or stripe_session_id on async (ACH) checkout completion", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_ach_complete",
@@ -344,7 +345,7 @@ describe("stripe-webhook edge function", () => {
       const payload = jobWrite?.payload as Record<string, unknown>;
       expect(payload.stripe_payment_intent_id).toBe("pi_ach");
       expect(payload.payment_status).toBeUndefined();
-      expect(payload.stripe_session_id).toBeNull();
+      expect(payload.stripe_session_id).toBeUndefined();
     });
 
     // Q1419 (lh-money-escrow review of the Q975 race-15 fix): the escrow write
@@ -1045,6 +1046,64 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | payment_status.eq.failed | payment_status.eq.NEVER
+  describe("payment_intent.succeeded", () => {
+    it("promotes a card-declined-then-ACH-succeeded job from failed to escrow", async () => {
+      // Bug 3 (ME-046): a card decline within the same checkout session marks the
+      // job 'failed' first. When the poster retries with ACH and the debit settles,
+      // paymentIntentSucceeded must recognise 'failed' as a promotable state.
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pi_succeeded_failed",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_ach_after_card_fail",
+            amount: 5000,
+            amount_details: { tax: { total_tax_amount: 0 } },
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "failed", sales_tax_amount: 0, is_seed: true }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const escrowWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+      );
+      expect(escrowWrite).toBeDefined();
+      // CAS filter must include 'failed' so the update actually matches.
+      expect(JSON.stringify(escrowWrite?.filters)).toMatch(/payment_status\.eq\.failed/);
+    });
+
+    it("does not promote a job that is already in escrow (sync card payment)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pi_succeeded_escrow",
+        type: "payment_intent.succeeded",
+        data: {
+          object: {
+            id: "pi_card",
+            amount: 5000,
+            amount_details: { tax: { total_tax_amount: 0 } },
+          },
+        },
+      });
+      // Job is already escrow (sync card payment — PI.succeeded also fires for cards).
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow", sales_tax_amount: 0, is_seed: true }],
+      };
+      // write-select returns no rows (CAS guard matched 0 rows — correct).
+      scenario.writeSelectRows.jobs = [];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const escrowWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+      );
+      expect(escrowWrite).toBeUndefined();
+    });
+  });
+
   describe("payment_intent.payment_failed", () => {
     // Q769: a decline is retryable inside the open Checkout Session, so the
     // "job isn't posted" notice waits for checkout.session.expired.
@@ -1080,9 +1139,11 @@ describe("stripe-webhook edge function", () => {
       expect(notif).toBeUndefined();
     });
 
-    // ME-046: an ACH debit that bounces after the Checkout Session expires (stripe_session_id
-    // is null by then) skips the "wait for expiry" gate and notifies the poster immediately.
-    it("notifies the poster immediately when the Checkout Session has already expired (ACH bounce)", async () => {
+    // ME-046: stripe_session_id is null when checkoutSessionExpired already cleared it
+    // (session window expired before the ACH bounce arrived). checkSessionStatus
+    // short-circuits to closed=true for null → notify immediately.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (!sessionId) return { closed: true, clearSessionId: false }; | if (!sessionId) return { closed: false, clearSessionId: false };
+    it("notifies the poster immediately when stripe_session_id is null (session already cleared)", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_fail_ach",
@@ -1102,6 +1163,197 @@ describe("stripe-webhook edge function", () => {
       const notif = scenario.writes.find((w) => w.table === "notifications");
       expect(notif).toBeDefined();
       expect((notif?.payload as Record<string, unknown>).link).toBe("/post-job");
+    });
+
+    // ME-046: ACH session is "complete" immediately at Checkout but the debit can
+    // bounce days later. stripe_session_id is still set (not null), so
+    // checkSessionStatus must check live status — "complete" + same PI + failed
+    // status → notify + clear stripe_session_id so a new checkout is allowed.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | return { closed: true, clearSessionId: true }; | return { closed: false, clearSessionId: false };
+    it("notifies immediately and clears stripe_session_id when Checkout Session is complete (ACH bounce)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_ach_complete",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_ach_bounced",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      // Expanded session: PI id matches, status is requires_payment_method (ACH bounced).
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_ach_bounced", status: "requires_payment_method" },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_ach_done" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      // Notification must fire.
+      const notif = scenario.writes.find((w) => w.table === "notifications");
+      expect(notif).toBeDefined();
+      expect((notif?.payload as Record<string, unknown>).link).toBe("/post-job");
+      // stripe_session_id must be cleared so create-payment can mint a new checkout.
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).stripe_session_id).toBeNull();
+    });
+
+    // B1: card decline marks job 'failed', poster retries with ACH on same session,
+    // ACH bounces. The update must still match even though payment_status is already
+    // 'failed', and must clear stripe_session_id so a new checkout is allowed.
+    it("clears stripe_session_id and notifies when ACH bounces after prior card decline (B1)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_ach_after_card",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_ach_after_card",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_ach_after_card", status: "requires_payment_method" },
+      });
+      // Job is already 'failed' from the prior card decline.
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "failed", stripe_session_id: "cs_ach_after_card" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      // Notification fires.
+      const notif = scenario.writes.find((w) => w.table === "notifications");
+      expect(notif).toBeDefined();
+      // stripe_session_id cleared so a new checkout is allowed.
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).stripe_session_id).toBeNull();
+      // CAS filter must include 'failed'.
+      expect(JSON.stringify(jobWrite?.filters)).toMatch(/payment_status\.eq\.failed/);
+    });
+
+    // B2: late re-delivery of a card-decline event after ACH checkout completed —
+    // the session's PaymentIntent is now "pi_ach" (processing), not "pi_card".
+    // The event must be acked with no write so the live ACH job is not falsely failed.
+    it("acks with no write when the session's PI is processing (stale card-decline event, B2)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_stale_card",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_stale_card",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      // Session is complete, but its PI is "pi_ach_processing" — different from
+      // "pi_stale_card". ACH is still in flight.
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_ach_processing", status: "processing" },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_ach_processing" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      // No write, no notification — job must stay unpaid with session intact.
+      expect(scenario.writes.find((w) => w.table === "jobs")).toBeUndefined();
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
+    });
+
+    // N1/N2: same-PI allow-list tests. The deny-list approach missed requires_action
+    // (microdeposits / bank-transfer in progress) — both us_bank_account and
+    // customer_balance are ON in this account. The fix: allow-list — only
+    // requires_payment_method and canceled are genuine failures.
+    //
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | piStatus !== "requires_payment_method" && piStatus !== "canceled" | false
+    it("N2: acks with no write when SAME PI status is processing (bank debit still settling)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_same_pi_processing",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_same_processing",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      // Same PI, status "processing" — the debit is still in flight.
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_same_processing", status: "processing" },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_bank" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(scenario.writes.find((w) => w.table === "jobs")).toBeUndefined();
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
+    });
+
+    it("N2: acks with no write when SAME PI status is requires_action (microdeposit verification in progress)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_same_pi_requires_action",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_same_requires_action",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      // Same PI, status "requires_action" — microdeposit or bank-transfer still needs
+      // customer action. This must NEVER be treated as a payment failure.
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_same_requires_action", status: "requires_action" },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_microdeposit" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(scenario.writes.find((w) => w.table === "jobs")).toBeUndefined();
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
+    });
+
+    // Q1: CAS false-branch must NOT include 'failed' — a null-session failed job was
+    // already handled by checkoutSessionExpired; including 'failed' would let a late
+    // payment_failed retry fire a second "Payment failed" notice.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | "payment_status.is.null,payment_status.eq.unpaid" | "payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed"
+    it("uses a CAS filter without 'failed' when stripe_session_id is null (prevents double-notice)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_null_failed",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_null_failed",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      // null session_id short-circuits checkSessionStatus → closed=true, clearSessionId=false.
+      // CAS (false branch): null,unpaid — must NOT include 'failed'.
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "failed", stripe_session_id: null }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      // The update runs but its CAS must NOT include 'failed' — in prod, a 'failed'
+      // job matches zero rows, so checkoutSessionExpired's prior notice is the only one.
+      expect(jobWrite).toBeDefined();
+      expect(JSON.stringify(jobWrite?.filters)).not.toMatch(/payment_status\.eq\.failed/);
     });
 
     it("the session expiring on a still-failed job tells the poster it isn't posted", async () => {

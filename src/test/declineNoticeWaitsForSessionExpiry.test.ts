@@ -7,12 +7,16 @@
  * only handlers allowed to send the not-posted notice are those that fire after
  * the session can no longer be paid:
  *   - checkoutSessionExpired: the session window is over.
- *   - paymentIntentPaymentFailed: only when stripe_session_id is null, meaning
- *     the session already expired days before the ACH bounce arrived (ME-046).
- *     A card decline inside a live session is retryable, so that path is still
- *     routed through checkoutSessionExpired.
+ *   - paymentIntentPaymentFailed: only when the Checkout Session is no longer
+ *     "open" (ME-046 / Q769). Checks live session status via checkSessionStatus:
+ *     a null stripe_session_id short-circuits to closed=true, a "complete"
+ *     session runs an allow-list check on the PI status — only
+ *     requires_payment_method or canceled returns closed=true (genuine failure);
+ *     any other status (processing, requires_action, succeeded, etc.) is stale.
+ *     An "open" session returns closed=false (poster can still retry — no
+ *     notice), and "expired" returns closed=false (checkoutSessionExpired
+ *     handles that path).
  *
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | sessionAlreadyExpired = !(failedJob as any).stripe_session_id | sessionAlreadyExpired = true
  * @mutate src/pages/post-job/useJobSubmit.ts | safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId); | void jobId;
  * @mutate src/pages/post-job/EntryChoice.tsx | form.hasDraft && draftCheckout !== "paid" && | form.hasDraft &&
  * @mutate src/pages/post-job/useDraftCheckoutState.ts | return row.stripe_session_id ? "open" : "none"; | return "none";
@@ -47,11 +51,11 @@ describe("Q769: the not-posted notice waits for session expiry", () => {
     expect(src).toMatch(/released\.payment_status === "failed"/);
   });
 
-  it("paymentIntentPaymentFailed's not-posted notice is gated behind stripe_session_id being null", () => {
+  it("paymentIntentPaymentFailed's not-posted notice is gated on the Checkout Session no longer being open", () => {
     const src = read(join(HANDLERS, "paymentIntentPaymentFailed.ts"));
-    // Guard: only fires when the checkout session has already cleared (can no longer be paid).
-    expect(src).toMatch(/sessionAlreadyExpired\s*=\s*!\(failedJob/);
-    expect(src).toMatch(/if \(sessionAlreadyExpired && failedJob\.customer_id\)/);
+    // Guard: checkSessionStatus determines whether the poster can still retry.
+    expect(src).toMatch(/checkSessionStatus/);
+    expect(src).toMatch(/if \(closed && failedJob\.customer_id\)/);
   });
 });
 

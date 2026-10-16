@@ -296,7 +296,7 @@ export default function MoveFlow() {
         <label className="block text-sm font-medium" htmlFor="move-address">Pickup address</label>
         <input id="move-address" className={input} maxLength={300} value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
         <p className="text-xs text-muted-foreground">
-          Buyers see your area and roughly when you move ("soon" or the month), never the date. Only the buyer who pays sees the address.
+          Buyers see your area and the month you move out, never the date. Only the buyer who pays sees the address.
         </p>
         {current && date && date !== current && !dateProblem && (
           <Button type="button" variant="outline" size="sm" disabled={changingDate} onClick={() => void onChangeDate(date)}>

@@ -68,12 +68,11 @@ export function formatMoveDate(date: string): string {
 
 /**
  * The banner's line, plain words. Other members never get the exact date
- * (declutter_seller_moving_sale returns "soon" or the month only): a date and
- * an address together say when a home will be empty.
+ * (declutter_seller_moving_sale returns the month only): a date and an
+ * address together say when a home will be empty.
  */
-export function movingSaleLine(soon: boolean, moveMonth: string, count: number, more = false): string {
+export function movingSaleLine(moveMonth: string, count: number, more = false): string {
   const items = more ? `${count}+ items for sale` : `${count} ${count === 1 ? "item" : "items"} for sale`;
-  if (soon) return `Moving out soon. ${items}.`;
   const [y, m] = moveMonth.split("-").map(Number);
   const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
   return `Moving out in ${month}. ${items}.`;
@@ -236,7 +235,6 @@ export async function fetchMyMoveOutDate(): Promise<string | null> {
 const MOVING_SALE_READ_LIMIT = 100;
 
 export interface SellerMovingSale {
-  soon: boolean;
   /** First of the move-out month, YYYY-MM-DD. Never the date itself. */
   moveMonth: string;
   items: MoveItem[];
@@ -247,7 +245,7 @@ export interface SellerMovingSale {
 export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMovingSale | null> {
   const { data, error } = await supabase.rpc("declutter_seller_moving_sale", { p_seller_id: sellerId });
   if (error) rpcFail("declutter_seller_moving_sale", error);
-  const sale = ((data ?? []) as { moving_soon: boolean; move_month: string }[])[0];
+  const sale = ((data ?? []) as { move_month: string }[])[0];
   if (!sale) return null;
   const rows = (unwrap(
     await supabase
@@ -260,7 +258,7 @@ export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMov
       .limit(MOVING_SALE_READ_LIMIT + 1),
   ) ?? []) as MoveItem[];
   if (rows.length === 0) return null;
-  return { soon: sale.moving_soon, moveMonth: sale.move_month, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
+  return { moveMonth: sale.move_month, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
 }
 
 export type PublishOutcome = { id: string; status: "live" | "pending_review" } | { id: string; error: unknown };

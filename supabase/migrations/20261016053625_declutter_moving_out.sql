@@ -24,8 +24,8 @@
 -- DATE sits in declutter_item_private (no client role can read that table;
 -- it already holds the pickup address), and declutter_items carries only
 -- in_moving_sale (a yes/no that groups the listings). Other members get a
--- coarse label ("soon" or the month) from declutter_seller_moving_sale(),
--- behind both switches, and nothing once the date has passed. No new table:
+-- coarse label (the MONTH only) from declutter_seller_moving_sale(), behind
+-- both switches; nothing they can see changes on the day itself. No new table:
 -- account deletion (cascade) and Download My Data (to_jsonb of both rows)
 -- already cover the two columns.
 --
@@ -284,12 +284,14 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_my_move_out_date() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_my_move_out_date() TO authenticated, service_role;
 
--- 8. A seller's moving sale as OTHER members see it: never the date, only
---    'soon' (within 14 days) or the month (first of it), and only while the
---    date has not passed and the seller has a moving-sale item for sale. No
---    row for a hidden seller (banned, 3 strikes...) or a blocked pair.
+-- 8. A seller's moving sale as OTHER members see it: the move-out MONTH
+--    (its first day), never the date. It depends on the calendar alone: the
+--    row stays until that month is over, so checking daily cannot reveal the
+--    day (lh-authz-rls re-review 1: a 'soon' flag flipping 14 days before, or
+--    the row vanishing the day after, gave the date away). No row for a
+--    hidden seller (banned, 3 strikes...) or a blocked pair.
 CREATE OR REPLACE FUNCTION public.declutter_seller_moving_sale(p_seller_id uuid)
-RETURNS TABLE(moving_soon boolean, move_month date)
+RETURNS TABLE(move_month date)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -315,10 +317,9 @@ BEGIN
    WHERE i.seller_id = p_seller_id
      AND i.in_moving_sale
      AND i.status IN ('live', 'reserved');
-  IF v_date IS NULL OR v_date < v_today THEN
+  IF v_date IS NULL OR v_date < date_trunc('month', v_today)::date THEN
     RETURN;
   END IF;
-  moving_soon := v_date <= v_today + 14;
   move_month := date_trunc('month', v_date)::date;
   RETURN NEXT;
 END;

@@ -132,10 +132,10 @@ describe("dates", () => {
     expect(formatMoveDate("2026-11-14")).toBe("Saturday, Nov 14");
   });
 
-  it("the banner line says roughly when (never the date), in plain words", () => {
-    expect(movingSaleLine(false, "2026-11-01", 12)).toBe("Moving out in November. 12 items for sale.");
-    expect(movingSaleLine(true, "2026-10-01", 1)).toBe("Moving out soon. 1 item for sale.");
-    expect(movingSaleLine(false, "2027-01-01", 100, true)).toBe("Moving out in January. 100+ items for sale.");
+  it("the banner line says the month (never the date), in plain words", () => {
+    expect(movingSaleLine("2026-11-01", 12)).toBe("Moving out in November. 12 items for sale.");
+    expect(movingSaleLine("2026-10-01", 1)).toBe("Moving out in October. 1 item for sale.");
+    expect(movingSaleLine("2027-01-01", 100, true)).toBe("Moving out in January. 100+ items for sale.");
   });
 });
 
@@ -217,9 +217,9 @@ describe("server calls", () => {
     expect(await fetchMyMoveOutDate()).toBeNull();
 
     // The coarse reader first, then the items (RLS).
-    h.queue.push({ data: [{ moving_soon: false, move_month: "2026-11-01" }], error: null }, { data: [{ id: "x" }, { id: "y" }], error: null });
+    h.queue.push({ data: [{ move_month: "2026-11-01" }], error: null }, { data: [{ id: "x" }, { id: "y" }], error: null });
     const sale = await fetchSellerMovingSale("seller");
-    expect(sale).toMatchObject({ soon: false, moveMonth: "2026-11-01", more: false });
+    expect(sale).toMatchObject({ moveMonth: "2026-11-01", more: false });
     expect(sale?.items).toHaveLength(2);
     expect(h.rpcs[h.rpcs.length - 1]).toEqual(["declutter_seller_moving_sale", { p_seller_id: "seller" }]);
     expect(h.queries[h.queries.length - 1].ops).toContainEqual(["in", ["status", ["live", "reserved"]]]);
@@ -230,7 +230,7 @@ describe("server calls", () => {
     expect(await fetchSellerMovingSale("nobody")).toBeNull();
     expect(h.queries.length).toBe(before);
 
-    h.queue.push({ data: [{ moving_soon: true, move_month: "2026-10-01" }], error: null }, { data: Array.from({ length: 101 }, (_, i) => ({ id: String(i) })), error: null });
+    h.queue.push({ data: [{ move_month: "2026-10-01" }], error: null }, { data: Array.from({ length: 101 }, (_, i) => ({ id: String(i) })), error: null });
     const big = await fetchSellerMovingSale("busy");
     expect([big?.items.length, big?.more]).toEqual([100, true]);
   });
@@ -241,7 +241,7 @@ describe("server calls", () => {
   });
 
   it("a failed read throws (unwrap), it is never an empty list", async () => {
-    h.queue.push({ data: [{ moving_soon: true, move_month: "2026-10-01" }], error: null }, { data: null, error: { message: "boom", code: "42501" } });
+    h.queue.push({ data: [{ move_month: "2026-10-01" }], error: null }, { data: null, error: { message: "boom", code: "42501" } });
     await expect(fetchSellerMovingSale("seller")).rejects.toBeTruthy();
   });
 });

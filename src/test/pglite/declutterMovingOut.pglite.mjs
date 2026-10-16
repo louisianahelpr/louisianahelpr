@@ -157,14 +157,27 @@ ok(refused(await me(BUYER, `SELECT move_out_on FROM public.declutter_items LIMIT
 ok(refused(await me(BUYER, `SELECT move_out_on FROM public.declutter_item_private LIMIT 1`), /permission denied/),
   "and the private half (where the date is) is closed to every member");
 const seen = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
-ok(Array.isArray(seen) && seen.length === 1 && Object.keys(seen[0]).sort().join() === "move_month,moving_soon",
-  "another member gets only 'soon' and the month, never the date");
-ok(Array.isArray(seen) && seen[0]?.moving_soon === false, "30 days out is not 'soon'");
-await me(SELLER, `SELECT public.declutter_set_move_out_date(${today} + 3)`);
-ok(one(await me(BUYER, `SELECT moving_soon FROM public.declutter_seller_moving_sale('${SELLER}')`)) === true, "3 days out is 'soon'");
+ok(Array.isArray(seen) && seen.length === 1 && Object.keys(seen[0]).join() === "move_month",
+  "another member gets only the month, never the date");
+// The answer is the stored date's MONTH and nothing else (re-review 1): no
+// 'soon' flag, no count of days. Checked for every offset 0-40 days out (the
+// static guard pins the body; PGlite cannot move the clock itself).
+let monthOnly = true;
+for (let off = 0; off <= 40; off += 1) {
+  await svc(`UPDATE public.declutter_item_private SET move_out_on = ${today} + ${off} WHERE item_id = '${SALE_ITEM}'`);
+  const got = one(await me(BUYER, `SELECT move_month::text FROM public.declutter_seller_moving_sale('${SELLER}')`));
+  const want = one(await svc(`SELECT date_trunc('month', ${today} + ${off})::date::text`));
+  if (got !== want) monthOnly = false;
+}
+ok(monthOnly, "for every date 0-40 days out the answer is exactly that date's month");
 await svc(`UPDATE public.declutter_item_private SET move_out_on = ${today} - 1 WHERE item_id = '${SALE_ITEM}'`);
-const after = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
-ok(Array.isArray(after) && after.length === 0, "after the date has passed, nothing (never 'moved out')");
+const dayAfter = one(await me(BUYER, `SELECT move_month::text FROM public.declutter_seller_moving_sale('${SELLER}')`));
+const firstOfMonth = one(await svc(`SELECT (${today} = date_trunc('month', ${today})::date) AS f`));
+ok(firstOfMonth ? dayAfter === undefined : typeof dayAfter === "string",
+  "the day after the date, the label is still there (it ends with the month, never on the day)");
+await svc(`UPDATE public.declutter_item_private SET move_out_on = date_trunc('month', ${today})::date - 1 WHERE item_id = '${SALE_ITEM}'`);
+const lastMonth = await me(BUYER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`);
+ok(Array.isArray(lastMonth) && lastMonth.length === 0, "a move-out month that is over shows nothing");
 await svc(`UPDATE public.declutter_item_private SET move_out_on = ${today} + 3 WHERE item_id = '${SALE_ITEM}'`);
 ok(refused(await me(OUTSIDER, `SELECT * FROM public.declutter_seller_moving_sale('${SELLER}')`), /feature_disabled/), "the reader is behind the switches");
 await svc(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'declutter_moving_out'`);

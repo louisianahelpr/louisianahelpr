@@ -11,7 +11,8 @@
  * @mutate src/lib/declutter/delivery.ts | export const DELIVERY_PER_MILE_CENTS = 200; | export const DELIVERY_PER_MILE_CENTS = 150;
  * @mutate src/lib/declutter/delivery.ts |   const miles = Math.max(1, Math.ceil(Number.isFinite(roadMiles) ? roadMiles : 1)); |   const miles = Math.max(0, Math.floor(Number.isFinite(roadMiles) ? roadMiles : 0));
  * @mutate src/lib/declutter/delivery.ts |   return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70); |   return pay - Math.round((pay * 5) / 100);
- * @mutate src/lib/helprTasks/api.ts |   if (result.error) unwrap(result); |   void unwrap;
+ * @mutate src/lib/helprTasks/api.ts |   if (!result.error) return result.data as T; |   return result.data as T;
+ * @mutate src/lib/helprTasks/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     void msg;
  * @mutate src/lib/helprTasks/api.ts | `${userId}/task/${taskId}/${nonce()}.jpg` | `${userId}/${taskId}/${nonce()}.jpg`
  */
 import { readFileSync } from "node:fs";
@@ -201,6 +202,8 @@ describe("Helpr task calls", () => {
     const err = await acceptTask("t1", "2026-10-20T15:00:00.000Z").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(Error);
     expect(declutterErrorMessage(err)).toBe("Another Helpr took this delivery, or it closed.");
+    // ...and carries the RPC's own words (RPC_ERROR_COPY) for the shared error toasts.
+    expect(typeof (err as { userMessage?: unknown }).userMessage).toBe("string");
   });
 
   it("vehicle: reads the caller's row and saves through the RPC", async () => {

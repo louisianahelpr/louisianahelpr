@@ -92,6 +92,13 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
   });
 
+  it("the seller never gets the buyer's \"I got it\", even once the Helpr has the item", async () => {
+    state.view = { ...VIEW, role: "pickup_contact", status: "delivered", delivered_at: "2026-10-17T21:00:00Z", dropoff_photo_path: "h/task/t1/d.jpg" };
+    show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    expect(await screen.findByAltText("At the drop-off")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+  });
+
   it("left at the door: the photo shows and the buyer's \"I got it\" confirms", async () => {
     state.view = { ...VIEW, status: "delivered", delivered_at: "2026-10-17T21:00:00Z", dropoff_photo_path: "h/task/t1/d.jpg", pickup_photo_path: "h/task/t1/p.jpg" };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);

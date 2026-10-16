@@ -53,6 +53,12 @@ export const IDENTITY_SUBFOLDERS = [
   // Porch and problem photos (20261015092723): the PRIVATE declutter-handover
   // bucket, same <uid>/declutter/ folder, erased with the account as before.
   { bucket: "declutter-handover", folder: "declutter" },
+  // A Helpr's truck photo (20261016053945, row 41; it may show a plate): the
+  // PRIVATE helpr-tasks bucket at <uid>/vehicle/. The task photos beside it
+  // (<uid>/task/<task>/) stay: they are the pickup and door evidence of a
+  // delivery whose task row survives the account (helpr_id SET NULL), the
+  // buyer's and seller's record of the handover, as proof-photos are.
+  { bucket: "helpr-tasks", folder: "vehicle" },
 ] as const;
 
 /**
@@ -71,11 +77,12 @@ export const IDENTITY_SUBFOLDERS = [
  *
  * TEMPORARY: an entry is retired once its bucket exists on prod (for
  * declutter-handover: `select id from storage.buckets where id =
- * 'declutter-handover'` returns a row, i.e. 20261015092723 applied). Then
+ * 'declutter-handover'` returns a row, i.e. 20261015092723 applied; for
+ * helpr-tasks the same with 20261016053945). Then
  * empty this list and set the EXACT check in
  * src/test/declutterPhotosPurged.test.ts to [] in the same commit.
  */
-export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover"];
+export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks"];
 
 /**
  * Splits the subfolder buckets Storage does not have into the ones whose

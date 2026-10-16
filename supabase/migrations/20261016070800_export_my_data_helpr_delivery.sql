@@ -6,8 +6,9 @@
 -- (actor_id), helpr_task_payouts (helpr_id), declutter_delivery_dropoffs
 -- (buyer_id; seller_id is the other side of the order and never gets the
 -- buyer's address). Each section is scoped to the caller by that column only,
--- and strips what is not the member's: the buyer's drop-off code from the
--- Helpr's task, the Stripe transfer id and error text from a payout.
+-- and strips what is not the member's: from the Helpr's task the buyer's
+-- drop-off code, both parties' exact addresses, points and ids, and the staff
+-- close note; from a payout the Stripe transfer id and error text.
 --
 -- The body is 20261015092457's export_my_data (the NEWEST on this branch,
 -- checked 2026-10-16) verbatim plus those five sections. Any later
@@ -303,12 +304,15 @@ BEGIN
       WHERE t.user_id = v_uid));
 
   -- Slice 5, Helpr delivery (20261016053945): the Helpr's vehicle, the
-  -- deliveries the member made as the Helpr (without the buyer's drop-off code),
+  -- deliveries the member made as the Helpr (area words only: the buyer's and
+  -- the seller's exact addresses, points and ids, the drop-off code and the
+  -- staff close note belong to them or to us, not the Helpr),
   -- the steps they took on any delivery, their delivery pay (the Stripe transfer
   -- id is ours), and the drop-off addresses they typed as a buyer.
   v_out := v_out || jsonb_build_object('helpr_vehicles', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_vehicles t
       WHERE t.user_id = v_uid));
-  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'dropoff_code'), '[]'::jsonb) FROM public.helpr_tasks t
+  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'dropoff_code' - 'pickup_address' - 'pickup_lat' - 'pickup_lng'
+      - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' - 'customer_id' - 'pickup_contact_id' - 'close_note'), '[]'::jsonb) FROM public.helpr_tasks t
       WHERE t.helpr_id = v_uid));
   v_out := v_out || jsonb_build_object('helpr_task_events', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_task_events t
       WHERE t.actor_id = v_uid));

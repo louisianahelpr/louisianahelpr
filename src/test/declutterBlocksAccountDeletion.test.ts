@@ -7,6 +7,11 @@
  *
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!declutter.ok \|\| declutter.active) return declutter; |   void declutter;
  * @mutate supabase/functions/_shared/accountPurge.ts |     .in("status", ["in_cart", "paid"]) |     .in("status", ["in_cart"])
+ * @mutate supabase/functions/_shared/accountPurge.ts |   if (!tasks.ok \|\| tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks; |   void tasks;
+ * @mutate supabase/functions/_shared/accountPurge.ts |   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending"]); |   const pay = { ok: true, active: false } as ActiveWorkResult;
+ *
+ * Slice 5 (Helpr delivery): a Helpr mid-delivery (holding someone's item) or
+ * with delivery pay still pending cannot delete their account either.
  */
 import { describe, expect, it } from "vitest";
 
@@ -55,6 +60,7 @@ function fakeAdmin(tables: Tables) {
 const BUYER = "11111111-1111-4111-8111-111111111111";
 const SELLER = "22222222-2222-4222-8222-222222222222";
 const line = (status: string): Row => ({ id: "l1", buyer_id: BUYER, seller_id: SELLER, status });
+const HELPR = "33333333-3333-4333-8333-333333333333";
 
 describe("a Declutter sale in flight blocks deleting either party's account", () => {
   it("a line waiting for checkout, or paid (money held), blocks the buyer AND the seller", async () => {
@@ -78,5 +84,37 @@ describe("a Declutter sale in flight blocks deleting either party's account", ()
     expect(absent).toMatchObject({ ok: true, active: false });
     const down = await findActiveWork(fakeAdmin({ declutter_cart_items: { error: { code: "08006", message: "connection reset" } } }), BUYER);
     expect(down.ok).toBe(false);
+  });
+});
+
+describe("a Helpr delivery in flight blocks deleting the Helpr's account", () => {
+  it("a taken, picked-up or left-at-the-door delivery blocks; open, finished or failed ones do not", async () => {
+    for (const status of ["accepted", "picked_up", "delivered"]) {
+      const r = await findActiveWork(fakeAdmin({ helpr_tasks: [{ id: "t1", helpr_id: HELPR, status }] }), HELPR);
+      expect(r, status).toMatchObject({ ok: true, active: true, reason: "declutter" });
+    }
+    for (const status of ["confirmed", "failed", "cancelled", "unfilled"]) {
+      const r = await findActiveWork(fakeAdmin({ helpr_tasks: [{ id: "t1", helpr_id: HELPR, status }] }), HELPR);
+      expect(r, status).toMatchObject({ ok: true, active: false });
+    }
+    const other = await findActiveWork(fakeAdmin({ helpr_tasks: [{ id: "t1", helpr_id: BUYER, status: "accepted" }] }), HELPR);
+    expect(other).toMatchObject({ ok: true, active: false });
+  });
+
+  it("delivery pay still pending blocks; paid or nothing due does not", async () => {
+    const pending = await findActiveWork(fakeAdmin({ helpr_task_payouts: [{ id: "p1", helpr_id: HELPR, status: "pending" }] }), HELPR);
+    expect(pending).toMatchObject({ ok: true, active: true });
+    for (const status of ["succeeded", "nothing_due"]) {
+      const r = await findActiveWork(fakeAdmin({ helpr_task_payouts: [{ id: "p1", helpr_id: HELPR, status }] }), HELPR);
+      expect(r, status).toMatchObject({ ok: true, active: false });
+    }
+  });
+
+  it("before the tables exist nothing blocks; any other read error fails closed", async () => {
+    const missing = { error: { code: "42P01", message: 'relation "helpr_tasks" does not exist' } };
+    expect(await findActiveWork(fakeAdmin({ helpr_tasks: missing, helpr_task_payouts: missing }), HELPR)).toMatchObject({ ok: true, active: false });
+    const down = { error: { code: "08006", message: "connection reset" } };
+    expect((await findActiveWork(fakeAdmin({ helpr_tasks: down }), HELPR)).ok).toBe(false);
+    expect((await findActiveWork(fakeAdmin({ helpr_task_payouts: down }), HELPR)).ok).toBe(false);
   });
 });

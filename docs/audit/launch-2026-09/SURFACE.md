@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 156 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 639 (across 165 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 670 (across 168 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 23 |
-| Multi-step flows — probable | flow | 16 |
-| Back/next navigation only | flow | 39 |
-| Forms (submittable) | form | 42 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 131 |
+| Multi-step flows — probable | flow | 17 |
+| Back/next navigation only | flow | 40 |
+| Forms (submittable) | form | 43 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 132 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **490** |
-| **Copy surfaces** (strings a person may read) | mixed | **677** |
-| **Total auditable surface** | mixed | **1167** |
+| **Navigable surfaces** (places a person can stand) | mixed | **494** |
+| **Copy surfaces** (strings a person may read) | mixed | **708** |
+| **Total auditable surface** | mixed | **1202** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 156 | 130 | agree within method (script counts every menu instance) |
-| Forms | 42 | ~38 | agree |
+| Forms | 43 | ~38 | agree |
 | Confirmed multi-step flows | 23 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -362,6 +362,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/admin/AdminPayoutBatches.tsx` | union-state |
 | `src/components/admin/AdminReferrals.tsx` | union-state |
 | `src/components/admin/AdminSubscriptions.tsx` | union-state |
+| `src/components/admin/settings/DeclutterProblemsCard.tsx` | union-state |
 | `src/components/admin/userDetail/JobsTab.tsx` | union-state |
 | `src/components/MobileNav.tsx` | union-state |
 | `src/components/PaymentTab.tsx` | union-state |
@@ -380,6 +381,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 |---|---|
 | `src/components/admin/AdminSectionHeader.tsx` | nav-handler |
 | `src/components/AppPage.tsx` | nav-handler |
+| `src/components/declutter/DeclutterTradeViews.tsx` | nav-handler |
 | `src/components/messages/ChatHeader.tsx` | nav-handler |
 | `src/components/messages/ChatView.tsx` | nav-handler |
 | `src/components/PageHeader.tsx` | nav-handler |
@@ -439,6 +441,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
 - [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterItemView.tsx` (form tag)
+- [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)

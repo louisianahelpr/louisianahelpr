@@ -78,7 +78,9 @@ export async function geocodeDropoff(
   } catch {
     return { miss: "unavailable", status: res.status, detail: "the answer was not JSON" };
   }
-  const top = Array.isArray(rows) ? (rows[0] as { lat?: string; lon?: string; address?: Record<string, unknown> } | undefined) : undefined;
+  // A JSON answer that is not a list is the geocoder's own error object, never "no such address".
+  if (!Array.isArray(rows)) return { miss: "unavailable", status: res.status, detail: "the answer was not a list" };
+  const top = rows[0] as { lat?: string; lon?: string; address?: Record<string, unknown> } | undefined;
   if (!top) return { miss: "not_found" };
   const lat = Number.parseFloat(String(top.lat));
   const lng = Number.parseFloat(String(top.lon));

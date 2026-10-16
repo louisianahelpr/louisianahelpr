@@ -853,7 +853,7 @@ BEGIN
     PERFORM public.helpr_task_source_require_feature(t.source_kind);
     PERFORM public.helpr_task_assert_helpr();
     -- The same checks helpr_tasks_open_near applies (lh-authz-rls #8).
-    IF t.status <> 'open' OR NOT public.helpr_task_vehicle_fits(v_uid, t.size)
+    IF t.status <> 'open' OR t.open_until <= now() OR NOT public.helpr_task_vehicle_fits(v_uid, t.size)
        OR public.are_users_blocked(v_uid, t.customer_id) OR public.are_users_blocked(v_uid, t.pickup_contact_id)
        OR NOT public.helpr_task_same_stripe_mode(v_uid, t.customer_id) THEN
       RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
@@ -958,15 +958,26 @@ BEGIN
   -- Taking a delivery shows its pickup address, so taking and backing out must
   -- not be a way to collect addresses (lh-authz-rls review #4, 2026-10-16): a
   -- Helpr never takes back a delivery they backed out of or missed, and three
-  -- back-outs in 7 days pause taking new ones for the rest of that week.
+  -- back-outs or misses in 7 days pause taking new ones for the rest of that week.
   IF EXISTS (SELECT 1 FROM public.helpr_task_events e
               WHERE e.task_id = t.id AND e.actor_id = v_uid AND e.task_event IN ('released', 'helpr_no_show')) THEN
     RAISE EXCEPTION 'task_taken' USING ERRCODE = '55000', HINT = 'Another Helpr took this delivery, or it closed.';
   END IF;
+  IF public.helpr_task_source_held(t.source_kind, t.source_id) THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
+  END IF;
+  -- At most 2 deliveries taken and not yet picked up at a time, so a Helpr
+  -- cannot take every nearby delivery at once to read the addresses
+  -- (lh-authz-rls re-review #1, 2026-10-16).
+  IF (SELECT count(*) FROM public.helpr_tasks x WHERE x.helpr_id = v_uid AND x.status = 'accepted') >= 2 THEN
+    RAISE EXCEPTION 'too_many_taken' USING ERRCODE = '55000',
+      HINT = 'Pick up one of your deliveries before you take another.';
+  END IF;
   IF (SELECT count(*) FROM public.helpr_task_events e
-       WHERE e.actor_id = v_uid AND e.task_event = 'released' AND e.created_at > now() - interval '7 days') >= 3 THEN
+       WHERE e.actor_id = v_uid AND e.task_event IN ('released', 'helpr_no_show')
+         AND e.created_at > now() - interval '7 days') >= 3 THEN
     RAISE EXCEPTION 'too_many_releases' USING ERRCODE = '55000',
-      HINT = 'You backed out of 3 deliveries this week. You can take new ones again in a few days.';
+      HINT = 'You backed out of or missed 3 deliveries this week. You can take new ones again in a few days.';
   END IF;
   IF p_pickup_slot_start IS NULL OR p_pickup_slot_start <= now()
      OR p_pickup_slot_start + interval '30 minutes' > t.latest_pickup_at
@@ -1007,6 +1018,10 @@ BEGIN
   t := public.helpr_task_lock(p_task_id);
   IF t.helpr_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF t.status = 'accepted' AND public.helpr_task_source_held(t.source_kind, t.source_id) THEN
+    -- A problem is open on this sale: the task stays as it is until an admin decides.
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
   END IF;
   IF t.status <> 'accepted' THEN
     RAISE EXCEPTION 'already_picked_up' USING ERRCODE = '55000',
@@ -1072,6 +1087,9 @@ BEGIN
   END IF;
   IF t.status <> 'accepted' THEN
     RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';
+  END IF;
+  IF public.helpr_task_source_held(t.source_kind, t.source_id) THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
   END IF;
   IF NOT public.helpr_task_photo_ok(t.id, v_uid, p_photo_path) THEN
     RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
@@ -1224,7 +1242,7 @@ BEGIN
   END IF;
   PERFORM public.helpr_task_log(t.id, 'pickup_no_show', v_uid, format('%s m; photo %s', v_m, p_photo_path));
   -- The source decides through a person (Declutter: a problem for an admin).
-  RETURN public.helpr_task_source_event(t.id, 'pickup_no_show', v_m::text);
+  RETURN public.helpr_task_source_event(t.id, 'pickup_no_show', v_m::text || '|' || p_photo_path);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.helpr_task_pickup_no_show(uuid, text, numeric, numeric) FROM PUBLIC, anon;
@@ -1252,7 +1270,12 @@ BEGIN
   FOR r IN SELECT x.id FROM public.helpr_tasks x WHERE x.status = 'open' AND x.open_until <= now() ORDER BY x.id LIMIT 200 LOOP
     BEGIN
       t := public.helpr_task_lock(r.id);
-      IF t.status = 'open' AND t.open_until <= now() THEN
+      -- An open problem freezes the task: the admin decides the money, never
+      -- this sweep (lh-money-escrow re-review #1, 2026-10-16: the late
+      -- fall-through close would otherwise refund under the no-fault rule and
+      -- leave the problem undecidable).
+      IF t.status = 'open' AND t.open_until <= now()
+         AND NOT public.helpr_task_source_held(t.source_kind, t.source_id) THEN
         PERFORM public.helpr_task_close(t.id, 'unfilled', 'No Helpr took it in time');
         PERFORM public.helpr_task_source_event(t.id, 'unfilled', NULL);
         v_unfilled := v_unfilled + 1;
@@ -2004,6 +2027,7 @@ DECLARE
   t public.helpr_tasks;
   v_out jsonb;
   v_refund uuid;
+  v_problem uuid;
 BEGIN
   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
   SELECT * INTO t FROM public.helpr_tasks WHERE id = p_task;
@@ -2049,7 +2073,7 @@ BEGIN
       -- back on sale.
       IF o.paid_at + interval '7 days' < now() + interval '48 hours' THEN
         PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your delivery fell through',
-          'No Helpr could deliver in time, so this sale is cancelled. Your delivery fee and your payment are coming back to your card.',
+          'No Helpr could deliver in time, so this sale is cancelled. Your delivery fee comes back in full and the rest of your payment minus the card fee.',
           '/declutter?view=cart', o.seller_id);
         v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
         RETURN jsonb_build_object('result', 'unfilled', 'delivery_refund_id', v_refund, 'closed', v_out);
@@ -2071,19 +2095,22 @@ BEGIN
     -- buyer, the seller's fault (row 19: everything back, card fee to the
     -- seller's debt, a strike); or pay the seller (the delivery fee goes
     -- back, B70).
-    INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, is_seed)
+    -- The Helpr's photo goes on the problem so the admin sees the evidence
+    -- (lh-silent-failure re-review #1); p_by carries "<metres> m|<photo path>".
+    INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths, is_seed)
     VALUES (o.id, t.helpr_id, 'helpr', 'no_show',
             format('The Helpr says the seller wasn''t there for the pickup at %s. Their photo at the pickup address (%s m away) is on the delivery.',
-                   to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD FMHH12:MI AM'), COALESCE(p_by, '?')),
+                   to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD FMHH12:MI AM'), COALESCE(split_part(p_by, '|', 1), '?')),
+            CASE WHEN NULLIF(split_part(p_by, '|', 2), '') IS NULL THEN '{}'::text[] ELSE ARRAY[split_part(p_by, '|', 2)] END,
             o.is_seed)
-    RETURNING id INTO v_refund;
+    RETURNING id INTO v_problem;
     PERFORM public.declutter_notify(o.seller_id, 'info', 'The Helpr couldn''t pick up',
       'The Helpr says you weren''t there for the pickup. Louisiana Helpr will look at it and decide; the money waits until then.',
       '/declutter?view=sales', t.helpr_id);
     PERFORM public.declutter_notify(o.buyer_id, 'info', 'Your delivery is on hold',
       'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
       '/declutter?view=cart', t.helpr_id);
-    RETURN jsonb_build_object('result', 'reported', 'problem_id', v_refund);
+    RETURN jsonb_build_object('result', 'reported', 'problem_id', v_problem);
   END IF;
   RETURN jsonb_build_object('result', p_event);
 END;
@@ -2422,6 +2449,10 @@ BEGIN
   END IF;
   SELECT t.* INTO v_task FROM public.declutter_order_deliveries od JOIN public.helpr_tasks t ON t.id = od.task_id
    WHERE od.order_id = o.id FOR UPDATE OF t;
+  IF v_task.id IS NULL THEN
+    RAISE EXCEPTION 'not_a_delivery_in_transit' USING ERRCODE = '55000',
+      HINT = 'Only a delivery the Helpr picked up can be decided as damaged in delivery.';
+  END IF;
   IF v_uid = v_task.helpr_id THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501', HINT = 'Another admin must decide a delivery you made.';
   END IF;
@@ -2522,6 +2553,14 @@ BEGIN
   -- so the admin decides it explicitly instead: "Damaged in delivery" (row 43,
   -- declutter_admin_decide_delivery_damage: the Helpr is not paid) or
   -- "Pay the seller".
+  -- B77: after a Helpr's "the seller wasn't there" the item never left the
+  -- seller, so "Pay the seller" would close a sale the buyer never received
+  -- (lh-money-escrow re-review #2). The admin refunds the buyer instead (whose
+  -- fault decides the card fee); the item stays with the seller.
+  IF p_decision = 'pay_seller' AND p.reporter_side = 'helpr' THEN
+    RAISE EXCEPTION 'delivery_decision_needed' USING ERRCODE = '55000',
+      HINT = 'The item never left the seller. Refund the buyer, and say whose fault it was.';
+  END IF;
   IF p_decision = 'refund_buyer' AND p.reason IN ('damaged', 'not_received')
      AND v_task.status IN ('picked_up', 'delivered') THEN
     RAISE EXCEPTION 'delivery_decision_needed' USING ERRCODE = '55000',

@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {side === "buyer" && v.dropoff_code && ( |       {v.dropoff_code && (
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                 disabled={deliver.isPending \|\| (v.status === "picked_up" && !dropPhoto) \|\| (v.status === "delivered" && code.length !== 4)} |                 disabled={deliver.isPending}
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, path, await currentPosition()); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

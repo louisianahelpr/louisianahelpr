@@ -4,7 +4,7 @@
  * and in the app.
  *
  * @mutate src/lib/declutter/position.ts |       () => reject(new Error("location_required")), |       (e) => reject(e),
- * @mutate src/lib/declutter/position.ts |       throw new Error("location_required", { cause: e }); |       throw e;
+ * @mutate src/lib/declutter/position.ts |       throw refused; |       throw e;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 

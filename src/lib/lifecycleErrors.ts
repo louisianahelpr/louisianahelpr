@@ -539,6 +539,7 @@ export const RPC_ERROR_COPY = {
     vehicle_photo_required: DC.vehicle_photo_required,
   },
   helpr_task_accept: {
+    too_many_taken: DC.too_many_taken,
     too_many_releases: DC.too_many_releases,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,

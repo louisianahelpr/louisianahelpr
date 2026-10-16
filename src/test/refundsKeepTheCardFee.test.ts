@@ -282,7 +282,7 @@ const SQL_POLICIES = {
      * reviewed and re-pinned (lh-money-escrow review of ecf5c93a0, must-fix 1, 3, 4; note 1).
      */
     functions: {
-      declutter_admin_decide_delivery_damage: "20261016053945_declutter_helpr_delivery.sql 873dfd3e330899d5",
+      declutter_admin_decide_delivery_damage: "20261016053945_declutter_helpr_delivery.sql fe11a9a3460b2a93",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       declutter_close_paid_order: "20261016053945_declutter_helpr_delivery.sql 0c52fabd4123f2d4",
       declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql 0fb09153f76a7a2b",

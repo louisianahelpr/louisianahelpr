@@ -6,6 +6,7 @@
  * refuses it there (lh-money-escrow review #1, 2026-10-16). The server rules
  * are proven in src/test/pglite/declutterDelivery.pglite.mjs.
  *
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)} |
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const deliveryReason = row.reason === "damaged" \|\| row.reason === "not_received"; |   const deliveryReason = false;
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     mutationFn: () => adminDecideDeliveryDamage(row.id, note.trim() \|\| null), |     mutationFn: () => adminDecideProblem(row.id, "refund_buyer", "none", false, null),
  */
@@ -17,6 +18,7 @@ const state = { rows: [] as unknown[], calls: [] as unknown[][] };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+vi.mock("@/lib/helprTasks/api", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchOpenProblemsForAdmin: async () => state.rows,
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },
@@ -25,8 +27,8 @@ vi.mock("@/lib/declutter/handover", () => ({
 
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
 
-const row = (reason: string, reporter_side = "buyer") => ({
-  id: "p1", order_id: "o1234567-0000", reporter_side, reason, note: "The leg is broken.", created_at: "2026-10-16T12:00:00Z",
+const row = (reason: string, reporter_side = "buyer", photo_paths: string[] = []) => ({
+  id: "p1", order_id: "o1234567-0000", reporter_side, reason, note: "The leg is broken.", photo_paths, created_at: "2026-10-16T12:00:00Z",
 });
 
 function show() {
@@ -55,9 +57,11 @@ describe("DeclutterProblemsCard: the delivery decision", () => {
   });
 
   it("other reasons do not, and the Helpr's \"seller wasn't there\" report says who reported it", async () => {
-    state.rows = [row("no_show", "helpr")];
+    state.rows = [row("no_show", "helpr", ["h1/task/t1/away.jpg"])];
     show();
     expect(await screen.findByText(/Someone didn't show · reported by the Helpr/)).toBeInTheDocument();
+    // The evidence the report needs is shown to the admin (lh-silent-failure re-review #1).
+    expect(await screen.findByAltText("The Helpr's photo at the pickup address")).toHaveAttribute("src", "https://signed.test/h1/task/t1/away.jpg");
     expect(screen.queryByRole("button", { name: "Damaged in delivery" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Refund the buyer" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("decide"));

@@ -290,10 +290,13 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
     onSuccess: (r) => done(r.strike ? "You backed out less than 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const awayUploaded = useRef<{ file: File; path: string } | null>(null);
   const sellerAway = useMutation({
     mutationFn: async (file: File) => {
-      const path = await uploadTaskPhoto(userId, t.task_id, file);
-      await reportPickupNoShow(t.task_id, path, await currentPosition());
+      // Location first (a refusal uploads nothing), then the photo once per file.
+      const where = await currentPosition();
+      if (awayUploaded.current?.file !== file) awayUploaded.current = { file, path: await uploadTaskPhoto(userId, t.task_id, file) };
+      await reportPickupNoShow(t.task_id, awayUploaded.current.path, where);
     },
     onSuccess: () => done("Reported. Louisiana Helpr will look at it and decide. You're not counted as a no-show meanwhile."),
     onError: (err) => toast.error(declutterErrorMessage(err)),

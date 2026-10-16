@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
 import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsForAdmin } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { taskPhotoUrl } from "@/lib/helprTasks/api";
 import { AdminCard } from "../AdminViewShell";
 
 /**
@@ -31,7 +32,16 @@ interface ProblemRow {
   reporter_side: "buyer" | "seller" | "helpr";
   reason: string;
   note: string;
+  photo_paths?: string[] | null;
   created_at: string;
+}
+
+/** The Helpr's photo at the pickup (private helpr-tasks bucket, signed URL; admins may read it). */
+function HelprPhoto({ path }: { path: string }) {
+  const url = useQuery({ queryKey: ["helpr-tasks", "photo", path], queryFn: () => taskPhotoUrl(path), staleTime: 5 * 60_000 });
+  if (url.isError) return <p className="text-xs" role="alert">The Helpr's photo couldn't load.</p>;
+  if (!url.data) return null;
+  return <img src={url.data} alt="The Helpr's photo at the pickup address" className="h-32 w-32 rounded-lg object-cover" loading="lazy" />;
 }
 
 const REASON_WORDS: Record<string, string> = {
@@ -71,6 +81,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
       <p className="text-sm whitespace-pre-line">{row.note}</p>
+      {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
       <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={fault}
         onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none"; setFault(f); if (f === "none") setStrike(false); }}>

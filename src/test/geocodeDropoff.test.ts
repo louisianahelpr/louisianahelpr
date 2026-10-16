@@ -41,6 +41,7 @@ describe("geocodeDropoff", () => {
   it("a geocoder that cannot answer (429, 5xx, not JSON, no connection) is unavailable, never 'not found' (lh-silent-failure #1)", async () => {
     expect(await geocodeDropoff("1 A St", answer([], 429) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: 429 });
     expect(await geocodeDropoff("1 A St", answer([], 503) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: 503 });
+    expect(await geocodeDropoff("1 A St", answer({ error: "Unable to geocode" }) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable" });
     const html = vi.fn(async () => new Response("<html>busy</html>", { status: 200 }));
     expect(await geocodeDropoff("1 A St", html as unknown as typeof fetch)).toMatchObject({ miss: "unavailable" });
     const boom = vi.fn(async () => { throw new Error("offline"); });

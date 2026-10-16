@@ -478,6 +478,20 @@ await svc(`SELECT public.declutter_handover_sweep()`);
 ok((await svc(`SELECT count(*)::int AS n FROM public.declutter_refunds WHERE order_id = '${P11.order_id}'`))[0].n === 1,
   "and the handover sweep never turns it into a buyer no-show afterwards");
 
+// 11c. lh-money-escrow re-review #1: an open problem freezes the task, so the late fall-through close never
+// refunds under the no-fault rule while the admin has a problem to decide.
+const P11c = await paidDelivery(21, BUYER3, SELLER2, 3000, "small");
+await svc(`UPDATE public.declutter_orders SET paid_at = now() - interval '6 days' WHERE id = '${P11c.order_id}'`);
+const prob11c = one(await me(BUYER3, `SELECT public.declutter_report_problem('${P11c.order_id}', 'not_as_described', 'Wrong lamp in the photos.', '{}')`));
+await svc(`UPDATE public.helpr_tasks SET open_until = now() - interval '1 minute' WHERE id = '${P11c.task}'`);
+await svc(`SELECT public.helpr_task_sweep()`);
+ok((await order(P11c.order_id)).status === "paid" && (await task(P11c.task)).status === "open"
+  && one(await svc(`SELECT count(*)::int FROM public.declutter_refunds WHERE order_id = '${P11c.order_id}'`)) === 0,
+  "with a problem open the sweep leaves the task and the money alone");
+ok(Array.isArray(await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob11c}', 'refund_buyer', 'seller', false, 'Wrong item.')`))
+  && (await order(P11c.order_id)).status === "refunded",
+  "and the admin can still decide it");
+
 // 12. A Helpr backing out late, and a Helpr no-show (B64).
 const P5 = await paidDelivery(13, BUYER, SELLER, 2500, "small");
 await svc(`UPDATE public.helpr_tasks SET open_until = now() + interval '1 hour' WHERE id = '${P5.task}'`);
@@ -509,6 +523,15 @@ await svc(`INSERT INTO public.helpr_task_events (task_id, task_event, actor_id) 
 const P5b = await paidDelivery(20, BUYER, SELLER2, 1500, "small");
 ok(refused(await me(HELPR2, `SELECT public.helpr_task_accept('${P5b.task}', '${slot}')`), /too_many_releases/),
   "three back-outs in 7 days pause taking new deliveries");
+// lh-authz-rls re-review #1: at most 2 deliveries taken and not picked up at a time.
+const Pc1 = await paidDelivery(22, BUYER3, SELLER2, 1500, "small");
+const Pc2 = await paidDelivery(23, BUYER, SELLER, 1500, "small");
+const takenNow = one(await svc(`SELECT count(*)::int FROM public.helpr_tasks WHERE helpr_id = '${HELPR3}' AND status = 'accepted'`));
+for (const pc of [Pc1, Pc2].slice(0, Math.max(0, 2 - takenNow))) await me(HELPR3, `SELECT public.helpr_task_accept('${pc.task}', '${slot}')`);
+const Pc3 = await paidDelivery(24, BUYER3, SELLER, 1500, "small");
+ok(one(await svc(`SELECT count(*)::int FROM public.helpr_tasks WHERE helpr_id = '${HELPR3}' AND status = 'accepted'`)) === 2
+  && refused(await me(HELPR3, `SELECT public.helpr_task_accept('${Pc3.task}', '${slot}')`), /too_many_taken/),
+  "a Helpr holding 2 deliveries not yet picked up cannot take a third");
 // lh-authz-rls #8: an open task's view applies the same checks as finding it (a block hides it).
 ok((await view(HELPR, P5b.task))?.role === "candidate", "an eligible Helpr can view an open task");
 await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${BUYER}', '${HELPR}')`);
@@ -540,6 +563,12 @@ await svc(`SELECT public.helpr_task_sweep()`);
 ok((await task(P5.task)).status === "accepted"
   && one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR}' AND violation_type = 'delivery_no_show'`)) === 0,
   "while the problem is open the Helpr is not counted a no-show");
+ok(Array.isArray(prob5?.photo_paths) && prob5.photo_paths[0] === away,
+  "the Helpr's photo is on the problem, so the admin sees the evidence (lh-silent-failure re-review #1)");
+ok(refused(await me(HELPR, `SELECT public.helpr_task_release('${P5.task}')`), /problem_open/),
+  "while the problem is open the Helpr cannot back out (the task stays until an admin decides)");
+ok(refused(await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob5.id}', 'pay_seller', 'none', false, 'x')`), /delivery_decision_needed/),
+  "B77: after the Helpr's report the item never left the seller, so \"Pay the seller\" is refused");
 await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob5.id}', 'refund_buyer', 'seller', true, 'Seller was away.')`);
 const r5 = await order(P5.order_id);
 const ref5 = (await svc(`SELECT * FROM public.declutter_refunds WHERE order_id = '${P5.order_id}'`))[0];

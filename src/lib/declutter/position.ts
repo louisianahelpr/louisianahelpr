@@ -16,7 +16,9 @@ export async function currentPosition(): Promise<{ lat: number; lng: number }> {
       return { lat: pos.coords.latitude, lng: pos.coords.longitude };
     } catch (e) {
       console.warn("[currentPosition] native location failed:", e);
-      throw new Error("location_required", { cause: e });
+      const refused = new Error("location_required") as Error & { cause?: unknown };
+      refused.cause = e;
+      throw refused;
     }
   }
   return new Promise((resolve, reject) => {

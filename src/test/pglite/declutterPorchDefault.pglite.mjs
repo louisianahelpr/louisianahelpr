@@ -45,6 +45,13 @@ const one = (r) => (Array.isArray(r) && r[0] ? Object.values(r[0])[0] : undefine
 const I = (n) => `66666666-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const item = (n, seller, price = 2000) => db.exec(liveItemSql({ id: I(n), seller, title: `Porch item ${n}`, price, floor: Math.min(price, 100) }));
 const buy = (uid, n, cents = 2000) => me(uid, `SELECT public.declutter_buy_now('${I(n)}', ${cents})`);
+// A listed item whose seller turned porch off while it was a draft (the trigger
+// refuses the change once listed, so the fixture flips it through draft).
+const porchOffListed = async (n) => {
+  await svc(`UPDATE public.declutter_items SET status = 'draft' WHERE id = '${I(n)}'`);
+  await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${I(n)}'`);
+  await svc(`UPDATE public.declutter_items SET status = 'live' WHERE id = '${I(n)}'`);
+};
 const checkout = (uid, seller, handover) => me(uid, `SELECT * FROM public.declutter_start_checkout('${seller}', '${handover}')`);
 
 // 1. The column: every listing allows porch unless its seller says otherwise.
@@ -77,9 +84,14 @@ ok(refused(await me(SELLER, `SELECT public.declutter_set_porch_ok('${I(1)}', fal
   && one(await svc(`SELECT porch_ok FROM public.declutter_items WHERE id = '${I(1)}'`)) === true,
   "a LISTED item's porch choice is frozen (item_not_editable): no order is paid under a changed choice");
 
+ok(refused(await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${I(1)}'`), /item_not_editable/),
+  "even a service-role write cannot change porch_ok on a listed item (the table trigger)");
+ok(one(await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${draft}' RETURNING porch_ok`)) === false,
+  "  while a draft's can still be changed by its writer");
+
 // 3. Checkout: porch refused when any line has porch off.
 await item(2, SELLER);
-await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${I(2)}'`);
+await porchOffListed(2);
 await buy(BUYER, 1); await buy(BUYER, 2);
 const mixedPorch = await checkout(BUYER, SELLER, "porch");
 ok(refused(mixedPorch, /porch_unavailable/), "two lines, one with porch off: a porch checkout is refused (porch_unavailable)");
@@ -98,7 +110,7 @@ ok(allPorch?.order_id && one(await svc(`SELECT handover FROM public.declutter_or
   "every line allows porch: a porch checkout goes through");
 
 await item(4, SELLER2);
-await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${I(4)}'`);
+await porchOffListed(4);
 await buy(BUYER3, 4);
 ok(refused(await checkout(BUYER3, SELLER2, "porch"), /porch_unavailable/), "one line with porch off: porch refused");
 

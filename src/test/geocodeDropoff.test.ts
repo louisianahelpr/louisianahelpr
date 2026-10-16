@@ -31,7 +31,7 @@ describe("geocodeDropoff", () => {
   });
   it("the area never carries the street", async () => {
     const f = answer([{ lat: "1", lon: "2", address: { road: "Secret Ln", house_number: "7" } }]);
-    expect((await geocodeDropoff("7 Secret Ln", f as unknown as typeof fetch))?.areaLabel).toBe("Drop-off area");
+    expect(await geocodeDropoff("7 Secret Ln", f as unknown as typeof fetch)).toMatchObject({ areaLabel: "Drop-off area" });
   });
   it("nothing found or a bad point is not_found (never a guessed point)", async () => {
     expect(await geocodeDropoff("1 A St", answer([]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });

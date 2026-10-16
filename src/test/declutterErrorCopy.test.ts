@@ -25,6 +25,8 @@ const DECLUTTER_FILES = [
   "20261014210518_declutter_slice3_offers_checkout.sql",
   "20261015042253_declutter_slice4_handover_payout.sql",
   "20261016050402_declutter_porch_default.sql",
+  // Slice 5, Helpr delivery and the shared Helpr task module.
+  "20261016053945_declutter_helpr_delivery.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -45,7 +47,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(5);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(6);
     expect(codes.size).toBeGreaterThan(25);
   });
 

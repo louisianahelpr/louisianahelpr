@@ -27,7 +27,7 @@ describe("the copy tables", () => {
 
   it("holds a real inventory (every refusal code, both tables)", () => {
     expect(Object.keys(DECLUTTER_ERROR_COPY).length).toBeGreaterThanOrEqual(30);
-    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["ai_photos_required", "ai_timed_out", "ai_unavailable", "payment_unavailable"]);
+    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["address_not_found", "ai_photos_required", "ai_timed_out", "ai_unavailable", "payment_unavailable"]);
   });
 
   it("no code sits in both tables", () => {

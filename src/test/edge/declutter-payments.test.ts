@@ -643,7 +643,7 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
     scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
     return loadEdgeFunction("declutter-checkout");
   }
-  const geocoder = vi.fn(async () => new Response(JSON.stringify([
+  const geocoder = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify([
     { lat: "30.5412", lon: "-91.1543", address: { house_number: "900", road: "Far Rd", town: "Baker", state: "Louisiana" } },
   ]), { status: 200 }));
   beforeEach(() => { geocoder.mockClear(); vi.stubGlobal("fetch", geocoder); });

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useFeature } from "@/hooks/useFeature";
 import {
   buyNow,
   fetchMyActiveStrikes,
@@ -39,6 +40,7 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { checkoutAmounts, minOfferCents } from "@/lib/declutter/money";
+import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
@@ -393,26 +395,47 @@ function SalesWaiting() {
 const HANDOVER_WORDS: Record<Handover, string> = {
   porch: "Porch pickup: the seller leaves it out for you, no need to meet",
   pickup_home: "Meet at the seller's home: you show a code when you pick it up",
+  delivery: "Helpr delivery: a Helpr picks it up and brings it to you",
 };
 
 /**
- * Row 24 (63: no Helpr delivery yet) + B30 + row 101: choose how you get it, then pay
- * on Stripe's page. Porch is first and chosen when every item allows it; when any
- * item's seller turned porch off, only pickup at the seller's home is offered. The
- * server refuses porch for such an order anyway (porch_unavailable).
+ * Row 24 + B30 + row 101 + slice 5: choose how you get it, then pay on Stripe's
+ * page. Porch is first and chosen when every item allows it; when any item's
+ * seller turned porch off, only pickup at the seller's home is offered (the server
+ * refuses porch for such an order anyway, porch_unavailable). Helpr delivery
+ * (rows 29-30) is offered while Declutter is open for the member: the buyer types
+ * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
+ * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, totalCents, porchOk, onBack }: { sellerId: string; totalCents: number; porchOk: boolean; onBack: () => void }) {
+function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack }: {
+  sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+}) {
   const qc = useQueryClient();
+  const deliveryOpen = useFeature("declutter");
   const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"];
+  const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order;
   const [handover, setHandover] = useState<Handover>(order[0]);
   // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
-  const chosen = order.includes(handover) ? handover : order[0];
+  const chosen = offered.includes(handover) ? handover : offered[0];
   const [opening, setOpening] = useState(false);
+  const [address, setAddress] = useState("");
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  // The quote is for the cart as it was priced: a changed cart total asks again.
+  const [quotedFor, setQuotedFor] = useState<number | null>(null);
+  const priceIt = useMutation({
+    mutationFn: () => fetchDeliveryQuote(sellerId, address.trim()),
+    onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); },
+    onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); },
+  });
+  const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
+  const delivering = chosen === "delivery";
+  const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
+  const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
       <fieldset className="space-y-1">
         <legend className="text-sm font-medium">How you get it</legend>
-        {order.map((h) => (
+        {offered.map((h) => (
           <label key={h} className="flex items-center gap-2 text-sm min-h-11">
             <input type="radio" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             {HANDOVER_WORDS[h]}
@@ -421,12 +444,33 @@ function PayForSeller({ sellerId, totalCents, porchOk, onBack }: { sellerId: str
         {!porchOk && (
           <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
         )}
-        <p className="text-xs text-muted-foreground">Delivery by a Helpr is coming later.</p>
       </fieldset>
+      {delivering && (
+        <div className="space-y-2 rounded-xl border border-border p-3">
+          <label htmlFor={addressId} className="block text-xs font-medium">Deliver to (street number, street and town)</label>
+          <div className="flex gap-2">
+            <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              autoComplete="street-address" maxLength={300} value={address}
+              onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+            <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+              disabled={priceIt.isPending || address.trim().length < 5} onClick={() => priceIt.mutate()}>
+              {priceIt.isPending ? "Pricing…" : "Get price"}
+            </button>
+          </div>
+          {liveQuote ? (
+            <dl className="text-sm space-y-1">
+              <div className="flex justify-between"><dt>Helpr delivery, about {liveQuote.road_miles} {liveQuote.road_miles === 1 ? "mile" : "miles"}</dt><dd>{formatPrice(liveQuote.delivery_cents)}</dd></div>
+              <div className="flex justify-between text-xs text-muted-foreground"><dt>$10 + $2 a mile{liveQuote.size_cents > 0 ? " + size" : ""}</dt><dd>{formatPrice(liveQuote.base_cents)} + {formatPrice(liveQuote.per_mile_cents)}{liveQuote.size_cents > 0 ? ` + ${formatPrice(liveQuote.size_cents)}` : ""}</dd></div>
+            </dl>
+          ) : (
+            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, the delivery fee comes back and you pick it up instead.</p>
+          )}
+        </div>
+      )}
       <button
         type="button"
         className="btn-grad-primary rounded-full px-5 py-2.5 text-sm font-semibold"
-        disabled={opening}
+        disabled={opening || (delivering && !liveQuote)}
         onClick={async () => {
           setOpening(true);
           try {
@@ -444,7 +488,7 @@ function PayForSeller({ sellerId, totalCents, porchOk, onBack }: { sellerId: str
           }
         }}
       >
-        {opening ? "Opening…" : `Pay ${formatPrice(totalCents)}`}
+        {opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
       <p className="text-xs text-muted-foreground">You pay on Stripe's secure page. The money is held until you have your items.</p>
     </>
@@ -502,7 +546,7 @@ export function CartView() {
                 <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatPrice(amounts.totalCents)}</dd></div>
               </dl>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <PayForSeller sellerId={sellerId} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
+              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
             </section>
           );
         })

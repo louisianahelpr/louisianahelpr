@@ -240,6 +240,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "src/test/giftCardNaming.test.ts::SKIP_DIRS": "directory-walk skip set",
   "src/test/helpers/walkSource.ts::SKIP_DIRS": "directory-walk skip set",
   "src/test/openJobsLocationMasking.test.ts::KNOWN_ANON_JOB_FEEDS": "a REQUIRED-positive inventory (each must still mask), not an exemption",
+  "src/test/playwrightWebkitLinuxPin.test.ts::KNOWN_BAD": "a denylist of Playwright releases proven to stall Linux WebKit painting (each with its run), not an exemption: it excuses no offender",
   "src/test/popupShellInventory.test.ts::ALLOWED": "design vocabulary (width classes that fill the shell), not offenders",
   "src/test/shellConsistency.test.ts::ALLOWED_SHELLS": "design vocabulary (the permitted page shells), not offenders",
   "supabase/functions/_shared/storageKeys.ts::LEGACY_EXT_MIME": "app MIME map for legacy file extensions",

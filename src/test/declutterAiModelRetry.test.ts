@@ -5,7 +5,7 @@
  *
  * @mutate supabase/functions/declutter-ai-draft/modelRetry.ts | new Set([503, 529]) | new Set([])
  * @mutate supabase/functions/declutter-ai-draft/modelRetry.ts | export const MAX_ATTEMPTS = 2; | export const MAX_ATTEMPTS = 3;
- * @mutate supabase/functions/declutter-ai-draft/index.ts | const response = await fetchModelWithRetry(callModel, { | const response = await callModel(); ({
+ * @mutate supabase/functions/declutter-ai-draft/index.ts |   return fetchModelWithRetry(callModel, { |   return callModel(); ({
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

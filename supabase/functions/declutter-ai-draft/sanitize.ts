@@ -47,3 +47,45 @@ export function sanitizeDraft(raw: unknown): DeclutterDraft | null {
   const flagReason = flagged ? (reasonRaw || "The photo check could not confirm the item is allowed.") : null;
   return { title, description, category, deliverySize, conditionStars, flagged, flagReason };
 }
+
+/** Moving-out mode (docs/specs/declutter-moving-out.md): items the model found in room photos. */
+const ROOM_MAX_PHOTOS = 4;
+export const ROOM_MAX_ITEMS = 15;
+/** Decoded bytes per room photo (the app sends 1280px JPEGs, well under this). */
+export const ROOM_MAX_PHOTO_BYTES = 1_500_000;
+
+/**
+ * The room photos as the app sent them: 1 to ROOM_MAX_PHOTOS base64 JPEGs,
+ * each under ROOM_MAX_PHOTO_BYTES once decoded. null when any is not.
+ * The photos are only passed to the model; they are never stored.
+ */
+export function roomPhotosFromBody(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > ROOM_MAX_PHOTOS) return null;
+  const out: string[] = [];
+  for (const p of raw) {
+    if (typeof p !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(p)) return null;
+    const bytes = Math.floor((p.length * 3) / 4) - (p.endsWith("==") ? 2 : p.endsWith("=") ? 1 : 0);
+    if (bytes < 100 || bytes > ROOM_MAX_PHOTO_BYTES) return null;
+    // A JPEG starts FF D8 FF, which is "/9j/" in base64.
+    if (!p.startsWith("/9j/")) return null;
+    out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Each item the model listed, through sanitizeDraft (so each one fails closed
+ * on the banned check), unusable ones dropped, at most ROOM_MAX_ITEMS.
+ */
+export function sanitizeRoom(raw: unknown): DeclutterDraft[] {
+  if (!raw || typeof raw !== "object") return [];
+  const items = (raw as { items?: unknown }).items;
+  if (!Array.isArray(items)) return [];
+  const out: DeclutterDraft[] = [];
+  for (const it of items) {
+    const d = sanitizeDraft(it);
+    if (d) out.push(d);
+    if (out.length >= ROOM_MAX_ITEMS) break;
+  }
+  return out;
+}

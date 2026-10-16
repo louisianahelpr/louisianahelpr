@@ -49,7 +49,6 @@ const NOT_QUERY_DRIVEN: Record<string, string> = {
   "src/pages/post-job/OfferToSavedHelpr.tsx": "shows 'Loading your saved Helprs…' until the list has rows (`!helpers`), so a paused read never reaches the empty card",
   "src/components/admin/AdminPayoutBatches.tsx": "its empty card is driven by useInstantQuery's isInitialLoading (paused counts as loading); its own useQuery is the transfer ledger, which renders nothing when empty",
   "src/components/admin/adminAnalytics/SignupLeadsCard.tsx": "gates on isPending (a paused first load stays the spinner) and renders its empty card only from a successful read's rows",
-  "src/pages/user/UserProfile.tsx": "its profile read lives in useUserProfileData.ts, which computes offlineEmpty with useFeedPhase; the page renders OfflineEmptyState on it (checked below)",
 };
 
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));

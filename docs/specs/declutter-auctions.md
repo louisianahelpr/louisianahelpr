@@ -680,8 +680,8 @@ drop-off area/address/point, miles, pay, customer, pickup contact, open_until, l
 module calls back through FOUR dispatchers only (`helpr_task_source_require_feature`, `_slot_ok`, `_held`,
 `_event`) plus `helpr_task_lock` (source lock first) and the payout queue's source columns. A new source adds its
 kind to `helpr_tasks.source_kind` and one branch in each dispatcher. The Helpr side (find, accept with a time, back
-out, "Picked up" photo at the pickup point, drop-off with the customer's 4-digit code or a door photo, the 24 h
-rule, no-show strikes, the Helpr's pay = pay minus jobs' flat 5% + 70c, one payout row per task) is all in the
+out, "Picked up" photo at the pickup point, drop-off with the customer's 4-digit code or a door photo, the day-long door
+rule (2026-10-16), no-show strikes, the Helpr's pay = pay minus jobs' flat 5% + 70c, one payout row per task) is all in the
 module; the client is src/lib/helprTasks/api.ts and the screens reuse it unchanged.
 
 | # | Decision | Status | When |

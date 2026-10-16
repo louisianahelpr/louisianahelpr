@@ -85,7 +85,7 @@ export default function ShopsHomeView() {
     >
       <p className="text-sm text-muted-foreground">Local makers, bakers, trades and businesses near you. Every shop is free.</p>
       <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1" role="group" aria-label="Category">
-        <Button type="button" size="sm" variant={group === null ? "default" : "outline"} className={group === null ? "btn-grad-primary shrink-0" : "shrink-0"} onClick={() => setGroup(null)}>
+        <Button type="button" size="sm" aria-pressed={group === null} variant={group === null ? "default" : "outline"} className={group === null ? "btn-grad-primary shrink-0" : "shrink-0"} onClick={() => setGroup(null)}>
           All
         </Button>
         {categoryGroups(categories.data).map((g) => (
@@ -93,6 +93,7 @@ export default function ShopsHomeView() {
             key={g.slug}
             type="button"
             size="sm"
+            aria-pressed={group === g.slug}
             variant={group === g.slug ? "default" : "outline"}
             className={group === g.slug ? "btn-grad-primary shrink-0" : "shrink-0"}
             onClick={() => setGroup(g.slug)}

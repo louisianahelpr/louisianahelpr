@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
@@ -16,7 +17,7 @@ export async function handlePaymentIntentSucceeded(
   // view and 1099 reconciliation both depend on this being accurate.
   const { data: taxJob, error: taxJobErr } = await supabase
     .from("jobs")
-    .select("id, sales_tax_amount")
+    .select("id, sales_tax_amount, payment_status, customer_id, title")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
@@ -55,6 +56,64 @@ export async function handlePaymentIntentSucceeded(
     }
 
     logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents !== null });
+
+    // ME-046: for async payment methods (ACH / US bank account) the job is still
+    // "unpaid" or null when checkout.session.completed fires — that handler no
+    // longer sets "escrow" for async payments. Now that the PI succeeded, the
+    // money is captured: flip the job to "escrow" and fan out the helper match.
+    // State precondition: only a still-unpaid/null job is promoted here; if the
+    // job is already "escrow" (card payment — this PI also fires for those) or
+    // further along, the UPDATE matches zero rows, which is the correct no-op.
+    const isStillUnpaid = taxJob.payment_status == null || taxJob.payment_status === "unpaid";
+    if (isStillUnpaid) {
+      const { data: escrowRow, error: escrowErr } = await supabase
+        .from("jobs")
+        .update({ payment_status: "escrow" })
+        .eq("id", taxJob.id)
+        .or("payment_status.is.null,payment_status.eq.unpaid")
+        .select("id")
+        .maybeSingle();
+      if (escrowErr) {
+        // Throw: the idempotency row rolls back, Stripe retries. A silent 200
+        // here would leave the job permanently unpaid with captured funds —
+        // browse hides it, helpers never see it, and it can never be paid out.
+        throw new Error(`ACH escrow flip failed for job ${taxJob.id} (PI ${pi.id}): ${escrowErr.message}`);
+      }
+      if (escrowRow) {
+        logStep("ACH payment settled — job moved to escrow", { jobId: taxJob.id, piId: pi.id });
+        // Trigger helper match now that the job is actually funded.
+        // Best-effort: a failure costs reach, not correctness (same contract as
+        // the match call in checkoutSessionCompleted).
+        try {
+          const { error: matchError } = await supabase.functions.invoke("instant-job-match", {
+            body: { jobId: taxJob.id },
+            headers: {
+              Authorization: `Bearer ${(Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!}`,
+            },
+          });
+          if (matchError) {
+            logStep("WARN: instant-job-match failed after ACH settlement", { jobId: taxJob.id, error: matchError.message });
+          } else {
+            logStep("Triggered instant-job-match after ACH settlement", { jobId: taxJob.id });
+          }
+        } catch (matchErr) {
+          logStep("WARN: instant-job-match threw after ACH settlement", { jobId: taxJob.id, error: String(matchErr) });
+        }
+      } else {
+        // Zero rows: the job moved past unpaid between our select and this write
+        // (e.g. a concurrent delivery already set escrow). Log and ack; the job
+        // is in a valid funded state.
+        logStep("ACH PI succeeded but job already past unpaid — no escrow write needed", { jobId: taxJob.id, piId: pi.id, paymentStatus: taxJob.payment_status });
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "ACH PI succeeded but job was already funded",
+          message: "payment_intent.succeeded fired for an ACH job that was no longer unpaid. This may indicate a duplicate-funding race or a redelivery after checkout.session.completed already set escrow. No action taken; verify the job's payment state.",
+          fields: { job_id: taxJob.id, payment_intent: pi.id, payment_status: taxJob.payment_status ?? "null" },
+          oncePerDayKey: `ach-already-funded:${taxJob.id}`,
+        });
+      }
+    }
   } else {
     // No job found for this PI. Two possible causes:
     // 1. Race: this event fired before checkout.session.completed set

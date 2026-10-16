@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 export async function handlePaymentIntentPaymentFailed(
   event: Stripe.Event,
@@ -30,7 +31,7 @@ export async function handlePaymentIntentPaymentFailed(
   const { data: failedJob, error: failedJobErr } = jobId
     ? await supabase
         .from("jobs")
-        .select("id, customer_id, title, payment_status")
+        .select("id, customer_id, title, payment_status, stripe_session_id")
         .eq("id", jobId)
         .maybeSingle()
     : { data: null, error: null };
@@ -75,12 +76,31 @@ export async function handlePaymentIntentPaymentFailed(
       });
       return;
     }
-    // NO notice here (Q769). A decline inside a still-open Checkout Session
-    // is not the end of the payment: the poster can try another card on the
-    // same page, the retry succeeds and the job goes failed -> escrow. "The
-    // job isn't posted, load your draft" sent now would send them to post
-    // and pay a second time. checkoutSessionExpired sends it, once the
-    // session can no longer be paid and the job is still failed.
-    logStep("Job marked failed; poster is told on session expiry", { jobId: failedJob.id });
+    // Q769: a decline inside a still-OPEN Checkout Session is NOT the end of
+    // the payment — the poster can try another card on the same page.
+    // checkoutSessionExpired is the right place for that notice because only
+    // when the session expires is it true that "the job isn't posted".
+    //
+    // ME-046: for async payment methods (ACH / US bank account), the session
+    // expires ~24h after checkout while the bank debit is still pending. By
+    // the time the ACH bounces (days later), the session is long gone and
+    // checkoutSessionExpired has already run without sending a "failed" notice
+    // (the job was still "unpaid", not "failed", at expiry). The poster is
+    // never told. Notify now when the session has already expired
+    // (stripe_session_id is null = checkoutSessionExpired already cleared it).
+    const sessionAlreadyExpired = !(failedJob as any).stripe_session_id;
+    if (sessionAlreadyExpired && failedJob.customer_id) {
+      await insertNotifications(supabase, {
+        user_id: failedJob.customer_id,
+        job_id: failedJob.id,
+        title: "Payment failed",
+        message: `Your payment for "${failedJob.title}" didn't go through, so the job isn't posted. Open Post a Job and load your draft to try again.`,
+        type: "warning",
+        link: "/post-job",
+      });
+      logStep("Job marked failed; poster notified (async payment — session already expired)", { jobId: failedJob.id });
+    } else {
+      logStep("Job marked failed; poster is told on session expiry", { jobId: failedJob.id });
+    }
   }
 }

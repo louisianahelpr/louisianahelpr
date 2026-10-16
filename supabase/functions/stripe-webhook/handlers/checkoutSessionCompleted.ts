@@ -964,9 +964,19 @@ async function settleCheckoutSession(
     : (session.payment_intent as any)?.id;
 
   if (jobId && piId && sessionType !== "tip" && kind !== "job_boost") {
+    // ME-046: only move the job to "escrow" when Stripe has actually captured the
+    // money. For async payment methods (ACH / US bank account) session.payment_status
+    // is "unpaid" here — the bank debit is initiated but not yet settled. Setting
+    // "escrow" unconditionally broke ACH: the failure handler's state precondition
+    // (.or("payment_status.is.null,payment_status.eq.unpaid")) cannot revert a job
+    // already in "escrow", so a bounced ACH left the job permanently stuck in
+    // "escrow" with no captured funds, and any payout attempt would drain the
+    // platform balance. paymentIntentSucceeded sets "escrow" when the PI eventually
+    // succeeds (days later for ACH); paymentIntentPaymentFailed handles the bounce.
+    const isAsyncPayment = session.payment_status !== "paid";
     const updateData: any = {
       stripe_payment_intent_id: piId,
-      payment_status: "escrow", // Mark as escrow only after confirmed checkout
+      ...(!isAsyncPayment ? { payment_status: "escrow" } : {}),
     };
     // Q343: a `metadata.repay === "true"` branch used to flip the job straight
     // to payout_pending here. No checkout creator ever wrote that key (0 of the
@@ -1191,10 +1201,18 @@ async function settleCheckoutSession(
         }`,
       );
     } else {
-      logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId });
+      logStep(
+        isAsyncPayment
+          ? "Stored payment_intent on job; awaiting async payment settlement (escrow set by paymentIntentSucceeded)"
+          : "Stored payment_intent and escrow status on job",
+        { jobId, pi: piId },
+      );
 
-      // Fan out the helper match — HERE, and only here, because this is the
-      // first moment the job is actually funded.
+      // Fan out the helper match — but ONLY for synchronous (already-captured)
+      // payments. For async payments (ACH) the job is still unpaid and browse
+      // requires payment_status IN ('escrow','payout_pending','released') —
+      // notifying helpers now would advertise a job they cannot see.
+      // paymentIntentSucceeded triggers instant-job-match when the ACH settles.
       //
       // It used to run in the browser (PostJob's useJobSubmit) the instant
       // create-payment handed back a Checkout URL — i.e. BEFORE the poster had
@@ -1210,7 +1228,7 @@ async function settleCheckoutSession(
       // Best-effort by design. A match fan-out must never fail a captured
       // payment — the job is funded and discoverable through browse regardless,
       // so a failure here costs reach, not correctness. Logged, never thrown.
-      {
+      if (!isAsyncPayment) {
         try {
           // The Authorization header is set EXPLICITLY. supabase-js (2.117) sends
           // an sb_secret_ key only as `apikey`, never as a Bearer, and

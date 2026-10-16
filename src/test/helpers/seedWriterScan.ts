@@ -39,7 +39,9 @@ export type SeedSite = {
 // party's profile (trigger declutter_trade_rows_seed); only RPCs write them.
 // Slice 4 (20261015042253): bookings, problems, payouts and reviews copy their
 // order's flag at birth (trigger declutter_order_rows_seed).
-export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "jobs", "profiles"] as const;
+// shops (Shops slice 1, 20261015123029): shops_save_my_shop copies the
+// owner's profiles.is_seed at insert; no fixture writes it yet.
+export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "jobs", "profiles", "shops"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

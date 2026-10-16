@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { geocodeAddress } from "@/lib/geocode";
@@ -39,7 +40,7 @@ import {
   type ShopPhotoKind,
 } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { categoryGroups, ShopsNotice, useShopCategories, WEEKDAYS } from "./shopsUi";
+import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 
 interface Form {
   name: string;
@@ -199,9 +200,16 @@ export default function ShopEditView() {
   if (myId.isError || categories.isError || shop.isError) {
     return (
       <AppPage title="My shop" backTo="/shops">
-        <ShopsNotice title="We couldn't load your shop." tone="warn">
-          <p>{shopsErrorMessage(myId.error ?? categories.error ?? shop.error)}</p>
-        </ShopsNotice>
+        <ErrorState
+          variant="inline"
+          title="We couldn't load your shop."
+          body={shopsErrorMessage(myId.error ?? categories.error ?? shop.error)}
+          onRetry={() => {
+            void myId.refetch();
+            void categories.refetch();
+            if (myId.data) void shop.refetch();
+          }}
+        />
       </AppPage>
     );
   }
@@ -309,7 +317,7 @@ export default function ShopEditView() {
                     <Input
                       type="time"
                       aria-label={`${day} opens`}
-                      className="w-32"
+                      className="w-32 min-w-0"
                       value={h.opens}
                       onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
                     />
@@ -317,7 +325,7 @@ export default function ShopEditView() {
                     <Input
                       type="time"
                       aria-label={`${day} closes`}
-                      className="w-32"
+                      className="w-32 min-w-0"
                       value={h.closes}
                       onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
                     />

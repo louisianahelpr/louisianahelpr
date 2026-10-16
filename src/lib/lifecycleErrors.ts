@@ -534,6 +534,7 @@ export const RPC_ERROR_COPY = {
     invalid_photo_kind: SC.invalid_photo_kind,
     not_authenticated: SC.not_authenticated,
     payout_setup_incomplete: SC.payout_setup_incomplete,
+    photo_already_attached: SC.photo_already_attached,
     photo_not_uploaded: SC.photo_not_uploaded,
     shop_not_found: SC.shop_not_found,
     shop_strikes_blocked: SC.shop_strikes_blocked,
@@ -586,6 +587,7 @@ export const RPC_ERROR_COPY = {
   shops_set_follow: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,
+    invalid_follow: SC.invalid_follow,
     not_authenticated: SC.not_authenticated,
     own_shop: SC.own_shop,
     shop_not_found: SC.shop_not_found,

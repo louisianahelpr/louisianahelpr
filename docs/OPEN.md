@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 174** (149 to do, 25 fixed with protection pending; 1322 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 15 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 175** (150 to do, 25 fixed with protection pending; 1322 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 15 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 12 stale, 0 unknown, 49 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-15T22:24Z)_
@@ -96,7 +96,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1496 items — 1322 done, 25 partly done (fixed, protection pending), 149 open.**
+**Queue: 1497 items — 1322 done, 25 partly done (fixed, protection pending), 150 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -698,7 +698,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38749234414. notes: Q1429. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38801077733. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - staleness-watch: issue #2660, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38761942829. notes: Q1507. feed: issue #2660 · feed: ledger db0fb15c4ec3
-  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38722944092. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
+  - vacuity: issue #2894, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083494. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #2937, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38695098520. notes: Q1775. feed: issue #2937 · feed: ledger a8ceee56bbd5
   - e2e-real-backend: issue #2940, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38527096325. notes: Q1778. feed: issue #2940 · feed: ledger 3a3460b71be7
   - nightly-webkit: issue #2962, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38692697851. notes: Q1780. feed: issue #2962 · feed: ledger 70e7b0decb9a

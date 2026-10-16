@@ -10,6 +10,10 @@ export declare const PACE_MIN_RESERVE: number;
 export declare const PACE_EDGE_MS: number;
 export declare function ceilingFor(label: string, file?: string): number;
 export declare function priorMinutes(label: string, dir?: string): Record<string, number>;
+export declare function siblingState(
+  label: string,
+  opts?: { ownFile?: string | null; ppid?: number; dir?: string },
+): { minutes: Record<string, number>; finished: number };
 export type RequestClass = "rest" | "rpc" | "auth" | "functions" | "storage" | "realtime" | "other";
 export declare function classify(url: string): RequestClass | null;
 export declare function isSignIn(url: string, method: string): boolean;
@@ -30,6 +34,10 @@ export interface RequestSample {
   paceWaitMs?: number;
   /** largest burst between two gates, per gate key (page path), top 5; absent before #1794. */
   topBursts?: Record<string, number>;
+  /** The Playwright runner process the worker belongs to; absent before #2375. */
+  ppid?: number;
+  /** false once the worker closed its meter; absent before #2375. */
+  live?: boolean;
   startedAt: number;
   endedAt: number;
 }
@@ -44,13 +52,18 @@ export declare class RequestMeter {
   minutes: Record<string, number>;
   byShape: Record<string, number>;
   ceiling: number;
+  ceilingTotal: number;
+  workers: number;
+  followSiblings: boolean;
+  live: boolean;
+  file?: string;
   reserve: number;
   bursts: Record<string, number>;
   paceWaitMs: number;
   onPaceWait: ((ms: number) => void) | null;
   paceTo(
     ceilingPerMinute: number,
-    opts?: { workers?: number; prior?: Record<string, number>; now?: () => number; sleep?: (ms: number) => Promise<unknown> },
+    opts?: { workers?: number; prior?: Record<string, number>; followSiblings?: boolean; siblingsDir?: string; now?: () => number; sleep?: (ms: number) => Promise<unknown> },
   ): this;
   pace(key?: string): Promise<number>;
   pacePage<P extends { goto: (...a: never[]) => unknown; reload: (...a: never[]) => unknown }>(page: P): P;
@@ -60,6 +73,7 @@ export declare class RequestMeter {
   attachApi<T extends APIRequestContext>(api: T): T;
   toJSON(): RequestSample;
   flush(): string;
+  close(): string;
 }
 export declare function pageKey(url: unknown): string;
 export declare function gateClientNav(page: unknown, path: string): Promise<number>;

@@ -37,7 +37,11 @@ export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: Re
       const label = process.env.REQUEST_BUDGET_LABEL || workerInfo.project.name || "default";
       const meter = new RequestMeter(label);
       meter.attachBrowser(browser);
-      meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers });
+      // followSiblings: a worker's share grows as the run's other workers
+      // finish (e2e/requestMeter.mjs siblingState). The first flush puts this
+      // worker on the record as live before it sends anything.
+      meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers, followSiblings: true });
+      meter.flush();
       // A hold lengthens whatever is running it (a test, or a beforeAll that
       // navigates) by exactly the hold, so pacing never turns into a timeout.
       meter.onPaceWait = (ms) => {
@@ -50,7 +54,7 @@ export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: Re
         if (running.timeout > 0) running.setTimeout(running.timeout + ms);
       };
       await use(meter);
-      meter.flush();
+      meter.close();
     },
     { scope: "worker", auto: true },
   ],

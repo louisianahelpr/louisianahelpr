@@ -26,7 +26,7 @@
  * cannot be judged without a pacing check here.
  *
  * @mutate scripts/audit/measure-loading-states.mjs | requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY }); | void CONCURRENCY;
- * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
+ * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers, followSiblings: true }); | void ceilingFor;
  * @mutate e2e/requestMeter.mjs | context.on("page", (page) => this.pacePage(page)); | void 0;
  * @mutate scripts/audit/press-every-control.mjs | const wait = ceilingWaitMs({ | const wait = 0 && ceilingWaitMs({
  * @mutate e2e/request-budgets.json | "a11y-prod-webkit": { | "a11y-prod-webkit-retired": {
@@ -119,7 +119,7 @@ function unpaced(d: Driver, label: string): string | null {
   if (d.kind === "playwright") {
     const fixture = blankComments(read("e2e/prodTest.ts"));
     const meter = blankComments(read("e2e/requestMeter.mjs"));
-    if (!/meter\.paceTo\(ceilingFor\(label\),\s*\{\s*workers:\s*workerInfo\.config\.workers\s*\}\);/.test(fixture)) {
+    if (!/meter\.paceTo\(ceilingFor\(label\),\s*\{\s*workers:\s*workerInfo\.config\.workers,\s*followSiblings:\s*true\s*\}\);/.test(fixture)) {
       return "e2e/prodTest.ts does not turn the pacing gate on for the project's label";
     }
     if (!/context\.on\("page",\s*\(page\)\s*=>\s*this\.pacePage\(page\)\);/.test(meter)) {

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T14:56Z",
+  "measured_at": "2026-10-16T16:22Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38580933416",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38911703338",
         "runTruncated": false
       },
       {
@@ -57,7 +57,7 @@
         "number": 2660,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38761942829",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38923523130",
         "runTruncated": false
       },
       {
@@ -103,17 +103,10 @@
         "runTruncated": false
       },
       {
-        "number": 3170,
-        "title": "nightly-red: stripe-webhook-guard",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307",
-        "runTruncated": false
-      },
-      {
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38919680283",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38931316623",
         "runTruncated": false
       },
       {
@@ -475,7 +468,6 @@
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
-    "issue #3170": "Q1816",
     "issue #3178": "Q1816",
     "issue #3181": "Q1816",
     "ledger 03faea228969": "Q1596",

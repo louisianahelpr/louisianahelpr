@@ -768,7 +768,11 @@ REVOKE ALL ON FUNCTION public.helpr_set_vehicle(boolean, boolean, text) FROM PUB
 GRANT EXECUTE ON FUNCTION public.helpr_set_vehicle(boolean, boolean, text) TO authenticated, service_role;
 
 -- Open tasks this Helpr can take, nearest pickup first. Area words and rough
--- miles only (never an address); the take-home pay after the fee.
+-- miles only (never an address); the take-home pay after the fee. Distance is
+-- measured from the ROUNDED pickup point (2 decimals, ~1 km): from the exact
+-- point, a Helpr calling this from chosen points could binary-search where
+-- miles_to_pickup flips and trilaterate the seller's home (lh-authz-rls
+-- review #1, 2026-10-16; row 27).
 CREATE OR REPLACE FUNCTION public.helpr_tasks_open_near(p_lat numeric, p_lng numeric, p_limit integer)
 RETURNS TABLE (task_id uuid, source_kind text, size text, title text, pickup_area text, dropoff_area text,
                trip_miles integer, miles_to_pickup integer, take_home_cents integer, open_until timestamptz,
@@ -789,7 +793,7 @@ BEGIN
   RETURN QUERY
   SELECT t.id, t.source_kind, t.size, t.title, t.pickup_area, t.dropoff_area, t.trip_miles,
          CASE WHEN p_lat IS NULL THEN NULL
-              ELSE greatest(1, ceil(public.helpr_task_distance_m(p_lat, p_lng, t.pickup_lat, t.pickup_lng) / 1609.344))::integer END,
+              ELSE greatest(1, ceil(public.helpr_task_distance_m(p_lat, p_lng, round(t.pickup_lat, 2), round(t.pickup_lng, 2)) / 1609.344))::integer END,
          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
     FROM public.helpr_tasks t
    WHERE t.status = 'open' AND t.open_until > now()
@@ -798,7 +802,7 @@ BEGIN
      AND NOT public.are_users_blocked(v_uid, t.customer_id)
      AND NOT public.are_users_blocked(v_uid, t.pickup_contact_id)
      AND public.helpr_task_same_stripe_mode(v_uid, t.customer_id)
-   ORDER BY CASE WHEN p_lat IS NULL THEN 0 ELSE public.helpr_task_distance_m(p_lat, p_lng, t.pickup_lat, t.pickup_lng) END, t.open_until
+   ORDER BY CASE WHEN p_lat IS NULL THEN 0 ELSE public.helpr_task_distance_m(p_lat, p_lng, round(t.pickup_lat, 2), round(t.pickup_lng, 2)) END, t.open_until
    LIMIT least(greatest(COALESCE(p_limit, 50), 1), 100);
 END;
 $fn$;
@@ -1552,7 +1556,12 @@ BEGIN
     RAISE EXCEPTION 'delivery_one_address' USING ERRCODE = '22023',
       HINT = 'These items are at different addresses, so they can''t be delivered together. Choose pickup.';
   END IF;
-  v_miles := public.declutter_road_miles(v_lat, v_lng, d.lat, d.lng);
+  -- Priced from the ROUNDED pickup point (2 decimals, ~1 km), never the exact
+  -- one: the buyer chooses the drop-off, so a price measured from the exact
+  -- point would let a buyer with an unpaid cart line trilaterate the seller's
+  -- home by quoting chosen addresses (lh-authz-rls review #2, 2026-10-16; row
+  -- 27). The error is at most about a mile, about $2.
+  v_miles := public.declutter_road_miles(round(v_lat, 2), round(v_lng, 2), d.lat, d.lng);
   RETURN QUERY SELECT v_miles,
     CASE WHEN 'xl' = ANY (v_sizes) THEN 'xl' WHEN 'large' = ANY (v_sizes) THEN 'large' ELSE 'small' END,
     public.declutter_delivery_price_cents(v_miles, v_sizes),

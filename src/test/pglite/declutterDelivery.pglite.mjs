@@ -155,6 +155,21 @@ const q1 = one(await me(BUYER, `SELECT public.declutter_delivery_quote('${SELLER
 ok(q1?.road_miles === 5 && q1?.delivery_cents === 1000 + 1000 + 2000 && q1?.size === "large",
   `quote: 5 miles, large = $10 + $10 + $20 = $40 (${JSON.stringify(q1)})`);
 ok(q1 && !("dropoff_lat" in q1) && !("pickup_address" in q1), "the quote carries no coordinates or pickup address");
+// lh-authz-rls #2: the quote is priced from the ROUNDED pickup point, so quoting chosen drop-offs cannot find the home.
+{
+  let probe = null;
+  for (let k = 1; k < 400 && !probe; k++) {
+    const lat = PICK.lat + k * 0.0005;
+    const ex = one(await svc(`SELECT public.declutter_road_miles(${PICK.lat}, ${PICK.lng}, ${lat}, ${PICK.lng})`));
+    const ro = one(await svc(`SELECT public.declutter_road_miles(30.45, -91.15, ${lat}, ${PICK.lng})`));
+    if (ex !== ro) probe = { lat, ex, ro };
+  }
+  await setDrop(BUYER, SELLER, { lat: probe.lat, lng: PICK.lng });
+  const qp = one(await me(BUYER, `SELECT public.declutter_delivery_quote('${SELLER}')`));
+  ok(qp?.road_miles === probe.ro && probe.ro !== probe.ex,
+    `the quote's miles come from the rounded pickup point (${qp?.road_miles}; rounded ${probe.ro}, exact ${probe.ex})`);
+  await setDrop(BUYER, SELLER);
+}
 ok(refused(await me(OUTSIDER, `SELECT public.declutter_delivery_quote('${SELLER}')`), /feature_disabled/),
   "an account the switch is off for cannot quote (require_feature)");
 ok(Array.isArray(await me(BUYER, `SELECT address FROM public.declutter_delivery_dropoffs`))
@@ -231,6 +246,22 @@ ok(Array.isArray(tr), "with a truck photo the vehicle is saved");
 const near = await me(HELPR, `SELECT * FROM public.helpr_tasks_open_near(${PICK.lat}, ${PICK.lng}, 50) WHERE task_id = '${t1}'`);
 ok(Array.isArray(near) && near.length === 1 && near[0].take_home_cents === T1.pay_cents - T1.fee_cents && !("pickup_address" in near[0]),
   "now they see it: area words, miles and take-home pay, no address");
+// lh-authz-rls #1: miles to the pickup are measured from the ROUNDED pickup point (~1 km), never the exact one.
+{
+  // A search point due north where the exact and the rounded distance fall on different whole miles.
+  let probe = null;
+  for (let k = 1; k < 400 && !probe; k++) {
+    const lat = PICK.lat + k * 0.0005;
+    const ex = Math.max(1, Math.ceil((lat - PICK.lat) * 111195 / 1609.344));
+    const ro = Math.max(1, Math.ceil((lat - 30.45) * 111195 / 1609.344));
+    if (ex !== ro) probe = lat;
+  }
+  const rounded = one(await svc(`SELECT greatest(1, ceil(public.helpr_task_distance_m(${probe}, ${PICK.lng}, 30.45, -91.15) / 1609.344))::int`));
+  const exact = one(await svc(`SELECT greatest(1, ceil(public.helpr_task_distance_m(${probe}, ${PICK.lng}, ${PICK.lat}, ${PICK.lng}) / 1609.344))::int`));
+  const seen = one(await me(HELPR, `SELECT miles_to_pickup FROM public.helpr_tasks_open_near(${probe}, ${PICK.lng}, 50) WHERE task_id = '${t1}'`));
+  ok(probe !== null && rounded !== exact && seen === rounded,
+    `a Helpr's miles to the pickup come from the rounded point, so they cannot trilaterate the home (${seen}; rounded ${rounded}, exact ${exact})`);
+}
 const cand = await view(HELPR, t1);
 ok(cand?.role === "candidate" && cand.pickup_address === null && cand.dropoff_address === null && cand.dropoff_code === null,
   "an open task's view for a Helpr: no address, no code");

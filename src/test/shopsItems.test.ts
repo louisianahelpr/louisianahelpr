@@ -18,12 +18,13 @@
  *   7. The AI answer fails closed; the edge function gates shop items on 'shops'.
  *
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsItems.pglite.mjs
- * (132 PASS on the migration, 3x replay; NEW_MIGRATION=skip 0 PASS / 132 FAIL,
- * measured 2026-10-16).
+ * (142 PASS on the migration, 3x replay; NEW_MIGRATION=skip 0 PASS / 142 FAIL;
+ * 9 planted defects each caught, measured 2026-10-16).
  */
 // @mutate supabase/migrations/20261016212915_shops_items.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
 // @mutate supabase/migrations/20261016212915_shops_items.sql |     WHEN v_approved < 3 THEN 'pending_review' |     WHEN v_approved < 0 THEN 'pending_review'
 // @mutate supabase/migrations/20261016212915_shops_items.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261016212915_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261016212915_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261016212915_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261016212915_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
@@ -54,7 +55,7 @@ const OWNER_RPCS = ["shops_create_item", "shops_update_item", "shops_set_item_st
 const MEMBER_WRITE_RPCS = ["shops_remove_item_photo", "shops_withdraw_item"];
 const READ_RPCS = ["shops_shop_items", "shops_my_item_review", "shops_my_cottage_status"];
 const ADMIN_RPCS = ["shops_admin_pending_items", "shops_admin_review_item"];
-const INTERNAL = ["shop_item_required_statements", "shop_item_text_flag", "shop_cottage_year", "shop_cottage_sales_cents",
+const INTERNAL = ["shop_owner_sell_block_reason", "shop_item_required_statements", "shop_item_text_flag", "shop_cottage_year", "shop_cottage_sales_cents",
   "shop_cottage_cap_reached", "shops_lock_own_item", "shops_check_item_fields", "shops_record_item_ai_check"];
 
 /** Functions the migration GRANTs EXECUTE to authenticated (newest statement wins per name). */
@@ -122,6 +123,7 @@ describe("Shops slice 2: items, hidden and gated (20261016212915)", () => {
       "RAISE EXCEPTION 'cottage_confirmation_required'",
       "IF public.shop_cottage_cap_reached(v_uid) THEN RAISE EXCEPTION 'cottage_cap_reached'",
       "WHEN v_approved < 3 THEN 'pending_review'",
+      "WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'",
       "WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'",
       "WHEN v_text_flag IS NOT NULL THEN 'pending_review'",
     ]) expect(p).toContain(must);
@@ -130,6 +132,9 @@ describe("Shops slice 2: items, hidden and gated (20261016212915)", () => {
     expect(u).toContain("status = 'draft'");
     expect(u).toContain("SET ai_checked_at = NULL, ai_flag_reason = NULL, text_flag_reason = NULL");
     expect(u).toContain("DELETE FROM public.shop_item_attestations WHERE item_id = p_item_id");
+    expect(u).toContain("UPDATE public.shop_items SET admin_approved_at = NULL WHERE id = p_item_id");
+    // A rejection holds every later publish for an admin; only an approval clears it.
+    expect(flat(body("shops_admin_review_item"))).toContain("admin_rejected_at = CASE WHEN p_approve THEN NULL ELSE now() END");
   });
 
   it("3. rental is reserved, never listable; the not-at-launch things have no type", () => {

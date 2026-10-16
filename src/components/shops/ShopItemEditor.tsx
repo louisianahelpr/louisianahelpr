@@ -68,6 +68,16 @@ const fromItem = (i: ShopItem | null): Draft => ({
 });
 
 const cents = (s: string) => Math.round(Number(s.replace(/[$,\s]/g, "")) * 100);
+/**
+ * A whole number typed in a box, or the server's refusal code when the box is
+ * empty or not a number (lh-silent-failure review should-fix 2: an empty box
+ * must never quietly become 0, which publishes as "same day" or "sold out").
+ */
+function wholeNumber(s: string, code: string): number {
+  const t = s.trim();
+  if (!/^\d+$/.test(t)) throw new Error(code);
+  return Number(t);
+}
 const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
 /**
@@ -91,7 +101,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "items"] });
 
   const cottage = useQuery({ queryKey: ["shops", "cottage"], queryFn: fetchCottageStatus, enabled: d.kind === "home_food" });
-  const review = useQuery({ queryKey: ["shops", "item-review", id], queryFn: () => fetchMyItemReview(id as string), enabled: !!id && status === "rejected" });
+  // The admin's note shows while the item has one: a re-saved rejected item
+  // is a draft, and the reason must stay in view until it is republished
+  // (lh-silent-failure review nit 7).
+  const review = useQuery({
+    queryKey: ["shops", "item-review", id],
+    queryFn: () => fetchMyItemReview(id as string),
+    enabled: !!id && (status === "rejected" || status === "draft"),
+  });
 
   const fields = () => ({
     kind: d.kind,
@@ -99,8 +116,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
     title: d.title,
     description: d.description,
     priceCents: cents(d.price),
-    leadTimeDays: Number(d.lead),
-    stockCount: d.readyNow ? Number(d.stock || "0") : null,
+    leadTimeDays: wholeNumber(d.lead, "invalid_lead_time"),
+    stockCount: d.readyNow ? wholeNumber(d.stock, "invalid_stock") : null,
   });
 
   const save = useMutation({
@@ -115,7 +132,10 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
   });
 
   const stock = useMutation({
-    mutationFn: () => setShopItemStock(id as string, d.readyNow ? Number(d.stock || "0") : null, Number(d.lead)),
+    mutationFn: () => {
+      const f = fields();
+      return setShopItemStock(id as string, f.stockCount, f.leadTimeDays);
+    },
     onSuccess: () => {
       toast.success("Stock and ready time saved.");
       refresh();
@@ -137,8 +157,15 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
   const ai = useMutation({
     mutationFn: () => requestShopItemAiDraft(id as string),
     onSuccess: (s) => {
+      // A new kind or type asks for its own confirmations (review nit 9).
+      if (s.kind !== d.kind || s.subtype !== d.subtype) setTicked([]);
       setD((x) => ({ ...x, kind: s.kind, subtype: s.subtype, title: s.title, description: s.description }));
-      toast.success(s.flagged ? "Suggested. An admin will check this item before it's listed." : "Suggested from your photos. Check it, then save.");
+      // The suggestion's own verdict is not saved; the check at Publish decides (review should-fix 1).
+      toast.success(
+        s.flagged
+          ? "Suggested. Our checks may send this item to an admin before it's listed."
+          : "Suggested from your photos. Check it, then save.",
+      );
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
@@ -163,6 +190,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
     onSuccess: (next) => {
       toast.success(next === "live" ? "Listed on your shop." : "Sent for a quick review. It shows on your shop once approved.");
       refresh();
+      void qc.invalidateQueries({ queryKey: ["shops", "cottage"] });
       onDone();
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
@@ -172,11 +200,13 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
   const busy = save.isPending || publish.isPending || addPhoto.isPending || removePhoto.isPending || ai.isPending;
   const shown = item?.photos ?? [];
   const cottageNeedsTick = d.kind === "home_food" && !!cottage.data && !cottage.data.confirmed;
+  // Home food cannot publish until the yearly status is known (review should-fix 5).
+  const cottageUnknown = d.kind === "home_food" && !cottage.data;
 
   return (
     <section className="space-y-4 rounded-2xl border border-border p-4" aria-labelledby="item-editor-title">
       <h3 id="item-editor-title" className="text-base font-semibold">{id ? "Edit item" : "Add an item"}</h3>
-      {status === "rejected" && review.data?.review_note && (
+      {review.data?.review_note && (
         <ShopsNotice title="An admin didn't approve this item." tone="warn">
           <p className="[overflow-wrap:anywhere]">{review.data.review_note}</p>
         </ShopsNotice>
@@ -342,6 +372,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
               <p>New home-kitchen items can be listed again in January.</p>
             </ShopsNotice>
           )}
+          {d.kind === "home_food" && cottage.isError && (
+            <ShopsNotice title="We couldn't load this year's home-kitchen limit." tone="warn">
+              <p>{shopsErrorMessage(cottage.error)}</p>
+              <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => void cottage.refetch()}>
+                Try again
+              </Button>
+            </ShopsNotice>
+          )}
           {cottageNeedsTick && (
             <div className="flex items-start gap-2">
               <Checkbox id="stmt-cottage" checked={underCap} onCheckedChange={(v) => setUnderCap(v === true)} />
@@ -353,7 +391,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           <Button
             type="button"
             className="btn-grad-primary w-full"
-            disabled={busy || !allTicked || (cottageNeedsTick && !underCap)}
+            disabled={busy || !allTicked || cottageUnknown || (cottageNeedsTick && !underCap)}
             onClick={() => publish.mutate()}
           >
             {publish.isPending ? "Publishing…" : "Publish"}

@@ -6868,6 +6868,7 @@ export type Database = {
       }
       shop_item_private: {
         Row: {
+          admin_rejected_at: string | null
           ai_checked_at: string | null
           ai_flag_reason: string | null
           item_id: string
@@ -6877,6 +6878,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_rejected_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           item_id: string
@@ -6886,6 +6888,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_rejected_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           item_id?: string
@@ -10785,6 +10788,10 @@ export type Database = {
       shop_owner_in_good_standing: {
         Args: { p_owner_id: string }
         Returns: boolean
+      }
+      shop_owner_sell_block_reason: {
+        Args: { p_owner_id: string }
+        Returns: string
       }
       shop_owner_rating: {
         Args: { p_owner_id: string }

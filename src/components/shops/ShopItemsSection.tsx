@@ -39,11 +39,19 @@ function DailyCap({ shopId }: { shopId: string }) {
   const qc = useQueryClient();
   const cap = useQuery({ queryKey: ["shops", "daily-cap", shopId], queryFn: () => fetchDailyOrderCap(shopId) });
   const [value, setValue] = useState<string | null>(null);
+  // The browser hands a half-typed number ("1e") back as "": never read that as "no limit".
+  const [badInput, setBadInput] = useState(false);
   const shown = value ?? (cap.data != null ? String(cap.data) : "");
+  // An empty box removes a saved limit only as its own, named action
+  // (lh-silent-failure review should-fix 3).
+  const clearing = shown.trim() === "" && cap.data != null;
   const save = useMutation({
-    mutationFn: () => setDailyOrderCap(shown.trim() === "" ? null : Number(shown)),
+    mutationFn: () => {
+      if (badInput || (shown.trim() !== "" && !/^\d+$/.test(shown.trim()))) throw new Error("invalid_daily_cap");
+      return setDailyOrderCap(shown.trim() === "" ? null : Number(shown));
+    },
     onSuccess: () => {
-      toast.success("Saved.");
+      toast.success(clearing ? "The daily limit is removed." : "Saved.");
       setValue(null);
       void qc.invalidateQueries({ queryKey: ["shops", "daily-cap", shopId] });
     },
@@ -60,13 +68,27 @@ function DailyCap({ shopId }: { shopId: string }) {
           max={200}
           className="min-w-0"
           value={shown}
-          disabled={cap.isLoading}
-          onChange={(e) => setValue(e.target.value)}
+          disabled={cap.isLoading || cap.isError}
+          onChange={(e) => {
+            setBadInput(e.target.validity.badInput);
+            setValue(e.target.value);
+          }}
         />
-        <Button type="button" variant="outline" disabled={save.isPending || cap.isLoading} onClick={() => save.mutate()}>
-          Save
+        <Button
+          type="button"
+          variant="outline"
+          disabled={save.isPending || cap.isLoading || cap.isError || value === null}
+          onClick={() => save.mutate()}
+        >
+          {clearing ? "Remove limit" : "Save"}
         </Button>
       </div>
+      {cap.isError && (
+        <p className="text-sm" role="alert">
+          {shopsErrorMessage(cap.error)}{" "}
+          <button type="button" className="underline" onClick={() => void cap.refetch()}>Try again</button>
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">Once a day is full, buyers can't pick it. Your order days are your open days above.</p>
     </div>
   );
@@ -120,7 +142,17 @@ export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; 
       ) : items.isError ? (
         <p className="text-sm" role="alert">{shopsErrorMessage(items.error)}</p>
       ) : editing && editing !== "new" && !open ? (
-        <Skeleton className="h-40 w-full rounded-2xl" role="status" aria-label="Loading the item" />
+        // The open item left the list (taken down elsewhere, or the list did
+        // not reload): say so with a way back, never a loader with no exit
+        // (lh-silent-failure review should-fix 4).
+        items.isFetching ? (
+          <Skeleton className="h-40 w-full rounded-2xl" role="status" aria-label="Loading the item" />
+        ) : (
+          <div className="space-y-2" role="status">
+            <p className="text-sm">This item isn't available any more.</p>
+            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Back to your items</Button>
+          </div>
+        )
       ) : editing ? (
         <ShopItemEditor
           key={editing}

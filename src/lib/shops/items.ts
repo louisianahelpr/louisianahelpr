@@ -10,6 +10,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { captureException } from "@/lib/sentry";
 import { SHOP_ITEM_TYPES, type ShopItemKind } from "../../../supabase/functions/declutter-ai-draft/shopItemSanitize";
 
 export { SHOP_ITEM_TYPES, type ShopItemKind };
@@ -204,10 +205,16 @@ export function itemPhotoUrl(path: string): string {
 /** Remove storage objects the server detached. */
 async function removeObjects(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
-  const { error } = await supabase.storage.from(ITEM_PHOTO_BUCKET).remove(paths);
-  // The rows are already gone; a failed object delete leaves an unattached
-  // object that the owner's account deletion still removes (<uid>/shop-items/).
-  if (error) console.warn("[shops] item photo objects not removed", error.message);
+  const { data, error } = await supabase.storage.from(ITEM_PHOTO_BUCKET).remove(paths);
+  // The rows are already gone; an object left behind is unattached (the
+  // owner's delete policy, a retry, or the account deletion removes it,
+  // <uid>/shop-items/), but it stays public by URL until then, so a short
+  // count is reported, not only logged (lh-silent-failure review nit 6).
+  const removed = Array.isArray(data) ? data.length : 0;
+  if (error || removed < paths.length) {
+    console.warn("[shops] item photo objects not removed", error?.message ?? `${removed} of ${paths.length}`);
+    captureException(error ?? new Error("shop item photo objects not removed"), { removed, wanted: paths.length }, "warning");
+  }
 }
 
 /**
@@ -271,6 +278,8 @@ async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknow
           return null;
         })
       : null;
+    // The rate limiter answers 429 with a sentence, not a code (review nit 8).
+    if (ctx?.status === 429) throw new Error("ai_busy");
     const code = typeof body?.error === "string" ? body.error : "";
     throw new Error(code || "ai_unavailable");
   }

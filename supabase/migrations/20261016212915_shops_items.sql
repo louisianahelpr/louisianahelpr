@@ -169,7 +169,12 @@ CREATE INDEX IF NOT EXISTS shop_items_subtype_idx ON public.shop_items (subtype)
 
 ALTER TABLE public.shop_items ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_items FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.shop_items TO authenticated;
+-- Column grants (lh-authz-rls review nit 5): admin_approved_at (which items
+-- went through an admin) is not client-readable; the owner reads their own
+-- review state through shops_my_item_review.
+GRANT SELECT (id, shop_id, owner_id, kind, subtype, status, title, description, price_cents, lead_time_days,
+              stock_count, is_seed, created_at, updated_at, submitted_at, live_at)
+  ON TABLE public.shop_items TO authenticated;
 GRANT ALL ON TABLE public.shop_items TO service_role;
 DROP POLICY IF EXISTS "shop items: owner or switched-on members read live" ON public.shop_items;
 CREATE POLICY "shop items: owner or switched-on members read live" ON public.shop_items
@@ -179,7 +184,10 @@ CREATE POLICY "shop items: owner or switched-on members read live" ON public.sho
     -- The shop's own rule (switch on for the caller, not hidden, no test shop
     -- while seeds are hidden, owner in good standing), so items and their
     -- shop are never visible apart.
-    OR (status = 'live' AND public.shop_publicly_visible(shop_id))
+    OR (status = 'live' AND public.shop_publicly_visible(shop_id)
+        -- D12 (lh-authz-rls review should-fix 3): a shop that turned selling
+        -- off shows no items.
+        AND EXISTS (SELECT 1 FROM public.shops s WHERE s.id = shop_items.shop_id AND s.offers_selling))
   );
 COMMENT ON TABLE public.shop_items IS
   'Shops slice 2: items a shop lists (docs/specs/local-shops-prep.md S2, L5-L22). PUBLIC fields only; the AI '
@@ -195,6 +203,10 @@ CREATE TABLE IF NOT EXISTS public.shop_item_private (
   -- The banned-list word check's reason at the last publish (shop_item_text_flag).
   text_flag_reason text CHECK (text_flag_reason IS NULL OR char_length(text_flag_reason) <= 300),
   review_note text CHECK (review_note IS NULL OR char_length(review_note) <= 500),
+  -- lh-authz-rls review must-fix 1: once an admin rejected the item, every
+  -- later publish waits for an admin again, whatever the edit; cleared only
+  -- when an admin approves it.
+  admin_rejected_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS shop_item_private_owner_idx ON public.shop_item_private (owner_id);
@@ -553,6 +565,33 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_cottage_cap_reached(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_cottage_cap_reached(uuid) TO service_role;
 
+-- Why the member cannot sell right now, or NULL: banned or suspended, 3
+-- shared marketplace strikes (L45), under 18 (L82), payout setup not done
+-- (L3). The same four rules as slice 1's shops_assert_owner_eligible (which
+-- raises them for the CALLER); this one judges another member, for the admin
+-- approval (lh-authz-rls review should-fix 2).
+CREATE OR REPLACE FUNCTION public.shop_owner_sell_block_reason(p_owner_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT CASE
+    WHEN p_owner_id IS NULL THEN 'no_owner'
+    WHEN EXISTS (SELECT 1 FROM public.profiles pr
+                  WHERE pr.user_id = p_owner_id
+                    AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+                    AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
+      THEN 'account_restricted'
+    WHEN public.declutter_active_strike_count(p_owner_id) >= 3 THEN 'shop_strikes_blocked'
+    WHEN public.member_under_18(p_owner_id) THEN 'under_18'
+    WHEN public.helper_award_block_reason(p_owner_id) IS NOT NULL THEN 'payout_setup_incomplete'
+  END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_owner_sell_block_reason(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_owner_sell_block_reason(uuid) TO service_role;
+
 -- The caller's own item, locked, with its shop checked: the caller's shop,
 -- not hidden by an admin (L75). Raises item_not_found for anyone else's.
 CREATE OR REPLACE FUNCTION public.shops_lock_own_item(p_item_id uuid, p_uid uuid)
@@ -716,6 +755,9 @@ BEGIN
        SET ai_checked_at = NULL, ai_flag_reason = NULL, text_flag_reason = NULL, updated_at = now()
      WHERE item_id = p_item_id;
     DELETE FROM public.shop_item_attestations WHERE item_id = p_item_id;
+    -- lh-authz-rls review should-fix 4: an approval covers the item an admin
+    -- saw, so a rewritten item no longer counts toward the shop's first 3.
+    UPDATE public.shop_items SET admin_approved_at = NULL WHERE id = p_item_id;
   END IF;
 
   UPDATE public.shop_items
@@ -1073,6 +1115,11 @@ BEGIN
   END IF;
 
   SELECT * INTO v_priv FROM public.shop_item_private WHERE item_id = p_item_id FOR UPDATE;
+  IF NOT FOUND THEN
+    -- Every item is created with its private row (shops_create_item); a
+    -- missing one is a bug, never a pass (lh-silent-failure review nit 11).
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
   v_text_flag := public.shop_item_text_flag(v_item.kind, v_item.title, v_item.description);
 
   -- L52: until 3 of the shop's items have an admin's OK, each waits; so does
@@ -1081,6 +1128,7 @@ BEGIN
     FROM public.shop_items WHERE shop_id = v_item.shop_id AND admin_approved_at IS NOT NULL;
   v_status := CASE
     WHEN v_approved < 3 THEN 'pending_review'
+    WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'
     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
     WHEN v_text_flag IS NOT NULL THEN 'pending_review'
     ELSE 'live'
@@ -1185,7 +1233,9 @@ BEGIN
            ORDER BY i.live_at DESC NULLS FIRST, i.created_at DESC, i.id)
       FROM public.shop_items i
      WHERE i.shop_id = p_shop_id
-       AND (CASE WHEN v_mine THEN i.status <> 'withdrawn' ELSE i.status = 'live' END)), '[]'::jsonb);
+       AND (CASE WHEN v_mine THEN i.status <> 'withdrawn'
+                 -- D12: a shop that turned selling off shows visitors no items.
+                 ELSE i.status = 'live' AND EXISTS (SELECT 1 FROM public.shops s WHERE s.id = p_shop_id AND s.offers_selling) END)), '[]'::jsonb);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_shop_items(uuid) FROM PUBLIC, anon;
@@ -1285,6 +1335,9 @@ BEGIN
   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN
     RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';
   END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   RETURN QUERY
     SELECT i.id, i.shop_id, s.name, i.owner_id, i.kind, i.subtype, i.title, i.description, i.price_cents,
            i.submitted_at, p.ai_checked_at, p.ai_flag_reason, p.text_flag_reason,
@@ -1294,7 +1347,7 @@ BEGIN
               FROM public.shop_item_photos ph WHERE ph.item_id = i.id)
       FROM public.shop_items i
       JOIN public.shops s ON s.id = i.shop_id
-      JOIN public.shop_item_private p ON p.item_id = i.id
+      LEFT JOIN public.shop_item_private p ON p.item_id = i.id
      WHERE i.status = 'pending_review'
      ORDER BY i.submitted_at NULLS LAST, i.id
      LIMIT 200;
@@ -1349,14 +1402,8 @@ BEGIN
   -- payouts set up), the shop must not be hidden, and a home-food item's
   -- owner must not be at the yearly limit.
   IF p_approve AND (
-       EXISTS (SELECT 1 FROM public.profiles pr
-                WHERE pr.user_id = v_owner
-                  AND pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-                  AND (pr.ban_status <> 'temp_banned' OR pr.auto_suspended_until IS NULL OR pr.auto_suspended_until > now()))
-       OR public.declutter_active_strike_count(v_owner) >= 3
-       OR public.member_under_18(v_owner)
-       OR public.helper_award_block_reason(v_owner) IS NOT NULL
-       OR EXISTS (SELECT 1 FROM public.shops s WHERE s.id = v_shop AND s.hidden_at IS NOT NULL)
+       public.shop_owner_sell_block_reason(v_owner) IS NOT NULL
+       OR NOT EXISTS (SELECT 1 FROM public.shops s WHERE s.id = v_shop AND s.hidden_at IS NULL AND s.offers_selling)
        OR (v_kind = 'home_food' AND public.shop_cottage_cap_reached(v_owner))) THEN
     RAISE EXCEPTION 'owner_not_eligible' USING ERRCODE = '22023',
       HINT = 'The shop cannot sell right now (restricted, strikes, age, payouts, hidden or at the home-food limit). Reject it instead.';
@@ -1372,7 +1419,11 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'item_not_pending' USING ERRCODE = 'P0002';
   END IF;
-  UPDATE public.shop_item_private SET review_note = v_note, updated_at = now() WHERE item_id = p_item_id;
+  UPDATE public.shop_item_private
+     SET review_note = v_note,
+         admin_rejected_at = CASE WHEN p_approve THEN NULL ELSE now() END,
+         updated_at = now()
+   WHERE item_id = p_item_id;
 
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, CASE WHEN p_approve THEN 'shop_item_approved' ELSE 'shop_item_rejected' END,

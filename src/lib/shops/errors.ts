@@ -78,6 +78,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
 const SHOP_ITEM_AI_COPY: Record<string, string> = {
   ai_unavailable: "The photo helper isn't available right now. You can fill in the details yourself.",
   ai_photos_required: "Add a photo first, then the helper can suggest the details.",
+  ai_busy: "The photo helper is busy. Try again in a minute.",
 };
 
 const GENERIC = "Something went wrong. Please try again.";

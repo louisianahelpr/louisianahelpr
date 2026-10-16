@@ -544,6 +544,7 @@ export const RPC_ERROR_COPY = {
     under_18: SC.under_18,
   },
   shops_admin_pending_items: {
+    account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,
     not_admin: SC.not_admin,
   },

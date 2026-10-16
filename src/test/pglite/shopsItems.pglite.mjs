@@ -291,7 +291,10 @@ ok(Array.isArray(await member(OWNER, `SELECT public.shops_attest_item('${itemA}'
 ok(refused(await member(OWNER, `SELECT public.shops_publish_item('${itemA}')`), /cottage_confirmation_required/, "22023"),
   "home food needs this year's under-the-limit confirmation (L8)");
 ok(one(await member(OWNER, `SELECT public.shops_confirm_cottage_year()`)) >= 2026, "the baker confirms the year");
-ok(one(await member(OWNER, `SELECT public.shops_publish_item('${itemA}')`)) === "pending_review", "a new shop's first item waits for an admin (L52)");
+// A clean AI verdict and no word-check hit: only "a new shop's first 3" holds it back.
+await recordAi(itemA, "home_food", "baked_goods", "Kolache dozen", "Fruit kolaches.", null);
+ok(one(await member(OWNER, `SELECT public.shops_publish_item('${itemA}')`)) === "pending_review",
+  "a new shop's first item waits for an admin even when the AI check is clean (L52)");
 ok((await rows(FAN, `SELECT id FROM public.shop_items`))?.length === 0, "a pending item is invisible to others");
 
 // --- admin review
@@ -311,7 +314,7 @@ ok(Array.isArray(fanList) && fanList.length === 1 && fanList[0].home_kitchen ===
 ok(one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE target_type = 'shop_item' AND action = 'shop_item_approved'`)) === 1,
   "the approval is in admin_audit_log");
 const rev = await member(OWNER, `SELECT * FROM public.shops_my_item_review('${itemA}')`);
-ok(Array.isArray(rev) && rev[0]?.attested === true && rev[0]?.ai_checked === false, "the owner reads their own review state");
+ok(Array.isArray(rev) && rev[0]?.attested === true && rev[0]?.ai_checked === true && rev[0]?.ai_flagged === false, "the owner reads their own review state");
 ok(refused(await member(FAN, `SELECT * FROM public.shops_my_item_review('${itemA}')`), /item_not_found/, "P0002"), "nobody else reads it");
 
 // --- stock and lead time keep it up; an edit takes it down
@@ -323,6 +326,10 @@ ok(one(await member(OWNER, `SELECT public.shops_update_item('${itemA}', 'home_fo
 ok((await rows(FAN, `SELECT id FROM public.shop_items`))?.length === 0, "an edited item leaves the shop page until republished");
 ok(one(await svc(`SELECT count(*)::int FROM public.shop_item_attestations WHERE item_id = '${itemA}'`)) === 0,
   "changing what the item is asks for the confirmations again");
+ok(one(await svc(`SELECT admin_approved_at IS NULL FROM public.shop_items WHERE id = '${itemA}'`)) === true,
+  "a rewritten item loses its approval: it no longer counts toward the first 3 (review should-fix 4)");
+ok(refused(await member(FAN, `SELECT admin_approved_at FROM public.shop_items`), /permission denied/),
+  "no member reads admin_approved_at by REST (column grants, review nit 5)");
 
 // --- after 3 approved items: the AI check and the word check decide
 async function approvedItem(title) {
@@ -332,8 +339,10 @@ async function approvedItem(title) {
   await member(ADMIN, `SELECT public.shops_admin_review_item('${id}', true, NULL)`);
   return id;
 }
+const b0 = await approvedItem("Bay candle");
 const b1 = await approvedItem("Fig candle");
 const b2 = await approvedItem("Pecan candle");
+ok(typeof b0 === "string", "a third approved item");
 ok(one(await svc(`SELECT count(*)::int FROM public.shop_items WHERE shop_id = '${shopA}' AND admin_approved_at IS NOT NULL`)) === 3,
   "three of the shop's items are admin-approved");
 const c1 = one(await member(OWNER, createSql({ kind: "made", subtype: "candles", title: "Cypress candle", description: "Soy wax." })));
@@ -366,6 +375,16 @@ ok(Array.isArray(flagged) && flagged[0]?.ai_flagged === true, "the owner sees it
 ok(one(await member(ADMIN, `SELECT public.shops_admin_review_item('${c3}', false, 'Not a decoy we can list')`)) === "rejected", "an admin rejects with a reason");
 const rejNote = await member(OWNER, `SELECT review_note FROM public.shops_my_item_review('${c3}')`);
 ok(Array.isArray(rejNote) && rejNote[0]?.review_note === "Not a decoy we can list", "the owner reads the reason");
+// lh-authz-rls review must-fix 1: re-saving the same words and a clean AI
+// verdict must not put a rejected item live without an admin.
+ok(one(await member(OWNER, `SELECT public.shops_update_item('${c3}', 'made', 'crafts', 'Duck decoy', 'Hand carved.', 1801, 2, NULL)`)) === "draft",
+  "the owner re-saves a rejected item (price only)");
+await recordAi(c3, "made", "crafts", "Duck decoy", "Hand carved.", null);
+ok(one(await member(OWNER, `SELECT public.shops_publish_item('${c3}')`)) === "pending_review",
+  "a rejected item waits for an admin again, even with a clean AI verdict");
+ok(one(await member(ADMIN, `SELECT public.shops_admin_review_item('${c3}', true, NULL)`)) === "live"
+   && one(await svc(`SELECT admin_rejected_at IS NULL FROM public.shop_item_private WHERE item_id = '${c3}'`)) === true,
+  "an admin's approval clears the rejection mark");
 
 // --- the word check itself (L5, L11-L16)
 for (const [kind, words, re] of [["home_food", "Boudin balls", /meat or fish/], ["home_food", "Crawfish bread", /meat or fish/],
@@ -417,6 +436,15 @@ ok(one(await member(ADMIN2, `SELECT public.shops_admin_review_item('${adminItem}
 ok(refused(await member(OWNER, `SELECT public.shops_set_daily_order_cap(0)`), /invalid_daily_cap/, "22023"), "a daily limit of 0 is refused");
 ok(one(await member(OWNER, `SELECT public.shops_set_daily_order_cap(12)`)) === 12, "the shop sets 12 orders a day (L22)");
 ok(one(await member(FAN, `SELECT daily_order_cap FROM public.shops WHERE id = '${shopA}'`)) === 12, "members can read the daily limit");
+// D12 (review should-fix 3): a shop that turns selling off shows no items, and no item is approved for it.
+await svc(`UPDATE public.shops SET offers_selling = false, offers_quotes = true WHERE id = '${shopA}'`);
+ok((await rows(FAN, `SELECT id FROM public.shop_items WHERE shop_id = '${shopA}'`))?.length === 0, "selling off: the items leave the page by REST");
+const offList = one(await member(FAN, `SELECT public.shops_shop_items('${shopA}') AS r`));
+ok(Array.isArray(offList) && offList.length === 0, "... and from the shop page");
+ok(one(await member(OWNER, `SELECT jsonb_array_length(public.shops_shop_items('${shopA}'))`)) > 0, "the owner still sees their items");
+ok(refused(await member(ADMIN, `SELECT public.shops_admin_review_item('${c2}', true, NULL)`), /owner_not_eligible/, "22023"),
+  "an admin cannot approve an item for a shop that turned selling off (review should-fix 2)");
+await svc(`UPDATE public.shops SET offers_selling = true WHERE id = '${shopA}'`);
 await member(ADMIN, `SELECT public.shops_admin_set_hidden('${shopA}', true, 'Selling banned items')`);
 ok((await rows(FAN, `SELECT id FROM public.shop_items WHERE shop_id = '${shopA}'`))?.length === 0, "a hidden shop's items are gone for members (L75)");
 ok(refused(await member(FAN, `SELECT public.shops_shop_items('${shopA}')`), /shop_not_found/, "P0002"), "... and its page");
@@ -468,7 +496,7 @@ const internal = await svc(`SELECT string_agg(p.proname || ':' || r.rolname, ','
   FROM pg_proc p CROSS JOIN (VALUES ('anon'), ('authenticated')) r(rolname)
   WHERE p.pronamespace = 'public'::regnamespace
     AND p.proname IN ('shop_item_required_statements', 'shop_item_text_flag', 'shop_cottage_year', 'shop_cottage_sales_cents',
-                      'shop_cottage_cap_reached', 'shops_lock_own_item', 'shops_check_item_fields', 'shops_record_item_ai_check',
+                      'shop_cottage_cap_reached', 'shop_owner_sell_block_reason', 'shops_lock_own_item', 'shops_check_item_fields', 'shops_record_item_ai_check',
                       'shop_rows_seed_from_owner', 'shop_items_kind_matches_subtype', 'reject_contact_leak_in_shop_item',
                       'shop_item_photos_void_ai_check')
     AND has_function_privilege(r.rolname, p.oid, 'EXECUTE')`);

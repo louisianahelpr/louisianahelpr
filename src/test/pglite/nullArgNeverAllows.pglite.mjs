@@ -103,7 +103,10 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.
-CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+-- The real rule (20260915101102) with no role claims set, as here: a server
+-- context is one with no end-user uid. has_role (20261012184600) reads it, so
+-- an always-false stub made its baseline (and two callers') read false.
+CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT auth.uid() IS NULL $$;
 -- is_series_party (recurring split days) reads these two.
 CREATE TABLE public.series_visit_holds (parent_job_id uuid, visit_date date, helper_id uuid);
 CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
@@ -137,6 +140,12 @@ INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary'
 CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
   matched_on text NOT NULL DEFAULT 'test', review_state text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(),
   deferred_rungs jsonb NOT NULL DEFAULT '[]'::jsonb);
+-- Shops slice 1 (20261015123029): the columns the shop visibility helpers and
+-- the class SQL's 'shop' fixture step touch; the strike count is stubbed at 0
+-- (its own table is not under test here).
+CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid NOT NULL UNIQUE, name text, category text, area_label text,
+  pin_lat numeric, pin_lng numeric, hidden_at timestamptz, is_seed boolean NOT NULL DEFAULT false);
+CREATE FUNCTION public.declutter_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
 CREATE TABLE storage.objects (id bigserial PRIMARY KEY, bucket_id text, name text, owner uuid, UNIQUE (bucket_id, name));
@@ -156,9 +165,11 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
-  "declutter_in_agreed_sale", "declutter_slot_in_windows"];
-// Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
-const AFTER_STUBS = ["job_announceable_to"];
+  "declutter_in_agreed_sale", "declutter_slot_in_windows",
+  "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to"];
+// Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
+// (shop_visible_to calls shop_publicly_visible, so it comes after it).
+const AFTER_STUBS = ["job_announceable_to", "shop_publicly_visible", "shop_visible_to"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

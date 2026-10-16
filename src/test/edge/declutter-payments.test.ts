@@ -704,6 +704,16 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
     expect(rpcs("declutter_set_delivery_dropoff")).toHaveLength(0);
   });
 
+  it("a geocoder that is rate-limiting or down is 'try again' (503), never 'address not found'; nothing stored (lh-silent-failure #1)", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    geocoder.mockResolvedValueOnce(new Response("Too Many Requests", { status: 429 }));
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(503);
+    expect((await json(res)).error).toBe("geocode_unavailable");
+    expect(rpcs("declutter_set_delivery_dropoff")).toHaveLength(0);
+  });
+
   it("a quote the SQL refuses (items at two addresses) reaches the app as its code", async () => {
     const fn = await load();
     scenario.rpc.feature_enabled_for_user = true;

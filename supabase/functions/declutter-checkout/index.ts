@@ -51,6 +51,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
 import { geocodeDropoff, plausibleAddress } from "../_shared/geocodeDropoff.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -301,7 +302,18 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
   const off = await requireFeature(admin, "declutter", user, corsHeaders);
   if (off) return off;
   const point = await geocodeDropoff(address);
-  if (!point) return json({ error: "address_not_found" }, 422);
+  if ("miss" in point) {
+    if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+    // The geocoder itself is down or refusing us: never "check your address".
+    console.error(JSON.stringify({ event: "dropoff_geocode_unavailable", status: point.status, detail: point.detail }));
+    await postSlackOpsAlert({
+      kind: "custom", severity: "warning", oncePerDayKey: "declutter-dropoff-geocode-unavailable",
+      title: "Declutter delivery: the address lookup is not answering",
+      message: `Nominatim could not answer a drop-off lookup (${point.detail}). Buyers are told to try again in a minute; delivery quotes fail until it answers.`,
+      fields: { Status: point.status ?? "no answer" },
+    }).catch((e) => console.error(JSON.stringify({ event: "dropoff_geocode_alert_failed", detail: String(e).slice(0, 200) })));
+    return json({ error: "geocode_unavailable" }, 503);
+  }
   const { error: setErr } = await admin.rpc("declutter_set_delivery_dropoff", {
     p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
   });

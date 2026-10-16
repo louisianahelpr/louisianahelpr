@@ -68,7 +68,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   const id = (k: string) => `dcl-prob-${k}-${row.id}`;
   return (
     <li className="rounded-xl border border-border p-3 space-y-2">
-      <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side}</p>
+      <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
       <p className="text-sm whitespace-pre-line">{row.note}</p>
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>

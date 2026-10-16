@@ -7,6 +7,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {side === "buyer" && v.dropoff_code && ( |       {v.dropoff_code && (
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                 disabled={deliver.isPending \|\| (v.status === "picked_up" && !dropPhoto) \|\| (v.status === "delivered" && code.length !== 4)} |                 disabled={deliver.isPending}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, path, await currentPosition()); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -148,6 +149,15 @@ describe("DeliverView (the Helpr's screen)", () => {
     await waitFor(() => expect(state.calls[0]).toEqual(["picked_up", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
     fireEvent.click(screen.getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[1]).toEqual(["release", "t1"]));
+  });
+
+  it("the seller wasn't there: reported with a photo at the pickup and the Helpr's location, after 15 minutes", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2026-10-20T15:00:00Z", payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2000-01-01T15:00:00Z", pickup_address: "1234 Example St" };
+    show(<DeliverView />);
+    fireEvent.change(await screen.findByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
+    await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });
 
   it("my delivery, picked up: the drop-off needs a photo; with the code it is handed over", async () => {

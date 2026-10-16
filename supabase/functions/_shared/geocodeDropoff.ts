@@ -16,6 +16,15 @@ export interface GeocodedDropoff {
   areaLabel: string;
 }
 
+/**
+ * Why a lookup gave no point: the geocoder answered and found nothing usable
+ * ("not_found": the buyer checks the address), or it could not answer at all
+ * ("unavailable": a timeout, a refused connection, a non-2xx such as a 429
+ * rate limit, or a body that is not JSON; the buyer tries again later and ops
+ * is told). Never one for the other (lh-silent-failure review #1, 2026-10-16).
+ */
+export type GeocodeMiss = { miss: "not_found" } | { miss: "unavailable"; status: number | null; detail: string };
+
 const GEOCODE_TIMEOUT_MS = 8000;
 
 /** A typed address worth looking up: 5..300 characters with a letter and a digit. */
@@ -42,14 +51,11 @@ function areaLabelFrom(details: Record<string, unknown> | null | undefined): str
   return label || "Drop-off area";
 }
 
-/**
- * Look the address up. null = not found / not usable (the caller answers
- * "we couldn't find that address"); throws only on a programming error.
- */
+/** Look the address up: the point, or why there is none (GeocodeMiss). Never throws for the network. */
 export async function geocodeDropoff(
   address: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<GeocodedDropoff | null> {
+): Promise<GeocodedDropoff | GeocodeMiss> {
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", address);
   url.searchParams.set("format", "json");
@@ -63,16 +69,19 @@ export async function geocodeDropoff(
       signal: AbortSignal.timeout(GEOCODE_TIMEOUT_MS),
     });
   } catch (e) {
-    // A stalled or refused lookup is "not found right now": the buyer may try again.
-    console.log(JSON.stringify({ event: "dropoff_geocode_failed", detail: String(e).slice(0, 200) }));
-    return null;
+    return { miss: "unavailable", status: null, detail: String(e).slice(0, 200) };
   }
-  if (!res.ok) return null;
-  const rows = (await res.json().catch(() => [])) as Array<{ lat?: string; lon?: string; address?: Record<string, unknown> }>;
-  const top = Array.isArray(rows) ? rows[0] : undefined;
-  if (!top) return null;
+  if (!res.ok) return { miss: "unavailable", status: res.status, detail: `HTTP ${res.status}` };
+  let rows: unknown;
+  try {
+    rows = await res.json();
+  } catch {
+    return { miss: "unavailable", status: res.status, detail: "the answer was not JSON" };
+  }
+  const top = Array.isArray(rows) ? (rows[0] as { lat?: string; lon?: string; address?: Record<string, unknown> } | undefined) : undefined;
+  if (!top) return { miss: "not_found" };
   const lat = Number.parseFloat(String(top.lat));
   const lng = Number.parseFloat(String(top.lon));
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return { miss: "not_found" };
   return { lat, lng, areaLabel: areaLabelFrom(top.address) };
 }

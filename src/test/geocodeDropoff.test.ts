@@ -33,12 +33,17 @@ describe("geocodeDropoff", () => {
     const f = answer([{ lat: "1", lon: "2", address: { road: "Secret Ln", house_number: "7" } }]);
     expect((await geocodeDropoff("7 Secret Ln", f as unknown as typeof fetch))?.areaLabel).toBe("Drop-off area");
   });
-  it("nothing found, a bad status, a bad point or a failed fetch is null (never a guessed point)", async () => {
-    expect(await geocodeDropoff("1 A St", answer([]) as unknown as typeof fetch)).toBeNull();
-    expect(await geocodeDropoff("1 A St", answer([], 503) as unknown as typeof fetch)).toBeNull();
-    expect(await geocodeDropoff("1 A St", answer([{ lat: "x", lon: "2" }]) as unknown as typeof fetch)).toBeNull();
-    expect(await geocodeDropoff("1 A St", answer([{ lat: "95", lon: "2" }]) as unknown as typeof fetch)).toBeNull();
+  it("nothing found or a bad point is not_found (never a guessed point)", async () => {
+    expect(await geocodeDropoff("1 A St", answer([]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
+    expect(await geocodeDropoff("1 A St", answer([{ lat: "x", lon: "2" }]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
+    expect(await geocodeDropoff("1 A St", answer([{ lat: "95", lon: "2" }]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
+  });
+  it("a geocoder that cannot answer (429, 5xx, not JSON, no connection) is unavailable, never 'not found' (lh-silent-failure #1)", async () => {
+    expect(await geocodeDropoff("1 A St", answer([], 429) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: 429 });
+    expect(await geocodeDropoff("1 A St", answer([], 503) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: 503 });
+    const html = vi.fn(async () => new Response("<html>busy</html>", { status: 200 }));
+    expect(await geocodeDropoff("1 A St", html as unknown as typeof fetch)).toMatchObject({ miss: "unavailable" });
     const boom = vi.fn(async () => { throw new Error("offline"); });
-    expect(await geocodeDropoff("1 A St", boom as unknown as typeof fetch)).toBeNull();
+    expect(await geocodeDropoff("1 A St", boom as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: null });
   });
 });

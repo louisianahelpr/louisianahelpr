@@ -144,6 +144,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
   // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
   address_not_found: "We couldn't find that address. Check the street number, street and town.",
+  geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",
 };
 
 /**

@@ -36,6 +36,11 @@ export const FEATURE_SWITCH_KEYS = [
   // the quote form and counters. Created OFF by 20261015091114; every job quote
   // RPC refuses without it (require_feature).
   "quotes",
+  // Declutter "Add a Helpr" (owner 2026-10-16; docs/specs/declutter-add-a-helpr.md):
+  // after buying, one tap books a Helpr to assemble, wall-mount or set up the
+  // item. Created 'testers' by 20261016053527; declutter_setup_helpr and
+  // declutter_link_setup_job refuse without it (require_feature).
+  "declutter_add_helpr",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

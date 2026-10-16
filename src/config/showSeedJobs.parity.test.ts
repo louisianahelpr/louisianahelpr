@@ -259,6 +259,7 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.sweep_confirm_reminders_and_repost", "cron over booked jobs; writes, never lists them to anyone"],
     // Q768: links the caller's own STR turnover to the caller's own job; it
     // reads `status = 'open'` of that one job as a precondition.
+    ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],
     // Q1460: books an already-staffed crew (open -> accepted) at its hiring
     // cutoff; a server sweep over funded crews with hired members, not a feed.

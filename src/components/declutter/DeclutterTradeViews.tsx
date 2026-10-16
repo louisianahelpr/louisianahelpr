@@ -17,6 +17,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useFeature } from "@/hooks/useFeature";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -436,7 +437,19 @@ function PayForSeller({ sellerId, totalCents, onBack }: { sellerId: string; tota
         {opening ? "Opening…" : `Pay ${formatPrice(totalCents)}`}
       </button>
       <p className="text-xs text-muted-foreground">You pay on Stripe's secure page. The money is held until you have your items.</p>
+      <AddHelprNote />
     </>
+  );
+}
+
+/** Declutter "Add a Helpr" at checkout: the add-on is one tap on the paid order (docs/specs/declutter-add-a-helpr.md). */
+function AddHelprNote() {
+  const on = useFeature("declutter_add_helpr");
+  if (!on) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Need it put together or hung on the wall? Once you pay, one tap posts a Helpr job for your place. You set the price and pay for it separately.
+    </p>
   );
 }
 

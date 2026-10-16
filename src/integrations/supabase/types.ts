@@ -1545,6 +1545,42 @@ export type Database = {
           },
         ]
       }
+      declutter_order_jobs: {
+        Row: {
+          created_at: string
+          job_id: string
+          order_id: string
+          purpose: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          order_id: string
+          purpose: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          order_id?: string
+          purpose?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_order_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_order_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_orders: {
         Row: {
           buyer_id: string
@@ -8595,6 +8631,10 @@ export type Database = {
         Args: { p_comment: string; p_order_id: string; p_stars: number }
         Returns: string
       }
+      declutter_link_setup_job: {
+        Args: { p_job_id: string; p_order_id: string }
+        Returns: boolean
+      }
       declutter_lock_buyable_item: {
         Args: { p_buyer: string; p_item_id: string }
         Returns: Record<string, unknown>
@@ -8844,6 +8884,7 @@ export type Database = {
         Args: { p_item_id: string; p_watch: boolean }
         Returns: string
       }
+      declutter_setup_helpr: { Args: { p_order_id: string }; Returns: Json }
       declutter_slot_in_windows: {
         Args: { p_seller: string; p_start: string }
         Returns: boolean

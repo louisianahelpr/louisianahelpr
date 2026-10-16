@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { linkSetupJob } from "@/lib/declutter/setupHelpr";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -163,6 +164,8 @@ export interface UseJobSubmitParams {
   giftCardId: string | null;
   /** Q768: the imported STR turnover this post was opened from (`?turnover=`), linked to the new job. */
   turnoverId?: string | null;
+  /** Declutter "Add a Helpr": the paid order this post was opened from (`?declutterOrder=`), linked to the new job. */
+  declutterOrderId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -211,6 +214,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     saveCardForFuture,
     giftCardId,
     turnoverId,
+    declutterOrderId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -601,6 +605,25 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         await linkTurnoverJob(turnoverId, jobData.id);
       } catch (linkErr) {
         report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkTurnover" }, context: { job_id: jobData.id } });
+      }
+    }
+
+    /* Declutter "Add a Helpr": point the paid order at this job, so the order
+       card shows the Helpr booked. Best effort: the job exists either way, but
+       the buyer is told when the link fails (lh-silent-failure review #1), so a
+       missing line on the order card never reads as "nothing booked yet". */
+    if (declutterOrderId) {
+      let linkErr: unknown = null;
+      try {
+        if (!(await linkSetupJob(declutterOrderId, jobData.id))) linkErr = new Error("declutter setup job not linked");
+      } catch (err) {
+        linkErr = err;
+      }
+      if (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkDeclutterSetup" }, context: { job_id: jobData.id } });
+        toast.error("Your job posted, but it isn't showing on your Declutter purchase", {
+          description: "Find it under your posted jobs.",
+        });
       }
     }
 

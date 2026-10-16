@@ -70,6 +70,9 @@ const DETACHED: { file: string; value: string; table: string }[] = [
   // `updateData` for the job's own checkout: escrow (the dead re-pay branch that
   // wrote payout_pending was removed, Q343).
   { file: "handlers/checkoutSessionCompleted.ts", value: "escrow", table: "jobs" },
+  // `updatePayload` built before the ternary update query: the payload object is
+  // constructed separately from the .from("jobs") chain (ME-046 session-pin refactor).
+  { file: "handlers/paymentIntentPaymentFailed.ts", value: "failed", table: "jobs" },
 ];
 
 /** Writes whose value is a variable, with every value it can hold. */

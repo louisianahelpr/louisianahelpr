@@ -244,6 +244,16 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/chargeDisputeCreated.ts::stripe.charges.retrieve(dispute.charge as string)": EVENT,
   "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
   "stripe-webhook/handlers/checkoutSessionCompleted.ts::stripe.subscriptions.retrieve(subscriptionId)": EVENT,
+  // ME-046: checkSessionStatus retrieves the session by its stored id to check live status before
+  // any DB write. The session id is set by create-payment under the same mode key; a test-mode
+  // session id under the live key re-throws from checkSessionStatus (no isTestObjectUnderLiveKey
+  // check), causing a 500 and a Stripe retry. Money-safe: no DB write precedes this call.
+  "stripe-webhook/handlers/paymentIntentPaymentFailed.ts::stripe.checkout.sessions.retrieve(sessionId)":
+    "session id written by create-payment under the same mode key; a test id under the live key re-throws (no writes committed before this call), so Stripe retries cleanly",
+  // ME-046 fallback: when expand: [payment_intent] is not honoured, retrieve the PI directly.
+  // piId = pi.id from the payment_intent.payment_failed event; stripe-webhook routes each event
+  // to the client of the event's own mode (Q891), so this cannot be a test id under the live key.
+  "stripe-webhook/handlers/paymentIntentPaymentFailed.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
   "stripe-webhook/handlers/customerSubscriptionDeleted.ts::stripe.customers.retrieve(customerId)": EVENT,
   "stripe-webhook/handlers/customerSubscriptionUpdated.ts::stripe.customers.retrieve(customerId)": EVENT,
   "subscription-reconciliation/index.ts::stripe.customers.retrieve(customerId)":

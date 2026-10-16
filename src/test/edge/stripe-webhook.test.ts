@@ -317,6 +317,36 @@ describe("stripe-webhook edge function", () => {
       expect(payload.payment_status).toBe("escrow");
     });
 
+    // ME-046: ACH checkout completes with payment_status !== "paid". The job
+    // update must clear stripe_session_id so that paymentIntentPaymentFailed's
+    // sessionAlreadyExpired gate works: checkout.session.expired never fires
+    // for a completed session, so without this clear the session ID stays set
+    // forever and a bounced debit never notifies the poster.
+    it("clears stripe_session_id on async (ACH) checkout completion", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_ach_complete",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_ach",
+            mode: "payment",
+            payment_status: "unpaid",
+            customer_email: "poster@test.com",
+            payment_intent: "pi_ach",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      const payload = jobWrite?.payload as Record<string, unknown>;
+      expect(payload.stripe_payment_intent_id).toBe("pi_ach");
+      expect(payload.payment_status).toBeUndefined();
+      expect(payload.stripe_session_id).toBeNull();
+    });
+
     // Q1419 (lh-money-escrow review of the Q975 race-15 fix): the escrow write
     // only lands on an unfunded job, or on this same payment again.
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | ,and(stripe_payment_intent_id.eq.${piId},payment_status.eq.escrow)`) | ,stripe_payment_intent_id.eq.${piId}`)

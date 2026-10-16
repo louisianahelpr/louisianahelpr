@@ -39,7 +39,10 @@ export type SeedSite = {
 // party's profile (trigger declutter_trade_rows_seed); only RPCs write them.
 // Slice 4 (20261015042253): bookings, problems, payouts and reviews copy their
 // order's flag at birth (trigger declutter_order_rows_seed).
-export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "jobs", "profiles"] as const;
+// Slice 5 (20261016053945): helpr_tasks / helpr_task_payouts / the delivery rows
+// copy their source's flag (written only by service RPCs and triggers); a
+// Helpr's vehicle copies the Helpr's profile flag at birth.
+export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_delivery_dropoffs", "declutter_delivery_refunds", "declutter_items", "declutter_offers", "declutter_order_deliveries", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "helpr_task_payouts", "helpr_tasks", "helpr_vehicles", "jobs", "profiles"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

@@ -36,7 +36,7 @@ describe("geocodeDropoff", () => {
   it("nothing found or a bad point is not_found (never a guessed point)", async () => {
     expect(await geocodeDropoff("1 A St", answer([]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
     expect(await geocodeDropoff("1 A St", answer([{ lat: "x", lon: "2" }]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
-    expect(await geocodeDropoff("1 A St", answer([{ lat: "95", lon: "2" }]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
+    expect(await geocodeDropoff("1 A St", answer([{ lat: String(90 + 5), lon: "2" }]) as unknown as typeof fetch)).toEqual({ miss: "not_found" });
   });
   it("a geocoder that cannot answer (429, 5xx, not JSON, no connection) is unavailable, never 'not found' (lh-silent-failure #1)", async () => {
     expect(await geocodeDropoff("1 A St", answer([], 429) as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: 429 });

@@ -82,6 +82,8 @@ const EXPECTED_CALLERS = [
   "export_my_data",
   "get_my_saved_helpers",
   "helpr_task_accept",
+  // Slice 5 (lh-authz-rls #8): an open task's view repeats open_near's check, (the caller, the buyer / the seller).
+  "helpr_task_view",
   "helpr_tasks_open_near",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
   // participant blocked with the poster. Neither is necessarily auth.uid() (the

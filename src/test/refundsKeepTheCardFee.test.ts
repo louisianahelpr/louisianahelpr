@@ -206,7 +206,7 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
 const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
-  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle()',
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
 ];
 
@@ -288,7 +288,7 @@ const SQL_POLICIES = {
       declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql 0fb09153f76a7a2b",
       declutter_mark_order_paid: "20261014224914_declutter_slice3b_payments.sql 12d9424a8c148d38",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
-      declutter_order_refunds_recorded_cents: "20261016053945_declutter_helpr_delivery.sql 8cd5b2fb57e7a824",
+      declutter_order_refunds_recorded_cents: "20261016053945_declutter_helpr_delivery.sql 180fd5a89917ba6d",
       declutter_record_hand_refund: "20261015091757_declutter_refund_hand_settle.sql ce5dfbb9af73bb40",
       declutter_record_refund: "20261016053945_declutter_helpr_delivery.sql 54faa84a9b513f1e",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",

@@ -46,6 +46,8 @@ const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const THIS = "20261015091114_job_quotes.sql";
 // QUOTES_MIGRATION: a planted-defect copy, for the mutant runs in the report.
 const MIGRATION = readFileSync(process.env.QUOTES_MIGRATION ?? DIR + THIS, "utf8");
+// Later quote migrations, applied on top in order (each is replay-safe).
+const FOLLOWUPS = ["20261016062157_quote_cap_live_requests.sql"].map((f) => readFileSync(DIR + f, "utf8"));
 const REPLAY = process.argv.includes("--replay");
 const BEFORE = process.argv.includes("--before");
 
@@ -126,7 +128,10 @@ await db.exec(`CREATE TRIGGER trg_jobs_insert_column_lock BEFORE INSERT ON publi
   FOR EACH ROW EXECUTE FUNCTION public.enforce_jobs_insert_column_lock();`);
 
 if (!BEFORE) {
-  for (let i = 0; i < (REPLAY ? 3 : 1); i++) await db.exec(MIGRATION);
+  for (let i = 0; i < (REPLAY ? 3 : 1); i++) {
+    await db.exec(MIGRATION);
+    for (const f of FOLLOWUPS) await db.exec(f);
+  }
 }
 
 const results = [];
@@ -185,6 +190,19 @@ await step("Q4 request: 48 h default, 12 h window refused", async () => {
      (now() AT TIME ZONE 'America/Chicago')::date, ((now() AT TIME ZONE 'America/Chicago') + interval '90 minutes')::time)`);
   await svc(`UPDATE public.job_quote_requests SET status = 'cancelled' WHERE id = '${soon}'`);
   check("Q4 request: 48 h default, 12 h window refused", r.window_hours === 48 && Number(r.h) === 48 && r.status === "open" && /invalid_window/.test(bad ?? "") && capped === true && /job_start_too_soon/.test(tooSoon ?? ""), `${r.window_hours}/${r.h} ${bad} capped=${capped} ${tooSoon}`);
+});
+
+// The 5-open cap counts only requests still collecting quotes: nothing moves a
+// lapsed request out of 'open', so counting it would lock a poster out (sentry
+// review on PR #3173).
+await step("open-request cap ignores lapsed requests", async () => {
+  const extra = [];
+  for (const t of ["Paint the gate", "Paint the rail", "Paint the bench", "Paint the shutters"]) extra.push((await one(POSTER, REQ(t))).id);
+  const sixth = await err(POSTER, REQ("Paint the mailbox"));
+  await svc(`UPDATE public.job_quote_requests SET quotes_close_at = now() - interval '1 minute' WHERE id IN (${extra.map((x) => `'${x}'`).join(",")})`);
+  const after = (await one(POSTER, REQ("Paint the mailbox"))).id;
+  await svc(`DELETE FROM public.job_quote_requests WHERE id IN (${[...extra, after].map((x) => `'${x}'`).join(",")})`);
+  check("open-request cap ignores lapsed requests", /too_many_open_requests/.test(sixth ?? "") && !!after, `${sixth} after=${after}`);
 });
 
 await step("Q7 quotes submitted; own / duplicate / under-18 / banned / blocked / contact refused", async () => {

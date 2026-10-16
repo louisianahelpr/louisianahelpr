@@ -170,7 +170,8 @@ function RequestView({ id }: { id: string }) {
   const cancel = useMutation({
     mutationFn: () => cancelQuoteRequest(id),
     onSuccess: () => {
-      toast.success("Request cancelled");
+      // An unpaid job made from it stays in the poster's posts (cancel_quote_request keeps it): say where.
+      toast.success(request?.job_id ? "Request cancelled. Its unpaid job is still in your posts; delete it there if you don't need it." : "Request cancelled");
       void qc.invalidateQueries({ queryKey: ["quotes"] });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
@@ -235,7 +236,8 @@ function RequestView({ id }: { id: string }) {
         </ul>
       )}
       {open && <SetMyOwnPrice request={request} />}
-      {(open || (agreed && !request.job_id)) && (
+      {/* An agreed request whose job was never paid can still be cancelled (cancel_quote_request allows it; a live checkout is refused there with its own words). */}
+      {(open || (agreed && (!request.job_id || paid.data === false))) && (
         <Button type="button" variant="ghost" className="w-full text-muted-foreground" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
           Cancel this request
         </Button>

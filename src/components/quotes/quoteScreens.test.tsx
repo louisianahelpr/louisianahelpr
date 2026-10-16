@@ -9,6 +9,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx | (agreed && (!request.job_id \|\| paid.data === false)) | (agreed && !request.job_id)
  * @mutate src/components/quotes/QuoteAnswerControls.tsx |   return n >= MIN_QUOTE_DOLLARS && n <= MAX_QUOTE_DOLLARS ? n : null; |   return n;
  * @mutate src/pages/quotes/SendQuotePage.tsx |   const ready = dollarsTyped != null && note.trim().length > 0 && when.trim().length > 0 && !uploading; |   const ready = !uploading;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   const bookedJobId = request && (request.status === "agreed" \|\| request.status === "closed") ? request.job_id : null; |   const bookedJobId = request?.status === "agreed" ? request.job_id : null;
@@ -250,12 +251,16 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     fireEvent.click(await screen.findByRole("button", { name: "Pay now" }));
     await waitFor(() => expect(state.invokes).toHaveLength(1));
     expect(state.invokes[0]).toMatchObject({ name: "create-payment", body: { action: "escrow", jobId: "job-77" } });
+    // Unpaid: the request can still be cancelled (cancel_quote_request allows it; sentry review on PR #3173).
+    expect(screen.getByRole("button", { name: "Cancel this request" })).toBeInTheDocument();
     first.unmount();
     state.job = { payment_status: "escrow" };
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText("Booked and paid")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open the job" })).toHaveAttribute("href", "/jobs/job-77");
     expect(screen.queryByRole("button", { name: "Pay now" })).toBeNull();
+    // Paid: cancelling goes through the job's own flow, so the request offers none.
+    expect(screen.queryByRole("button", { name: "Cancel this request" })).toBeNull();
   });
 
   it("when the paid check fails the screen says so and offers a retry, never a blank", async () => {

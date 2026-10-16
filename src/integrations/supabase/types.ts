@@ -1328,7 +1328,7 @@ export type Database = {
           failed_at: string | null
           livemode: boolean
           order_id: string | null
-          outcome: string
+          hand_outcome: string
           refund_row_id: string | null
           stripe_payment_intent_id: string
           stripe_refund_id: string
@@ -1339,7 +1339,7 @@ export type Database = {
           failed_at?: string | null
           livemode: boolean
           order_id?: string | null
-          outcome: string
+          hand_outcome: string
           refund_row_id?: string | null
           stripe_payment_intent_id: string
           stripe_refund_id: string
@@ -1350,7 +1350,7 @@ export type Database = {
           failed_at?: string | null
           livemode?: boolean
           order_id?: string | null
-          outcome?: string
+          hand_outcome?: string
           refund_row_id?: string | null
           stripe_payment_intent_id?: string
           stripe_refund_id?: string

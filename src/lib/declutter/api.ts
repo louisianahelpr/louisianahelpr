@@ -57,6 +57,8 @@ export interface DeclutterItem {
   area_lng: number;
   created_at: string;
   live_at: string | null;
+  /** Row 101: porch pickup allowed (the default). False = meet at the seller's home only. */
+  porch_ok: boolean;
 }
 
 export interface DeclutterPhoto {
@@ -91,7 +93,7 @@ export interface DraftFields {
 }
 
 const ITEM_COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok";
 
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */
 export async function fetchLiveItems(): Promise<DeclutterItem[]> {
@@ -201,6 +203,14 @@ export async function createDraft(f: DraftFields): Promise<string> {
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {
   return rpcData(await supabase.rpc("declutter_update_draft", { p_item_id: itemId, ...draftArgs(f) }), (e) => rpcErrorMessage("declutter_update_draft", e)) as string;
+}
+
+/** Row 101: may buyers pick this draft up from the porch? On by default; the server refuses porch checkout when off. */
+export async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
+  return rpcData(
+    await supabase.rpc("declutter_set_porch_ok", { p_item_id: itemId, p_porch_ok: porchOk }),
+    (e) => rpcErrorMessage("declutter_set_porch_ok", e),
+  ) as boolean;
 }
 
 /**
@@ -376,6 +386,8 @@ export interface CartLine {
   handover: string | null;
   premium_cents: number | null;
   total_cents: number | null;
+  /** Row 101: the item allows porch pickup. */
+  porch_ok: boolean;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

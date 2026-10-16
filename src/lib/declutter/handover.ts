@@ -212,6 +212,19 @@ export async function adminDecideProblem(
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_problem", e) ?? null) as unknown as Record<string, unknown>;
 }
 
+/**
+ * Admin "Declutter problems" card, a delivery the Helpr has (row 43, slice 5):
+ * damaged in delivery. The buyer gets everything back, the seller is still
+ * paid, the Helpr is not paid and gets a delivery strike
+ * (declutter_admin_decide_delivery_damage, 20261016053945).
+ */
+export async function adminDecideDeliveryDamage(problemId: string, note: string | null): Promise<Record<string, unknown>> {
+  return rpcData(
+    await supabase.rpc("declutter_admin_decide_delivery_damage", { p_problem_id: problemId, p_note: note as string }),
+    (e) => rpcErrorMessage("declutter_admin_decide_delivery_damage", e),
+  ) as unknown as Record<string, unknown>;
+}
+
 /** Open problems for the admin card (RLS: admins read every problem). */
 export async function fetchOpenProblemsForAdmin() {
   const rows = unwrap(

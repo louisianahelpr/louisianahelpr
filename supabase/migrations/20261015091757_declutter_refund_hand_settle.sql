@@ -80,6 +80,8 @@ BEGIN
     IF to_regclass('public.error_logs') IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM public.error_logs e
        WHERE jsonb_typeof(e.tags) = 'object'
+         -- A client-written row never mutes this alert (Q1159: anon/authenticated may INSERT error_logs).
+         AND coalesce(e.tags ->> 'origin', '') <> 'client'
          AND e.tags ->> 'source' = 'declutter-refund-gave-up'
          AND e.tags ->> 'refund_id' = r.id::text
          AND e.created_at > date_trunc('day', now())

@@ -75,6 +75,13 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261016050402)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
+  ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261016053945)'),
+  ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261016053945)'),
+  ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261016053945)'),
+  ('helpr_task_same_stripe_mode',   'allow',    'TRUE = the two members are the same Stripe kind (test vs real): the Helpr may take the task (20261016053945)'),
+  ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261016053945)'),
+  ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261016053945)'),
+  ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261016053945)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
@@ -177,7 +184,18 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- A's Monday window is 09:00-18:00 Louisiana time; 20:00Z on Monday 2026-10-19 is 15:00 CDT, inside it.
   ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
   -- D is an admin, so reading a well-formed declutter-handover path is TRUE for D (no order row needed).
-  ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]);
+  ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
+  -- Slice 5 (the 'delivery' fixture step): O is B's paid delivery order from seller A, whose windows cover
+  -- every day 09:00-18:00 Louisiana time, so tomorrow 10:00 there is a valid pickup time.
+  ('declutter_delivery_slot_ok',    NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2]),
+  ('helpr_task_source_slot_ok',     NULL, ARRAY['''declutter_delivery''', '''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2,3]),
+  -- B uploaded p.jpg for task T (the 'objects' step).
+  ('helpr_task_photo_ok',           NULL, ARRAY['''00000000-0000-4000-8140-000000000601''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid', '''00000000-0000-4000-8140-00000000000b/task/00000000-0000-4000-8140-000000000601/p.jpg'''], ARRAY[1,2,3]),
+  -- D is an admin, so reading a well-formed helpr-tasks path is TRUE for D (no task row needed).
+  ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
+  -- A and B are both real (not test) accounts.
+  ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
+  ('helpr_task_vehicle_fits',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''small'''], ARRAY[1,2]);
 
 DO $q140$
 DECLARE
@@ -201,14 +219,15 @@ BEGIN
   -- with triggers on, the admin-role guard refuses a non-service_role grant and
   -- the application notifier's pg_net call dies on a NULL url.
   FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
-                              'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows'] LOOP
+                              'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows',
+                              'public.declutter_orders'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -254,12 +273,26 @@ BEGIN
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
         END IF;
+      WHEN 'delivery' THEN
+        -- Slice 5 (20261016053945): order O, B's PAID delivery order from seller A (paid now: the 7-day
+        -- deadline is a week away), and A's pickup windows on every other day (Monday exists above).
+        IF to_regclass('public.declutter_order_deliveries') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, premium_cents,
+                                                         tax_cents, delivery_cents, total_cents, paid_at, stripe_payment_intent_id)
+                   VALUES ('00000000-0000-4000-8140-000000000501', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 'paid', 'delivery', 1000, 120, 0, 1200, 2320, now(), 'pi_q140')$q$;
+          EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
+                   SELECT '00000000-0000-4000-8140-00000000000a', d, '09:00', '18:00' FROM generate_series(0, 6) d WHERE d <> 1$q$;
+        END IF;
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;
       WHEN 'objects' THEN
         INSERT INTO storage.objects (bucket_id, name) VALUES
           ('user-documents', A::text || '/credentials/insurance-1787168146999.png'),
           ('user-documents', A::text || '/credentials/trade_license-1757721600000.png');
+        -- Slice 5: B's photo for task T in the private helpr-tasks bucket (no bucket row needed for the check).
+        INSERT INTO storage.objects (bucket_id, name) VALUES
+          ('helpr-tasks', B::text || '/task/00000000-0000-4000-8140-000000000601/p.jpg');
       END CASE;
     EXCEPTION WHEN OTHERS THEN
       INSERT INTO q140_out VALUES ('(fixture)', 'FIXTURE_FAILED', step || ': ' || SQLERRM);

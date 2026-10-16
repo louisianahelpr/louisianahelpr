@@ -81,7 +81,6 @@ import {
   fetchMyVehicle,
   fetchOpenTasks,
   fetchTaskView,
-  HELPR_TASK_BUCKET,
   markDelivered,
   markPickedUp,
   releaseTask,
@@ -222,7 +221,7 @@ describe("photos go to the private bucket at the paths the SQL accepts", () => {
     const path = await uploadTaskPhoto("u1", "t1", jpeg());
     expect(path).toMatch(/^u1\/task\/t1\/[^/]+\.jpg$/);
     expect(h.store[0][0]).toBe("upload");
-    expect(h.store[0][1]).toBe(HELPR_TASK_BUCKET);
+    expect(h.store[0][1]).toBe("helpr-tasks");
     expect(h.store[0][4]).toMatchObject({ contentType: "image/jpeg", upsert: false });
   });
 
@@ -244,6 +243,6 @@ describe("photos go to the private bucket at the paths the SQL accepts", () => {
     h.queue.push(ok({ signedUrl: "https://signed.test/a" }), { data: null, error: { message: "not allowed" } });
     await expect(taskPhotoUrl("u/task/t/a.jpg")).resolves.toBe("https://signed.test/a");
     await expect(taskPhotoUrl("u/task/t/b.jpg")).resolves.toBeNull();
-    expect(h.store[0]).toEqual(["sign", HELPR_TASK_BUCKET, "u/task/t/a.jpg", 600]);
+    expect(h.store[0]).toEqual(["sign", "helpr-tasks", "u/task/t/a.jpg", 600]);
   });
 });

@@ -16,7 +16,7 @@ export interface GeocodedDropoff {
   areaLabel: string;
 }
 
-export const GEOCODE_TIMEOUT_MS = 8000;
+const GEOCODE_TIMEOUT_MS = 8000;
 
 /** A typed address worth looking up: 5..300 characters with a letter and a digit. */
 export function plausibleAddress(raw: unknown): string | null {
@@ -32,7 +32,7 @@ const STATE_CODES: Record<string, string> = {
 };
 
 /** Town (or county) + state code from Nominatim's address details. */
-export function areaLabelFrom(details: Record<string, unknown> | null | undefined): string {
+function areaLabelFrom(details: Record<string, unknown> | null | undefined): string {
   const d = details ?? {};
   const pick = (k: string) => (typeof d[k] === "string" && (d[k] as string).trim() ? (d[k] as string).trim() : null);
   const town = pick("city") ?? pick("town") ?? pick("village") ?? pick("hamlet") ?? pick("suburb") ?? pick("county");

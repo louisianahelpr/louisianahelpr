@@ -45,7 +45,7 @@ const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
-export const SIZE_WORDS: Record<TaskSize, string> = {
+const SIZE_WORDS: Record<TaskSize, string> = {
   small: "Small (fits in a car)",
   large: "Large (needs a truck)",
   xl: "Extra large (truck and two people)",
@@ -119,7 +119,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
     line = side === "buyer" ? `${who} has your item and is on the way.` : `${who} picked it up. You're paid when the buyer has it.`;
   } else if (v.status === "delivered" && v.delivered_at) {
     line = side === "buyer"
-      ? `${who} left it at your drop-off address ${when(v.delivered_at)}. Tap "I got it", or report a problem within 24 hours.`
+      ? `${who} left it at your drop-off address ${when(v.delivered_at)}. Tap "I got it". If something is wrong, report a problem before it confirms itself ${when(new Date(new Date(v.delivered_at).getTime() + 24 * 3_600_000).toISOString())}.`
       : `${who} left it at the buyer's address. You're paid when the buyer confirms, or after 24 hours.`;
   } else if (v.status === "confirmed") {
     line = "Delivered.";
@@ -224,7 +224,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
       <p className="text-sm font-medium">You get {formatPrice(t.take_home_cents)} <span className="font-normal text-muted-foreground">(after the 5% + 70¢ fee)</span></p>
       <label htmlFor={id} className="block text-xs font-medium">Pickup time (inside the seller's pickup times, by {when(t.latest_pickup_at)})</label>
       <div className="flex gap-2">
-        <input id={id} type="datetime-local" className={input} value={slot} onChange={(e) => setSlot(e.target.value)} />
+        <input id={id} type="datetime-local" className={`${input} min-w-0`} value={slot} onChange={(e) => setSlot(e.target.value)} />
         <button type="button" className={`${primary} shrink-0`} disabled={take.isPending || !localInputToIso(slot)}
           onClick={() => { const iso = localInputToIso(slot); if (iso) take.mutate(iso); }}>
           Take it
@@ -267,7 +267,7 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
   });
   const backOut = useMutation({
     mutationFn: () => releaseTask(t.task_id),
-    onSuccess: (r) => done(r.strike ? "You backed out under 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
+    onSuccess: (r) => done(r.strike ? "You backed out less than 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const sellerAway = useMutation({

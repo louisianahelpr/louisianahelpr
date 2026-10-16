@@ -49,6 +49,10 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "declutter_handovers", column: "set_out_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, seller's set-out photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "declutter-handover", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "declutter-handover", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
+  // Declutter slice 5 (20261016053945): Helpr delivery photos and truck photos, in the PRIVATE helpr-tasks bucket.
+  { table: "helpr_tasks", column: "pickup_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_picked_up RPC, the Helpr's photo at the pickup (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
+  { table: "helpr_tasks", column: "dropoff_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_delivered RPC, the Helpr's photo at the drop-off (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
+  { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
 ];
 
 /**

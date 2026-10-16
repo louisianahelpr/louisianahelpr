@@ -148,7 +148,10 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
-  "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access"];
+  "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access",
+  // Declutter slice 5 (20261016053945).
+  "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
+  "helpr_task_source_slot_ok", "helpr_task_vehicle_fits"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];

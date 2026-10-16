@@ -194,7 +194,7 @@ const EXEMPT: Record<string, string> = {
   // Declutter (slice 4): a Declutter order's PaymentIntent, read on the client its parties pick (the mode it was paid
   // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a
   // failed read is a failed payout attempt that backs off (declutter_payout_executed).
-  "declutter-money/index.ts::stripe.paymentIntents.retrieve(p.payment_intent_id)": "a Declutter order's own payment, on its parties' mode; minted after the live switch",
+  "declutter-money/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Declutter order's own payment (wholeCharge, before a seller or Helpr payout), on its parties' mode; minted after the live switch",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

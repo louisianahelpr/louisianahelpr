@@ -1,5 +1,5 @@
 /**
- * Declutter slice 5 screens (Helpr delivery, docs/specs/declutter-auctions.md
+ * The Declutter Helpr-delivery screens (slice five, docs/specs/declutter-auctions.md
  * rows 24, 29-30, 40-43): what each STATE renders and what each button sends.
  * The shared task module's calls are stubbed; the backend proof is
  * src/test/pglite/declutterDelivery.pglite.mjs.

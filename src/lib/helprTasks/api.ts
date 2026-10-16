@@ -16,10 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { isStorageObjectPath } from "@/lib/storagePath";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export type TaskSize = "small" | "large" | "xl";
-export type TaskStatus = "open" | "accepted" | "picked_up" | "delivered" | "confirmed" | "unfilled" | "cancelled" | "failed";
-export type TaskRole = "helpr" | "customer" | "pickup_contact" | "candidate";
+type TaskStatus = "open" | "accepted" | "picked_up" | "delivered" | "confirmed" | "unfilled" | "cancelled" | "failed";
+type TaskRole = "helpr" | "customer" | "pickup_contact" | "candidate";
 
 /** An open task as a Helpr finds it: area words and rough miles, never an address. */
 export interface OpenTask {
@@ -98,28 +100,36 @@ export type DeliveredResult =
   | { result: "code_locked" }
   | { result: "already_confirmed" };
 
-/** The RPC's data, or a thrown Error carrying the server's code as its message. */
-function data<T>(result: { data: unknown; error: { message: string } | null }): T {
-  if (result.error) unwrap(result);
+/**
+ * The RPC's data, or a thrown Error carrying the server's code as its message
+ * and its plain words (RPC_ERROR_COPY) as `userMessage`.
+ */
+function data<T>(result: { data: unknown; error: { message: string } | null }, words: (e: unknown) => string | null): T {
+  if (!result.error) return result.data as T;
+  try {
+    unwrap(result);
+  } catch (thrown) {
+    const e = thrown as Error & { userMessage?: string };
+    const msg = words(thrown);
+    if (msg && Object.isExtensible(e)) e.userMessage = msg;
+    throw e;
+  }
   return result.data as T;
 }
-
-/** The private bucket (20261016053945 A5): served by signed URL only. */
-export const HELPR_TASK_BUCKET = "helpr-tasks";
 
 /** Nearby open tasks this Helpr can take (vehicle, age, payouts, switch all checked in SQL). */
 export async function fetchOpenTasks(where: { lat: number; lng: number } | null): Promise<OpenTask[]> {
   return data<OpenTask[] | null>(await supabase.rpc("helpr_tasks_open_near", {
     p_lat: (where?.lat ?? null) as number, p_lng: (where?.lng ?? null) as number, p_limit: 50,
-  })) ?? [];
+  }), (e) => rpcErrorMessage("helpr_tasks_open_near", e)) ?? [];
 }
 
 export async function fetchMyTasks(): Promise<MyTask[]> {
-  return data<MyTask[] | null>(await supabase.rpc("helpr_my_tasks")) ?? [];
+  return data<MyTask[] | null>(await supabase.rpc("helpr_my_tasks"), (e) => rpcErrorMessage("helpr_my_tasks", e)) ?? [];
 }
 
 export async function fetchTaskView(taskId: string): Promise<TaskView> {
-  return data<TaskView>(await supabase.rpc("helpr_task_view", { p_task_id: taskId }));
+  return data<TaskView>(await supabase.rpc("helpr_task_view", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_view", e));
 }
 
 export async function fetchMyVehicle(userId: string): Promise<MyVehicle | null> {
@@ -128,22 +138,22 @@ export async function fetchMyVehicle(userId: string): Promise<MyVehicle | null> 
 }
 
 export async function saveVehicle(hasTruck: boolean, secondPerson: boolean, photoPath: string | null): Promise<void> {
-  data(await supabase.rpc("helpr_set_vehicle", { p_has_truck: hasTruck, p_second_person: secondPerson, p_photo_path: photoPath as string }));
+  data(await supabase.rpc("helpr_set_vehicle", { p_has_truck: hasTruck, p_second_person: secondPerson, p_photo_path: photoPath as string }), (e) => rpcErrorMessage("helpr_set_vehicle", e));
 }
 
 /** Take a task with a 30-minute pickup time (inside the source's pickup times). */
 export async function acceptTask(taskId: string, pickupSlotStartIso: string): Promise<void> {
-  data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }));
+  data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => rpcErrorMessage("helpr_task_accept", e));
 }
 
 /** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike. */
 export async function releaseTask(taskId: string): Promise<{ result: string; strike: boolean }> {
-  return data<{ result: string; strike: boolean }>(await supabase.rpc("helpr_task_release", { p_task_id: taskId }));
+  return data<{ result: string; strike: boolean }>(await supabase.rpc("helpr_task_release", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_release", e));
 }
 
 /** "Picked up": a photo taken at the pickup point (the server checks within 200 m). */
 export async function markPickedUp(taskId: string, photoPath: string, where: { lat: number; lng: number }): Promise<void> {
-  data(await supabase.rpc("helpr_task_picked_up", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }));
+  data(await supabase.rpc("helpr_task_picked_up", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }), (e) => rpcErrorMessage("helpr_task_picked_up", e));
 }
 
 /** The drop-off: a photo at the address, with the customer's 4-digit code when they are there. */
@@ -159,27 +169,28 @@ export async function markDelivered(
     p_lat: (where?.lat ?? null) as number,
     p_lng: (where?.lng ?? null) as number,
     p_code: code as string,
-  }));
+  }), (e) => rpcErrorMessage("helpr_task_delivered", e));
 }
 
 /** "The seller wasn't there", from 15 minutes after the pickup time. */
 export async function reportPickupNoShow(taskId: string): Promise<void> {
-  data(await supabase.rpc("helpr_task_pickup_no_show", { p_task_id: taskId }));
+  data(await supabase.rpc("helpr_task_pickup_no_show", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_pickup_no_show", e));
 }
 
 /** The customer's "I got it" after the Helpr has the item. */
 export async function confirmReceived(taskId: string): Promise<void> {
-  data(await supabase.rpc("helpr_task_customer_confirm", { p_task_id: taskId }));
+  data(await supabase.rpc("helpr_task_customer_confirm", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_customer_confirm", e));
 }
 
 function nonce(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
 }
 
+/** Photos go to the PRIVATE bucket helpr-tasks (20261016053945 A5), served by signed URL only. */
 async function uploadCleaned(path: string, file: File): Promise<string> {
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const { error } = await supabase.storage.from(HELPR_TASK_BUCKET).upload(path, cleaned, {
+  const { error } = await supabase.storage.from("helpr-tasks").upload(path, cleaned, {
     contentType: "image/jpeg",
     upsert: false,
     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
@@ -200,7 +211,8 @@ export function uploadVehiclePhoto(userId: string, file: File): Promise<string> 
 
 /** A signed URL (10 minutes) for a task photo the caller may read; null when it cannot be signed. */
 export async function taskPhotoUrl(path: string): Promise<string | null> {
-  const { data: signed, error } = await supabase.storage.from(HELPR_TASK_BUCKET).createSignedUrl(path, 600);
+  if (!isStorageObjectPath(path)) return null;
+  const { data: signed, error } = await supabase.storage.from("helpr-tasks").createSignedUrl(path, 600);
   if (error || !signed?.signedUrl) return null;
   return signed.signedUrl;
 }

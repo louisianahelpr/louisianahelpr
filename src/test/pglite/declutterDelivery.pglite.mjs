@@ -327,7 +327,7 @@ ok(one(await svc(`SELECT public.helpr_task_payout_executed('${hp.id}', 'tr_h1', 
   "a sent Helpr payout is final and leaves the queue");
 ok(refused(await svc(`SELECT public.helpr_task_payout_executed('${hp.id}', NULL, NULL, NULL)`), /invalid_result/), "a NULL result is refused");
 
-// 9. Door drop-off + the buyer's "I got it"; and the 24 h rule with a problem open.
+// 9. Door drop-off + the buyer's "I got it"; and the day-long door rule with a problem open (2026-10-16).
 const P2 = await paidDelivery(10, BUYER3, SELLER2, 3000, "small");
 ok(P2.task && (await task(P2.task)).size === "small", "a small delivery");
 ok(one(await me(HELPR, `SELECT count(*)::int FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P2.task}'`)) === 1,
@@ -469,7 +469,7 @@ ok((await svc(`SELECT refunds_recorded_cents FROM public.declutter_payouts_due(5
   === (await order(P7.order_id)).delivery_cents,
   "the seller payout knows the delivery fee was refunded (a known partial refund is not 'not whole')");
 
-// 16. The 24 h door rule when nothing is held.
+// 16. The door rule (a day after the photo, 2026-10-16) when nothing is held.
 const P8 = await paidDelivery(16, BUYER, SELLER2, 2000, "small");
 await me(HELPR, `SELECT public.helpr_task_accept('${P8.task}', '${slot}')`);
 await photo(HELPR, P8.task, "p.jpg");

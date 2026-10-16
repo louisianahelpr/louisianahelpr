@@ -3134,7 +3134,7 @@ export type Database = {
           created_at: string
           detail: string | null
           id: number
-          kind: string
+          task_event: string
           task_id: string
         }
         Insert: {
@@ -3142,7 +3142,7 @@ export type Database = {
           created_at?: string
           detail?: string | null
           id?: number
-          kind: string
+          task_event: string
           task_id: string
         }
         Update: {
@@ -3150,7 +3150,7 @@ export type Database = {
           created_at?: string
           detail?: string | null
           id?: number
-          kind?: string
+          task_event?: string
           task_id?: string
         }
         Relationships: [
@@ -8731,8 +8731,16 @@ export type Database = {
         Returns: string
       }
       declutter_deadline_sweep: { Args: never; Returns: Json }
+      declutter_delivery_compute: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
+      declutter_delivery_on_task_event: { Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }; Returns: Json }
       declutter_delivery_price_cents: { Args: { p_miles: number; p_sizes: string[] }; Returns: number }
       declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
+      declutter_delivery_refund: { Args: { p_order_id: string; p_reason: string }; Returns: string }
+      declutter_delivery_refund_executed: { Args: { p_error: string; p_id: string; p_stripe_refund_id: string; p_succeeded: boolean }; Returns: string }
+      declutter_delivery_refund_reversed: { Args: { p_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
+      declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
+      declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
+      declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
       declutter_give_strike: {
         Args: {
           p_item: string
@@ -8875,6 +8883,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_order_refunds_recorded_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_order_side: {
         Args: { p_buyer: string; p_seller: string; p_uid: string }
         Returns: string
@@ -9024,6 +9033,7 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_set_delivery_dropoff: { Args: { p_address: string; p_area_label: string; p_buyer: string; p_lat: number; p_lng: number; p_seller: string }; Returns: undefined }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
       declutter_set_porch_ok: {
         Args: { p_item_id: string; p_porch_ok: boolean }
@@ -10038,14 +10048,32 @@ export type Database = {
       }
       helpr_set_vehicle: { Args: { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
       helpr_task_accept: { Args: { p_pickup_slot_start: string; p_task_id: string }; Returns: Json }
+      helpr_task_assert_helpr: { Args: never; Returns: string }
+      helpr_task_close: { Args: { p_note: string; p_status: string; p_task: string }; Returns: string }
+      helpr_task_confirm: { Args: { p_actor: string; p_by: string; p_task: string }; Returns: Json }
+      helpr_task_create: { Args: { p_customer: string; p_dropoff_address: string; p_dropoff_area: string; p_dropoff_lat: number; p_dropoff_lng: number; p_is_seed: boolean; p_kind: string; p_latest_pickup: string; p_open_until: string; p_pay_cents: number; p_pickup_address: string; p_pickup_area: string; p_pickup_contact: string; p_pickup_lat: number; p_pickup_lng: number; p_size: string; p_source: string; p_title: string; p_trip_miles: number }; Returns: string }
       helpr_task_customer_confirm: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_delivered: { Args: { p_code: string; p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
       helpr_task_distance_m: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       helpr_task_fee_cents: { Args: { p_pay_cents: number }; Returns: number }
+      helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
+      helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
+      helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
+      helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
+      helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
+      helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
       helpr_task_picked_up: { Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
       helpr_task_pickup_no_show: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_release: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_reopen: { Args: { p_actor: string; p_kind: string; p_note: string; p_task: string }; Returns: undefined }
+      helpr_task_same_stripe_mode: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      helpr_task_source_event: { Args: { p_by: string; p_event: string; p_task: string }; Returns: Json }
+      helpr_task_source_held: { Args: { p_kind: string; p_source: string }; Returns: boolean }
+      helpr_task_source_require_feature: { Args: { p_kind: string }; Returns: undefined }
+      helpr_task_source_slot_ok: { Args: { p_kind: string; p_source: string; p_start: string }; Returns: boolean }
+      helpr_task_sweep: { Args: never; Returns: Json }
+      helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
       helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_tasks_open_near: {
         Args: { p_lat: number; p_limit: number; p_lng: number }

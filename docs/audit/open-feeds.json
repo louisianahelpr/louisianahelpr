@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T22:09Z",
+  "measured_at": "2026-10-16T22:16Z",
   "issues": {
     "readable": true,
     "open": [
@@ -54,13 +54,6 @@
         "runTruncated": false
       },
       {
-        "number": 2660,
-        "title": "nightly-red: staleness-watch",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38923523130",
-        "runTruncated": false
-      },
-      {
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
@@ -72,13 +65,6 @@
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38858111043",
-        "runTruncated": false
-      },
-      {
-        "number": 2940,
-        "title": "nightly-red: e2e-real-backend",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38872290393",
         "runTruncated": false
       },
       {
@@ -106,14 +92,7 @@
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38973920967",
-        "runTruncated": false
-      },
-      {
-        "number": 3181,
-        "title": "nightly-red: ui-sweep",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38879950659",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38974679065",
         "runTruncated": false
       }
     ]
@@ -453,15 +432,12 @@
     "issue #2375": "Q1816",
     "issue #2436": "Q1816",
     "issue #2601": "Q1816",
-    "issue #2660": "Q1816",
     "issue #2894": "Q1816",
     "issue #2937": "Q1816",
-    "issue #2940": "Q1816",
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
     "issue #3178": "Q1816",
-    "issue #3181": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

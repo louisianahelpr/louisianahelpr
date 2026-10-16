@@ -125,7 +125,18 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NUL
   area_lat numeric, area_lng numeric);
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
-CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid,
+  -- slice 5 (20261016053945): declutter_delivery_slot_ok reads the handover and the paid time; the class SQL's
+  -- 'delivery' fixture step writes a paid delivery order with its amounts.
+  handover text, paid_at timestamptz, items_cents integer, premium_cents integer, tax_cents integer, delivery_cents integer,
+  total_cents integer, stripe_payment_intent_id text);
+-- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261016053945.
+CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid);
+-- Slice 5, Helpr delivery (20261016053945): the photo access, vehicle and task checks read these.
+CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text, helpr_id uuid, customer_id uuid,
+  pickup_contact_id uuid, source_kind text, source_id uuid);
+CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean NOT NULL DEFAULT false,
+  second_person boolean NOT NULL DEFAULT false, photo_path text);
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');

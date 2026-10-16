@@ -243,6 +243,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/checkoutSessionCompleted": {
     uncovered: GAP("the tip leg in 04-money-outcomes (it RECORDS whether this handler's \"You received a tip!\" row lands beside the trigger's, but does not assert it: two in-app rows for one tip is a suspected duplicate)"),
   },
+  "edge:stripe-webhook/handlers/paymentIntentPaymentFailed": {
+    uncovered:
+      "fires on payment_intent.payment_failed for an ACH debit that bounced (R01 return); ACH bounces arrive 2–5 business days after checkout and only the expired-session path notifies (stripe_session_id already null). A real ACH R01 return cannot be triggered in automated tests on prod (Stripe is LIVE, no test-mode 4242). Asserted structurally by src/test/declineNoticeWaitsForSessionExpiry.test.ts (ME-046).",
+  },
   // Q1714: THE refund notice every refund path sends (in the app and by email).
   // The admin full + partial refund leg asserts its two rows by their refund
   // link and copy.

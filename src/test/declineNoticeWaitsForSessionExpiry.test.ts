@@ -4,11 +4,15 @@
  * know whether the draft's last checkout is paid or still live.
  *
  * Class, derived from the tree: every stripe-webhook handler is scanned; the
- * only one allowed to send the not-posted notice is checkoutSessionExpired.
- * A decline (payment_intent.payment_failed) is retryable inside the session,
- * so a notice there sends the poster to pay twice.
+ * only handlers allowed to send the not-posted notice are those that fire after
+ * the session can no longer be paid:
+ *   - checkoutSessionExpired: the session window is over.
+ *   - paymentIntentPaymentFailed: only when stripe_session_id is null, meaning
+ *     the session already expired days before the ACH bounce arrived (ME-046).
+ *     A card decline inside a live session is retryable, so that path is still
+ *     routed through checkoutSessionExpired.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | logStep("Job marked failed; poster is told on session expiry" | logStep("Job marked failed; the job isn't posted"
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | sessionAlreadyExpired = !(failedJob as any).stripe_session_id | sessionAlreadyExpired = true
  * @mutate src/pages/post-job/useJobSubmit.ts | safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId); | void jobId;
  * @mutate src/pages/post-job/EntryChoice.tsx | form.hasDraft && draftCheckout !== "paid" && | form.hasDraft &&
  * @mutate src/pages/post-job/useDraftCheckoutState.ts | return row.stripe_session_id ? "open" : "none"; | return "none";
@@ -25,19 +29,29 @@ const NOT_POSTED = /isn['’]t posted|load your draft/i;
 const read = (p: string) => readFileSync(p, "utf8");
 
 describe("Q769: the not-posted notice waits for session expiry", () => {
-  it("only checkoutSessionExpired sends the not-posted notice", () => {
+  it("only session-expired handlers send the not-posted notice", () => {
     const files = readdirSync(HANDLERS).filter((f) => f.endsWith(".ts"));
     expect(files.length).toBeGreaterThan(10);
     const senders = files.filter((f) => {
       const src = read(join(HANDLERS, f)).replace(/^\s*\/\/.*$/gm, "");
       return NOT_POSTED.test(src);
     });
-    expect(senders).toEqual(["checkoutSessionExpired.ts"]);
+    // checkoutSessionExpired: session window is over.
+    // paymentIntentPaymentFailed: only when stripe_session_id is null (ME-046 ACH path).
+    // Any other sender violates Q769 (notice before the session can no longer be paid).
+    expect(senders.sort()).toEqual(["checkoutSessionExpired.ts", "paymentIntentPaymentFailed.ts"]);
   });
 
   it("the expiry notice fires only for a job still marked failed", () => {
     const src = read(join(HANDLERS, "checkoutSessionExpired.ts"));
     expect(src).toMatch(/released\.payment_status === "failed"/);
+  });
+
+  it("paymentIntentPaymentFailed's not-posted notice is gated behind stripe_session_id being null", () => {
+    const src = read(join(HANDLERS, "paymentIntentPaymentFailed.ts"));
+    // Guard: only fires when the checkout session has already cleared (can no longer be paid).
+    expect(src).toMatch(/sessionAlreadyExpired\s*=\s*!\(failedJob/);
+    expect(src).toMatch(/if \(sessionAlreadyExpired && failedJob\.customer_id\)/);
   });
 });
 

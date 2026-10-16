@@ -118,10 +118,8 @@ CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
--- job_announceable_to (newest body) also reads these: Q1401's cutoff and Q1411's ban review queue.
-CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
-CREATE FUNCTION public.job_offer_cutoff(p_date date, p_start time) RETURNS timestamptz LANGUAGE sql STABLE
-  AS $$ SELECT (p_date + coalesce(p_start, '00:00'::time))::timestamptz $$;
+-- job_announceable_to (newest body) also reads Q1401's cutoff (loaded verbatim as a HELPER below) and Q1411's ban
+-- review queue (created below as live).
 -- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's
 -- 'declutter' fixture step inserts an item, a cart line and a window).
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text, title text, category text,

@@ -106,7 +106,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
   }
 
   return (
-    <div className="space-y-5 pb-safe-nav">
+    <div className="space-y-section pb-safe-nav">
       <section className="rounded-2xl border border-border bg-card p-4" aria-label="The job">
         <p className="font-semibold text-foreground break-words">{request.title}</p>
         <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground break-words">{request.description}</p>

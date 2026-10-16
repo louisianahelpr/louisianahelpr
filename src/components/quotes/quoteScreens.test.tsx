@@ -18,6 +18,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />; |   return settled ? <NotFound /> : null;
  * @mutate src/components/quotes/quotesUi.tsx |       <p role="status" className="sr-only"> |       <p role="status" className="sr-only animate-pulse">
  */
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -110,7 +111,7 @@ function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
 }
 
 const REQ = {
-  id: "r1", title: "Paint the back fence", category: "painting", date_needed: "2026-10-25", parish: "East Baton Rouge",
+  id: "r1", title: "Paint the back fence", category: "painting", date_needed: jobLocalDateISO(9), parish: "East Baton Rouge",
   window_hours: 48, quotes_close_at: new Date(Date.now() + 30 * 3_600_000).toISOString(), status: "open", job_id: null,
   quote_count: 2, created_at: "2026-10-15T10:00:00Z",
 };
@@ -122,7 +123,7 @@ const QUOTE = {
 };
 const OPEN = {
   id: "r9", title: "Mow and edge a corner lot", description: "About a quarter acre, front and back.", category: "lawn_care",
-  date_needed: "2026-10-24", start_time: null, estimated_hours: 2, location: "Mid-City, Baton Rouge", latitude: 30.45,
+  date_needed: jobLocalDateISO(8), start_time: null, estimated_hours: 2, location: "Mid-City, Baton Rouge", latitude: 30.45,
   longitude: -91.15, parish: "East Baton Rouge", quotes_close_at: new Date(Date.now() + 20 * 3_600_000).toISOString(),
   created_at: "2026-10-15T09:00:00Z", my_quote_id: null, my_quote_status: null,
 };
@@ -305,7 +306,7 @@ describe("the quoter's send-a-quote form", () => {
 describe("Your quotes (the quoter)", () => {
   it("a poster's counter is the quoter's turn; the quoter's own last offer waits", async () => {
     const base = {
-      request_id: "r9", title: "Mow and edge a corner lot", parish: "East Baton Rouge", date_needed: "2026-10-24",
+      request_id: "r9", title: "Mow and edge a corner lot", parish: "East Baton Rouge", date_needed: jobLocalDateISO(8),
       note: "Mow", available_note: "Friday", respond_until: new Date(Date.now() + 10 * 3_600_000).toISOString(),
       status: "pending", job_id: null, created_at: "2026-10-15T09:00:00Z",
     };

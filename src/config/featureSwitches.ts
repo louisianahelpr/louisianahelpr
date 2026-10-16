@@ -45,6 +45,10 @@ export const FEATURE_SWITCH_KEYS = [
   // W9-W12): created at TESTERS by 20261016053541; declutter_price_hint
   // refuses without it AND 'declutter'.
   "declutter_price_hint",
+  // Shops slice 1 (docs/specs/local-shops-prep.md L90: ONE switch for the
+  // whole Shops section): free shop / business profiles. Created OFF by
+  // 20261015123029; every shops_* RPC refuses without it (require_feature).
+  "shops",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

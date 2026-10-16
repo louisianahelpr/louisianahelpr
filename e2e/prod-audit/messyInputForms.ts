@@ -787,6 +787,11 @@ export const GAPS: Record<string, string> = {
   // letter and a digit, then geocoded), the code is 4 digits with a 5-try lock, the slot inside the seller's windows,
   // all pinned by src/test/pglite/declutterDelivery.pglite.mjs. FORMS sweep owed with Q?delivery-visual-pass.
   "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
+  // Shops slice 1 (2026-10-15): behind the hidden 'shops' switch, created OFF on prod; the server refuses each field
+  // (name 2-60, about <= 2000, area 2-80 and not a street address, fixed category list, parishes, SoS number format,
+  // contact-leak trigger on name/about/area) as pinned by src/test/pglite/shopsProfiles.pglite.mjs. A FORMS sweep is owed
+  // once the switch reaches testers.
+  "src/components/shops/ShopEditView.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsProfiles.pglite.mjs; FORMS sweep owed once on for testers",
   // Suggest a category (2026-10-15, trades): behind the hidden 'suggest_category' switch (testers only on prod); the
   // text rules (2-40 chars, letters, contact-leak scan, 5 per 24h, ban gate, unconfirmed-email gate) are pinned by
   // src/test/categorySuggestions.test.tsx and the migration 20261015051141. A FORMS sweep is owed once the switch is past testers.

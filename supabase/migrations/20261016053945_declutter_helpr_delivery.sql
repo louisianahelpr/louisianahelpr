@@ -1968,6 +1968,20 @@ BEGIN
     -- becomes a pickup at the seller's home; the 7-day clock keeps running.
     IF o.status = 'paid' AND o.handover = 'delivery' THEN
       v_refund := public.declutter_delivery_refund(o.id, 'no_helpr');
+      -- B76: a Helpr who backed out or never came late in the week can leave
+      -- the buyer too little time to book a pickup, and the handover sweep
+      -- would then close it as the BUYER's no-show (strike, fee kept). With
+      -- under 48 h to the 7-day deadline the sale is closed instead as no one's
+      -- fault: the delivery fee back in full (above), the rest under the
+      -- no-fault policy (row 100: the card fee is kept), no strike, the item
+      -- back on sale.
+      IF o.paid_at + interval '7 days' < now() + interval '48 hours' THEN
+        PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your delivery fell through',
+          'No Helpr could deliver in time, so this sale is cancelled. Your delivery fee and your payment are coming back to your card.',
+          '/declutter?view=cart', o.seller_id);
+        v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
+        RETURN jsonb_build_object('result', 'unfilled', 'delivery_refund_id', v_refund, 'closed', v_out);
+      END IF;
       UPDATE public.declutter_orders SET handover = 'pickup_home' WHERE id = o.id AND status = 'paid';
       PERFORM public.declutter_notify(o.buyer_id, 'payment', 'No Helpr took your delivery',
         format('Your $%s delivery fee is coming back to your card. Book a time to pick up at the seller''s home before your 7-day deadline.',

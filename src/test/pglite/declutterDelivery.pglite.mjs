@@ -411,6 +411,25 @@ ok(one(await svc(`SELECT public.declutter_delivery_refund_reversed('${dr4.id}', 
   && one(await svc(`SELECT public.declutter_delivery_refund_reversed('${dr4.id}', 're_d4', 'failed')`)) === "reopened",
   "only the recorded refund's failure reopens it");
 
+// 11b. B76: the delivery falls through with under 48 h to the 7-day deadline (silent-failure review #2): the
+// sale closes as no one's fault (delivery fee back in full, the rest under the no-fault policy), never as a buyer no-show.
+const P11 = await paidDelivery(19, BUYER2, SELLER2, 3000, "small");
+await svc(`UPDATE public.declutter_orders SET paid_at = now() - interval '6 days' WHERE id = '${P11.order_id}'`);
+await svc(`UPDATE public.helpr_tasks SET open_until = now() - interval '1 minute' WHERE id = '${P11.task}'`);
+const strikesBefore11 = one(await svc(`SELECT count(*)::int FROM public.declutter_strikes WHERE user_id = '${BUYER2}'`));
+await svc(`SELECT public.helpr_task_sweep()`);
+const r11 = await order(P11.order_id);
+const ref11 = (await svc(`SELECT * FROM public.declutter_refunds WHERE order_id = '${P11.order_id}'`))[0];
+const dr11 = (await svc(`SELECT * FROM public.declutter_delivery_refunds WHERE order_id = '${P11.order_id}'`))[0];
+ok(r11.status === "refunded" && dr11?.reason === "no_helpr" && dr11.refund_cents === r11.delivery_cents
+  && ref11?.reason === "admin_no_fault" && ref11.paid_cents === r11.total_cents - r11.delivery_cents,
+  `late fall-through: the order is closed, the delivery fee and the rest refunded once each (${ref11?.reason}/${ref11?.paid_cents})`);
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_strikes WHERE user_id = '${BUYER2}'`)) === strikesBefore11,
+  "...with no buyer strike");
+await svc(`SELECT public.declutter_handover_sweep()`);
+ok((await svc(`SELECT count(*)::int AS n FROM public.declutter_refunds WHERE order_id = '${P11.order_id}'`))[0].n === 1,
+  "and the handover sweep never turns it into a buyer no-show afterwards");
+
 // 12. A Helpr backing out late, and a Helpr no-show (B64).
 const P5 = await paidDelivery(13, BUYER, SELLER, 2500, "small");
 await svc(`UPDATE public.helpr_tasks SET open_until = now() + interval '1 hour' WHERE id = '${P5.task}'`);

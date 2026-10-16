@@ -101,6 +101,15 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_transfer: "The payout couldn't be recorded. Please try again.",
   invalid_payout: "The payout couldn't be worked out. Please try again.",
   payout_not_found: "That payout wasn't found.",
+  // Wanted posts + fair-price hint (20261016053541).
+  invalid_wanted_text: "Say what you want in 3 to 60 letters, like \"crib\" or \"oak dresser\". No links or phone numbers.",
+  invalid_category: "Pick a category.",
+  invalid_max_price: "Set your highest price in whole dollars, $1 to $1,000.",
+  invalid_radius: "Pick how far you'd go: 5, 10, 25 or 50 miles.",
+  wanted_rate_limited: "You can post up to 5 wanted items a day. Try again tomorrow.",
+  wanted_open_limit: "You have 10 wanted posts open. Close one to post another.",
+  wanted_not_found: "That wanted post isn't available.",
+  wanted_area_unknown: "We couldn't work out your area. Use your location, or add your ZIP code in your profile.",
 };
 
 /**
@@ -139,7 +148,7 @@ export function declutterErrorMessage(err: unknown): string {
   }
   // The contact-leak filter (check_violation) speaks to the member already.
   // Other check_violations are table constraints written for developers.
-  if (e.code === "23514" && /Keep contact details and payment off the listing/.test(message)) return message;
+  if (e.code === "23514" && /Keep contact details and payment (off the listing|out)/.test(message)) return message;
   if (e.code === "23514") return "Check the details: the title needs 3 to 80 characters and each field must be filled in.";
   return GENERIC;
 }

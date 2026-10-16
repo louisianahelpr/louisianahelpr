@@ -10,7 +10,7 @@
  * @mutate src/lib/declutter/errors.ts |     return DECLUTTER_CLIENT_ERROR_COPY[message]; |     return GENERIC;
  * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514") return "Check the details |   if (e.code === "23514x") return "Check the details
  * @mutate src/lib/declutter/errors.ts |   if (message && Object.prototype.hasOwnProperty.call(DECLUTTER_ERROR_COPY, message)) { |   if (message && message in DECLUTTER_ERROR_COPY) {
- * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514" && /Keep contact details and payment off the listing/.test(message)) return message; |   if (false) return message;
+ * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514" && /Keep contact details and payment (off the listing\|out)/.test(message)) return message; |   if (false) return message;
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -130,6 +130,9 @@ describe("declutterErrorMessage fallbacks and priority", () => {
   it("the contact-leak check_violation sentence is passed through", () => {
     const leak = "Phone number detected in the title. Keep contact details and payment off the listing; questions, payment and pickup happen in the app.";
     expect(declutterErrorMessage({ message: leak, code: "23514" })).toBe(leak);
+    // The wanted-post filter's sentence (20261016053541).
+    const wanted = "Email address detected in what you want. Keep contact details and payment out; offers, payment and pickup happen in the app.";
+    expect(declutterErrorMessage({ message: wanted, code: "23514" })).toBe(wanted);
   });
 
   it("any other check_violation hides the developer text and says what to check", () => {

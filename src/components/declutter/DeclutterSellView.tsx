@@ -46,16 +46,10 @@ import {
   type PickupWindow,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, WEEKDAYS } from "./declutterUi";
+import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATEMENTS } from "./declutterUi";
+import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
-
-const TAX_STATEMENTS = [
-  "I bought this item for my own personal or household use.",
-  "I'm not in the business of selling items like this.",
-  "I don't sell things often. This is an occasional sale.",
-  "I'll keep the item until I hand it over to the buyer.",
-] as const;
 
 interface FormState {
   title: string;
@@ -89,7 +83,7 @@ export function dollarsToCents(v: string): number | null {
 }
 
 /** A house number then a street word (declutter_area_label_problem's first rule; the server also checks the pickup street). */
-const AREA_ADDRESS_RE =
+export const AREA_ADDRESS_RE =
   /(^|[^0-9a-z-])[0-9]+[a-z]?\s+([a-z.'-]+\s+){0,3}(street|st|avenue|ave|road|rd|drive|dr|lane|ln|blvd|boulevard|parkway|pkwy|hwy|highway|cir|circle|court|ct|way|place|pl|trail|trl)\b/i;
 
 /** What is wrong with the form, in plain words, or null. Mirrors the server's checks. */
@@ -437,33 +431,7 @@ export default function SellFlow() {
           <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-pickup">
             <h2 id="sell-pickup" className="text-base font-semibold">3. Your usual pickup times</h2>
             <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
-            <ul className="space-y-2">
-              {windows.map((w, i) => (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-                  <label className="sr-only" htmlFor={`pw-day-${i}`}>Day</label>
-                  <select id={`pw-day-${i}`} className="col-span-3 min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.weekday}
-                    onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, weekday: Number(e.target.value) } : x)))}>
-                    {WEEKDAYS.map((d, n) => <option key={d} value={n}>{d}</option>)}
-                  </select>
-                  <label className="sr-only" htmlFor={`pw-start-${i}`}>From</label>
-                  <input id={`pw-start-${i}`} type="time" className="w-full min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.starts}
-                    onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, starts: e.target.value } : x)))} />
-                  <span className="text-sm">to</span>
-                  <label className="sr-only" htmlFor={`pw-end-${i}`}>Until</label>
-                  <input id={`pw-end-${i}`} type="time" className="w-full min-w-0 rounded-lg border border-input bg-background px-2 py-2 text-sm" value={w.ends}
-                    onChange={(e) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, ends: e.target.value } : x)))} />
-                  {windows.length > 1 && (
-                    <button type="button" className="col-span-3 justify-self-start min-h-11 text-sm underline" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}>Remove this time</button>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {windows.length < 21 && (
-              <Button type="button" variant="outline" size="sm"
-                onClick={() => setWindows((ws) => [...ws, { weekday: 0, starts: "17:00", ends: "19:00" }])}>
-                Add a time
-              </Button>
-            )}
+            <PickupTimesEditor windows={windows} setWindows={setWindows} />
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-labelledby="sell-tax">

@@ -10,17 +10,20 @@
  */
 // @mutate src/pages/user/UserProfile.tsx | if (blockedByMe \|\| (blockCheckPending && blockError)) { | if (false) {
 // @mutate src/pages/user/UserProfile.tsx | if (loading \|\| blockCheckPending) { | if (loading) {
-// @mutate src/pages/user/UserProfile.tsx | .eq("blocker_id", currentUserId!) | .eq("blocked_id", currentUserId!)
+// @mutate src/pages/user/useBlockedByMe.ts | .eq("blocker_id", currentUserId!) | .eq("blocked_id", currentUserId!)
 // @mutate src/pages/user/UserProfile.tsx | const ok = await unblockUser(currentUserId, userId); | const ok = true;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const src = readFileSync(join(__dirname, "..", "pages", "user", "UserProfile.tsx"), "utf8");
+// The block read itself moved to its own hook (2026-10-16, UserProfile size ratchet).
+const hookSrc = readFileSync(join(__dirname, "..", "pages", "user", "useBlockedByMe.ts"), "utf8");
 
 describe("a profile you blocked is hidden behind an Unblock screen", () => {
   it("reads the block from the blocker side: me → them", () => {
-    expect(src).toMatch(/\.from\("user_blocks"\)\s*\.select\("id"\)\s*\.eq\("blocker_id", currentUserId!\)\s*\.eq\("blocked_id", userId!\)/);
+    expect(src).toMatch(/useBlockedByMe\(currentUserId, userId\)/);
+    expect(hookSrc).toMatch(/\.from\("user_blocks"\)\s*\.select\("id"\)\s*\.eq\("blocker_id", currentUserId!\)\s*\.eq\("blocked_id", userId!\)/);
   });
 
   it("returns the blocked state before the loading, not-found and detail renders", () => {

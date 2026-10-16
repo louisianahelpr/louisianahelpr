@@ -65,6 +65,9 @@ const EXPECTED_CALLERS = [
   // start_checkout passes (p_seller_id, v_uid).
   "declutter_lock_buyable_item",
   "declutter_respond_offer",
+  // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
+  // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.
+  "declutter_seller_moving_sale",
   "declutter_set_watch",
   "declutter_start_checkout",
   "direct_accept_block_reason",

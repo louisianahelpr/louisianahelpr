@@ -13,7 +13,7 @@
  * @mutate src/lib/declutter/moves.ts |       floor_price_cents: r.floor.trim() ? moveDollarsToCents(r.floor)! : price, |       floor_price_cents: 100,
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);
  * @mutate src/lib/declutter/moves.ts |     if (status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
- * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail("declutter_create_move_drafts", error); |   if (false) rpcFail("declutter_create_move_drafts", error);
+ * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error)); |   if (false) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
  * @mutate src/lib/declutter/moves.ts |   if (!Array.isArray(items)) throw new Error("ai_unavailable"); |   if (!Array.isArray(items)) return [];
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

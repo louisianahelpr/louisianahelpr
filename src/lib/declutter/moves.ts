@@ -172,9 +172,9 @@ export interface PickupPlace {
   pickupLng: number;
 }
 
-function rpcFail(fn: "declutter_create_move_drafts" | "declutter_set_move_out_date" | "declutter_my_move_out_date" | "declutter_seller_moving_sale", error: { message: string }): never {
+/** Throw the refusal with its plain words (read at each call site, the rpcErrorCopyCoverage rule). */
+function rpcFail(error: { message: string }, words: string | null): never {
   const e = Object.assign(new Error(error.message), error) as Error & { userMessage?: string };
-  const words = rpcErrorMessage(fn, error);
   if (words) e.userMessage = words;
   throw e;
 }
@@ -189,14 +189,14 @@ export async function createMoveDrafts(moveOutOn: string, place: PickupPlace, ro
     p_pickup_lng: place.pickupLng,
     p_items: toMovePayload(rows),
   });
-  if (error) rpcFail("declutter_create_move_drafts", error);
+  if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
   return (data ?? []) as string[];
 }
 
 /** Move the date, or (null) end the moving sale. How many listings changed. */
 export async function setMoveOutDate(moveOutOn: string | null): Promise<number> {
   const { data, error } = await supabase.rpc("declutter_set_move_out_date", { p_move_out_on: moveOutOn });
-  if (error) rpcFail("declutter_set_move_out_date", error);
+  if (error) rpcFail(error, rpcErrorMessage("declutter_set_move_out_date", error));
   // Zero is legitimate: nothing of the seller's is still in the moving sale.
   return typeof data === "number" ? data : 0;
 }
@@ -228,7 +228,7 @@ export async function fetchMyMoveItems(userId: string): Promise<MoveItem[]> {
 /** The seller's own move-out date (YYYY-MM-DD), or null when no moving sale is running. */
 export async function fetchMyMoveOutDate(): Promise<string | null> {
   const { data, error } = await supabase.rpc("declutter_my_move_out_date");
-  if (error) rpcFail("declutter_my_move_out_date", error);
+  if (error) rpcFail(error, rpcErrorMessage("declutter_my_move_out_date", error));
   return typeof data === "string" ? data : null;
 }
 
@@ -244,7 +244,7 @@ export interface SellerMovingSale {
 /** A seller's moving sale as other members see it, or null (none, ended, hidden, blocked). */
 export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMovingSale | null> {
   const { data, error } = await supabase.rpc("declutter_seller_moving_sale", { p_seller_id: sellerId });
-  if (error) rpcFail("declutter_seller_moving_sale", error);
+  if (error) rpcFail(error, rpcErrorMessage("declutter_seller_moving_sale", error));
   const sale = ((data ?? []) as { move_month: string }[])[0];
   if (!sale) return null;
   const rows = (unwrap(

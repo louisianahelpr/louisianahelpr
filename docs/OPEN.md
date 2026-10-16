@@ -705,7 +705,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
   - stripe-webhook-guard: issue #3170, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307. feed: issue #3170 · feed: ledger b61865c6db7b
-  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38886892642. feed: issue #3178 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3178, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38887716896. feed: issue #3178 · feed: ledger e41c806b9175
   - ui-sweep: issue #3181, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38879950659. feed: issue #3181
 
 ## CARRIED — still open from the sections archived 2026-09-23

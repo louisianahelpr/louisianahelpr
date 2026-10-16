@@ -6,7 +6,7 @@
  * declutter_road_miles in 20261016053945): the drop-off address is geocoded
  * by the declutter-checkout edge function and the fee is frozen on the order
  * at checkout. This file only mirrors the formula to explain it, and must
- * agree with the SQL (src/lib/declutter/delivery.test.ts).
+ * agree with the SQL (src/lib/helprTasks/api.test.ts, src/test/pglite/declutterDelivery.pglite.mjs).
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliverySize } from "@/lib/declutter/api";

@@ -12,7 +12,7 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261016053945), these screens only explain it.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -258,14 +258,22 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
     onSuccess: () => done("Picked up. The buyer is told it's on the way."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  // The drop-off photo is uploaded once: a retry after a wrong code reuses it (lh-silent-failure #10).
+  const uploaded = useRef<{ file: File; path: string } | null>(null);
   const deliver = useMutation({
     mutationFn: async () => {
-      const path = dropPhoto ? await uploadTaskPhoto(userId, t.task_id, dropPhoto) : null;
+      let path: string | null = null;
+      if (dropPhoto) {
+        if (uploaded.current?.file !== dropPhoto) uploaded.current = { file: dropPhoto, path: await uploadTaskPhoto(userId, t.task_id, dropPhoto) };
+        path = uploaded.current.path;
+      }
       const where = path ? await currentPosition() : null;
       return markDelivered(t.task_id, path, where, code.length === 4 ? code : null);
     },
     onSuccess: (r) => {
       setCode("");
+      // The view's code lock may have changed: read it again either way.
+      if (r.result === "wrong_code" || r.result === "code_locked") void qc.invalidateQueries({ queryKey: ["helpr-tasks", "view", t.task_id] });
       if (r.result === "wrong_code") { toast.error(`That code isn't right. ${r.attempts_left} ${r.attempts_left === 1 ? "try" : "tries"} left.`); return; }
       if (r.result === "code_locked") { toast.error("Too many wrong codes. Leave it with a photo, and the buyer taps \"I got it\"."); return; }
       setDropPhoto(null);

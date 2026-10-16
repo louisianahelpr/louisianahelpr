@@ -2,15 +2,22 @@
  * The device's position for a photo taken "at the address" (porch pickup, a
  * Helpr's pickup and drop-off). The server compares it with the private point
  * and stores only the distance; this never leaves the device otherwise.
- * Rejects with Error("location_required") when location is off or refused.
+ * Rejects with Error("location_required") when location is off or refused,
+ * on the web and in the app alike (the plugin's own message is logged, never
+ * shown: lh-silent-failure review #7, 2026-10-16).
  */
 import { isNativePlatform } from "@/lib/nativeInit";
 
 export async function currentPosition(): Promise<{ lat: number; lng: number }> {
   if (isNativePlatform) {
     const { Geolocation } = await import("@capacitor/geolocation");
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 12_000 });
-    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 12_000 });
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    } catch (e) {
+      console.warn("[currentPosition] native location failed:", e);
+      throw new Error("location_required");
+    }
   }
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(

@@ -138,6 +138,7 @@ ok(one(await svc(`SELECT public.declutter_road_miles(30.45, -91.15, 32.5, -93.75
   "no distance limit (row 30): Baton Rouge to Shreveport is priced, not refused");
 ok(one(await svc(`SELECT public.helpr_task_fee_cents(1000)`)) === 120 && one(await svc(`SELECT public.helpr_task_fee_cents(5)`)) === 5,
   "the Helpr's fee is jobs' flat 5% + 70c, never more than the pay (row 42)");
+ok(one(await svc(`SELECT public.helpr_task_fee_cents(1010)`)) === 121, "a half cent rounds up, as the app's mirror does (1010 -> 121)");
 
 // 2. Quote: needs a server-stored drop-off; the switch; one pickup address.
 await item(1, SELLER, 5000);

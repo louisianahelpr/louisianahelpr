@@ -136,6 +136,9 @@ describe("delivery price mirror (row 29) agrees with the SQL", () => {
     expect(helprTakeHomeCents(4000)).toBe(4000 - 200 - 70);
     expect(helprTakeHomeCents(50)).toBe(0);
     expect(helprTakeHomeCents(0)).toBe(0);
+    // A half cent rounds UP in both (SQL round(numeric) and Math.round agree for positive cents): 1010 -> 50.5 -> 51 + 70.
+    expect(helprTakeHomeCents(1010)).toBe(1010 - 121);
+    expect(MIGRATION).toContain("least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70)");
   });
 });
 

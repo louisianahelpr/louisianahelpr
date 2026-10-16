@@ -101,6 +101,11 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_transfer: "The payout couldn't be recorded. Please try again.",
   invalid_payout: "The payout couldn't be worked out. Please try again.",
   payout_not_found: "That payout wasn't found.",
+  // Moving-out mode (20261016053625).
+  invalid_move_out_date: "Pick a move-out date from today to 6 months from now.",
+  invalid_items: "Something in that list didn't save. Check each item's name and price, then try again.",
+  too_many_items: "Save 1 to 15 items at a time.",
+  move_draft_limit: "You have 60 unfinished moving-sale items. List or delete some before you add more.",
 };
 
 /**
@@ -112,6 +117,9 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   ai_photos_required: "Add at least one photo first, so the photo tool can see the item.",
   // declutter-card / declutter-checkout (slice 3b) when no code came back.
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
+  // declutter-ai-draft room mode (moving-out mode).
+  room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
+  ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",
 };
 
 /**

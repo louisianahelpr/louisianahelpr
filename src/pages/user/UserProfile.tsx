@@ -28,6 +28,8 @@ import { SubscriptionTierBadge } from "./ProfileBadge";
 import { RatingBreakdown } from "./RatingBreakdown";
 import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
+import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
+import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
 
@@ -38,8 +40,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hasInAppHistory } from "@/lib/inAppHistory";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { unwrap } from "@/lib/supabaseResult";
+import { useQueryClient } from "@tanstack/react-query";
 import { unblockUser } from "@/lib/userBlocks";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -55,22 +56,7 @@ const UserProfile = () => {
   // blocked this person" and an Unblock button, and none of their details.
   // Blocker side only — a person who blocked you still sees nothing new here.
   const queryClient = useQueryClient();
-  const blockedByMeKey = ["user-profile-blocked-by-me", currentUserId, userId] as const;
-  const { data: blockedByMe, status: blockStatus, isError: blockError, refetch: refetchBlock } = useQuery({
-    queryKey: blockedByMeKey,
-    enabled: !!currentUserId && !!userId && currentUserId !== userId,
-    queryFn: async () => {
-      const rows = unwrap(
-        await supabase
-          .from("user_blocks")
-          .select("id")
-          .eq("blocker_id", currentUserId!)
-          .eq("blocked_id", userId!)
-          .limit(1),
-      );
-      return (rows ?? []).length > 0;
-    },
-  });
+  const { blockedByMeKey, data: blockedByMe, status: blockStatus, isError: blockError, refetch: refetchBlock } = useBlockedByMe(currentUserId, userId);
   const [unblocking, setUnblocking] = useState(false);
   const handleUnblock = async () => {
     if (!currentUserId || !userId) return;
@@ -647,6 +633,7 @@ const UserProfile = () => {
               />
             }
           />
+          <MovingSaleBanner sellerId={userId!} />
 
           {/* "No disputes on record" USED TO RENDER HERE, in green, as the
               positive half of the Track Record card. It is gone, and its

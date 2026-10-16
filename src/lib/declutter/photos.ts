@@ -55,13 +55,14 @@ async function fileBytes(file: Blob): Promise<Uint8Array> {
 
 /**
  * The photo as it may be uploaded: re-encoded to JPEG, with no metadata
- * block. Throws ListingPhotoError (plain words) otherwise.
+ * block. Throws ListingPhotoError (plain words) otherwise. Room photos for
+ * moving-out mode pass a smaller size (they go to the photo tool only).
  */
-export async function cleanListingPhoto(file: File): Promise<File> {
+export async function cleanListingPhoto(file: File, maxDimension = 1920, quality = 0.82): Promise<File> {
   if (!file.type.startsWith("image/")) throw new ListingPhotoError("Only photos can be added to a listing.");
   let cleaned: File;
   try {
-    cleaned = await compressImage(file, 1920, 0.82);
+    cleaned = await compressImage(file, maxDimension, quality);
   } catch {
     throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
   }

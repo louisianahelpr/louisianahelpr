@@ -25762,6 +25762,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/declutter/move",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fdeclutter%2Fmove",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -25836,6 +25849,14 @@
         "customer /quotes/send/test",
         "helper /quotes/send/test",
         "anon /quotes/send/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-07T22:12:12.965Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "anon /declutter/move"
       ],
       "replaced": []
     }

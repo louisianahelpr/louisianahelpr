@@ -748,7 +748,7 @@ export const FORMS: FormSpec[] = [
   {
     name: "declutter-sell", url: "/declutter/sell", as: "helper",
     prepare: async (page) => { await page.locator("#sell-title").waitFor({ timeout: 20_000 }); },
-    covers: ["src/components/declutter/DeclutterSellView.tsx"],
+    covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterPickupTimes.tsx"],
   },
   {
     name: "declutter-ask", url: "/declutter", as: "poster",
@@ -794,6 +794,7 @@ export const GAPS: Record<string, string> = {
   // Declutter slice 3/3b (2026-10-14): the offer, buy-now and cart screens (DeclutterTradeViews) are behind the same
   // OFF switch; offer amounts, floor/price bounds and the one-open-offer rule are pinned by declutterSlice3.pglite.mjs.
   "src/components/declutter/DeclutterTradeViews.tsx": "behind the OFF 'declutter' switch (404 on prod); offer/buy-now rules pinned by declutterSlice3.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/declutter/DeclutterMoveView.tsx": "behind the 'declutter' AND 'declutter_moving_out' switches, and its RPCs are not on prod until 20261016053625 lands; server rules pinned by declutterMovingOut.pglite.mjs; FORMS sweep owed at testers",
   "src/components/declutter/DeclutterHandoverViews.tsx": "behind the OFF 'declutter' switch and a PAID order (live Stripe); server rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   "src/components/admin/settings/DeclutterProblemsCard.tsx": "admin-only, behind the OFF 'declutter' switch, needs an open problem on a PAID order; decide rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   // Q1254 (2026-10-07): the ask dialog opens only on a BOOKED, funded job's card; the test accounts have none

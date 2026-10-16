@@ -273,6 +273,8 @@ ok(refused(await as("authenticated", OWNER, `SELECT public.shops_attach_photo('g
   "a video cannot be attached (images only: video keeps GPS)");
 ok(refused(await as("authenticated", OWNER, `SELECT public.shops_attach_photo('gallery', '${OWNER}/shops/missing.jpg')`), /photo_not_uploaded/),
   "a path with no uploaded object is refused");
+ok(refused(await as("authenticated", OWNER, `SELECT public.shops_attach_photo('gallery', '${OWNER}/shops/logo2.jpg')`), /photo_already_attached/, "22023"),
+  "a photo already attached is refused as bad input, not a raw unique error");
 const delOld = await as("authenticated", OWNER, `DELETE FROM storage.objects WHERE name = '${OWNER}/shops/logo1.jpg' RETURNING name`);
 ok(Array.isArray(delOld) && delOld.length === 1, "the owner deletes the detached old logo object (storage policy)");
 const delLive = await as("authenticated", OWNER, `DELETE FROM storage.objects WHERE name = '${OWNER}/shops/logo2.jpg' RETURNING name`);
@@ -344,6 +346,12 @@ ok(one(await as("authenticated", FAN, `SELECT public.shop_publicly_visible('${sh
   "the visibility helper reveals nothing about a hidden shop");
 const fanRest = await as("authenticated", FAN, `SELECT id FROM public.shops WHERE id = '${shopA}'`);
 ok(Array.isArray(fanRest) && fanRest.length === 0, "... by REST too");
+ok(one(await as("authenticated", FAN, `SELECT public.shops_set_follow('${shopA}', false)`)) === false
+   && one(await svc(`SELECT count(*)::int FROM public.shop_follows WHERE user_id = '${FAN}' AND shop_id = '${shopA}'`)) === 0,
+  "a follower can still unfollow a hidden shop");
+ok(refused(await as("authenticated", FAN, `SELECT public.shops_set_follow('${shopA}', true)`), /shop_not_found/, "P0002"),
+  "... but cannot follow it again while hidden");
+await svc(`INSERT INTO public.shop_follows (user_id, shop_id) VALUES ('${FAN}', '${shopA}')`);
 const ownHidden = one(await as("authenticated", OWNER, `SELECT public.shops_get_shop('${shopA}') AS p`));
 ok(ownHidden?.hidden === true && ownHidden?.hidden_reason === "Selling banned items", "the owner sees it hidden, with the reason");
 const audits = await svc(`SELECT count(*)::int AS n FROM public.admin_audit_log WHERE target_type = 'shop'`);

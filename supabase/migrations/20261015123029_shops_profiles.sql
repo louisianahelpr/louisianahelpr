@@ -453,6 +453,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
+SET "TimeZone" TO 'America/Chicago'
 AS $fn$
   SELECT jsonb_build_object(
     'id_checked', COALESCE((SELECT public.identity_is_verified(p.idv_status, p.stripe_identity_verified)
@@ -749,9 +750,16 @@ BEGIN
      RETURNING storage_path INTO v_old;
   END IF;
 
-  INSERT INTO public.shop_photos (shop_id, owner_id, photo_kind, storage_path, position)
-  VALUES (v_shop, v_uid, p_kind, p_storage_path, v_pos)
-  RETURNING id INTO v_id;
+  -- A path already attached (to this shop) is bad input, not a raw 23505:
+  -- review finding 4. The shop row is locked FOR UPDATE above, so the only
+  -- unique key this insert can hit is storage_path.
+  BEGIN
+    INSERT INTO public.shop_photos (shop_id, owner_id, photo_kind, storage_path, position)
+    VALUES (v_shop, v_uid, p_kind, p_storage_path, v_pos)
+    RETURNING id INTO v_id;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'photo_already_attached' USING ERRCODE = '22023';
+  END;
   UPDATE public.shops SET updated_at = now() WHERE id = v_shop;
   RETURN jsonb_build_object('id', v_id, 'replaced_path', v_old);
 END;
@@ -841,6 +849,16 @@ BEGIN
   END IF;
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  IF p_follow IS NULL THEN
+    RAISE EXCEPTION 'invalid_follow' USING ERRCODE = '22023';
+  END IF;
+  -- Unfollow needs no visibility: a member can always drop their own follow,
+  -- even once the shop is hidden or its owner banned (review finding 1). It
+  -- deletes only the caller's own row and answers the same either way.
+  IF NOT p_follow THEN
+    DELETE FROM public.shop_follows WHERE user_id = v_uid AND shop_id = p_shop_id;
+    RETURN false;
   END IF;
   IF NOT public.shop_visible_to(p_shop_id, v_uid) THEN
     RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';

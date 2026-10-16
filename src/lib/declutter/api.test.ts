@@ -19,6 +19,7 @@
  * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
+ * @mutate src/lib/declutter/api.ts |   if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) { |   if (first.error) {
  * @mutate src/lib/declutter/api.ts |   return rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), |   return rpcData(await supabase.rpc("declutter_publish_items", { p_item_id: itemId }),
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,7 +118,7 @@ const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string, extra: Record<string, unknown> = {}): Result => ({ data: null, error: { message, ...extra } });
 
 const COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok";
 
 const FIELDS: DraftFields = {
   title: "Oak desk",
@@ -219,6 +220,22 @@ describe("reads", () => {
     });
     h.queue.push(ok(null));
     await expect(fetchItem("gone")).resolves.toBeNull();
+  });
+
+  it("row 101 deploy window: porch_ok missing on the server (42703) reads again without it, porch on", async () => {
+    h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.porch_ok does not exist" }, status: 400 });
+    h.queue.push(ok({ id: "i1" }));
+    await expect(fetchItem("i1")).resolves.toEqual({ id: "i1", porch_ok: true });
+    expect(h.queries.map((q) => q.ops[0])).toEqual([["select", [COLUMNS]], ["select", [COLUMNS.replace(", porch_ok", "")]]]);
+    h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.porch_ok does not exist" }, status: 400 });
+    h.queue.push(ok([{ id: "a" }]));
+    await expect(fetchLiveItems()).resolves.toEqual([{ id: "a", porch_ok: true }]);
+  });
+
+  it("any other read refusal still throws (no second read)", async () => {
+    h.queue.push({ data: null, error: { code: "42501", message: "permission denied for table declutter_items" }, status: 403 });
+    await expect(fetchItem("i1")).rejects.toThrow(/permission denied/);
+    expect(h.queries).toHaveLength(1);
   });
 
   it("fetchPhotos sends no query at all for an empty id list", async () => {

@@ -620,6 +620,9 @@ export const RPC_ERROR_COPY = {
   },
   helpr_task_pickup_no_show: {
     account_restricted: DC.account_restricted,
+    location_required: DC.location_required,
+    not_at_pickup: DC.not_at_pickup,
+    photo_not_uploaded: DC.photo_not_uploaded,
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,
@@ -688,6 +691,14 @@ export const RPC_ERROR_COPY = {
     problem_not_found: DC.problem_not_found,
     problem_open: DC.problem_open,
     refund_amount_unknown: DC.refund_amount_unknown,
+    delivery_decision_needed: DC.delivery_decision_needed,
+  },
+  declutter_admin_decide_delivery_damage: {
+    account_restricted: DC.account_restricted,
+    not_authorized: DC.not_authorized,
+    problem_not_found: DC.problem_not_found,
+    problem_already_decided: DC.problem_already_decided,
+    not_a_delivery_in_transit: DC.not_a_delivery_in_transit,
   },
   declutter_book_pickup: {
     account_restricted: DC.account_restricted,

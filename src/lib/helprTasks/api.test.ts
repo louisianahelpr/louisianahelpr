@@ -184,7 +184,7 @@ describe("Helpr task calls", () => {
     await markPickedUp("t1", "u/task/t1/p.jpg", { lat: 30.45, lng: -91.15 });
     await markDelivered("t1", "u/task/t1/d.jpg", { lat: 30.5, lng: -91.15 }, "1234");
     await markDelivered("t1", null, null, null);
-    await reportPickupNoShow("t1");
+    await reportPickupNoShow("t1", "u/task/t1/a.jpg", { lat: 30.45, lng: -91.15 });
     await confirmReceived("t1");
     expect(h.rpcs).toEqual([
       ["helpr_task_accept", { p_task_id: "t1", p_pickup_slot_start: "2026-10-20T15:00:00.000Z" }],
@@ -192,7 +192,7 @@ describe("Helpr task calls", () => {
       ["helpr_task_picked_up", { p_task_id: "t1", p_photo_path: "u/task/t1/p.jpg", p_lat: 30.45, p_lng: -91.15 }],
       ["helpr_task_delivered", { p_task_id: "t1", p_photo_path: "u/task/t1/d.jpg", p_lat: 30.5, p_lng: -91.15, p_code: "1234" }],
       ["helpr_task_delivered", { p_task_id: "t1", p_photo_path: null, p_lat: null, p_lng: null, p_code: null }],
-      ["helpr_task_pickup_no_show", { p_task_id: "t1" }],
+      ["helpr_task_pickup_no_show", { p_task_id: "t1", p_photo_path: "u/task/t1/a.jpg", p_lat: 30.45, p_lng: -91.15 }],
       ["helpr_task_customer_confirm", { p_task_id: "t1" }],
     ]);
   });

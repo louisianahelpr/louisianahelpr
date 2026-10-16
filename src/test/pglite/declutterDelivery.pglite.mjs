@@ -369,6 +369,11 @@ await photo(HELPR, P2.task, "d.jpg");
 await me(HELPR, `SELECT public.helpr_task_picked_up('${P2.task}', '${HELPR}/task/${P2.task}/p.jpg', ${PICK.lat}, ${PICK.lng})`);
 const d2 = one(await me(HELPR, `SELECT public.helpr_task_delivered('${P2.task}', '${HELPR}/task/${P2.task}/d.jpg', ${DROP.lat}, ${DROP.lng}, NULL)`));
 ok(d2?.result === "delivered" && (await order(P2.order_id)).status === "paid", "nobody home: left at the door, nobody paid yet");
+const dn = async () => one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${BUYER3}' AND title = 'Delivered'`));
+const dnBefore = await dn();
+ok(one(await me(HELPR, `SELECT public.helpr_task_delivered('${P2.task}', NULL, NULL, NULL, NULL)`))?.result === "delivered" && await dn() === dnBefore,
+  "a repeat drop-off tap answers 'delivered' without sending the buyer the notice again (lh-silent-failure #5)");
+
 ok(refused(await me(BUYER, `SELECT public.helpr_task_customer_confirm('${P2.task}')`), /task_not_found/), "only this delivery's buyer confirms it");
 ok(one(await me(BUYER3, `SELECT public.helpr_task_customer_confirm('${P2.task}')`))?.result === "handed_over"
   && (await task(P2.task)).confirmed_by === "customer",
@@ -387,6 +392,17 @@ await svc(`SELECT public.helpr_task_sweep()`);
 ok((await task(P3.task)).status === "delivered" && (await order(P3.order_id)).status === "paid",
   "with a problem open the 24 h rule pays nobody");
 ok(refused(await me(BUYER3, `SELECT public.helpr_task_customer_confirm('${P3.task}')`), /problem_open/), "nor does \"I got it\"");
+
+// lh-money-escrow #1: the ordinary admin "Refund the buyer" would pay the Helpr for the trip (B69); for a damaged item the
+// Helpr has, it is refused, so the decision is made explicitly (row 43) and nothing has moved.
+ok(refused(await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob3}', 'refund_buyer', 'none', false, 'x')`), /delivery_decision_needed/)
+  && (await order(P3.order_id)).status === "paid" && one(await svc(`SELECT count(*)::int FROM public.helpr_task_payouts WHERE task_id = '${P3.task}'`)) === 0,
+  "\"Refund the buyer\" on a damaged item the Helpr has is refused (decide it as damaged in delivery); nobody is paid");
+// An admin who is the Helpr never decides it.
+await svc(`INSERT INTO public.user_roles (user_id, role) VALUES ('${HELPR}', 'admin') ON CONFLICT DO NOTHING`);
+ok(refused(await me(HELPR, `SELECT public.declutter_admin_decide_problem('${prob3}', 'pay_seller', 'none', false, 'x')`), /not_authorized/),
+  "an admin who made the delivery cannot decide its problem");
+await svc(`DELETE FROM public.user_roles WHERE user_id = '${HELPR}' AND role = 'admin'`);
 
 // 10. Damage in delivery (row 43): buyer everything back, seller paid, Helpr unpaid + strike.
 ok(refused(await me(BUYER3, `SELECT public.declutter_admin_decide_delivery_damage('${prob3}', 'x')`), /not_authorized/), "only an admin decides");
@@ -481,15 +497,35 @@ ok((await task(P5.task)).status === "open"
   && one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR2}' AND violation_type = 'delivery_no_show'`)) === 1,
   "not picked up 2 h after the pickup time: a no-show strike and back up for another Helpr");
 
-// 13. The seller is not there for the Helpr (B67).
+// 13. The seller is not there for the Helpr (B67, revised: evidence + an admin decides; lh-authz-rls #3).
 await me(HELPR, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`);
-ok(refused(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}')`), /too_early/), "\"Seller not there\" waits 15 minutes");
+await photo(HELPR, P5.task, "away.jpg");
+const away = `${HELPR}/task/${P5.task}/away.jpg`;
+ok(refused(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}', '${away}', ${PICK.lat}, ${PICK.lng})`), /too_early/),
+  "\"Seller not there\" waits 15 minutes");
 await svc(`UPDATE public.helpr_tasks SET pickup_slot_start = now() - interval '20 minutes' WHERE id = '${P5.task}'`);
-const ns = one(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}')`));
+ok(refused(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}', NULL, ${PICK.lat}, ${PICK.lng})`), /photo_not_uploaded/),
+  "it needs a photo");
+ok(refused(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}', '${away}', ${DROP.lat}, ${DROP.lng})`), /not_at_pickup/),
+  "taken at the pickup address (within 200 m), not from anywhere");
+ok(refused(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}', '${away}', NULL, NULL)`), /location_required/),
+  "with a location");
+const ns = one(await me(HELPR, `SELECT public.helpr_task_pickup_no_show('${P5.task}', '${away}', ${PICK.lat}, ${PICK.lng})`));
+const prob5 = (await svc(`SELECT * FROM public.declutter_problems WHERE order_id = '${P5.order_id}' AND status = 'open'`))[0];
+ok(ns?.result === "reported" && prob5?.reporter_side === "helpr" && prob5.reason === "no_show" && prob5.reporter_id === HELPR
+  && (await order(P5.order_id)).status === "paid" && (await task(P5.task)).status === "accepted"
+  && one(await svc(`SELECT count(*)::int FROM public.declutter_refunds WHERE order_id = '${P5.order_id}'`)) === 0,
+  "the report opens a problem for an admin; nothing is refunded and nobody is struck on the Helpr's word alone");
+await svc(`UPDATE public.helpr_tasks SET pickup_slot_start = now() - interval '3 hours' WHERE id = '${P5.task}'`);
+await svc(`SELECT public.helpr_task_sweep()`);
+ok((await task(P5.task)).status === "accepted"
+  && one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR}' AND violation_type = 'delivery_no_show'`)) === 0,
+  "while the problem is open the Helpr is not counted a no-show");
+await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob5.id}', 'refund_buyer', 'seller', true, 'Seller was away.')`);
 const r5 = await order(P5.order_id);
 const ref5 = (await svc(`SELECT * FROM public.declutter_refunds WHERE order_id = '${P5.order_id}'`))[0];
-ok(ns?.result === "refund" && r5.status === "refunded" && ref5.reason === "seller_no_show" && ref5.refund_cents === r5.total_cents,
-  "a seller no-show: the buyer gets everything back, delivery fee included (nobody picked it up)");
+ok(r5.status === "refunded" && ref5?.refund_cents === r5.total_cents && ref5.fee_policy === "full_seller_pays_fee",
+  "an admin decides it a seller no-show: the buyer gets everything back, delivery fee included (nobody picked it up)");
 ok((await task(P5.task)).status === "cancelled" && one(await svc(`SELECT count(*)::int FROM public.declutter_strikes WHERE user_id = '${SELLER}'`)) >= 1,
   "the task is cancelled and the seller struck");
 

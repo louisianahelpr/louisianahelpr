@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideProblem, fetchOpenProblemsForAdmin } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsForAdmin } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { AdminCard } from "../AdminViewShell";
 
@@ -17,11 +17,18 @@ import { AdminCard } from "../AdminViewShell";
  * non-admin and a problem already decided (declutter_admin_decide_problem,
  * audit-logged). Shown while the 'declutter' switch is on for this admin, and
  * always while a problem is open (row 62: paid sales go on with the switch off).
+ *
+ * Slice 5 (Helpr delivery): an item reported damaged or not received that the
+ * Helpr already has is decided with "Damaged in delivery" (row 43: the buyer
+ * gets everything back, the seller is paid, the Helpr is not paid and gets a
+ * strike); the server refuses "Refund the buyer" there, because that path
+ * pays the Helpr for the trip (B69). A Helpr's "the seller wasn't there"
+ * report arrives here too, reported by the Helpr.
  */
 interface ProblemRow {
   id: string;
   order_id: string;
-  reporter_side: "buyer" | "seller";
+  reporter_side: "buyer" | "seller" | "helpr";
   reason: string;
   note: string;
   created_at: string;
@@ -49,6 +56,15 @@ function ProblemItem({ row }: { row: ProblemRow }) {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const damage = useMutation({
+    mutationFn: () => adminDecideDeliveryDamage(row.id, note.trim() || null),
+    onSuccess: () => {
+      toast.success("Decided: damaged in delivery. The buyer is refunded, the seller paid, the Helpr not paid.");
+      void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] });
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const deliveryReason = row.reason === "damaged" || row.reason === "not_received";
   const id = (k: string) => `dcl-prob-${k}-${row.id}`;
   return (
     <li className="rounded-xl border border-border p-3 space-y-2">
@@ -77,6 +93,17 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending}>Refund the buyer</Button>
         <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending}>Pay the seller</Button>
       </div>
+      {deliveryReason && (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            On a Helpr delivery the Helpr already has, decide damage here: the buyer gets everything back, the seller is
+            still paid, the Helpr is not paid and gets a strike.
+          </p>
+          <Button variant="outline" onClick={() => damage.mutate()} disabled={damage.isPending || decide.isPending}>
+            Damaged in delivery
+          </Button>
+        </div>
+      )}
     </li>
   );
 }

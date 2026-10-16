@@ -172,9 +172,14 @@ export async function markDelivered(
   }), (e) => rpcErrorMessage("helpr_task_delivered", e));
 }
 
-/** "The seller wasn't there", from 15 minutes after the pickup time. */
-export async function reportPickupNoShow(taskId: string): Promise<void> {
-  data(await supabase.rpc("helpr_task_pickup_no_show", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_pickup_no_show", e));
+/**
+ * "The seller wasn't there", from 15 minutes after the pickup time, with a
+ * photo taken at the pickup point (the server checks within 200 m). It opens
+ * a problem for an admin to decide; nothing is refunded on the report alone.
+ */
+export async function reportPickupNoShow(taskId: string, photoPath: string, where: { lat: number; lng: number }): Promise<void> {
+  data(await supabase.rpc("helpr_task_pickup_no_show", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }),
+    (e) => rpcErrorMessage("helpr_task_pickup_no_show", e));
 }
 
 /** The customer's "I got it" after the Helpr has the item. */

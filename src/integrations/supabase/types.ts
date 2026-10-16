@@ -10064,7 +10064,10 @@ export type Database = {
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
       helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
       helpr_task_picked_up: { Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
-      helpr_task_pickup_no_show: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_pickup_no_show: {
+        Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }
+        Returns: Json
+      }
       helpr_task_release: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_reopen: { Args: { p_actor: string; p_kind: string; p_note: string; p_task: string }; Returns: undefined }
       helpr_task_same_stripe_mode: { Args: { p_a: string; p_b: string }; Returns: boolean }

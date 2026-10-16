@@ -261,7 +261,11 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
       if (r.result === "wrong_code") { toast.error(`That code isn't right. ${r.attempts_left} ${r.attempts_left === 1 ? "try" : "tries"} left.`); return; }
       if (r.result === "code_locked") { toast.error("Too many wrong codes. Leave it with a photo, and the buyer taps \"I got it\"."); return; }
       setDropPhoto(null);
-      done(r.result === "delivered" ? "Left at the door. You're paid when the buyer confirms, or after 24 hours." : "Delivered. You're being paid.");
+      done(r.result === "delivered"
+        ? r.held
+          ? "Left at the door. A problem was reported on this sale, so your pay waits until Louisiana Helpr decides."
+          : "Left at the door. You're paid when the buyer confirms, or after 24 hours."
+        : "Delivered. You're being paid.");
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -271,14 +275,18 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const sellerAway = useMutation({
-    mutationFn: () => reportPickupNoShow(t.task_id),
-    onSuccess: () => done("Reported. The sale is cancelled and the buyer refunded."),
+    mutationFn: async (file: File) => {
+      const path = await uploadTaskPhoto(userId, t.task_id, file);
+      await reportPickupNoShow(t.task_id, path, await currentPosition());
+    },
+    onSuccess: () => done("Reported. Louisiana Helpr will look at it and decide. You're not counted as a no-show meanwhile."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const v = view.data;
   const pickId = `helpr-pick-${t.task_id}`;
   const dropId = `helpr-drop-${t.task_id}`;
   const codeId = `helpr-code-${t.task_id}`;
+  const awayId = `helpr-away-${t.task_id}`;
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <p className="font-semibold truncate" title={t.title}>{t.title}</p>
@@ -306,13 +314,20 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
                   onClick={() => { if (window.confirm("Back out of this delivery? Under 2 hours before the pickup it costs a delivery strike.")) backOut.mutate(); }}>
                   Back out
                 </button>
-                {v.pickup_slot_start && Date.now() >= new Date(v.pickup_slot_start).getTime() + 15 * 60_000 && (
-                  <button type="button" className={btn} disabled={sellerAway.isPending}
-                    onClick={() => { if (window.confirm("Report that the seller wasn't there? The sale is cancelled.")) sellerAway.mutate(); }}>
-                    The seller wasn't there
-                  </button>
-                )}
               </div>
+              {v.pickup_slot_start && Date.now() >= new Date(v.pickup_slot_start).getTime() + 15 * 60_000 && (
+                <>
+                  <label htmlFor={awayId} className="block text-xs font-medium">
+                    The seller wasn't there: a photo of the door, taken at the pickup address
+                  </label>
+                  <input id={awayId} type="file" accept="image/*" capture="environment" disabled={sellerAway.isPending}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f && window.confirm("Report that the seller wasn't there? Louisiana Helpr looks at it and decides.")) sellerAway.mutate(f);
+                    }} />
+                </>
+              )}
             </>
           )}
           {(v.status === "picked_up" || v.status === "delivered") && (

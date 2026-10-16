@@ -115,6 +115,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   order_amounts_frozen: "The amounts of this order can't be changed after checkout.",
   no_delivery_fee: "This order has no delivery fee to refund.",
   not_a_delivery_in_transit: "Only a delivery the Helpr picked up can be decided as damaged in delivery.",
+  delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
   task_not_found: "This delivery isn't available.",
   task_taken: "Another Helpr took this delivery, or it closed.",
   task_not_active: "This delivery isn't in progress.",

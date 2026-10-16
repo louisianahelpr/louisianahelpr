@@ -1123,7 +1123,11 @@ BEGIN
       RAISE EXCEPTION 'location_required' USING ERRCODE = '22023';
     END IF;
     v_m := public.helpr_task_distance_m(p_lat, p_lng, t.dropoff_lat, t.dropoff_lng);
-    IF v_m IS NULL OR v_m > 200 THEN
+    -- 200 m from the drop-off point; with the right code from the buyer (checked
+    -- above: the buyer is there in person) 1 km, so a point the geocoder put a
+    -- little off never leaves the Helpr unable to finish (lh-money-escrow
+    -- review #4, 2026-10-16).
+    IF v_m IS NULL OR v_m > (CASE WHEN p_code IS NULL THEN 200 ELSE 1000 END) THEN
       RAISE EXCEPTION 'not_at_dropoff' USING ERRCODE = '22023', HINT = 'Take the photo at the drop-off address.';
     END IF;
     UPDATE public.helpr_tasks
@@ -1135,7 +1139,12 @@ BEGIN
     v_out := public.helpr_task_source_event(t.id, 'confirmed', 'code');
     RETURN COALESCE(v_out, '{}'::jsonb) || jsonb_build_object('result', 'confirmed', 'distance_m', v_m);
   END IF;
-  PERFORM public.helpr_task_source_event(t.id, 'delivered', NULL);
+  -- The "Delivered" notice goes out once, on the step itself; a repeat call
+  -- on a task already at the door says so again without re-sending it
+  -- (lh-silent-failure #5, lh-authz-rls #9).
+  IF t.status = 'picked_up' THEN
+    PERFORM public.helpr_task_source_event(t.id, 'delivered', NULL);
+  END IF;
   RETURN jsonb_build_object('result', 'delivered', 'distance_m', v_m,
     'held', public.helpr_task_source_held(t.source_kind, t.source_id));
 END;
@@ -1145,7 +1154,7 @@ GRANT EXECUTE ON FUNCTION public.helpr_task_delivered(uuid, text, numeric, numer
 
 -- "The seller wasn't there" (B67): the Helpr, from 15 minutes after the
 -- pickup time, before picking up. The source decides what that means.
-CREATE OR REPLACE FUNCTION public.helpr_task_pickup_no_show(p_task_id uuid)
+CREATE OR REPLACE FUNCTION public.helpr_task_pickup_no_show(p_task_id uuid, p_photo_path text, p_lat numeric, p_lng numeric)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -1154,6 +1163,7 @@ AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
   t public.helpr_tasks;
+  v_m integer;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
@@ -1174,12 +1184,27 @@ BEGIN
   IF public.helpr_task_source_held(t.source_kind, t.source_id) THEN
     RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
   END IF;
-  PERFORM public.helpr_task_log(t.id, 'pickup_no_show', v_uid, NULL);
-  RETURN public.helpr_task_source_event(t.id, 'pickup_no_show', NULL);
+  -- Evidence, as for "Picked up": a photo taken at the pickup point (<= 200 m).
+  -- The Helpr's word alone never cancels a sale (lh-authz-rls #3 /
+  -- lh-money-escrow #5, 2026-10-16: a Helpr could take the item without
+  -- tapping "Picked up" and then claim the seller was away).
+  IF NOT public.helpr_task_photo_ok(t.id, v_uid, p_photo_path) THEN
+    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
+  END IF;
+  IF p_lat IS NULL OR p_lng IS NULL OR p_lat NOT BETWEEN -90 AND 90 OR p_lng NOT BETWEEN -180 AND 180 THEN
+    RAISE EXCEPTION 'location_required' USING ERRCODE = '22023';
+  END IF;
+  v_m := public.helpr_task_distance_m(p_lat, p_lng, t.pickup_lat, t.pickup_lng);
+  IF v_m IS NULL OR v_m > 200 THEN
+    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the pickup address.';
+  END IF;
+  PERFORM public.helpr_task_log(t.id, 'pickup_no_show', v_uid, format('%s m; photo %s', v_m, p_photo_path));
+  -- The source decides through a person (Declutter: a problem for an admin).
+  RETURN public.helpr_task_source_event(t.id, 'pickup_no_show', v_m::text);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.helpr_task_pickup_no_show(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.helpr_task_pickup_no_show(uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.helpr_task_pickup_no_show(uuid, text, numeric, numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.helpr_task_pickup_no_show(uuid, text, numeric, numeric) TO authenticated, service_role;
 
 -- A10. The sweep (cron 'helpr-tasks', every 10 min at :04), each task
 -- re-checked under its own lock; one bad task never stops the rest:
@@ -1216,7 +1241,10 @@ BEGIN
             WHERE x.status = 'accepted' AND x.pickup_slot_start + interval '2 hours' <= now() ORDER BY x.id LIMIT 200 LOOP
     BEGIN
       t := public.helpr_task_lock(r.id);
-      IF t.status = 'accepted' AND t.pickup_slot_start + interval '2 hours' <= now() THEN
+      -- A problem on the source (e.g. the Helpr's "the seller wasn't there")
+      -- freezes the task: an admin decides, the Helpr is not a no-show.
+      IF t.status = 'accepted' AND t.pickup_slot_start + interval '2 hours' <= now()
+         AND NOT public.helpr_task_source_held(t.source_kind, t.source_id) THEN
         PERFORM public.helpr_task_reopen(t.id, 'helpr_no_show', NULL, 'not picked up 2 h after the pickup time');
         PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,
           'Did not pick up a Helpr delivery within 2 hours of the pickup time');
@@ -2012,10 +2040,26 @@ BEGIN
     END IF;
     RETURN jsonb_build_object('result', 'unfilled', 'delivery_refund_id', v_refund);
   ELSIF p_event = 'pickup_no_show' THEN
-    -- B67: the seller was not there for the Helpr = a seller no-show (row 19):
-    -- everything back to the buyer, card fee to the seller's debt, seller strike.
-    RETURN public.declutter_close_paid_order(o.id, 'seller_no_show', 'seller', 'seller_no_show',
-      'You were not there when the Helpr came to pick up a Declutter sale. The buyer got everything back; the card fee comes out of your next Declutter payout.');
+    -- B67 (revised 2026-10-16 after lh-authz-rls #3): the Helpr's report, with
+    -- a photo at the pickup point, opens a problem on the order. The money
+    -- waits (the problem holds it; the task stays taken, so the Helpr is not
+    -- counted a no-show) and an admin decides: a seller no-show = refund the
+    -- buyer, the seller's fault (row 19: everything back, card fee to the
+    -- seller's debt, a strike); or pay the seller (the delivery fee goes
+    -- back, B70).
+    INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, is_seed)
+    VALUES (o.id, t.helpr_id, 'helpr', 'no_show',
+            format('The Helpr says the seller wasn''t there for the pickup at %s. Their photo at the pickup address (%s m away) is on the delivery.',
+                   to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD FMHH12:MI AM'), COALESCE(p_by, '?')),
+            o.is_seed)
+    RETURNING id INTO v_refund;
+    PERFORM public.declutter_notify(o.seller_id, 'info', 'The Helpr couldn''t pick up',
+      'The Helpr says you weren''t there for the pickup. Louisiana Helpr will look at it and decide; the money waits until then.',
+      '/declutter?view=sales', t.helpr_id);
+    PERFORM public.declutter_notify(o.buyer_id, 'info', 'Your delivery is on hold',
+      'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
+      '/declutter?view=cart', t.helpr_id);
+    RETURN jsonb_build_object('result', 'reported', 'problem_id', v_refund);
   END IF;
   RETURN jsonb_build_object('result', p_event);
 END;
@@ -2292,6 +2336,9 @@ GRANT EXECUTE ON FUNCTION public.declutter_close_paid_order(uuid, text, text, te
 -- charge); the buyer's refund waits for it (declutter_refunds_due, B71).
 DO $do$
 BEGIN
+  ALTER TABLE public.declutter_problems DROP CONSTRAINT IF EXISTS declutter_problems_reporter_side_check;
+  ALTER TABLE public.declutter_problems ADD CONSTRAINT declutter_problems_reporter_side_check
+    CHECK (reporter_side IN ('buyer', 'seller', 'helpr'));   -- slice 5: the Helpr's "the seller wasn't there"
   ALTER TABLE public.declutter_problems DROP CONSTRAINT IF EXISTS declutter_problems_decision_check;
   ALTER TABLE public.declutter_problems ADD CONSTRAINT declutter_problems_decision_check
     CHECK (decision IS NULL OR decision IN ('refund_buyer', 'pay_seller', 'delivery_damage'));
@@ -2313,7 +2360,8 @@ BEGIN
                       ELSE 'full_platform_absorbs' END);
 END
 $do$;
--- DESTRUCTIVE-DDL-ACK: declutter_problems_decision_check and declutter_refunds_reason_check
+-- DESTRUCTIVE-DDL-ACK: declutter_problems_reporter_side_check (+ 'helpr'),
+-- declutter_problems_decision_check and declutter_refunds_reason_check
 -- are dropped only to be re-added with one more allowed value ('delivery_damage'), and
 -- declutter_refunds_policy is re-added unchanged; every existing row keeps a value the new
 -- CHECKs allow. No data is dropped. Reviewed by lane
@@ -2392,6 +2440,96 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_admin_decide_delivery_damage(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_admin_decide_delivery_damage(uuid, text) TO authenticated, service_role;
+
+-- B12b. The admin's decision on a reported problem, restated from
+-- 20261015042253 (its newest definition; no later migration restates it,
+-- checked 2026-10-16) with two slice-5 guards: an admin never decides a
+-- delivery they made, and an item the Helpr has that is reported damaged or
+-- not received is never refunded through the path that pays the Helpr
+-- (lh-money-escrow review #1, 2026-10-16).
+CREATE OR REPLACE FUNCTION public.declutter_admin_decide_problem(p_problem_id uuid, p_decision text, p_fault text,
+  p_strike boolean, p_note text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  p public.declutter_problems;
+  o public.declutter_orders;
+  v_order uuid;
+  v_out jsonb;
+  v_task public.helpr_tasks;
+BEGIN
+  IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  IF p_decision IS NULL OR p_decision NOT IN ('refund_buyer', 'pay_seller')
+     OR p_fault IS NULL OR p_fault NOT IN ('seller', 'buyer', 'none')
+     OR p_strike IS NULL OR (p_strike AND p_fault = 'none') THEN
+    RAISE EXCEPTION 'invalid_decision' USING ERRCODE = '22023';
+  END IF;
+  SELECT x.order_id INTO v_order FROM public.declutter_problems x WHERE x.id = p_problem_id;
+  IF v_order IS NULL THEN
+    RAISE EXCEPTION 'problem_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  o := public.declutter_lock_order(v_order);
+  IF v_uid IN (o.buyer_id, o.seller_id) THEN
+    -- Another admin decides a sale you are part of (both reviews, 2026-10-15).
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501', HINT = 'Another admin must decide a sale you are part of.';
+  END IF;
+  -- Slice 5: the order's Helpr task, if any.
+  SELECT t.* INTO v_task FROM public.declutter_order_deliveries od JOIN public.helpr_tasks t ON t.id = od.task_id
+   WHERE od.order_id = o.id;
+  IF v_task.id IS NOT NULL AND v_uid IS NOT DISTINCT FROM v_task.helpr_id THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501', HINT = 'Another admin must decide a delivery you made.';
+  END IF;
+  SELECT * INTO p FROM public.declutter_problems WHERE id = p_problem_id FOR UPDATE;
+  IF p.status <> 'open' THEN
+    RAISE EXCEPTION 'problem_already_decided' USING ERRCODE = '55000';
+  END IF;
+  -- Slice 5 (lh-money-escrow review #1): refunding the buyer on a delivery the
+  -- Helpr already has pays the Helpr for the trip (B69). For an item reported
+  -- damaged or not received that would pay the Helpr who may have caused it,
+  -- so the admin decides it explicitly instead: "Damaged in delivery" (row 43,
+  -- declutter_admin_decide_delivery_damage: the Helpr is not paid) or
+  -- "Pay the seller".
+  IF p_decision = 'refund_buyer' AND p.reason IN ('damaged', 'not_received')
+     AND v_task.status IN ('picked_up', 'delivered') THEN
+    RAISE EXCEPTION 'delivery_decision_needed' USING ERRCODE = '55000',
+      HINT = 'The Helpr has this item. Decide it as damaged in delivery, or pay the seller.';
+  END IF;
+  UPDATE public.declutter_problems
+     SET status = 'decided', decision = p_decision, fault = p_fault, strike_given = p_strike,
+         admin_note = left(p_note, 1000), decided_by = v_uid, decided_at = now()
+   WHERE id = p.id;
+  IF p_decision = 'pay_seller' THEN
+    v_out := public.declutter_complete_handover(o.id, 'admin');
+    IF p_strike THEN
+      PERFORM public.declutter_give_strike(CASE WHEN p_fault = 'seller' THEN o.seller_id ELSE o.buyer_id END, p_fault,
+        CASE WHEN p_fault = 'seller' THEN 'not_as_described' ELSE 'not_picked_up' END,
+        (SELECT c.item_id FROM public.declutter_cart_items c WHERE c.order_id = o.id ORDER BY c.id LIMIT 1),
+        'Louisiana Helpr decided a reported problem on a Declutter sale against you.', NULL);
+    END IF;
+  ELSE
+    v_out := public.declutter_close_paid_order(o.id,
+      CASE p_fault WHEN 'seller' THEN 'not_as_described' WHEN 'buyer' THEN 'admin_buyer_fault' ELSE 'admin_no_fault' END,
+      CASE WHEN p_strike THEN p_fault END,
+      CASE WHEN p_fault = 'seller' THEN 'not_as_described' ELSE 'not_picked_up' END,
+      'Louisiana Helpr decided a reported problem on a Declutter sale against you.');
+  END IF;
+  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+  VALUES (v_uid, 'declutter_problem_decided', 'declutter_problem', p.id::text,
+          jsonb_build_object('order_id', o.id, 'decision', p_decision, 'fault', p_fault, 'strike', p_strike, 'result', v_out));
+  RETURN v_out;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_admin_decide_problem(uuid, text, text, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_admin_decide_problem(uuid, text, text, boolean, text) TO authenticated, service_role;
 
 -- B13. The handover sweep, restated from 20261015042253: a DELIVERY order is
 -- never auto-paid or cancelled by the booking rules (it has no booking; the

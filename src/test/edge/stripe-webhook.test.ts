@@ -274,6 +274,7 @@ describe("stripe-webhook edge function", () => {
           object: {
             id: "cs_tax_rate",
             mode: "payment",
+            payment_status: "paid",
             customer_email: "poster@test.com",
             customer_details: { address: { state: "LA" } },
             total_details: { amount_tax: 1120 },
@@ -299,6 +300,7 @@ describe("stripe-webhook edge function", () => {
         data: {
           object: {
             mode: "payment",
+            payment_status: "paid",
             customer_email: "poster@test.com",
             payment_intent: "pi_checkout",
             metadata: { job_id: "job-1" },
@@ -1035,7 +1037,7 @@ describe("stripe-webhook edge function", () => {
         },
       });
       scenario.reads.jobs = {
-        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", stripe_session_id: "cs_open" }],
       };
       await fn.fetch(webhookRequest(fn, "{}"));
       const jobWrite = scenario.writes.find(
@@ -1046,6 +1048,30 @@ describe("stripe-webhook edge function", () => {
       );
       const notif = scenario.writes.find((w) => w.table === "notifications");
       expect(notif).toBeUndefined();
+    });
+
+    // ME-046: an ACH debit that bounces after the Checkout Session expires (stripe_session_id
+    // is null by then) skips the "wait for expiry" gate and notifies the poster immediately.
+    it("notifies the poster immediately when the Checkout Session has already expired (ACH bounce)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_ach",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_failed_ach",
+            receipt_email: "poster@test.com",
+            metadata: { job_id: "job-1" },
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", stripe_session_id: null }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const notif = scenario.writes.find((w) => w.table === "notifications");
+      expect(notif).toBeDefined();
+      expect((notif?.payload as Record<string, unknown>).link).toBe("/post-job");
     });
 
     it("the session expiring on a still-failed job tells the poster it isn't posted", async () => {

@@ -195,6 +195,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
           Pickup in {it.area_label}
           {away ? ` · ${away}` : ""}
         </p>
+        <p className="text-sm" data-testid="declutter-porch-line">
+          {it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}
+        </p>
         <p className="text-xs text-muted-foreground">The exact address is shared after you pay.</p>
         {!isSeller && <SellerLine sellerId={it.seller_id} />}
       </section>

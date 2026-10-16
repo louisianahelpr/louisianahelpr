@@ -53,6 +53,7 @@ export declare class RequestMeter {
   byShape: Record<string, number>;
   ceiling: number;
   ceilingTotal: number;
+  prior: Record<string, number>;
   workers: number;
   followSiblings: boolean;
   live: boolean;

@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                               - (SELECT count(*)::int FROM public.crew_block_fees b WHERE b.job_id = j.id)) |                               )
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
- * @mutate supabase/migrations/20261017044046_export_my_data_drop_user_strikes_reconcile.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
+ * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, |             otherKeptCents: Math.round(cancellationFee * 100),
  */
@@ -100,7 +100,7 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     expect(psp).toMatch(/payCrewBlockFees\([\s\S]{0,200}\);\s+for \(const p of paidFees\.problems\) jobDefect\(job\.id, p\);\s+\}\s+const refund = await refundUnfilledCrewShares\(\{ \.\.\.a, paidCents, blockFeeCents: crewBlockFeeCents\(blockFees\.rows\) \}\);/);
     expect(psp).toMatch(/const unfilledCents = unpaidBudgetCents - blockFeeCents \+ Math\.max\(0, urgentCents - paidUrgent\);/);
     // The refund is the shared refundToPayerCents (owner, 2026-10-14: never absorb a fee); the block fee is withheld as part of what it keeps.
-    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,800}const voidSplit = refundToPayerCents\(\{[\s\S]{0,400}otherKeptCents: Math\.round\(cancellationFee \* 100\) \+ blockFeeCents,/);
+    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,200}const voidSplit = refundToPayerCents\(\{[\s\S]{0,400}otherKeptCents: Math\.round\(cancellationFee \* 100\) \+ blockFeeCents,/);
     // Part F: a fee still owed on a settled job is retried every run.
     expect(vcp).toMatch(/\.from\("crew_block_fees"\)[\s\S]{0,200}\.in\("status", \["owed", "failed"\]\)/);
     // The ghost-transfer guard knows a block fee is this loop's own (HIGH, lh-money-escrow review).

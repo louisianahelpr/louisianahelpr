@@ -80,6 +80,8 @@ BEGIN
     IF to_regclass('public.error_logs') IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM public.error_logs e
        WHERE jsonb_typeof(e.tags) = 'object'
+         -- A client may INSERT error_logs: a forged row must not mute this page (Q1159).
+         AND coalesce(e.tags ->> 'origin', '') <> 'client'
          AND e.tags ->> 'source' = 'declutter-refund-gave-up'
          AND e.tags ->> 'refund_id' = r.id::text
          AND e.created_at > date_trunc('day', now())

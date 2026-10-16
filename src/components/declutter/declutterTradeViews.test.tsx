@@ -10,7 +10,10 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             await openExternalUrl(await startCardSave(), | await openExternalUrl("https://example.invalid",
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, handover); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * Row 101 (porch is the default; a seller can turn it off per item).
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = order.includes(handover) ? handover : order[0]; |   const chosen = handover;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <SalesWaiting />\n    </AppPage> |       <SalesWaiting />\n    </AppPage>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -68,7 +71,7 @@ function show(el: React.ReactNode) {
 const ITEM = {
   id: "i1", seller_id: "s1", status: "live" as const, title: "Oak rocking chair", description: "", category: "furniture",
   condition_stars: 4, delivery_size: "large" as const, price_cents: 4000, current_price_cents: 4000,
-  area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: "2026-10-14",
+  area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: "2026-10-14", porch_ok: true,
 };
 const OFFER = {
   offer_id: "o1", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", amount_cents: 2500, awaiting: "seller",
@@ -153,10 +156,49 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("$8.05")).toBeInTheDocument();
     expect(screen.getByText("Delivery by a Helpr is coming later.")).toBeInTheDocument();
     expect(screen.queryByText(/next test round/)).toBeNull();
-    fireEvent.click(screen.getByLabelText(/Porch pickup/));
+    // Row 101: porch is listed first and already chosen; no tap needed.
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home"]);
+    expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]));
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
+  });
+
+  it("row 101: the buyer can still choose to meet at the seller's home", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Meet at the seller's home/));
+    fireEvent.click(screen.getByRole("button", { name: "Pay $3.85" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
+  });
+
+  it("row 101: a porch-off item joining the cart while porch is chosen moves the choice to the seller's home", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter><CartView /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByLabelText(/Porch pickup/)).toBeChecked();
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Mirror", price_cents: 400, porch_ok: false }];
+    await qc.invalidateQueries();
+    await screen.findByRole("button", { name: "Pay $8.05" });
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
+  });
+
+  it("row 101: one item with porch off means only pickup at the seller's home is offered", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Mirror", price_cents: 400, porch_ok: false }];
+    show(<CartView />);
+    expect(await screen.findByText(/asked buyers to meet at their home for this order/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Porch pickup/)).toBeNull();
+    expect(screen.getByLabelText(/Meet at the seller's home/)).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
   });
 
   it("switch off with a sale agreed: the cart and the member's sales, nothing new (row 62)", async () => {

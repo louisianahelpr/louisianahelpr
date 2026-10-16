@@ -99,6 +99,8 @@ is the source of truth for its state; this sentence only orders them.
 **Queue: 1525 items — 1341 done, 22 partly done (fixed, protection pending), 162 open.**
 <!-- /generated: queue-count -->
 
+- [ ] **Q?declutter-porch-fallback-removal LOW Remove the Declutter porch_ok deploy-window read fallback once the column is live (porch default, spec row 101, 2026-10-16).** src/lib/declutter/api.ts readItems() re-reads declutter_items without porch_ok when the server answers 42703 naming it, because prod-deploy and db-deploy both start on the push to main in no fixed order. Once 20261016050402 is live (`SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'declutter_items' AND column_name = 'porch_ok'` => 1), delete readItems' fallback branch, ITEM_COLUMNS_BEFORE_PORCH and its two tests in src/lib/declutter/api.test.ts in one commit. finding: lh-money-escrow@e1f49d0d7#2
+
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
 
 Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md).

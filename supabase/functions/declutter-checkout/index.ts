@@ -97,6 +97,34 @@ async function startCheckout(asBuyer: Db, sellerId: string, handover: string): P
   return { row };
 }
 
+/**
+ * Row 101: would declutter_start_checkout refuse porch for this buyer's cart
+ * with this seller (an item whose seller turned porch off)? Asked only before
+ * closing an open page to switch it TO porch, so a request the RPC refuses
+ * does not cost the buyer their open page (lh-money-escrow review, porch
+ * default #1). The RPC stays the protection; this is only the order of steps.
+ * null = could not tell (the caller answers "try again").
+ */
+async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promise<boolean | null> {
+  // Service-role read, scoped to the signed-in buyer (user.id from auth.getUser)
+  // and this seller; the same lines the RPC groups (in_cart, inside the 48 h).
+  const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id")
+    .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart")
+    .gt("checkout_by", new Date().toISOString());
+  if (linesErr) {
+    console.error(`[declutter-checkout] cart read failed: ${linesErr.message}`);
+    return null;
+  }
+  const ids = ((lines ?? []) as { item_id: string }[]).map((l) => l.item_id);
+  if (ids.length === 0) return false;
+  const { data: off, error: offErr } = await admin.from("declutter_items").select("id").in("id", ids).eq("porch_ok", false).limit(1);
+  if (offErr) {
+    console.error(`[declutter-checkout] porch read failed: ${offErr.message}`);
+    return null;
+  }
+  return ((off ?? []) as unknown[]).length > 0;
+}
+
 async function pay(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   const handover = typeof body.handover === "string" ? body.handover : "";
@@ -128,6 +156,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
     if (page.status === "open" && open.handover !== handover) {
+      if (handover === "porch") {
+        const refused = await porchRefused(admin, user.id, sellerId);
+        if (refused === null) return json({ error: TRY_AGAIN }, 503);
+        if (refused) return json({ error: "porch_unavailable" }, 400);
+      }
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);
       } catch (e) {

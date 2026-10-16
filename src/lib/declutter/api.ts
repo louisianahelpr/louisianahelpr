@@ -57,6 +57,8 @@ export interface DeclutterItem {
   area_lng: number;
   created_at: string;
   live_at: string | null;
+  /** Row 101: porch pickup allowed (the default). False = meet at the seller's home only. */
+  porch_ok: boolean;
 }
 
 export interface DeclutterPhoto {
@@ -91,14 +93,35 @@ export interface DraftFields {
 }
 
 const ITEM_COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok";
+
+type ItemRead = { data: unknown; error: { message: string; code?: string } | null; status?: number };
+const ITEM_COLUMNS_BEFORE_PORCH = ITEM_COLUMNS.replace(", porch_ok", "");
+
+/**
+ * Row 101's column, porch_ok (20261016050402), reaches prod through db-deploy,
+ * and the web app through prod-deploy; both start on the push to main, in no
+ * fixed order. If the app is live first, the read is refused with 42703 naming
+ * the column: read again without it, every item porch-on (the column's
+ * default). Every other refusal is thrown as before. Remove once the migration
+ * is live on prod (lh-money-escrow review, porch default #2).
+ */
+async function readItems(run: (columns: string) => PromiseLike<ItemRead>): Promise<unknown> {
+  const first = await run(ITEM_COLUMNS);
+  if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) {
+    const data = unwrap(await run(ITEM_COLUMNS_BEFORE_PORCH));
+    const withPorch = (r: unknown) => (r && typeof r === "object" ? { ...r, porch_ok: true } : r);
+    return Array.isArray(data) ? data.map(withPorch) : withPorch(data);
+  }
+  return unwrap(first);
+}
 
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */
 export async function fetchLiveItems(): Promise<DeclutterItem[]> {
-  const rows = unwrap(
-    await supabase
+  const rows = await readItems((cols) =>
+    supabase
       .from("declutter_items")
-      .select(ITEM_COLUMNS)
+      .select(cols)
       .in("status", ["live", "reserved"])
       .order("live_at", { ascending: false })
       .limit(500),
@@ -108,14 +131,14 @@ export async function fetchLiveItems(): Promise<DeclutterItem[]> {
 
 /** The member's own listings, every status. */
 export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
-  const rows = unwrap(
-    await supabase.from("declutter_items").select(ITEM_COLUMNS).eq("seller_id", userId).order("created_at", { ascending: false }),
+  const rows = await readItems((cols) =>
+    supabase.from("declutter_items").select(cols).eq("seller_id", userId).order("created_at", { ascending: false }),
   );
   return (rows ?? []) as DeclutterItem[];
 }
 
 export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {
-  const row = unwrap(await supabase.from("declutter_items").select(ITEM_COLUMNS).eq("id", itemId).maybeSingle());
+  const row = await readItems((cols) => supabase.from("declutter_items").select(cols).eq("id", itemId).maybeSingle());
   return (row ?? null) as DeclutterItem | null;
 }
 
@@ -201,6 +224,14 @@ export async function createDraft(f: DraftFields): Promise<string> {
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {
   return rpcData(await supabase.rpc("declutter_update_draft", { p_item_id: itemId, ...draftArgs(f) }), (e) => rpcErrorMessage("declutter_update_draft", e)) as string;
+}
+
+/** Row 101: may buyers pick this draft up from the porch? On by default; the server refuses porch checkout when off. */
+export async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
+  return rpcData(
+    await supabase.rpc("declutter_set_porch_ok", { p_item_id: itemId, p_porch_ok: porchOk }),
+    (e) => rpcErrorMessage("declutter_set_porch_ok", e),
+  ) as boolean;
 }
 
 /**
@@ -376,6 +407,8 @@ export interface CartLine {
   handover: string | null;
   premium_cents: number | null;
   total_cents: number | null;
+  /** Row 101: the item allows porch pickup. */
+  porch_ok: boolean;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

@@ -46,6 +46,26 @@ export async function handleChargeRefundUpdated(
   // that (declutter_refund_reversed). A Declutter charge is not a job: nothing
   // below applies.
   const meta = (refund.metadata ?? {}) as Record<string, string>;
+  if (meta.kind === "declutter_refund" && meta.delivery_refund_id) {
+    // Slice 5: a delivery fee refunded on its own (row 40) lives in
+    // declutter_delivery_refunds; the same rule, its own row.
+    const { data: reopened, error: dErr } = await supabase.rpc("declutter_delivery_refund_reversed", {
+      p_id: meta.delivery_refund_id,
+      p_stripe_refund_id: refund.id,
+      p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
+    });
+    if (dErr) throw new Error(`declutter_delivery_refund_reversed failed for ${refund.status} refund ${refund.id}: ${dErr.message}`);
+    const lastTry = reopened === "gave_up";
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: reopened === "reopened" || lastTry ? "critical" : "warning",
+      title: lastTry ? "Declutter delivery-fee refund failed after Stripe took it: GAVE UP, refund it by hand"
+        : reopened === "reopened" ? "Declutter delivery-fee refund failed after Stripe took it: retrying" : "Declutter delivery-fee refund failed (row not reopened)",
+      message: `Stripe moved delivery-fee refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${lastTry ? "The buyer has NOT been repaid and that was the last try. Refund it by hand." : reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The row did not record this refund: nothing changed."}`,
+      fields: { "Delivery refund row": meta.delivery_refund_id, "Order": meta.order_id || "none" },
+    });
+    return;
+  }
   if (meta.kind === "declutter_refund") {
     if (!meta.refund_id) throw new Error(`Declutter refund ${refund.id} turned ${refund.status} without its refund_id`);
     const { data: reopened, error: dErr } = await supabase.rpc("declutter_refund_reversed", {

@@ -14,6 +14,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | { idempotencyKey: mine.length === 0 ? `declutter-refund-${refund.refund_id}` : `declutter-refund-${refund.refund_id}-r${mine.length}` }, | {},
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     stripeRefund = existing ?? await stripe.refunds.create( |     stripeRefund = await stripe.refunds.create(
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (isDeclutterCharge(charge, allRefunds)) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "declutter_refund" && meta.delivery_refund_id) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     \|\| (typeof charge.transfer_group === "string" && charge.transfer_group.startsWith("declutter_order_")) |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if (why) { |     if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (await handleDeclutterHandRefundFailed(refund, { supabase })) return; |
@@ -30,6 +31,10 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refunded === "sent") { |   if (true) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) { |   if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     payer_id: user.id, |
+ * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (off) return off; |
+ * @mutate supabase/functions/declutter-checkout/index.ts |   if (deliveryCents > 0) { |   if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |         if (quoteErr) return rpcRefusal(quoteErr);\n      }\n      try { |         void quoteErr;\n      }\n      try {
+ * @mutate supabase/functions/declutter-checkout/index.ts |   if ((handover === "delivery") !== (deliveryCents > 0)\n      \|\| | if (
  * @mutate supabase/functions/declutter-card/index.ts |   const refused = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (refused) return refused; |
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (session.mode === "setup") return meta.kind === "declutter_card"; |   if (session.mode === "setup") return false;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,
@@ -38,7 +43,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |     const gaveUp = reopened === "gave_up"; |     const gaveUp = false;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | order_id: refund.order_id ?? "" }, | order_id: orderId },
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -237,6 +242,24 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(page?.title).toMatch(/by hand/);
     expect(page?.message).toMatch(/refund it by hand/i);
     expect(page?.message).not.toMatch(/within 10 minutes/);
+  });
+
+  // Slice 5: a delivery fee refunded on its own reopens ITS row (declutter_delivery_refunds), never an order refund row.
+  it("charge.refund.updated: a failed delivery-fee refund reopens the delivery refund row and pages", async () => {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    scenario.rpc.declutter_delivery_refund_reversed = "reopened";
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_dru", type: "charge.refund.updated", livemode: true, created: 1_760_000_000,
+      data: { object: { id: "re_dd", object: "refund", status: "failed", failure_reason: "expired_or_canceled_card", amount: 2400,
+        payment_intent: "pi_dc", charge: "ch_dc", metadata: { kind: "declutter_refund", delivery_refund_id: "dr-1", order_id: ORDER, reason: "no_helpr" } } },
+    });
+    const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_delivery_refund_reversed")[0]?.args).toEqual({ p_id: "dr-1", p_stripe_refund_id: "re_dd", p_why: "failed: expired_or_canceled_card" });
+    expect(rpcs("declutter_refund_reversed")).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
+    expect(slackAlerts.some((a: any) => a.severity === "critical" && /delivery-fee refund/.test(a.title))).toBe(true);
   });
 
   // lh-money-escrow re-review should-fix 2: both paths use the key `declutter-refund-<row id>`, and Stripe refuses
@@ -611,6 +634,129 @@ describe("declutter-checkout: pay", () => {
     const res = await fn.fetch(payReq(fn));
     expect(res.status).toBe(200);
     expect(rpcs("feature_enabled_for_user")).toHaveLength(0);
+  });
+});
+
+describe("declutter-checkout: Helpr delivery (slice 5)", () => {
+  async function load() {
+    env();
+    scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
+    return loadEdgeFunction("declutter-checkout");
+  }
+  const geocoder = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify([
+    { lat: "30.5412", lon: "-91.1543", address: { house_number: "900", road: "Far Rd", town: "Baker", state: "Louisiana" } },
+  ]), { status: 200 }));
+  beforeEach(() => { geocoder.mockClear(); vi.stubGlobal("fetch", geocoder); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+  const quoteReq = (fn: EdgeHarness, address: unknown = "900 Far Rd, Baker, LA 70714") =>
+    fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "delivery_quote", seller_id: SELLER, address } });
+
+  it("geocodes the typed address ON THE SERVER, stores it as the service, and quotes AS THE BUYER", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.declutter_set_delivery_dropoff = null;
+    scenario.rpc.declutter_delivery_quote = { road_miles: 12, size: "large", delivery_cents: 5400, base_cents: 1000, per_mile_cents: 2400, size_cents: 2000, dropoff_area: "Baker, LA" };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(200);
+    expect((await json(res)).quote.delivery_cents).toBe(5400);
+    expect(String(geocoder.mock.calls[0]?.[0])).toContain("nominatim.openstreetmap.org/search");
+    const set = rpcs("declutter_set_delivery_dropoff")[0];
+    expect(set?.args).toEqual({ p_buyer: BUYER, p_seller: SELLER, p_address: "900 Far Rd, Baker, LA 70714", p_area_label: "Baker, LA", p_lat: 30.5412, p_lng: -91.1543 });
+    expect(clientOf(set)?.key).toBe("service-key");
+    const quote = rpcs("declutter_delivery_quote")[0];
+    expect(clientOf(quote)?.key).toBe("anon-key");
+  });
+
+  it("never takes coordinates from the request", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.declutter_delivery_quote = { delivery_cents: 1200 };
+    await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "delivery_quote", seller_id: SELLER, address: "900 Far Rd, Baker", lat: 30.4512, lng: -91.1543 } }));
+    expect(rpcs("declutter_set_delivery_dropoff")[0]?.args).toMatchObject({ p_lat: 30.5412, p_lng: -91.1543 });
+  });
+
+  it("is refused while the switch is off for the buyer (a delivery is new work)", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = false;
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(403);
+    expect(geocoder).not.toHaveBeenCalled();
+    expect(rpcs("declutter_set_delivery_dropoff")).toHaveLength(0);
+  });
+
+  it("an address that is not an address is refused before any lookup", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    for (const bad of ["", "   ", "abc", 42, "x".repeat(301), "no numbers here"]) {
+      const res = await fn.fetch(quoteReq(fn, bad));
+      expect(res.status).toBe(400);
+    }
+    expect(geocoder).not.toHaveBeenCalled();
+  });
+
+  it("an address the geocoder cannot find stores nothing (422)", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    geocoder.mockResolvedValueOnce(new Response("[]", { status: 200 }));
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(422);
+    expect((await json(res)).error).toBe("address_not_found");
+    expect(rpcs("declutter_set_delivery_dropoff")).toHaveLength(0);
+  });
+
+  it("a geocoder that is rate-limiting or down is 'try again' (503), never 'address not found'; nothing stored (lh-silent-failure #1)", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    geocoder.mockResolvedValueOnce(new Response("Too Many Requests", { status: 429 }));
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(503);
+    expect((await json(res)).error).toBe("geocode_unavailable");
+    expect(rpcs("declutter_set_delivery_dropoff")).toHaveLength(0);
+  });
+
+  it("a quote the SQL refuses (items at two addresses) reaches the app as its code", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpcErrors = { declutter_delivery_quote: { message: "delivery_one_address", code: "22023" } };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("delivery_one_address");
+  });
+
+  it("pay with delivery puts the frozen delivery fee on its own line; the page totals exactly the order", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 6670,
+      superseded_session_id: null, checkout_session_id: null, delivery_cents: 2400 }];
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_dl", url: "https://x/dl", amount_total: 6670 });
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount])).toEqual([
+      ["Declutter items", 4000], ["Buyer's fee (5% + 70¢)", 270], ["Helpr delivery", 2400],
+    ]);
+    expect(rpcs("declutter_start_checkout")[0]?.args).toEqual({ p_seller_id: SELLER, p_handover: "delivery" });
+  });
+
+  it("an order whose delivery fee does not match its handover is never put on a page", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 4270,
+      superseded_session_id: null, checkout_session_id: null, delivery_cents: 0 }];
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    expect(res.status).toBe(500);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("a switch TO delivery the server would refuse keeps the open pickup page", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "pickup_home", stripe_checkout_session_id: "cs_live_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    scenario.rpcErrors = { declutter_delivery_quote: { message: "delivery_address_needed", code: "22023" } };
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("delivery_address_needed");
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
   });
 });
 

@@ -45,7 +45,8 @@ import {
 } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { isNativePlatform } from "@/lib/nativeInit";
+import { currentPosition } from "@/lib/declutter/position";
+import { OrderDeliveryPanel } from "./DeclutterDeliveryViews";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -58,6 +59,8 @@ interface PaidOrder {
   handover: string | null;
   status: string | null;
   lines: CartLine[];
+  /** Slice 5: the Helpr task of a delivery order. */
+  deliveryTaskId: string | null;
 }
 
 /** Group the cart's paid lines into orders. */
@@ -65,7 +68,9 @@ function paidOrdersFromCart(cart: CartLine[]): PaidOrder[] {
   const byOrder = new Map<string, PaidOrder>();
   for (const l of cart) {
     if (l.status !== "paid" || !l.order_id) continue;
-    const o = byOrder.get(l.order_id) ?? { orderId: l.order_id, side: l.my_side, handover: l.handover, status: l.order_status, lines: [] };
+    const o = byOrder.get(l.order_id) ?? {
+      orderId: l.order_id, side: l.my_side, handover: l.handover, status: l.order_status, lines: [], deliveryTaskId: l.delivery_task_id ?? null,
+    };
     o.lines.push(l);
     byOrder.set(l.order_id, o);
   }
@@ -86,21 +91,6 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
   void qc.invalidateQueries({ queryKey: ["declutter", "bookings"] });
   void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
-}
-
-async function currentPosition(): Promise<{ lat: number; lng: number }> {
-  if (isNativePlatform) {
-    const { Geolocation } = await import("@capacitor/geolocation");
-    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 12_000 });
-    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
-  }
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => reject(new Error("location_required")),
-      { enableHighAccuracy: true, timeout: 12_000 },
-    );
-  });
 }
 
 /** Every paid order the member is on, buyer or seller (the cart's paid lines). */
@@ -154,7 +144,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
     <article className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <p className="font-semibold">{title} · {formatPrice(items)}</p>
       <p className="text-sm text-muted-foreground">
-        {order.handover === "porch" ? "Porch pickup" : "Pickup at the seller's home"} · you are the {order.side}
+        {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : "Pickup at the seller's home"} · you are the {order.side}
       </p>
       {done ? (
         <>
@@ -166,6 +156,14 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
             </p>
           )}
           <ReviewForm orderId={order.orderId} side={order.side} />
+        </>
+      ) : order.handover === "delivery" ? (
+        <>
+          {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. */}
+          {order.deliveryTaskId
+            ? <OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} />
+            : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
+          <ProblemForm orderId={order.orderId} />
         </>
       ) : (
         <>

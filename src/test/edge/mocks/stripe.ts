@@ -311,6 +311,11 @@ export function resetStripeMock() {
   // it creates the replacement session; a reset mock resolves to undefined,
   // which is harmless, but a real Session shape keeps the double honest.
   stripeMock.checkout.sessions.expire.mockResolvedValue({ status: "expired" });
+  // paymentIntentPaymentFailed calls `checkout.sessions.retrieve` to decide
+  // whether to notify the poster. The safe default is "open" — poster can still
+  // retry, so no notification. Tests exercising the complete/expired path
+  // override this with { status: "complete" } or { status: "expired" }.
+  stripeMock.checkout.sessions.retrieve.mockResolvedValue({ status: "open" });
   // Q1104: no prior visit charge for this customer unless a test seeds one.
   stripeMock.paymentIntents.list.mockResolvedValue({ data: [], has_more: false });
 }

@@ -61,16 +61,23 @@ export async function handlePaymentIntentSucceeded(
     // "unpaid" or null when checkout.session.completed fires — that handler no
     // longer sets "escrow" for async payments. Now that the PI succeeded, the
     // money is captured: flip the job to "escrow" and fan out the helper match.
-    // State precondition: only a still-unpaid/null job is promoted here; if the
-    // job is already "escrow" (card payment — this PI also fires for those) or
-    // further along, the UPDATE matches zero rows, which is the correct no-op.
-    const isStillUnpaid = taxJob.payment_status == null || taxJob.payment_status === "unpaid";
+    // State precondition: only a still-unpaid/null/failed job is promoted here.
+    // "failed" is included because a card decline within the SAME checkout
+    // session marks the job 'failed' first; if the poster then retries with ACH
+    // on that same session, the bank debit succeeds and this handler fires — the
+    // job must not stay stuck in 'failed' with captured funds.
+    // If the job is already "escrow" (sync card payment — this PI also fires for
+    // those) or further along, the UPDATE matches zero rows, which is the no-op.
+    const isStillUnpaid =
+      taxJob.payment_status == null ||
+      taxJob.payment_status === "unpaid" ||
+      taxJob.payment_status === "failed";
     if (isStillUnpaid) {
       const { data: escrowRow, error: escrowErr } = await supabase
         .from("jobs")
         .update({ payment_status: "escrow" })
         .eq("id", taxJob.id)
-        .or("payment_status.is.null,payment_status.eq.unpaid")
+        .or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed")
         .select("id")
         .maybeSingle();
       if (escrowErr) {

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 175** (150 to do, 25 fixed with protection pending; 1322 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 15 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 184** (144 to do, 40 fixed with protection pending; 1322 done). Feeds mirrored in: 14 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 15 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 12 stale, 0 unknown, 49 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-15T22:24Z)_
@@ -96,7 +96,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1497 items — 1322 done, 25 partly done (fixed, protection pending), 150 open.**
+**Queue: 1506 items — 1322 done, 40 partly done (fixed, protection pending), 144 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -705,7 +705,6 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739. feed: issue #3154 · feed: ledger 8018e82cb167
   - main: Supabase DB Deploy: issue #3162, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083553. feed: issue #3162
-  - STATUS 2026-10-15: two robots fixed at the root on this landing (sec-c): e2e-real-backend (run 38527096325: the spec hired with accept_application then went to on-my-way and got 403 accept_required; prod-lifecycle and settleJobForward now call accept_job_offer first; guard src/test/e2eHiresAreAccepted.test.ts) and vacuity (run 38651055503: launchWaitsOn's @mutate removed Q152, already done; it now removes open Q1289). Each sub-line ticks itself when its workflow runs green after deploy; the lead re-runs both.
 - [ ] **Q1851 MEDIUM db-deploy failed on main.** Mirrored 2026-10-16 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23

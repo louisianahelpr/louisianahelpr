@@ -44,16 +44,16 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | exempt, with a reason | still owed |
 |---|---|---|---|---|
-| **`src/test/*.test.ts*`** | 1148 | **1148 — COMPLETE** | 0 | **0** |
-| **`src/test/edge/` (money)** | 119 | **119 — COMPLETE** | 0 | **0** |
-| **colocated beside components** | 512 | **512 — COMPLETE** | 0 | **0** |
+| **`src/test/*.test.ts*`** | 1152 | **1152 — COMPLETE** | 0 | **0** |
+| **`src/test/edge/` (money)** | 122 | **122 — COMPLETE** | 0 | **0** |
+| **colocated beside components** | 514 | **514 — COMPLETE** | 0 | **0** |
 | **Playwright `e2e/`** | 88 | **77 — COMPLETE** | 11 | **0** |
-| **total** | **1867** | **1856 (99%)** | **11** | **0** |
+| **total** | **1876** | **1865 (99%)** | **11** | **0** |
 
 `npm run vacuity` prints the same three numbers on every run:
 
 ```
-registration: 1856/1867 guards register a mutation (11 exempt with a reason, 0 grandfathered)
+registration: 1865/1876 guards register a mutation (11 exempt with a reason, 0 grandfathered)
 ```
 
 <!-- /generated:burndown-score -->

@@ -17,6 +17,7 @@
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL |     AND true
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
  * @mutate supabase/functions/instant-job-match/index.ts |       .is("parent_job_id", null) |       .limit(1000)
+ * @mutate supabase/migrations/20261015123029_shops_profiles.sql |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) AND NOT EXISTS (SELECT 1 FROM public.jobs)
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";
@@ -30,6 +31,17 @@ const HELPERS = new Set([
   "function:seed_hidden_for", "function:seed_hidden_in_discovery", "function:seed_hidden_from_caller",
 ]);
 
+/**
+ * Surfaces that use a gate but list no JOB at all, each with why. The test
+ * below proves each still reads no jobs table, so an entry cannot hide a real
+ * listing surface later.
+ */
+const NOT_JOB_SURFACES = new Map([
+  // Shops slice 1 (20261015123029): hides a test account's SHOP while seeds are hidden.
+  ["function:shop_publicly_visible", "gates a shop row, not a job"],
+]);
+const readsJobs = (code: string) => /\b(?:public\.)?jobs\b(?!_)/i.test(code);
+
 const excludesVisits = (code: string) =>
   /parent_job_id\s+IS\s+NULL/i.test(code) ||
   /parent_job_id\s+IS\s+NOT\s+NULL/i.test(code) ||
@@ -37,7 +49,7 @@ const excludesVisits = (code: string) =>
 
 describe("series visits are never a public listing (SQL surfaces)", () => {
   const surfaces = [...latestDefinitions()].filter(
-    ([key, d]) => !HELPERS.has(key) && GATES.some((g) => new RegExp(`${g}\\s*\\(`, "i").test(d.code)),
+    ([key, d]) => !HELPERS.has(key) && !NOT_JOB_SURFACES.has(key) && GATES.some((g) => new RegExp(`${g}\\s*\\(`, "i").test(d.code)),
   );
 
   it("the inventory finds the known surfaces", () => {
@@ -53,6 +65,15 @@ describe("series visits are never a public listing (SQL surfaces)", () => {
       expect(keys).toContain(k);
     }
   });
+  it("every not-a-job exemption still reads no jobs table", () => {
+    const defs = new Map(latestDefinitions());
+    for (const [key, why] of NOT_JOB_SURFACES) {
+      const d = defs.get(key);
+      expect(d, `${key} (${why}) has no definition`).toBeDefined();
+      expect(readsJobs(d!.code), `${key} is exempt as "${why}" but reads jobs`).toBe(false);
+    }
+  });
+
   for (const [key, d] of surfaces) {
     it(`${key} (${d.file}) excludes series visits`, () => {
       expect(excludesVisits(d.code), `${key} applies a public-visibility gate but never filters parent_job_id`).toBe(true);

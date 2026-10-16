@@ -72,10 +72,11 @@ export function ShopBadgeList({ badges, compact = false }: { badges: ShopBadges 
 export function ShopRating({ rating, count }: { rating: number | null; count: number }) {
   if (!count || rating == null) return <span className="text-xs text-muted-foreground">No reviews yet</span>;
   return (
-    <span className="inline-flex items-center gap-1 text-xs" aria-label={`Rated ${Number(rating).toFixed(1)} out of 5 from ${count} reviews`}>
+    <span className="inline-flex items-center gap-1 text-xs">
       <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />
-      <span className="font-semibold">{Number(rating).toFixed(1)}</span>
-      <span className="text-muted-foreground">({count})</span>
+      <span className="font-semibold" aria-hidden>{Number(rating).toFixed(1)}</span>
+      <span className="text-muted-foreground" aria-hidden>({count})</span>
+      <span className="sr-only">{`Rated ${Number(rating).toFixed(1)} out of 5 from ${count} ${count === 1 ? "review" : "reviews"}`}</span>
     </span>
   );
 }

@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | VALUES ('quotes', 'off', | VALUES ('quotes', 'everyone',
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
- * @mutate src/config/featureSwitches.ts |   "quotes",\n] as const; | ] as const;
+ * @mutate src/config/featureSwitches.ts |   "quotes",\n  // Shops slice 1 |   // Shops slice 1
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

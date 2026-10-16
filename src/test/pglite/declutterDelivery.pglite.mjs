@@ -508,6 +508,12 @@ await svc(`INSERT INTO public.helpr_task_events (task_id, task_event, actor_id) 
 const P5b = await paidDelivery(20, BUYER, SELLER2, 1500, "small");
 ok(refused(await me(HELPR2, `SELECT public.helpr_task_accept('${P5b.task}', '${slot}')`), /too_many_releases/),
   "three back-outs in 7 days pause taking new deliveries");
+// lh-authz-rls #8: an open task's view applies the same checks as finding it (a block hides it).
+ok((await view(HELPR, P5b.task))?.role === "candidate", "an eligible Helpr can view an open task");
+await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${BUYER}', '${HELPR}')`);
+ok(refused(await me(HELPR, `SELECT public.helpr_task_view('${P5b.task}')`), /task_not_found/),
+  "a Helpr the buyer blocked cannot view the open task either");
+await svc(`DELETE FROM public.user_blocks WHERE blocker_id = '${BUYER}' AND blocked_id = '${HELPR}'`);
 
 // 13. The seller is not there for the Helpr (B67, revised: evidence + an admin decides; lh-authz-rls #3).
 await me(HELPR, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`);

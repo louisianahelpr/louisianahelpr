@@ -852,7 +852,10 @@ BEGIN
     -- An open task is visible to a Helpr who could take it (area words only).
     PERFORM public.helpr_task_source_require_feature(t.source_kind);
     PERFORM public.helpr_task_assert_helpr();
-    IF t.status <> 'open' OR NOT public.helpr_task_vehicle_fits(v_uid, t.size) THEN
+    -- The same checks helpr_tasks_open_near applies (lh-authz-rls #8).
+    IF t.status <> 'open' OR NOT public.helpr_task_vehicle_fits(v_uid, t.size)
+       OR public.are_users_blocked(v_uid, t.customer_id) OR public.are_users_blocked(v_uid, t.pickup_contact_id)
+       OR NOT public.helpr_task_same_stripe_mode(v_uid, t.customer_id) THEN
       RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
     END IF;
     v_role := 'candidate';

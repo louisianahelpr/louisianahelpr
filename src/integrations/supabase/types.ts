@@ -1206,6 +1206,89 @@ export type Database = {
           },
         ]
       }
+      declutter_delivery_dropoffs: {
+        Row: {
+          address: string
+          area_label: string
+          buyer_id: string
+          geocoded_at: string
+          is_seed: boolean
+          lat: number
+          lng: number
+          seller_id: string
+        }
+        Insert: {
+          address: string
+          area_label: string
+          buyer_id: string
+          geocoded_at?: string
+          is_seed?: boolean
+          lat: number
+          lng: number
+          seller_id: string
+        }
+        Update: {
+          address?: string
+          area_label?: string
+          buyer_id?: string
+          geocoded_at?: string
+          is_seed?: boolean
+          lat?: number
+          lng?: number
+          seller_id?: string
+        }
+        Relationships: [
+        ]
+      }
+      declutter_delivery_refunds: {
+        Row: {
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          next_attempt_at: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status: string
+          stripe_payment_intent_id: string
+          stripe_refund_ref: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status?: string
+          stripe_payment_intent_id: string
+          stripe_refund_ref?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          reason?: string
+          refund_cents?: number
+          status?: string
+          stripe_payment_intent_id?: string
+          stripe_refund_ref?: string | null
+        }
+        Relationships: [
+        ]
+      }
       declutter_fee_debt_deductions: {
         Row: {
           deducted_cents: number
@@ -1237,6 +1320,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_hand_refunds: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          failed_at: string | null
+          livemode: boolean
+          order_id: string | null
+          outcome: string
+          refund_row_id: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          failed_at?: string | null
+          livemode: boolean
+          order_id?: string | null
+          outcome: string
+          refund_row_id?: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          failed_at?: string | null
+          livemode?: boolean
+          order_id?: string | null
+          outcome?: string
+          refund_row_id?: string | null
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string
+        }
+        Relationships: []
       }
       declutter_handovers: {
         Row: {
@@ -1548,8 +1667,52 @@ export type Database = {
           },
         ]
       }
+      declutter_order_deliveries: {
+        Row: {
+          created_at: string
+          delivery_cents: number
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_lat: number
+          dropoff_lng: number
+          is_seed: boolean
+          order_id: string
+          road_miles: number
+          size: string
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_cents: number
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_lat: number
+          dropoff_lng: number
+          is_seed?: boolean
+          order_id: string
+          road_miles: number
+          size: string
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_cents?: number
+          dropoff_address?: string
+          dropoff_area?: string
+          dropoff_lat?: number
+          dropoff_lng?: number
+          is_seed?: boolean
+          order_id?: string
+          road_miles?: number
+          size?: string
+          task_id?: string | null
+        }
+        Relationships: [
+        ]
+      }
       declutter_orders: {
         Row: {
+          delivery_cents: number
           buyer_id: string
           card_fee_cents: number | null
           close_reason: string | null
@@ -1572,6 +1735,7 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          delivery_cents?: number
           buyer_id: string
           card_fee_cents?: number | null
           close_reason?: string | null
@@ -1594,6 +1758,7 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          delivery_cents?: number
           buyer_id?: string
           card_fee_cents?: number | null
           close_reason?: string | null
@@ -1817,6 +1982,7 @@ export type Database = {
           created_at: string
           executed_at: string | null
           fee_policy: string
+          gave_up_notified_at: string | null
           id: string
           is_seed: boolean
           kept_cents: number
@@ -1837,6 +2003,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number
@@ -1857,6 +2024,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number
@@ -3110,6 +3278,241 @@ export type Database = {
             referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      helpr_task_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          id: number
+          task_event: string
+          task_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: number
+          task_event: string
+          task_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: number
+          task_event?: string
+          task_id?: string
+        }
+        Relationships: [
+        ]
+      }
+      helpr_task_payouts: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          fee_cents: number
+          helpr_id: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          next_attempt_at: string
+          pay_cents: number
+          status: string
+          stripe_transfer_id: string | null
+          task_id: string
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          fee_cents: number
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          pay_cents: number
+          status: string
+          stripe_transfer_id?: string | null
+          task_id: string
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          fee_cents?: number
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          pay_cents?: number
+          status?: string
+          stripe_transfer_id?: string | null
+          task_id?: string
+        }
+        Relationships: [
+        ]
+      }
+      helpr_tasks: {
+        Row: {
+          accepted_at: string | null
+          close_note: string | null
+          closed_at: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          customer_id: string | null
+          delivered_at: string | null
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_code: string
+          dropoff_distance_m: number | null
+          dropoff_lat: number
+          dropoff_lng: number
+          dropoff_photo_path: string | null
+          fee_cents: number
+          helpr_id: string | null
+          id: string
+          is_seed: boolean
+          latest_pickup_at: string
+          open_until: string
+          pay_cents: number
+          picked_up_at: string | null
+          pickup_address: string
+          pickup_area: string
+          pickup_contact_id: string | null
+          pickup_lat: number
+          pickup_lng: number
+          pickup_photo_path: string | null
+          pickup_slot_start: string | null
+          releases: number
+          size: string
+          source_id: string
+          source_kind: string
+          status: string
+          title: string
+          trip_miles: number
+          updated_at: string
+          wrong_codes: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          close_note?: string | null
+          closed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_code: string
+          dropoff_distance_m?: number | null
+          dropoff_lat: number
+          dropoff_lng: number
+          dropoff_photo_path?: string | null
+          fee_cents: number
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          latest_pickup_at: string
+          open_until: string
+          pay_cents: number
+          picked_up_at?: string | null
+          pickup_address: string
+          pickup_area: string
+          pickup_contact_id?: string | null
+          pickup_lat: number
+          pickup_lng: number
+          pickup_photo_path?: string | null
+          pickup_slot_start?: string | null
+          releases?: number
+          size: string
+          source_id: string
+          source_kind: string
+          status?: string
+          title: string
+          trip_miles: number
+          updated_at?: string
+          wrong_codes?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          close_note?: string | null
+          closed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivered_at?: string | null
+          dropoff_address?: string
+          dropoff_area?: string
+          dropoff_code?: string
+          dropoff_distance_m?: number | null
+          dropoff_lat?: number
+          dropoff_lng?: number
+          dropoff_photo_path?: string | null
+          fee_cents?: number
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          latest_pickup_at?: string
+          open_until?: string
+          pay_cents?: number
+          picked_up_at?: string | null
+          pickup_address?: string
+          pickup_area?: string
+          pickup_contact_id?: string | null
+          pickup_lat?: number
+          pickup_lng?: number
+          pickup_photo_path?: string | null
+          pickup_slot_start?: string | null
+          releases?: number
+          size?: string
+          source_id?: string
+          source_kind?: string
+          status?: string
+          title?: string
+          trip_miles?: number
+          updated_at?: string
+          wrong_codes?: number
+        }
+        Relationships: [
+        ]
+      }
+      helpr_vehicles: {
+        Row: {
+          has_truck: boolean
+          is_seed: boolean
+          photo_path: string | null
+          second_person: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          has_truck?: boolean
+          is_seed?: boolean
+          photo_path?: string | null
+          second_person?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          has_truck?: boolean
+          is_seed?: boolean
+          photo_path?: string | null
+          second_person?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
         ]
       }
       identity_soft_fingerprints: {
@@ -8581,6 +8984,7 @@ export type Database = {
         Args: { p_item_id: string; p_user_id: string }
         Returns: string
       }
+      declutter_admin_decide_delivery_damage: { Args: { p_note: string; p_problem_id: string }; Returns: Json }
       declutter_admin_decide_problem: {
         Args: {
           p_decision: string
@@ -8697,6 +9101,16 @@ export type Database = {
         Returns: string
       }
       declutter_deadline_sweep: { Args: never; Returns: Json }
+      declutter_delivery_compute: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
+      declutter_delivery_on_task_event: { Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }; Returns: Json }
+      declutter_delivery_price_cents: { Args: { p_miles: number; p_sizes: string[] }; Returns: number }
+      declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
+      declutter_delivery_refund: { Args: { p_order_id: string; p_reason: string }; Returns: string }
+      declutter_delivery_refund_executed: { Args: { p_error: string; p_id: string; p_stripe_refund_id: string; p_succeeded: boolean }; Returns: string }
+      declutter_delivery_refund_reversed: { Args: { p_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
+      declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
+      declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
+      declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
       declutter_give_strike: {
         Args: {
           p_item: string
@@ -8790,6 +9204,8 @@ export type Database = {
         Args: never
         Returns: {
           checkout_by: string
+          delivery_cents: number | null
+          delivery_task_id: string | null
           handover: string | null
           item_id: string
           item_title: string
@@ -8856,6 +9272,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_order_refunds_recorded_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_order_side: {
         Args: { p_buyer: string; p_seller: string; p_uid: string }
         Returns: string
@@ -8994,6 +9411,7 @@ export type Database = {
         Args: { p_buyer: string; p_order_id: string; p_session_id: string }
         Returns: boolean
       }
+      declutter_road_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       declutter_save_card: {
         Args: {
           p_brand: string
@@ -9017,6 +9435,7 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_set_delivery_dropoff: { Args: { p_address: string; p_area_label: string; p_buyer: string; p_lat: number; p_lng: number; p_seller: string }; Returns: undefined }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
       declutter_set_porch_ok: {
         Args: { p_item_id: string; p_porch_ok: boolean }
@@ -9041,6 +9460,7 @@ export type Database = {
           order_id: string
           premium_cents: number
           checkout_session_id: string | null
+          delivery_cents: number
           superseded_session_id: string | null
           tax_cents: number
           total_cents: number
@@ -10094,6 +10514,69 @@ export type Database = {
         Returns: {
           job_id: string
           other_job_id: string
+        }[]
+      }
+      helpr_my_tasks: {
+        Args: never
+        Returns: {
+          dropoff_area: string
+          payout_status: string | null
+          pickup_area: string
+          pickup_slot_start: string | null
+          size: string
+          status: string
+          take_home_cents: number
+          task_id: string
+          title: string
+          trip_miles: number
+        }[]
+      }
+      helpr_set_vehicle: { Args: { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
+      helpr_task_accept: { Args: { p_pickup_slot_start: string; p_task_id: string }; Returns: Json }
+      helpr_task_assert_helpr: { Args: never; Returns: string }
+      helpr_task_close: { Args: { p_note: string; p_status: string; p_task: string }; Returns: string }
+      helpr_task_confirm: { Args: { p_actor: string; p_by: string; p_task: string }; Returns: Json }
+      helpr_task_create: { Args: { p_customer: string; p_dropoff_address: string; p_dropoff_area: string; p_dropoff_lat: number; p_dropoff_lng: number; p_is_seed: boolean; p_kind: string; p_latest_pickup: string; p_open_until: string; p_pay_cents: number; p_pickup_address: string; p_pickup_area: string; p_pickup_contact: string; p_pickup_lat: number; p_pickup_lng: number; p_size: string; p_source: string; p_title: string; p_trip_miles: number }; Returns: string }
+      helpr_task_customer_confirm: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_delivered: { Args: { p_code: string; p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
+      helpr_task_distance_m: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
+      helpr_task_fee_cents: { Args: { p_pay_cents: number }; Returns: number }
+      helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
+      helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
+      helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
+      helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
+      helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
+      helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
+      helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
+      helpr_task_picked_up: { Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
+      helpr_task_pickup_no_show: {
+        Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }
+        Returns: Json
+      }
+      helpr_task_release: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_reopen: { Args: { p_actor: string; p_kind: string; p_note: string; p_task: string }; Returns: undefined }
+      helpr_task_same_stripe_mode: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      helpr_task_source_event: { Args: { p_by: string; p_event: string; p_task: string }; Returns: Json }
+      helpr_task_source_held: { Args: { p_kind: string; p_source: string }; Returns: boolean }
+      helpr_task_source_require_feature: { Args: { p_kind: string }; Returns: undefined }
+      helpr_task_source_slot_ok: { Args: { p_kind: string; p_source: string; p_start: string }; Returns: boolean }
+      helpr_task_sweep: { Args: never; Returns: Json }
+      helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
+      helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_tasks_open_near: {
+        Args: { p_lat: number; p_limit: number; p_lng: number }
+        Returns: {
+          dropoff_area: string
+          latest_pickup_at: string
+          miles_to_pickup: number | null
+          open_until: string
+          pickup_area: string
+          size: string
+          source_kind: string
+          take_home_cents: number
+          task_id: string
+          title: string
+          trip_miles: number
         }[]
       }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }

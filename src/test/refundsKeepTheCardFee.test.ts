@@ -56,7 +56,7 @@
  * The Declutter sql-policy sites (2026-10-15): (a) a no-fault reason moved to a full refund, in the function and
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault')); |     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault', 'buyer_changed_mind'));
@@ -66,12 +66,12 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents, 0);
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | CREATE TRIGGER trg_zero_fee BEFORE INSERT ON public.declutter_refunds FOR EACH ROW EXECUTE FUNCTION public.declutter_zero_fee();\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_orders SET card_fee_cents = 0;\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -140,18 +140,28 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
       decidedBy: "declutter_record_refund", rpc: "declutter_refunds_due", reader: "declutter_refunds_due",
       amount: "r.refund_cents", row: "r",
       chain: [
-        "const [refundsRes, payoutsRes] = await Promise.all([ admin.rpc(\"declutter_refunds_due\", { p_limit: BATCH }),",
+        "const [refundsRes, payoutsRes, helprRes, deliveryRes] = await Promise.all([ admin.rpc(\"declutter_refunds_due\", { p_limit: BATCH }),",
         "const refunds = (refundsRes.data ?? []) as RefundDue[];",
         "for (const r of refunds) {",
       ],
       mentions: [
         "refund_cents: number;",
+        "refund_cents: number;",
         "amount: r.refund_cents,",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);",
+        "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
+        "amount: d.refund_cents,",
+        "message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
+        "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
       ],
     },
   },
+  // Slice 5 (owner row 40, 2026-10-14): no Helpr took the delivery in 48 h, or an admin paid the seller on a
+  // delivery that never happened: the DELIVERY FEE alone goes back in full (the buyer did nothing wrong; the
+  // service we sold did not happen). Amount = declutter_delivery_refunds.refund_cents = the order's frozen
+  // delivery_cents (declutter_delivery_refund, 20261016053945).
+  { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: d.payment_intent_id", kind: "own-mistake", why: "Helpr delivery fee back: no Helpr in 48 h (row 40) or the delivery never happened" },
   {
     file: "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", key: "payment_intent: paymentIntentId", kind: "sql-policy",
     why: "Declutter payment the order could not take (declutter_mark_order_paid answered refund)",
@@ -196,7 +206,7 @@ const MIGRATIONS = join(ROOT, "supabase/migrations");
 const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
-  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle()',
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
 ];
 
@@ -217,8 +227,8 @@ const TS_MONEY_TOUCHES: string[] = [
  */
 const SQL_POLICIES = {
   declutter_record_refund: {
-    migration: "20261015042253_declutter_slice4_handover_payout.sql",
-    proofs: ["src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs"],
+    migration: "20261016053945_declutter_helpr_delivery.sql",
+    proofs: ["src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policyCheck: "declutter_refunds_policy",
     reasons: {
@@ -236,9 +246,14 @@ const SQL_POLICIES = {
       admin_no_fault: "keep_card_fee",
       buyer_no_show: "keep_buyer_fee",
       admin_buyer_fault: "keep_buyer_fee",
+      // Row 43 (owner 2026-10-14): damaged in a Helpr delivery = the buyer gets everything back and
+      // Louisiana Helpr absorbs it (the seller is still paid, the Helpr is not).
+      delivery_damage: "full_platform_absorbs",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
-    ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere"],
+    ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
+      // Row 43: the platform absorbs damage in a delivery it arranged (owner decision, not a guess).
+      "delivery_damage"],
     constraints: [
       {
         name: "declutter_refunds_fee_policy_check",
@@ -267,17 +282,22 @@ const SQL_POLICIES = {
      * reviewed and re-pinned (lh-money-escrow review of ecf5c93a0, must-fix 1, 3, 4; note 1).
      */
     functions: {
+      declutter_admin_decide_delivery_damage: "20261016053945_declutter_helpr_delivery.sql fe11a9a3460b2a93",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
-      declutter_close_paid_order: "20261015042253_declutter_slice4_handover_payout.sql 26e41fe4a577d2c8",
+      declutter_close_paid_order: "20261016053945_declutter_helpr_delivery.sql 0c52fabd4123f2d4",
+      declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql 0fb09153f76a7a2b",
       declutter_mark_order_paid: "20261014224914_declutter_slice3b_payments.sql 12d9424a8c148d38",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
-      declutter_record_refund: "20261015042253_declutter_slice4_handover_payout.sql fc8974f33e201950",
+      declutter_order_refunds_recorded_cents: "20261016053945_declutter_helpr_delivery.sql 180fd5a89917ba6d",
+      declutter_record_hand_refund: "20261015091757_declutter_refund_hand_settle.sql ce5dfbb9af73bb40",
+      declutter_record_refund: "20261016053945_declutter_helpr_delivery.sql 54faa84a9b513f1e",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
-      declutter_refund_executed: "20261015042253_declutter_slice4_handover_payout.sql f8a51a02d610fe6c",
+      declutter_refund_executed: "20261015091757_declutter_refund_hand_settle.sql fda24c97dc66b80c",
+      declutter_refund_gave_up_check: "20261015091757_declutter_refund_hand_settle.sql c36af1d1e01d2a2e",
       declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql 2e178605dfca8501",
-      declutter_refund_reversed: "20261015042253_declutter_slice4_handover_payout.sql 1c8a50caf951d4ab",
+      declutter_refund_reversed: "20261015091757_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261015042253_declutter_slice4_handover_payout.sql c41b6779b527f9c7",
-      declutter_refunds_due: "20261015042253_declutter_slice4_handover_payout.sql 80bd46f87f26bbfe",
+      declutter_refunds_due: "20261016053945_declutter_helpr_delivery.sql fcc24a16eaf31209",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,
@@ -288,6 +308,8 @@ const SQL_POLICIES = {
     statements: {
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],
       "declutter_orders 20261014224914_declutter_slice3b_payments.sql": ["09890255c7e1c936", "594addefda2af9a3"],
+      "declutter_refunds 20261015091757_declutter_refund_hand_settle.sql": ["ae2d271f25de116b"],
+      "declutter_refunds 20261016053945_declutter_helpr_delivery.sql": ["1192c0e245b11665", "aa722c4315c803d9", "afb94a44f9fb4011", "97fe1330f0f7f13d"],
       "declutter_refunds 20261015042253_declutter_slice4_handover_payout.sql": ["997e0a466b670952", "1192c0e245b11665", "2fd39357580a2cf8", "4cf2e4567f6437bd", "7ba23fa882b28f10", "afb94a44f9fb4011", "97fe1330f0f7f13d", "9eb0bd77676aa5f0", "c63b7d95e91cc6a9", "6ca67d8b1161e8fe", "50ba5fd871e1f2c0", "acc8636c50c78d27"],
     } as Record<string, string[]>,
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */
@@ -830,7 +852,8 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     expect(unmatched.map((s) => `${s.file}: ${s.call.slice(0, 100)}`), "classify each new refund site in REFUND_SITES").toEqual([]);
     const stale = REFUND_SITES.filter((e) => sites.filter((s) => s.file === e.file && s.call.includes(e.key)).length !== 1);
     expect(stale.map((e) => `${e.file} ${e.key}`), "stale REFUND_SITES entry: remove it").toEqual([]);
-    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(4);
+    // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
+    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(5);
   });
 
   it("each refund either keeps the card fee through the shared helper or is a named own-mistake full refund", () => {

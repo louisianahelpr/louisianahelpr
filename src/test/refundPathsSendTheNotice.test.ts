@@ -126,7 +126,8 @@ function refundWordsInNotices(): Map<string, number> {
 describe("Q1714: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(13);
+    // 14 since Declutter slice 5: declutter-money's delivery-fee refund (the buyer is told in SQL and by email).
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(14);
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(3);
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

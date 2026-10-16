@@ -196,7 +196,8 @@ describe("a NULL argument never makes an allow check say yes (Q140)", () => {
         .filter((r) => r.kind === "allow")
         .map((r) => ({ fn: r.fn, d: newestFunction(r.fn)! }))
         .filter(({ d }) => /LANGUAGE plpgsql/i.test(d.header));
-      expect(plpgsqlAllow.map((x) => x.fn).sort()).toEqual(["credential_document_path_ok", "declutter_handover_photo_access", "helper_credential_document_ok"]);
+      expect(plpgsqlAllow.map((x) => x.fn).sort()).toEqual(["credential_document_path_ok", "declutter_handover_photo_access", "helper_credential_document_ok",
+        "helpr_task_photo_access", "helpr_task_source_slot_ok"]);
       for (const { fn, d } of plpgsqlAllow) {
         const first = d.body.match(/^(?:DECLARE .*?)?BEGIN IF (.+?) THEN RETURN false; END IF;/);
         expect(first, `${fn}: first statement is not IF ... THEN RETURN false`).not.toBeNull();

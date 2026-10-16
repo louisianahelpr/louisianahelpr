@@ -8,6 +8,7 @@
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs                  # all PASS
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-reconcile   # RED: the reconcile left out
  *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-against     # RED: 20261015092457 left out (problems filed against the member missing)
+ *   node src/test/pglite/exportMyDataReconcile.pglite.mjs --no-delivery    # RED: 20261016070800 left out (Helpr delivery sections missing)
  *
  * Two orders, each in its own database, starting from 20261014200728 (the
  * last export_my_data both lines of history share):
@@ -47,6 +48,10 @@ const RECONCILE = "20261015084728_export_my_data_declutter_reconcile.sql";
 // 20261015092457 restates the reconcile's body plus declutter_problems_about_me (problems filed AGAINST the member).
 const AGAINST = "20261015092457_export_my_data_declutter_problems_against.sql";
 const NO_AGAINST = process.argv.includes("--no-against");
+// 20261016070800 restates 092457's body plus the Helpr-delivery sections (slice 5).
+const DELIVERY = "20261016070800_export_my_data_helpr_delivery.sql";
+const NO_DELIVERY = process.argv.includes("--no-delivery");
+const DELIVERY_SECTIONS = ["helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs"];
 
 const DECLUTTER_SECTIONS = [
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
@@ -90,7 +95,7 @@ async function installedAfter(label, files) {
   const db = new PGlite();
   await db.exec(ROLES);
   for (const f of files) {
-    for (let i = 0; i < (f === RECONCILE || f === AGAINST ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
+    for (let i = 0; i < (f === RECONCILE || f === AGAINST || f === DELIVERY ? 3 : 1); i++) await db.exec(exportStatements(f)); // the reconcile 3x: replay-safe
   }
   const def = (await db.query(`SELECT pg_get_functiondef('public.export_my_data(uuid)'::regprocedure) AS d`)).rows[0].d;
   const acl = (await db.query(`SELECT
@@ -106,7 +111,7 @@ async function installedAfter(label, files) {
   return { db, def };
 }
 
-const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_AGAINST ? [] : [AGAINST])];
+const tail = NO_RECONCILE ? [] : [RECONCILE, ...(NO_AGAINST ? [] : [AGAINST]), ...(NO_AGAINST || NO_DELIVERY ? [] : [DELIVERY])];
 const replay = await installedAfter("REPLAY (version order)", [BASE, SLICE3, SLICE3B, SLICE4, MAIN_CAT, ...tail]);
 const prod = await installedAfter("PROD (main's 052622 live, branch versions pending)", [BASE, MAIN_CAT, SLICE3, SLICE3B, SLICE4, ...tail]);
 check("both orders end with the same body", replay.def === prod.def);
@@ -153,12 +158,24 @@ CREATE TABLE IF NOT EXISTS public.declutter_orders (id uuid PRIMARY KEY DEFAULT 
 CREATE TABLE IF NOT EXISTS public.declutter_bookings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), buyer_id uuid, seller_id uuid);
 CREATE TABLE IF NOT EXISTS public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid);
 CREATE TABLE IF NOT EXISTS public.declutter_problems (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reporter_id uuid);
-CREATE TABLE IF NOT EXISTS public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, reviewer_id uuid, reviewee_id uuid);`);
+CREATE TABLE IF NOT EXISTS public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, reviewer_id uuid, reviewee_id uuid);
+CREATE TABLE IF NOT EXISTS public.helpr_vehicles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid);
+CREATE TABLE IF NOT EXISTS public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), helpr_id uuid);
+CREATE TABLE IF NOT EXISTS public.helpr_task_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_id uuid);
+CREATE TABLE IF NOT EXISTS public.helpr_task_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), helpr_id uuid);
+CREATE TABLE IF NOT EXISTS public.declutter_delivery_dropoffs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), buyer_id uuid);`);
 // Columns the body only strips (`- 'reviewed_by'`), so the scan above cannot see them.
 await db.exec(`
 ALTER TABLE public.category_suggestions ADD COLUMN IF NOT EXISTS reviewed_by uuid, ADD COLUMN IF NOT EXISTS admin_note text;
 ALTER TABLE public.declutter_problems ADD COLUMN IF NOT EXISTS decided_by uuid, ADD COLUMN IF NOT EXISTS order_id uuid,
-  ADD COLUMN IF NOT EXISTS photo_paths text[], ADD COLUMN IF NOT EXISTS note text;`);
+  ADD COLUMN IF NOT EXISTS photo_paths text[], ADD COLUMN IF NOT EXISTS note text;
+ALTER TABLE public.helpr_tasks ADD COLUMN IF NOT EXISTS dropoff_code text, ADD COLUMN IF NOT EXISTS pickup_address text,
+  ADD COLUMN IF NOT EXISTS pickup_lat numeric, ADD COLUMN IF NOT EXISTS pickup_lng numeric, ADD COLUMN IF NOT EXISTS dropoff_address text,
+  ADD COLUMN IF NOT EXISTS dropoff_lat numeric, ADD COLUMN IF NOT EXISTS dropoff_lng numeric, ADD COLUMN IF NOT EXISTS customer_id uuid,
+  ADD COLUMN IF NOT EXISTS pickup_contact_id uuid, ADD COLUMN IF NOT EXISTS close_note text, ADD COLUMN IF NOT EXISTS dropoff_area text;
+ALTER TABLE public.helpr_task_payouts ADD COLUMN IF NOT EXISTS stripe_transfer_id text, ADD COLUMN IF NOT EXISTS last_error text,
+  ADD COLUMN IF NOT EXISTS amount_cents integer;
+ALTER TABLE public.declutter_delivery_dropoffs ADD COLUMN IF NOT EXISTS address text;`);
 await db.exec(`
 CREATE OR REPLACE FUNCTION public.are_users_blocked(a uuid, b uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE OR REPLACE FUNCTION public.user_may_see_job_address(j uuid, u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;`);
@@ -184,7 +201,17 @@ INSERT INTO public.declutter_orders (id, buyer_id, seller_id) VALUES ('${OTHER_O
 INSERT INTO public.declutter_problems (order_id, reporter_id, decided_by, photo_paths, note) VALUES
   ('${ORDER}', '${OTHER}', '${STAFF}', ARRAY['declutter/problem/x.jpg'], 'chair was broken'),
   ('${ORDER}', NULL, NULL, '{}', 'from a deleted account'),
-  ('${OTHER_ORDER}', '${OTHER}', NULL, '{}', 'not about me');`);
+  ('${OTHER_ORDER}', '${OTHER}', NULL, '{}', 'not about me');
+-- Slice 5: my truck; a delivery I made as the Helpr (the buyer OTHER, the seller STAFF) and one made by someone else;
+-- my step on it; my pay; my typed drop-off address as a buyer, and someone else's.
+INSERT INTO public.helpr_vehicles (user_id) VALUES ('${ME}'), ('${OTHER}');
+INSERT INTO public.helpr_tasks (helpr_id, dropoff_code, pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
+  customer_id, pickup_contact_id, close_note, dropoff_area) VALUES
+  ('${ME}', '4821', '1 Seller St', 30.45, -91.18, '9 Buyer Rd', 30.6, -91.1, '${OTHER}', '${STAFF}', 'staff note', 'Baker, LA'),
+  ('${OTHER}', '1111', 'x', 0, 0, 'y', 0, 0, '${ME}', '${STAFF}', NULL, 'Elsewhere');
+INSERT INTO public.helpr_task_events (actor_id) VALUES ('${ME}'), ('${OTHER}');
+INSERT INTO public.helpr_task_payouts (helpr_id, stripe_transfer_id, last_error, amount_cents) VALUES ('${ME}', 'tr_x', 'boom', 2620), ('${OTHER}', 'tr_y', NULL, 1);
+INSERT INTO public.declutter_delivery_dropoffs (buyer_id, address) VALUES ('${ME}', '5 My Home Ln'), ('${OTHER}', '9 Buyer Rd');`);
 let out;
 try {
   out = (await db.query(`SELECT public.export_my_data('${ME}') AS x`)).rows[0].x;
@@ -213,7 +240,24 @@ if (out) {
       && about.some((p) => p.note === "chair was broken"), JSON.stringify(about));
   check("the member's own report stays in declutter_problems only (not double-listed)",
     len("declutter_problems") === 1 && about.every((p) => p.note !== null && p.id !== out.declutter_problems[0]?.id));
+  // Slice 5, Helpr delivery (20261016070800).
+  const missingDelivery = DELIVERY_SECTIONS.filter((k) => !Array.isArray(out[k]));
+  check("the export carries every Helpr-delivery section", missingDelivery.length === 0, `absent: ${missingDelivery.join(", ")}`);
+  if (missingDelivery.length === 0) {
+    check("...each scoped to the member: one vehicle, one task, one event, one payout, one drop-off",
+      DELIVERY_SECTIONS.every((k) => out[k].length === 1), JSON.stringify(Object.fromEntries(DELIVERY_SECTIONS.map((k) => [k, out[k].length]))));
+    const task = out.helpr_tasks[0] ?? {};
+    const leaked = ["dropoff_code", "pickup_address", "pickup_lat", "pickup_lng", "dropoff_address", "dropoff_lat", "dropoff_lng",
+      "customer_id", "pickup_contact_id", "close_note"].filter((k) => k in task);
+    check("the Helpr's task keeps the area words but none of the buyer's or seller's address, points, ids, code or the staff note",
+      leaked.length === 0 && task.dropoff_area === "Baker, LA", `leaked: ${leaked.join(", ")}`);
+    const pay = out.helpr_task_payouts[0] ?? {};
+    check("the Helpr's pay keeps the amount, not the Stripe transfer id or error text",
+      pay.amount_cents === 2620 && !("stripe_transfer_id" in pay) && !("last_error" in pay), JSON.stringify(pay));
+    check("the buyer's own typed drop-off address is theirs to download",
+      out.declutter_delivery_dropoffs[0]?.address === "5 My Home Ln", JSON.stringify(out.declutter_delivery_dropoffs));
+  }
 }
 
-console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}${NO_AGAINST ? " [--no-against]" : ""}  (${tables.size} tables stubbed from the body)`);
+console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}${NO_RECONCILE ? " [--no-reconcile]" : ""}${NO_AGAINST ? " [--no-against]" : ""}${NO_DELIVERY ? " [--no-delivery]" : ""}  (${tables.size} tables stubbed from the body)`);
 process.exit(failures ? 1 : 0);

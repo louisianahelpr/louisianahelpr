@@ -61,6 +61,14 @@ export const CONDITION_LABEL: Record<number, string> = {
   1: "For parts or repair",
 };
 
+/** The four sales-tax confirmations (row 54), asked before every listing. */
+export const TAX_STATEMENTS = [
+  "I bought this item for my own personal or household use.",
+  "I'm not in the business of selling items like this.",
+  "I don't sell things often. This is an occasional sale.",
+  "I'll keep the item until I hand it over to the buyer.",
+] as const;
+
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /** 1-5 condition stars, with the words for screen readers and beside them. */

@@ -38,6 +38,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/_vercel": "Vercel's image optimiser path (src/lib/imageUrl.ts), served by Vercel",
   "/auth": "Supabase OAuth callback and GoTrue paths; stay in the browser (AASA excludes /auth/*)",
   "/:id": "ops_route_key's placeholder for an id segment",
+  "/9j": "the base64 start of a JPEG (declutter-ai-draft room photos check it), not an address",
   "/avatars": "storage object path (avatars bucket)",
   "/credentials": "storage object path (credential documents)",
   "/disputes": "storage object path (dispute evidence)",

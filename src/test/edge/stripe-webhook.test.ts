@@ -1094,7 +1094,7 @@ describe("stripe-webhook edge function", () => {
       scenario.reads.jobs = {
         rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow", sales_tax_amount: 0, is_seed: true }],
       };
-      // write-select returns no rows (CAS guard matched 0 rows — correct).
+      // write-select returns empty (CAS guard excludes escrow — correct, nothing written).
       scenario.writeSelectRows.jobs = [];
       await fn.fetch(webhookRequest(fn, "{}"));
       const escrowWrite = scenario.writes.find(

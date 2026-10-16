@@ -10,6 +10,7 @@
  * holds to create_quote_request; nothing is charged. The poster pays later,
  * when they book a quote, through the one escrow checkout.
  */
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -103,12 +104,15 @@ function useAskForQuotes() {
       const location = `${f.streetAddress.trim()}, ${f.city.trim()}, ${f.addrState.trim()} ${f.zipCode.replace(/\D/g, "").slice(0, 5)}`;
       // Best effort and capped like Post a Job's: a request without a map
       // point still takes quotes.
+      // 2.5 s of VISIBLE time (raceVisibleDeadline): a backgrounded app does
+      // not burn the wait; past it the request goes without a map point.
       let coords: { latitude: number; longitude: number } | null = null;
       try {
-        coords = await Promise.race([
+        coords = await raceVisibleDeadline(
           geocodeAddress(composeJobAddress({ streetAddress: f.streetAddress, city: f.city, state: f.addrState, zipCode: f.zipCode })),
-          new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 2500)),
-        ]);
+          2500,
+          "geocode_timeout",
+        );
       } catch (geoErr) {
         report(geoErr, { severity: "warning", tags: { source: "quotes.askForQuotes.geocode" } });
       }

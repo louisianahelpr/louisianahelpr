@@ -37,7 +37,7 @@ function RequestRow({ r }: { r: MyQuoteRequest }) {
     <li>
       <Link
         to={`/quotes/request/${r.id}`}
-        className="block rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="block rounded-2xl border border-border bg-card p-4 ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <p className="font-semibold text-foreground break-words">{r.title}</p>
         <p className="mt-1 text-sm text-muted-foreground">

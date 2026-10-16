@@ -20,8 +20,8 @@
  * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
  * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
  * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
- * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
- * @mutate supabase/migrations/20261015092457_export_my_data_declutter_problems_against.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
  * @mutate supabase/migrations/20261016070800_export_my_data_helpr_delivery.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:

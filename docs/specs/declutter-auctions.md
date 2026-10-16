@@ -77,7 +77,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 60 | Seller backs out after the buyer paid | Buyer gets EVERYTHING back (item price + premium + card fee); the card fee Stripe kept is charged to the SELLER, taken from their future Declutter payouts; seller gets a strike | 2026-10-14 |
 | 61 | Price drops near the hidden floor | Drops stop at a random point slightly ABOVE the hidden floor, so a watcher can't work out the floor (seller may sell for a little more than their lowest) | 2026-10-14 |
 | 62 | Switch turned off mid-sale | Sales already agreed (offer accepted / paid) may still check out and hand over; no strike for a sale the switch interrupted; nothing new can start | 2026-10-14 |
-| 63 | Launch without Helpr delivery | Public launch = pickup at seller's home + porch pickup only; Helpr delivery (slice 5) added right after; checkout keeps saying delivery is coming later | 2026-10-14 |
+| 63 | Launch without Helpr delivery (SUPERSEDED by row 102, 2026-10-16) | Public launch = pickup at seller's home + porch pickup only; Helpr delivery (slice 5) added right after; checkout keeps saying delivery is coming later | 2026-10-14 |
 | 64 | Web first | Declutter goes live on the website (incl. phone browser) first; the iPhone app gets it in the next build after Apple's review of 1.0.4, described in review notes (row 51) | 2026-10-14 |
 | 65 | Terms | Claude drafts plain-English Declutter terms from the spec for the owner to approve (lawyer look advised before public launch) | 2026-10-14 |
 | 66 | First testers | Owner + test accounts first (real items, pickup only, real card, small amounts); friends added as testers later | 2026-10-14 |
@@ -96,6 +96,7 @@ premium, 7 days to pay + book pickup, 5% cancel/relist fee, $1 missed-pickup fee
 | 99 | Porch "Picked up" | The buyer's photo + "Picked up" tap pays the seller RIGHT AWAY (same as "I got it"); the 24 h auto-pay only covers buyers who never tap (supersedes row 26's wait) | 2026-10-15 |
 | 100 | No-fault admin refund | Keeps the card fee (never-absorb rule); only refunds caused by our own mistakes are full | 2026-10-15 |
 | 101 | Porch is the default | Owner: "I'd rather porch pick up and not having to meet someone for a code or qr code." Porch pickup is pre-selected at checkout and shown first. The SELLER can turn porch off per item when listing (too valuable / too big to leave out); an order with any such item offers only pickup at the seller's home, and the server refuses porch for it. The buyer can still choose to meet at the seller's home; the code/QR is used only then (rows 25, 28). The listing says "Porch pickup available" or "Meet at the seller's home only". Helpr delivery (row 63) unchanged | 2026-10-16 |
+| 102 | Launch with delivery | Owner 2026-10-16: "Yes, launch with delivery". Helpr delivery (slice 5) is part of the launch; the 'declutter' switch stays at testers until delivery is ready. Supersedes row 63 | 2026-10-16 |
 
 ## Approved for later slices (details still to ask the owner)
 Owner-approved 2026-10-14; NOT built in slice 3b. The owner did NOT pick "give to a local charity".
@@ -664,6 +665,63 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
 - When Declutter sales tax arrives (should-fix 5; the jobs rule the owner set 2026-10-15): keep paying tax on the fees
   we keep (a kept buyer's fee or card fee stays taxed); reverse ONLY the tax on money returned to the buyer (the
   refunded item price and its own tax). Every order's tax is 0 today, so nothing changes until tax is built.
+
+### Slice 5 build decisions (agent declutter-delivery, 2026-10-16; migrations 20261016053945 + 20261016070800 (export))
+Owner 2026-10-16: "Yes, launch with delivery" (row 102). Layers built: DB (tables, CHECKs, triggers), service-only
+RPCs, member RPCs, the sweep (cron `helpr-tasks`), the money queues (declutter-money), the checkout edge function
+(server-side geocoding + the delivery line), the webhook's refund-reversal branch, the screens, export_my_data.
+Proof: src/test/pglite/declutterDelivery.pglite.mjs (applied 3x; NEW_MIGRATION=skip is red); slice 4's own proof
+136/136 with this migration on top (pickup and porch unchanged).
+
+**The shared piece (for Add a Helpr and haul-away).** "A Helpr picks up an item at an address and takes it to
+another address" is its own module, `helpr_tasks` + `helpr_task_*` (PART A of 20261016053945), with no Declutter
+in it. A source creates a task with `helpr_task_create(kind, source_id, size, title, pickup area/address/point,
+drop-off area/address/point, miles, pay, customer, pickup contact, open_until, latest_pickup, is_seed)`; the
+module calls back through FOUR dispatchers only (`helpr_task_source_require_feature`, `_slot_ok`, `_held`,
+`_event`) plus `helpr_task_lock` (source lock first) and the payout queue's source columns. A new source adds its
+kind to `helpr_tasks.source_kind` and one branch in each dispatcher. The Helpr side (find, accept with a time, back
+out, "Picked up" photo at the pickup point, drop-off with the customer's 4-digit code or a door photo, the day-long door
+rule (2026-10-16), no-show strikes, the Helpr's pay = pay minus jobs' flat 5% + 70c, one payout row per task) is all in the
+module; the client is src/lib/helprTasks/api.ts and the screens reuse it unchanged.
+
+| # | Decision | Status | When |
+|---|----------|--------|------|
+| B59 | Delivery is a Helpr job in the shared `helpr_tasks` table, not a row in `jobs`: the buyer already paid inside the Declutter order, so there is no job escrow to fund. "Same commission as jobs" (row 42) = jobs' flat fee, 5% + 70c of the delivery fee, frozen on the task; "normal payouts" = a Stripe transfer to the Helpr's Connect account, from the order's own charge, in the order's transfer group | default chosen by lane, owner to confirm | 2026-10-16 |
+| B60 | Road miles = straight-line distance x 1.3, rounded UP to a whole mile, at least 1 (the app has no server-side road routing; drive time exists only on the device). One SQL function (`declutter_road_miles`), so a routing service can replace it later | default chosen by lane, owner to confirm | 2026-10-16 |
+| B61 | Delivery is offered only when every item of the checkout is at one pickup address (within 200 m); otherwise the buyer picks up (`delivery_one_address`) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B62 | The buyer types the drop-off address; the declutter-checkout edge function geocodes it on the server (the same Nominatim lookup jobs use), so nobody can type the point the price is measured from. Any US address (rows 30, 69). The buyer's fee (5% + 70c) is on the items only, not on the delivery fee. The fee and the drop-off are frozen on the order at checkout | default chosen by lane, owner to confirm | 2026-10-16 |
+| B63 | The Helpr picks the 30-minute pickup time when taking the delivery, inside the seller's pickup times and before the 7-day pickup deadline; the seller and the buyer are told. A delivery order has no buyer booking | default chosen by lane, owner to confirm | 2026-10-16 |
+| B64 | A Helpr may back out before the pickup; under 2 hours before the pickup time it costs a delivery strike. Not picked up 2 hours after the pickup time = a Helpr no-show strike. Either way the delivery goes back up with at least 24 more hours (never later than 2 hours before the 7-day deadline) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B65 | Drop-off: in person with the buyer's 4-digit code (the seller and the Helpr are paid at once; the Helpr may be up to 1 km from the geocoded point with the right code, 200 m without, so a point the geocoder put a little off never strands the Helpr), or left at the door with a photo taken within 200 m of the address; then the buyer taps "I got it", or it confirms itself 24 hours later unless the buyer reported a problem (row 28's rule) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B66 | Helpr delivery strikes use the jobs consequence ladder (warning, final warning, account review), violation types delivery_damage / delivery_backed_out / delivery_no_show, one per task and type; they are not Declutter strikes | default chosen by lane, owner to confirm | 2026-10-16 |
+| B67 | The seller is not there for the Helpr ("The seller wasn't there", from 15 minutes after the pickup time, with a photo taken within 200 m of the pickup address): it opens a problem for an admin, the money waits and the Helpr is not counted a no-show meanwhile. Revised after lh-authz-rls review #3 (2026-10-16): on the Helpr's word alone a Helpr could keep the item and cancel the sale. An admin who decides it a seller no-show refunds the buyer (row 19: everything back, delivery fee included; card fee to the seller's debt; strike). The Helpr is NOT paid for the wasted trip | default chosen by lane, owner to confirm (a trip fee charged to the seller?) | 2026-10-16 |
+| B68 | Row 40: the whole delivery fee goes back (the platform absorbs the ~2.9% card cost on it: nothing the buyer did); the order becomes a pickup at the seller's home and the 7-day clock keeps running. "The buyer may raise the pay" is NOT built (it needs a second payment): Q?delivery-raise-pay | default chosen by lane, owner to confirm | 2026-10-16 |
+| B69 | A refund decided after the Helpr picked up pays the Helpr for the trip from the charge and refunds the rest. On a seller-fault refund the buyer therefore does not get the delivery fee back | default chosen by lane, owner to confirm (or charge it to the seller's debt like row 60) | 2026-10-16 |
+| B70 | An admin who pays the seller on a delivery nobody picked up cancels the task and gives the delivery fee back (`delivery_not_done`) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B71 | Row 43 (damaged in delivery) is its own admin decision on a reported problem: the buyer gets the whole order back (delivery fee too; refund reason `delivery_damage`, platform absorbs), the seller is still paid, the Helpr is not paid and gets a delivery strike. The buyer's refund waits until the seller's payout has gone, so the seller's transfer can still draw on the charge | built as row 43 says; the ordering is the lane's | 2026-10-16 |
+| B72 | Taking a delivery shows its pickup address, so a Helpr never takes back a delivery they backed out of or missed, and 3 back-outs in 7 days pause taking new ones; Helpr search distances and delivery quotes are measured from the pickup point rounded to ~1 km, never the exact one (lh-authz-rls review #1, #2, #4: otherwise the seller's home could be found by trilateration) | default chosen by lane, owner to confirm | 2026-10-16 |
+| B72b | Helprs find deliveries in Declutter's own "Deliver" tab (behind the 'declutter' switch), not in the jobs Browse. To take one: 18+, payout setup done, not banned, under 3 Declutter strikes, not the buyer or seller, the same Stripe mode as the buyer (test accounts with test accounts), a truck for large / extra large and a second person for extra large; the truck needs a photo (private bucket), no admin review of it | default chosen by lane, owner to confirm | 2026-10-16 |
+| B73 | Money: every amount is in SQL. A seller or Helpr payout is sent only while the order's charge has given back no more than the refunds the order recorded (a delivery fee refunded on its own is known; an unknown refund or a dispute still moves nothing). Photos at both ends live in a PRIVATE bucket `helpr-tasks` (signed URLs): the Helpr writes into their own task folder while the task is active; the buyer, the seller, the Helpr and admins read | built | 2026-10-16 |
+| B74 | Alerts (row 44): push + bell at each step (taken, backed out, picked up, at the door, done, no Helpr); email only for the delivery-fee refund (declutter-money's refund email) | built | 2026-10-16 |
+
+Exact addresses (row 27): the Helpr reads the pickup address after taking the delivery and the drop-off address
+only after the "Picked up" photo; the buyer never reads the seller's address through the task, the seller never
+reads the buyer's; open deliveries show area words and rough miles only (`helpr_task_view`).
+
+| # | Decision | Status | When |
+|---|----------|--------|------|
+| B76 | A delivery that falls through (no Helpr, or a Helpr who backed out or missed late in the week) with under 48 h left before the 7-day deadline is closed as no one's fault, not left to become the buyer's no-show: the delivery fee back in full, the rest under the no-fault rule (row 100: card fee kept), no strike, the item back on sale. An item the Helpr has that is reported damaged or not received is decided "Damaged in delivery" (row 43) or "Pay the seller", never through "Refund the buyer" (which pays the Helpr for the trip, B69); an admin never decides a delivery they made. Payouts count only refunds Stripe confirmed on the order's own charge | default chosen by lane, owner to confirm (a full refund instead?) | 2026-10-16 |
+| B77 | While a problem is open on a delivery order the task is frozen: no unfilled close, no back-out, no pickup, no new Helpr, and the money waits for the admin. A Helpr holds at most 2 deliveries not yet picked up, and back-outs plus misses count toward the 3-in-7-days pause. After a Helpr's "the seller wasn't there" (photo shown to the admin) the admin can only refund the buyer, saying whose fault it was; "Pay the seller" is refused because the item never left the seller (a "deliver again" decision is not built) | default chosen by lane, owner to confirm (a redelivery option?) | 2026-10-16 |
+| B75 | Download My Data (20261016070800): the Helpr's vehicle, the deliveries they made (area words only: never the buyer's or seller's address, points, ids, the drop-off code or the staff close note), their own task steps, their delivery pay (no Stripe transfer id), and the drop-off addresses they typed as a buyer. Account deletion is refused while a Helpr holds a delivery (taken, picked up, at the door) or has delivery pay pending; the truck photo (`helpr-tasks/<uid>/vehicle/`) is erased with the account; the task photos stay as the delivery's evidence (the task row survives, helpr_id SET NULL), as proof-photos do | default chosen by lane, owner to confirm | 2026-10-16 |
+
+### Open after slice 5 (for the lead; filed as OPEN.md placeholders)
+- From the three reviews of 88fa498a4, not fixed in this lane: Q?delivery-gave-up, Q?delivery-picked-up-deadline,
+  Q?delivery-addresses-after-deletion (MEDIUM); Q?delivery-damage-refund-wait, Q?delivery-card-fee-prorate,
+  Q?delivery-lock-before-check (LOW).
+- Q?delivery-raise-pay (MEDIUM): row 40's "the buyer may raise the pay" is not built (a second payment on a paid order).
+- Q?delivery-road-miles (LOW): road miles are straight-line x 1.3 (B60); a routing service would price real roads.
+- The 'declutter' switch stays at testers until delivery is verified on prod with the shared test accounts (no
+  delivery RPC is on prod until this branch lands; the screens were checked against the stubbed client only).
 
 ### Open after slice 3b (for the lead; owner order 10-13: no new OPEN.md items from agents)
 - Owner to confirm the two B40 calls marked OWNER TO CONFIRM.

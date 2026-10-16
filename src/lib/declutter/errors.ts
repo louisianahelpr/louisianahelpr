@@ -60,7 +60,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   other_side_unavailable: "The other side can't trade on Declutter right now, so this can't go ahead.",
   counter_same_amount: "That's the same amount. To agree to it, tap Accept.",
   price_changed: "The price changed. Check the new price and try again.",
-  handover_unavailable: "Choose pickup at the seller's home or porch pickup. Helpr delivery is coming later.",
+  handover_unavailable: "Choose porch pickup, pickup at the seller's home, or Helpr delivery.",
   seller_tax_not_ready: "Checkout for this seller isn't available yet.",
   cart_empty: "Nothing from this seller is waiting for checkout.",
   // Row 101 porch default (20261016050402).
@@ -118,6 +118,33 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_items: "Something in that list didn't save. Check each item's name and price, then try again.",
   too_many_items: "Save 1 to 15 items at a time.",
   move_draft_limit: "You have 60 unfinished moving-sale items. List or delete some before you add more.",
+  // Slice 5, Helpr delivery (20261016053945): delivery checkout, the Helpr's job, money queues.
+  delivery_address_needed: "Enter the address to deliver to.",
+  delivery_one_address: "These items are at different addresses, so they can't be delivered together. Choose pickup.",
+  delivery_unavailable: "Helpr delivery isn't available for this order. Choose pickup.",
+  delivery_order: "A Helpr is delivering this order and picks the pickup time.",
+  delivery_not_done: "The Helpr hasn't picked the item up yet.",
+  invalid_address: "Enter the full drop-off address: street number, street, and town.",
+  order_handover_frozen: "How you get this order can't be changed after checkout.",
+  order_amounts_frozen: "The amounts of this order can't be changed after checkout.",
+  no_delivery_fee: "This order has no delivery fee to refund.",
+  not_a_delivery_in_transit: "Only a delivery the Helpr picked up can be decided as damaged in delivery.",
+  delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
+  task_not_found: "This delivery isn't available.",
+  task_taken: "Another Helpr took this delivery, or it closed.",
+  too_many_releases: "You backed out of or missed 3 deliveries this week. You can take new ones again in a few days.",
+  too_many_taken: "Pick up one of your deliveries before you take another.",
+  task_not_active: "This delivery isn't in progress.",
+  own_task: "You can't deliver your own sale.",
+  vehicle_too_small: "This item needs a truck (and a second person for extra large). Add your truck under Your vehicle.",
+  invalid_vehicle: "A second person is only asked for with a truck.",
+  vehicle_photo_required: "Add a photo of your truck.",
+  not_picked_up_yet: "Take the \"Picked up\" photo first.",
+  not_at_dropoff: "Take the photo at the drop-off address.",
+  // Service-only (a source or the money cron); worded for the ops log.
+  invalid_result: "That payout or refund result couldn't be recorded.",
+  invalid_status: "That delivery can't be closed that way.",
+  unknown_task_source: "That delivery's source isn't known.",
 };
 
 /**
@@ -134,6 +161,10 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   // declutter-ai-draft room mode (moving-out mode).
   room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
   ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",
+  // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
+  address_not_found: "We couldn't find that address. Check the street number, street and town.",
+  geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",
+  photo_unavailable: "That photo couldn't load. Try again.",
 };
 
 /**

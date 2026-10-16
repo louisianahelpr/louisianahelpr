@@ -70,6 +70,10 @@ const EXPECTED_CALLERS = [
   // respond_offer passes the thread's two parties, one of whom is v_uid
   // (the thread is found by buyer_id = v_uid OR seller_id = v_uid);
   // start_checkout passes (p_seller_id, v_uid).
+  // Declutter slice 5 (20261016053945): each passes v_uid := auth.uid() (the
+  // quoting buyer; the Helpr finding or taking a task) as one argument, the
+  // seller / the task's buyer or seller the other.
+  "declutter_delivery_quote",
   "declutter_lock_buyable_item",
   "declutter_respond_offer",
   // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
@@ -88,6 +92,10 @@ const EXPECTED_CALLERS = [
   "export_my_data",
   "get_my_saved_helpers",
   "get_quotes_for_request",
+  "helpr_task_accept",
+  // Slice 5 (lh-authz-rls #8): an open task's view repeats open_near's check, (the caller, the buyer / the seller).
+  "helpr_task_view",
+  "helpr_tasks_open_near",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
   // participant blocked with the poster. Neither is necessarily auth.uid() (the
   // Helpr may be the one moving the status), and it gets the real answer the

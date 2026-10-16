@@ -388,6 +388,33 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   if (lines.data && lines.data.length > 0) {
     return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id}`, reason: "declutter" };
   }
+  // Slice 5, Helpr delivery (20261016053945): a Helpr who has taken a delivery
+  // and not finished it holds someone's item, and a Helpr whose pay is still
+  // pending or being retried ('failed' is retried with back-off) is owed money the payout can only send to their account
+  // (helpr_task_payouts.helpr_id is SET NULL with the account).
+  const tasks = await activeHelprRows(admin, "helpr_tasks", userId, ["accepted", "picked_up", "delivered"]);
+  if (!tasks.ok || tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks;
+  const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed"]);
+  if (!pay.ok || pay.active) return pay.active ? { ...pay, detail: `helpr delivery pay ${pay.detail}` } : pay;
+  return { ok: true, active: false };
+}
+
+/** One row of `table` with helpr_id = the member in one of `statuses` (fail closed on a read error; an absent table is none). */
+async function activeHelprRows(admin: PurgeCapableClient, table: string, userId: string, statuses: string[]): Promise<ActiveWorkResult> {
+  const rows: PostgrestLike<{ id: string }[]> = await admin
+    .from(table)
+    .select("id")
+    .eq("helpr_id", userId)
+    .in("status", statuses)
+    .limit(1);
+  if (rows.error) {
+    if (/does not exist|42P01|PGRST205/i.test(`${rows.error.code ?? ""} ${rows.error.message}`)) {
+      return { ok: true, active: false, detail: `${table} absent` };
+    }
+    console.error(`[accountPurge] ${table} check failed for ${userId}:`, rows.error.message);
+    return { ok: false, active: false, detail: rows.error.message };
+  }
+  if (rows.data && rows.data.length > 0) return { ok: true, active: true, detail: rows.data[0].id, reason: "declutter" };
   return { ok: true, active: false };
 }
 

@@ -23,7 +23,12 @@
  * @mutate supabase/functions/declutter-money/index.ts |   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`); |   if (gaveUp.error) return cronError(FN, `declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
  * @mutate supabase/functions/declutter-money/index.ts |       defects.record(`payout ${p.payout_id}: ${msg}`.slice(0, 200)); |
  * @mutate supabase/functions/declutter-money/index.ts |       const existing = mine.find((x) => tookIt(x.status)); |       const existing = mine[0];
- * @mutate supabase/functions/declutter-money/index.ts |         if (pi.status !== "succeeded" \|\| !ch \|\| ch.amount_refunded > 0 \|\| ch.disputed) { |         if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |   if (pi.status !== "succeeded" \|\| !ch \|\| ch.amount_refunded > known \|\| ch.disputed) { |   if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |   const known = Math.max(0, Number(refundsRecordedCents ?? 0)); |   const known = Number.MAX_SAFE_INTEGER;
+ * @mutate supabase/functions/declutter-money/index.ts |           { idempotencyKey: `helpr-task-payout-${h.payout_id}` }, |           {},
+ * @mutate supabase/functions/declutter-money/index.ts |         return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed; |         return false;
+ * @mutate supabase/functions/declutter-money/index.ts |     const hold = await checkPayoutHold(admin, h.helpr_id); |     const hold = { kind: "ok" } as Awaited<ReturnType<typeof checkPayoutHold>>;
+ * @mutate supabase/functions/declutter-money/index.ts |       const adopted = mine.find((x) => tookIt(x.status)); |       const adopted = undefined;
  * @mutate supabase/functions/declutter-money/index.ts |       return { stripe: modes.clientFor(mode) }; |       return await modes.clientForParties([r.buyer_id, r.seller_id]);
  * @mutate supabase/functions/declutter-money/index.ts |     if (!hasParties) return null; |
  * @mutate supabase/functions/declutter-money/index.ts |         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`); |
@@ -54,9 +59,22 @@ const refundRow = (over: Record<string, unknown> = {}) => ({
   refund_id: REFUND, reason: "seller_no_show", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER, payment_intent_id: "pi_order1",
   refund_cents: 4000, attempts: 1, ...over,
 });
+const HELPR = "0000000b-0000-4000-8000-000000000003";
+const TASK = "0000000b-0000-4000-8000-0000000000ee";
+const HPAYOUT = "0000000b-0000-4000-8000-0000000000ff";
+const DREFUND = "0000000b-0000-4000-8000-0000000000ab";
+const helprRow = (over: Record<string, unknown> = {}) => ({
+  payout_id: HPAYOUT, task_id: TASK, source_kind: "declutter_delivery", source_id: ORDER, helpr_id: HELPR,
+  customer_id: BUYER, pickup_contact_id: SELLER, amount_cents: 1640, stripe_account_id: "acct_helpr1",
+  payment_intent_id: "pi_order1", transfer_group: `declutter_order_${ORDER}`, refunds_recorded_cents: 0, attempts: 0, ...over,
+});
+const deliveryRefundRow = (over: Record<string, unknown> = {}) => ({
+  delivery_refund_id: DREFUND, reason: "no_helpr", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER,
+  payment_intent_id: "pi_order1", refund_cents: 2400, attempts: 0, checkout_session_id: "cs_live_abc", ...over,
+});
 const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
 
-async function run(opts: { payouts?: unknown[]; refunds?: unknown[]; bearer?: string } = {}) {
+async function run(opts: { payouts?: unknown[]; refunds?: unknown[]; helprPayouts?: unknown[]; deliveryRefunds?: unknown[]; bearer?: string } = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -66,6 +84,10 @@ async function run(opts: { payouts?: unknown[]; refunds?: unknown[]; bearer?: st
   });
   scenario.rpc.declutter_payouts_due = opts.payouts ?? [];
   scenario.rpc.declutter_refunds_due = opts.refunds ?? [];
+  scenario.rpc.helpr_task_payouts_due = opts.helprPayouts ?? [];
+  scenario.rpc.declutter_delivery_refunds_due = opts.deliveryRefunds ?? [];
+  scenario.rpc.helpr_task_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
+  scenario.rpc.declutter_delivery_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
   // The mocks answer like the SQL: failed when told it failed (review: a constant "succeeded" hid a missing defect).
   scenario.rpc.declutter_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
   scenario.rpc.declutter_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
@@ -332,5 +354,148 @@ describe("declutter-money: refund retry and reconcile (3b money review #7, B57)"
     expect(body.defects).toBe(0);
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("declutter-money: a known partial refund (slice 5)", () => {
+  it("pays the seller when the charge gave back exactly the delivery fee the order recorded", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 2400, disputed: false },
+    });
+    const { status, body } = await run({ payouts: [payoutRow({ refunds_recorded_cents: 2400 })] });
+    expect(status).toBe(200);
+    expect(body.payouts_sent).toBe(1);
+  });
+
+  it("still moves nothing when the charge gave back MORE than the order recorded", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 2401, disputed: false },
+    });
+    const { status } = await run({ payouts: [payoutRow({ refunds_recorded_cents: 2400 })] });
+    expect(status).toBe(500);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("declutter-money: Helpr delivery payouts (slice 5, row 42)", () => {
+  it("sends the queued take-home to the Helpr's account from the order's own charge, once", async () => {
+    const { status, body } = await run({ helprPayouts: [helprRow()] });
+    expect(status).toBe(200);
+    expect(body.helpr_payouts_sent).toBe(1);
+    const [params, opts] = stripeMock.transfers.create.mock.calls[0];
+    expect(params).toMatchObject({
+      amount: 1640, currency: "usd", destination: "acct_helpr1", transfer_group: `declutter_order_${ORDER}`,
+      source_transaction: "ch_order1", metadata: { kind: "helpr_task_payout", payout_id: HPAYOUT, task_id: TASK },
+    });
+    expect(opts).toEqual({ idempotencyKey: `helpr-task-payout-${HPAYOUT}` });
+    expect(rpcs("helpr_task_payout_executed")[0]?.args).toEqual({
+      p_payout_id: HPAYOUT, p_transfer_id: "tr_new1", p_succeeded: true, p_error: null,
+    });
+  });
+
+  it("reconciles by payout id: a transfer already sent for this row is recorded, not sent again", async () => {
+    stripeMock.transfers.list.mockResolvedValue({ data: [
+      // The SELLER's payout in the same group is not the Helpr's.
+      { id: "tr_seller", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } },
+      { id: "tr_h_old", destination: "acct_helpr1", reversed: false, metadata: { kind: "helpr_task_payout", payout_id: HPAYOUT } },
+    ] });
+    const { body } = await run({ helprPayouts: [helprRow({ attempts: 2 })] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(body.helpr_payouts_reconciled).toBe(1);
+    expect(rpcs("helpr_task_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_h_old", p_succeeded: true });
+  });
+
+  it("the seller's transfer in the same group is never taken for the Helpr's", async () => {
+    stripeMock.transfers.list.mockResolvedValue({ data: [
+      { id: "tr_seller", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } },
+    ] });
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(body.helpr_payouts_sent).toBe(1);
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("a Helpr on payout hold is not paid and nothing is recorded", async () => {
+    scenario.reads.payout_holds = { rows: [{ helper_id: HELPR, reason: "under review", held_at: "2026-10-15T00:00:00Z", denied_at: null }] };
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(body.held).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+  });
+
+  it("a Helpr under ban review is not paid", async () => {
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: HELPR }] };
+    const { body } = await run({ helprPayouts: [helprRow()] });
+    expect(body.ban_review).toBe(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("a Helpr with no payout account is skipped without using a try", async () => {
+    const { body } = await run({ helprPayouts: [helprRow({ stripe_account_id: null })] });
+    expect(body.no_payout_account).toBe(1);
+    expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+  });
+
+  it("a charge refunded beyond what was recorded pays no Helpr; the failure is recorded", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 9000, disputed: false },
+    });
+    const { status } = await run({ helprPayouts: [helprRow()] });
+    expect(status).toBe(500);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(rpcs("helpr_task_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+  });
+
+  it("the 12th failure pages and says not to pay by hand when the charge is not whole", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 0, disputed: true },
+    });
+    await run({ helprPayouts: [helprRow({ attempts: 11 })] });
+    expect(slackAlerts.length).toBe(1);
+    expect(JSON.stringify(slackAlerts[0])).toContain("Do NOT pay the Helpr by hand");
+  });
+});
+
+describe("declutter-money: delivery-fee refunds (slice 5, row 40)", () => {
+  it("refunds exactly the delivery fee under its own key and records it", async () => {
+    const { status, body } = await run({ deliveryRefunds: [deliveryRefundRow()] });
+    expect(status).toBe(200);
+    expect(body.delivery_refunds_sent).toBe(1);
+    const [params, opts] = stripeMock.refunds.create.mock.calls[0];
+    expect(params).toEqual({
+      payment_intent: "pi_order1", amount: 2400,
+      metadata: { kind: "declutter_refund", delivery_refund_id: DREFUND, reason: "no_helpr", order_id: ORDER },
+    });
+    expect(opts).toEqual({ idempotencyKey: `declutter-delivery-refund-${DREFUND}` });
+    expect(rpcs("declutter_delivery_refund_executed")[0]?.args).toMatchObject({ p_id: DREFUND, p_stripe_refund_id: "re_new1", p_succeeded: true });
+    expect(queuedEmails.length).toBe(1);
+  });
+
+  it("reconciles: a refund Stripe already took for this row is recorded, not sent twice", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_old", status: "succeeded", metadata: { delivery_refund_id: DREFUND } }] });
+    const { body } = await run({ deliveryRefunds: [deliveryRefundRow({ attempts: 3 })] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(body.delivery_refunds_reconciled).toBe(1);
+  });
+
+  it("an ORDER refund on the same payment is not mistaken for the delivery refund", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_order", status: "succeeded", metadata: { refund_id: REFUND } }] });
+    const { body } = await run({ deliveryRefunds: [deliveryRefundRow()] });
+    expect(body.delivery_refunds_sent).toBe(1);
+  });
+
+  it("a refund Stripe failed is recorded as a failed try and pages", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_bad", status: "failed" });
+    const { body } = await run({ deliveryRefunds: [deliveryRefundRow()] });
+    expect(body.delivery_refunds_failed).toBe(1);
+    expect(rpcs("declutter_delivery_refund_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    expect(slackAlerts.length).toBe(1);
+  });
+
+  it("runs on the key of the page that took the payment", async () => {
+    scenario.reads.test_accounts = { rows: [{ user_id: BUYER }, { user_id: SELLER }] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, is_seed: true, email: "b@x.test" }, { user_id: SELLER, is_seed: true }] };
+    await run({ deliveryRefunds: [deliveryRefundRow({ checkout_session_id: "cs_test_abc" })] });
+    expect(stripeMock.__key).toBe("sk_test_declutter");
   });
 });

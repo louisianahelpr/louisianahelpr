@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T10:50Z",
+  "measured_at": "2026-10-16T10:58Z",
   "issues": {
     "readable": true,
     "open": [
@@ -64,7 +64,7 @@
         "number": 2894,
         "title": "nightly-red: vacuity",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38882728042",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38884799494",
         "runTruncated": false
       },
       {
@@ -113,7 +113,7 @@
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38889802317",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38890620250",
         "runTruncated": false
       },
       {

@@ -414,7 +414,7 @@ function PayForSeller({ sellerId, totalCents, porchOk, onBack }: { sellerId: str
         <legend className="text-sm font-medium">How you get it</legend>
         {order.map((h) => (
           <label key={h} className="flex items-center gap-2 text-sm min-h-11">
-            <input type="radio" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} />
+            <input type="radio" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             {HANDOVER_WORDS[h]}
           </label>
         ))}

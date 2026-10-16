@@ -26,8 +26,18 @@
  *                the dead order cannot be paid (B45). A payment that still
  *                lands is refunded by the webhook (B40).
  *
- * Row 62: no switch check here. Both actions only finish a sale that was
- * already agreed; starting anything new (offer, Buy, a card) needs the switch.
+ *   delivery_quote { seller_id, address }  Slice 5 (Helpr delivery, rows 29-30,
+ *                38): the BUYER's drop-off address is geocoded HERE (never typed
+ *                coordinates: the price is measured from this point), stored with
+ *                declutter_set_delivery_dropoff (service only), and the price for
+ *                the cart with that seller is returned from
+ *                declutter_delivery_quote AS THE BUYER. Nothing is charged.
+ *   pay with handover 'delivery' adds the frozen delivery fee as its own line.
+ *
+ * Row 62: no switch check for pay/cancel_sale. Both only finish a sale that was
+ * already agreed; starting anything new (offer, Buy, a card, a delivery) needs
+ * the switch: delivery_quote checks it here, and declutter_start_checkout
+ * refuses 'delivery' without it.
  * Stripe mode (owner 2026-10-12): test accounts on the TEST key, everyone else
  * live; a buyer and seller of different kinds cannot trade (409).
  */
@@ -39,6 +49,8 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
+import { requireFeature } from "../_shared/featureSwitch.ts";
+import { geocodeDropoff, plausibleAddress } from "../_shared/geocodeDropoff.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -67,6 +79,8 @@ type OrderRow = {
   total_cents: number;
   superseded_session_id: string | null;
   checkout_session_id: string | null;
+  /** Slice 5: the Helpr delivery fee frozen on the order (absent before slice 5 = 0). */
+  delivery_cents?: number | null;
 };
 
 /** An RPC refusal as the app's error code (the SQL message) + a status. */
@@ -158,6 +172,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
         if (refused === null) return json({ error: TRY_AGAIN }, 503);
         if (refused) return json({ error: "porch_unavailable" }, 400);
       }
+      if (handover === "delivery") {
+        // Slice 5: a delivery the RPC would refuse (no address yet, items at two
+        // addresses) must not cost the buyer their open page. The RPC stays the protection.
+        const { error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
+        if (quoteErr) return rpcRefusal(quoteErr);
+      }
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);
       } catch (e) {
@@ -188,7 +208,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     if (refusal) return refusal;
   }
   const order = row!;
-  if (order.items_cents + order.premium_cents + order.tax_cents !== order.total_cents || order.total_cents <= 0) {
+  // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery').
+  const deliveryCents = Number(order.delivery_cents ?? 0);
+  if ((handover === "delivery") !== (deliveryCents > 0)
+      || order.items_cents + order.premium_cents + order.tax_cents + deliveryCents !== order.total_cents || order.total_cents <= 0) {
     console.error(`[declutter-checkout] order ${order.order_id} amounts do not add up`);
     return json({ error: TRY_AGAIN }, 500);
   }
@@ -220,6 +243,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     { quantity: 1, price_data: { currency: "usd", unit_amount: order.premium_cents,
       product_data: { name: "Buyer's fee (5% + 70¢)", tax_code: NONTAXABLE_TAX_CODE } } },
   ];
+  if (deliveryCents > 0) {
+    // Row 29: $10 + $2 per road mile + size add-ons, computed and frozen in SQL.
+    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: deliveryCents,
+      product_data: { name: "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
+  }
   // now + 31 min, never less (lh-money-escrow review 3b #11); taps in the same
   // second share one page through the idempotency key, and a second page from
   // another second is expired when it loses the attach below.
@@ -262,6 +290,25 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     return json({ error: TRY_AGAIN }, 409);
   }
   return json({ url: session.url, order_id: order.order_id });
+}
+
+async function deliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
+  const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
+  if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
+  const address = plausibleAddress(body.address);
+  if (!address) return json({ error: "invalid_address" }, 400);
+  // New work for a Helpr: the switch, from the verified user, never the body.
+  const off = await requireFeature(admin, "declutter", user, corsHeaders);
+  if (off) return off;
+  const point = await geocodeDropoff(address);
+  if (!point) return json({ error: "address_not_found" }, 422);
+  const { error: setErr } = await admin.rpc("declutter_set_delivery_dropoff", {
+    p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
+  });
+  if (setErr) return rpcRefusal(setErr);
+  const { data: quote, error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
+  if (quoteErr) return rpcRefusal(quoteErr);
+  return json({ quote });
 }
 
 async function cancelSale(body: Record<string, unknown>, user: { id: string }, asSeller: Db, admin: Db) {
@@ -309,6 +356,7 @@ serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     if (body.action === "pay") return await pay(body, user, asMember, admin);
     if (body.action === "cancel_sale") return await cancelSale(body, user, asMember, admin);
+    if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

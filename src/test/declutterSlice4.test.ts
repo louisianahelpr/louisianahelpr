@@ -12,10 +12,10 @@
  *
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
+ * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'code', CASE WHEN v_side = 'buyer' AND o.status = 'paid' THEN h.code END, |     'code', CASE WHEN o.status = 'paid' THEN h.code END,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
  * @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true

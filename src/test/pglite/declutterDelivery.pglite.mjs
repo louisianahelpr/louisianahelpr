@@ -488,6 +488,19 @@ await svc(`UPDATE public.declutter_orders SET paid_at = now() - interval '8 days
 await svc(`SELECT public.declutter_handover_sweep()`);
 ok((await order(P9.order_id)).status === "paid", "the 7-day no-booking rule does not cancel a delivery order");
 
+// 17b. Test accounts and real accounts never meet on a delivery (Stripe mode by parties).
+const P10 = await paidDelivery(18, BUYER3, SELLER2, 2000, "small");
+await svc(`UPDATE public.profiles SET is_seed = true WHERE user_id IN ('${BUYER3}', '${SELLER2}')`);
+ok(one(await me(HELPR, `SELECT count(*)::int FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P10.task}'`)) === 0,
+  "a real Helpr does not see a test buyer's delivery");
+ok(refused(await me(HELPR, `SELECT public.helpr_task_accept('${P10.task}', '${slot}')`), /task_not_found/), "nor can take it");
+await svc(`UPDATE public.profiles SET is_seed = true WHERE user_id = '${SELLER}'`);
+ok(one(await me(SELLER, `SELECT count(*)::int FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P10.task}'`)) === 1,
+  "a test Helpr does");
+ok(one(await me(SELLER, `SELECT count(*)::int FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P8.task}'`)) === 0
+  || (await task(P8.task)).status !== "open", "and a test Helpr does not see a real one");
+await svc(`UPDATE public.profiles SET is_seed = false WHERE user_id IN ('${BUYER3}', '${SELLER2}', '${SELLER}')`);
+
 // 18. Grants: anon, members on service functions.
 for (const sql of [
   `SELECT public.helpr_task_accept('${t1}', now())`, `SELECT public.helpr_task_view('${t1}')`,

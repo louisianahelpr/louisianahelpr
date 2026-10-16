@@ -683,6 +683,25 @@ $fn$;
 REVOKE ALL ON FUNCTION public.helpr_task_assert_helpr() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.helpr_task_assert_helpr() TO service_role;
 
+-- Stripe mode (owner 2026-10-12): a test account (test_accounts AND a seed
+-- profile, the same rule as _shared/stripeMode.ts) runs on the TEST key, and
+-- money never moves between a test account and a real one. So a Helpr takes
+-- only tasks whose customer is the same kind as them.
+CREATE OR REPLACE FUNCTION public.helpr_task_same_stripe_mode(p_a uuid, p_b uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT (EXISTS (SELECT 1 FROM public.test_accounts ta JOIN public.profiles pr ON pr.user_id = ta.user_id
+                   WHERE ta.user_id = p_a AND pr.is_seed IS TRUE))
+       = (EXISTS (SELECT 1 FROM public.test_accounts ta JOIN public.profiles pr ON pr.user_id = ta.user_id
+                   WHERE ta.user_id = p_b AND pr.is_seed IS TRUE));
+$fn$;
+REVOKE ALL ON FUNCTION public.helpr_task_same_stripe_mode(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.helpr_task_same_stripe_mode(uuid, uuid) TO service_role;
+
 -- Can this Helpr's vehicle carry this size (row 41)?
 CREATE OR REPLACE FUNCTION public.helpr_task_vehicle_fits(p_user uuid, p_size text)
 RETURNS boolean
@@ -775,8 +794,7 @@ BEGIN
      AND public.helpr_task_vehicle_fits(v_uid, t.size)
      AND NOT public.are_users_blocked(v_uid, t.customer_id)
      AND NOT public.are_users_blocked(v_uid, t.pickup_contact_id)
-     AND (t.is_seed IS NOT TRUE OR COALESCE((SELECT pr.is_seed FROM public.profiles pr WHERE pr.user_id = v_uid), false)
-          OR EXISTS (SELECT 1 FROM public.test_accounts ta WHERE ta.user_id = v_uid))
+     AND public.helpr_task_same_stripe_mode(v_uid, t.customer_id)
    ORDER BY CASE WHEN p_lat IS NULL THEN 0 ELSE public.helpr_task_distance_m(p_lat, p_lng, t.pickup_lat, t.pickup_lng) END, t.open_until
    LIMIT least(greatest(COALESCE(p_limit, 50), 1), 100);
 END;
@@ -907,7 +925,8 @@ BEGIN
   IF v_uid IN (t.customer_id, t.pickup_contact_id) THEN
     RAISE EXCEPTION 'own_task' USING ERRCODE = '42501', HINT = 'You cannot deliver your own sale.';
   END IF;
-  IF public.are_users_blocked(v_uid, t.customer_id) OR public.are_users_blocked(v_uid, t.pickup_contact_id) THEN
+  IF public.are_users_blocked(v_uid, t.customer_id) OR public.are_users_blocked(v_uid, t.pickup_contact_id)
+     OR NOT public.helpr_task_same_stripe_mode(v_uid, t.customer_id) THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   IF NOT public.helpr_task_vehicle_fits(v_uid, t.size) THEN
@@ -1653,9 +1672,12 @@ GRANT EXECUTE ON FUNCTION public.declutter_delivery_refund(uuid, text) TO servic
 -- stored); the fee is computed HERE from server data and frozen on the order
 -- (with the drop-off) in the same statement. The idempotent return compares
 -- the delivery too, so a new drop-off address makes a new order.
+-- The answer gains delivery_cents (last column), so the Stripe page can carry
+-- the delivery line: a new return type, so the function is dropped first.
+DROP FUNCTION IF EXISTS public.declutter_start_checkout(uuid, text);
 CREATE OR REPLACE FUNCTION public.declutter_start_checkout(p_seller_id uuid, p_handover text)
 RETURNS TABLE (order_id uuid, items_cents integer, premium_cents integer, tax_cents integer,
-               total_cents integer, superseded_session_id text, checkout_session_id text)
+               total_cents integer, superseded_session_id text, checkout_session_id text, delivery_cents integer)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
@@ -1751,7 +1773,7 @@ BEGIN
      AND v_existing.delivery_cents = v_delivery
      AND v_existing.dropoff_key IS NOT DISTINCT FROM v_dropoff_key THEN
     RETURN QUERY SELECT v_existing.id, v_existing.items_cents, v_existing.premium_cents, v_existing.tax_cents,
-                        v_existing.total_cents, NULL::text, v_existing.stripe_checkout_session_id;
+                        v_existing.total_cents, NULL::text, v_existing.stripe_checkout_session_id, v_existing.delivery_cents;
     RETURN;
   END IF;
   IF v_existing.id IS NOT NULL THEN
@@ -1775,7 +1797,7 @@ BEGIN
     VALUES (v_order, q.dropoff_address, q.dropoff_area, q.dropoff_lat, q.dropoff_lng, q.road_miles, q.size, v_delivery);
   END IF;
 
-  RETURN QUERY SELECT v_order, v_items, v_premium, 0, v_items + v_premium + v_delivery, v_old_session, NULL::text;
+  RETURN QUERY SELECT v_order, v_items, v_premium, 0, v_items + v_premium + v_delivery, v_old_session, NULL::text, v_delivery;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_start_checkout(uuid, text) FROM PUBLIC, anon;
@@ -2242,11 +2264,21 @@ BEGIN
     'buyer_cancelled', 'buyer_restarted_checkout',
     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault',
     'delivery_damage'));   -- slice 5: full refund, the platform absorbs (row 43)
+  -- Restated from 20261015042253 unchanged: delivery_damage falls in the ELSE
+  -- arm (full_platform_absorbs), named here so the reason list and the policy
+  -- are read from one migration.
+  ALTER TABLE public.declutter_refunds DROP CONSTRAINT IF EXISTS declutter_refunds_policy;
+  ALTER TABLE public.declutter_refunds ADD CONSTRAINT declutter_refunds_policy CHECK (
+    fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'
+                      WHEN reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault') THEN 'keep_card_fee'
+                      WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee'
+                      ELSE 'full_platform_absorbs' END);
 END
 $do$;
 -- DESTRUCTIVE-DDL-ACK: declutter_problems_decision_check and declutter_refunds_reason_check
--- are dropped only to be re-added with one more allowed value ('delivery_damage'); every
--- existing row keeps a value the new CHECK allows. No data is dropped. Reviewed by lane
+-- are dropped only to be re-added with one more allowed value ('delivery_damage'), and
+-- declutter_refunds_policy is re-added unchanged; every existing row keeps a value the new
+-- CHECKs allow. No data is dropped. Reviewed by lane
 -- declutter-delivery 2026-10-16.
 
 CREATE OR REPLACE FUNCTION public.declutter_admin_decide_delivery_damage(p_problem_id uuid, p_note text)

@@ -25,6 +25,7 @@ const DECLUTTER_FILES = [
   "20261014210518_declutter_slice3_offers_checkout.sql",
   "20261015042253_declutter_slice4_handover_payout.sql",
   "20261016053541_declutter_wanted_price_hint.sql",
+  "20261016050402_declutter_porch_default.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.

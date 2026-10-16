@@ -391,25 +391,36 @@ function SalesWaiting() {
 }
 
 const HANDOVER_WORDS: Record<Handover, string> = {
-  pickup_home: "Pickup at the seller's home",
-  porch: "Porch pickup (the seller sets it out for you)",
+  porch: "Porch pickup: the seller leaves it out for you, no need to meet",
+  pickup_home: "Meet at the seller's home: you show a code when you pick it up",
 };
 
-/** Row 24 (63: no Helpr delivery yet) + B30: choose how you get it, then pay on Stripe's page. */
-function PayForSeller({ sellerId, totalCents, onBack }: { sellerId: string; totalCents: number; onBack: () => void }) {
+/**
+ * Row 24 (63: no Helpr delivery yet) + B30 + row 101: choose how you get it, then pay
+ * on Stripe's page. Porch is first and chosen when every item allows it; when any
+ * item's seller turned porch off, only pickup at the seller's home is offered. The
+ * server refuses porch for such an order anyway (porch_unavailable).
+ */
+function PayForSeller({ sellerId, totalCents, porchOk, onBack }: { sellerId: string; totalCents: number; porchOk: boolean; onBack: () => void }) {
   const qc = useQueryClient();
-  const [handover, setHandover] = useState<Handover>("pickup_home");
+  const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"];
+  const [handover, setHandover] = useState<Handover>(order[0]);
+  // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
+  const chosen = order.includes(handover) ? handover : order[0];
   const [opening, setOpening] = useState(false);
   return (
     <>
       <fieldset className="space-y-1">
         <legend className="text-sm font-medium">How you get it</legend>
-        {(Object.keys(HANDOVER_WORDS) as Handover[]).map((h) => (
-          <label key={h} className="flex items-center gap-2 text-sm">
-            <input type="radio" name={`handover-${sellerId}`} value={h} checked={handover === h} onChange={() => setHandover(h)} />
+        {order.map((h) => (
+          <label key={h} className="flex items-center gap-2 text-sm min-h-11">
+            <input type="radio" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} />
             {HANDOVER_WORDS[h]}
           </label>
         ))}
+        {!porchOk && (
+          <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
+        )}
         <p className="text-xs text-muted-foreground">Delivery by a Helpr is coming later.</p>
       </fieldset>
       <button
@@ -419,7 +430,7 @@ function PayForSeller({ sellerId, totalCents, onBack }: { sellerId: string; tota
         onClick={async () => {
           setOpening(true);
           try {
-            const res = await startCheckoutPayment(sellerId, handover);
+            const res = await startCheckoutPayment(sellerId, chosen);
             if (res.paid || !res.url) {
               toast.success("This order is already paid.");
               invalidateTrades(qc);
@@ -491,7 +502,7 @@ export function CartView() {
                 <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatPrice(amounts.totalCents)}</dd></div>
               </dl>
               <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <PayForSeller sellerId={sellerId} totalCents={amounts.totalCents} onBack={() => void cart.refetch()} />
+              <PayForSeller sellerId={sellerId} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
             </section>
           );
         })

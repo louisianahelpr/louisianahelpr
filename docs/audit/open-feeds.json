@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T14:40Z",
+  "measured_at": "2026-10-16T14:48Z",
   "issues": {
     "readable": true,
     "open": [
@@ -113,7 +113,7 @@
         "number": 3178,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38917574777",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38918616630",
         "runTruncated": false
       },
       {

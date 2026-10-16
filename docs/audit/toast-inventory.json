@@ -1,25 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 670,
-    "files": 168,
-    "rendering": 618,
-    "suppressedByPolicy": 52,
+    "calls": 685,
+    "files": 173,
+    "rendering": 627,
+    "suppressedByPolicy": 58,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 514,
+      "toast.error": 523,
+      "toast.info": 1,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 58,
+      "toast.success": 63,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 343,
-      "template": 82,
-      "dynamic": 286,
+      "literal": 349,
+      "template": 83,
+      "dynamic": 296,
       "jsx": 0
     }
   },
@@ -3072,7 +3073,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 70,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3082,7 +3083,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 73,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4879,6 +4880,90 @@
       "description": {
         "form": "template",
         "text": "${formatName(snapshot.full_name)} won't appear here anymore."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/quotes/MyQuoteCard.tsx",
+      "line": 25,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Quote withdrawn"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/quotes/MyQuoteCard.tsx",
+      "line": 28,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/quotes/PostJobQuoteChoice.tsx",
+      "line": 134,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your request is up"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We'll let you know when quotes come in."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/quotes/PostJobQuoteChoice.tsx",
+      "line": 137,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/quotes/QuoteAnswerControls.tsx",
+      "line": 76,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "out === \"accepted\" ? \"Quote accepted\" : out === \"declined\" ? \"Quote declined\" : \"Counter-offer sent\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Quote accepted"
+          },
+          {
+            "form": "dynamic",
+            "text": "out === \"declined\" ? \"Quote declined\" : \"Counter-offer sent\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Quote declined"
+              },
+              {
+                "form": "literal",
+                "text": "Counter-offer sent"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/quotes/QuoteAnswerControls.tsx",
+      "line": 84,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
       },
       "renders": true
     },
@@ -6862,7 +6947,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 752,
+      "line": 743,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6882,7 +6967,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 813,
+      "line": 804,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7433,6 +7518,100 @@
       "title": {
         "form": "literal",
         "text": "Couldn't save pet profile — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/QuoteRequestPage.tsx",
+      "line": 107,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/QuoteRequestPage.tsx",
+      "line": 164,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/QuoteRequestPage.tsx",
+      "line": 168,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/QuoteRequestPage.tsx",
+      "line": 173,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Request cancelled"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/quotes/QuoteRequestPage.tsx",
+      "line": 176,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/SendQuotePage.tsx",
+      "line": 56,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Quote sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We'll let you know when they answer."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/quotes/SendQuotePage.tsx",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/quotes/SendQuotePage.tsx",
+      "line": 67,
+      "kind": "toast.info",
+      "title": {
+        "form": "template",
+        "text": "A quote can carry up to ${MAX_QUOTE_PHOTOS} photos."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/quotes/SendQuotePage.tsx",
+      "line": 75,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "quoteErrorMessage(err)"
       },
       "renders": true
     },

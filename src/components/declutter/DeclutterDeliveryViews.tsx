@@ -68,6 +68,14 @@ function invalidateTasks(qc: ReturnType<typeof useQueryClient>) {
 /** A private task photo through a short-lived signed URL. */
 function TaskPhoto({ path, label }: { path: string; label: string }) {
   const url = useQuery({ queryKey: ["helpr-tasks", "photo", path], queryFn: () => taskPhotoUrl(path), staleTime: 5 * 60_000 });
+  if (url.isError) {
+    return (
+      <p className="text-xs" role="alert">
+        {label}: the photo couldn't load.{" "}
+        <button type="button" className="underline" onClick={() => void url.refetch()}>Try again</button>
+      </p>
+    );
+  }
   if (!url.data) return null;
   return (
     <figure className="space-y-1">

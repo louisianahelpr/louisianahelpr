@@ -30,7 +30,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchOpenTasks: async () => state.open,
   fetchMyTasks: async () => state.mine,
   fetchMyVehicle: async () => state.vehicle,
-  taskPhotoUrl: async (p: string) => `https://signed.test/${p}`,
+  taskPhotoUrl: async (p: string) => { if (p.includes("broken")) throw new Error("photo_unavailable"); return `https://signed.test/${p}`; },
   acceptTask: async (...a: unknown[]) => { state.calls.push(["accept", ...a]); },
   releaseTask: async (...a: unknown[]) => { state.calls.push(["release", ...a]); return { result: "released", strike: false }; },
   markPickedUp: async (...a: unknown[]) => { state.calls.push(["picked_up", ...a]); },
@@ -108,6 +108,15 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(screen.getByAltText("At the pickup")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toEqual([["got_it", "t1"]]));
+  });
+});
+
+describe("a delivery photo that cannot load says so (lh-silent-failure #6)", () => {
+  it("the buyer sees \"couldn't load\" with a retry, not an empty space", async () => {
+    state.view = { ...VIEW, status: "delivered", delivered_at: "2026-10-17T21:00:00Z", dropoff_photo_path: "h/task/t1/broken.jpg" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText(/At the drop-off: the photo couldn't load/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });
 

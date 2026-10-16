@@ -390,11 +390,11 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   }
   // Slice 5, Helpr delivery (20261016053945): a Helpr who has taken a delivery
   // and not finished it holds someone's item, and a Helpr whose pay is still
-  // pending is owed money the payout can only send to their account
+  // pending or being retried ('failed' is retried with back-off) is owed money the payout can only send to their account
   // (helpr_task_payouts.helpr_id is SET NULL with the account).
   const tasks = await activeHelprRows(admin, "helpr_tasks", userId, ["accepted", "picked_up", "delivered"]);
   if (!tasks.ok || tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks;
-  const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending"]);
+  const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed"]);
   if (!pay.ok || pay.active) return pay.active ? { ...pay, detail: `helpr delivery pay ${pay.detail}` } : pay;
   return { ok: true, active: false };
 }

@@ -490,12 +490,24 @@ ok(one(await svc(`SELECT round(extract(epoch FROM (open_until - now())) / 3600):
   "with at least 24 more hours to find a Helpr");
 ok(one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR2}' AND violation_type = 'delivery_backed_out'`)) === 1,
   "the strike is a delivery strike on the jobs ladder");
-await me(HELPR2, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`);
+// lh-authz-rls #4: taking and backing out must not collect addresses.
+ok(refused(await me(HELPR2, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`), /task_taken/),
+  "a Helpr never takes back a delivery they backed out of");
+const HELPR3 = NOCARD;   // payout account, 18+, a tester
+ok(Array.isArray(await me(HELPR3, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`)), "another Helpr takes it");
 await svc(`UPDATE public.helpr_tasks SET pickup_slot_start = now() - interval '3 hours' WHERE id = '${P5.task}'`);
 await svc(`SELECT public.helpr_task_sweep()`);
 ok((await task(P5.task)).status === "open"
-  && one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR2}' AND violation_type = 'delivery_no_show'`)) === 1,
+  && one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR3}' AND violation_type = 'delivery_no_show'`)) === 1,
   "not picked up 2 h after the pickup time: a no-show strike and back up for another Helpr");
+ok(refused(await me(HELPR3, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`), /task_taken/),
+  "nor one they missed");
+// Three back-outs in 7 days pause taking new deliveries.
+await svc(`INSERT INTO public.helpr_task_events (task_id, task_event, actor_id) VALUES
+  ('${P5.task}', 'released', '${OUTSIDER}'), ('${P5.task}', 'released', '${OUTSIDER}'), ('${P5.task}', 'released', '${HELPR2}'), ('${P5.task}', 'released', '${HELPR2}')`);
+const P5b = await paidDelivery(20, BUYER, SELLER2, 1500, "small");
+ok(refused(await me(HELPR2, `SELECT public.helpr_task_accept('${P5b.task}', '${slot}')`), /too_many_releases/),
+  "three back-outs in 7 days pause taking new deliveries");
 
 // 13. The seller is not there for the Helpr (B67, revised: evidence + an admin decides; lh-authz-rls #3).
 await me(HELPR, `SELECT public.helpr_task_accept('${P5.task}', '${slot}')`);

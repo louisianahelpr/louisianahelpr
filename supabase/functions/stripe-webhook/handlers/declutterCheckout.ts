@@ -149,9 +149,9 @@ async function settleOrder(
   // this payment is not applied to it (lh-authz-rls review 3b #2: a session
   // made outside our function, e.g. with the test key, naming a real order).
   const { data: orderRow, error: orderErr } = await supabase
-    .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle();
+    .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle();
   if (orderErr) throw new Error(`declutter order read failed: ${orderErr.message}`);
-  const parties = orderRow as { buyer_id?: string; seller_id?: string } | null;
+  const parties = orderRow as { buyer_id?: string; seller_id?: string; handover?: string } | null;
   if (parties && (parties.buyer_id !== meta.buyer_id || parties.seller_id !== meta.seller_id)) {
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
@@ -182,7 +182,11 @@ async function settleOrder(
   logStep("Declutter order settled", { order: orderId, result: answer.result });
   if (answer.result === "paid") {
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter receipt",
-      `You paid ${dollars(amount)} for your Declutter order. The money is held until you have your items; then the seller is paid. Next: pick up your items at the time you chose.`);
+      `You paid ${dollars(amount)} for your Declutter order. The money is held until you have your items; then the seller is paid. ${
+        parties?.handover === "delivery"
+          // Slice 5 (lh-money-escrow #8): a delivery order has no pickup to make.
+          ? "Next: a Helpr picks your items up from the seller and brings them to you. Your 4-digit drop-off code is in the app."
+          : "Next: pick up your items at the time you chose."}`);
     return;
   }
   if (answer.result === "already_paid") return;

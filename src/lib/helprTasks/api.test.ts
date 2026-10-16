@@ -242,10 +242,10 @@ describe("photos go to the private bucket at the paths the SQL accepts", () => {
     await expect(uploadTaskPhoto("u1", "t1", jpeg())).rejects.toThrow("photo_not_uploaded");
   });
 
-  it("photos are read through a short-lived signed URL, or not at all", async () => {
+  it("photos are read through a short-lived signed URL; one that cannot be signed is an error, never silently nothing", async () => {
     h.queue.push(ok({ signedUrl: "https://signed.test/a" }), { data: null, error: { message: "not allowed" } });
     await expect(taskPhotoUrl("u/task/t/a.jpg")).resolves.toBe("https://signed.test/a");
-    await expect(taskPhotoUrl("u/task/t/b.jpg")).resolves.toBeNull();
+    await expect(taskPhotoUrl("u/task/t/b.jpg")).rejects.toThrow("photo_unavailable");
     expect(h.store[0]).toEqual(["sign", "helpr-tasks", "u/task/t/a.jpg", 600]);
   });
 });

@@ -118,6 +118,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
   task_not_found: "This delivery isn't available.",
   task_taken: "Another Helpr took this delivery, or it closed.",
+  too_many_releases: "You backed out of 3 deliveries this week. You can take new ones again in a few days.",
   task_not_active: "This delivery isn't in progress.",
   own_task: "You can't deliver your own sale.",
   vehicle_too_small: "This item needs a truck (and a second person for extra large). Add your truck under Your vehicle.",
@@ -145,6 +146,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
   address_not_found: "We couldn't find that address. Check the street number, street and town.",
   geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",
+  photo_unavailable: "That photo couldn't load. Try again.",
 };
 
 /**

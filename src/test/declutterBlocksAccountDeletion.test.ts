@@ -8,7 +8,8 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!declutter.ok \|\| declutter.active) return declutter; |   void declutter;
  * @mutate supabase/functions/_shared/accountPurge.ts |     .in("status", ["in_cart", "paid"]) |     .in("status", ["in_cart"])
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!tasks.ok \|\| tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks; |   void tasks;
- * @mutate supabase/functions/_shared/accountPurge.ts |   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending"]); |   const pay = { ok: true, active: false } as ActiveWorkResult;
+ * @mutate supabase/functions/_shared/accountPurge.ts | userId, ["pending", "failed"]); | userId, ["pending"]);
+ * @mutate supabase/functions/_shared/accountPurge.ts |   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed"]); |   const pay = { ok: true, active: false } as ActiveWorkResult;
  *
  * Slice 5 (Helpr delivery): a Helpr mid-delivery (holding someone's item) or
  * with delivery pay still pending cannot delete their account either.
@@ -101,9 +102,11 @@ describe("a Helpr delivery in flight blocks deleting the Helpr's account", () =>
     expect(other).toMatchObject({ ok: true, active: false });
   });
 
-  it("delivery pay still pending blocks; paid or nothing due does not", async () => {
-    const pending = await findActiveWork(fakeAdmin({ helpr_task_payouts: [{ id: "p1", helpr_id: HELPR, status: "pending" }] }), HELPR);
-    expect(pending).toMatchObject({ ok: true, active: true });
+  it("delivery pay still pending or being retried blocks; paid or nothing due does not", async () => {
+    for (const status of ["pending", "failed"]) {
+      const owed = await findActiveWork(fakeAdmin({ helpr_task_payouts: [{ id: "p1", helpr_id: HELPR, status }] }), HELPR);
+      expect(owed, status).toMatchObject({ ok: true, active: true });
+    }
     for (const status of ["succeeded", "nothing_due"]) {
       const r = await findActiveWork(fakeAdmin({ helpr_task_payouts: [{ id: "p1", helpr_id: HELPR, status }] }), HELPR);
       expect(r, status).toMatchObject({ ok: true, active: false });

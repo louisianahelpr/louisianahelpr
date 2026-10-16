@@ -442,6 +442,10 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
+  -- Unknown or NULL = held: this is a deny predicate (lh-authz-rls #11).
+  IF p_kind IS NULL OR p_source IS NULL THEN
+    RETURN true;
+  END IF;
   IF p_kind = 'declutter_delivery' THEN
     RETURN EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = p_source AND p.status = 'open');
   END IF;
@@ -637,6 +641,10 @@ BEGIN
          open_until = least(greatest(open_until, now() + interval '24 hours'), latest_pickup_at - interval '2 hours'),
          wrong_codes = 0, updated_at = now()
    WHERE id = t.id AND status = 'accepted';
+  IF NOT FOUND THEN
+    -- Every caller checked 'accepted' under the lock; a miss is a bug, never a silent notice (lh-silent-failure #9).
+    RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';
+  END IF;
   PERFORM public.helpr_task_log(t.id, p_kind, p_actor, p_note);
   PERFORM public.helpr_task_source_event(t.id, 'released', p_kind);
 END;
@@ -944,6 +952,19 @@ BEGIN
   IF t.status <> 'open' OR t.open_until <= now() THEN
     RAISE EXCEPTION 'task_taken' USING ERRCODE = '55000', HINT = 'Another Helpr took this delivery, or it closed.';
   END IF;
+  -- Taking a delivery shows its pickup address, so taking and backing out must
+  -- not be a way to collect addresses (lh-authz-rls review #4, 2026-10-16): a
+  -- Helpr never takes back a delivery they backed out of or missed, and three
+  -- back-outs in 7 days pause taking new ones for the rest of that week.
+  IF EXISTS (SELECT 1 FROM public.helpr_task_events e
+              WHERE e.task_id = t.id AND e.actor_id = v_uid AND e.task_event IN ('released', 'helpr_no_show')) THEN
+    RAISE EXCEPTION 'task_taken' USING ERRCODE = '55000', HINT = 'Another Helpr took this delivery, or it closed.';
+  END IF;
+  IF (SELECT count(*) FROM public.helpr_task_events e
+       WHERE e.actor_id = v_uid AND e.task_event = 'released' AND e.created_at > now() - interval '7 days') >= 3 THEN
+    RAISE EXCEPTION 'too_many_releases' USING ERRCODE = '55000',
+      HINT = 'You backed out of 3 deliveries this week. You can take new ones again in a few days.';
+  END IF;
   IF p_pickup_slot_start IS NULL OR p_pickup_slot_start <= now()
      OR p_pickup_slot_start + interval '30 minutes' > t.latest_pickup_at
      OR NOT public.helpr_task_source_slot_ok(t.source_kind, t.source_id, p_pickup_slot_start) THEN
@@ -1245,7 +1266,7 @@ BEGIN
       -- freezes the task: an admin decides, the Helpr is not a no-show.
       IF t.status = 'accepted' AND t.pickup_slot_start + interval '2 hours' <= now()
          AND NOT public.helpr_task_source_held(t.source_kind, t.source_id) THEN
-        PERFORM public.helpr_task_reopen(t.id, 'helpr_no_show', NULL, 'not picked up 2 h after the pickup time');
+        PERFORM public.helpr_task_reopen(t.id, 'helpr_no_show', t.helpr_id, 'not picked up 2 h after the pickup time');
         PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,
           'Did not pick up a Helpr delivery within 2 hours of the pickup time');
         v_noshow := v_noshow + 1;

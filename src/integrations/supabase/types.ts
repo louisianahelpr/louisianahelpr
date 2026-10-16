@@ -1321,6 +1321,42 @@ export type Database = {
           },
         ]
       }
+      declutter_hand_refunds: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          failed_at: string | null
+          livemode: boolean
+          order_id: string | null
+          outcome: string
+          refund_row_id: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          failed_at?: string | null
+          livemode: boolean
+          order_id?: string | null
+          outcome: string
+          refund_row_id?: string | null
+          stripe_payment_intent_id: string
+          stripe_refund_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          failed_at?: string | null
+          livemode?: boolean
+          order_id?: string | null
+          outcome?: string
+          refund_row_id?: string | null
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string
+        }
+        Relationships: []
+      }
       declutter_handovers: {
         Row: {
           code: string
@@ -1946,6 +1982,7 @@ export type Database = {
           created_at: string
           executed_at: string | null
           fee_policy: string
+          gave_up_notified_at: string | null
           id: string
           is_seed: boolean
           kept_cents: number
@@ -1966,6 +2003,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number
@@ -1986,6 +2024,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           kept_cents?: number

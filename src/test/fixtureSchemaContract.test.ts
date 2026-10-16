@@ -328,6 +328,9 @@ describe("every fixture literal could be inserted", () => {
     // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
     // a clawback row; the job's status was graded against chargeback_clawbacks.
     { file: "src/test/edge/chargebackHeldPayoutNotice.test.ts", keys: ["rows", "stripe_transfer_id", "amount_reversed", "original_transfer_id"] },
+    // A Stripe refund object in a refunds.list mock (`{ id, amount, status, reason, metadata }`), not a disputes row:
+    // once lane J's declutter_hand_refunds (2026-10-16) took no generic column, `reason` + `status` pointed at disputes.
+    { file: "src/test/edge/disputeSettlementWebhook.test.ts", keys: ["id", "amount", "status", "reason", "metadata"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

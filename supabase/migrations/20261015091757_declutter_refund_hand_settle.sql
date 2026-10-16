@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS public.declutter_hand_refunds (
   amount_cents integer NOT NULL CHECK (amount_cents > 0),
   livemode boolean NOT NULL,
   -- 'settled': it settled refund_row_id; 'recorded': recorded only (a person checks it).
-  outcome text NOT NULL CHECK (outcome IN ('settled', 'recorded')),
+  hand_outcome text NOT NULL CHECK (hand_outcome IN ('settled', 'recorded')),
   -- Stripe moved this refund to failed / canceled after we recorded it (charge.refund.updated).
   failed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -254,7 +254,7 @@ BEGIN
                                           WHERE h.stripe_payment_intent_id = p_payment_intent_id AND h.failed_at IS NULL), 0);
   v_settle := v_row.id IS NOT NULL AND v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents;
   INSERT INTO public.declutter_hand_refunds (stripe_refund_id, stripe_payment_intent_id, order_id, refund_row_id,
-                                             amount_cents, livemode, outcome)
+                                             amount_cents, livemode, hand_outcome)
   VALUES (p_stripe_refund_id, p_payment_intent_id, v_order, v_row.id, p_amount_cents, p_livemode,
           CASE WHEN v_settle THEN 'settled' ELSE 'recorded' END)
   ON CONFLICT (stripe_refund_id) DO NOTHING;
@@ -310,7 +310,7 @@ BEGIN
   IF NOT FOUND OR v_row.status <> 'succeeded'
      OR NOT (v_row.stripe_refund_ref = p_stripe_refund_id
              OR EXISTS (SELECT 1 FROM public.declutter_hand_refunds h
-                         WHERE h.refund_row_id = v_row.id AND h.outcome = 'settled'
+                         WHERE h.refund_row_id = v_row.id AND h.hand_outcome = 'settled'
                            AND h.stripe_refund_id = v_row.stripe_refund_ref))
      OR COALESCE((SELECT sum(h.amount_cents) FROM public.declutter_hand_refunds h
                    WHERE h.stripe_payment_intent_id = v_hand.stripe_payment_intent_id AND h.failed_at IS NULL), 0)

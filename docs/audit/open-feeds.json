@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T04:39Z",
+  "measured_at": "2026-10-16T06:00Z",
   "issues": {
     "readable": true,
     "open": [
@@ -103,10 +103,10 @@
         "runTruncated": false
       },
       {
-        "number": 3162,
-        "title": "nightly-red: main: Supabase DB Deploy",
+        "number": 3170,
+        "title": "nightly-red: stripe-webhook-guard",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083553",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38857802307",
         "runTruncated": false
       }
     ]
@@ -248,6 +248,14 @@
         "source": "sentry:assets/supabase",
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
+        "issue": null
+      },
+      {
+        "fingerprint": "b61865c6db7ba6a448063a8d185e8c98",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: stripe-webhook-guard",
         "issue": null
       },
       {
@@ -445,7 +453,7 @@
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
-    "issue #3162": "Q1816",
+    "issue #3170": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -503,6 +511,7 @@
     "ledger afd194b74d95": "Q1596",
     "ledger afffce6dd514": "Q1596",
     "ledger b4de6dae32de": "Q1633",
+    "ledger b61865c6db7b": "Q1816",
     "ledger b7cb40a7f712": "Q1596",
     "ledger ba752f27944d": "Q1596",
     "ledger bbdaee370c35": "Q1631",

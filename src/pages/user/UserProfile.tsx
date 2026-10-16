@@ -28,6 +28,7 @@ import { SubscriptionTierBadge } from "./ProfileBadge";
 import { RatingBreakdown } from "./RatingBreakdown";
 import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
+import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
 
@@ -647,6 +648,9 @@ const UserProfile = () => {
               />
             }
           />
+
+          {/* Moving-out mode: the seller's moving sale, behind its hidden switches. */}
+          <MovingSaleBanner sellerId={userId!} />
 
           {/* "No disputes on record" USED TO RENDER HERE, in green, as the
               positive half of the Track Record card. It is gone, and its

@@ -23,6 +23,11 @@ export const FEATURE_SWITCH_KEYS = [
   // household items. Created OFF by 20261014193955; every declutter_* RPC
   // refuses without it (require_feature).
   "declutter",
+  // Declutter moving-out mode (docs/specs/declutter-moving-out.md): list a
+  // whole home from room photos, a moving-sale banner on the seller's profile.
+  // Created 'testers' by 20261016053625; its RPCs and the room scan refuse
+  // without it (and without 'declutter').
+  "declutter_moving_out",
   // "Suggest a category" (owner decision I1, 2026-10-14): the button under every
   // category picker and the admin queue. Created 'testers' by 20261015051141;
   // suggest_category() and the admin RPCs refuse without it (require_feature).

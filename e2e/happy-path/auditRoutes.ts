@@ -265,6 +265,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // real screens. Either way the route is visited.
   { name: "declutter", url: "/declutter" },
   { name: "declutter-sell", url: "/declutter/sell" },
+  { name: "declutter-move", url: "/declutter/move" },
   { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },

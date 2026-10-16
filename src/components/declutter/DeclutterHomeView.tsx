@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeature } from "@/hooks/useFeature";
+import { ChevronRight, Truck } from "lucide-react";
 import {
   fetchLiveItems,
   fetchMyItems,
@@ -238,6 +240,25 @@ function MyListingsView({ userId }: { userId: string }) {
   );
 }
 
+/** Moving-out mode's way in (docs/specs/declutter-moving-out.md), only while its switch is on. */
+function MovingOutEntry() {
+  const on = useFeature("declutter_moving_out");
+  if (!on) return null;
+  return (
+    <Link
+      to="/declutter/move"
+      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Truck className="h-5 w-5 shrink-0" aria-hidden />
+      <span className="flex-1 min-w-0">
+        <span className="block font-semibold text-sm">Moving out?</span>
+        <span className="block text-xs text-muted-foreground">Photograph each room and list everything at once</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    </Link>
+  );
+}
+
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
@@ -269,6 +290,7 @@ export default function DeclutterHome() {
         ]}
       />
       <StrikeCount userId={user.id} />
+      {view === "mine" && <MovingOutEntry />}
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "mine" ? <MyListingsView userId={user.id} />
           : view === "offers" ? <OffersView />

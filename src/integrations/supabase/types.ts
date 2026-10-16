@@ -1390,6 +1390,7 @@ export type Database = {
           is_seed: boolean
           last_price_drop_on: string | null
           live_at: string | null
+          move_out_on: string | null
           price_cents: number
           price_dropped_at: string | null
           relist_count: number
@@ -1416,6 +1417,7 @@ export type Database = {
           is_seed?: boolean
           last_price_drop_on?: string | null
           live_at?: string | null
+          move_out_on?: string | null
           price_cents: number
           price_dropped_at?: string | null
           relist_count?: number
@@ -1442,6 +1444,7 @@ export type Database = {
           is_seed?: boolean
           last_price_drop_on?: string | null
           live_at?: string | null
+          move_out_on?: string | null
           price_cents?: number
           price_dropped_at?: string | null
           relist_count?: number
@@ -8304,6 +8307,7 @@ export type Database = {
         Args: { p_item_id: string; p_question: string }
         Returns: string
       }
+      declutter_assert_can_scan_room: { Args: never; Returns: undefined }
       declutter_assert_member: { Args: { p_selling: boolean }; Returns: string }
       declutter_attach_checkout_session: {
         Args: { p_order_id: string; p_session_id: string }
@@ -8361,6 +8365,17 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      declutter_create_move_drafts: {
+        Args: {
+          p_area_label: string
+          p_items: Json
+          p_move_out_on: string
+          p_pickup_address: string
+          p_pickup_lat: number
+          p_pickup_lng: number
+        }
+        Returns: string[]
       }
       declutter_deadline_sweep: { Args: never; Returns: Json }
       declutter_give_strike: {
@@ -8439,6 +8454,10 @@ export type Database = {
         Returns: Json
       }
       declutter_member_out: { Args: { p_user: string }; Returns: boolean }
+      declutter_move_out_date_problem: {
+        Args: { p_move_out_on: string }
+        Returns: string
+      }
       declutter_my_cart: {
         Args: never
         Returns: {
@@ -8629,6 +8648,10 @@ export type Database = {
         }[]
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
+      declutter_set_move_out_date: {
+        Args: { p_move_out_on: string | null }
+        Returns: number
+      }
       declutter_set_pickup_windows: { Args: { p_windows: Json }; Returns: number }
       declutter_set_porch_time: {
         Args: { p_mode: string; p_order_id: string; p_until: string }

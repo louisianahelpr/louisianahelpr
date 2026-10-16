@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-15T20:38Z",
+  "measured_at": "2026-10-16T01:47Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 2993,
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38656878328",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558",
         "runTruncated": false
       },
       {
@@ -100,6 +100,13 @@
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38780070739",
+        "runTruncated": false
+      },
+      {
+        "number": 3162,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38836083553",
         "runTruncated": false
       }
     ]
@@ -153,6 +160,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -234,14 +249,6 @@
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
-      },
-      {
-        "fingerprint": "18539240a894224e952b88b2b21bb927",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: core-loop-canary",
-        "issue": 3153
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -438,6 +445,7 @@
     "issue #2962": "Q1816",
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
+    "issue #3162": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -446,7 +454,6 @@
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 16e6e91f6701": "Q1816",
-    "ledger 18539240a894": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
@@ -463,6 +470,7 @@
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4b5ace7af165": "Q1596",
+    "ledger 54ef0bfdcec3": "Q1851",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
     "ledger 60298a019ea3": "Q1776",

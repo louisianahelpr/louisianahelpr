@@ -4,9 +4,10 @@
 -- 1. declutter_items.porch_ok: the seller's per-item switch, ON by default.
 --    The seller turns it off for an item too valuable or too big to leave
 --    out; buyers then meet at the seller's home (the code/QR handover).
---    Set only by declutter_set_porch_ok, on the seller's own DRAFT, so it is
---    frozen once the item is listed (nothing moves an item back to draft)
---    and an order can never be paid under a choice that changed after it.
+--    Set only by declutter_set_porch_ok, on the seller's own DRAFT, and a
+--    trigger refuses any change once the item has left draft (nothing moves
+--    an item back to draft), so an order is never paid under a choice that
+--    changed after it.
 -- 2. declutter_start_checkout refuses handover = 'porch' when any of the
 --    cart lines it groups is an item with porch_ok = false (porch_unavailable).
 --    Restated from its NEWEST definition, 20261015023613, with only that check
@@ -64,6 +65,28 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_set_porch_ok(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_set_porch_ok(uuid, boolean) TO authenticated, service_role;
+
+-- 1c. The freeze in the table itself (lh-authz-rls review nit #3): porch_ok
+--     changes only while the item is a draft, whoever writes it, so a later
+--     RPC cannot move it under an open porch order.
+CREATE OR REPLACE FUNCTION public.declutter_items_porch_frozen()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN
+    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023',
+      HINT = 'Porch pickup can only be changed while the listing is a draft.';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_items_porch_frozen() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_items_porch_frozen ON public.declutter_items;
+CREATE TRIGGER trg_declutter_items_porch_frozen
+  BEFORE UPDATE OF porch_ok ON public.declutter_items
+  FOR EACH ROW EXECUTE FUNCTION public.declutter_items_porch_frozen();
 
 -- 2. Checkout, restated from 20261015023613 with the porch check added -------
 CREATE OR REPLACE FUNCTION public.declutter_start_checkout(p_seller_id uuid, p_handover text)

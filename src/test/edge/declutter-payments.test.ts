@@ -25,6 +25,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && open.handover !== handover) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refunded === "sent") { |   if (true) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> \| null)?.kind === "declutter_refund")) { |   if (false) {
@@ -539,6 +540,19 @@ describe("declutter-checkout: pay", () => {
     await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "pickup_home" } }));
     expect(order[0]).toBe("expire");
     expect(order).toContain("start");
+  });
+
+  it("row 101: a switch TO porch the server would refuse keeps the open pickup page (money review, porch default #1)", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "pickup_home", stripe_checkout_session_id: "cs_live_old" }] };
+    scenario.reads.declutter_cart_items = { rows: [{ item_id: "item-1" }] };
+    scenario.reads.declutter_items = { rows: [{ id: "item-1" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("porch_unavailable");
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
   });
 
   it("asks for 3D Secure from $300 up (Q202)", async () => {

@@ -6,12 +6,14 @@
  * drops the porch refusal fails here: the app pre-selecting porch is never the
  * protection.
  *
- * Behaviour (20 checks, 3x replay, migration skipped = 15 red, server check
- * planted off = 5 red, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
+ * Behaviour (22 checks, 3x replay, migration skipped = RED, server check
+ * planted off = RED, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
  *
  * @mutate supabase/migrations/20261016050402_declutter_porch_default.sql |         WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261016050402_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
  * @mutate supabase/migrations/20261016050402_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
+ * @mutate supabase/migrations/20261016050402_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
+ * @mutate supabase/migrations/20261016050402_declutter_porch_default.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN |   IF false THEN
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"]; | const order: Handover[] = ["pickup_home", "porch"];
  */
 import { describe, expect, it } from "vitest";
@@ -19,6 +21,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 const FILE = "20261016050402_declutter_porch_default.sql";
@@ -56,6 +59,26 @@ describe("Declutter porch default (row 101, 20261016050402)", () => {
     expect(b).toContain("WHERE i.id = p_item_id AND i.seller_id = v_uid FOR UPDATE;");
     expect(b).toContain("IF v_status <> 'draft' THEN RAISE EXCEPTION 'item_not_editable'");
     expect(flat(MIG)).toContain("REVOKE ALL ON FUNCTION public.declutter_set_porch_ok(uuid, boolean) FROM PUBLIC, anon;");
+  });
+
+  it("the table itself refuses a porch change once the item left draft (lh-authz-rls review nit #3)", () => {
+    expect(flat(body("declutter_items_porch_frozen"))).toContain(
+      "IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN RAISE EXCEPTION 'item_not_editable'");
+    expect(flat(MIG)).toContain("BEFORE UPDATE OF porch_ok ON public.declutter_items FOR EACH ROW EXECUTE FUNCTION public.declutter_items_porch_frozen();");
+  });
+
+  it("porch_ok is frozen once listed because no migration ever moves an item back to draft (lh-money-escrow review nit #4)", () => {
+    let updates = 0;
+    const back: string[] = [];
+    for (const f of readdirSync(MIG_DIR).filter((x: string) => x.endsWith(".sql")).sort()) {
+      const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
+      for (const m of sql.matchAll(/UPDATE\s+public\.declutter_items(?:\s+\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b|;)/gi)) {
+        updates++;
+        if (/\bstatus\s*=\s*'draft'/i.test(m[1])) back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
+      }
+    }
+    expect(updates).toBeGreaterThan(20);
+    expect(back).toEqual([]);
   });
 
   it("the cart reports porch per line, and the app offers porch first only when every line allows it", () => {

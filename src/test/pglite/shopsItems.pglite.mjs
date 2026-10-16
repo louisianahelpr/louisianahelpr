@@ -331,7 +331,7 @@ ok(one(await svc(`SELECT admin_approved_at IS NULL FROM public.shop_items WHERE 
 ok(refused(await member(FAN, `SELECT admin_approved_at FROM public.shop_items`), /permission denied/),
   "no member reads admin_approved_at by REST (column grants, review nit 5)");
 
-// --- after 3 approved items: the AI check and the word check decide
+// --- once the shop has three approvals: the AI check and the word check decide
 async function approvedItem(title) {
   const id = one(await member(OWNER, createSql({ kind: "made", subtype: "candles", title, description: "Soy wax." })));
   await readyToPublish(OWNER, id, STATEMENTS.made);

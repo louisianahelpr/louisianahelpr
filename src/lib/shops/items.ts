@@ -84,7 +84,7 @@ export function requiredStatements(kind: ShopItemKind, subtype: string): string[
 export const HOME_KITCHEN_NOTICE =
   "Made in a home kitchen that is not licensed or inspected by the Louisiana Department of Health.";
 
-export interface ShopItemPhoto {
+interface ShopItemPhoto {
   id: string;
   storage_path: string;
   position: number;

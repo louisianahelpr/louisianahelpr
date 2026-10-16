@@ -76,9 +76,9 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */
 const SHOP_ITEM_AI_COPY: Record<string, string> = {
-  ai_unavailable: "The photo helper isn't available right now. You can fill in the details yourself.",
-  ai_photos_required: "Add a photo first, then the helper can suggest the details.",
-  ai_busy: "The photo helper is busy. Try again in a minute.",
+  ai_unavailable: "Photo suggestions aren't available right now. You can fill in the details yourself.",
+  ai_photos_required: "Add a photo first, then we can suggest the details.",
+  ai_busy: "Photo suggestions are busy. Try again in a minute.",
 };
 
 const GENERIC = "Something went wrong. Please try again.";

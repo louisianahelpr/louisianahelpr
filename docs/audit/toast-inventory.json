@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 679,
-    "files": 170,
-    "rendering": 624,
-    "suppressedByPolicy": 55,
+    "calls": 695,
+    "files": 174,
+    "rendering": 633,
+    "suppressedByPolicy": 62,
     "byKind": {
       "confirmConsequential": 26,
       "errorToast": 6,
       "successToast": 1,
       "toast": 40,
-      "toast.error": 520,
+      "toast.error": 529,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 61,
+      "toast.success": 68,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 344,
+      "literal": 347,
       "template": 82,
-      "dynamic": 294,
+      "dynamic": 307,
       "jsx": 0
     }
   },
@@ -3072,7 +3072,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3082,11 +3082,41 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "rpcErrorMessage(\"admin_set_feature_switch\", err) ?? userFacingError(err, \"Couldn't change that switch — nothing was changed. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/ShopItemsReviewCard.tsx",
+      "line": 42,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"live\" ? \"Approved: it's on the shop now.\" : \"Rejected. The owner will see your reason.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Approved: it's on the shop now."
+          },
+          {
+            "form": "literal",
+            "text": "Rejected. The owner will see your reason."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/settings/ShopItemsReviewCard.tsx",
+      "line": 45,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
       },
       "renders": true
     },
@@ -5073,8 +5103,38 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopDailyCap.tsx",
+      "line": 32,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "clearing ? \"The daily limit is removed.\" : \"Saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "The daily limit is removed."
+          },
+          {
+            "form": "literal",
+            "text": "Saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopDailyCap.tsx",
+      "line": 36,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 171,
+      "line": 173,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5094,7 +5154,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 175,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5104,7 +5164,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 181,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5114,7 +5174,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 186,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5124,7 +5184,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 192,
+      "line": 194,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5134,6 +5194,126 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
+      "line": 198,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 126,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved as a draft."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 131,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 140,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Stock and ready time saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 143,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 154,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 164,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "s.flagged ? \"Suggested. Our checks may send this item to an admin before it's listed.\" : \"Suggested from your photos. Check it, then save.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Suggested. Our checks may send this item to an admin before it's listed."
+          },
+          {
+            "form": "literal",
+            "text": "Suggested from your photos. Check it, then save."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 170,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 191,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "next === \"live\" ? \"Listed on your shop.\" : \"Sent for a quick review. It shows on your shop once approved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Listed on your shop."
+          },
+          {
+            "form": "literal",
+            "text": "Sent for a quick review. It shows on your shop once approved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
       "line": 196,
       "kind": "toast.error",
       "title": {
@@ -5143,8 +5323,18 @@
       "renders": true
     },
     {
-      "file": "src/components/shops/ShopView.tsx",
-      "line": 73,
+      "file": "src/components/shops/ShopItemsSection.tsx",
+      "line": 63,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Taken down."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemsSection.tsx",
+      "line": 66,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5154,7 +5344,17 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 78,
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopView.tsx",
+      "line": 81,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5174,7 +5374,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 81,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

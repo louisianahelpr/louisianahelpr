@@ -143,7 +143,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_problems: { by: ["reporter_id"] },
   declutter_payouts: { by: ["seller_id"] },
   declutter_reviews: { by: ["reviewer_id", "reviewee_id"] },
-  // Shops slice 1 (20261015123029) and slice 2 items (20261016212915), exported
+  // Shops slice 1 (20261015123029) and the slice-two item tables (20261016212915), exported
   // by 20261016212915 (Q1853): the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
   // and counted sales.

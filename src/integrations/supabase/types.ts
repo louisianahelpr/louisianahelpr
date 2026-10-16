@@ -6675,18 +6675,18 @@ export type Database = {
       shop_cottage_confirmations: {
         Row: {
           confirmed_at: string
+          limit_year: number
           owner_id: string
-          year: number
         }
         Insert: {
           confirmed_at?: string
+          limit_year: number
           owner_id: string
-          year: number
         }
         Update: {
           confirmed_at?: string
+          limit_year?: number
           owner_id?: string
-          year?: number
         }
         Relationships: []
       }

@@ -295,9 +295,9 @@ ON CONFLICT (id) DO NOTHING;
 --    7b. The baker's yearly confirmation (calendar year, Louisiana time).
 CREATE TABLE IF NOT EXISTS public.shop_cottage_confirmations (
   owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  year smallint NOT NULL CHECK (year BETWEEN 2026 AND 2200),
+  limit_year smallint NOT NULL CHECK (limit_year BETWEEN 2026 AND 2200),
   confirmed_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (owner_id, year)
+  PRIMARY KEY (owner_id, limit_year)
 );
 ALTER TABLE public.shop_cottage_confirmations ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_cottage_confirmations FROM PUBLIC, anon, authenticated;
@@ -1007,8 +1007,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid) THEN
     RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';
   END IF;
-  INSERT INTO public.shop_cottage_confirmations (owner_id, year) VALUES (v_uid, v_year)
-  ON CONFLICT (owner_id, year) DO NOTHING;
+  INSERT INTO public.shop_cottage_confirmations (owner_id, limit_year) VALUES (v_uid, v_year)
+  ON CONFLICT (owner_id, limit_year) DO NOTHING;
   RETURN v_year;
 END;
 $fn$;
@@ -1044,7 +1044,7 @@ BEGIN
     'sales_cents', v_sales,
     'warn', v_cap IS NULL OR v_sales * 100 >= v_cap * v_warn,
     'reached', public.shop_cottage_cap_reached(v_uid),
-    'confirmed', EXISTS (SELECT 1 FROM public.shop_cottage_confirmations c WHERE c.owner_id = v_uid AND c.year = v_year));
+    'confirmed', EXISTS (SELECT 1 FROM public.shop_cottage_confirmations c WHERE c.owner_id = v_uid AND c.limit_year = v_year));
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_my_cottage_status() FROM PUBLIC, anon;
@@ -1106,7 +1106,7 @@ BEGIN
   IF v_item.kind = 'home_food' THEN
     -- L8: the yearly confirmation, and not at the limit.
     IF NOT EXISTS (SELECT 1 FROM public.shop_cottage_confirmations c
-                    WHERE c.owner_id = v_uid AND c.year = public.shop_cottage_year()) THEN
+                    WHERE c.owner_id = v_uid AND c.limit_year = public.shop_cottage_year()) THEN
       RAISE EXCEPTION 'cottage_confirmation_required' USING ERRCODE = '22023';
     END IF;
     IF public.shop_cottage_cap_reached(v_uid) THEN

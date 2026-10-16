@@ -9,16 +9,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import {
-  fetchDailyOrderCap,
   fetchShopItems,
   formatItemPrice,
   readinessLabel,
-  setDailyOrderCap,
   SHOP_ITEM_TYPE_LABEL,
   withdrawShopItem,
   type ShopItem,
@@ -26,6 +22,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ShopItemEditor from "./ShopItemEditor";
+import ShopDailyCap from "./ShopDailyCap";
 
 const STATUS_LABEL: Record<ShopItemStatus, string> = {
   draft: "Draft",
@@ -34,65 +31,6 @@ const STATUS_LABEL: Record<ShopItemStatus, string> = {
   withdrawn: "Taken down",
   rejected: "Not approved",
 };
-
-function DailyCap({ shopId }: { shopId: string }) {
-  const qc = useQueryClient();
-  const cap = useQuery({ queryKey: ["shops", "daily-cap", shopId], queryFn: () => fetchDailyOrderCap(shopId) });
-  const [value, setValue] = useState<string | null>(null);
-  // The browser hands a half-typed number ("1e") back as "": never read that as "no limit".
-  const [badInput, setBadInput] = useState(false);
-  const shown = value ?? (cap.data != null ? String(cap.data) : "");
-  // An empty box removes a saved limit only as its own, named action
-  // (lh-silent-failure review should-fix 3).
-  const clearing = shown.trim() === "" && cap.data != null;
-  const save = useMutation({
-    mutationFn: () => {
-      if (badInput || (shown.trim() !== "" && !/^\d+$/.test(shown.trim()))) throw new Error("invalid_daily_cap");
-      return setDailyOrderCap(shown.trim() === "" ? null : Number(shown));
-    },
-    onSuccess: () => {
-      toast.success(clearing ? "The daily limit is removed." : "Saved.");
-      setValue(null);
-      void qc.invalidateQueries({ queryKey: ["shops", "daily-cap", shopId] });
-    },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
-  });
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor="shop-daily-cap">Most orders you take a day (optional)</Label>
-      <div className="flex gap-2">
-        <Input
-          id="shop-daily-cap"
-          type="number"
-          min={1}
-          max={200}
-          className="min-w-0"
-          value={shown}
-          disabled={cap.isLoading || cap.isError}
-          onChange={(e) => {
-            setBadInput(e.target.validity.badInput);
-            setValue(e.target.value);
-          }}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          disabled={save.isPending || cap.isLoading || cap.isError || value === null}
-          onClick={() => save.mutate()}
-        >
-          {clearing ? "Remove limit" : "Save"}
-        </Button>
-      </div>
-      {cap.isError && (
-        <p className="text-sm" role="alert">
-          {shopsErrorMessage(cap.error)}{" "}
-          <button type="button" className="underline" onClick={() => void cap.refetch()}>Try again</button>
-        </p>
-      )}
-      <p className="text-xs text-muted-foreground">Once a day is full, buyers can't pick it. Your order days are your open days above.</p>
-    </div>
-  );
-}
 
 function ItemRow({ item, onEdit, onTakeDown, busy }: { item: ShopItem; onEdit: () => void; onTakeDown: () => void; busy: boolean }) {
   return (
@@ -133,7 +71,7 @@ export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; 
   return (
     <section className="space-y-4 pb-8" aria-labelledby="shop-my-items">
       <h2 id="shop-my-items" className="text-base font-semibold">Items</h2>
-      <DailyCap shopId={shopId} />
+      <ShopDailyCap shopId={shopId} />
       {items.isLoading ? (
         <div role="status" aria-label="Loading your items" className="space-y-2">
           <Skeleton className="h-16 w-full rounded-xl" />

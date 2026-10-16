@@ -13,8 +13,8 @@ export const SHOP_ITEM_TYPES = {
 } as const;
 
 export type ShopItemKind = keyof typeof SHOP_ITEM_TYPES;
-export const SHOP_ITEM_KINDS = Object.keys(SHOP_ITEM_TYPES) as ShopItemKind[];
-export const SHOP_ITEM_SUBTYPES: string[] = SHOP_ITEM_KINDS.flatMap((k) => [...SHOP_ITEM_TYPES[k]]);
+const SHOP_ITEM_KINDS = Object.keys(SHOP_ITEM_TYPES) as ShopItemKind[];
+const SHOP_ITEM_SUBTYPES: string[] = SHOP_ITEM_KINDS.flatMap((k) => [...SHOP_ITEM_TYPES[k]]);
 
 /**
  * What the model is told may not be listed (L11-L16, the R.S. 40:4.9 low-risk

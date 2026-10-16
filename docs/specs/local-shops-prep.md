@@ -1,5 +1,7 @@
 # Local Makers & Rentals + Business Promotion: prep before the owner decides
 
+As of 2026-10-14 (owner answers); build defaults for slice S2 added 2026-10-16 (last section).
+
 Prep for the owner's 2026-10-14 ask: Louisiana Helpr becomes "the main hub for Louisiana".
 Two new sections, decided question by question BEFORE any build (the owner's Declutter
 process: "lets go over every question before building so we arent working backwards"):

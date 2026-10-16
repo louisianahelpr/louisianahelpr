@@ -17,7 +17,7 @@ export async function handlePaymentIntentSucceeded(
   // view and 1099 reconciliation both depend on this being accurate.
   const { data: taxJob, error: taxJobErr } = await supabase
     .from("jobs")
-    .select("id, sales_tax_amount, payment_status, customer_id, title")
+    .select("id, sales_tax_amount, payment_status, customer_id, title, is_seed")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
@@ -111,6 +111,7 @@ export async function handlePaymentIntentSucceeded(
           message: "payment_intent.succeeded fired for an ACH job that was no longer unpaid. This may indicate a duplicate-funding race or a redelivery after checkout.session.completed already set escrow. No action taken; verify the job's payment state.",
           fields: { job_id: taxJob.id, payment_intent: pi.id, payment_status: taxJob.payment_status ?? "null" },
           oncePerDayKey: `ach-already-funded:${taxJob.id}`,
+          seed: taxJob.is_seed ?? false,
         });
       }
     }

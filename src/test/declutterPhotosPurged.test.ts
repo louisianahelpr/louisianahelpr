@@ -14,7 +14,10 @@
  * every other missing subfolder bucket still fails the step (Q219).
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     notCreatedYet: missing.filter((b) => SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)), |     notCreatedYet: [] as string[],
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     failing: missing.filter((b) => !SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)), |     failing: [] as string[],
- * @mutate supabase/functions/_shared/purgeBuckets.ts | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover"]; | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "job-photos"];
+ * @mutate supabase/functions/_shared/purgeBuckets.ts | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks"]; | export const SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET: readonly string[] = ["declutter-handover", "helpr-tasks", "job-photos"];
+ * Slice 5: the Helpr's truck photo is erased with the account.
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |   { bucket: "helpr-tasks", folder: "vehicle" }, |
+ * @mutate src/lib/helprTasks/api.ts |   return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file); |   return uploadCleaned(`${userId}/truck/${nonce()}.jpg`, file);
  * @mutate supabase/functions/_shared/accountPurge.ts |     for (const bucket of failing) { |     for (const bucket of missingSub) {
  */
 import { describe, expect, it } from "vitest";
@@ -56,6 +59,14 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
     expect(handover).not.toContain('from("job-photos")');
   });
 
+  it("a Helpr's truck photo (private helpr-tasks bucket, <uid>/vehicle/) is erased; task evidence photos are not (slice 5)", () => {
+    expect(identitySubfolderPrefixes("u-1")).toContainEqual({ bucket: "helpr-tasks", prefix: "u-1/vehicle" });
+    expect(identitySubfolderPrefixes("u-1")).not.toContainEqual({ bucket: "helpr-tasks", prefix: "u-1/task" });
+    const api = blankComments(readFileSync(join(ROOT, "src/lib/helprTasks/api.ts"), "utf8"));
+    expect(api).toContain("return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file);");
+    expect(api).toContain('await supabase.storage.from("helpr-tasks").upload(path, cleaned');
+  });
+
   it("the folder is the one the app uploads listing photos under", () => {
     const [prefix] = identitySubfolderPrefixes("u-1");
     expect(listingPhotoPath("u-1", "item-1", "abc").startsWith(`${prefix.prefix}/`)).toBe(true);
@@ -72,7 +83,8 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
 
   it("a subfolder bucket whose migration has not run yet is nothing to erase; any other missing bucket fails (Q219)", () => {
     // EXACT: only the bucket a migration newer than the purge creates (20261015092723).
-    expect([...SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET]).toEqual(["declutter-handover"]);
+    // ...and helpr-tasks (20261016053945, slice 5).
+    expect([...SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET]).toEqual(["declutter-handover", "helpr-tasks"]);
     for (const b of SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET) expect(IDENTITY_SUBFOLDERS.map((s) => s.bucket)).toContain(b);
     expect(classifyMissingSubfolderBuckets(["declutter-handover", "job-photos"])).toEqual({
       notCreatedYet: ["declutter-handover"],

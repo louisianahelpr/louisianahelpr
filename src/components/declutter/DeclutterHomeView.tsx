@@ -30,9 +30,10 @@ import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./de
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
 import { WantedView } from "./DeclutterWantedViews";
+import { DeliverView } from "./DeclutterDeliveryViews";
 
-type View = "browse" | "mine" | "offers" | "cart" | "wanted";
-const VIEWS: View[] = ["browse", "mine", "offers", "cart", "wanted"];
+type View = "browse" | "mine" | "offers" | "cart" | "deliver" | "wanted";
+const VIEWS: View[] = ["browse", "mine", "offers", "cart", "deliver", "wanted"];
 
 function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -284,7 +285,7 @@ export default function DeclutterHome() {
         </Button>
       }
     >
-      <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
+      <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up, or have a Helpr deliver it.</p>
       <SegmentedControl
         ariaLabel="Declutter view"
         semantics="tab"
@@ -296,6 +297,7 @@ export default function DeclutterHome() {
           { value: "mine", label: "My listings" },
           { value: "offers", label: "Offers" },
           { value: "cart", label: "Cart" },
+          { value: "deliver", label: "Deliver" },
           ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
         ]}
       />
@@ -304,7 +306,8 @@ export default function DeclutterHome() {
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "mine" ? <MyListingsView userId={user.id} />
           : view === "offers" ? <OffersView />
-            : view === "wanted" ? <WantedView />
+            : view === "deliver" ? <DeliverView />
+              : view === "wanted" ? <WantedView />
               : <CartView />}
     </AppPage>
   );

@@ -1616,8 +1616,14 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_delivery_slot_ok(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_delivery_slot_ok(uuid, timestamptz) TO service_role;
 
--- Refunds recorded against an order (not failed): what the Helpr's and the
--- seller's payouts may expect the charge to have given back already.
+-- Refunds Stripe has CONFIRMED sent on the order's own charge: what the
+-- Helpr's and the seller's payouts may expect that charge to have given back.
+-- Only the order's PaymentIntent (a duplicate payment's refund is on another
+-- charge) and only 'succeeded' rows (a pending or failed row has not moved
+-- money): counting either would let an unknown refund of the same size pass
+-- declutter-money's whole-charge check (lh-money-escrow review #2,
+-- 2026-10-16). A refund Stripe sent before its row says so only makes the
+-- payout wait a run, never pass early.
 CREATE OR REPLACE FUNCTION public.declutter_order_refunds_recorded_cents(p_order_id uuid)
 RETURNS integer
 LANGUAGE sql
@@ -1625,8 +1631,13 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT (COALESCE((SELECT sum(r.refund_cents) FROM public.declutter_refunds r WHERE r.order_id = p_order_id), 0)
-        + COALESCE((SELECT sum(d.refund_cents) FROM public.declutter_delivery_refunds d WHERE d.order_id = p_order_id), 0))::integer;
+  SELECT (COALESCE((SELECT sum(r.refund_cents) FROM public.declutter_refunds r
+                     WHERE r.order_id = o.id AND r.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND r.status = 'succeeded'), 0)
+        + COALESCE((SELECT sum(d.refund_cents) FROM public.declutter_delivery_refunds d
+                     WHERE d.order_id = o.id AND d.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND d.status = 'succeeded'), 0))::integer
+    FROM public.declutter_orders o WHERE o.id = p_order_id;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_order_refunds_recorded_cents(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_order_refunds_recorded_cents(uuid) TO service_role;

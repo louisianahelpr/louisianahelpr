@@ -407,8 +407,8 @@ ok(one(await svc(`SELECT count(*)::int FROM public.declutter_refunds_due(50) WHE
   "the damage refund waits while the seller's payout has not gone (B71)");
 const sp3 = one(await svc(`SELECT id FROM public.declutter_payouts WHERE order_id = '${P3.order_id}'`));
 const sp3due = (await svc(`SELECT * FROM public.declutter_payouts_due(50) WHERE order_id = '${P3.order_id}'`))[0];
-if (sp3due?.refunds_recorded_cents !== r3.total_cents) console.log("payouts due:", JSON.stringify(sp3due), r3.total_cents);
-ok(sp3due?.refunds_recorded_cents === r3.total_cents, "the seller payout row says how much refund is recorded on the charge");
+ok(sp3due?.refunds_recorded_cents === 0,
+  "the seller payout counts only refunds Stripe confirmed on the charge: the damage refund is not sent yet (lh-money-escrow #2)");
 await svc(`SELECT public.declutter_payout_executed('${sp3}', 'tr_s3', true, NULL)`);
 ok(one(await svc(`SELECT count(*)::int FROM public.declutter_refunds_due(50) WHERE order_id = '${P3.order_id}'`)) === 1,
   "once the seller is paid, the buyer's refund is due");
@@ -515,9 +515,16 @@ await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${prob7}', 'pay_s
 ok((await order(P7.order_id)).status === "handed_over" && (await task(P7.task)).status === "cancelled"
   && (await svc(`SELECT reason FROM public.declutter_delivery_refunds WHERE order_id = '${P7.order_id}'`))[0]?.reason === "delivery_not_done",
   "the seller is paid, the task cancelled, and the unused delivery fee goes back");
-ok((await svc(`SELECT refunds_recorded_cents FROM public.declutter_payouts_due(50) WHERE order_id = '${P7.order_id}'`))[0]?.refunds_recorded_cents
-  === (await order(P7.order_id)).delivery_cents,
-  "the seller payout knows the delivery fee was refunded (a known partial refund is not 'not whole')");
+const rec7 = async () => (await svc(`SELECT refunds_recorded_cents FROM public.declutter_payouts_due(50) WHERE order_id = '${P7.order_id}'`))[0]?.refunds_recorded_cents;
+const dr7 = one(await svc(`SELECT id FROM public.declutter_delivery_refunds WHERE order_id = '${P7.order_id}'`));
+ok(await rec7() === 0, "a delivery refund not yet sent is not counted as given back (lh-money-escrow #2)");
+// A refund on ANOTHER payment of the same order (a duplicate payment) never counts either.
+await svc(`INSERT INTO public.declutter_refunds (order_id, stripe_payment_intent_id, reason, fee_policy, paid_cents, card_fee_cents, kept_cents, refund_cents, status)
+  VALUES ('${P7.order_id}', 'pi_dl_15_dup', 'duplicate_payment', 'full_platform_absorbs', 2000, 0, 0, 2000, 'succeeded')`);
+ok(await rec7() === 0, "a duplicate payment's refund is on another charge and is not counted");
+await svc(`SELECT public.declutter_delivery_refund_executed('${dr7}', 're_d7', true, NULL)`);
+ok(await rec7() === (await order(P7.order_id)).delivery_cents,
+  "once Stripe confirms it, the seller payout knows the delivery fee was refunded (a known partial refund is not 'not whole')");
 
 // 16. The door rule (a day after the photo, 2026-10-16) when nothing is held.
 const P8 = await paidDelivery(16, BUYER, SELLER2, 2000, "small");

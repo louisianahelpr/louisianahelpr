@@ -267,15 +267,22 @@ const SQL_POLICIES = {
      * reviewed and re-pinned (lh-money-escrow review of ecf5c93a0, must-fix 1, 3, 4; note 1).
      */
     functions: {
+      // Lane J (20261015091757, reviewed 2026-10-16): executed / reversed only add the gave-up check; the
+      // gave-up check pages and tells the buyer; a hand refund records the amount a person refunded in
+      // Stripe and settles the row only when it covers refund_cents; a failed hand refund reopens the row
+      // at the same refund_cents. None of them decides or changes a refund amount or the kept fee.
+      declutter_hand_refund_failed: "20261015091757_declutter_refund_hand_settle.sql 0fb09153f76a7a2b",
+      declutter_record_hand_refund: "20261015091757_declutter_refund_hand_settle.sql ce5dfbb9af73bb40",
+      declutter_refund_gave_up_check: "20261015091757_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       declutter_close_paid_order: "20261015042253_declutter_slice4_handover_payout.sql 26e41fe4a577d2c8",
       declutter_mark_order_paid: "20261014224914_declutter_slice3b_payments.sql 12d9424a8c148d38",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
       declutter_record_refund: "20261015042253_declutter_slice4_handover_payout.sql fc8974f33e201950",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
-      declutter_refund_executed: "20261015042253_declutter_slice4_handover_payout.sql f8a51a02d610fe6c",
+      declutter_refund_executed: "20261015091757_declutter_refund_hand_settle.sql fda24c97dc66b80c",
       declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql 2e178605dfca8501",
-      declutter_refund_reversed: "20261015042253_declutter_slice4_handover_payout.sql 1c8a50caf951d4ab",
+      declutter_refund_reversed: "20261015091757_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261015042253_declutter_slice4_handover_payout.sql c41b6779b527f9c7",
       declutter_refunds_due: "20261015042253_declutter_slice4_handover_payout.sql 80bd46f87f26bbfe",
     } as Record<string, string>,
@@ -289,6 +296,8 @@ const SQL_POLICIES = {
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],
       "declutter_orders 20261014224914_declutter_slice3b_payments.sql": ["09890255c7e1c936", "594addefda2af9a3"],
       "declutter_refunds 20261015042253_declutter_slice4_handover_payout.sql": ["997e0a466b670952", "1192c0e245b11665", "2fd39357580a2cf8", "4cf2e4567f6437bd", "7ba23fa882b28f10", "afb94a44f9fb4011", "97fe1330f0f7f13d", "9eb0bd77676aa5f0", "c63b7d95e91cc6a9", "6ca67d8b1161e8fe", "50ba5fd871e1f2c0", "acc8636c50c78d27"],
+      // Lane J: ALTER ... ADD COLUMN gave_up_notified_at timestamptz (when the buyer was told; no amount).
+      "declutter_refunds 20261015091757_declutter_refund_hand_settle.sql": ["ae2d271f25de116b"],
     } as Record<string, string[]>,
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */
     body: [

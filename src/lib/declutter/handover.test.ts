@@ -200,7 +200,7 @@ describe("uploadHandoverPhoto", () => {
     const path = await uploadHandoverPhoto("u1", "o1", file);
     expect(path).toMatch(/^u1\/declutter\/handover\/o1\/[^/]+\.jpg$/);
     const [op, bucket, upPath, , opts] = h.store[0] as [string, string, string, unknown, Record<string, unknown>];
-    expect([op, bucket, upPath]).toEqual(["upload", "job-photos", path]);
+    expect([op, bucket, upPath]).toEqual(["upload", "declutter-handover", path]);
     expect(opts).toEqual({ contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
   });
 

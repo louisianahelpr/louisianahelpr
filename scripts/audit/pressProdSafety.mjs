@@ -25,6 +25,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
+import { isReadRpcPath, isStorageSignPath } from "../../e2e/readRpc.ts";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { ensureTestAccountsEnrolled, isSharedTestAccount } from "../lib/testAccountEnrolment.mjs";
@@ -922,4 +923,62 @@ export function isCaptchaGatedAuthRequest(url, method, body) {
   let token = null;
   try { token = JSON.parse(body ?? "{}")?.gotrue_meta_security?.captcha_token ?? null; } catch { token = null; }
   return !(typeof token === "string" && token.length > 0);
+}
+
+/**
+ * THE NETWORK IS THE GATE'S GUARANTEE (lead, 2026-10-17). Words and markers
+ * decide which presses are gated; they are a guess about what a control does.
+ * The request is the fact. While a press the gate did NOT class as mutating is
+ * in flight, every request on this surface that writes is aborted in the
+ * browser before it leaves, and recorded against the control as a GATE MISS
+ * (press-every-control.mjs fails the run naming each one). Out of scope:
+ * /auth/v1 (session refresh and sign-out; sign-out is gated by its words and
+ * CAPTCHA-guarded calls by isCaptchaGatedAuthRequest).
+ */
+export const PRESS_WRITE_SURFACE_RX = /\/(rest|functions|storage)\/v1\//;
+
+/**
+ * Edge functions that only READ, called with POST because that is what
+ * supabase.functions.invoke sends. Every other function counts as a write
+ * (fail closed). Each entry says why.
+ */
+export const PRESS_READ_FUNCTIONS = {
+  "calculate-tax": "stateless tax quote, no account, customer or charge (STRIPE_WRITE_EXEMPT); fires on page load",
+};
+
+/**
+ * Writes that are a SIDE EFFECT of looking, not of a control: still aborted (a
+ * test account must not inflate a real member's view count or file the run's
+ * own console noise), noted on the row, but not a gate miss. Exact paths,
+ * each with its reason; pg_get_functiondef read on prod 2026-10-17.
+ */
+export const PRESS_SIDE_EFFECT_WRITES = {
+  "/rest/v1/error_logs": "the app's own error reporter (src/lib/errorLogger.ts); the sweep reads console errors itself",
+  "/rest/v1/rpc/record_job_view": "INSERT job_views ON CONFLICT DO NOTHING when a job's detail opens",
+  "/rest/v1/rpc/record_profile_view": "INSERT profile_views (hourly bucket) when a profile opens",
+};
+
+/** A storage LIST is a POST that reads (`/object/list/<bucket>`). */
+const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pathname);
+
+/**
+ * "read" | "side-effect" | "write" for one browser request. GET / HEAD /
+ * OPTIONS and anything off PRESS_WRITE_SURFACE_RX read; a read-named RPC
+ * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), a storage
+ * sign or list, a stripe-connect read action and PRESS_READ_FUNCTIONS read;
+ * PRESS_SIDE_EFFECT_WRITES are side effects; every other POST / PATCH / PUT /
+ * DELETE writes. An unparseable URL writes (fail closed).
+ */
+export function pressWriteKind({ method, url, body = null }) {
+  const m = String(method ?? "GET").toUpperCase();
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return "read";
+  let pathname;
+  try { pathname = new URL(String(url)).pathname; } catch { return "write"; }
+  if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
+  if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
+  if (isReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";
+  const fn = /^\/functions\/v1\/([a-z0-9-]+)/.exec(pathname)?.[1];
+  if (fn === "stripe-connect" && !isStripeWriteRequest(url, body)) return "read";
+  if (fn && Object.hasOwn(PRESS_READ_FUNCTIONS, fn)) return "read";
+  return "write";
 }

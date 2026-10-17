@@ -362,6 +362,25 @@ test.describe("money outcomes", () => {
       skipUncovered("Tip notification not drivable", "the shared helper has financial_alerts OFF, so notify_helper_on_tip sends nothing. Restore the helper's preferences.");
     }
 
+    // 0. A tip is a destination charge: create-payment refuses it unless the
+    //    Helpr has a payout account ("This Helpr hasn't set up their payout
+    //    account yet and cannot receive tips at this time."). The shared helper
+    //    must hold NO Stripe account (seatStripeAccounts.mjs; seedStateFixtures'
+    //    money safety; helper_accept_missing's is_seed carve-out), so on it this
+    //    leg cannot pass, and it used to find that out only after funding,
+    //    hiring and settling a whole job (e2e-journeys 39004547274, nightly-red
+    //    #2436). It fails here, by name and before any money moves, until a
+    //    payout-ready TEST-mode Helpr fixture exists (owner decision: CI holds
+    //    no Stripe key to make one). skipUncovered is a FAILURE verdict
+    //    (e2e/skipAllowlist.ts): the leg reads as uncovered, never as passed.
+    const payout = await readJson<Array<{ stripe_account_id: string | null }>>(
+      await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${helper.user.id}&select=stripe_account_id`, { headers: rest(helper) }),
+      "read the helper's payout account",
+    );
+    if (!payout[0]?.stripe_account_id) {
+      skipUncovered("Tip journey not drivable", "the shared helper has no payout account (by design: test seats hold no Stripe account), and create-payment refuses a tip to a Helpr without one. Needs a payout-ready TEST-mode Helpr fixture.");
+    }
+
     // 1. Post (today, so the day-of doors are open), fund, apply, hire.
     const jobId = await postJob(request, poster, `tip${RUN}`, 0);
     journey.cleanup("unwind the tip-leg job", () => unwind(request, poster, helper, jobId));

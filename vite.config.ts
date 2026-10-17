@@ -763,6 +763,21 @@ export default defineConfig(({ mode }) => ({
               priority: 20,
               minSize: 0,
             },
+            // Rentals S1's client and screen words (behind the hidden 'rentals'
+            // switch). Its screens, the admin ownership card and Post a Job's
+            // maintenance prefill share them, so signed-in-shared below would
+            // put them on every signed-in first screen (+3.4 KB gz on /posts,
+            // measured 2026-10-17 against a 359.1 KB ceiling). Same shape as
+            // pdf-documents: they ride with their importers only. The RPC
+            // refusal words (src/lib/rentals/errorCopy.ts) are NOT in this
+            // group: lifecycleErrors.ts reads them and sits in signed-in-shared.
+            {
+              name: "rentals",
+              test: /[\\/]src[\\/]lib[\\/]rentals[\\/](api|copy)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Shared code no signed-OUT cold load reaches (Q654). app-shared sits
             // on the boot path of every page, and the modules two SIGNED-IN pages
             // share (useActivityData, subscriptionTiers, nativePush, ...) rode in

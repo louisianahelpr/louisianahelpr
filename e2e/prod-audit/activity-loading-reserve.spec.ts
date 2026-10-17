@@ -131,7 +131,7 @@ interface Surface {
   url: string;
   as: "poster" | "helper";
   /**
-   * The page's own route chunks. Holding them on a WARM in-app visit opens the
+   * The page's own route chunks. Holding them on a WARM reload opens the
    * capture window: the route's Suspense fallback (ActivityRouteSkeleton)
    * draws the card placeholders while the cache already knows the list. See
    * "WHICH FRAME HAS CARD PLACEHOLDERS" below.
@@ -341,13 +341,20 @@ for (const surface of SURFACES) {
          jobs, jobs-done and posts at 30s each).
          Cards are now the WARM frame: the query cache knows the list (from
          an earlier visit, persisted to IndexedDB) and the page is not drawn
-         yet. That is the route's Suspense fallback on an in-app tap. So:
+         yet. That is the route's Suspense fallback on a RELOAD or app
+         relaunch, NOT on an in-app tap: React Router 7 wraps every navigation
+         in startTransition, so a tap to a route whose chunk is still loading
+         keeps the previous screen up and draws no fallback at all. Measured
+         2026-10-17 on this checkout's build against prod (poster-e2e /posts,
+         helper-e2e /jobs, chunks held): in-app pushState from /home -> h1
+         "Home", 0 card placeholders, for 4 s (prod-audit 39008504928 timed
+         out at 30 s on exactly that frame: titles 3, no skeleton testid);
+         reload of the page itself -> activity-route-skeleton with 4 card
+         placeholders, every second for 8 s. So:
            1. visit the page once, unheld, so the list is cached and persisted;
-           2. hard-load /home, which restores that cache from IndexedDB;
-           3. hold the page's route chunks (HELD ON THE WIRE, NOT MOCKED: the
-              bytes are this build's own, only late) and go to the page in-app,
-              as the dock does;
-           4. measure the placeholder rows, release the chunks, measure the
+           2. hold the page's route chunks (HELD ON THE WIRE, NOT MOCKED: the
+              bytes are this build's own, only late) and reload the page;
+           3. measure the placeholder rows, release the chunks, measure the
               rows that replace them. */
       await page.goto(surface.url, { waitUntil: "commit" });
       await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
@@ -362,15 +369,7 @@ for (const surface of SURFACES) {
         await released;
         await route.continue();
       });
-      await page.goto("/home", { waitUntil: "commit" });
-      await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 45_000 });
-      // IndexedDB restore runs after first paint (QueryCacheHydrator).
-      await page.waitForTimeout(2_000);
-      const target = surface.url;
-      await page.evaluate((url) => {
-        history.pushState({}, "", url);
-        dispatchEvent(new PopStateEvent("popstate"));
-      }, target);
+      await page.goto(surface.url, { waitUntil: "commit" });
       // Wait on the SAME predicate the measurement uses, so a window that
       // opened for the waiter but not for `rows()` cannot happen.
       await page
@@ -402,7 +401,7 @@ for (const surface of SURFACES) {
             titles: document.querySelectorAll("h2.font-display").length,
           }));
           release();
-          throw new Error(`${surface.name}: no card placeholders on the warm in-app visit (held: ${heldChunks.join(", ") || "nothing"}; frame: ${JSON.stringify(seen)}): ${e instanceof Error ? e.message : String(e)}`);
+          throw new Error(`${surface.name}: no card placeholders on the warm reload (held: ${heldChunks.join(", ") || "nothing"}; frame: ${JSON.stringify(seen)}): ${e instanceof Error ? e.message : String(e)}`);
         });
       expect(heldChunks.length, `${surface.name}: no route chunk was held — the warm visit never waited on ${surface.chunk}`).toBeGreaterThan(0);
       await page.waitForTimeout(400);

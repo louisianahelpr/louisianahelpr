@@ -41,6 +41,47 @@ function savedBirthdayUnder18(dob: string): boolean {
 }
 
 /**
+ * Q1885: the ONLY body fields read on the NO-SESSION path (no valid JWT; the
+ * account is < 30 min old, never signed in, empty profile, and no completion
+ * has been recorded yet). Everything else in the body, including any field
+ * added later, is read only from a signed-in member: default-deny.
+ *
+ * Each one is here because the sign-up form sends it on that path. Signup.tsx
+ * (main and iOS 7119's tree c16b0f0dc alike) is the only caller, and
+ * auth.signUp returns no session while email confirmation is on, so the form
+ * HAS no session to send. Dropping one of these would lose the member's own
+ * sign-up data. A stranger who learns a new account's id cannot use them
+ * either: the one-shot rule below refuses a second no-session completion, and
+ * the form's own call goes out right after signUp.
+ * Guard: src/test/edge/complete-signup-no-session-fields.test.ts (two-way
+ * against the fields Signup.tsx sends).
+ */
+const NO_SESSION_FIELDS: Readonly<Record<string, string>> = {
+  userId: "names the account; proved by the 30-minute, never-signed-in, empty-profile and one-shot checks",
+  avatarBase64: "the photo picked on sign-up step 2",
+  avatarExt: "that photo's file extension (a fallback for its type)",
+  avatarContentType: "that photo's content type",
+  bio: "the About text from sign-up step 2",
+  location: "the city from sign-up step 2 (required)",
+  zipCode: "the ZIP from sign-up step 2 (required; it resolves the parish)",
+  parish: "the parish the form resolved from that ZIP",
+  marketingConsent: "the marketing-email box on sign-up step 1",
+  ageAttested: "the 18+ box on sign-up step 1: the age gate on this path",
+  termsAccepted: "the Terms box on sign-up step 1 (recorded as stated consent)",
+  referralCode: "?ref= from a share link; this function is the only place a referral can be recorded",
+};
+
+/** The body cut down to NO_SESSION_FIELDS (see above). */
+function noSessionBody<T>(raw: T): T {
+  const src = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const kept: Record<string, unknown> = {};
+  for (const key of Object.keys(NO_SESSION_FIELDS)) {
+    if (Object.prototype.hasOwnProperty.call(src, key)) kept[key] = src[key];
+  }
+  return kept as T;
+}
+
+/**
  * The configured signup cap, or null when signups are uncapped.
  *
  * Read with the service role: `platform_settings` is admin-only under RLS and
@@ -138,7 +179,34 @@ serve(async (req) => {
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
     );
 
-    const body = await req.json();
+    const rawBody = await req.json();
+
+    let userId: string | null = null;
+
+    // Try JWT auth first (for resubmissions from logged-in users)
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: authData, error: authError } = await anonClient.auth.getUser(token);
+      if (!authError && authData.user) {
+        userId = authData.user.id;
+      }
+    }
+
+    // Q1885 (lh-authz-rls reviews of the Q1804 fix): DEFAULT-DENY on the
+    // no-session path. Without a valid sign-in, the body is cut down to
+    // NO_SESSION_FIELDS (each with its reason, above) BEFORE anything reads it,
+    // so a field no client sends there (a birthday, Q1804; a phone; credential
+    // uploads; skills; emergency contacts...) and any field added later is read
+    // only from a signed-in member. Must stay ABOVE the no-session fallback
+    // below, which copies bodyUserId into userId: read after it, every caller
+    // would look signed in.
+    const signedIn = userId !== null;
+    const body = signedIn ? rawBody : noSessionBody(rawBody);
     const {
       userId: bodyUserId,
       avatarBase64,
@@ -152,8 +220,11 @@ serve(async (req) => {
       insuranceExt,
       insuranceContentType,
       isInsured,
-      // Read only from a signed-in member; see `phone` below.
-      phone: bodyPhone,
+      // Session-only (not in NO_SESSION_FIELDS). A phone on the
+      // no-session path went straight to enforce_retained_ban, so a stranger
+      // who typed a banned number for a brand-new account got its real owner
+      // banned (or, once Q1714 lands, flagged).
+      phone,
       bio,
       location,
       // S-001 (lh-suggester, launch audit): signup collected City but never
@@ -168,8 +239,11 @@ serve(async (req) => {
       zipCode,
       parish,
       skills,
-      // Q1804: read only from a signed-in member; see `dateOfBirth` below.
-      dateOfBirth: bodyDateOfBirth,
+      // Q1804: session-only (not in NO_SESSION_FIELDS). On the no-session
+      // path, anyone who learned a brand-new account's id could otherwise save
+      // an under-18 birthday for it, which lock_under_18_birthday then keeps,
+      // locking the owner out of Apply and Post.
+      dateOfBirth,
       availability,
       transportation,
       hearAboutUs,
@@ -202,39 +276,6 @@ serve(async (req) => {
       // recorded here rather than by the client.
       referralCode,
     } = body;
-
-    let userId: string | null = null;
-
-    // Try JWT auth first (for resubmissions from logged-in users)
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const anonClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!
-      );
-      const token = authHeader.replace("Bearer ", "");
-      const { data: authData, error: authError } = await anonClient.auth.getUser(token);
-      if (!authError && authData.user) {
-        userId = authData.user.id;
-      }
-    }
-
-    // Q1804 (lh-authz-rls re-review of 44ca75e95, #3): a birthday comes only
-    // from a signed-in member. On the no-session path below, anyone who learned
-    // a brand-new account's id could otherwise save an under-18 birthday for it,
-    // which lock_under_18_birthday then keeps, locking the owner out of Apply
-    // and Post. No client sends a birthday there (the sign-up form sends the
-    // 18+ box, ageAttested), so it is dropped, not refused.
-    // Must stay ABOVE the no-session fallback below, which copies bodyUserId
-    // into userId: read after it, every caller would look signed in.
-    const signedIn = userId !== null;
-    const dateOfBirth = signedIn ? bodyDateOfBirth : undefined;
-    // lh-authz-rls review of the Q1804 fix, #1: the same for a phone.
-    // A phone sent on the no-session path went straight to
-    // enforce_retained_ban, so a stranger who typed a banned number for a
-    // brand-new account got its real owner banned (or, once Q1714 lands,
-    // flagged). No client sends a phone here, so it is dropped, not refused.
-    const phone = signedIn ? bodyPhone : undefined;
 
     // If no valid JWT, allow initial signup completion ONLY within a short
     // window after account creation, and only if the profile is still empty.
@@ -277,7 +318,7 @@ serve(async (req) => {
       // log in" guard above and let the completion proceed.
       const { data: existingProfile, error: existingProfileError } = await supabase
         .from("profiles")
-        .select("bio")
+        .select("bio, terms_accepted_at")
         .eq("user_id", bodyUserId)
         .single();
 
@@ -296,8 +337,19 @@ serve(async (req) => {
         });
       }
 
-      // Only allow unauthenticated completion if profile is truly empty
-      if (existingProfile.bio && existingProfile.bio.trim().length > 0) {
+      // Only allow unauthenticated completion if profile is truly empty, and
+      // ONCE (Q1885): every completion that got as far as the profile UPDATE
+      // set terms_accepted_at (below), and handle_new_user leaves it NULL, so a
+      // set one means this account was already completed without a session.
+      // The form's own call goes out right after signUp, so after it nobody
+      // holding only the id (no session) can overwrite the photo, bio, consent
+      // or referral. Same sentence as the bio case: the form treats it as
+      // "already finished", not a failure (Q1643; a lost response re-sent by
+      // Q1810's retry lands here).
+      if (
+        (existingProfile.bio && existingProfile.bio.trim().length > 0) ||
+        existingProfile.terms_accepted_at
+      ) {
         return new Response(JSON.stringify({ error: "Profile already completed. Please log in." }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

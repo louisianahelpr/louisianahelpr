@@ -317,6 +317,10 @@ describe("every fixture literal could be inserted", () => {
     // row; the transfer's status is graded against the other table.
     { file: "src/test/edge/chargebackClawback.test.ts", keys: ["rows", "op", "column", "value", "stripe_reversal_id"] },
     { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "execution_status", "rows", "stripe_transfer_id"] },
+    // A run of test BODIES the brace reader takes as one literal once the Q1764 cases sit beside them
+    // (lander, 2026-10-17): a seeded dispute, a Stripe refund mock (`status: "failed"`, `failure_reason`)
+    // and an account mock share one brace, so the refund's status is graded against disputes.
+    { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "decided_at", "failure_reason", "payouts_enabled", "verdict", "token"] },
     { file: "src/test/edge/release-payout-dispute-stamp.test.ts", keys: ["execution_transfer_id", "rows", "stripe_transfer_id"] },
     // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
     // a clawback row; the job's status was graded against chargeback_clawbacks.

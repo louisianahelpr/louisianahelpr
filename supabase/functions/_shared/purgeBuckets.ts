@@ -68,6 +68,9 @@ export const IDENTITY_SUBFOLDERS = [
   // Shop logos, covers and photos (20261015123029): the shop CASCADEs away
   // with the account, so nothing survives that would need them.
   { bucket: "job-photos", folder: "shops" },
+  // Shop item photos (20261016212915, <uid>/shop-items/<item>/): the items
+  // CASCADE away with the shop and the account.
+  { bucket: "job-photos", folder: "shop-items" },
 ] as const;
 
 /**

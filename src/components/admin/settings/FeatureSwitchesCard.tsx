@@ -17,6 +17,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
 import { DeclutterReviewCard } from "./DeclutterReviewCard";
+import { ShopItemsReviewCard } from "./ShopItemsReviewCard";
 import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
 
@@ -160,6 +161,7 @@ export function FeatureSwitchesCard() {
       />
     </AdminCard>
     <DeclutterReviewCard />
+    <ShopItemsReviewCard />
     <CategorySuggestionsCard />
     <DeclutterProblemsCard />
     </>

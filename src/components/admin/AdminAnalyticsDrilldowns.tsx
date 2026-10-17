@@ -1,10 +1,10 @@
 import { lazy, Suspense, useState } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Inbox, MapPin } from "lucide-react";
+import { Inbox, Loader2, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatName } from "@/lib/utils";
-import type { DrillProfile } from "./adminAnalytics/types";
+import type { DrillDown, DrillProfile } from "./adminAnalytics/types";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
@@ -307,3 +307,63 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
     </div>
   );
 };
+
+// ─── Drill-down page ───
+/** The page a metric tile opens: a breadcrumb back to Analytics, then the
+ *  chosen list. Moved out of AdminAnalytics.tsx unchanged (component-size
+ *  ratchet, Q806); AdminAnalytics still owns the drill-down state and reads. */
+export const DrillDownView = ({
+  drillDown,
+  onBack,
+  loading,
+  users,
+  jobs,
+  roleByUser,
+  categoryData,
+}: {
+  drillDown: Exclude<DrillDown, null>;
+  onBack: () => void;
+  loading: boolean;
+  users: Profile[];
+  jobs: Job[];
+  roleByUser: Map<string, string>;
+  categoryData: { name: string; count: number; revenue: number }[];
+}) => (
+  <div className="space-y-4">
+    <div className="flex items-center gap-1.5 text-ds-13">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Analytics
+      </button>
+      <span className="text-muted-foreground">/</span>
+      <span className="font-display font-bold text-foreground">
+        {drillDown === "users" ? "All Users" :
+         drillDown === "subscriptions" ? "Subscriber Breakdown" :
+         drillDown === "jobs" ? "All Jobs" :
+         drillDown === "revenue" ? "Revenue Breakdown" :
+         drillDown === "fees" ? "Platform Fee Breakdown" :
+         drillDown === "payouts" ? "Payout Tracking" :
+         drillDown === "categories" ? "Category Breakdown" : ""}
+      </span>
+    </div>
+
+    {loading ? (
+      <div className="flex items-center gap-2 text-ds-11 text-muted-foreground py-8 justify-center">
+        <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+      </div>
+    ) : drillDown === "users" ? (
+      <UsersDrillDown users={users} roleByUser={roleByUser} />
+    ) : drillDown === "subscriptions" ? (
+      <SubscriptionsDrillDown users={users} />
+    ) : drillDown === "categories" ? (
+      <CategoriesDrillDown data={categoryData} />
+    ) : drillDown === "payouts" ? (
+      <PayoutsDrillDown jobs={jobs} />
+    ) : (
+      <JobsDrillDown jobs={jobs} showFinancials={drillDown === "revenue" || drillDown === "fees"} showFees={drillDown === "fees"} />
+    )}
+  </div>
+);

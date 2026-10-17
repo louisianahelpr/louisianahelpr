@@ -50,6 +50,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "declutter_handovers", column: "picked_up_photo_path", array: false, bucket: "job-photos", writer: "declutter_porch_photo RPC, buyer's picked-up photo (src/lib/declutter/handover.ts uploads it; path)" },
   { table: "declutter_problems", column: "photo_paths", array: true, bucket: "job-photos", writer: "declutter_report_problem RPC (up to 6 paths; the screens offer no problem photos yet)" },
   { table: "job_quotes", column: "photo_paths", array: true, bucket: "job-photos", writer: "src/lib/quotes/api.ts uploadQuotePhoto (path <uid>/quotes/<file>; submit_job_quote refuses a path outside the quoter's own folder)" },
+  { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
+  { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
 ];
 
 /**

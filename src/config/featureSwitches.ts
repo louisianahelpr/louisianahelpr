@@ -45,6 +45,10 @@ export const FEATURE_SWITCH_KEYS = [
   // W9-W12): created at TESTERS by 20261016053541; declutter_price_hint
   // refuses without it AND 'declutter'.
   "declutter_price_hint",
+  // Rentals S1 (docs/specs/landlord-hub-prep.md): landlords invite tenants,
+  // tenants send maintenance requests that become Helpr jobs. Created OFF by
+  // 20261015061259; every rentals_* RPC refuses without it (require_feature).
+  "rentals",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

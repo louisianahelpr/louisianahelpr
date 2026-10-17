@@ -48,6 +48,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('credential_document_path_ok',   'allow',    'profile credential URL is the member''s own object'),
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
+  ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261015061259)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
@@ -109,6 +110,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('admin_resolve_ban_evasion_match', 'action', 'Q1324: an admin clears or keeps a ban-evasion match (writes; true = done)'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('link_str_turnover_job',         'action',   'Q768: links the caller''s own STR turnover to their own open job (writes; true = linked)'),
+  ('link_maintenance_request_job',  'action',   'Rentals S1: links the caller''s own approved maintenance request to their own open job (writes; true = linked, false = refused)'),
   ('kick_payout_schedule_sync',     'action',   'Q1221: queues the payout-schedule sync (pg_net; true = queued)'),
   ('complete_job_accept',           'action',   'Q1180: completes a pending accept (writes; true = completed)'),
   ('delete_email',                  'action',   'pgmq wrapper'),
@@ -151,6 +153,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('dispute_evidence_url_ok',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a/disputes/00000000-0000-4000-8140-000000000101/a.png''', '''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1,2,3]),
   -- switch_canary is created as 'testers' (20261012031120) and D is an admin, so the non-NULL call is TRUE.
   ('feature_enabled_for',           '00000000-0000-4000-8140-00000000000d', ARRAY['''switch_canary'''], ARRAY[1]),
+  -- A is the active tenant of rental property P (owned by D), so the non-NULL call is TRUE for A.
+  ('rentals_caller_is_active_tenant_of', '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000301''::uuid'], ARRAY[1]),
   ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
@@ -204,7 +208,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'rentals', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -249,6 +253,21 @@ BEGIN
                            '00000000-0000-4000-8140-00000000000a', 1000, 'buy', 'in_cart', now() + interval '1 day')$q$;
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
+        END IF;
+      WHEN 'rentals' THEN
+        -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261015061259 there is no table).
+        IF to_regclass('public.rental_tenancies') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.rental_properties (id, owner_id, label, street_address, city, zip_code, ownership_status)
+                   VALUES ('00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000d',
+                           'q140 home', '1 Fixture Street', 'Lafayette', '70501', 'approved')$q$;
+          EXECUTE $q$INSERT INTO public.rental_units (id, property_id, owner_id, label)
+                   VALUES ('00000000-0000-4000-8140-000000000302', '00000000-0000-4000-8140-000000000301',
+                           '00000000-0000-4000-8140-00000000000d', 'Unit A')$q$;
+          EXECUTE $q$INSERT INTO public.rental_tenancies (id, unit_id, property_id, landlord_id, tenant_id, status,
+                                                         invite_token_sha256, invite_expires_at, accepted_at)
+                   VALUES ('00000000-0000-4000-8140-000000000303', '00000000-0000-4000-8140-000000000302',
+                           '00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000d',
+                           '00000000-0000-4000-8140-00000000000a', 'active', repeat('a', 64), now() + interval '14 days', now())$q$;
         END IF;
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;

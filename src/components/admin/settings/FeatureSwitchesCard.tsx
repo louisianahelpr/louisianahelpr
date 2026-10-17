@@ -19,6 +19,7 @@ import { AdminCard } from "../AdminViewShell";
 import { DeclutterReviewCard } from "./DeclutterReviewCard";
 import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
+import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -161,6 +162,7 @@ export function FeatureSwitchesCard() {
     <DeclutterReviewCard />
     <CategorySuggestionsCard />
     <DeclutterProblemsCard />
+    <RentalsOwnershipCard />
     </>
   );
 }

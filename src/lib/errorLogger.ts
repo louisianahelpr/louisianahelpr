@@ -16,6 +16,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
 import { announcePermissionDenied } from "@/lib/permissionDenied";
+import { redactInviteToken } from "@/lib/redactInviteToken";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -70,10 +71,10 @@ function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
     const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "https://localhost");
-    return (u.origin + u.pathname).slice(0, URL_MAX_CHARS);
+    return redactInviteToken(u.origin + u.pathname).slice(0, URL_MAX_CHARS);
   } catch {
     // Not a URL, just a pathname or filename — strip ?query manually.
-    return url.split("?")[0].slice(0, URL_MAX_CHARS);
+    return redactInviteToken(url.split("?")[0]).slice(0, URL_MAX_CHARS);
   }
 }
 

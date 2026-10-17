@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { linkMaintenanceJob } from "./maintenancePrefill";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -163,6 +164,8 @@ export interface UseJobSubmitParams {
   giftCardId: string | null;
   /** Q768: the imported STR turnover this post was opened from (`?turnover=`), linked to the new job. */
   turnoverId?: string | null;
+  /** Rentals S1: the approved maintenance request this post was opened from (`?maintenance=`), linked to the new job. */
+  maintenanceRequestId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -211,6 +214,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     saveCardForFuture,
     giftCardId,
     turnoverId,
+    maintenanceRequestId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -601,6 +605,24 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         await linkTurnoverJob(turnoverId, jobData.id);
       } catch (linkErr) {
         report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkTurnover" }, context: { job_id: jobData.id } });
+      }
+    }
+
+    /* Rentals S1: point the maintenance request at this job (best effort, the
+       turnover rule): the tenant then sees it booked and can answer "Was it fixed?". */
+    if (maintenanceRequestId) {
+      try {
+        const linked = await linkMaintenanceJob(maintenanceRequestId, jobData.id);
+        // The job is posted either way; a refused link is reported, never silent.
+        if (!linked) {
+          report(new Error("maintenance link refused"), {
+            severity: "warning",
+            tags: { source: "useJobSubmit.linkMaintenance" },
+            context: { job_id: jobData.id, request_id: maintenanceRequestId },
+          });
+        }
+      } catch (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobData.id } });
       }
     }
 

@@ -23,10 +23,11 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-import { authPages } from "@/components/mobileNav/mobileNavHelpers";
+import { authPages, noNavPages } from "@/components/mobileNav/mobileNavHelpers";
 
 // @mutate src/lib/desktopNavRoutes.ts | "/terms", "/privacy", "/rules", | "/terms",
 // @mutate src/components/mobileNav/mobileNavHelpers.ts | "/terms", "/privacy", "/rules"  // The six | "/terms"  // The six
+// @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/rentals",\n | \n
 
 const ROOT = resolve(__dirname, "..", "..");
 const read = (f: string) => readFileSync(resolve(ROOT, f), "utf8");
@@ -125,7 +126,7 @@ describe("signed-in-only routes carry the app navigation (quotes, 2026-10-15)", 
 
   it("derives the protected routes from App.tsx", () => {
     expect(routes.length).toBeGreaterThan(10);
-    expect(routes).toEqual(expect.arrayContaining(["/quotes", "/quotes/request/:id", "/quotes/send/:id"]));
+    expect(routes).toEqual(expect.arrayContaining(["/quotes", "/quotes/request/:id", "/quotes/send/:id", "/rentals", "/rentals/requests/:id"]));
   });
 
   it("every one is a desktop-rail route, apart from the exact exceptions", () => {
@@ -142,5 +143,25 @@ describe("signed-in-only routes carry the app navigation (quotes, 2026-10-15)", 
       if (why.rail) expect(hasRail(route), `${route} now has the rail: drop its rail exception`).toBe(false);
       if (why.dock) expect(hasDock(route), `${route} now has the dock: drop its dock exception`).toBe(false);
     }
+  });
+});
+
+// CLASS GUARD (2026-10-15, Rentals visual pass): a signed-in app route that
+// gets the desktop rail at 1440 must get the phone dock at 375 (phone web ==
+// native app: one surface). /rentals was on the rail's AUTH_PREFIXES but not on
+// the dock's authPages, so on a phone its pages had no way back but the
+// chevron. Inventory: every <Route path> in src/App.tsx.
+describe("every route with the desktop rail also has the phone dock", () => {
+  const app = blankComments(read("src/App.tsx"));
+  const paths = [...app.matchAll(/<Route path="(\/[^"]*)"/g)].map((m) => m[1]);
+  it("reads the route table", () => {
+    expect(paths.length).toBeGreaterThan(25);
+    expect(paths).toEqual(expect.arrayContaining(["/rentals", "/declutter", "/profile"]));
+  });
+  it("no rail route is missing from the dock (the console routes are deliberately no-nav)", () => {
+    const railOnly = paths.filter(
+      (p) => isDesktopRailRoute(p) && !authPages.some((a) => p.startsWith(a)) && !noNavPages.some((n) => p.startsWith(n)),
+    );
+    expect(railOnly).toEqual([]);
   });
 });

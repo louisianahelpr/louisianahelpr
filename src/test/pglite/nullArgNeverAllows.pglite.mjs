@@ -117,6 +117,13 @@ CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, cre
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
+-- Rentals S1 (20261015061259): rentals_caller_is_active_tenant_of reads rental_tenancies; the class SQL's
+-- fixture inserts a property, a unit and an active tenancy (the columns it writes).
+CREATE TABLE public.rental_properties (id uuid PRIMARY KEY, owner_id uuid, label text, street_address text, city text,
+  zip_code text, ownership_status text);
+CREATE TABLE public.rental_units (id uuid PRIMARY KEY, property_id uuid, owner_id uuid, label text);
+CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, landlord_id uuid, tenant_id uuid,
+  status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
 -- job_announceable_to (newest body) also reads these: Q1401's cutoff and Q1411's ban review queue.
 CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
@@ -156,7 +163,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
-  "declutter_in_agreed_sale", "declutter_slot_in_windows"];
+  "declutter_in_agreed_sale", "declutter_slot_in_windows", "rentals_caller_is_active_tenant_of"];
 // Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
 const AFTER_STUBS = ["job_announceable_to"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim

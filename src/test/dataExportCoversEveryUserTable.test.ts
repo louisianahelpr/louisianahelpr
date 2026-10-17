@@ -294,7 +294,10 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // declutter_seller_hidden (Declutter slice 3, 20261014210518, B36): hides a
     // banned / 3-strike seller's live listings from OTHER readers; it only
     // narrows, and the seller's own column is spelled out beside it.
-    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_seller_hidden", "feature_enabled_for", "has_role", "is_series_party", "seed_review_hidden", "user_may_see_job_address"]);
+    // rentals_caller_is_active_tenant_of (Rentals S1, 20261015061259): is the
+    // CALLER an active tenant of this property (no user argument); the
+    // rental_properties/rental_units policies spell owner_id out beside it.
+    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_seller_hidden", "feature_enabled_for", "has_role", "is_series_party", "rentals_caller_is_active_tenant_of", "seed_review_hidden", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

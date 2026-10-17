@@ -184,6 +184,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_clear_test_mode_dispute_stamp', 'admin-only (body checks has_role admin; Q1280)'),
   ('rpc_clear_test_mode_dispute_refund_stamp', 'admin-only (body checks has_role admin; Q1383)'),
   ('choose_new_social_account', 'pre-account: called signed-out (anon) before any account exists, keyed by a random choice id; a banned user has no session here (Q446)'),
+  ('declutter_admin_apply_seller_fault', 'admin-only (body checks has_role admin or is_server_context; Declutter Add a Helpr A10 hand tool)'),
   ('rpc_admin_end_recurring_series', 'admin-only (body checks has_role admin; Q417)'),
   ('admin_release_job_payout_hold', 'admin-only (body checks has_role admin, or a server context for the SQL editor; Q1491)'),
   ('rpc_decide_dispute', 'admin-only (body checks has_role admin)'),

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 704,
-    "files": 175,
-    "rendering": 640,
+    "calls": 712,
+    "files": 176,
+    "rendering": 648,
     "suppressedByPolicy": 64,
     "byKind": {
-      "confirmConsequential": 26,
+      "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 41,
-      "toast.error": 535,
+      "toast.error": 541,
       "toast.info": 1,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 354,
+      "literal": 357,
       "template": 87,
-      "dynamic": 306,
+      "dynamic": 311,
       "jsx": 0
     }
   },
@@ -2629,7 +2629,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 40,
+      "line": 42,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2639,7 +2639,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 52,
+      "line": 54,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2649,7 +2649,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 55,
+      "line": 57,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -2659,7 +2659,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 60,
+      "line": 62,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2669,7 +2669,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 79,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2679,7 +2679,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 94,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2699,7 +2699,7 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 101,
+      "line": 103,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2719,11 +2719,51 @@
     },
     {
       "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
-      "line": 108,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "userFacingError(err, \"Couldn't clear the test-mode records — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This dispute has no formal record to close."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"rpc_close_test_mode_dispute\", error) ?? userFacingError(error, \"Couldn't close that dispute — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 144,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Closed as a test. No real money moved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminDisputes/settlementEscapes.ts",
+      "line": 148,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't close that dispute — try again.\")"
       },
       "renders": true
     },
@@ -2752,6 +2792,46 @@
       "description": {
         "form": "literal",
         "text": "Check Sentry in ~30 seconds."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminJobs/EndSeriesSection.tsx",
+      "line": 71,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"rpc_admin_end_recurring_series\", error) ?? userFacingError(error, \"Couldn't end that series — nothing changed; try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminJobs/EndSeriesSection.tsx",
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "The server did not confirm the series ended. Refresh the job and check before trying again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminJobs/EndSeriesSection.tsx",
+      "line": 82,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "endSeriesResultMessage(data)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminJobs/EndSeriesSection.tsx",
+      "line": 87,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't end that series — try again.\")"
       },
       "renders": true
     },

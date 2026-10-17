@@ -876,15 +876,30 @@ const DialogSecondaryAction = React.forwardRef<HTMLButtonElement, DialogActionPr
 );
 DialogSecondaryAction.displayName = "DialogSecondaryAction";
 
+/**
+ * `data-commit` marks a control that DOES the consequential thing: the commit
+ * of a confirm (`role="alertdialog"`, e.g. every BrandConfirmDialog) and every
+ * destructive commit. The prod press sweep classes a control carrying it as
+ * mutating whatever its words say (isCommitControl, scripts/audit/pressProdSafety.mjs):
+ * "End series" and "Leave series" named no verb in its vocabulary (2026-10-17).
+ */
+const useCommitMarker = (destructive: boolean) => {
+  const isConfirm = React.useContext(DialogConfirmCtx);
+  return destructive ? "destructive" : isConfirm ? "confirm" : undefined;
+};
+
 /** The commit. Always the glossy green `btn-grad-primary` CTA. */
 const DialogPrimaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
-  ({ children, ...props }, ref) => (
-    <MaybeClose>
-      <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
-        {children}
-      </Button>
-    </MaybeClose>
-  ),
+  ({ children, ...props }, ref) => {
+    const commit = useCommitMarker(false);
+    return (
+      <MaybeClose>
+        <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} data-commit={commit} {...stripOverrides(props)}>
+          {children}
+        </Button>
+      </MaybeClose>
+    );
+  },
 );
 DialogPrimaryAction.displayName = "DialogPrimaryAction";
 
@@ -902,13 +917,16 @@ DialogPrimaryAction.displayName = "DialogPrimaryAction";
  * switched off) was the last one left.
  */
 const DialogDestructiveAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
-  ({ children, ...props }, ref) => (
-    <MaybeClose>
-      <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
-        {children}
-      </Button>
-    </MaybeClose>
-  ),
+  ({ children, ...props }, ref) => {
+    const commit = useCommitMarker(true);
+    return (
+      <MaybeClose>
+        <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} data-commit={commit} {...stripOverrides(props)}>
+          {children}
+        </Button>
+      </MaybeClose>
+    );
+  },
 );
 DialogDestructiveAction.displayName = "DialogDestructiveAction";
 

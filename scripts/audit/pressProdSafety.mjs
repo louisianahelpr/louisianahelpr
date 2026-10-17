@@ -365,7 +365,19 @@ function isStateToggle({ meta = {}, label = "" }) {
  * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
  * vocabulary in step with the admin buttons that write, read from the source.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|set to)\b/i;
+/**
+ * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
+ * confirm (role="alertdialog": every BrandConfirmDialog) and every
+ * DialogDestructiveAction render `data-commit` (src/components/ui/dialog.tsx);
+ * ENUMERATE records it as `meta.commit`. Such a control is mutating whatever
+ * its words say: the vocabulary is a second net, not the only one, so a
+ * confirm whose commit names a new verb is still gated ("End series" and
+ * "Leave series" named none, 2026-10-17).
+ */
+export function isCommitControl(meta = {}) {
+  return typeof meta.commit === "string" && meta.commit.length > 0;
+}
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
 }

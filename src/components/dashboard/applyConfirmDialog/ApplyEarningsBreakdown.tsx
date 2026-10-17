@@ -9,6 +9,7 @@ import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
+import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -39,11 +40,20 @@ export function ApplyEarningsBreakdown({
   const [showMath, setShowMath] = useState(false);
   const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
   const perHelper = confirmApplyJob.budget / helpers;
-  const commission = perHelper * platformFee / 100;
   // Urgent bonus nets its own bundled Stripe processing cost, then splits across
   // the roster like the budget (#114), so the "+ urgent bonus" line and the
   // Take-home total both equal what the edge transfers to each helper.
   const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee) / helpers;
+  // Q1839: a flat-model job (jobs.helper_fee_flat_cents stamped, roadmap F3)
+  // charges 5% + 70c on the Helpr's share of budget + urgent bonus, as every
+  // payout path does (helprFlatFeeCents); the viewer's tier never applies.
+  const flat = isFlatFeeJob(confirmApplyJob);
+  const commission = flat
+    ? helprFlatFeeCents(Math.round(perHelper * 100) + Math.round(netUrgent * 100), confirmApplyJob) / 100
+    : perHelper * platformFee / 100;
+  const feeLabel = flat
+    ? `${flatFeePercentOf(confirmApplyJob)}% + $${(Math.round(Number(confirmApplyJob.helper_fee_flat_cents ?? HELPR_FLAT_FEE_CENTS)) / 100).toFixed(2)}`
+    : `${platformFee}%`;
   const beforeFirstPayoutFee = perHelper - commission + netUrgent;
   // ME-008: an account whose `onboarding_fee_paid` is not true loses the
   // one-time setup fee from its FIRST payout (release-payout /
@@ -62,7 +72,7 @@ export function ApplyEarningsBreakdown({
   const summary = [
     `$${formatPrice(confirmApplyJob.budget)} budget`,
     helpers > 1 ? `÷ ${helpers} Helprs` : null,
-    `− ${platformFee}% fee`,
+    `− ${feeLabel} fee`,
     hasUrgent ? "+ urgent bonus" : null,
     firstPayoutFee > 0 ? "− one-time fee" : null,
   ]
@@ -123,7 +133,7 @@ export function ApplyEarningsBreakdown({
             <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
           </div>
           <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            <span className="font-sans">− {platformFee}% platform fee</span>
+            <span className="font-sans">− {feeLabel} platform fee</span>
             <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
           </div>
           {hasUrgent && (

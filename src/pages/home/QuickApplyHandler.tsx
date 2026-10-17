@@ -16,7 +16,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 // avatar) are all OPTIONAL on `EnrichedJob`, so a bare view row is a valid
 // job for JobDetailDialog to open on.
 const SHEET_COLUMNS =
-  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, pricing_mode, applicant_count, credential_tier, parish, payment_status, location, latitude, longitude";
+  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, pricing_mode, applicant_count, credential_tier, parish, payment_status, location, latitude, longitude, helper_fee_flat_cents";
 
 // Deep-link resolver for job notifications.
 //

@@ -200,7 +200,13 @@ test.describe.serial("admin and safety journeys", () => {
         .toBe("cancelled/refunded");
       const rows = await refunds();
       expect(rows, "two Stripe refunds on the ledger").toHaveLength(2);
-      expect(rows[1]).toMatchObject({ is_partial: false, source: "admin_refund_general" });
+      // Every refund keeps the card processing fee since a173ae28e (owner,
+      // 2026-10-14, Q1735: "we should never absorb any fee"), so the full
+      // refund leaves the fee on the charge and the ledger calls it what Stripe
+      // sees, a partial, worded as the full refund it is (nightly-red #2436,
+      // e2e-journeys 38749234414 / 38882683467 read the old is_partial false).
+      expect(rows[1]).toMatchObject({ is_partial: true, source: "admin_refund_general" });
+      expect(rows[1].reason ?? "", "the full refund's ledger row does not say the card fee was kept").toMatch(/full refund less the card processing fee/);
       expect(rows[1].stripe_refund_id).toMatch(/^re_/);
       // The remainder of a capture of at least the $25 budget.
       expect(rows[1].amount_cents, "the full refund returned less than the budget minus the partial").toBeGreaterThanOrEqual(2000);

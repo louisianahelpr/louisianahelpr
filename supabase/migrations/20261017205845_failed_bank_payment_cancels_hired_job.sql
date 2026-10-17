@@ -203,7 +203,7 @@ BEGIN
       v_helper,
       v_job.id,
       'Job cancelled',
-      format('"%s" was cancelled because the poster''s payment didn''t go through.%s This doesn''t count against you.',
+      format('"%s" was cancelled because the payment for it didn''t go through.%s This doesn''t count against you.',
              v_title,
              CASE WHEN v_job.status::text = 'in_progress' THEN ' Please stop work on it.'
                   ELSE ' Please don''t start work on it.' END),

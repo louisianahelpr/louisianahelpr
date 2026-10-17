@@ -367,7 +367,7 @@ const h2 = await notes(HELPR);
 const p2 = await notes(POSTER);
 check("A2 confirmed: cancelled, failed, no fee", v?.outcome === "cancelled" && s.status === "cancelled" && s.payment_status === "failed" && Number(s.fee) === 0, JSON.stringify(s));
 check("A2 the confirmed Helpr gets ONE notice: cancelled because the payment didn't go through, doesn't count against them",
-  h2.length === 1 && /cancelled because the poster's payment didn't go through/.test(h2[0].message) && /doesn't count against you/.test(h2[0].message)
+  h2.length === 1 && /cancelled because the payment for it didn't go through/.test(h2[0].message) && /doesn't count against you/.test(h2[0].message)
     && /don't start work/.test(h2[0].message) && h2[0].link === `/jobs?job=${J(2)}`,
   JSON.stringify(h2));
 check("A2 no generic 'cancelled by the poster' notice, no back-out notice or email", !h2.some((n) => /by the poster/.test(n.message)) && c.backouts === 0 && c.emails === 0, JSON.stringify(c));

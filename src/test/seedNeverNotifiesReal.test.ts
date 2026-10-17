@@ -247,6 +247,9 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   // trigger cannot judge the row; the producers apply Q137 themselves.
   "sql:declutter_notify#1": "Declutter notice: the counterpart is passed as p_other and the insert is skipped when p_other is seed and the recipient is not (the Q137 rule inside the producer; PGlite: declutterSlice3 'a seed (test) seller's sale never notifies a real buyer')",
   "sql:declutter_wanted_notify#1": "Declutter wanted alert: never called for a seed/real mix, because declutter_wanted_pairs (20261016053541) matches a post and a listing only when both the row stamps (w.is_seed = i.is_seed) and both LIVE profiles' is_seed agree, before any alert or cap (PGlite: declutterWantedPriceHint 'a test (seed) post never meets a real listing' and 'an account marked test after it posted')",
+  // Rentals S3 (20261017223352): the admin-queue alert's link names no job, so the
+  // producer judges Q137 itself with the landlord as the actor.
+  "sql:rentals_submit_ownership_proof#1": "operator broadcast to every admin: an ownership proof waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: rentalsMaintenance)",
   "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for

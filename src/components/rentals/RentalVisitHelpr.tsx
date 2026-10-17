@@ -47,7 +47,7 @@ export default function RentalVisitHelpr({ jobId }: { jobId: string }) {
           aria-label="Visit time to offer"
           value={when}
           onChange={(e) => setWhen(e.target.value)}
-          className="h-8 text-ds-11"
+          className="h-8 min-w-0 text-ds-11"
         />
         <Button type="button" size="sm" disabled={!when || offer.isPending} onClick={() => offer.mutate()}>
           {v.proposedFor ? "Offer a new time" : "Offer this time"}

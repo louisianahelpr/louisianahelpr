@@ -103,6 +103,10 @@ const OWNERS = {
   "/shops": ["lh-long-tail-features", "lh-browse-discovery"],
   "/shops/mine": ["lh-long-tail-features", "lh-input-boundary"],
   "/shops/:id": ["lh-long-tail-features", "lh-trust-safety"],
+  // Rentals (hidden switch 'rentals', created off; slices S1-S3).
+  "/rentals": ["lh-long-tail-features"],
+  "/rentals/invite/:token": ["lh-long-tail-features", "lh-authz-rls"],
+  "/rentals/requests/:id": ["lh-long-tail-features", "lh-trust-safety"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
   "?tab=profile": ["lh-input-boundary"],

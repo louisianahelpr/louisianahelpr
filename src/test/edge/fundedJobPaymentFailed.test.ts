@@ -92,6 +92,8 @@ function fundedJob(over: Record<string, unknown> = {}) {
 }
 
 const CANCEL_RPC = "cancel_job_after_failed_bank_payment";
+/** gift_cards.payment_status in return_bounced_gift_card's verdict (a gift card's own column, where "paid" is legal), never a jobs row. */
+const GIFT_CARD_PAID = "paid";
 /** What the cancel RPC answers for this scenario. */
 function cancelAnswers(outcome: string, extra: Record<string, unknown> = {}) {
   scenario.rpc[CANCEL_RPC] = { outcome, ...extra };
@@ -212,7 +214,7 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
       failedEvent(PI, { gift_card_id: "gift-1" });
       fundedJob({ status: "open", helper_id: null });
       cancelAnswers("not_hired");
-      scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gift-1", payment_status: "paid" };
+      scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gift-1", payment_status: GIFT_CARD_PAID };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
       const res = await fn.fetch(webhookRequest(fn));
       expect(res.status).toBe(200);
@@ -275,7 +277,7 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
       fundedJob({ status: "cancelled", payment_status: "failed", stripe_session_id: null });
       scenario.writeSelectRows.jobs = [];
       scenario.rpc.return_bounced_gift_card = giftOutcome === "returned"
-        ? { outcome: "returned", credit_id: "gift-1", payment_status: "paid" }
+        ? { outcome: "returned", credit_id: "gift-1", payment_status: GIFT_CARD_PAID }
         : { outcome: "not_consumed", credit_id: "gift-1" };
       const res = await fn.fetch(webhookRequest(fn));
       expect(res.status, giftOutcome).toBe(200);

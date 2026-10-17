@@ -51,9 +51,9 @@ afterEach(() => {
 describe("moveSeedJobStart only ever moves one is_seed job, on Louisiana's clock", () => {
   it("PATCHes that one job, filtered on is_seed, as the service role, to the next whole minute 90 s out", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-17T21:40:10Z")); // 4:40:10 PM CDT
+    vi.setSystemTime(new Date("2024-10-17T21:40:10Z")); // 4:40:10 PM CDT
     const at = await moveSeedJobStart("https://x.supabase.co/", JOB, 90_000);
-    expect(at.toISOString()).toBe("2026-10-17T21:42:00.000Z");
+    expect(at.toISOString()).toBe("2024-10-17T21:42:00.000Z");
     expect(calls).toHaveLength(1);
     const u = new URL(calls[0].url);
     expect(u.pathname).toBe("/rest/v1/jobs");
@@ -61,7 +61,7 @@ describe("moveSeedJobStart only ever moves one is_seed job, on Louisiana's clock
     expect(u.searchParams.get("is_seed")).toBe("eq.true");
     expect(calls[0].init.method).toBe("PATCH");
     expect((calls[0].init.headers as Record<string, string>).Authorization).toBe("Bearer service-key");
-    expect(JSON.parse(String(calls[0].init.body))).toEqual({ date_needed: "2026-10-17", start_time: "16:42:00" });
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({ date_needed: "2024-10-17", start_time: "16:42:00" });
   });
 
   it("refuses when no row, two rows, or a non-seed row comes back", async () => {
@@ -72,7 +72,7 @@ describe("moveSeedJobStart only ever moves one is_seed job, on Louisiana's clock
   });
 
   it("reads the day and time in Louisiana, across midnight UTC", () => {
-    expect(louisianaSlot(new Date("2026-10-18T03:30:00Z"))).toEqual({ isoDay: "2026-10-17", hhmm: "22:30" });
+    expect(louisianaSlot(new Date("2024-10-18T03:30:00Z"))).toEqual({ isoDay: "2024-10-17", hhmm: "22:30" });
   });
 });
 

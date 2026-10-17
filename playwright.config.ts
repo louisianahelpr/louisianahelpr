@@ -18,6 +18,7 @@ const PROD_WRITING_E2E = [
   "e2e/journeys/fixtures.ts",
   "e2e/journeys/throwaway.ts",
   "e2e/journeys/time-travel.spec.ts",
+  "e2e/moveSeedJobStart.ts",
   "e2e/privacy/privacy-requests.spec.ts",
   "e2e/prod-audit/harness.ts",
   "e2e/prod-audit/shellSpacing.ts",

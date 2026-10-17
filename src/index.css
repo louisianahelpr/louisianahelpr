@@ -1190,6 +1190,7 @@
    `[data-theme="dark"] html…` form matched nothing (see --page-gradient). */
 [data-theme="dark"] .bg-premium-page,
 html[data-theme="dark"].web-desktop.app-shell body,
+html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
 [data-theme="dark"] .page-warmth {
   background-color: hsl(var(--parchment));
   background-image: var(--page-gradient);
@@ -1516,12 +1517,26 @@ html.web-desktop {
      lines it up with the frame's pixel-for-pixel and the join disappears. Same
      declaration as `.bg-premium-page`; if that gradient is ever retuned, this
      must move with it. */
-  html.web-desktop.app-shell body {
+  html.web-desktop.app-shell body,
+  html.web-desktop:not(.app-shell) body:has(.app-shell-frame) {
     background-color: hsl(var(--background));
     background-image: var(--page-gradient);
     background-attachment: fixed;
   }
-  html.web-desktop.app-shell #root {
+  /* THE SAME FRAME ON A DOCUMENT-SCROLL ROUTE (prod-audit run 39008504928,
+     rail-inset). Signed in, PublicLayout mounts AppShell on routes that stay
+     document-scroll (<html> without `app-shell`): every 404 (NotFound marks its
+     own path document-scroll, and /quotes, /quotes/request/:id and
+     /quotes/send/:id render it while the 'quotes' switch is off), /help,
+     /support and Legal. The frame takes the rail inset itself and #root gives
+     its padding up (the Q179 pair further down), so the strip beside the
+     frame was #root's own paint: the cold blue-grey boot gradient from
+     index.html, under the rail at 1024/1280/1440/1920 (measured: div#root
+     right=1024, padding 0, pos=static). Same answer as the app-shell case:
+     body paints the page gradient and #root steps aside. Guard:
+     src/test/railStripPaintsThePageGradient.test.ts. */
+  html.web-desktop.app-shell #root,
+  html.web-desktop:not(.app-shell) #root:has(.app-shell-frame) {
     background: transparent !important;
   }
   /* The floating bottom dock is replaced by the sidebar on desktop. Hide it

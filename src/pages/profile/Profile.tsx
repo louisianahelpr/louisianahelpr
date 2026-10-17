@@ -105,7 +105,8 @@ const ProfilePage = () => {
   const declutterSwitch = useFeatureStatus("declutter");
   const membershipsSwitch = useFeatureStatus("memberships");
   const shopsSwitch = useFeatureStatus("shops");
-  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled);
+  const rentalsSwitch = useFeatureStatus("rentals");
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**

@@ -53,6 +53,9 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q1791: "Apple's App Review rule 5.1.1(v), found preparing the 1.0.4 resubmission; not a code reviewer's finding",
   Q1793: "Apple's App Review demo account, found preparing the 1.0.4 resubmission; not a code reviewer's finding",
   Q1892: "\"Identity Review\" is the admin screen's title (the reds lane looked at /admin?view=idvreview at 375 on prod); not a code reviewer's finding",
+  Q2003: "the admin ownership-proof REVIEW queue (Rentals S1's own build follow-up); not a code reviewer's finding",
+  Q2005: "Rentals S1's screenshot pass and its recorded screenshot reviews (npm run review:record); not a code reviewer's finding",
+  Q2008: "the `npm run review:report` script crashing on a dangling symlink; not a code reviewer's finding",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

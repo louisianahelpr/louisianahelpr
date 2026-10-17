@@ -19,7 +19,7 @@
  * any other missing page control still fails.
  *
  * @mutate scripts/audit/pressProdSafety.mjs | dismiss\|investigat\w*\|assign\w*\| | 
- * @mutate scripts/audit/press-every-control.mjs | DESTRUCTIVE_RX.test(label) \|\| isAdminWrite({ persona, label }) \|\| meta.type | DESTRUCTIVE_RX.test(label) \|\| meta.type
+ * @mutate scripts/audit/press-every-control.mjs | && !meta.dismissOnly) \|\| isAdminWrite({ persona, label }) \|\| meta.type | && !meta.dismissOnly) \|\| meta.type
  * @mutate scripts/audit/press-every-control.mjs |   if (rowConsumed) return ROW_CONSUMED_SKIP; | 
  * @mutate scripts/audit/press-every-control.mjs |   return !(now ?? []).some((c) => c.rowText === rowText); |   return true;
  */
@@ -122,7 +122,7 @@ describe("the press gates every admin write (#1582)", () => {
     const src = blankComments(readFileSync(resolve(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
     expect(src).toMatch(/if \(entry\.mutating && meta\.rowText\) mutatedRows\.add\(meta\.rowText\);/);
     // The mutating-control test the gate runs behind includes the admin write vocabulary.
-    const cond = src.match(/if \(DESTRUCTIVE_RX\.test\(label\)[^\n]*\{\n\s*const why = await gate\(/)?.[0] ?? "";
+    const cond = src.match(/if \(\(?DESTRUCTIVE_RX\.test\(label\)[^\n]*\{\n\s*const why = await gate\(/)?.[0] ?? "";
     expect(cond).toMatch(/isAdminWrite\(\{ persona, label \}\)/);
     expect(src.match(/rowConsumed: rowGoneAfterOwnWrite\(\{ rowText: meta\.rowText, mutatedRows, now \}\)/g)?.length).toBe(2);
   });

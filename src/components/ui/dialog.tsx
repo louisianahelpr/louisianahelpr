@@ -889,6 +889,34 @@ const DialogPrimaryAction = React.forwardRef<HTMLButtonElement, DialogActionProp
 DialogPrimaryAction.displayName = "DialogPrimaryAction";
 
 /**
+ * The commit of a popup that only TELLS you something ("Got it", "OK"): the
+ * same glossy commit as DialogPrimaryAction, but all it can do is close the
+ * dialog. It is a Radix `Close` and takes NO event handler (every `on*` prop is
+ * dropped from the type and at runtime), so pressing it is exactly the dialog's
+ * own × or Escape: the Dialog's `onOpenChange(false)`.
+ *
+ * `data-popup-dismiss` says so to press-every-control, which presses such a
+ * control as a read even when its words sound like a write ("got it" acks a
+ * backout notice on a job card and pays the seller in Declutter). A label
+ * cannot tell those apart; this primitive can, because it cannot be given the
+ * write. src/test/pressDrivesTheRealPressPath.test.tsx.
+ */
+type DialogAcknowledgeProps = Omit<DialogActionProps, `on${string}` | "type" | "asChild">;
+const DialogAcknowledgeAction = React.forwardRef<HTMLButtonElement, DialogAcknowledgeProps>(
+  ({ children, ...props }, ref) => {
+    const rest = Object.fromEntries(Object.entries(stripOverrides(props)).filter(([k]) => !/^on[A-Z]/.test(k)));
+    return (
+      <DialogPrimitive.Close asChild>
+        <Button ref={ref} type="button" variant="primary" className={POPUP_COMMIT_CLS} data-popup-dismiss="" {...rest}>
+          {children}
+        </Button>
+      </DialogPrimitive.Close>
+    );
+  },
+);
+DialogAcknowledgeAction.displayName = "DialogAcknowledgeAction";
+
+/**
  * The commit, when it is irreversible or takes something away — solid
  * `--destructive` red, deliberately NOT glossy so it cannot be tapped by
  * muscle memory for the green one (button.tsx: "keep red flat-looking so it
@@ -927,5 +955,6 @@ export {
   DialogCallout,
   DialogSecondaryAction,
   DialogPrimaryAction,
+  DialogAcknowledgeAction,
   DialogDestructiveAction,
 };

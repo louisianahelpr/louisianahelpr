@@ -101,6 +101,7 @@ describe("page-settle: a skeleton is never content", () => {
 
   const mods = skeletonModules();
   it("inventories the app's skeleton components from source", () => {
+    expect(mods.length).toBeGreaterThan(12); // 16 skeleton modules on 2026-10-17
     expect(mods.reduce((a, m) => a + m.names.length, 0)).toBeGreaterThan(20);
   });
 

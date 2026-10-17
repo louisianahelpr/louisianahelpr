@@ -19,7 +19,7 @@
  * error report) and the pre-paint path, so platform is read from the bridge
  * global the native shell injects before any script runs (the same probe as
  * src/boot/entryAuthRefresh.ts), and the adapter calls markSessionKnown() when
- * its restore settles. Guard: src/test/sessionReadersWaitForTheRestore.test.ts.
+ * its restore settles. Guard: src/test/sessionReadersWaitForTheRestore.test.tsx.
  */
 
 /** Backstop: the adapter's hydrate is capped at 2 s; never wait past this. */

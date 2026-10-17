@@ -15,7 +15,7 @@ import { jobStartDateTime } from "@/lib/dateUtils";
  * The job's start is date_needed + start_time in the job's zone; a job with no
  * start time ("any time that day") runs to the END of its day. A hire into a
  * job that starts within OFFER_MIN_LEAD_MS is refused (`job_starts_too_soon`).
- * src/lib/offerDeadline.test.ts pins both constants to the migration.
+ * src/test/offerDeadlineBeforeStart.test.ts pins both constants to the migration.
  */
 export const OFFER_MAX_WINDOW_HOURS = 48;
 export const OFFER_MIN_LEAD_MINUTES = 15;

@@ -16,7 +16,7 @@ import type { PaymentStatus } from "@/lib/statusLabels";
  * THE RULE. `Record<PaymentStatus, …>` over the tuple that
  * `src/test/paymentStatusExhaustive.test.ts` pins to the database CHECK, so a
  * value the database gains is a compile error here, not a silently healthy
- * card. `src/test/cardPaymentStateCoversWebhook.test.ts` also reads every value
+ * card. `src/test/cardPaymentStateCoversWebhook.test.tsx` also reads every value
  * the stripe-webhook writes to a job and requires it to land here.
  *
  * Most states need nothing extra on the card, because `jobs.status` already

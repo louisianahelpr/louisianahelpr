@@ -22,7 +22,7 @@
  *  supabase/functions/_shared/jobBudgetLimits.ts so the client, create-payment
  *  and the DB CHECKs (jobs_budget_range, jobs_urgent_fee_ceiling,
  *  validate_job_budget) share ONE number; jobBudgetCapIsOneConstant.test.ts
- *  and urgentBonusCap.test.ts fail when any of them disagrees. The form is not the enforcement point:
+ *  and urgentBonusCap.test.tsx fail when any of them disagrees. The form is not the enforcement point:
  *  the jobs INSERT goes through PostgREST with the poster's own token. */
 export {
   MIN_JOB_BUDGET_DOLLARS,

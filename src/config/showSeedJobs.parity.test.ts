@@ -260,7 +260,7 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Q768: links the caller's own STR turnover to the caller's own job; it
     // reads `status = 'open'` of that one job as a precondition.
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],
-    // Rentals S1 (20261015061259): the same rule for a maintenance request: it
+    // Rentals S1 (20261017061457): the same rule for a maintenance request: it
     // links the landlord's own approved request to the landlord's own job and
     // reads `status = 'open'` of that one job as a precondition.
     ["public.link_maintenance_request_job", "single-job mutation on the caller's own job; status is a precondition"],

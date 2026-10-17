@@ -48,7 +48,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('credential_document_path_ok',   'allow',    'profile credential URL is the member''s own object'),
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
-  ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261015061259)'),
+  ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017061457)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
@@ -255,7 +255,7 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
         END IF;
       WHEN 'rentals' THEN
-        -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261015061259 there is no table).
+        -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261017061457 there is no table).
         IF to_regclass('public.rental_tenancies') IS NOT NULL THEN
           EXECUTE $q$INSERT INTO public.rental_properties (id, owner_id, label, street_address, city, zip_code, ownership_status)
                    VALUES ('00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000d',

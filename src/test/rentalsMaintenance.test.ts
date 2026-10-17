@@ -1,5 +1,5 @@
 /**
- * Rentals S1 (20261015061259_rentals_maintenance_requests; owner decisions in
+ * Rentals S1 (20261017061457_rentals_maintenance_requests; owner decisions in
  * docs/specs/landlord-hub-prep.md Q37-Q48, Q5-Q6, Q53, Q59). The fast half of
  * the proof: the shape every later Rentals slice must keep, read from the
  * NEWEST definitions the migrations leave (effectiveDefs), so a later
@@ -21,15 +21,15 @@
  * defects each caught, incl. the Q807 unconfirmed-email gate call removed,
  * measured 2026-10-15).
  */
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | VALUES ('rentals', 'off', | VALUES ('rentals', 'testers',
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   v_auto := p_urgency <> 'emergency' AND v_p.auto_approve_limit_cents IS NOT NULL; |   v_auto := v_p.auto_approve_limit_cents IS NOT NULL;
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF public.member_under_18(v_uid) THEN |   IF false THEN
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql | VALUES ('rentals', 'off', | VALUES ('rentals', 'testers',
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |   v_auto := p_urgency <> 'emergency' AND v_p.auto_approve_limit_cents IS NOT NULL; |   v_auto := v_p.auto_approve_limit_cents IS NOT NULL;
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |   IF public.member_under_18(v_uid) THEN |   IF false THEN
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;
 // Owner decision 2026-10-17: the landlord never learns which admin reviewed the proof.
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | ownership_review_note, auto_approve_limit_cents, created_at, updated_at)\n  ON TABLE public.rental_properties TO authenticated; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by)\n  ON TABLE public.rental_properties TO authenticated;
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |     '/rentals', false, true); |     '/rentals', false);
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql | ownership_review_note, auto_approve_limit_cents, created_at, updated_at)\n  ON TABLE public.rental_properties TO authenticated; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by)\n  ON TABLE public.rental_properties TO authenticated;
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |     '/rentals', false, true); |     '/rentals', false);
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
 // @mutate src/lib/rentals/api.ts | ownership_review_note, auto_approve_limit_cents, created_at, updated_at"; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by";
 // @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
 import { describe, expect, it } from "vitest";
@@ -42,7 +42,7 @@ import { OWNERSHIP_STATUS_LABEL } from "@/lib/rentals/copy";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
-const FILE = "20261015061259_rentals_maintenance_requests.sql";
+const FILE = "20261017061457_rentals_maintenance_requests.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
@@ -81,7 +81,7 @@ function clientCallable(): Set<string> {
   return out;
 }
 
-describe("Rentals S1: hidden, gated maintenance requests (20261015061259)", () => {
+describe("Rentals S1: hidden, gated maintenance requests (20261017061457)", () => {
   const callable = clientCallable();
 
   it("reads a real inventory (floors)", () => {
@@ -184,6 +184,6 @@ describe("Rentals S1: hidden, gated maintenance requests (20261015061259)", () =
     expect(flat(MIG)).toContain("VALUES ('rentals', 'off',");
     const proof = join(ROOT, "src/test/pglite/rentalsMaintenance.pglite.mjs");
     expect(existsSync(proof)).toBe(true);
-    expect(readFileSync(proof, "utf8")).toContain("20261015061259");
+    expect(readFileSync(proof, "utf8")).toContain("20261017061457");
   });
 });

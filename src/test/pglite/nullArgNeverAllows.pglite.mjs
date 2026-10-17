@@ -117,7 +117,7 @@ CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, cre
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
--- Rentals S1 (20261015061259): rentals_caller_is_active_tenant_of reads rental_tenancies; the class SQL's
+-- Rentals S1 (20261017061457): rentals_caller_is_active_tenant_of reads rental_tenancies; the class SQL's
 -- fixture inserts a property, a unit and an active tenancy (the columns it writes).
 CREATE TABLE public.rental_properties (id uuid PRIMARY KEY, owner_id uuid, label text, street_address text, city text,
   zip_code text, ownership_status text);

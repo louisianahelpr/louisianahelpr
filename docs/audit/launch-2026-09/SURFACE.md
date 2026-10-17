@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 156 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 704 (across 175 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 712 (across 176 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 23 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 40 |
-| Forms (submittable) | form | 48 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 134 |
+| Forms (submittable) | form | 49 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 135 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **505** |
-| **Copy surfaces** (strings a person may read) | mixed | **742** |
-| **Total auditable surface** | mixed | **1247** |
+| **Navigable surfaces** (places a person can stand) | mixed | **507** |
+| **Copy surfaces** (strings a person may read) | mixed | **750** |
+| **Total auditable surface** | mixed | **1257** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 156 | 130 | agree within method (script counts every menu instance) |
-| Forms | 48 | ~38 | agree |
+| Forms | 49 | ~38 | agree |
 | Confirmed multi-step flows | 23 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -434,6 +434,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/AdminCredentialQueue.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminExceptionQueue.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminFraudDashboard.tsx` (dialog/mutation)
+- [ ] `src/components/admin/adminJobs/EndSeriesSection.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminMessageUserDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminNotifications.tsx` (dialog/mutation)
 - [ ] `src/components/admin/AdminPayoutBatches.tsx` (dialog/mutation)

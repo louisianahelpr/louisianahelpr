@@ -117,6 +117,7 @@ const RULES: Rule[] = [
       JOB_FNS.some((fn) => new RegExp(`rpc\\(\\s*["']${fn}["']`).test(src)),
     removal: /removeJobMedia|removeJobPhotos|removeMediaOfDeletedJobs/,
     exempt: {
+      "src/lib/declutter/haulAway.ts": "deleteNeverPaidHaulJob deletes the row FIRST and only a confirmed delete counts (re-review 2026-10-17 finding 2: removing photos first lost them on every refused delete); once the row is gone the job-photos DELETE policy refuses the client, so the weekly storage-orphan-sweep (\"job gone\") is the net",
       "scripts/probes/admin-dispute-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/release-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/mint-funded-seed-jobs.prod.mjs": "deletes a job it just inserted, before any upload; the weekly sweep is the net",

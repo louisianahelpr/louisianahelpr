@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 36 |
+| Routes (non-redirect) | route | 37 |
 | Redirect-only routes | route | 0 |
 | `?tab=` variants | variant | 29 |
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 158 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
 | Toast messages | **call site** | 766 (across 184 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 23 |
+| Multi-step flows — confirmed | flow | 24 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 40 |
 | Forms (submittable) | form | 52 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 136 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **516** |
+| **Navigable surfaces** (places a person can stand) | mixed | **518** |
 | **Copy surfaces** (strings a person may read) | mixed | **804** |
-| **Total auditable surface** | mixed | **1320** |
+| **Total auditable surface** | mixed | **1322** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 36 | 34 | agree |
+| Real routes | 37 | 34 | agree |
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 158 | 130 | agree within method (script counts every menu instance) |
 | Forms | 52 | ~38 | agree |
-| Confirmed multi-step flows | 23 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 24 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -89,6 +89,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/account-banned`
 - [ ] `/forgot-password`
 - [ ] `/reset-password`
+- [ ] `/unsubscribe`
 - [ ] `/home`
 - [ ] `/profile`
 - [ ] `/post-job`
@@ -346,6 +347,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/admin/Admin.tsx` | switch, nav-handler |
 | `src/pages/auth/Signup.tsx` | compare, nav-handler |
 | `src/pages/auth/signup/SignupStep1.tsx` | compare |
+| `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/home/DashboardGuest.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |

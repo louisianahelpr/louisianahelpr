@@ -381,7 +381,11 @@ describe("Your quotes (the quoter)", () => {
 
 describe("error copy", () => {
   it("every code the quote migration raises has words (exact), and no code reaches the member", () => {
-    const sql = readFileSync(resolve(__dirname, "../../../supabase/migrations/20261015091114_job_quotes.sql"), "utf8");
+    // Every migration that defines a quote RPC: 20261017045002 restates
+    // submit / respond / cancel, so its codes are the live ones.
+    const sql = ["20261015091114_job_quotes.sql", "20261017045002_quote_hire_on_pay_alerts.sql"]
+      .map((f) => readFileSync(resolve(__dirname, "../../../supabase/migrations", f), "utf8"))
+      .join("\n");
     const raised = [...new Set([...sql.matchAll(/RAISE EXCEPTION '([a-z_0-9]+)'/g)].map((m) => m[1]))].sort();
     expect(raised.length).toBeGreaterThan(20);
     const copied = Object.keys(QUOTE_ERROR_COPY).filter((k) => k !== "feature_disabled").sort();

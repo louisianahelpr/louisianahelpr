@@ -1,6 +1,6 @@
 // @mutate src/lib/jobPaymentCardState.ts | chargeback: "chargeback", | chargeback: "paid_out",
 // @mutate src/lib/jobPaymentCardState.ts |   failed: "failed",\n  chargeback | failed: "unfunded",\n  chargeback
-// @mutate src/components/job-card/jobStatusLine.ts | if (problem) return problem;\n  switch (job.status) { | switch (job.status) {
+// @mutate src/components/job-card/jobStatusLine.ts | if (problem) return problem;\n  if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) { | if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) {
 // @mutate src/pages/posts/PostedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
 // @mutate src/pages/jobs/AppliedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
 // @mutate src/components/job-card/activityFilters.ts | if (cardPaymentProblem(j)) return "needs_you"; | if (false) return "needs_you";

@@ -237,7 +237,14 @@ export function screenErrorText(snap) {
 }
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
-export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
+/*
+ * "got it" (run 39014836855, leg 4): BackoutBanner's "Got It" calls
+ * ack_backout_notice, and Declutter's "I got it" pays the seller. Neither word
+ * was here, so the sweep pressed twelve "Got It"s on /posts as an ungated,
+ * unrecorded read, cleared twelve backout notices on prod, and then reported
+ * the cards those writes moved out of the "You" bucket as missing.
+ */
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|got it)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
@@ -623,7 +630,59 @@ const CONTROL_SEL =
  * (document.body for the page; the newest open overlay for a recursion).
  * Runs in the page.
  */
-const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
+/**
+ * THE RECORD A CONTROL ACTS ON: the nearest row, card or dialog around it. Its
+ * text (`rowText`) is what the mutation gate reads to decide whether the
+ * record is test-owned, and what ROW_CONSUMED_SKIP matches a vanished control
+ * against.
+ *
+ * `[data-activity-card]` (run 39014836855, leg 4): the My Posts / My Jobs job
+ * card (JobCardShell) is a plain div whose classes never say "card", so every
+ * control on it resolved to NO record at all (rowText "", measured on prod
+ * /posts as poster-e2e, 7 of 7 location chips). With no record, a write on a
+ * card could neither be told apart from the same button on the next card nor
+ * recognised when it removed its own card from the list.
+ */
+export const RECORD_ROW_SEL =
+  'tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [data-activity-card], [class*="card"], [class*="Card"]';
+
+/** A record's text as ENUMERATE reads it (same collapse, same cut), for a press-time check. Runs in the page. */
+export const LIVE_ROW_TEXT = (el, rowSel) => (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400);
+
+/** Two reads of one record's text: equal, or equal once digits are blanked (a "3m ago" that ticked). */
+export function sameRecord(a, b) {
+  if (!a || !b) return false;
+  return a === b || looseSignature(a) === looseSignature(b);
+}
+
+/**
+ * The control with this signature INSIDE THIS RECORD on the screen as it is
+ * now, or null when the record has left it. A label alone cannot find it: on
+ * /posts every backed-out card carries an identical "Got It", so once one card
+ * leaves the list both the DOM path and the signature ordinal point at the
+ * NEXT card's button.
+ */
+export function recordControl(now, meta) {
+  if (!meta?.rowText) return null;
+  const inRecord = (now ?? []).filter((c) => sameRecord(c.rowText, meta.rowText));
+  return inRecord.find((c) => c.sig === meta.sig) ??
+    inRecord.find((c) => looseSignature(c.sig) === looseSignature(meta.sig)) ??
+    null;
+}
+
+/**
+ * A MUTATING press about to land on a different record than the one the gate
+ * approved. The gate judged `meta.rowText`; the click must hit that record or
+ * nothing. Returns "same" (click as addressed), "moved" (press `control`
+ * instead) or "gone" (the record is no longer on the screen).
+ */
+export function pressTargetRecord({ liveRowText, meta, now }) {
+  if (!meta?.rowText || sameRecord(liveRowText, meta.rowText)) return { verdict: "same" };
+  const control = recordControl(now, meta);
+  return control ? { verdict: "moved", control } : { verdict: "gone" };
+}
+
+const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }) => {
   const root = scope === "overlay"
     ? [...document.querySelectorAll(overlaySel)].pop()
     : document.body;
@@ -717,7 +776,7 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
       tabIndex: el.tabIndex,
       pointerEvents: cs.pointerEvents,
       // The record this control acts on, as the user sees it: the nearest row / card / dialog.
-      rowText: (el.closest('tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [class*="card"], [class*="Card"]')?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
+      rowText: (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
     });
   });
   // Ordinal among controls sharing a label and tag, so a control can be found
@@ -1378,7 +1437,7 @@ async function main() {
       // Signatures are computed HERE, not in the page, so `controlSignature`
       // stays a plain exported function a unit test can drive.
       const enumerate = async (scope) =>
-        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL }));
+        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL, rowSel: RECORD_ROW_SEL }));
       /**
        * Wait until the newest open overlay stops changing shape. Two identical
        * samples 250ms apart, capped at OVERLAY_FILL_MS; a still-moving overlay
@@ -1537,6 +1596,25 @@ async function main() {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;
+            // THE GATE APPROVED ONE RECORD; THE CLICK MUST LAND ON IT (run
+            // 39014836855 leg 4: twelve identical "Got It"s, each addressed by a
+            // path that had shifted to the next card once an earlier ack moved
+            // its own card out of the list). See pressTargetRecord.
+            const liveRowText = await target.first().evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
+            if (liveRowText !== null) {
+              const now = await enumerate(item.step.scope);
+              const placed = pressTargetRecord({ liveRowText, meta, now });
+              if (placed.verdict === "moved") {
+                item.step.path = placed.control.path; target = locate(item.step); entry.relocated = true;
+              }
+              if (placed.verdict === "gone") {
+                if (rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now })) { skip(ROW_CONSUMED_SKIP); continue; }
+                entry.result = "FAIL"; entry.why = "its record is no longer on the screen (a write here would have landed on a different record, so it was not pressed)";
+                rec.failed++; failedPresses++;
+                entry.shot = await shoot(`record-gone-${slug(label)}`);
+                continue;
+              }
+            }
           }
 
           // Baseline: the resting page with the opener chain replayed.

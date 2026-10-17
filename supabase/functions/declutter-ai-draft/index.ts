@@ -238,7 +238,8 @@ Always answer with the draft_listing tool.`;
   }
 });
 
-type Client = ReturnType<typeof createClient>;
+// createClient<any>: the bare ReturnType<typeof createClient> resolves its generics to never, which deno check refuses (PR #3294).
+type Client = ReturnType<typeof createClient<any>>;
 
 /** Gate codes declutter_assert_can_scan_room raises; anything else is ai_unavailable. */
 const ROOM_GATE_CODES = ["feature_disabled", "account_restricted", "declutter_strikes_blocked", "under_18", "not_authenticated"];

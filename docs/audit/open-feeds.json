@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-16T22:35Z",
+  "measured_at": "2026-10-17T01:14Z",
   "issues": {
     "readable": true,
     "open": [
@@ -78,7 +78,7 @@
         "number": 2993,
         "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38825011558",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/38982141882",
         "runTruncated": false
       },
       {
@@ -181,14 +181,6 @@
         "issue": 3154
       },
       {
-        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-real-backend",
-        "issue": 2940
-      },
-      {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -235,14 +227,6 @@
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
-      },
-      {
-        "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: ui-sweep",
-        "issue": 3181
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -450,11 +434,9 @@
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
-    "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
-    "ledger 3a3460b71be7": "Q1816",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 40a33605c7c3": "Q1596",

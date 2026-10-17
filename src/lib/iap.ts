@@ -24,7 +24,7 @@
 //   npm install cordova-plugin-purchase && npx cap sync ios
 //
 // plus the matching products in App Store Connect. The ids must match
-// _shared/appleAppStore.ts exactly; iapParity.test.ts asserts they do.
+// _shared/appleAppStore.ts exactly; src/test/appleIap.test.ts asserts they do.
 //
 // ── Adapted from the unmerged feat/apple-iap branch, with one real fix ──────
 //

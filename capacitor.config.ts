@@ -100,7 +100,7 @@ const config: CapacitorConfig = {
       // (see src/main.tsx — the double-rAF right after createRoot().render;
       // it is deliberately NOT hidden from initNative any more). Apple HIG:
       // hide ASAP.
-      // A 1.5s safety-net timeout in nativeInit.ts force-hides the splash
+      // A 1.5s safety-net timeout in src/lib/splashSafetyNet.ts force-hides the splash
       // even if init fails (this comment said 4s; it was tightened and the
       // comment was not).
       //
@@ -127,7 +127,7 @@ const config: CapacitorConfig = {
       // (SplashScreen.swift only arms the auto-hide timer when autoHide is
       // true), so this number is just "non-zero" — the splash stays up until
       // src/main.tsx hides it at first paint, with the 1.5s safety net in
-      // src/lib/nativeInit.ts as the backstop.
+      // src/lib/splashSafetyNet.ts as the backstop.
       launchShowDuration: 500,
       launchAutoHide: false,
       backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal champagne gradient (#F7F8FA -> #EDEFF3); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.

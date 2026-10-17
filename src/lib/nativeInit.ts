@@ -74,8 +74,8 @@ export async function initNative() {
   // coupled the branded splash to unrelated native bridge work
   // (clearNativeWebCaches, initSocialLogin, StatusBar) that has nothing to do
   // with the app being ready to look at — and any one of those bridge calls
-  // hanging would have held the splash up. The 1.5s safety net below is
-  // unchanged and still guarantees the splash can never stick.
+  // hanging would have held the splash up. The 1.5s safety net in
+  // ./splashSafetyNet.ts still guarantees the splash can never stick.
 }
 
 async function clearNativeWebCaches() {

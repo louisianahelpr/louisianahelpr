@@ -62,6 +62,7 @@ describe("the database keeps the newer accepted Terms version", () => {
   const inv = triggerInventory(files.map((name) => ({ name, sql: sqlOf(name) })));
 
   it("profiles has a BEFORE UPDATE OF terms_version_accepted trigger running keep_newest_terms_acceptance", () => {
+    expect(files.length).toBeGreaterThan(1000); // 1124 migrations on 2026-10-17 (inventory floor)
     const trg = inv.get("profiles.tr_keep_newest_terms_acceptance");
     expect(trg, "trigger missing from the migrations").toBeTruthy();
     expect(trg!.fn).toBe("keep_newest_terms_acceptance");

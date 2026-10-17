@@ -381,6 +381,9 @@ BEGIN
          AND NOT public.job_payment_is_funded(v_pay)
          AND v_session IS NULL AND v_pi IS NULL THEN
         BEGIN
+        -- Already held FOR UPDATE above; re-taking it is free, and keeps the
+        -- DELETE its own statement for scripts/check-race-class.mjs.
+        PERFORM 1 FROM public.jobs j WHERE j.id = v_req.job_id FOR UPDATE;
         DELETE FROM public.jobs j
          WHERE j.id = v_req.job_id AND j.customer_id = v_uid
            AND j.status = 'open' AND j.helper_id IS NULL

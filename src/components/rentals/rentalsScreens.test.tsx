@@ -15,6 +15,9 @@
  * @mutate src/pages/rentals/MaintenanceRequestPage.tsx | : <MaintenanceRequestUnavailable />}> | : <RentalsGateFrame title="Repair request" backTo="/rentals" label="Loading the request" />}>
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |     enabled: validId && !!uid, |     enabled: !!id && !!uid,
  * @mutate src/components/rentals/RentalsHomeView.tsx |   if (!data.isError && !data.data) return <RentalsHomeSkeleton />; |   if (!data.isError && !data.data) return null;
+ * @mutate src/components/rentals/RentalsHomeView.tsx |                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} /> |                   {null}
+ * @mutate src/components/rentals/RentalsHomeView.tsx |                 <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} /> |                 {null}
+ * @mutate src/components/rentals/EndTenancyButton.tsx |     mutationFn: () => endTenancy(tenancyId), |     mutationFn: async () => undefined,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -29,6 +32,9 @@ const state = {
   homeLoads: true,
   underAge: false,
   tenancies: [] as unknown[],
+  properties: [] as unknown[],
+  units: [] as unknown[],
+  live: [] as unknown[],
   request: null as unknown,
   job: { jobId: null as string | null, booking: "none", jobStatus: null as string | null },
 };
@@ -57,8 +63,10 @@ vi.mock("@/components/AppPage", () => ({
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 vi.mock("@/lib/rentals/api", () => ({
-  fetchMyProperties: async () => [],
-  fetchUnits: async () => [],
+  fetchMyProperties: async () => state.properties,
+  fetchUnits: async () => state.units,
+  fetchLiveTenancies: async () => state.live,
+  endTenancy: vi.fn(async () => undefined),
   fetchMyHomes: () => (state.homeLoads ? Promise.resolve(state.tenancies) : new Promise(() => {})),
   fetchMyRequests: async () => [],
   fetchRequest: async () => {
@@ -80,6 +88,7 @@ vi.mock("@/lib/rentals/api", () => ({
   inviteTenant: vi.fn(),
 }));
 
+import { endTenancy } from "@/lib/rentals/api";
 import RentalsPage from "@/pages/rentals/RentalsPage";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 
@@ -116,6 +125,9 @@ beforeEach(() => {
   state.homeLoads = true;
   state.underAge = false;
   state.tenancies = [];
+  state.properties = [];
+  state.units = [];
+  state.live = [];
   state.request = null;
   state.job = { jobId: null, booking: "none", jobStatus: null };
 });
@@ -257,6 +269,46 @@ describe("Rentals screens", () => {
       renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
       expect(screen.getByText("Was it fixed?")).toBeTruthy();
+    });
+  });
+
+  describe("ending a tenancy: both sides have the control (rentals_end_tenancy)", () => {
+    const confirmIn = async (button: string, confirm: string) => {
+      fireEvent.click(await screen.findByRole("button", { name: button }));
+      const dialog = await screen.findByRole("alertdialog");
+      fireEvent.click(Array.from(dialog.querySelectorAll("button")).find((b) => b.textContent === confirm)!);
+    };
+    beforeEach(() => vi.mocked(endTenancy).mockClear());
+
+    it("a tenant leaves a home they rent, after a confirm", async () => {
+      state.tenancies = [TENANCY];
+      renderAt("/rentals");
+      await confirmIn("Leave this home", "Leave home");
+      await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("t1"));
+    });
+
+    it("a landlord ends an active tenancy and cancels an unused invite, each after a confirm", async () => {
+      state.properties = [{ id: "p1", owner_id: "u1", label: "Oak", street_address: "1 Oak", city: "Lafayette", zip_code: "70501", ownership_status: "approved", auto_approve_limit_cents: null }];
+      state.units = [{ id: "u9", property_id: "p1", label: "A" }];
+      state.live = [
+        { id: "ta", unit_id: "u9", status: "active", accepted_at: "2026-10-16T12:00:00Z", invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-16T11:00:00Z" },
+        { id: "ti", unit_id: "u9", status: "invited", accepted_at: null, invite_expires_at: "2026-10-30T12:00:00Z", created_at: "2026-10-17T11:00:00Z" },
+      ];
+      renderAt("/rentals");
+      expect(await screen.findByText(/Tenant connected/)).toBeTruthy();
+      expect(screen.getByText(/Invite not used yet/)).toBeTruthy();
+      await confirmIn("End tenancy", "End tenancy");
+      await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("ta"));
+      await confirmIn("Cancel invite", "Cancel invite");
+      await vi.waitFor(() => expect(vi.mocked(endTenancy)).toHaveBeenCalledWith("ti"));
+    });
+
+    it("closing the confirm ends nothing", async () => {
+      state.tenancies = [TENANCY];
+      renderAt("/rentals");
+      fireEvent.click(await screen.findByRole("button", { name: "Leave this home" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Keep it" }));
+      expect(vi.mocked(endTenancy)).not.toHaveBeenCalled();
     });
   });
 });

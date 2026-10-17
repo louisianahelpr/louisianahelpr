@@ -31,7 +31,7 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   too_many_open_invites: "This unit has 10 open invites. Cancel one first.",
   invite_not_found: "This invite link has expired or was already used. Ask your landlord for a new one.",
   own_invite: "This is your own invite link. Send it to your tenant.",
-  tenancy_not_found: "You're no longer listed as a tenant here.",
+  tenancy_not_found: "This home is no longer connected: the tenancy ended or the invite was cancelled.",
   bad_urgency: "Choose how urgent it is.",
   bad_category: "Choose what kind of problem it is.",
   bad_description: "Describe the problem in at least 10 characters.",

@@ -20,6 +20,7 @@ import {
   fetchMyProperties,
   fetchMyRequests,
   fetchMyHomes,
+  fetchLiveTenancies,
   fetchUnits,
   inviteTenant,
   setAutoApprove,
@@ -27,11 +28,13 @@ import {
   type MaintenanceRequest,
   type RentalProperty,
   type RentalUnit,
+  type UnitTenancy,
 } from "@/lib/rentals/api";
 import { OWNERSHIP_STATUS_LABEL, REQUEST_STATUS_LABEL, dollarsToCents, inviteUrl, rentalsErrorMessage } from "@/lib/rentals/copy";
 import { RentalsCard, fmtDate } from "./rentalsUi";
 import { MaintenanceRequestForm } from "./MaintenanceRequestForm";
 import { RentalsHomeSkeleton } from "./RentalsSkeletons";
+import { EndTenancyButton } from "./EndTenancyButton";
 
 function RequestRow({ r }: { r: MaintenanceRequest }) {
   return (
@@ -89,7 +92,19 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function PropertyCard({ p, units, uid, onChange }: { p: RentalProperty; units: RentalUnit[]; uid: string; onChange: () => void }) {
+function PropertyCard({
+  p,
+  units,
+  tenancies,
+  uid,
+  onChange,
+}: {
+  p: RentalProperty;
+  units: RentalUnit[];
+  tenancies: UnitTenancy[];
+  uid: string;
+  onChange: () => void;
+}) {
   const [unitLabel, setUnitLabel] = useState("");
   const [limit, setLimit] = useState(p.auto_approve_limit_cents != null ? String(p.auto_approve_limit_cents / 100) : "");
   const [links, setLinks] = useState<Record<string, string>>({});
@@ -160,6 +175,14 @@ function PropertyCard({ p, units, uid, onChange }: { p: RentalProperty; units: R
                 Invite tenant
               </Button>
             </div>
+            {tenancies.filter((t) => t.unit_id === u.id).map((t) => (
+              <div key={t.id} className="flex items-center justify-between gap-2 pl-3 text-xs">
+                <span className="text-muted-foreground">
+                  {t.status === "active" ? `Tenant connected ${fmtDate(t.accepted_at)}` : `Invite not used yet (link sent ${fmtDate(t.created_at)})`}
+                </span>
+                <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} />
+              </div>
+            ))}
             {links[u.id] && (
               <div className="rounded-lg bg-muted p-2 text-xs break-all">
                 <p className="mb-1">Send this link to your tenant (works once, for 14 days):</p>
@@ -242,9 +265,14 @@ export default function RentalsHomeView() {
     queryKey: ["rentals-home", uid],
     enabled: !!uid,
     queryFn: async () => {
-      const [properties, homes, requests] = await Promise.all([fetchMyProperties(uid), fetchMyHomes(), fetchMyRequests()]);
+      const [properties, homes, requests, tenancies] = await Promise.all([
+        fetchMyProperties(uid),
+        fetchMyHomes(),
+        fetchMyRequests(),
+        fetchLiveTenancies(uid),
+      ]);
       const units = await fetchUnits(properties.map((p) => p.id));
-      return { properties, units, homes, requests };
+      return { properties, units, homes, requests, tenancies };
     },
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
@@ -273,6 +301,7 @@ export default function RentalsHomeView() {
                     {h.unit_label ? `, ${h.unit_label}` : ""}
                   </p>
                   {!underAge && <MaintenanceRequestForm tenancyId={h.tenancy_id} uid={uid} onFiled={refresh} />}
+                  <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} />
                 </div>
               ))
             )}
@@ -303,7 +332,14 @@ export default function RentalsHomeView() {
               <p className="text-sm text-muted-foreground">Own a rental? Add it, invite your tenants, and turn their repair requests into Helpr jobs.</p>
             )}
             {data.data.properties.map((p) => (
-              <PropertyCard key={p.id} p={p} uid={uid} units={data.data.units.filter((u) => u.property_id === p.id)} onChange={refresh} />
+              <PropertyCard
+                key={p.id}
+                p={p}
+                uid={uid}
+                units={data.data.units.filter((u) => u.property_id === p.id)}
+                tenancies={data.data.tenancies}
+                onChange={refresh}
+              />
             ))}
             {data.data.requests.filter((r) => r.landlord_id === uid).length > 0 && <p className="text-sm font-medium">Requests from tenants</p>}
             {data.data.requests.filter((r) => r.landlord_id === uid).map((r) => (

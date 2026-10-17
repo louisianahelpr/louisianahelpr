@@ -269,6 +269,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // payment_status of that one job are preconditions, nothing is listed.
     ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],
     ["public.link_str_turnover_job", "single-job mutation on the caller's own job; status is a precondition"],
+    // Rentals S1 (20261015061259): the same rule for a maintenance request: it
+    // links the landlord's own approved request to the landlord's own job and
+    // reads `status = 'open'` of that one job as a precondition.
+    ["public.link_maintenance_request_job", "single-job mutation on the caller's own job; status is a precondition"],
     // Q1460: books an already-staffed crew (open -> accepted) at its hiring
     // cutoff; a server sweep over funded crews with hired members, not a feed.
     ["public.start_underfilled_crews", "server sweep that books staffed crews; not a feed"],

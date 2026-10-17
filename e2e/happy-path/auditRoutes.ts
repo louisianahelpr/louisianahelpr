@@ -272,6 +272,12 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "quotes", url: "/quotes" },
   { name: "quotes-request-missing", url: "/quotes/request/10000000-0000-4000-8000-00000000dead" },
   { name: "quotes-send-missing", url: "/quotes/send/10000000-0000-4000-8000-00000000dead" },
+  // Rentals S1 (hidden switch 'rentals', created OFF): RentalsGate renders the
+  // NotFound page while it is off for the sweep account; the real screens once
+  // testers include it. Either way the route is visited.
+  { name: "rentals", url: "/rentals" },
+  { name: "rentals-request-missing", url: "/rentals/requests/10000000-0000-4000-8000-00000000dead" },
+  { name: "rentals-invite-bad-token", url: "/rentals/invite/not-a-real-token" },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },
   { name: "profile-edit", url: "/profile?tab=profile" },

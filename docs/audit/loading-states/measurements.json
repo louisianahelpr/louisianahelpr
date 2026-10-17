@@ -25814,6 +25814,1179 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/rentals",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3975,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3974,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4198",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Frentals",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/rentals/invite/test",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3949,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals/invite/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals_invite_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals_invite_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals/invite/test",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3766,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals/invite/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals_invite_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals_invite_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals/invite/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4198",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Frentals%2Finvite%2Ftest",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/rentals/requests/test",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3838,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals/requests/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals_requests_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/customer_rentals_requests_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "22EP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals/requests/test",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4198",
+      "capturedAt": 3964,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/rentals/requests/test",
+      "loadingPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals_requests_test.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(3)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/.lh-shots/rentals-s1-s5/measure-after/helper_rentals_requests_test.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > h1": {
+            "y": 136,
+            "h": 64
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "13HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(3)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            2,
+            3
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 16
+    },
+    {
+      "url": "/rentals/requests/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4198",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Frentals%2Frequests%2Ftest",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -25906,6 +27079,22 @@
         "anon /shops/mine",
         "anon /shops",
         "anon /shops/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-15T11:38:29.106Z",
+      "base": "http://127.0.0.1:4198",
+      "surfaces": [
+        "customer /rentals",
+        "helper /rentals",
+        "anon /rentals",
+        "customer /rentals/invite/test",
+        "helper /rentals/invite/test",
+        "anon /rentals/invite/test",
+        "customer /rentals/requests/test",
+        "helper /rentals/requests/test",
+        "anon /rentals/requests/test"
       ],
       "replaced": []
     }

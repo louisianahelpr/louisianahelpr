@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { linkMaintenanceJob } from "./maintenancePrefill";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -273,6 +274,8 @@ export interface UseJobSubmitParams {
   haulAwayItemIds?: string[] | null;
   /** Declutter "Add a Helpr": the paid order this post was opened from (`?declutterOrder=`), linked to the new job. */
   declutterOrderId?: string | null;
+  /** Rentals S1: the approved maintenance request this post was opened from (`?maintenance=`), linked to the new job. */
+  maintenanceRequestId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -323,6 +326,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     turnoverId,
     haulAwayItemIds,
     declutterOrderId,
+    maintenanceRequestId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -789,6 +793,23 @@ export function useJobSubmit(params: UseJobSubmitParams) {
        the buyer is told when the link fails (lh-silent-failure review #1), so a
        missing line on the order card never reads as "nothing booked yet". */
     if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);
+    /* Rentals S1: point the maintenance request at this job (best effort, the
+       turnover rule): the tenant then sees it booked and can answer "Was it fixed?". */
+    if (maintenanceRequestId) {
+      try {
+        const linked = await linkMaintenanceJob(maintenanceRequestId, jobData.id);
+        // The job is posted either way; a refused link is reported, never silent.
+        if (!linked) {
+          report(new Error("maintenance link refused"), {
+            severity: "warning",
+            tags: { source: "useJobSubmit.linkMaintenance" },
+            context: { job_id: jobData.id, request_id: maintenanceRequestId },
+          });
+        }
+      } catch (linkErr) {
+        report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }, context: { job_id: jobData.id } });
+      }
+    }
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this

@@ -82,6 +82,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/components/landing/HeroSection.tsx": "the signed-out landing page (hero LOCKED); a signed-in tap lands on the gated form",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",
+  "src/pages/post-job/usePostJobForm.ts": "the /post-job form's own hook: an unusable ?maintenance= draft goes back to the plain gated form (Rentals S1)",
   // Secondary links inside god components held by componentSizeRatchet: each
   // opens the /post-job form, whose top line and greyed button say why. The
   // nav's Post button, the empty states and the job sheet's Apply are greyed.

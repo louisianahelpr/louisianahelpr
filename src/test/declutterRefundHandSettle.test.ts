@@ -1,6 +1,6 @@
 /**
  * Declutter refunds that give up, and refunds made by hand, reach the books
- * (20261015091757_declutter_refund_hand_settle; lh-money-escrow should-fixes
+ * (20261017052700_declutter_refund_hand_settle; lh-money-escrow should-fixes
  * (a) and (b) in docs/specs/declutter-auctions.md "Open after slice 4").
  * The fast half, read from the NEWEST definitions (effectiveDefs), so a later
  * restatement that drops the gave-up alert or the hand-refund rules fails here.
@@ -9,12 +9,12 @@
  * src/test/pglite/declutterRefundHandSettle.pglite.mjs. Edge side:
  * src/test/edge/declutter-payments.test.ts and src/test/edge/declutter-money.test.ts.
  *
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql |   IF v_attempts >= 12 THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   IF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql | v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents; | v_row.status <> 'succeeded';
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql |      SET status = 'failed', next_attempt_at = now(), gave_up_notified_at = NULL, |      SET next_attempt_at = now(), gave_up_notified_at = NULL,
- * @mutate supabase/migrations/20261015091757_declutter_refund_hand_settle.sql | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC;
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql |   IF v_attempts >= 12 THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   IF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql | v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents; | v_row.status <> 'succeeded';
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql |      SET status = 'failed', next_attempt_at = now(), gave_up_notified_at = NULL, |      SET next_attempt_at = now(), gave_up_notified_at = NULL,
+ * @mutate supabase/migrations/20261017052700_declutter_refund_hand_settle.sql | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -29,7 +29,7 @@ const flat = (s: string) => s.replace(/\s+/g, " ");
 
 const FNS = ["declutter_refund_gave_up_check", "declutter_refund_executed", "declutter_refund_reversed", "declutter_record_hand_refund", "declutter_hand_refund_failed"];
 
-describe("Declutter refunds that give up, and refunds made by hand (20261015091757)", () => {
+describe("Declutter refunds that give up, and refunds made by hand (20261017052700)", () => {
   it("reads a real inventory (floors)", () => {
     for (const fn of FNS) expect(body(fn), fn).not.toBe("");
     expect(FNS.length).toBeGreaterThan(3);
@@ -65,7 +65,7 @@ describe("Declutter refunds that give up, and refunds made by hand (202610150917
   });
 
   it("the new functions are service-only", () => {
-    const mig = blankSqlComments(readFileSync(join(MIG_DIR, "20261015091757_declutter_refund_hand_settle.sql"), "utf8"));
+    const mig = blankSqlComments(readFileSync(join(MIG_DIR, "20261017052700_declutter_refund_hand_settle.sql"), "utf8"));
     for (const [fn, sig] of [
       ["declutter_refund_gave_up_check", "uuid"],
       ["declutter_record_hand_refund", "text, text, integer, boolean"],

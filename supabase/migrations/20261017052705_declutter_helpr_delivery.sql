@@ -1766,7 +1766,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_delivery_refund(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_delivery_refund(uuid, text) TO service_role;
 
--- B4. Checkout, restated from 20261016050402 (porch default) with Helpr
+-- B4. Checkout, restated from 20261017052704 (porch default) with Helpr
 -- delivery: allowed when the cart can be delivered (one address, a drop-off
 -- stored); the fee is computed HERE from server data and frozen on the order
 -- (with the drop-off) in the same statement. The idempotent return compares
@@ -1902,7 +1902,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_start_checkout(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_start_checkout(uuid, text) TO authenticated, service_role;
 
--- B5. The cart, restated from 20261016050402 with the order's delivery fee
+-- B5. The cart, restated from 20261017052704 with the order's delivery fee
 -- and its Helpr task (the buyer and the seller read the task's progress with
 -- helpr_task_view) appended.
 DROP FUNCTION IF EXISTS public.declutter_my_cart();

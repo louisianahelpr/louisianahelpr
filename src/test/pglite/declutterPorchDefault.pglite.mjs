@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261016050402_declutter_porch_default (spec row 101,
+ * PGlite proof for 20261017052704_declutter_porch_default (spec row 101,
  * owner 2026-10-16: porch pickup is the default; the seller can turn porch off
  * per item; the server refuses a porch checkout when any line's item has it
  * off), on top of slices 1-4, the $1,000 cap and F1. Applied 3 times.
@@ -14,7 +14,7 @@
 import os from "node:os";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
-const PORCH_FILE = "20261016050402_declutter_porch_default.sql";
+const PORCH_FILE = "20261017052704_declutter_porch_default.sql";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const { SELLER, SELLER2, BUYER, BUYER2, BUYER3, OUTSIDER } = USERS;

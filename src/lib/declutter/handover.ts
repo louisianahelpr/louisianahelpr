@@ -219,10 +219,10 @@ export async function adminDecideProblem(
  * (declutter_admin_decide_delivery_damage, 20261017052705).
  */
 export async function adminDecideDeliveryDamage(problemId: string, note: string | null): Promise<Record<string, unknown>> {
-  return rpcData(
-    await supabase.rpc("declutter_admin_decide_delivery_damage", { p_problem_id: problemId, p_note: note as string }),
-    (e) => rpcErrorMessage("declutter_admin_decide_delivery_damage", e),
-  ) as unknown as Record<string, unknown>;
+  const res = await supabase.rpc("declutter_admin_decide_delivery_damage", { p_problem_id: problemId, p_note: note as string });
+  // Admin-only copy is fetched only on a refusal, as for adminDecideProblem.
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_delivery_damage", e) ?? null) as unknown as Record<string, unknown>;
 }
 
 /** Open problems for the admin card (RLS: admins read every problem). */

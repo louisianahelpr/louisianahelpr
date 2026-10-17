@@ -54,3 +54,8 @@ with the owner on 2026-10-16 (see build-queue.md rows 8, 15-19). Cross off anyth
 13. Rentals ownership approval: KEEP THE REVIEWER ANONYMOUS ("Approved by Louisiana Helpr").
 14. (Q1831) Trade categories: TAXED LIKE HANDYMAN (owner 2026-10-17 ~06:40Z).
 15. (Q1835) Moving jobs: YES, show a household-goods-carrier heads-up like the licensed-trade warning (owner 2026-10-17).
+
+## HELD FOR THE MORNING (owner asleep 2026-10-17 ~07:00Z: "hold questions till am")
+16. (Q1883, quotes) After a poster agrees a price they have 48 h to pay. If a slow bank payment (ACH) clears AFTER that: (A) still hire the Helpr if they're free, else refund in full [recommended]; (B) always refund late payments; (C) card-only for quote jobs.
+17. (Shops N2) A shop listing the admin REJECTED can be withdrawn and re-created to get around the rejection. Keep the rejection on the re-created listing?
+18. (from the cloud train) Business outreach decisions OD1-OD12 / C1-C6 (docs/specs outreach spec) are still open.

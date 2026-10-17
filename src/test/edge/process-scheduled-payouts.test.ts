@@ -834,7 +834,7 @@ describe("process-scheduled-payouts edge function", () => {
       stripeMock.transfers.list.mockResolvedValue({ data: [] });
     };
 
-    // @mutate supabase/functions/process-scheduled-payouts/index.ts | const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin); | const tipRedrive = { repaid: 0, kept: 0, waiting: 0, defects: [] as string[] };
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin, redriveStripeFor); | const tipRedrive = { repaid: 0, kept: 0, waiting: 0, defects: [] as string[] };
     // @mutate supabase/functions/_shared/heldTipRepay.ts |   const group = `tip_${r.tip_id}`; |   const group = `job_${tipRow?.job_id}`;
     it("Q1222: a reversed tip is re-paid once its Helpr's hold is gone (claim, own tip_ group, fixed key, Helpr told)", async () => {
       seedNoJobs();
@@ -921,7 +921,7 @@ describe("process-scheduled-payouts edge function", () => {
     });
 
     // review of Q1222: Stripe, not the row, says whether the reversal went out.
-    // @mutate supabase/functions/_shared/heldTipRepay.ts |           const found = await ourReversal(stripe, r.transfer_id, r.tip_id); |           const found = null;
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |           const found = await ourReversal(await stripeForRow(), r.transfer_id, r.tip_id); |           const found = null;
     it("Q1222: a stale 'owed' row whose reversal Stripe holds becomes 'reversed' (never 'kept' with the money stranded)", async () => {
       seedNoJobs();
       scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "owed" })] };

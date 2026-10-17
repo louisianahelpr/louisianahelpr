@@ -124,7 +124,7 @@ const NOT_HERMETIC: Record<string, { why: string; mustContain?: string[] }> = {
   },
   "scripts/audit/press-every-control.mjs": {
     why: "drives Playwright Chromium over a prod build with minted test-account sessions and routes its auth and edge-function requests (the Q1374 CAPTCHA backstop made the /auth/v1/ route visible to this inventory); no stub stands in for a browser plus GoTrue. Its verdict is the exit below: an empty inventory (unless earlier waves drained the shared queue, Q1689), any failed press, an undocumented skip, a session death, an uncovered persona or an unreached row exits 1, a crash exits 2",
-    mustContain: ["if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || (totalFound === 0 && !drained) || uncoveredPersonas.length > 0 || notReached.length > 0) {", "main().catch((e) => { console.error(e); process.exit(2); });"],
+    mustContain: ["if (gateMisses.length > 0 || failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || (totalFound === 0 && !drained) || uncoveredPersonas.length > 0 || notReached.length > 0) {", "main().catch((e) => { console.error(e); process.exit(2); });"],
   },
   "scripts/audit/pressProdSafety.mjs": {
     why: "a library imported by press-every-control.mjs — no CLI entrypoint and no verdict of its own; its caller's exit code is the check",

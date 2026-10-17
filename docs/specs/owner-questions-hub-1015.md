@@ -52,3 +52,5 @@ with the owner on 2026-10-16 (see build-queue.md rows 8, 15-19). Cross off anyth
 11. Poster cancels after agreeing but before paying: DELETE the unpaid job automatically.
 12. Where Helprs find quote requests: BOTH a "Wants quotes" filter in Jobs browse AND a Quotes link in the menu.
 13. Rentals ownership approval: KEEP THE REVIEWER ANONYMOUS ("Approved by Louisiana Helpr").
+14. (Q1831) Trade categories: TAXED LIKE HANDYMAN (owner 2026-10-17 ~06:40Z).
+15. (Q1835) Moving jobs: YES, show a household-goods-carrier heads-up like the licensed-trade warning (owner 2026-10-17).

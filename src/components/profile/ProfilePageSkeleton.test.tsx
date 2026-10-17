@@ -58,8 +58,12 @@ describe("the Profile landing skeleton draws what is known before data (Q1173)",
     }
     // Drawn, not live: nothing in the first frame can be tapped or tabbed to
     // before the page that handles it has arrived.
+    // Every button in the first frame: the Work rows, plus the payout row's own
+    // reserve (PayoutStatusRow holds that slot at its real height).
     const rows = container.querySelectorAll("button");
-    expect(rows.length).toBe(WORK_MENU_GROUP.items.length);
+    const payoutReserve = [...rows].filter((b) => b.querySelector("[data-payout-copy]"));
+    expect(payoutReserve.length, "the skeleton's payout slot is not the row's own reserve").toBe(1);
+    expect(rows.length).toBe(WORK_MENU_GROUP.items.length + 1);
     for (const row of rows) {
       expect(row.disabled, `"${row.textContent}" is tappable in the skeleton`).toBe(true);
       expect(row.tabIndex).toBe(-1);

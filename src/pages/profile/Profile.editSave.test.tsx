@@ -59,6 +59,12 @@ vi.mock("@/hooks/useCurrentUser", () => ({
     return session.current;
   },
 }));
+// Profile asks the hidden-feature switches through useAuthReady (Q1894); this
+// Supabase stub has no auth client, so give it the signed-in member directly.
+vi.mock("@/hooks/useAuthReady", () => {
+  const value = { user: { id: "user-1" }, isReady: true };
+  return { useAuthReady: () => value };
+});
 vi.mock("@/hooks/useProfileTabData", () => {
   const result = { data: undefined, isError: false, refetch: () => Promise.resolve() };
   const empty = () => result;

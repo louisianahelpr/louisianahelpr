@@ -1077,6 +1077,55 @@ describe("stripe-webhook edge function", () => {
       expect(JSON.stringify(escrowWrite?.filters)).toMatch(/payment_status\.eq\.failed/);
     });
 
+    // Q1879: an 'abandoned' job whose bank debit settles anyway holds captured
+    // money; without this it could never be funded.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | taxJob.payment_status === "failed" \|\|\n      taxJob.payment_status === "abandoned"; | taxJob.payment_status === "failed";
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | payment_status.eq.failed,payment_status.eq.abandoned") | payment_status.eq.failed")
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | payment_status.eq.abandoned")\n        .not("status", "in", "(completed,cancelled)") | payment_status.eq.abandoned")
+    it("promotes an abandoned job whose bank debit settled anyway to escrow (Q1879)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pi_succeeded_abandoned",
+        type: "payment_intent.succeeded",
+        data: { object: { id: "pi_ach_abandoned", amount: 5000, amount_details: { tax: { total_tax_amount: 0 } } } },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "abandoned", sales_tax_amount: 0, is_seed: true }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const escrowWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+      );
+      expect(escrowWrite).toBeDefined();
+      expect(JSON.stringify(escrowWrite?.filters)).toMatch(/payment_status\.eq\.abandoned/);
+      expect(escrowWrite?.filters).toContainEqual(expect.objectContaining({ op: "not", column: "status" }));
+    });
+
+    // Q1879: most abandoned jobs are cancelled by the sweep; captured money on
+    // a closed job is never escrowed (nothing would pay it out) and is paged.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | if (isStillUnpaid && jobClosed) { | if (false) {
+    it("never escrows a bank payment that settles on a cancelled abandoned job; pages ops to refund (Q1879)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pi_succeeded_abandoned_closed",
+        type: "payment_intent.succeeded",
+        data: { object: { id: "pi_ach_closed", amount: 5000, amount_details: { tax: { total_tax_amount: 0 } } } },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "abandoned", status: "cancelled", sales_tax_amount: 0, is_seed: true }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const escrowWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+      );
+      expect(escrowWrite).toBeUndefined();
+      expect((slackAlerts as Array<{ kind?: string; title?: string }>).some(
+        (a) => a.kind === "money_at_risk" && /closed job/.test(a.title ?? ""),
+      )).toBe(true);
+    });
+
     it("does not promote a job that is already in escrow (sync card payment)", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

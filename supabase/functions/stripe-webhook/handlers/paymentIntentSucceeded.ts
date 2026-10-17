@@ -17,7 +17,7 @@ export async function handlePaymentIntentSucceeded(
   // view and 1099 reconciliation both depend on this being accurate.
   const { data: taxJob, error: taxJobErr } = await supabase
     .from("jobs")
-    .select("id, sales_tax_amount, payment_status, customer_id, title, is_seed")
+    .select("id, sales_tax_amount, payment_status, status, customer_id, title, is_seed")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
@@ -66,18 +66,43 @@ export async function handlePaymentIntentSucceeded(
     // session marks the job 'failed' first; if the poster then retries with ACH
     // on that same session, the bank debit succeeds and this handler fires — the
     // job must not stay stuck in 'failed' with captured funds.
+    // "abandoned" too (Q1879, lh-money-escrow R4 review of PR #3197, #2):
+    // void-cancelled-payments marks an unpaid job abandoned and leaves it
+    // open. ME-046 keeps that off a job whose bank debit is in flight, but if
+    // it ever happens and the debit settles anyway, the money is captured and
+    // nothing else would ever fund the job: promote it like the others
+    // (checkoutSessionCompleted's funding CAS already accepts 'abandoned').
+    // But never onto a CLOSED job: the abandon sweep cancels most abandoned
+    // jobs (prod 2026-10-17: 101 of 102 abandoned jobs are 'cancelled'), and
+    // escrow on a cancelled job is money nothing pays out or refunds. Like
+    // checkoutSessionCompleted's funding write, a closed job is refused, and
+    // the captured money is paged to ops to refund.
     // If the job is already "escrow" (sync card payment — this PI also fires for
     // those) or further along, the UPDATE matches zero rows, which is the no-op.
     const isStillUnpaid =
       taxJob.payment_status == null ||
       taxJob.payment_status === "unpaid" ||
-      taxJob.payment_status === "failed";
-    if (isStillUnpaid) {
+      taxJob.payment_status === "failed" ||
+      taxJob.payment_status === "abandoned";
+    const jobClosed = taxJob.status === "cancelled" || taxJob.status === "completed";
+    if (isStillUnpaid && jobClosed) {
+      logStep("Bank payment settled on a CLOSED unfunded job — not promoted; ops paged to refund", { jobId: taxJob.id, piId: pi.id, status: taxJob.status });
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Bank payment settled on a closed job — refund it",
+        message: `A bank (ACH) payment settled for job ${taxJob.id}, but the job is ${taxJob.status} and was never funded, so it was NOT moved to escrow (nothing would pay it out). Refund this PaymentIntent from the Stripe dashboard.`,
+        fields: { job_id: taxJob.id, payment_intent: pi.id, job_status: String(taxJob.status), payment_status: taxJob.payment_status ?? "null" },
+        oncePerDayKey: `ach-settled-closed-job:${pi.id}`,
+        seed: taxJob.is_seed ?? false,
+      });
+    } else if (isStillUnpaid) {
       const { data: escrowRow, error: escrowErr } = await supabase
         .from("jobs")
         .update({ payment_status: "escrow" })
         .eq("id", taxJob.id)
-        .or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed")
+        .or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.failed,payment_status.eq.abandoned")
+        .not("status", "in", "(completed,cancelled)")
         .select("id")
         .maybeSingle();
       if (escrowErr) {

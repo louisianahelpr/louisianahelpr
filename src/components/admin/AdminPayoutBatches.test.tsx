@@ -377,8 +377,14 @@ describe("AdminPayoutBatches — the bulk payout run", () => {
  * out on the Stripe TEST key, so it stays listed but never adds to the queued
  * dollars (an admin money total).
  *
- * @mutate src/components/admin/AdminPayoutBatches.tsx | const grandTotal = readyBatches.filter((b) => !b.is_seed).reduce( | const grandTotal = readyBatches.reduce(
- * @mutate src/components/admin/AdminPayoutBatches.tsx | const totalJobs = readyBatches.filter((b) => !b.is_seed).reduce( | const totalJobs = readyBatches.reduce(
+ * The three tiles count one set (Q237, 2026-10-17): "Helprs awaiting" counted
+ * every batch, so a lone test batch read "1 · 0 jobs · $0".
+ *
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const realReadyBatches = readyBatches.filter((b) => !b.is_seed); | const realReadyBatches = readyBatches;
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const grandTotal = realReadyBatches.reduce( | const grandTotal = readyBatches.reduce(
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const totalJobs = realReadyBatches.reduce( | const totalJobs = readyBatches.reduce(
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const helprsAwaiting = realReadyBatches.length; | const helprsAwaiting = batches.length;
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const helprsAwaiting = realReadyBatches.length; | const helprsAwaiting = batches.filter((b) => !b.is_seed).length;
  */
 describe("AdminPayoutBatches: a test account's batch is not real money", () => {
   beforeEach(() => {
@@ -389,14 +395,17 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
     seedProfiles = [{ user_id: "helper-seed" }];
     rpcMock.mockImplementation(async (fn: string) =>
       fn === "get_payout_batches"
-        ? { data: [batch, { ...batch, helper_id: "helper-seed", helper_name: "Test Helpr", total_payout: 999 }], error: null }
+        ? { data: [batch, { ...batch, helper_id: "helper-seed", helper_name: "Test Helpr", total_payout: 999 }, { ...batch, helper_id: "helper-held", helper_name: "Held Helpr", total_payout: 555 }], error: null }
         : { data: [{ job_id: JOB_ID }], error: null },
     );
+    // A real batch on hold sits in its own tab and counts in no tile.
+    holdsResult = { data: [{ helper_id: "helper-held", reason: "fraud review", held_at: "2026-10-03T00:00:00Z", held_by: "admin-2", denied_at: null, denied_reason: null }], error: null };
     renderScreen();
     const label = await screen.findByText("Total queued");
     // Both batches are listed (the seed read lands with them); only one is money.
     await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
     expect(label.nextElementSibling?.textContent).toBe("$310.50");
     expect(screen.getByText("Total jobs").nextElementSibling?.textContent).toBe("2");
+    expect(screen.getByText("Helprs awaiting").nextElementSibling?.textContent).toBe("1");
   });
 });

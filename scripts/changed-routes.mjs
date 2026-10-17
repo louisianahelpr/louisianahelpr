@@ -26,7 +26,8 @@ const changed = new Set(
     .join("\n").split("\n").map((s) => s.trim()).filter((f) => f.startsWith("src/") && !/\.test\.tsx?$/.test(f)),
 );
 
-const GLOBAL = [/^src\/App\.tsx$/, /^src\/main\.tsx$/, /^src\/index\.css$/, /^src\/components\/ui\//, /^src\/components\/AppShell\.tsx$/];
+// SessionManager.tsx is App.tsx's boot-hook component (moved out of App.tsx, Q806): mounted on every route, imported by no page.
+const GLOBAL = [/^src\/App\.tsx$/, /^src\/components\/SessionManager\.tsx$/, /^src\/main\.tsx$/, /^src\/index\.css$/, /^src\/components\/ui\//, /^src\/components\/AppShell\.tsx$/];
 
 // ---- import graph ----------------------------------------------------------
 const files = [];

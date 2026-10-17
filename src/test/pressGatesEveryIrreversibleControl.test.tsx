@@ -198,7 +198,7 @@ describe("the press sweep gates every irreversible control", () => {
   it("the sweep records data-commit and gates on it, in the same condition as every other mutating test", () => {
     const src = blankComments(readFileSync(resolve(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
     expect(src).toMatch(/commit: el\.getAttribute\("data-commit"\) \|\| "",/);
-    const cond = src.match(/if \(DESTRUCTIVE_RX\.test\(label\)[^\n]*\{\n\s*const why = await gate\(/)?.[0] ?? "";
+    const cond = src.match(/if \(\(?DESTRUCTIVE_RX\.test\(label\)[^\n]*\{\n\s*const why = await gate\(/)?.[0] ?? "";
     for (const term of ["DESTRUCTIVE_RX.test(label)", "isAdminWrite({ persona, label })", 'meta.type === "submit"', "isCommitControl(meta)", "PAYMENT_RX.test(label)", "isAdminStateToggle({ persona, meta, label })", "isAccountSettingToggle({ persona, meta, label })"]) {
       expect(cond, term).toContain(term);
     }

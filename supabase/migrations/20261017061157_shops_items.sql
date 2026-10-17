@@ -48,6 +48,14 @@
 -- (shops_admin_review_item), never their own item, never for an owner who
 -- cannot sell now; every decision is in admin_audit_log.
 --
+-- HOLD AFTER A REJECTION (owner decision 2026-10-17, "Hold new items"): for
+-- 30 days after an admin rejects any of an owner's items, EVERY item that
+-- owner publishes waits for an admin, whatever its title or photos. 30 days is
+-- the lead's default (the spec named no window). It reads the rejection from
+-- admin_audit_log (details.owner_id), which the owner cannot write, and which
+-- survives taking the item down, deleting it, and closing and re-opening the
+-- shop, the three ways a rejected item could otherwise come back clean.
+--
 -- HIDDEN: behind slice 1's hidden switch 'shops' (still OFF). Every client RPC
 -- starts PERFORM public.require_feature('shops'); the items read policy needs
 -- shop_publicly_visible (switch on for the caller) for anyone but the owner.
@@ -1112,6 +1120,7 @@ DECLARE
   v_approved integer;
   v_text_flag text;
   v_status text;
+  v_recent_rejection boolean;
 BEGIN
   PERFORM public.require_feature('shops');
   IF public.is_caller_banned() THEN
@@ -1171,9 +1180,18 @@ BEGIN
   -- one the AI flagged or never checked, and one the word check flagged.
   SELECT count(*)::integer INTO v_approved
     FROM public.shop_items WHERE shop_id = v_item.shop_id AND admin_approved_at IS NOT NULL;
+  -- Hold after a rejection (owner 2026-10-17): any of this owner's items
+  -- rejected by an admin in the last 30 days sends every publish to an admin,
+  -- so taking a rejected item down and listing it again never skips review.
+  v_recent_rejection := EXISTS (
+    SELECT 1 FROM public.admin_audit_log l
+     WHERE l.action = 'shop_item_rejected'
+       AND l.details->>'owner_id' = v_uid::text
+       AND l.created_at > now() - interval '30 days');
   v_status := CASE
     WHEN v_approved < 3 THEN 'pending_review'
     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'
+    WHEN v_recent_rejection THEN 'pending_review'
     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
     WHEN v_text_flag IS NOT NULL THEN 'pending_review'
     ELSE 'live'
@@ -1364,6 +1382,10 @@ GRANT EXECUTE ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], 
 -- ---------------------------------------------------------------------------
 -- 11. Admin review (L52, L73's back end). Admins only, switch on, every
 --     decision in admin_audit_log.
+-- The 30-day hold's lookup (shops_publish_item): rejections by owner, newest.
+CREATE INDEX IF NOT EXISTS admin_audit_log_shop_item_rejected_owner_idx
+  ON public.admin_audit_log ((details->>'owner_id'), created_at)
+  WHERE action = 'shop_item_rejected';
 CREATE OR REPLACE FUNCTION public.shops_admin_pending_items()
 RETURNS TABLE(
   item_id uuid, shop_id uuid, shop_name text, owner_id uuid, kind text, subtype text, title text,
@@ -1482,7 +1504,9 @@ BEGIN
 
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_uid, CASE WHEN p_approve THEN 'shop_item_approved' ELSE 'shop_item_rejected' END,
-          'shop_item', p_item_id::text, jsonb_build_object('note', v_note));
+          'shop_item', p_item_id::text,
+          -- owner_id is what shops_publish_item's 30-day hold reads.
+          jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop));
   RETURN v_status;
 END;
 $fn$;

@@ -395,6 +395,30 @@ ok(one(await decide(ADMIN, c3, true, "NULL")) === "live"
    && one(await svc(`SELECT admin_rejected_at IS NULL FROM public.shop_item_private WHERE item_id = '${c3}'`)) === true,
   "an admin's approval clears the rejection mark");
 
+// --- hold after a rejection (owner decision 2026-10-17, "Hold new items";
+//     lh-authz-rls re-review N2): taking a rejected item down and listing the
+//     same thing again as a NEW item must still wait for an admin.
+ok(one(await svc(`SELECT details->>'owner_id' FROM public.admin_audit_log WHERE action = 'shop_item_rejected' AND target_id = '${c3}'`)) === OWNER,
+  "the rejection's log row names the item's owner (what the hold reads)");
+const wdC3 = one(await member(OWNER, `SELECT public.shops_withdraw_item('${c3}') AS p`));
+ok(Array.isArray(wdC3) && one(await svc(`SELECT status FROM public.shop_items WHERE id = '${c3}'`)) === "withdrawn",
+  "N2 setup: the owner takes the once-rejected item down");
+const c3again = one(await member(OWNER, createSql({ kind: "made", subtype: "crafts", title: "Duck decoy", description: "Hand carved." })));
+await readyToPublish(OWNER, c3again, STATEMENTS.made);
+await recordAi(c3again, "made", "crafts", "Duck decoy", "Hand carved.", null);
+ok(one(await svc(`SELECT admin_rejected_at IS NULL FROM public.shop_item_private WHERE item_id = '${c3again}'`)) === true,
+  "N2 setup: the re-listed item is brand new (no rejection mark of its own), clean AI verdict, 3+ approvals");
+ok(one(await member(OWNER, `SELECT public.shops_publish_item('${c3again}')`)) === "pending_review",
+  "within 30 days of a rejection, a NEW item from that owner waits for an admin (the rejection is not undone by withdraw + re-create)");
+await decide(ADMIN, c3again, false, "'Still not a decoy we can list'");
+await svc(`UPDATE public.admin_audit_log SET created_at = now() - interval '31 days'
+  WHERE action = 'shop_item_rejected' AND details->>'owner_id' = '${OWNER}'`);
+const c4 = one(await member(OWNER, createSql({ kind: "made", subtype: "candles", title: "Cedar candle", description: "Soy wax." })));
+await readyToPublish(OWNER, c4, STATEMENTS.made);
+await recordAi(c4, "made", "candles", "Cedar candle", "Soy wax.", null);
+ok(one(await member(OWNER, `SELECT public.shops_publish_item('${c4}')`)) === "live",
+  "once the last rejection is over 30 days old, a clean item from an established shop goes live again");
+
 // --- the word check itself (L5, L11-L16)
 for (const [kind, words, re] of [["home_food", "Boudin balls", /meat or fish/], ["home_food", "Crawfish bread", /meat or fish/],
   ["made", "Gently used rocking chair", /used/], ["made", "Baby blanket", /children/], ["made", "Goat milk soap", /skin/],

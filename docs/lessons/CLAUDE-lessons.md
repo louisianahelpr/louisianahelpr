@@ -687,3 +687,29 @@ wrong place.** The infinite render loop looked exactly like this Mac's
 documented vitest memory flake. Prefer a dependency on a primitive over a
 hook-returned object, and when a test hangs, read the dep array before blaming
 the machine.
+
+## landing-ownership
+2026-10-15 to 10-17. Three failures in one stretch, all about who lands what.
+
+**A landing queue with no runner stops.** The lead handed its landing turn to
+another session and kept nothing of its own waiting on that PR's merge. It sat
+idle about 20 hours; ten ready branches went stale while main moved ~140 PRs, and
+the open count rose from 154 to 184 because new items kept arriving while built
+work never landed. Whenever a session yields a turn, a background runner resumes
+its queue on the other PR's MERGE by itself.
+
+**Two sessions claimed the same branches.** A cloud train and a local session
+each took the Declutter/Shops landing list; it was caught only because a docs
+branch named the train. One owner per branch, recorded where every session can
+read it before landing (`refs/lh/landing-claims`, read and written by land.sh),
+and one landing path for everyone when possible.
+
+**A stale checkout gives wrong answers.** `stranded-work.mjs --remote` run from
+the shared checkout (branch frozen at 2026-10-05) judged 175 refs against a
+10-day-old acceptance list; 117 of them were already accepted on main. Every
+inventory or audit runs against fresh `origin/main` (a detached worktree or
+`git show origin/main:<file>`), never the shared checkout's branch.
+
+Also seen: a cloud session's sub-agent opens a NEW session for every review it
+asks for (the owner sees sessions appear overnight). Reviews run in-process as
+agents; cloud routines that start sessions are switched off unless the owner asks.

@@ -791,3 +791,34 @@ default. Each row is a **default chosen by lane, owner to confirm**. Cited in th
 | D12 | A shop that turns selling off (quotes only) | Its live items stop showing to members (they stay listed for the owner and come back when selling is on again), and no item is approved for it | 2026-10-16 | default chosen by lane, owner to confirm |
 | D11 | The kind `rental` | Reserved in the item table (section 5 lists it in S2) but refused by every call until the rentals slice (S5, the Shops rentals item in docs/OPEN.md) | 2026-10-16 | default chosen by lane, owner to confirm |
 | D13 | Decided #2's "recent" rejection | 30 days from the owner's last admin rejection; then items go back to the normal checks (first 3, AI, word check) | 2026-10-17 | default chosen by lead, owner to confirm |
+
+## Shop categories (owner rules 2026-10-17 ~23:25Z to 2026-10-18 ~00:00Z, via the lead; v2.2 FINAL, Gym removed)
+Rule: Shops is for individuals and small, medium and large LOCAL businesses that build a clientele, where people
+order, book or rent and pick up or get served: a small-town outlet, NOT delivery-app food service. Built by
+20261017224153_shop_categories_v2 (the whole list, 80 rows; pinned by src/test/shopCategories.test.ts, behaviour in
+src/test/pglite/shopCategoriesV2.pglite.mjs). Replaces the L54 starter list.
+
+| Group | Categories |
+|-------|------------|
+| Food to order | Bakery and cakes, Catering, Crawfish and seafood, BBQ and smoked meats, Meal prep, Home kitchen |
+| Home services | Cleaning, Lawn and landscaping, Pressure washing, Pest control, Pool, Moving, Junk removal, Organizing, Tree service, Gutters, Window washing |
+| Trades | Electrical, Plumbing, HVAC, Roofing, Welding, Carpentry, Flooring, Concrete and masonry, Fencing, Painting, Remodeling, Appliance repair, Handyman, Equipment rental (tools, trailers, dumpsters) |
+| Events and party | DJ, Photography, Videography, Venues, Decor, Florist, Party rentals, Bounce houses, Tables, chairs and tents |
+| Auto and marine | Mechanic, Mobile mechanic, Detailing, Towing, Tires, Boat repair |
+| Beauty | Hair, Barber, Nails, Lashes and brows, Makeup, Spa, Tattoo |
+| Health and fitness | Personal trainer, Yoga, Massage, Nutrition |
+| Pets | Grooming, Sitting and walking, Training, Boarding |
+| Made locally | Boutique, Crafts and gifts, Home decor, Plants and garden, Custom shirts and printing, Jewelry, Candles and soap |
+| Lessons | Tutoring, Music lessons, Classes |
+| Local pros | Tax and bookkeeping, Notary, Printing, IT and phone repair |
+| Outdoors | Fishing charters, Hunting guides, Swamp tours, Deer processing |
+| Other | Other |
+
+Removed: Food truck, Restaurant, Coffee, Snowballs, Farmers market, Driving school, Real estate, Insurance, Gym
+(owner 2026-10-18 ~00:00Z); Cakes
+folded into "Bakery and cakes". A shop on a removed slug moves to its new home ('cakes' to 'bakery') or to 'other'
+(prod, read-only 2026-10-17 22:41Z: 0 shops exist, so 0 moved). Words in parentheses describe a category; they are
+not part of its name. No group is called just "Rentals" (that is the homes section).
+Note: a category is the SHOP's; what an item may be is still the item rules (L5-L14, D1-D12): "Home kitchen" items
+are the low-risk home-food list (no meat or fish, so no boudin from a home kitchen), and soap waits for the federal
+cosmetics check (L14), whatever the category says.

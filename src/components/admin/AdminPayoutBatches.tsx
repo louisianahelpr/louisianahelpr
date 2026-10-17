@@ -201,8 +201,13 @@ const AdminPayoutBatches = () => {
   // Real money only (owner 2026-10-12): a test account's batch pays out on the
   // Stripe TEST key, so it stays listed (with its Test tag) but never adds to
   // the queued dollars or the job count beside them.
-  const grandTotal = readyBatches.filter((b) => !b.is_seed).reduce((s, b) => s + Number(b.total_payout || 0), 0);
-  const totalJobs = readyBatches.filter((b) => !b.is_seed).reduce((s, b) => s + b.job_count, 0);
+  // All three summary tiles count this ONE set (Q237, 2026-10-17): "Helprs
+  // awaiting" used to count every batch, seed and held included, so a lone
+  // test batch read "1 Helpr awaiting · 0 jobs · $0" beside a card for 9 jobs.
+  const realReadyBatches = readyBatches.filter((b) => !b.is_seed);
+  const helprsAwaiting = realReadyBatches.length;
+  const grandTotal = realReadyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
+  const totalJobs = realReadyBatches.reduce((s, b) => s + b.job_count, 0);
 
   // Bulk amounts — recomputed off the live selection.
   const selectedBatches = readyBatches.filter((b) => selected.has(b.helper_id) && b.stripe_account_id);
@@ -283,7 +288,7 @@ const AdminPayoutBatches = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
             <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
-            <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
+            <p className="text-ds-24 font-bold text-foreground mt-1">{helprsAwaiting}</p>
           </div>
           <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
             <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs</p>

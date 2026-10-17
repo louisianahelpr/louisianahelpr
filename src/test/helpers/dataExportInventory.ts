@@ -145,7 +145,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_problems: { by: ["reporter_id"] },
   declutter_payouts: { by: ["seller_id"] },
   declutter_reviews: { by: ["reviewer_id", "reviewee_id"] },
-  // Declutter slice 5, Helpr delivery (20261016053945 + 20261016070800).
+  // Declutter slice 5, Helpr delivery (20261017052705 + 20261017052706).
   helpr_vehicles: { by: ["user_id"] },
   helpr_tasks: { by: ["helpr_id"] },
   helpr_task_events: { by: ["actor_id"] },
@@ -198,7 +198,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
  * not by a person column of that table but through a parent row the caller is a
  * party to. `scope` is the exact WHERE the section must carry (whitespace-free
  * compare): anything wider fails "every section is filtered to the caller".
- * declutter_problems_about_me (20261015092457, lane J): problems the OTHER side of
+ * declutter_problems_about_me (20261017052701, lane J): problems the OTHER side of
  * the member's order filed about them (RLS lets both parties read a problem),
  * without the reporter's id, photos or the deciding admin.
  */
@@ -427,10 +427,10 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },
   "declutter_cart_items.checkout_by": { reason: "a deadline timestamp (when checkout must happen), not a person; the line is exported by declutter_cart_items.buyer_id/seller_id (20261014210518)" },
-  "helpr_tasks.customer_id": { reason: "the buyer of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by buyer_id), and the Helpr's task row holds the seller's address, which is never the buyer's data (20261016053945)" },
-  "helpr_tasks.pickup_contact_id": { reason: "the seller of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by seller_id), and the Helpr's task row holds the buyer's drop-off address, which is never the seller's data (20261016053945)" },
-  "helpr_tasks.confirmed_by": { reason: "how a delivery was confirmed ('code', 'customer', 'auto', 'admin'), not a person (20261016053945)" },
-  "declutter_delivery_dropoffs.seller_id": { reason: "the other side of the order: the drop-off address is the BUYER's and is never exported to the seller (exported by declutter_delivery_dropoffs.buyer_id, 20261016070800)" },
+  "helpr_tasks.customer_id": { reason: "the buyer of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by buyer_id), and the Helpr's task row holds the seller's address, which is never the buyer's data (20261017052705)" },
+  "helpr_tasks.pickup_contact_id": { reason: "the seller of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by seller_id), and the Helpr's task row holds the buyer's drop-off address, which is never the seller's data (20261017052705)" },
+  "helpr_tasks.confirmed_by": { reason: "how a delivery was confirmed ('code', 'customer', 'auto', 'admin'), not a person (20261017052705)" },
+  "declutter_delivery_dropoffs.seller_id": { reason: "the other side of the order: the drop-off address is the BUYER's and is never exported to the seller (exported by declutter_delivery_dropoffs.buyer_id, 20261017052706)" },
   "declutter_handovers.confirmed_by": { reason: "how a Declutter handover was confirmed ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'), not a person; the table has no person column (it is keyed by order_id; 20261015042253)" },
   "declutter_problems.decided_by": { reason: "the staff member who decided a Declutter problem report; the report is the member's (exported by declutter_problems.reporter_id, 20261015042253, with this staff id dropped)", stripped: true },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },

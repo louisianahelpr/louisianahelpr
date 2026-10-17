@@ -63,7 +63,7 @@ const NOT_HIRES: Record<string, string> = {
   // first (declutter_lock_buyable_item / declutter_respond_offer:
   // are_users_blocked -> item_not_found).
   declutter_take_item: "accepts a Declutter offer (an item sale); hires no one",
-  // 20261016053945 (Declutter slice 5): a Helpr TAKES an open delivery task
+  // 20261017052705 (Declutter slice 5): a Helpr TAKES an open delivery task
   // (status 'accepted'); no application or roster row, and nobody hires them.
   // It refuses a blocked pair before the write (are_users_blocked with the
   // task's buyer or seller -> task_not_found, which says nothing of a block).

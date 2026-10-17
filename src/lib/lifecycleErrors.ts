@@ -528,7 +528,7 @@ export const RPC_ERROR_COPY = {
   // Declutter (docs/specs/declutter-auctions.md): the words live in
   // src/lib/declutter/errors.ts (DECLUTTER_ERROR_COPY, exact against the
   // migrations); each RPC maps exactly the codes it can raise.
-  // Slice 5 (20261016053945): Helpr delivery, through the shared Helpr task module.
+  // Slice 5 (20261017052705): Helpr delivery, through the shared Helpr task module.
   helpr_my_tasks: {
     not_authenticated: DC.not_authenticated,
   },

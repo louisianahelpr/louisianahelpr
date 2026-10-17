@@ -25,12 +25,20 @@
 // @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF v_status <> 'approved' THEN\n    RAISE EXCEPTION 'ownership_not_approved' |   IF false THEN\n    RAISE EXCEPTION 'ownership_not_approved'
 // @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   v_auto := p_urgency <> 'emergency' AND v_p.auto_approve_limit_cents IS NOT NULL; |   v_auto := v_p.auto_approve_limit_cents IS NOT NULL;
 // @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF public.member_under_18(v_uid) THEN |   IF false THEN
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;
+// Owner decision 2026-10-17: the landlord never learns which admin reviewed the proof.
+// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql | ownership_review_note, auto_approve_limit_cents, created_at, updated_at)\n  ON TABLE public.rental_properties TO authenticated; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by)\n  ON TABLE public.rental_properties TO authenticated;
+// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |     '/rentals', false, true); |     '/rentals', false);
+// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
+// @mutate src/lib/rentals/api.ts | ownership_review_note, auto_approve_limit_cents, created_at, updated_at"; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by";
+// @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { RENTAL_PROPERTY_COLUMNS } from "@/lib/rentals/api";
+import { OWNERSHIP_STATUS_LABEL } from "@/lib/rentals/copy";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
@@ -148,6 +156,28 @@ describe("Rentals S1: hidden, gated maintenance requests (20261015061259)", () =
     // The policy helper answers only about the caller (no user argument).
     expect(flat(body("rentals_caller_is_active_tenant_of"))).toContain("t.tenant_id = (SELECT auth.uid())");
     expect(body("rentals_caller_is_active_tenant_of")).not.toMatch(/p_user/);
+  });
+
+  it("6. the landlord never learns which admin reviewed the ownership proof (owner, 2026-10-17)", () => {
+    // Client reads: authenticated holds a COLUMN grant on rental_properties without ownership_reviewed_by.
+    expect(MIG).not.toMatch(/GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.rental_properties\s+TO\s+[^;]*\bauthenticated\b/i);
+    const grants = [...MIG.matchAll(/GRANT\s+SELECT\s*\(([^)]*)\)\s*ON\s+(?:TABLE\s+)?public\.rental_properties\s+TO\s+([^;]+);/gi)];
+    expect(grants.length).toBe(1);
+    expect(grants[0][2]).toMatch(/\bauthenticated\b/);
+    const granted = grants[0][1].split(",").map((c) => c.trim());
+    expect(granted.length).toBeGreaterThan(10);
+    expect(granted).not.toContain("ownership_reviewed_by");
+    expect(granted).toEqual(expect.arrayContaining(["owner_id", "ownership_status", "ownership_review_note", "ownership_reviewed_at"]));
+    // The client names exactly those columns (select("*") would be refused, and the payload carries no reviewer id).
+    expect(RENTAL_PROPERTY_COLUMNS.split(",").map((c) => c.trim())).toEqual(granted);
+    const api = readFileSync(join(ROOT, "src/lib/rentals/api.ts"), "utf8");
+    expect(api).not.toMatch(/from\("rental_properties"\)\.select\("\*"\)/);
+    // The owner's notice: sent as staff (no actor in the link), the seed boundary judged with the actor instead.
+    expect(flat(body("rentals_admin_review_property"))).toContain("'/rentals', false, true);");
+    expect(flat(body("rentals_notify"))).toContain(
+      "IF p_staff THEN IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN BEGIN INSERT INTO public.notification_logs",
+    );
+    expect(OWNERSHIP_STATUS_LABEL.approved).toBe("Approved by Louisiana Helpr");
   });
 
   it("5. the switch is created OFF and the behaviour proof exists", () => {

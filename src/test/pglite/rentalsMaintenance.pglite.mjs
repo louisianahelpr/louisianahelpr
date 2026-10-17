@@ -15,8 +15,9 @@
  * has_role, test_accounts, admin_audit_log. The helpers the migration calls
  * (is_caller_banned, member_under_18, contact_leak_reason) are NOT re-typed:
  * their NEWEST definitions are read out of supabase/migrations.
- * notification_crosses_seed_boundary is stubbed (it only runs inside the
- * best-effort email block, which PGlite cannot reach: no net/vault). Then
+ * notification_crosses_seed_boundary is stubbed to false (it runs inside the
+ * best-effort email block, which PGlite cannot reach: no net/vault, and before
+ * a staff notice); the Q137 section below loads its newest definition. Then
  * 20261012031120_hidden_feature_switches.sql, then the migration 3x.
  * export_my_data is created (plpgsql bodies compile lazily) but not run here:
  * src/test/dataExportCoversEveryUserTable.test.ts checks its sections.
@@ -32,6 +33,9 @@ const MIGRATION = readFileSync(
   process.env.MIGRATION_PATH ?? `${MIG_DIR}${SELF}_rentals_maintenance_requests.sql`,
   "utf8",
 );
+// The client's column list for rental_properties (src/lib/rentals/api.ts), read so the proof tests what the app sends.
+const RENTAL_PROPERTY_COLUMNS = readFileSync(new URL("../../lib/rentals/api.ts", import.meta.url), "utf8")
+  .match(/export const RENTAL_PROPERTY_COLUMNS =\s*"([^"]+)";/)?.[1] ?? "id";
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
@@ -86,6 +90,8 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), custome
   payment_status text, stripe_session_id text);
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, title text, message text,
   type text, link text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.notification_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, category text, channel text,
+  status text, subject text, job_id uuid, error_message text);
 CREATE FUNCTION public.notification_crosses_seed_boundary(p_recipient uuid, p_job_id uuid, p_link text, p_actor uuid DEFAULT NULL)
   RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 `;
@@ -202,6 +208,20 @@ ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_r
   "an admin approves the ownership proof");
 ok(one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE action = 'rentals_ownership_approved' AND target_id = '${prop}'`)) === 1,
   "the approval is written to admin_audit_log");
+// Owner decision 2026-10-17: the landlord sees "Approved by Louisiana Helpr", never which admin.
+const approvedLink = one(await svc(`SELECT link FROM public.notifications WHERE user_id = '${LANDLORD}' AND title = 'Property approved'`));
+ok(approvedLink === "/rentals", `the landlord's approval notice carries no admin id (link ${approvedLink})`);
+ok(one(await svc(`SELECT ownership_reviewed_by FROM public.rental_properties WHERE id = '${prop}'`)) === ADMIN,
+  "the server still records which admin reviewed it");
+ok(refused(await as("authenticated", LANDLORD, `SELECT ownership_reviewed_by FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
+  "the landlord cannot read ownership_reviewed_by");
+ok(refused(await as("authenticated", LANDLORD, `SELECT * FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
+  "nor through select * (the client names its columns)");
+const ownerRow = rows(await as("authenticated", LANDLORD, `SELECT to_jsonb(t) AS j FROM (SELECT ${RENTAL_PROPERTY_COLUMNS} FROM public.rental_properties WHERE id = '${prop}') t`))[0]?.j;
+ok(ownerRow?.ownership_status === "approved" && !("ownership_reviewed_by" in ownerRow) && !JSON.stringify(ownerRow).includes(ADMIN),
+  "the landlord's own read (the client's column list) returns the row with no reviewer id anywhere in it");
+ok(refused(await as("authenticated", ADMIN, `SELECT ownership_reviewed_by FROM public.rental_properties WHERE id = '${prop}'`), /permission denied/),
+  "no client read returns it, an admin's included (staff-only: the server and admin_audit_log)");
 
 // --- invites (Q37)
 const token = one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`));
@@ -406,8 +426,13 @@ const grants = await svc(`SELECT string_agg(c.relname || ':' || r.rolname || ':'
   FROM pg_class c CROSS JOIN (VALUES ('anon'), ('authenticated')) r(rolname)
   WHERE c.relnamespace = 'public'::regnamespace AND (c.relname LIKE 'rental%' OR c.relname LIKE 'maintenance_request%') AND c.relkind = 'r'`);
 ok(one(grants) === ["maintenance_request_photos", "maintenance_requests", "rental_properties", "rental_tenancies", "rental_units"]
-  .flatMap((t) => [`${t}:anon:false`, `${t}:authenticated:true`]).join(),
-  "exactly SELECT for authenticated and nothing for anon on each of the 5 Rentals tables");
+  .flatMap((t) => [`${t}:anon:false`, `${t}:authenticated:${t !== "rental_properties"}`]).join(),
+  "exactly SELECT for authenticated and nothing for anon on each Rentals table (rental_properties: column grants)");
+const propCols = await svc(`SELECT string_agg(a.attname || ':' || has_column_privilege('authenticated', a.attrelid, a.attnum, 'SELECT')
+    || ':' || has_column_privilege('anon', a.attrelid, a.attnum, 'SELECT'), ',' ORDER BY a.attnum) AS c
+  FROM pg_attribute a WHERE a.attrelid = 'public.rental_properties'::regclass AND a.attnum > 0 AND NOT a.attisdropped`);
+ok(typeof one(propCols) === "string" && one(propCols).split(",").every((c) => c === (c.startsWith("ownership_reviewed_by:") ? "ownership_reviewed_by:false:false" : `${c.split(":")[0]}:true:false`)),
+  `rental_properties: authenticated reads every column but ownership_reviewed_by, anon none (${one(propCols)})`);
 const tables = await svc(`SELECT count(*)::int AS n, count(*) FILTER (WHERE NOT relrowsecurity)::int AS norls FROM pg_class
   WHERE relnamespace = 'public'::regnamespace AND (relname LIKE 'rental%' OR relname LIKE 'maintenance_request%') AND relkind = 'r'`);
 ok(rows(tables)[0]?.n === 5 && rows(tables)[0]?.norls === 0, "5 Rentals tables, every one with RLS on");
@@ -423,6 +448,17 @@ ok(one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}'
   "a test tenant's notice to a real landlord crosses the seed boundary (the trigger drops it)");
 ok(typeof newLink === "string" && one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}', NULL, '/rentals/requests/${req1}') AS x`)) === false,
   "without the actor in the link the boundary could not tell (why the link carries it)");
+// A test ADMIN reviewing a real landlord's proof: the staff notice carries no actor, so rentals_notify judges
+// the boundary itself with auth.uid() and sends nothing (Q137 holds without naming the admin).
+await svc(`UPDATE public.profiles SET is_seed = (user_id = '${ADMIN}')`);
+const staffProp = one(await svc(`INSERT INTO public.rental_properties (owner_id, label, street_address, city, zip_code, ownership_status, ownership_submitted_at)
+  VALUES ('${ORDINARY}', 'Staff notice check', '9 Elm Street', 'Lafayette', '70501', 'pending_review', now()) RETURNING id`));
+ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_review_property('${staffProp}', true, 'Matches')`)),
+  "a test admin can still review a real landlord's proof");
+ok(!skip && one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${ORDINARY}' AND title = 'Property approved'`)) === 0,
+  "but its notice to the real landlord is dropped by the boundary (judged with the actor, not the link)");
+ok(one(await svc(`SELECT count(*)::int FROM public.notification_logs WHERE user_id = '${ORDINARY}' AND status = 'suppressed_seed' AND subject = 'Property approved'`)) === 1,
+  "and the drop is logged like the trigger's (notification_logs suppressed_seed)");
 await svc(`UPDATE public.profiles SET is_seed = false`);
 
 // --- Q807: the unconfirmed-email statement gate covers every Rentals table

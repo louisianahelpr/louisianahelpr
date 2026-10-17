@@ -14,7 +14,16 @@ import { RENTALS_PROOF_TYPES, RENTALS_REQUEST_PHOTO_TYPES, isAllowedUploadType, 
 import { RentalsCopyError } from "./copy";
 
 type Tables = Database["public"]["Tables"];
-export type RentalProperty = Tables["rental_properties"]["Row"];
+/**
+ * The rental_properties columns a client may read: every column but
+ * ownership_reviewed_by. Which admin checked a landlord's proof is staff-only
+ * (owner decision 2026-10-17: the landlord sees "Approved by Louisiana Helpr");
+ * the migration grants authenticated exactly these columns, so `select("*")`
+ * would be refused. Pinned against the GRANT by src/test/rentalsMaintenance.test.ts.
+ */
+export const RENTAL_PROPERTY_COLUMNS =
+  "id, owner_id, label, street_address, city, zip_code, ownership_status, ownership_proof_path, ownership_submitted_at, ownership_reviewed_at, ownership_review_note, auto_approve_limit_cents, created_at, updated_at";
+export type RentalProperty = Omit<Tables["rental_properties"]["Row"], "ownership_reviewed_by">;
 export type RentalUnit = Tables["rental_units"]["Row"];
 export type MaintenanceRequest = Tables["maintenance_requests"]["Row"];
 export type MaintenancePhoto = Tables["maintenance_request_photos"]["Row"];
@@ -36,7 +45,7 @@ async function rpcValue<T>(p: PromiseLike<{ data: T | null; error: unknown }>, w
 }
 
 export async function fetchMyProperties(uid: string): Promise<RentalProperty[]> {
-  return (unwrap(await supabase.from("rental_properties").select("*").eq("owner_id", uid).order("created_at")) ?? []) as RentalProperty[];
+  return (unwrap(await supabase.from("rental_properties").select(RENTAL_PROPERTY_COLUMNS).eq("owner_id", uid).order("created_at")) ?? []) as RentalProperty[];
 }
 export async function fetchUnits(propertyIds: string[]): Promise<RentalUnit[]> {
   if (propertyIds.length === 0) return [];
@@ -92,7 +101,7 @@ export async function signedFileUrl(path: string): Promise<string> {
 /** Admin queue: properties waiting for an ownership check (admin RLS). */
 export async function fetchPendingOwnership(): Promise<RentalProperty[]> {
   return (unwrap(
-    await supabase.from("rental_properties").select("*").eq("ownership_status", "pending_review").order("ownership_submitted_at"),
+    await supabase.from("rental_properties").select(RENTAL_PROPERTY_COLUMNS).eq("ownership_status", "pending_review").order("ownership_submitted_at"),
   ) ?? []) as RentalProperty[];
 }
 

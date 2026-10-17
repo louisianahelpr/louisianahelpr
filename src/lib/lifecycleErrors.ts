@@ -956,14 +956,6 @@ export const RPC_ERROR_COPY = {
     under_18: RC.under_18,
     unit_exists: RC.unit_exists,
   },
-  rentals_admin_review_property: {
-    account_restricted: RC.account_restricted,
-    decision_required: RC.decision_required,
-    feature_disabled: RC.feature_disabled,
-    not_authorized: RC.not_authorized,
-    not_pending_review: RC.not_pending_review,
-    reason_required: RC.reason_required,
-  },
   rentals_approve_request: {
     account_restricted: RC.account_restricted,
     feature_disabled: RC.feature_disabled,

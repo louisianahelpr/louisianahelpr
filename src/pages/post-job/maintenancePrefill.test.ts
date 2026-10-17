@@ -3,7 +3,9 @@
  * job; the landlord checks the price and pays. Pure builder only.
  *
  * @mutate src/pages/post-job/maintenancePrefill.ts |     notApproved: row.status !== "approved", |     notApproved: false,
- * @mutate src/pages/post-job/maintenancePrefill.ts |   return (j.payment_status === "unpaid" \|\| j.payment_status === "cancelling") && !!j.stripe_session_id; |   return false;
+ * @mutate src/pages/post-job/maintenancePrefill.ts |   if (MONEY_BACK.has(pay)) return false; |   if (pay === "refunded") return false;
+ * @mutate src/pages/post-job/maintenancePrefill.ts | (!j.stripe_session_id \|\| pay === "abandoned")) return false; | true) return false;
+ * @mutate src/pages/post-job/maintenancePrefill.ts |   if (j.status === "cancelled" && NEVER_FUNDED.has(pay) | if (NEVER_FUNDED.has(pay)
  * @mutate src/pages/post-job/maintenancePrefill.ts |   ].filter(Boolean); |   ].filter(() => false);
  * @mutate src/pages/post-job/maintenancePrefill.ts |   const lines = [row.description, "", "Rental repair.", | const lines = [row.description, "", `Rental repair at ${where}. ${row.access_windows}`,
  * @mutate src/lib/rentals/copy.ts |   { value: "pests", label: "Pests", jobCategory: "other" }, |   { value: "pests", label: "Pests", jobCategory: "errands" },
@@ -61,12 +63,26 @@ describe("buildMaintenancePrefill", () => {
     expect(buildMaintenancePrefill({ ...base, status: "submitted" }).notApproved).toBe(true);
     expect(buildMaintenancePrefill({ ...base, status: "declined" }).notApproved).toBe(true);
     expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "escrow" } }).alreadyPosted).toBe(true);
-    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: null } }).alreadyPosted).toBe(false);
+    // Slice 3 (one live job per request, 20261017220911): posted but not paid yet is live too.
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: null } }).alreadyPosted).toBe(true);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "unpaid" } }).alreadyPosted).toBe(true);
+    // An open 'abandoned' job can be re-minted by create-payment: still live (re-review of bb5b8bc6e #2).
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "abandoned", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(true);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "chargeback" } }).alreadyPosted).toBe(true);
+    // Settled: cancelled and never funded with no live checkout, or money back.
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "cancelled", payment_status: "unpaid" } }).alreadyPosted).toBe(false);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "cancelled", payment_status: "failed" } }).alreadyPosted).toBe(false);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "cancelled", payment_status: "abandoned", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(false);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "completed", payment_status: "refunded" } }).alreadyPosted).toBe(false);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "completed", payment_status: "cancelled" } }).alreadyPosted).toBe(false);
+    // A cancelled job whose checkout may still complete is not settled.
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "cancelled", payment_status: "unpaid", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(true);
     // A checkout in flight counts as posted (the link RPC's own rule): no second payment.
     const paying = buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "unpaid", stripe_session_id: "cs_1" } });
     expect(paying.alreadyPosted).toBe(true);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "cancelling", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(true);
     expect(paying.linkedJobId).toBe("j");
-    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "failed", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(false);
+    expect(buildMaintenancePrefill({ ...base, job_id: "j", jobs: { status: "open", payment_status: "failed", stripe_session_id: "cs_1" } }).alreadyPosted).toBe(true);
   });
   it("keeps the job title within the 32-character CHECK", () => {
     expect(Array.from(buildMaintenancePrefill({ ...base, category: "electrical" }).title).length).toBeLessThanOrEqual(32);

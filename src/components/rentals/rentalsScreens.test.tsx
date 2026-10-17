@@ -18,6 +18,10 @@
  * @mutate src/components/rentals/RentalsHomeView.tsx |                   <EndTenancyButton tenancyId={h.tenancy_id} kind="leave" onDone={refresh} /> |                   {null}
  * @mutate src/components/rentals/RentalsHomeView.tsx |                 <EndTenancyButton tenancyId={t.id} kind={t.status === "active" ? "end" : "cancel-invite"} onDone={onChange} /> |                 {null}
  * @mutate src/components/rentals/EndTenancyButton.tsx |     mutationFn: () => endTenancy(tenancyId), |     mutationFn: async () => undefined,
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isLandlord && r.status === "approved" && job.booking === "unpaid" && ( |         {false && (
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx |   const cancelJob = useMutation({ mutationFn: () => cancelRequestJob(id), | const cancelJob = useMutation({ mutationFn: async () => undefined,
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx | r.visit_job_id != null && r.visit_job_id === r.job_id ? r.visit_proposed_for : null; | r.visit_job_id != null ? r.visit_proposed_for : null;
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx | onClick={() => okVisit.mutate(visitAt)}> | onClick={() => okVisit.mutate(new Date().toISOString())}>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -81,6 +85,8 @@ vi.mock("@/lib/rentals/api", () => ({
   declineRequest: vi.fn(async () => undefined),
   withdrawRequest: vi.fn(async () => undefined),
   answerFixed: vi.fn(async () => undefined),
+  confirmVisit: vi.fn(async () => undefined),
+  cancelRequestJob: vi.fn(async () => undefined),
   createProperty: vi.fn(),
   submitOwnershipProof: vi.fn(),
   addUnit: vi.fn(),
@@ -88,7 +94,7 @@ vi.mock("@/lib/rentals/api", () => ({
   inviteTenant: vi.fn(),
 }));
 
-import { endTenancy } from "@/lib/rentals/api";
+import { cancelRequestJob, confirmVisit, endTenancy } from "@/lib/rentals/api";
 import RentalsPage from "@/pages/rentals/RentalsPage";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 
@@ -249,6 +255,15 @@ describe("Rentals screens", () => {
       expect(await screen.findByText(/Checkout started/)).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Post the repair job" })).toBeNull();
     });
+    it("landlord, posted but never paid (slice 3, one live job per request): cancel that job, no second post", async () => {
+      state.request = approved;
+      state.job = { jobId: "j1", booking: "unpaid", jobStatus: "open" };
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("Posted, not paid yet")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Post the repair job" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel that job" }));
+      await vi.waitFor(() => expect(cancelRequestJob).toHaveBeenCalledWith(RID));
+    });
     it("landlord, mid-refund: 'Refund in progress', not 'paying'", async () => {
       state.request = approved;
       state.job = { jobId: "j1", booking: "refunding", jobStatus: "cancelled" };
@@ -269,6 +284,34 @@ describe("Rentals screens", () => {
       renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
       expect(screen.getByText("Was it fixed?")).toBeTruthy();
+    });
+  });
+
+  describe("visit time (slice 3, owner Q41: the tenant OKs the visit time the Helpr offers)", () => {
+    const AT = "2026-10-20T15:00:00+00:00";
+    const booked = { ...REQ, status: "approved", decided_at: "2026-10-15T07:00:00Z", job_id: "j1", landlord_id: "l1", tenant_id: "u1",
+      visit_job_id: "j1", visit_proposed_for: AT, visit_proposed_at: "2026-10-16T07:00:00Z", visit_confirmed_at: null };
+    it("tenant: sees the offered time and OKs exactly that time", async () => {
+      state.request = booked;
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "accepted" };
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText(/The Helpr offered/)).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "OK this time" }));
+      await vi.waitFor(() => expect(confirmVisit).toHaveBeenCalledWith(RID, AT));
+    });
+    it("tenant: an offer made for an earlier job is not shown", async () => {
+      state.request = { ...booked, visit_job_id: "j0" };
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "accepted" };
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
+      expect(screen.queryByText(/The Helpr offered/)).toBeNull();
+    });
+    it("landlord: sees the offer and that the tenant OK'd it, with no OK button", async () => {
+      state.request = { ...booked, landlord_id: "u1", tenant_id: "t9", visit_confirmed_at: "2026-10-16T08:00:00Z" };
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "accepted" };
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("Your tenant OK'd this time.")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "OK this time" })).toBeNull();
     });
   });
 

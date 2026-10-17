@@ -1030,6 +1030,35 @@ export const RPC_ERROR_COPY = {
     property_not_found: RC.property_not_found,
     under_18: RC.under_18,
   },
+  rentals_cancel_request_job: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    job_not_cancellable: RC.job_not_cancellable,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
+    // Raised inside poster_cancel_job, which rentals_cancel_request_job calls only after its own checks
+    // (the caller's own open, never-funded job, row-locked); if one is ever reached the job moved under us.
+    job_not_cancelled: RC.job_not_cancellable,
+    job_not_found: RC.job_not_cancellable,
+    not_authorized: RC.job_not_cancellable,
+    not_cancellable: RC.job_not_cancellable,
+  },
+  rentals_confirm_visit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    no_visit_proposed: RC.no_visit_proposed,
+    not_authenticated: RC.not_authenticated,
+    request_not_found: RC.request_not_found,
+    under_18: RC.under_18,
+    visit_time_changed: RC.visit_time_changed,
+  },
+  rentals_propose_visit: {
+    account_restricted: RC.account_restricted,
+    feature_disabled: RC.feature_disabled,
+    job_not_found: RC.job_not_found,
+    not_authenticated: RC.not_authenticated,
+    visit_time_invalid: RC.visit_time_invalid,
+  },
   rentals_tenant_answer_fixed: {
     account_restricted: RC.account_restricted,
     answer_required: RC.answer_required,

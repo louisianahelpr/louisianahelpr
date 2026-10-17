@@ -160,6 +160,19 @@ ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_strikes WHERE use
   "(b) and the buyer's missed-checkout strike is still removed");
 await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${SELLER3}'`);
 
+// (b) lh-money-escrow review of 905501cb2 #1: the BUYER also blocked the out seller. As in (c), the seller
+// being out decides: every cent back and the seller owes the fee (red before the fix: sold_elsewhere, platform pays).
+const bb = await checkedOut(11, BUYER2, SELLER3);
+await svc(`UPDATE public.declutter_cart_items SET checkout_by = now() - interval '2 hours' WHERE order_id = '${bb.order_id}'`);
+await svc(`SELECT public.declutter_deadline_sweep()`);
+await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${BUYER2}', '${SELLER3}')`);
+await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${SELLER3}'`);
+const bbRes = await pay(bb, "pi_so_bb", "now() - interval '2 hours' + interval '30 minutes'");
+ok(owesFee(bbRes, bb) && (await debtFor("pi_so_bb"))?.seller_id === SELLER3,
+  "(b) the buyer blocked a seller who is out: every cent back, the seller owes the fee (as in (c), not sold_elsewhere)");
+await svc(`DELETE FROM public.user_blocks WHERE blocker_id = '${BUYER2}'`);
+await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${SELLER3}'`);
+
 // (b) review #3: the item went to another buyer AND the seller is out: the item going elsewhere
 // stopped the sale whatever the seller's status, so that refund stays ours (no seller debt).
 const gone = await checkedOut(7, BUYER2, SELLER3);
@@ -209,8 +222,9 @@ ok(ctlRes?.reason === "sold_elsewhere" && ctlRes.fee_policy === "full_platform_a
 
 // ---------------------------------------------------------------------------
 // The table rules and grants.
-ok(Array.isArray(await svc(`SELECT 1 FROM public.declutter_refunds WHERE reason = 'seller_out' AND fee_policy = 'full_seller_pays_fee'`)),
-  "the reason CHECK accepts seller_out");
+// Not vacuous (lh-money-escrow review of 905501cb2 #7): rows with the new reason really exist.
+ok(Number(one(await svc(`SELECT count(*) FROM public.declutter_refunds WHERE reason = 'seller_out' AND fee_policy = 'full_seller_pays_fee'`))) >= 5,
+  "the reason CHECK accepts seller_out (the rows above were stored)");
 const badPolicy = await svc(`UPDATE public.declutter_refunds SET fee_policy = 'full_platform_absorbs' WHERE stripe_payment_intent_id = 'pi_so_c'`);
 ok(!Array.isArray(badPolicy) && /declutter_refunds_policy|violates/.test(badPolicy.error),
   "the policy CHECK refuses seller_out with the platform absorbing the fee");

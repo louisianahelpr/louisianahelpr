@@ -560,15 +560,15 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   reserved) stays ours (lh-money-escrow review of 1da32feffe #3). An under-18 birthday is billed like any seller who
   is out (owner 2026-10-17: everyone ticked 18+ to sign up). A seller who blocked the buyer stays
   seller_backed_out; a seller who is out wins over a buyer who blocked them.
-  20261017060455_declutter_seller_out_pays_fee; proofs src/test/pglite/declutterSellerOutPaysFee.pglite.mjs (23,
-  14 red with the migration skipped, 2 red with the pre-stack cut 20261017045215 in its place) and src/test/declutterSellerOutPaysFee.test.ts; reason pinned in
-  src/test/refundsKeepTheCardFee.test.ts. Review notes still open: no way to waive a seller fee debt when a ban
-  or flag is overturned; a debt booked from an ESTIMATED fee (Stripe balance transaction unreadable) is not marked
-  as estimated; a paid order whose seller goes out AFTER payment can still end as buyer_no_show / admin_no_fault
-  (the buyer, not the seller, bears the fee); a seller who blocked the buyer and is also out is billed with no
-  notice; a block while the seller is out answers differently on a late in-time payment (sold_elsewhere, the
-  platform pays) than on an open checkout (seller_out or seller_backed_out), and a buyer's block on a late
-  in-time payment also lets the platform pay (pre-existing; the open-checkout path refuses that).
+  20261017060455_declutter_seller_out_pays_fee; proofs src/test/pglite/declutterSellerOutPaysFee.pglite.mjs (24,
+  16 red with the migration skipped, 2 red with the pre-stack cut 20261017045215 in its place) and src/test/declutterSellerOutPaysFee.test.ts; reason pinned in
+  src/test/refundsKeepTheCardFee.test.ts. FIXED in the stack (lh-money-escrow review of 905501cb2 #1): on a late
+  in-time payment a BUYER's block no longer hands an out seller's fee to the platform; seller_out is judged on the
+  items alone, as on an open checkout. Still open, filed in docs/OPEN.md: (1) a seller's own block on a late
+  in-time payment reads sold_elsewhere, the platform pays, where an open checkout reads seller_backed_out; (2)
+  the debt and its notice are booked before the Stripe refund runs; (3) no waiver when a ban or flag is
+  overturned; a debt from an ESTIMATED fee is not marked; a seller who goes out AFTER payment; a seller who blocked
+  the buyer and is also out is billed with no notice.
 - Still open after lane J: a hand refund that does not cover the row (or two partial hand refunds summing to it) is
   recorded and paged but settles nothing: a person decides; a hand refund on an order with no refund row leaves the
   order 'paid' (its payout then refuses the refunded charge 12 times and pages). No screen shows a porch or problem

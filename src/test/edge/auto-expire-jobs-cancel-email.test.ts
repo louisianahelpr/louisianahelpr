@@ -19,7 +19,8 @@
 // @mutate supabase/functions/auto-expire-jobs/index.ts |             if (sent?.success === false) { |             if (false) {
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (!noticeLanded) { |       if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "../helpers/trackedFiles";
 import { join } from "node:path";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

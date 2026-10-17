@@ -182,7 +182,7 @@ function defaultRejectedMessage(action: string): string {
  * 'phone_in_use'). Every screen that saves a phone says so in words instead of
  * a generic "couldn't save" (code review, 2026-10-09).
  */
-export const PHONE_IN_USE_MESSAGE = "This phone number is already on another account. Log in to that account instead.";
+export const PHONE_IN_USE_MESSAGE = "This phone number is already on another account. Sign in to that account instead.";
 
 export function phoneInUseMessage(err: unknown): string | null {
   if (!err || typeof err !== "object") return null;

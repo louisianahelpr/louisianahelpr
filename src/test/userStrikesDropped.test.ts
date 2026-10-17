@@ -36,6 +36,7 @@ const NAME = /\buser_strikes\b/;
 // @two-way src/test/userStrikesDropped.test.ts:HISTORICAL is exact
 const HISTORICAL: Record<string, string> = {
   "src/test/pglite/dropUserStrikes.pglite.mjs": "the PGlite proof of the Q1682 drop itself (its before-state has the table)",
+  "src/test/landChecksDestructiveDdl.test.ts": "land.sh's destructive-DDL gate is tested on the real Q1682 DROP TABLE, unacknowledged and acknowledged",
 };
 
 const ROOTS = ["src", "e2e", "scripts", "supabase/functions", ".github/workflows"];

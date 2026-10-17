@@ -19,7 +19,8 @@
 // @mutate src/components/richMessageInput/AttachSourceSheet.tsx | style={{ backgroundColor: "hsl(var(--popover))", backgroundImage: "var(--surface-premium)" }} | style={{ backgroundImage: "var(--surface-premium)" }}
 // @mutate src/components/ui/popover.tsx | rounded-md border bg-popover p-4 | rounded-md border p-4
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

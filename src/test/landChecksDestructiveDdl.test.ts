@@ -63,7 +63,7 @@ describe("land.sh runs the destructive-DDL gate before it pushes", () => {
     const run = LAND.indexOf(RUN);
     expect(LAND.lastIndexOf('if [ -n "$MIG_CHANGED" ]; then', run)).toBeGreaterThan(m!.index);
     // Inventory floor: every migration on disk is under the glob land.sh diffs.
-    const glob = new RegExp("^" + m![2].replace(/[.]/g, "\\.").replace("*", "[^/]+") + "$");
+    const glob = new RegExp("^" + m![2].replace(/[\\^$.|?+()[\]{}]/g, "\\$&").replace(/\*/g, "[^/]+") + "$");
     const migrations = readdirSync(join(ROOT, "supabase/migrations"))
       .filter((f) => f.endsWith(".sql"))
       .map((f) => `supabase/migrations/${f}`);

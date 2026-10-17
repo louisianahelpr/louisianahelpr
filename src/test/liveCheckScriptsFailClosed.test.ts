@@ -474,6 +474,9 @@ function run(script: string, c: Case): Promise<{ code: number; out: string }> {
     HOME: process.env.HOME ?? tmpdir(),
     STUB_OUT: c.cli?.out ?? "",
     STUB_CODE: String(c.cli?.code ?? 0),
+    // The child is this test's stub run, not a prod write: under vitest assertFreshCheckout steps aside
+    // (a CI checkout has no origin/main ref, and this env drops GITHUB_ACTIONS).
+    VITEST: "true",
   };
   for (const [k, v] of Object.entries(c.env ?? {})) env[k] = fill(v);
   return new Promise((done) => {

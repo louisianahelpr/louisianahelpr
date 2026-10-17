@@ -224,6 +224,9 @@ function runCli(m: Mode): Promise<{ code: number; out: string }> {
   mode = m;
   const env: Record<string, string> = {
     PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "/tmp",
+    // The child is this test's stub run, not a prod write: under vitest assertFreshCheckout steps aside
+    // (a CI checkout has no origin/main ref, and this env drops GITHUB_ACTIONS).
+    VITEST: "true",
     SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", VERCEL_TOKEN: "stub",
     SENTRY_AUTH_TOKEN: "stub", SENTRY_ORG: "stub", SENTRY_PROJECT: "stub",
     LH_SUPABASE_API_BASE: base, LH_VERCEL_API_BASE: base, LH_SENTRY_API_BASE: base,

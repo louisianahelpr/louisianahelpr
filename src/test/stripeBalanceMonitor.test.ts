@@ -130,6 +130,9 @@ function runCli(m: Mode, key = "sk_test_stub"): Promise<{ code: number; out: str
   // A clean env: no real key or token may leak in and reach Stripe or prod.
   const env: Record<string, string> = {
     PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "/tmp",
+    // The child is this test's stub run, not a prod write: under vitest assertFreshCheckout steps aside
+    // (a CI checkout has no origin/main ref, and this env drops GITHUB_ACTIONS).
+    VITEST: "true",
     STRIPE_TEST_SECRET_KEY: key, SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub",
     LH_STRIPE_API_BASE: base, LH_SUPABASE_API_BASE: base,
   };

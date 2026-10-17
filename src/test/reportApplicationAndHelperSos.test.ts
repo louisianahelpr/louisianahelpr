@@ -18,6 +18,7 @@
 // @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
 // @mutate src/components/ReportDialog.tsx | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
+// @mutate src/components/reportDialog/reportReasons.ts | application: "What's wrong with this application?", | application: "What's wrong?",
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
@@ -61,7 +62,8 @@ describe("Q366: report or block an applicant", () => {
   it("ReportDialog knows the application subject", () => {
     const src = read("src/components/ReportDialog.tsx");
     expect(src).toContain('type ReportedType = "job" | "message" | "user" | "review" | "application";');
-    expect(src).toContain(`application: "What's wrong with this application?"`);
+    // The reason lists and prompts moved verbatim to reportReasons.ts (Q806 pure move, 2026-10-17).
+    expect(read("src/components/reportDialog/reportReasons.ts")).toContain(`application: "What's wrong with this application?"`);
   });
 
   it("each applicant row reports the application and blocks the applicant", () => {

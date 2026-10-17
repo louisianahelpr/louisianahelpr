@@ -143,7 +143,8 @@ describe("offer privacy (a): no client read of jobs takes columns it did not nam
     // Not silently skipped: an unreadable literal means this guard has a hole.
     expect(unparsed, `jobs REST paths this guard could not parse — fix the guard, do not ignore:\n${unparsed.join("\n")}`).toEqual([]);
     // The exemptions are printed rather than assumed, so they stay reviewable.
-    expect(serviceRoleExempt.length, `service_role callers exempted (they keep the table grant): ${serviceRoleExempt.join(", ")}`).toBe(7);
+    // 8 on 2026-10-17: scripts/audit/prod-seed.mjs repairs seed jobs in place with the service_role key (PATCH jobs?id=in.(...)&is_seed=eq.true; reds lane, deadline train).
+    expect(serviceRoleExempt.length, `service_role callers exempted (they keep the table grant): ${serviceRoleExempt.join(", ")}`).toBe(8);
     expect(
       offenders,
       "A jobs read with no `select=` is `SELECT *`, and `return=representation` with no `select=` is " +

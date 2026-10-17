@@ -55,6 +55,7 @@ import {
   wasFunded,
 } from "./sweepSummary.mjs";
 import { settleJobForward, heldReason } from "./settleForward.mjs";
+import { stripeSeatViolations } from "./seatStripeAccounts.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -169,6 +170,31 @@ if (HOLDS_BOTH_SEATS && !STRIPE_TEST_MODE) {
   );
 }
 
+/*
+ * THE SEATS HOLD NO STRIPE ACCOUNT (nightly-red #2436, 2026-10-17). An is_seed
+ * Helpr is ready only while it has no Stripe account (helper_accept_missing's
+ * fixture carve-out); helper-e2e was given a half-onboarded TEST-mode one on
+ * 2026-10-15 and every hire, and every settle-forward below, then failed on
+ * accept_job_offer `pending_setup`. Read with each seat's own token, on every
+ * sweep, pre and teardown, so the run fails on the cause by name instead of on
+ * six downstream symptoms. Put a seat back with seatStripeAccounts.mjs --restore.
+ */
+async function seatStripeViolations() {
+  const seats = [[TOKEN, POSTER_ID]];
+  if (HELPER_TOKEN) seats.push([HELPER_TOKEN, HELPER_ID]);
+  const rows = [];
+  for (const [token, id] of seats) {
+    const r = await fetch(`${BASE}/rest/v1/profiles?user_id=eq.${id}&select=user_id,email,stripe_account_id`, {
+      headers: { ...H, Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error(`reading seat ${id}'s Stripe link failed: HTTP ${r.status} ${await r.text()}`);
+    const got = await r.json();
+    if (got.length !== 1) throw new Error(`seat ${id} read ${got.length} profile rows, expected its own one`);
+    rows.push(got[0]);
+  }
+  return stripeSeatViolations(rows);
+}
+
 /**
  * Jobs this suite created that are not settled. Scoped to THIS poster's seed
  * rows (review L3): the marker alone is a title anyone can type, and the
@@ -270,6 +296,15 @@ console.log(`Prod lifecycle sweeper — ${BASE}`);
 console.log(`Stranded jobs matching "${E2E_TITLE_MARKER}": ${jobs.length}${DRY ? "  (DRY RUN)" : ""}\n`);
 
 const failures = [];
+// Both phases: a seat with a Stripe account fails every hire this run makes,
+// so a pre sweep fails on it too (the cause, named, before the symptoms).
+for (const v of await seatStripeViolations()) {
+  console.log(
+    `::error title=A test seat holds a Stripe account::${v}. accept_job_offer refuses it (pending_setup), so every hire and ` +
+      "settle-forward fails. Put it back: node scripts/e2e/seatStripeAccounts.mjs --restore (service role).",
+  );
+  failures.push(`seat Stripe account: ${v}`);
+}
 /* Rows this run deliberately did NOT unwind: hired AND funded, where
    cancel_escrow answers 409 useCancelJob and poster_cancel_job would record a
    cancel_with_helper strike on poster-e2e. They are left to settle forward.

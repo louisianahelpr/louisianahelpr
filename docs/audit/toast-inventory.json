@@ -2139,7 +2139,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2149,7 +2149,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 118,
+      "line": 119,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2159,7 +2159,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 122,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2169,7 +2169,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 137,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2179,7 +2179,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 139,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2189,7 +2189,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 155,
+      "line": 156,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2209,7 +2209,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 182,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2219,7 +2219,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2229,7 +2229,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 201,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2239,7 +2239,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2249,7 +2249,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2259,7 +2259,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 241,
+      "line": 242,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2269,7 +2269,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 257,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2279,7 +2279,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 300,
+      "line": 301,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2289,7 +2289,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 336,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2299,7 +2299,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 348,
+      "line": 349,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2309,7 +2309,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 382,
+      "line": 383,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

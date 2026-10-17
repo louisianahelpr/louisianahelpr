@@ -18,6 +18,7 @@ import {
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { PROFILE_NAME_HEADING_LEVEL, PROFILE_PAGE_TITLE } from "../../src/components/profile/profileLanding/headingContract";
 import { journeyMarker, withoutJourneyMarkers } from "./journeyMarkers";
+import { clickOrSayWhatMoves } from "./clickDiagnostics";
 
 /**
  * Journeys 7 and 8 — the account itself.
@@ -422,7 +423,7 @@ test(j7, async ({ browser, request, journey }) => {
     await pp.goto("/home");
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
-    await pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first().click();
+    await clickOrSayWhatMoves(pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first());
     if (!(await pp.getByRole("dialog").getByRole("button", { name: /Saved Searches/ }).isVisible().catch(() => false))) {
       await pp.getByRole("button", { name: "Filters" }).first().click();
     }

@@ -70,6 +70,7 @@ describe("Q1491: a job payout hold stops every payout claim on the job", () => {
 const TRANSFERS_THAT_ARE_NOT_A_JOB_PAYOUT: Record<string, string> = {
   "supabase/functions/instant-payout/index.ts": "pays out the Helpr's own Stripe balance, money already theirs; no job escrow",
   "supabase/functions/cash-out-credits/index.ts": "pays out referral credit; no job escrow",
+  "supabase/functions/declutter-money/index.ts": "pays a Declutter seller from the order's own charge (source_transaction); a Declutter order is not a job and has no job escrow (the seller's payout_holds and ban-review reads still gate it)",
   "supabase/functions/void-cancelled-payments/index.ts": "cancellation fees on a cancelled job, withheld from the poster's own captured charge (source_transaction), never the budget",
   "supabase/functions/_shared/chargebackClawback.ts": "repays a clawback the platform reversed from this Helpr earlier; returns their own money",
   "supabase/functions/_shared/heldTipRepay.ts": "repays a held tip, the poster's separate tip charge, not job escrow",

@@ -14,7 +14,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | if (!bothTest) | if (bothTest && false)
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | const stripe = new Stripe(stripeSecretKeyFor(stripeMode), | const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | recipientUserId = String(eligibleProfile.user_id); | recipientUserId = null;
- * @mutate supabase/functions/_shared/stripeMode.ts | "recurring_visit", "gift_card_purchase"]); | "recurring_visit"]);
+ * @mutate supabase/functions/_shared/stripeMode.ts | "declutter_order", "gift_card_purchase"]); | "declutter_order"]);
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (owners.length !== 1) return false; |   if (owners.length === 0) return true;
  * @mutate supabase/functions/_shared/stripeMode.ts |   return tests.has(donor) && tests.has(owners[0]); |   return tests.has(owners[0]);
  * @mutate supabase/functions/stripe-webhook/index.ts | !(await testGiftIsTestToTest(supabase, eventObject)) | false

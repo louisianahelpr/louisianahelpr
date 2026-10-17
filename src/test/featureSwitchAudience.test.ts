@@ -3,6 +3,11 @@
 // @mutate scripts/feature-switch-audience.mjs |     if (audience === "testers" && r.tester[key] !== true) { |     if (false) {
 // @mutate scripts/feature-switch-audience.mjs |   if (r.switches.length === 0) return | if (false) return
 // @mutate scripts/feature-switch-audience.mjs | "helpr-switch-probe-1013@mailinator.com" | "helpr-switch-probe-1013@louisianahelpr.com"
+// @mutate scripts/feature-switch-audience.mjs |     if (!live.has(key)) { |     if (false) {
+// @mutate scripts/feature-switch-audience.mjs |     if (!registry.has(key)) problems.push | if (false) problems.push
+// @mutate scripts/feature-switch-audience.mjs |   if (!Array.isArray(r.registry) \|\| r.registry.length === 0) { |   if (!Array.isArray(r.registry)) {
+// @mutate scripts/feature-switch-audience.mjs |     registry = registryKeysFromSource(readFileSync(REGISTRY_FILE, "utf8")); |     registry = [];
+// @mutate scripts/feature-switch-audience.mjs | matchAll(/^\s*"([a-z0-9_]+)",?\s*$/gm) | matchAll(/"([a-z0-9_]+)"/g)
 /**
  * Guard (c) for hidden feature switches: the verdict of the nightly prod check
  * (scripts/feature-switch-audience.mjs, .github/workflows/feature-switch-audience.yml).
@@ -10,12 +15,22 @@
  * test account must get true for every testers switch (positive control, so a
  * function answering false to all cannot pass); an unreadable or empty
  * registry, a tester-or-unknown probe, or a non-boolean answer fails.
+ *
+ * Q1847: the app's registry (FEATURE_SWITCH_KEYS) must equal the live rows,
+ * both ways. A key with no row reads as off for everyone, so a function gated
+ * on it (create-pro-checkout, instant-payout, create-boost-payment on
+ * 'memberships') refuses every caller if functions-deploy shipped while
+ * db-deploy failed. The registry is read from the .ts source by the script, so
+ * the parser is held to the imported array here.
  */
 import { describe, expect, it } from "vitest";
-import { judge, PROBE_EMAIL } from "../../scripts/feature-switch-audience.mjs";
+import { readFileSync } from "node:fs";
+import { judge, PROBE_EMAIL, REGISTRY_FILE, registryKeysFromSource } from "../../scripts/feature-switch-audience.mjs";
+import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 import { mintRefusal } from "../../scripts/lib/adminSession.mjs";
 
 const healthy = () => ({
+  registry: ["switch_canary", "dark_launch", "shipped"] as string[] | null,
   switches: [
     { key: "switch_canary", audience: "testers" },
     { key: "dark_launch", audience: "off" },
@@ -70,6 +85,39 @@ describe("feature-switch-audience verdict", () => {
     const b = healthy();
     b.probe.shipped = false;
     expect(judge(b)).not.toEqual([]);
+  });
+});
+
+describe("every registry key has a live feature_switches row, both ways (Q1847)", () => {
+  it("fails naming the key when FEATURE_SWITCH_KEYS has a key with no live row (db-deploy did not run)", () => {
+    const r = healthy();
+    r.registry = [...(r.registry ?? []), "memberships"];
+    const out = judge(r).join("\n");
+    expect(out).toMatch(/memberships: in FEATURE_SWITCH_KEYS but NO live feature_switches row/);
+    expect(out).toMatch(/Q1847/);
+  });
+
+  it("fails naming the key when a live row is not in FEATURE_SWITCH_KEYS", () => {
+    const r = healthy();
+    r.registry = ["switch_canary", "shipped"];
+    expect(judge(r).join("\n")).toMatch(/dark_launch: a live feature_switches row FEATURE_SWITCH_KEYS does not list/);
+  });
+
+  it("fails closed when the registry could not be read or is empty", () => {
+    expect(judge({ ...healthy(), registry: null }).join("\n")).toMatch(/could not read FEATURE_SWITCH_KEYS/);
+    expect(judge({ ...healthy(), registry: [] }).join("\n")).toMatch(/could not read FEATURE_SWITCH_KEYS/);
+  });
+
+  it("the script's source parser reads exactly the app's FEATURE_SWITCH_KEYS", () => {
+    const parsed = registryKeysFromSource(readFileSync(REGISTRY_FILE, "utf8"));
+    expect(parsed).toEqual([...FEATURE_SWITCH_KEYS]);
+    expect(FEATURE_SWITCH_KEYS.length).toBeGreaterThan(7); // 8 keys on main, 8 live rows on prod (measured 2026-10-17)
+  });
+
+  it("the parser skips quoted names in comments and returns null when the array is gone", () => {
+    const src = 'export const FEATURE_SWITCH_KEYS = [\n  // refuses without it AND "declutter" and \'quotes\'\n  "a_one",\n  // "not_a_key",\n  "b_two",\n] as const;\n';
+    expect(registryKeysFromSource(src)).toEqual(["a_one", "b_two"]);
+    expect(registryKeysFromSource("export const OTHER = [];")).toBeNull();
   });
 });
 

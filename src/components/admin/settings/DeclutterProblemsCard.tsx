@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
 import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsForAdmin } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { taskPhotoUrl } from "@/lib/helprTasks/api";
+import { taskPhotoUrl } from "@/lib/helprTasks/photoUrl";
 import { AdminCard } from "../AdminViewShell";
 
 /**

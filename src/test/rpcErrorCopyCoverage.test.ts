@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
 import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
+import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -134,7 +135,9 @@ for (const rpc of calls.keys()) {
 const SHARED = RPC_ERROR_COPY as CopyTable;
 const ADMIN = ADMIN_RPC_ERROR_COPY as CopyTable;
 /** Both tables: every rule below holds for an admin RPC's copy exactly as for a member's. */
-const COPY: CopyTable = { ...SHARED, ...ADMIN };
+// The helpr_* RPCs keep their words beside the delivery screens (src/lib/helprTasks/errorCopy.ts).
+const HELPR = HELPR_TASK_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));

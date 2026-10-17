@@ -18,7 +18,7 @@ const state = { rows: [] as unknown[], calls: [] as unknown[][] };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
-vi.mock("@/lib/helprTasks/api", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
+vi.mock("@/lib/helprTasks/photoUrl", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchOpenProblemsForAdmin: async () => state.rows,
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },

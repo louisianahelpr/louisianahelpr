@@ -23,6 +23,8 @@ import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenar
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
 import { cardByTitle, findChip } from "./cardChips";
+import { refundToPayerCents } from "../../src/lib/refundAmount";
+import { stripeProcessingCostCents } from "../../src/lib/stripeFees";
 
 /**
  * Journeys 9-11: the admin and safety outcomes nothing else drove on the real
@@ -209,8 +211,19 @@ test.describe.serial("admin and safety journeys", () => {
       expect(rows[1]).toMatchObject({ is_partial: true, source: "admin_refund_general" });
       expect(rows[1].reason ?? "", "the full refund's ledger row does not say the card fee was kept").toMatch(/full refund less the card processing fee/);
       expect(rows[1].stripe_refund_id).toMatch(/^re_/);
-      // The remainder of a capture of at least the $25 budget.
-      expect(rows[1].amount_cents, "the full refund returned less than the budget minus the partial").toBeGreaterThanOrEqual(2000);
+      // Exactly what the refund rule leaves: the capture less the card fee kept
+      // (Stripe's 2.9% + 30c on it, a173ae28e: "we should never absorb any fee")
+      // less the $5 already returned. A journey job carries no card surcharge
+      // (customer_fee_amount 0, platform_fee_percent 0 since 2026-10-11), so
+      // the capture is the $25 budget: measured in e2e-journeys 39004547274,
+      // PaymentIntent amount 2500, refunds 500 + 1897 (nightly-red #2436; the
+      // old ">= 2000" predates the kept fee).
+      const fees = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=budget,customer_fee_amount,urgent_fee`, { headers: rest(poster) });
+      const [priced] = (await fees.json()) as Array<{ budget: number; customer_fee_amount: number | null; urgent_fee: number | null }>;
+      expect([Number(priced.customer_fee_amount ?? 0), Number(priced.urgent_fee ?? 0)], "the expected amount assumes a capture of the budget alone").toEqual([0, 0]);
+      const captured = Math.round(Number(priced.budget) * 100);
+      const expected = refundToPayerCents({ capturedCents: captured, actualFeeCents: stripeProcessingCostCents(captured), alreadyRefundedCents: 500 }).refundCents;
+      expect(rows[1].amount_cents, "the full refund is the capture less the kept card fee less the partial").toBe(expected);
       await journey.milestone(page, "admin-after-full-refund");
     });
 

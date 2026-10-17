@@ -10,11 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { Gauge, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Plus, Search, Shield, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { AdminUserSearchField } from "./settings/AdminUserSearchField";
 import { FeatureSwitchesCard } from "./settings/FeatureSwitchesCard";
 import { FeeModelCard } from "./settings/FeeModelCard";
+import { AbuseLimitsCard } from "./settings/AbuseLimitsCard";
+import { MinSupportedBuildCard } from "./settings/MinSupportedBuildCard";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -23,7 +25,6 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
 import {
   ABUSE_LIMITS,
-  allCapsOff,
   capInputValue,
   describeCap,
   parseCapInput,
@@ -433,131 +434,18 @@ const AdminSettings = () => {
       </AdminCard>
 
       {/* Abuse limits — application caps + the signup throttle */}
-      <AdminCard
-        title={<span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-primary" /> Abuse Limits</span>}
-        subtitle="Blank or 0 means NO LIMIT. All four ship off — turn one on only while you are working an abuse wave, and turn it back off after."
-        contentClassName="space-y-4"
-      >
-        {allCapsOff(savedCaps) && (
-          <div className="rounded-ds-md border border-border bg-muted/40 p-3">
-            <p className="text-ds-11 text-muted-foreground leading-relaxed">
-              All four limits are off, which is the intended default — a Helpr
-              can send any number of applications and signups are unthrottled.
-              That also means <span className="font-semibold text-foreground">there is no automated abuse protection on either
-              path</span>; a script can apply to every open job or hammer signup
-              until you set a number here.
-            </p>
-          </div>
-        )}
-        <div className="space-y-3">
-          {ABUSE_LIMITS.map((limit) => (
-            <div key={limit.key} className="space-y-1.5">
-              <Label htmlFor={limit.key}>{limit.label}</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  id={limit.key}
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  placeholder="No limit"
-                  className="max-w-[9rem]"
-                  value={capInputs[limit.key] ?? ""}
-                  onChange={(e) =>
-                    setCapInputs((prev) => ({ ...prev, [limit.key]: e.target.value }))
-                  }
-                />
-                <span className="text-ds-11 text-muted-foreground">{capPreview(limit.key)}</span>
-              </div>
-              <p className="text-ds-11 text-muted-foreground leading-tight">{limit.description}</p>
-              <p className="text-ds-10 text-muted-foreground font-mono">{limit.key}</p>
-            </div>
-          ))}
-        </div>
-        <Button onClick={handleSaveCaps} disabled={savingCaps || !settingsId}>
-          {savingCaps ? "Saving…" : "Save Abuse Limits"}
-        </Button>
-      </AdminCard>
+      <AbuseLimitsCard
+        savedCaps={savedCaps}
+        capInputs={capInputs}
+        setCapInputs={setCapInputs}
+        capPreview={capPreview}
+        handleSaveCaps={handleSaveCaps}
+        savingCaps={savingCaps}
+        settingsId={settingsId}
+      />
 
       {/* Min Supported Build */}
-      <AdminCard
-        title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
-        subtitle={
-          <>
-            {/* ENFORCED as of 2026-09-01. This copy said "nothing enforces it
-                yet" for as long as that was true, which was the right call —
-                an operator would otherwise have set it during an incident and
-                believed old builds were being turned away. It is no longer
-                true, and a stale reassurance is worse than the original lie:
-                it would now talk an operator OUT of using the one lever that
-                works while a bad build sits in App Review.
-
-                What reads it: src/hooks/useVersionCheck.ts, via
-                get_public_platform_settings() (migration 20260901035235 — the
-                table itself is admin-only under RLS, so the column had to
-                travel through the RPC to reach a normal user's app).
-                src/components/ForceUpdateGate.tsx renders the block.
-
-                The three qualifications below are not hedging, they are the
-                actual behaviour, and an operator who does not know them will
-                misread what this control did:
-                  · NATIVE ONLY. The web app has no build number and updates on
-                    reload, so it is never blocked — including /admin, which is
-                    where this number gets lowered again.
-                  · FAILS OPEN. A failed settings read, an unparseable build, a
-                    missing column: all let the user in. A gate that blocks on
-                    its own failure is an outage that needs App Review to fix.
-                  · Takes about a minute to reach a running app (60s cache),
-                    and lands on a backgrounded install when it next comes to
-                    the foreground — not only on a cold start. */}
-            Blocks native installs older than this build with an{" "}
-            <strong className="text-foreground">“Update Helpr to continue”</strong> screen —
-            the one lever that works while a bad build is stuck in App Review. Takes
-            effect within a minute on running apps.{" "}
-            <code className="text-foreground">0</code> is the off value.
-            <br />
-            <span className="text-ds-11">
-              iOS/Android only — the website has no build number and is never blocked.
-              The gate fails open, so a settings-read failure never locks anyone out.
-              Use the build number from App Store Connect (CFBundleVersion), and set it{" "}
-              <em>above</em> the build you are turning away, not equal to it.
-            </span>
-            <br />
-            {/* Not a hypothetical caveat. Probed 2026-09-01: the store URL the
-                block screen links to (lib/appStore.ts) returns 404 and the
-                iTunes lookup API reports resultCount 0 for its id in four
-                storefronts — the listing is not public. Arming the gate today
-                would send every blocked user to a dead page, which is why the
-                screen also carries the support address. Stated here, next to
-                the control, because this is the moment an operator can still
-                decide not to. */}
-            <span className="text-ds-11 text-[hsl(var(--destructive-ink))]">
-              Before setting this above 0, confirm the App Store listing actually
-              loads — as of 2026-09-01 the link the block screen sends people to
-              returns a 404, which would make the block a dead end. The screen also
-              shows the support address, but the store link is the way out.
-            </span>
-          </>
-        }
-      >
-        <div className="flex items-end gap-2">
-          <div className="flex-1 space-y-1.5">
-            <Label htmlFor="minBuild">Build code</Label>
-            <Input
-              id="minBuild"
-              type="number"
-              min={0}
-              max={999_999}
-              step={1}
-              value={minBuild}
-              onChange={(e) => setMinBuild(e.target.value)}
-              className="max-w-[160px] font-mono tabular-nums"
-            />
-          </div>
-          <Button onClick={saveMinBuild} disabled={savingMinBuild}>
-            {savingMinBuild ? "Saving…" : "Save"}
-          </Button>
-        </div>
-      </AdminCard>
+      <MinSupportedBuildCard minBuild={minBuild} setMinBuild={setMinBuild} saveMinBuild={saveMinBuild} savingMinBuild={savingMinBuild} />
 
       <FeatureSwitchesCard />
       {/* Admin Management */}

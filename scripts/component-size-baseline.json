@@ -5,7 +5,6 @@
     "src/App.tsx": 678,
     "src/components/admin/AdminDisputes.tsx": 768,
     "src/components/admin/AdminReports.tsx": 722,
-    "src/components/admin/AdminSettings.tsx": 695,
     "src/components/BrowseMap.tsx": 1200,
     "src/components/dashboard/FilterSheet.tsx": 763,
     "src/components/dashboard/JobCard.tsx": 819,

@@ -23,7 +23,7 @@ import { detailsBlocker } from "@/pages/post-job/detailsBlocker";
 
 // @mutate supabase/functions/str-ical-sync/index.ts | const { error: notifyError } = await supabase.from('notifications').insert({ | await supabase.from('jobs').insert({ customer_id: conn.user_id, status: 'open' });\n          const { error: notifyError } = await supabase.from('notifications').insert({
 // @mutate supabase/functions/str-ical-sync/index.ts | link:    `/post-job?turnover=${claim.id}`, | link:    `/posts`,
-// @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover")); | );
+// @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("turnover") \|\| searchParams.get("haulAway")); |  \|\| searchParams.get("haulAway"));
 // @mutate src/pages/post-job/useJobSubmit.ts |         await linkTurnoverJob(turnoverId, jobData.id); |         void jobData;
 // @mutate src/pages/post-job/turnoverPrefill.ts |   return Array.from(withName).length <= TITLE_MAX ? withName : base; |   return Array.from(withName).slice(0, TITLE_MAX).join("");
 // @mutate src/pages/post-job/turnoverPrefill.ts |   const day = parseLocalDate(checkoutDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }); |   const day = checkoutDate;
@@ -63,7 +63,7 @@ describe("Q768: no server path creates a jobs row before payment", () => {
 
   it("Post a Job opens a turnover pre-filled, skips the entry screen, and links the posted job", () => {
     expect(read("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("turnover"\)[\s\S]*?fetchTurnoverPrefill\(turnoverId\)/);
-    expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("turnover"));');
+    expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("turnover") || searchParams.get("haulAway"));');
     expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('turnoverId: searchParams.get("turnover"),');
     expect(read("src/pages/post-job/useJobSubmit.ts")).toContain("await linkTurnoverJob(turnoverId, jobData.id);");
     expect(read("src/pages/post-job/turnoverPrefill.ts")).toContain('supabase.rpc("link_str_turnover_job"');

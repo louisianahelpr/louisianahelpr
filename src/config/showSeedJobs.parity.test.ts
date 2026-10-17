@@ -248,6 +248,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Declutter haul-away (20261017070827): the caller's OWN haul-away job only
+    // (customer_id = auth.uid() / the seller's own items); 'open' is a state
+    // test, never a list of jobs shown to anyone.
+    ["public.declutter_haul_away_state", "the seller's own haul-away job's state; not a feed"],
+    ["public.declutter_link_haul_away", "single-job mutation on the caller's own job; status is a precondition"],
     // A service_role sweep that tells a series POSTER their own funded visit is
     // still empty tomorrow (20261012195747); it shows no job to anyone else.
     ["public.sweep_unfilled_series_visit_reminders", "service_role sweep notifying the poster of their own series visit; not a feed"],

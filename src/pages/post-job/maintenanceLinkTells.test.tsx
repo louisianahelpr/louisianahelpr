@@ -272,7 +272,7 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     expect(server.paymentCalls, "it went on to pay for the same repair twice").toEqual([]);
     expect(server.deletes, "the unpaid duplicate job was left behind").toBe(1);
     expect(server.jobs).toHaveLength(0);
-    expect(errorToasts()).toEqual(["This repair already has a job"]);
+    expect(errorToasts()).toEqual(["This repair may already have a job"]);
   });
 
   it("a refusal whose reason cannot be read back also stops (never pay when it may already be paid)", async () => {
@@ -280,6 +280,6 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     link.recheck = new Error("TypeError: Failed to fetch");
     await post();
     expect(server.paymentCalls).toEqual([]);
-    expect(errorToasts()).toEqual(["This repair already has a job"]);
+    expect(errorToasts()).toEqual(["This repair may already have a job"]);
   });
 });

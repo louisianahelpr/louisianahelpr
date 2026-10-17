@@ -48,6 +48,7 @@
 // @mutate src/pages/profile/Profile.tsx | useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled) | useArrivalGate(!loading, membershipsSwitch.settled)
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
+// @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
 // @mutate src/components/profile/profileLanding/DeclutterEntryRow.tsx | useFeature("declutter") | useFeature("quotes")
 // @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
@@ -214,6 +215,9 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     }
     expect(profile).toContain(`const showSkeleton = tab === "landing" ? !landingReady : loading;`);
     expect(profile).toMatch(/\n {2}if \(showSkeleton\) \{/);
+    // That longer loading frame is the same busy skeleton ProfileRouteSkeleton
+    // draws, not a first wave of the page.
+    expect(profile).toContain(`<div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">`);
   });
 
   it("/declutter's tab row waits for its switch, and Browse paints its filters and cards together (Q?declutter-settle)", () => {

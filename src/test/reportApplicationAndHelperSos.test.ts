@@ -17,7 +17,7 @@
 // @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
-// @mutate src/components/ReportDialog.tsx | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
+// @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
@@ -59,8 +59,9 @@ describe("Q366: SOS for the Helpr on site", () => {
 
 describe("Q366: report or block an applicant", () => {
   it("ReportDialog knows the application subject", () => {
-    const src = read("src/components/ReportDialog.tsx");
-    expect(src).toContain('type ReportedType = "job" | "message" | "user" | "review" | "application";');
+    // The reason tables moved out of ReportDialog.tsx (Q806).
+    const src = read("src/components/reportDialog/reportReasons.ts");
+    expect(src).toContain('export type ReportedType = "job" | "message" | "user" | "review" | "application";');
     expect(src).toContain(`application: "What's wrong with this application?"`);
   });
 

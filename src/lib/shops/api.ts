@@ -1,6 +1,6 @@
 /**
  * Shops client calls (docs/specs/local-shops-prep.md; migration
- * 20261015123029_shops_profiles). Every write is a shops_* RPC (no client role
+ * 20261017061155_shops_profiles). Every write is a shops_* RPC (no client role
  * can write a shop table); each one refuses server-side without the 'shops'
  * switch, so this file is never the protection. Screens turn errors into
  * plain words with shopsErrorMessage().

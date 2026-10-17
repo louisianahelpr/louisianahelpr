@@ -1,6 +1,6 @@
 /**
  * declutter-ai-draft, target 'shop_item' (Shops slice 2, migration
- * 20261017060556_shops_items; docs/specs/local-shops-prep.md L5-L16, L51):
+ * 20261017061157_shops_items; docs/specs/local-shops-prep.md L5-L16, L51):
  * the model's answer for a shop item, whitelisted, typed and bounded before it
  * reaches the maker's form (model output is untrusted input, the A-002 rule).
  * Dependency-free so vitest imports it (src/test/shopsItems.test.ts holds

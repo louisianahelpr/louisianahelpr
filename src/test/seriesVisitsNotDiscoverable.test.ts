@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL |     AND true
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
  * @mutate supabase/functions/instant-job-match/index.ts |       .is("parent_job_id", null) |       .limit(1000)
- * @mutate supabase/migrations/20261015123029_shops_profiles.sql |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) AND NOT EXISTS (SELECT 1 FROM public.jobs)
+ * @mutate supabase/migrations/20261017061155_shops_profiles.sql |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) |           AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) AND NOT EXISTS (SELECT 1 FROM public.jobs)
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";
@@ -37,7 +37,7 @@ const HELPERS = new Set([
  * listing surface later.
  */
 const NOT_JOB_SURFACES = new Map([
-  // Shops slice 1 (20261015123029): hides a test account's SHOP while seeds are hidden.
+  // Shops slice 1 (20261017061155): hides a test account's SHOP while seeds are hidden.
   ["function:shop_publicly_visible", "gates a shop row, not a job"],
 ]);
 const readsJobs = (code: string) => /\b(?:public\.)?jobs\b(?!_)/i.test(code);

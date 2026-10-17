@@ -1,5 +1,5 @@
 /**
- * Shops slice 2: items (20261017060556_shops_items; owner decisions in
+ * Shops slice 2: items (20261017061157_shops_items; owner decisions in
  * docs/specs/local-shops-prep.md L5-L22, L51, L52 and the lane's dated D1-D11
  * defaults). The fast half of the proof, read from the NEWEST definitions the
  * migrations leave (effectiveDefs), so a later restatement that drops a gate
@@ -24,19 +24,19 @@
  * 9 planted defects each caught, measured 2026-10-16; the N1, N3 and
  * contact-copy steps red on their planted defects, measured 2026-10-17).
  */
-// @mutate supabase/migrations/20261017060556_shops_items.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
-// @mutate supabase/migrations/20261017060556_shops_items.sql |     WHEN v_approved < 3 THEN 'pending_review' |     WHEN v_approved < 0 THEN 'pending_review'
-// @mutate supabase/migrations/20261017060556_shops_items.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261017060556_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261017060556_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
-// @mutate supabase/migrations/20261017060556_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   IF p_kind = 'rental' THEN | IF false THEN
-// @mutate supabase/migrations/20261017060556_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
-// @mutate supabase/migrations/20261017060556_shops_items.sql |      SET admin_approved_at = NULL\n   WHERE id = (CASE | SET updated_at = updated_at\n   WHERE id = (CASE
-// @mutate supabase/migrations/20261017060556_shops_items.sql |   SELECT owner_id, shop_id, kind, submitted_at INTO | SELECT owner_id, shop_id, kind, p_submitted_at INTO
+// @mutate supabase/migrations/20261017061157_shops_items.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_approved < 3 THEN 'pending_review' |     WHEN v_approved < 0 THEN 'pending_review'
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF p_kind = 'rental' THEN | IF false THEN
+// @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
+// @mutate supabase/migrations/20261017061157_shops_items.sql |      SET admin_approved_at = NULL\n   WHERE id = (CASE | SET updated_at = updated_at\n   WHERE id = (CASE
+// @mutate supabase/migrations/20261017061157_shops_items.sql |   SELECT owner_id, shop_id, kind, submitted_at INTO | SELECT owner_id, shop_id, kind, p_submitted_at INTO
 // @mutate supabase/functions/declutter-ai-draft/shopItemSanitize.ts |   const flagged = r.possibly_banned !== false; |   const flagged = r.possibly_banned === true;
 // @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, shopItem ? "shops" : "declutter", authData.user, corsHeaders); |   const refused = await requireFeature(admin, "declutter", authData.user, corsHeaders);
 // @mutate src/lib/shops/items.ts |   if (subtype === "eggs") return ["own_hens", "kept_cold", "no_cracked_dirty", "not_banned"]; |   if (subtype === "eggs") return ["own_hens", "kept_cold", "not_banned"];
@@ -50,7 +50,7 @@ import { sanitizeShopItemDraft, SHOP_ITEM_TYPES, type ShopItemKind } from "../..
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
-const FILE = "20261017060556_shops_items.sql";
+const FILE = "20261017061157_shops_items.sql";
 const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
@@ -97,7 +97,7 @@ function sqlSubtypes(): Map<string, string> {
   return new Map([...ins.matchAll(/\('([a-z_]+)', '([a-z_]+)'/g)].map((m) => [m[1], m[2]]));
 }
 
-describe("Shops slice 2: items, hidden and gated (20261017060556)", () => {
+describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
   const callable = clientCallable();
   const rpcs = [...OWNER_RPCS, ...MEMBER_WRITE_RPCS, ...READ_RPCS, ...ADMIN_RPCS];
 

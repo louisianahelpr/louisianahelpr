@@ -106,6 +106,31 @@ describe("CancellationDialog fee breakdown", () => {
     expect(screen.getByText("at least $7")).toBeInTheDocument();
   });
 
+  // Q1842: a flat-model job (F3) was charged the job price only, so the
+  // "service fee isn't refundable" copy is false for it; its refund is the
+  // payment less Stripe's card-processing fee. A legacy job keeps the old copy.
+  // @mutate src/components/CancellationDialog.tsx |   const flatModel = isFlatFeeJob(feeStamp); |   const flatModel = false;
+  it("a flat-model job's refund copy names the card-processing fee, not a service fee", () => {
+    render(
+      <CancellationDialog
+        {...makeProps({ hasHelper: false, jobDate: isoDateHoursFromNow(72), feeStamp: { helper_fee_flat_cents: 70, helper_fee_percent: 5 } })}
+      />,
+    );
+    expect(screen.getByText(/Your payment is refunded, less the card-processing fee Stripe keeps\./)).toBeInTheDocument();
+    expect(screen.getByText("$0 cancellation fee · Refunded less card fee · No consequences")).toBeInTheDocument();
+    expect(screen.queryByText(/service fee/i)).not.toBeInTheDocument();
+  });
+
+  it("a legacy job keeps its service-fee refund copy", () => {
+    render(
+      <CancellationDialog
+        {...makeProps({ hasHelper: false, jobDate: isoDateHoursFromNow(72), feeStamp: { helper_fee_flat_cents: null, helper_fee_percent: 10 } })}
+      />,
+    );
+    expect(screen.getByText(/the service fee isn't refundable once payment has been processed/)).toBeInTheDocument();
+    expect(screen.getByText("$0 cancellation fee · Budget refunded · No consequences")).toBeInTheDocument();
+  });
+
   it("shows free cancellation (no breakdown) when 24+ hours out", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);

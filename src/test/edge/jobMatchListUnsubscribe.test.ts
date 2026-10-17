@@ -18,7 +18,7 @@
 // @mutate supabase/functions/_shared/unsubscribe.ts |   return list === 'promotions' ? `${TOKEN_VERSION}:${normalized}` : `${TOKEN_VERSION}.${list}:${normalized}` |   return `${TOKEN_VERSION}:${normalized}`
 // @mutate supabase/functions/send-notification-email/index.ts |       : isJobMatch |       : false
 // @mutate supabase/functions/email-unsubscribe/index.ts |     .upsert({ user_id: userId, email_job_matches: !optOut }, { onConflict: 'user_id' }) |     .upsert({ user_id: userId, email_promotions: !optOut }, { onConflict: 'user_id' })
-// @mutate supabase/functions/email-unsubscribe/index.ts | url.searchParams.get('sig'), list) | url.searchParams.get('sig'))
+// @mutate supabase/functions/email-unsubscribe/index.ts | token.get('sig'), list) | token.get('sig'))
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

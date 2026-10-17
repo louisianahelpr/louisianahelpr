@@ -25,7 +25,8 @@ export type NoindexPath =
   | "/forgot-password"
   | "/reset-password"
   | "/signup-pending"
-  | "/account-banned";
+  | "/account-banned"
+  | "/unsubscribe";
 export interface NoindexPageMeta extends PublicPageMeta {
   robots: string;
 }

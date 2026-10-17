@@ -15,10 +15,17 @@
 //   3a. NATIVE CONTROL → the mail client POSTs `List-Unsubscribe=One-Click`
 //       to this function. No session, no page, no confirmation step. RFC 8058
 //       requires the unsubscribe to take effect on that POST alone.
-//   3b. FOOTER LINK → the recipient GETs this function. It takes effect on
-//       that single click too, and then renders a confirmation page with a
-//       one-button "resubscribe" in case the click was an accident or a
-//       corporate link-scanner followed it.
+//   3b. FOOTER LINK → the recipient GETs this function. A GET WRITES NOTHING
+//       (Q1655): mail scanners, link previewers and corporate gateways GET
+//       every URL in a message, and each such GET used to turn the member's
+//       email off. It answers 303 to the web page /unsubscribe with the same
+//       e/sig/list, which asks "Turn off …?" with one button. That button
+//       POSTs `action=unsubscribe` here and the page shows the result and a
+//       Resubscribe button (POST `action=resubscribe`). The page lives in the
+//       web app because Supabase serves an edge function's HTML as
+//       text/plain (measured 2026-10-17: this function's own error page came
+//       back `content-type: text/plain` with `nosniff`, so a member saw raw
+//       HTML source); a page POST answers JSON for that page to render.
 //   4. This handler verifies the signature, resolves the address to a
 //      profile, and writes the two reversible consent flags:
 //          profiles.marketing_consent                -> false
@@ -69,10 +76,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { LOGO_URL } from '../_shared/email-templates/styles.ts'
-import { SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { unsubscribeListFrom, unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -182,66 +186,45 @@ async function setJobMatchEmails(
   if (!data || data.length === 0) throw new Error('email_job_matches write matched no row')
 }
 
-const PAGE_CSS = `
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 24px 16px;
-    background: #F0F2F4; color: #23231A;
-    font: 16px/1.6 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    display: flex; justify-content: center;
-  }
-  .card {
-    width: 100%; max-width: 520px; background: #ffffff;
-    border: 1px solid #CBCFD8; border-radius: 14px; padding: 32px 28px;
-  }
-  img.logo { display: block; width: 80px; height: auto; margin: 0 0 24px; border: 0; }
-  h1 { font-size: 22px; line-height: 1.3; margin: 0 0 12px; color: #23231A; }
-  p { margin: 0 0 16px; color: #55656D; }
-  .addr { font-weight: 600; color: #23231A; overflow-wrap: anywhere; }
-  button {
-    appearance: none; border: 0; cursor: pointer;
-    background: #5E6544; color: #fff; font: inherit; font-weight: 600;
-    border-radius: 12px; padding: 14px 28px;
-  }
-  a { color: #984216; }
-  .fine { font-size: 13px; color: #6E7C83; margin: 24px 0 0; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1A1B15; color: #F0F2F4; }
-    .card { background: #23231A; border-color: #3A3B30; }
-    h1, .addr { color: #F0F2F4; }
-    p { color: #C3C9CC; }
-  }
-`
-
-/** Minimal branded page. Every interpolated value goes through htmlEscape. */
-function page(title: string, bodyHtml: string, status = 200): Response {
-  return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${htmlEscape(title)} · Louisiana Helpr</title>
-<style>${PAGE_CSS}</style></head>
-<body><main class="card">
-<img class="logo" src="${LOGO_URL}" alt="Louisiana Helpr">
-${bodyHtml}
-</main></body></html>`,
-    {
-      status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/html; charset=utf-8',
-        // Never let a proxy cache an opt-out result page keyed on a token.
-        'Cache-Control': 'no-store',
-        'X-Robots-Tag': 'noindex, nofollow',
-      },
-    },
-  )
-}
-
+/** Every response forbids caching: each one is keyed on a signed token. */
 function text(body: string, status: number): Response {
   return new Response(body, {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  })
+}
+
+type PageResult =
+  | { status: 'unsubscribed' | 'resubscribed'; list: string }
+  | { error: 'invalid_link' | 'unavailable' | 'failed' }
+
+/** The /unsubscribe web page's answer: JSON it renders as words. */
+function json(body: PageResult, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  })
+}
+
+/**
+ * Q1655: the footer link's GET. No token check, no read, no write: it only
+ * carries the signed parameters to the web page, which asks before anything
+ * changes. The POST from that page is verified exactly like a one-click POST.
+ */
+function toConfirmPage(url: URL): Response {
+  const q = new URLSearchParams()
+  for (const k of ['e', 'sig', 'list']) {
+    const v = url.searchParams.get(k)
+    if (v !== null) q.set(k, v)
+  }
+  return new Response(null, {
+    status: 303,
+    headers: {
+      ...corsHeaders,
+      Location: `${getAppUrl()}/unsubscribe?${q.toString()}`,
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
   })
 }
 
@@ -253,54 +236,47 @@ serve(async (req) => {
 
   const url = new URL(req.url)
 
-  // A one-click POST from a mail client carries `List-Unsubscribe=One-Click`
-  // as a form body; the confirmation page's resubscribe button posts
-  // `action=resubscribe`. Anything else is treated as an unsubscribe.
-  let action = 'unsubscribe'
-  if (req.method === 'POST') {
-    try {
-      const body = await req.text()
-      if (new URLSearchParams(body).get('action') === 'resubscribe') action = 'resubscribe'
-    } catch {
-      // An unreadable body is still a valid one-click unsubscribe.
+  // A GET never writes (Q1655). It goes to the web page that asks first.
+  if (req.method === 'GET') return toConfirmPage(url)
+
+  // Two kinds of POST, told apart by the body:
+  //   `action=unsubscribe` / `action=resubscribe`  the /unsubscribe page's
+  //       buttons: answered with JSON for the page to show. The page sends
+  //       the signed e/sig/list in the BODY, never the query, so the link (a
+  //       credential) is not in any URL its analytics or error reporting
+  //       record (lh-authz-rls review of Q1655, finding 1).
+  //   anything else, `List-Unsubscribe=One-Click` included: an RFC 8058
+  //       one-click unsubscribe from a mail client, answered with text, the
+  //       signed parameters read from the query as before.
+  let action: 'unsubscribe' | 'resubscribe' = 'unsubscribe'
+  let fromPage = false
+  let token = url.searchParams
+  try {
+    const form = new URLSearchParams(await req.text())
+    const sent = form.get('action')
+    if (sent === 'unsubscribe' || sent === 'resubscribe') {
+      action = sent
+      fromPage = true
+      token = form
     }
+  } catch {
+    // An unreadable body is still a valid one-click unsubscribe.
   }
+  const fail = (kind: 'invalid_link' | 'unavailable' | 'failed', status: number, oneClickText: string) =>
+    fromPage ? json({ error: kind }, status) : text(oneClickText, status)
 
   if (!unsubscribeSigningConfigured()) {
     // 503, not a friendly "you're unsubscribed": telling someone their opt-out
     // worked when nothing was written is the exact defect this replaces.
     console.error('[email-unsubscribe] no EMAIL_UNSUBSCRIBE_SECRET or CRON_SECRET configured')
-    return req.method === 'POST'
-      ? text('Unsubscribe temporarily unavailable', 503)
-      : page(
-          'Something went wrong',
-          `<h1>We couldn't process that right now</h1>
-           <p>Our unsubscribe service is temporarily unavailable. Please email
-           <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-           and we'll take you off the list by hand.</p>`,
-          503,
-        )
+    return fail('unavailable', 503, 'Unsubscribe temporarily unavailable')
   }
 
   // The list is part of what was signed: a promotions link verifies only as
   // promotions, a job-match link only as job matches.
-  const list = unsubscribeListFrom(url.searchParams.get('list'))
-  const email = await verifyUnsubscribeToken(url.searchParams.get('e'), url.searchParams.get('sig'), list)
-  if (!email) {
-    return req.method === 'POST'
-      ? text('Invalid or expired unsubscribe link', 400)
-      : page(
-          'Link not valid',
-          `<h1>That unsubscribe link isn't valid</h1>
-           <p>It may have been altered in transit, or it may be from an email sent before
-           our signing key changed.</p>
-           <p>You can turn promotional email off yourself under
-           <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">Notifications</a> in your
-           profile, or email <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-           and we'll do it for you.</p>`,
-          400,
-        )
-  }
+  const list = unsubscribeListFrom(token.get('list'))
+  const email = await verifyUnsubscribeToken(token.get('e'), token.get('sig'), list)
+  if (!email) return fail('invalid_link', 400, 'Invalid or expired unsubscribe link')
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -313,15 +289,7 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[email-unsubscribe]', message)
-    return req.method === 'POST'
-      ? text('Unsubscribe failed, please retry', 500)
-      : page(
-          'Something went wrong',
-          `<h1>We couldn't process that right now</h1>
-           <p>Please try the link again in a minute, or email
-           <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>.</p>`,
-          500,
-        )
+    return fail('failed', 500, 'Unsubscribe failed, please retry')
   }
 
   if (!profile) {
@@ -347,16 +315,7 @@ serve(async (req) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[email-unsubscribe]', message)
-      return req.method === 'POST'
-        ? text('Unsubscribe failed, please retry', 500)
-        : page(
-            'Something went wrong',
-            `<h1>We couldn't save that</h1>
-             <p>Please try the link again in a minute, or email
-             <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-             and we'll take you off the list by hand.</p>`,
-            500,
-          )
+      return fail('failed', 500, 'Unsubscribe failed, please retry')
     }
   }
 
@@ -365,7 +324,7 @@ serve(async (req) => {
   // Zero rows is legitimate (most addresses are not leads). A failed write
   // fails the request ONLY when no profile was written above: for a member
   // the opt-out that matters already committed, so it is logged, not undone
-  // into an error page. A missing table (the function deployed before its
+  // into an error. A missing table (the function deployed before its
   // migration) means no reminder can exist yet, so it is nothing to write.
   // A job-match link is never a lead's: leads get no job emails.
   const { error: leadError } = list === 'job_matches' ? { error: null } : await supabase
@@ -376,82 +335,13 @@ serve(async (req) => {
   if (leadError && leadError.code !== '42P01' && leadError.code !== 'PGRST205') {
     console.error('[email-unsubscribe] signup_leads write failed:', leadError.message)
     if (!profile) {
-      return req.method === 'POST'
-        ? text('Unsubscribe failed, please retry', 500)
-        : page(
-            'Something went wrong',
-            `<h1>We couldn't save that</h1>
-             <p>Please try the link again in a minute, or email
-             <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a>
-             and we'll take you off the list by hand.</p>`,
-            500,
-          )
+      return fail('failed', 500, 'Unsubscribe failed, please retry')
     }
   }
 
-  console.log(`[email-unsubscribe] ${action} recorded`, { list, hasProfile: !!profile, method: req.method })
+  console.log(`[email-unsubscribe] ${action} recorded`, { list, hasProfile: !!profile, fromPage })
 
+  if (fromPage) return json({ status: action === 'resubscribe' ? 'resubscribed' : 'unsubscribed', list }, 200)
   // RFC 8058: the one-click POST answers 200 with no body the client shows.
-  if (req.method === 'POST') {
-    return text(action === 'resubscribe' ? 'Resubscribed' : 'Unsubscribed', 200)
-  }
-
-  const safeEmail = htmlEscape(email)
-  const tokenQuery = `e=${encodeURIComponent(url.searchParams.get('e') ?? '')}&sig=${encodeURIComponent(url.searchParams.get('sig') ?? '')}`
-    + (list === 'job_matches' ? '&list=job_matches' : '')
-
-  if (list === 'job_matches') {
-    if (action === 'resubscribe') {
-      return page(
-        "New-job emails are back on",
-        `<h1>New-job emails are back on</h1>
-         <p><span class="addr">${safeEmail}</span> will get an email again whenever a new job is
-         posted on Louisiana Helpr.</p>
-         <p class="fine">Manage this any time under Notifications in your
-         <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>`,
-      )
-    }
-    return page(
-      "New-job emails turned off",
-      `<h1>New-job emails are off</h1>
-       <p>We won't email <span class="addr">${safeEmail}</span> about new jobs any more. New jobs
-       still show in the app, and you'll still get email about your own jobs, messages and
-       payments.</p>
-       <p>You can turn this back on under Notifications in your
-       <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>
-       <form method="post" action="?${tokenQuery}">
-         <input type="hidden" name="action" value="resubscribe">
-         <button type="submit">Turn new-job emails back on</button>
-       </form>
-       <p class="fine">Questions? <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a></p>`,
-    )
-  }
-
-  if (action === 'resubscribe') {
-    return page(
-      "You're back on the list",
-      `<h1>You're subscribed again</h1>
-       <p><span class="addr">${safeEmail}</span> will receive Louisiana Helpr news and
-       promotional email again.</p>
-       <p class="fine">Changed your mind? Manage this any time under Notifications in your
-       <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>`,
-    )
-  }
-
-  return page(
-    "You're unsubscribed",
-    `<h1>You're unsubscribed</h1>
-     <p>We've removed <span class="addr">${safeEmail}</span> from Louisiana Helpr promotional
-     email. This takes effect immediately — you won't get another campaign, welcome series or
-     win-back message.</p>
-     <p>You'll still receive email about your account: job updates, payments and payouts,
-     security notices and password resets. You can turn those off individually under
-     Notifications in your
-     <a href="${htmlEscape(getAppUrl())}/profile?tab=notifications">profile</a>.</p>
-     <form method="post" action="?${tokenQuery}">
-       <input type="hidden" name="action" value="resubscribe">
-       <button type="submit">Actually, resubscribe me</button>
-     </form>
-     <p class="fine">Questions? <a href="mailto:${htmlEscape(SUPPORT_EMAIL)}">${htmlEscape(SUPPORT_EMAIL)}</a></p>`,
-  )
+  return text(action === 'resubscribe' ? 'Resubscribed' : 'Unsubscribed', 200)
 })

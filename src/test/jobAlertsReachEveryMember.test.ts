@@ -129,7 +129,7 @@ describe("Q1585: every member, every new job, no daily list, nothing dropped", (
     const unsub = blankComments(readFileSync("supabase/functions/email-unsubscribe/index.ts", "utf8"));
     // The list is verified as part of the signature, and a job-match link
     // writes only email_job_matches (never the commercial consent flags).
-    expect(unsub).toMatch(/verifyUnsubscribeToken\(url\.searchParams\.get\('e'\), url\.searchParams\.get\('sig'\), list\)/);
+    expect(unsub).toMatch(/verifyUnsubscribeToken\(token\.get\('e'\), token\.get\('sig'\), list\)/);
     expect(unsub).toMatch(/if \(list === 'job_matches'\) \{\s*await setJobMatchEmails\(/);
     expect(unsub).toMatch(/\.upsert\(\{ user_id: userId, email_job_matches: !optOut \}, \{ onConflict: 'user_id' \}\)\s*\.select\('user_id'\)/);
   });

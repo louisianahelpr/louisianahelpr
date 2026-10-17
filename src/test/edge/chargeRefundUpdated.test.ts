@@ -155,6 +155,10 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     // re-refund needs it to stand (review of Q1730).
     expect(page?.message).toMatch(/LEAVE the reversal/);
     expect(page?.message).not.toMatch(/\bvoid that reversal\b/);
+    // Q1828: a partial refund is now reversed under its OWN refund id, and a
+    // re-refund gets a new reversal, so that one is always undone.
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | Look for a reversal with reference refund:${refundId} (a partial or multi-part refund): if there is one, UNDO it by fully reversing that reversal transaction, whatever happens next, because a re-refund gets its own reversal under its own refund id. | Undo any partial reversal by hand.
+    expect(page?.message).toMatch(/reference refund:re_1 \(a partial or multi-part refund\): if there is one, UNDO it/);
   });
 
   it("control: a failed refund with no tax transaction pages nothing about tax", async () => {

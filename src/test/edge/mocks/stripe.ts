@@ -80,6 +80,8 @@ export interface StripeMock {
     list: ReturnType<typeof vi.fn>;
     /** Q1732: execute-dispute-split's clear_test_mode_records asks Stripe about each recorded refund. */
     retrieve: ReturnType<typeof vi.fn>;
+    /** Q1828: the tax reversal id is stamped on the refund. */
+    update: ReturnType<typeof vi.fn>;
   };
   transfers: {
     create: ReturnType<typeof vi.fn>;
@@ -116,7 +118,7 @@ export interface StripeMock {
   /** charge-recurring-visits: tax quote, then the committed transaction (ME-014). */
   tax: {
     calculations: { create: ReturnType<typeof vi.fn> };
-    transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn> };
+    transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn>; listLineItems: ReturnType<typeof vi.fn> };
   };
   payouts: { create: ReturnType<typeof vi.fn> };
   charges: {
@@ -197,6 +199,7 @@ export const stripeMock: StripeMock = {
     // Tests that exercise a repeat partial can override this per-case.
     list: vi.fn().mockResolvedValue({ data: [] }),
     retrieve: vi.fn(),
+    update: vi.fn(),
   },
   transfers: {
     create: vi.fn(),
@@ -223,7 +226,7 @@ export const stripeMock: StripeMock = {
   },
   tax: {
     calculations: { create: vi.fn() },
-    transactions: { createFromCalculation: vi.fn(), createReversal: vi.fn() },
+    transactions: { createFromCalculation: vi.fn(), createReversal: vi.fn(), listLineItems: vi.fn() },
   },
   payouts: {
     create: vi.fn(),

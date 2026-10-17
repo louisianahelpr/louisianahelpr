@@ -1481,10 +1481,20 @@ describe("stripe-webhook edge function", () => {
 
     // Q1655: a refunded recurring visit's Stripe Tax transaction (stamped on
     // its PaymentIntent by charge-recurring-visits) is reversed in full on a
-    // full refund, once per charge; a partial refund is paged, never guessed.
-    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefundCount: ordinaryRefunds.length, logStep }); |     void reverseVisitTaxForRefund;
-    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!isFullRefund) { |   if (false) {
-    it("reverses a refunded visit's Stripe Tax transaction: full refund in full, partial not at all (Q1655)", async () => {
+    // full refund in one refund, once per charge.
+    // Q1828: every other refund (a partial one, or each refund of a charge
+    // refunded in parts) gets its own reversal of its TAXED share, keyed on the
+    // refund id: min(refund, labor + tax not yet reversed), oldest first. No
+    // page; before Q1828 every partial refund paged ops for a hand reversal.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefunds, everRefundCount, logStep }); |     void reverseVisitTaxForRefund; void everRefundCount;
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (isFullRefund && ordinaryRefunds.length <= 1 && everRefundCount <= 1) { |   if (isFullRefund) {
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (isFullRefund && ordinaryRefunds.length <= 1 && everRefundCount <= 1) { |   if (isFullRefund && ordinaryRefunds.length <= 1) {
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if ((r.metadata as Record<string, string> \| null)?.tax_reversal_id) { |     if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |         await stripe.refunds.update(r.id, { metadata: { tax_reversal_id: res.reversalId } }); |         void res.reversalId;
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     const share = Math.min(Math.max(0, Math.round(Number(r.amount ?? 0))), remaining); |     const share = Math.max(0, Math.round(Number(r.amount ?? 0)));
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       idempotencyKey: `visit-tax-reversal:${r.id}`, |       idempotencyKey: `visit-tax-reversal:${charge.id}`,
+    // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     (Number(a.created ?? 0) - Number(b.created ?? 0)) \|\| String(a.id).localeCompare(String(b.id))); |     0);
+    it("reverses a refunded visit's Stripe Tax transaction: full refund in full, each partial refund by its taxed share (Q1655, Q1828)", async () => {
       const refundEvent = (amountRefunded: number) => ({
         id: `evt_visit_tax_${amountRefunded}`,
         type: "charge.refunded",
@@ -1502,23 +1512,118 @@ describe("stripe-webhook edge function", () => {
       expect(args).toEqual({ mode: "full", original_transaction: "tax_txn_9", reference: "refund:ch_visit" });
       expect(opts).toEqual({ idempotencyKey: "visit-tax-reversal:ch_visit" });
 
+      // A legacy visit: $45.00 labor + $4.00 tax recorded, $1.00 card-cost
+      // fee outside the tax transaction (charge $50.00).
+      stripeMock.tax.transactions.listLineItems.mockResolvedValue({
+        data: [{ id: "tax_li_1", amount: 4500, amount_tax: 400 }], has_more: false,
+      });
+      const reversals = () => stripeMock.tax.transactions.createReversal.mock.calls.map(([a, o]) => ({ ...a, key: o?.idempotencyKey }));
+
+      // PARTIAL: reversed by its own amount, keyed on the refund. No page.
       stripeMock.tax.transactions.createReversal.mockClear();
+      slackAlerts.length = 0;
+            stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_1", amount: 300, status: "succeeded", created: 100, metadata: {} },
+      ] });
       fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(300));
       await fn.fetch(webhookRequest(fn, "{}"));
-      expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      expect(reversals()).toEqual([
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_1", flat_amount: -300, key: "visit-tax-reversal:re_1" },
+      ]);
+      expect((slackAlerts as Array<{ title: string }>).filter((a) => /sales tax|tax transaction/i.test(a.title))).toEqual([]);
 
-      // Full, but across two refunds: an earlier partial was paged for a hand
-      // reversal, and a full reversal would not net it, so this pages too.
-      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (ordinaryRefundCount > 1) { |   if (false) {
+      // Full, but across two refunds (listed newest first): each refund gets
+      // its own reversal, the later one capped at the labor + tax left
+      // ($49.00 - $3.00 = $46.00 of its $47.00; the $1.00 kept fee is untaxed
+      // here and stays reported). A redelivery recomputes the same cents for
+      // the same refund ids, so Stripe's idempotency returns the same reversals.
+      stripeMock.tax.transactions.createReversal.mockClear();
       stripeMock.refunds.list.mockResolvedValue({ data: [
-        { id: "re_2", amount: 4700, status: "succeeded", metadata: {} },
-        { id: "re_1", amount: 300, status: "succeeded", metadata: {} },
+        { id: "re_2", amount: 4700, status: "succeeded", created: 200, metadata: {} },
+        { id: "re_1", amount: 300, status: "succeeded", created: 100, metadata: {} },
       ] });
       fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
       await fn.fetch(webhookRequest(fn, "{}"));
+      expect(reversals()).toEqual([
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_1", flat_amount: -300, key: "visit-tax-reversal:re_1" },
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_2", flat_amount: -4600, key: "visit-tax-reversal:re_2" },
+      ]);
+
+      // A fee-keeping refund of exactly labor + tax ($49.00 of $50.00) is the
+      // whole transaction, still sent as a PARTIAL reversal of that amount (on
+      // Stripe's documented undo path), keyed on the refund.
+      stripeMock.tax.transactions.createReversal.mockClear();
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_kept", amount: 4900, status: "succeeded", created: 300, metadata: {} },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(4900));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(reversals()).toEqual([
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_kept", flat_amount: -4900, key: "visit-tax-reversal:re_kept" },
+      ]);
+      // The reversal made is stamped on its refund (review of 401d97ab8, #1).
+      expect(stripeMock.refunds.update).toHaveBeenCalledWith("re_kept", { metadata: { tax_reversal_id: "tax_txn_rev" } });
+
+      // A later delivery: re_1 already carries its stamp, so it is not sent
+      // again (its share still counts), and only re_2 is reversed.
+      stripeMock.tax.transactions.createReversal.mockClear();
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_2", amount: 4700, status: "succeeded", created: 200, metadata: {} },
+        { id: "re_1", amount: 300, status: "succeeded", created: 100, metadata: { tax_reversal_id: "taxrev_1" } },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(reversals()).toEqual([
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_2", flat_amount: -4600, key: "visit-tax-reversal:re_2" },
+      ]);
+
+      // A full re-refund after a FAILED partial: the failed one may carry its
+      // own partial reversal, and a charge-keyed full reversal would not net
+      // it (review #3), so the per-refund path runs (re_full: the whole $49.00).
+      stripeMock.tax.transactions.createReversal.mockClear();
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_full", amount: 5000, status: "succeeded", created: 200, metadata: {} },
+        { id: "re_failed", amount: 300, status: "failed", created: 100, metadata: {} },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(5000));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(reversals()).toEqual([
+        { mode: "partial", original_transaction: "tax_txn_9", reference: "refund:re_full", flat_amount: -4900, key: "visit-tax-reversal:re_full" },
+      ]);
+
+      // Stripe refuses on the idempotency key (in flight, or the shares moved):
+      // ops is told to CHECK, never that the tax was not reversed (review #2).
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if (type === "StripeIdempotencyError" \|\| type === "idempotency_error" \|\| /idempot/i.test(msg)) { |     if (false) {
+      slackAlerts.length = 0;
+      stripeMock.tax.transactions.createReversal.mockRejectedValueOnce(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters they were first used with."), { type: "StripeIdempotencyError" }));
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_1", amount: 300, status: "succeeded", created: 100, metadata: {} },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(300));
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
+      expect(titles).toContain("Recurring visit tax reversal: check it, do not re-reverse");
+      expect(titles.filter((t) => /NOT reversed/.test(t))).toEqual([]);
+
+      // The line items cannot be read: nothing is guessed, ops is paged.
+      slackAlerts.length = 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   } catch (e) {\n    await postSlackOpsAlert({\n      kind: "money_at_risk",\n      severity: "warning",\n      title: "Taxed recurring visit refunded: its sales tax was NOT reversed", |   } catch (e) {\n    await (async (_a: unknown) => {})({\n      kind: "money_at_risk",\n      severity: "warning",\n      title: "Taxed recurring visit refunded: its sales tax was NOT reversed",
+      stripeMock.tax.transactions.createReversal.mockClear();
+      stripeMock.tax.transactions.listLineItems.mockRejectedValue(new Error("stripe down"));
+      stripeMock.refunds.list.mockResolvedValue({ data: [
+        { id: "re_1", amount: 300, status: "succeeded", created: 100, metadata: {} },
+      ] });
+      fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(refundEvent(300));
+      await fn.fetch(webhookRequest(fn, "{}"));
       expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+      expect((slackAlerts as Array<{ title: string }>).some((a) => /sales tax was NOT reversed/.test(a.title))).toBe(true);
       stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: false });
 
       // An ordinary job's PaymentIntent carries no tax transaction: nothing to reverse.

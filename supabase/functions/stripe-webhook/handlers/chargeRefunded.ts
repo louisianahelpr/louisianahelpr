@@ -130,10 +130,12 @@ export async function handleChargeRefunded(
   // card a full refund gave back), set below where that is decided.
   let noticeExtra: string | null = null;
 
-  // Q1655: a taxed recurring visit's Stripe Tax transaction is reversed (full
-  // refund) or paged for a hand reversal (partial). Never throws.
+  // Q1655/Q1828: a taxed recurring visit's Stripe Tax transaction is reversed:
+  // in full on a full refund in one refund, else each refund's taxed share,
+  // keyed on the refund id. Never throws.
   if (!isOnboardingFeeCorrection) {
-    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefundCount: ordinaryRefunds.length, logStep });
+    const everRefundCount = allRefunds.filter((r) => !!r?.id && !isCorrection(r)).length;
+    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, isFullRefund, liveRefundedCents, ordinaryRefunds, everRefundCount, logStep });
   }
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup

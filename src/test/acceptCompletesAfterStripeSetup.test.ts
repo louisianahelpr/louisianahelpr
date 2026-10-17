@@ -35,7 +35,7 @@
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
+// @mutate supabase/migrations/20261017134720_cancel_retires_direct_offer.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     NEW.direct_offer_status := 'expired'; |     NULL;
@@ -49,7 +49,7 @@
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
+// @mutate supabase/migrations/20261017134720_cancel_retires_direct_offer.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

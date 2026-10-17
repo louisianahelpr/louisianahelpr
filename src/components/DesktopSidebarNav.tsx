@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ChevronDown,
   Sofa,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useFeature } from "@/hooks/useFeature";
@@ -99,9 +100,16 @@ const DesktopSidebarNav = () => {
   // destinations after Messages only while the hidden switch is on for this
   // member; for everyone else the panel is unchanged.
   const declutterOn = useFeature("declutter");
-  const navItems = declutterOn
-    ? [...NAV_ITEMS.slice(0, 4), { path: "/declutter", icon: Sofa, label: "Declutter" }, ...NAV_ITEMS.slice(4)]
-    : NAV_ITEMS;
+  // Quotes (owner answer 12, 2026-10-17: Helprs find quote requests in BOTH
+  // the Jobs browse filter and a Quotes link in the menu) joins the same way,
+  // only while the hidden 'quotes' switch is on for this member.
+  const quotesOn = useFeature("quotes");
+  const navItems = [
+    ...NAV_ITEMS.slice(0, 4),
+    ...(declutterOn ? [{ path: "/declutter", icon: Sofa, label: "Declutter" }] : []),
+    ...(quotesOn ? [{ path: "/quotes", icon: FileText, label: "Quotes" }] : []),
+    ...NAV_ITEMS.slice(4),
+  ];
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.

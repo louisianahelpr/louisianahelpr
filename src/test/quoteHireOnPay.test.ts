@@ -26,7 +26,7 @@
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
  * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
- * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql |    '".', v_uid, true); | '".', v_uid, false);
+ * @mutate supabase/migrations/20261017045002_quote_hire_on_pay_alerts.sql | '".', v_uid, true); | '".', v_uid, false);
  * @mutate supabase/migrations/20261015091114_job_quotes.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";

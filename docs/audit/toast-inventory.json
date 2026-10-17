@@ -3417,7 +3417,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 183,
+      "line": 188,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3427,7 +3427,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 186,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7335,7 +7335,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 387,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7345,7 +7345,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 411,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7355,7 +7355,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 432,
+      "line": 447,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7365,7 +7365,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 513,
+      "line": 528,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7385,7 +7385,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 528,
+      "line": 543,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -3,7 +3,7 @@
  * rentals migration RAISEs has a line in RENTALS_ERROR_COPY, and every line
  * there is a code a rentals migration raises.
  *
- * @mutate src/lib/rentals/copy.ts |   ownership_not_approved: "You can invite tenants once an admin has checked your ownership proof.",\n | \n
+ * @mutate src/lib/rentals/errorCopy.ts |   ownership_not_approved: "You can invite tenants once an admin has checked your ownership proof.",\n | \n
  * @mutate src/lib/rentals/copy.ts |   return RENTALS_ERROR_COPY[code] ?? "Something went wrong. Please try again."; |   return code;
  */
 import { describe, expect, it } from "vitest";

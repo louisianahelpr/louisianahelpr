@@ -21,6 +21,8 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
+import { WantsQuotesFeed } from "@/components/quotes/WantsQuotesFeed";
+import { useFeature } from "@/hooks/useFeature";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,6 +142,14 @@ const Dashboard = () => {
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
+  // "Wants Quotes" (owner answer 12, 2026-10-17): a lens like "Only saved",
+  // offered only while the hidden 'quotes' switch is on. Quote requests are not
+  // jobs yet, so it swaps the feed for their own list (WantsQuotesFeed) rather
+  // than narrowing the job read; the map column steps aside while it is on.
+  const quotesOn = useFeature("quotes");
+  const [wantsQuotesPicked, setWantsQuotesPicked] = useState(false);
+  const wantsQuotes = quotesOn && wantsQuotesPicked;
+  const toggleWantsQuotes = useCallback(() => setWantsQuotesPicked((v) => !v), []);
 
   /**
    * ONE object, three surfaces. See src/pages/home/viewerFeedExclusions.ts.
@@ -607,9 +617,15 @@ const Dashboard = () => {
                             on the map). Fall back to the loaded count
                             while the true-total query is in flight so
                             the header never shows nothing. */}
-                        {headerCount}
-                        {headerCount === 1 ? " job" : " jobs"}
-                        {filters.hasFilters ? " match your filters" : ""}
+                        {wantsQuotes ? (
+                          "Jobs that want quotes"
+                        ) : (
+                          <>
+                            {headerCount}
+                            {headerCount === 1 ? " job" : " jobs"}
+                            {filters.hasFilters ? " match your filters" : ""}
+                          </>
+                        )}
                       </span>
                       {filters.searchOpen && (
                         <BrowseSearchBar filters={filters} className="ml-auto" />
@@ -674,6 +690,8 @@ const Dashboard = () => {
                     savedOnly={savedOnly}
                     onToggleSavedOnly={toggleSavedOnly}
                     savedCount={savedJobIds.size}
+                    wantsQuotes={wantsQuotes}
+                    onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}
                     onClearAllFilters={() => {
                       // After clearing filters, snap the feed back to the top
                       // so the user lands on the fresh unfiltered head of the
@@ -683,6 +701,9 @@ const Dashboard = () => {
                     }}
                   />
 
+                  {wantsQuotes ? (
+                    <WantsQuotesFeed onShowAllJobs={() => setWantsQuotesPicked(false)} />
+                  ) : (
                   <BrowseTasksFeed
                     view={isWebDesktop ? "list" : view}
                     density={density}
@@ -724,13 +745,14 @@ const Dashboard = () => {
                     exclusions={exclusions}
                     mapRefreshKey={jobsUpdatedAt}
                   />
+                  )}
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
                     own column rather than hiding behind a toggle. The page
                     frame is full-width here (PageScaffold desktop), so the
                     map has real room and doesn't clip at a phone-width edge
                     the way the old side-map did (#12). */}
-                {isWebDesktop && mapVisible && !feedShowingLoadError && (
+                {isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && (
                   <div
                     className="w-[48%] shrink-0 min-h-0 flex flex-col"
                     style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}

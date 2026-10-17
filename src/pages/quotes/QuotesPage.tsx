@@ -23,10 +23,10 @@ import {
   fetchOpenQuoteRequests,
   type MyJobQuote,
   type MyQuoteRequest,
-  type OpenQuoteRequest,
 } from "@/lib/quotes/api";
 import { QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { MyQuoteCard } from "@/components/quotes/MyQuoteCard";
+import { OpenQuoteRequestRow } from "@/components/quotes/OpenQuoteRequestRow";
 
 type View = "requests" | "open" | "mine";
 const VIEWS: View[] = ["requests", "open", "mine"];
@@ -78,30 +78,6 @@ function YourRequests() {
   );
 }
 
-function OpenRow({ r }: { r: OpenQuoteRequest }) {
-  const quoted = !!r.my_quote_id;
-  return (
-    <li className="rounded-2xl border border-border bg-card p-4">
-      <p className="font-semibold text-foreground break-words">{r.title}</p>
-      <p className="mt-1 text-sm text-muted-foreground line-clamp-3 break-words">{r.description}</p>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Needed {dayLabel(r.date_needed)}
-        {r.location ? ` · ${r.location}` : r.parish ? ` · ${r.parish}` : ""}
-        {timeLeft(r.quotes_close_at) ? ` · ${timeLeft(r.quotes_close_at)}` : ""}
-      </p>
-      <div className="mt-3">
-        {quoted ? (
-          <p className="text-sm font-medium text-foreground">You sent a quote. See it under Your quotes.</p>
-        ) : (
-          <Button asChild size="sm">
-            <Link to={`/quotes/send/${r.id}`}>Send a quote</Link>
-          </Button>
-        )}
-      </div>
-    </li>
-  );
-}
-
 function OpenRequests() {
   const q = useQuery({ queryKey: ["quotes", "open"], queryFn: fetchOpenQuoteRequests });
   if (q.isPending) return <p className="text-sm text-muted-foreground">Loading open requests…</p>;
@@ -116,7 +92,7 @@ function OpenRequests() {
   return (
     <ul className="space-y-3" aria-label="Open quote requests">
       {q.data.map((r) => (
-        <OpenRow key={r.id} r={r} />
+        <OpenQuoteRequestRow key={r.id} r={r} />
       ))}
     </ul>
   );

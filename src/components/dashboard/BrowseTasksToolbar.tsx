@@ -64,6 +64,8 @@ export function BrowseTasksToolbar({
   savedOnly = false,
   onToggleSavedOnly,
   savedCount = 0,
+  wantsQuotes = false,
+  onToggleWantsQuotes,
 }: BrowseTasksToolbarProps) {
   // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
@@ -215,6 +217,8 @@ export function BrowseTasksToolbar({
             savedOnly,
             onToggleSavedOnly,
             savedCount,
+            wantsQuotes,
+            onToggleWantsQuotes,
             selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
             locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
             sortBy: filters.sortBy, setSortBy: filters.setSortBy,

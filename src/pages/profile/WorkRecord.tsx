@@ -18,6 +18,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { WORK_RECORD_ID_FIELD } from "@/components/profile/WorkRecordReserve";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative, shareFileNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -411,7 +412,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   </div>
                   <div>
                     <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                      ID verified by Stripe
+                      {WORK_RECORD_ID_FIELD}
                     </p>
                     <p className="text-ds-13 font-semibold inline-flex items-center gap-1">
                       {data.identityVerified ? (

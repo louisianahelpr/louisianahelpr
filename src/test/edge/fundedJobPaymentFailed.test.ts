@@ -5,7 +5,7 @@
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | : job.status === "in_progress" | : job.status === "in_progressX"
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (job.payment_status === "released") { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "cancelled") { | } else if (cancelOutcome === "cancelledX") {
-// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (cancelErr && !cancelNotDeployed) { | if (false) {
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const cancelNotDeployed = cancelErr?.code === "PGRST202" \|\| cancelErr?.code === "42883"; | const cancelNotDeployed = !!cancelErr;
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "moved_on" \|\| cancelOutcome === "not_found") { | } else if (cancelOutcome === "not_found") {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome !== "not_hired" && cancelOutcome !== "not_cancellable") { | } else if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId }, | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: null },

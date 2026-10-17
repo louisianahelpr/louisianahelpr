@@ -353,6 +353,24 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # On the rebased tree, against the land base. Guard: src/test/outOfOrderRestatements.test.ts.
   node scripts/check-out-of-order-restatements.mjs --base origin/main
 
+  # The edge type check (`deno check` of every edge function, the required
+  # "Lint, type-check, build, test" job's "Edge function type check" step).
+  # land.sh never ran it, so PR #3294 (2026-10-17, declutter moving-out) went
+  # red in CI on 2 x TS2345 in declutter-ai-draft after a green land, and sat
+  # BLOCKED with auto-merge off. Run it whenever the push touches an edge
+  # function or the checker itself; any error stops the land before the push.
+  # Guard: src/test/landTypechecksEdge.test.ts (Q?land-typecheck-edge).
+  if grep -qE '^(supabase/functions/|scripts/typecheck-edge\.mjs$|scripts/edge-typecheck\.deno\.json$)' <<<"$PUSHED_FILES"; then
+    echo "land: edge functions changed; running the edge type check (npm run typecheck:edge)."
+    if ! npm run -s typecheck:edge; then
+      echo "land: the edge type check failed (errors above); not pushing. CI's required Test job runs the same check." >&2
+      exit 1
+    fi
+  else
+    echo "land: no edge function changed; skipping the edge type check."
+  fi
+  phase "edge type check"
+
   # The critical-path budget (Q178: scripts/perf/critical-path-budget.json),
   # checked on the BUILT bundle before the push. CI's "Bundle Size Check" runs
   # the same command but is NOT a required check, so a regression showed only

@@ -148,7 +148,7 @@ function readOverflowingControls(): { text: string; sw: number; cw: number }[] {
     // A scroller (overflow auto/scroll) is meant to be wider inside than out.
     if (/(auto|scroll)/.test(cs.overflowX)) continue;
     // VISUALLY HIDDEN (Tailwind `sr-only`: clip rect(0 0 0 0), 1px box) paints
-    // nothing, so nothing of it can run past an edge on screen. Run 38689259675
+    // nothing, so nothing of it can run past an edge on screen. Run 38689259675 (2026-10-15)
     // reported 116 of 169 rows from exactly these: App.tsx's "Skip to content"
     // (sw124/cw1, every route), JobCardShell's "Expand Job Details" (cw44 from
     // the button's min touch size, still clipped to nothing) and

@@ -11827,6 +11827,8 @@ export type Database = {
           item_id: string
           kind: string
           owner_id: string
+          owner_last_rejected_at: string
+          owner_last_rejection_note: string
           photo_paths: string[]
           price_cents: number
           shop_id: string

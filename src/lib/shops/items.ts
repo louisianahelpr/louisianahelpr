@@ -317,6 +317,13 @@ export interface PendingShopItem {
   text_flag_reason: string | null;
   approved_items: number;
   photo_paths: string[];
+  /**
+   * The owner's latest admin rejection in the last 30 days (null: none). While
+   * it is set, every item the owner publishes waits here (the 30-day hold,
+   * owner decision 2026-10-17), so the admin sees why and what was refused.
+   */
+  owner_last_rejected_at: string | null;
+  owner_last_rejection_note: string | null;
 }
 
 export async function fetchPendingShopItems(): Promise<PendingShopItem[]> {

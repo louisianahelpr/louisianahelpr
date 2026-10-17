@@ -54,6 +54,8 @@ const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const ANON_REVOKED = "EXECUTE is revoked from anon, so a signed-out caller gets 42501 before the body runs; auth.uid() is never null inside it.";
 const LADDER_AFTER_CANCEL =
   "raised by apply_cancellation_violation_consequence, which this RPC calls only after its own UPDATE set status = 'cancelled' on the row it holds FOR UPDATE, as the job's customer.";
+const RENTALS_READ = "no message exists at this site: a failed Rentals read shows the screen's load-error state, not a code's words, and RentalsGate shows the 404 while the switch is off.";
+const RENTALS_LINK = "no message exists at this site: useJobSubmit links the posted job best effort and reports a refusal (useJobSubmit.linkMaintenance), showing no copy.";
 const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query error reports and hides the pet-care sheet, it shows no copy.";
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
@@ -124,6 +126,25 @@ const UNREACHABLE: Allowlist = {
   get_job_pets: {
     job_not_found: { reason: SILENT_PET_READ },
     not_authorized: { reason: SILENT_PET_READ },
+  },
+  // Rentals S1 reads: a failed read shows the screen's own load-error state
+  // (RentalsHomeView's error row, MaintenanceRequestView's <ErrorState>), never
+  // a code's words; and RentalsGate renders the 404 while the switch is off, so
+  // the queries only run for a caller the switch reaches.
+  rentals_my_homes: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
+  rentals_request_job_state: {
+    feature_disabled: { reason: RENTALS_READ },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
+  // Best effort after the job is posted (useJobSubmit): a refused link is
+  // reported to the ops ledger and shows no copy; the job is posted either way.
+  link_maintenance_request_job: {
+    account_restricted: { reason: RENTALS_LINK },
+    feature_disabled: { reason: RENTALS_LINK },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
 };
 

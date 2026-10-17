@@ -16,6 +16,7 @@ const requireBiometricMock = vi.fn<(reason: string) => Promise<boolean>>();
 vi.mock("./DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
 vi.mock("./CategorySuggestionsCard", () => ({ CategorySuggestionsCard: () => null }));
 vi.mock("./DeclutterProblemsCard", () => ({ DeclutterProblemsCard: () => null }));
+vi.mock("./RentalsOwnershipCard", () => ({ RentalsOwnershipCard: () => null }));
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (reason: string) => requireBiometricMock(reason),
 }));

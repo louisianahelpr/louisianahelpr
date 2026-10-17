@@ -63,6 +63,10 @@ export const FEATURE_SWITCH_KEYS = [
   // item. Created 'testers' by 20261017073146; declutter_setup_helpr and
   // declutter_link_setup_job refuse without it (require_feature).
   "declutter_add_helpr",
+  // Rentals S1 (docs/specs/landlord-hub-prep.md): landlords invite tenants,
+  // tenants send maintenance requests that become Helpr jobs. Created OFF by
+  // 20261015061259; every rentals_* RPC refuses without it (require_feature).
+  "rentals",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];

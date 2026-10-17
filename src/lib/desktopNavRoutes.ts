@@ -20,6 +20,8 @@ const AUTH_PREFIXES = [
   "/quotes",
   // Shops (hidden switch; each page is the 404 while it is off).
   "/shops",
+  // Rentals (hidden switch 'rentals'; each page is the 404 while it is off).
+  "/rentals",
   "/browse",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
   // shares their prefix. They belong to the signed-in app chrome, so the

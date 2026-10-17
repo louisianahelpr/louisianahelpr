@@ -48,7 +48,8 @@ export function usePostJobForm() {
   // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
   // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too,
   // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("turnover") || searchParams.get("haulAway"));
+  // Rentals S1: an approved maintenance request (`maintenance`) too.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -301,6 +302,8 @@ export function usePostJobForm() {
     setParish,
     setOfferToHelperId,
     setOfferToHelperName,
+    onMaintenanceUnusable: (linkedJobId: string | null) =>
+      navigate(linkedJobId ? `/jobs/${linkedJobId}` : "/post-job", { replace: true }),
     title,
     description,
     category,
@@ -432,6 +435,7 @@ export function usePostJobForm() {
     turnoverId: searchParams.get("turnover"),
     haulAwayItemIds,
     declutterOrderId: searchParams.get("declutterOrder"),
+    maintenanceRequestId: searchParams.get("maintenance"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

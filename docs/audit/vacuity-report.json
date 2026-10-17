@@ -1,11 +1,10 @@
 {
-  "generated": "2026-10-17T21:22:10.270Z",
-  "guards": 1934,
-  "registered": 1934,
+  "generated": "2026-10-17T22:42:36.996Z",
+  "guards": 1982,
+  "registered": 1982,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/landClaims.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -178,6 +177,7 @@
     {
       "module": "src/components/job-card/JobListPage.tsx",
       "tests": [
+        "src/test/activityLinkedJobNotOnList.test.tsx",
         "src/test/desktopScreenNameIsSrOnly.test.tsx",
         "src/components/job-card/JobListPage.visitPaymentCard.test.tsx"
       ],
@@ -231,6 +231,18 @@
       ],
       "parents": [
         "src/components/MobileNav.tsx"
+      ]
+    },
+    {
+      "module": "src/components/NotificationPanel.tsx",
+      "tests": [
+        "src/test/bellFeedBoundOnEveryRoute.test.tsx",
+        "src/components/NotificationPanel.failedLoad.test.tsx"
+      ],
+      "parents": [
+        "src/components/DesktopTopNav.tsx",
+        "src/components/dashboard/DashboardTitleBar.tsx",
+        "src/components/admin/AdminTopBar.tsx"
       ]
     },
     {
@@ -320,6 +332,7 @@
     {
       "module": "src/pages/post-job/EntryChoice.tsx",
       "tests": [
+        "src/pages/post-job/entrySkeletonFollowsJobHistory.test.tsx",
         "src/pages/post-job/giftCardBanner.test.tsx"
       ],
       "parents": [

@@ -749,6 +749,39 @@ async function enrolTestAccounts(ownedIds) {
   console.log(`test_accounts: ${checked} enrolled${added.length ? ` (${added.length} added)` : ""}`);
 }
 
+/**
+ * THE ADMIN SEED ACCOUNT IS THE "EMPTY INBOX" FIXTURE (activity-tabs-visible
+ * .spec.ts: "The empty inbox is the `admin` seed account"). Anything that
+ * messages it leaves a thread there and every EMPTY-inbox test then fails:
+ * prod-audit 38689259675 (2026-10-15), 8 tests at 4 widths, "carrying 1 thread
+ * rows". Measured 2026-10-17: two rows from a hand-run Q1590 live check
+ * (2026-10-12 14:37Z, "seed, will be deleted") between it and
+ * eli.test.helper, never deleted. So each --apply puts the fixture back:
+ * every message the admin seed sent, received or holds a team thread for is
+ * removed, but only when the other party is a test (is_seed) account; a real
+ * person's message is reported and the run fails rather than delete it.
+ * src/test/prodSeedRestoresEmptyInbox.test.ts holds this.
+ */
+async function restoreEmptyInbox(adminId) {
+  const rows = await select(
+    `messages?or=(sender_id.eq.${adminId},receiver_id.eq.${adminId},team_thread_user_id.eq.${adminId})&select=id,sender_id,receiver_id,team_thread_user_id,created_at`,
+  );
+  if (!rows.length) {
+    console.log("admin seed inbox: empty");
+    return;
+  }
+  const others = [...new Set(rows.flatMap((r) => [r.sender_id, r.receiver_id, r.team_thread_user_id]).filter((u) => u && u !== adminId))];
+  const seed = new Set(others.length ? (await select(`profiles?user_id=${inList(others)}&is_seed=is.true&select=user_id`)).map((p) => p.user_id) : []);
+  const foreign = rows.filter((r) => [r.sender_id, r.receiver_id, r.team_thread_user_id].some((u) => u && u !== adminId && !seed.has(u)));
+  if (foreign.length) {
+    throw new Error(`admin seed inbox: ${foreign.length} message(s) with a non-test account (${foreign.map((r) => r.id).join(",")}); not deleted — find who messaged the seed admin`);
+  }
+  const ids = rows.map((r) => r.id);
+  const gone = await rest("DELETE", `messages?id=${inList(ids)}&select=id`, undefined, { prefer: "return=representation" });
+  if (!Array.isArray(gone) || gone.length !== ids.length) throw new Error(`admin seed inbox: deleted ${gone?.length ?? 0} of ${ids.length} messages`);
+  console.log(`admin seed inbox: removed ${ids.length} test message(s) (oldest ${rows.map((r) => r.created_at).sort()[0]})`);
+}
+
 async function apply() {
   const posterId = await requireSeed(POSTER.email);
   const helperId = await requireSeed(HELPER.email);
@@ -761,6 +794,7 @@ async function apply() {
   }
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
   await enrolTestAccounts([posterId, helperId, ...Object.values(ids)]);
+  await restoreEmptyInbox(ids.admin);
   await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })), "id", { naturalKey: "user_id,role" });
 
   const posterJobs = [

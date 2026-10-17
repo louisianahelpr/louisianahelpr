@@ -40,13 +40,13 @@ import {
   appendFileSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";

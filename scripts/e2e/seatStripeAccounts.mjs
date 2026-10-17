@@ -42,6 +42,7 @@
 import { pathToFileURL } from "node:url";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+import { ACCOUNTS } from "../test-signin-link.mjs";
 
 // Refuse to write prod (--restore unlinks Stripe accounts) from a stale
 // checkout; a no-op when the sweeper imports this file (entry only).
@@ -61,7 +62,7 @@ export const RESET_FIELDS = Object.freeze({
  * any seat, or this account linked to another seat, is still a violation.
  */
 export const SANCTIONED_TEST_CONNECT_ACCOUNTS = Object.freeze({
-  "7b923b19-aba5-44cb-8730-8c33ba2b9321": "acct_1UQigP3qNyg1xGcp",
+  [ACCOUNTS["helper-e2e"].userId]: "acct_1UQigP3qNyg1xGcp",
 });
 
 /** The profile columns a seat check must read (stripeSeatViolations needs all of them). */

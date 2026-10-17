@@ -64,7 +64,9 @@ const ledgerWrites = () => queries.filter((q) => q.includes("ops_alert_record"))
 function run(dbPool: number | null, pools: number[]): Promise<{ code: number; out: string }> {
   shape = { dbPool, pools };
   queries = [];
-  const env = { PATH: process.env.PATH ?? "", SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", LH_SUPABASE_API_BASE: base };
+  // VITEST: the child is this test's stub run, so assertFreshCheckout steps aside (a CI checkout has no
+  // origin/main ref, and this env drops GITHUB_ACTIONS).
+  const env = { PATH: process.env.PATH ?? "", VITEST: "true", SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", LH_SUPABASE_API_BASE: base };
   return new Promise((done) =>
     execFile(process.execPath, [SCRIPT], { cwd: ROOT, env, timeout: 30_000 }, (err, stdout, stderr) =>
       done({ code: err ? Number((err as NodeJS.ErrnoException).code ?? 1) : 0, out: `${stdout}\n${stderr}` }),

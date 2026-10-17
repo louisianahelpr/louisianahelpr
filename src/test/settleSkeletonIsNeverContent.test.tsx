@@ -20,7 +20,8 @@
  * @mutate scripts/audit/measure-page-settle.mjs |   const skeletonScope = '[aria-busy="true"], [data-skeleton], [data-testid*="skeleton" i], [class*="skeleton" i]'; |   const skeletonScope = '[aria-busy="true"]';
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative, resolve } from "node:path";
 import type { ComponentType } from "react";
 import { render, cleanup } from "@testing-library/react";
@@ -60,9 +61,10 @@ function itemsIn(ui: React.ReactElement): { n: number; added: string[]; text: st
 function skeletonModules(): { file: string; names: string[] }[] {
   const out: { file: string; names: string[] }[] = [];
   const walk = (d: string) => {
-    for (const f of readdirSync(d)) {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const f = e.name;
       const p = join(d, f);
-      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (e.isDirectory()) { walk(p); continue; }
       if (!f.endsWith(".tsx") || f.includes(".test.")) continue;
       const src = readFileSync(p, "utf8");
       const names = [...src.matchAll(/export\s+(?:const|function)\s+([A-Z][A-Za-z]*Skeleton)\b/g)].map((m) => m[1]);

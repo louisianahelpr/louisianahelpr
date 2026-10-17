@@ -189,6 +189,15 @@ async function main() {
     await restUpdate("profiles", `user_id=eq.${userId}`, profilePayload);
   }
 
+  // ENROLLED in public.test_accounts: with the launch switch on, an is_seed
+  // account outside that table sees no test job and none sees it (Q552). A
+  // re-created account gets a new id, and the cascade drops the old row
+  // (Q1649), so every run enrols it again. Guarded by
+  // src/test/harnessAccountsAreEnrolled.test.ts.
+  const { ensureTestAccountsEnrolled } = await import("./lib/testAccountEnrolment.mjs");
+  const enrolled = await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: SERVICE_ROLE_KEY, userIds: [userId], note: "create-app-review-demo-account" });
+  console.log(enrolled.added.length ? "Enrolled in test_accounts." : "Already enrolled in test_accounts.");
+
   const prefRows = await restQuery(
     "notification_preferences",
     `user_id=eq.${userId}&select=user_id`,

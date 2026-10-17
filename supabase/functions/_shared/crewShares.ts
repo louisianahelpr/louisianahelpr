@@ -16,6 +16,7 @@
 // src/test/groupCrewNoLead.test.ts that the rule constants match the SQL.
 
 import { cancellationFeePercent, hoursUntilJob } from "./cancellationFee.ts";
+import { helprFlatFeeCents } from "./helprFlatFee.ts";
 
 /**
  * OWNER RULE (Q407; decided by the owner 2026-09-27 and again 2026-10-04 for
@@ -52,6 +53,27 @@ export function allocateCents(totalCents: number, n: number, slot: number): numb
 export function allocateAll(totalCents: number, n: number): number[] {
   const k = Math.max(1, Math.floor(n || 1));
   return Array.from({ length: k }, (_, i) => allocateCents(totalCents, k, i));
+}
+
+/**
+ * The whole job's flat Helpr fee (roadmap F3) in cents, as create-payment
+ * records it in jobs.platform_fee_amount at escrow (Q1845): every one of the
+ * `n` Helprs pays 5% + 70c on THEIR OWN share, so a crew's fee is the SUM of
+ * the members' fees, never one 70c for the whole job. Each share is split by
+ * the same largest remainder the payout uses (allocateCents over the budget,
+ * and over the urgent bonus, process-scheduled-payouts), so this equals what
+ * a full crew pays out. n = 1 is helprFlatFeeCents(budget + bonus).
+ * It prices every slot, so it is a FULL-crew figure: an under-filled crew
+ * whose unfilled shares are refunded (CREW_COMPLETES_WHEN_HIRED_DONE) pays
+ * less, and the stamp is not corrected after a crew settles.
+ */
+export function jobFlatFeeTotalCents(budgetCents: number, urgentCents: number, n: number): number {
+  const k = Math.max(1, Math.floor(n || 1));
+  let total = 0;
+  for (let i = 0; i < k; i++) {
+    total += helprFlatFeeCents(allocateCents(budgetCents, k, i) + allocateCents(urgentCents, k, i));
+  }
+  return total;
 }
 
 /** Whether a hired member counts as committed under the owner rule. */

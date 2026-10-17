@@ -165,6 +165,54 @@
       "kind": "jump",
       "was": "row 744px → 902px (+158px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "customer /profile?tab=reviews #0",
+      "kind": "jump",
+      "was": "row 307px → 86px (-221px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep zero-state outline\"): a cold visit to the Reviews tab draws the \"No reviews yet\" outline until the review count is known (the Q722 rule ReviewsTab.tsx applies, TAB_SHAPES.reviews 307px), because most members have no reviews; an account WITH reviews then collapses into the rating card and list. The shared test accounts carry seed reviews since 2026-10-12 (prod-seed job \"SEED Trim two crepe myrtles\", c975aec8), so they measure that collapse (loading-states-refresh 38323051459 onward: row 307px -> 86px, 2 rows -> 3). An account with no reviews does not breach."
+    },
+    {
+      "key": "customer /profile?tab=reviews #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep zero-state outline\"): a cold visit to the Reviews tab draws the \"No reviews yet\" outline until the review count is known (the Q722 rule ReviewsTab.tsx applies, TAB_SHAPES.reviews 307px), because most members have no reviews; an account WITH reviews then collapses into the rating card and list. The shared test accounts carry seed reviews since 2026-10-12 (prod-seed job \"SEED Trim two crepe myrtles\", c975aec8), so they measure that collapse (loading-states-refresh 38323051459 onward: row 307px -> 86px, 2 rows -> 3). An account with no reviews does not breach."
+    },
+    {
+      "key": "customer /user/7b923b19-aba5-44cb-8730-8c33ba2b9321 #0",
+      "kind": "jump",
+      "was": "row 144px → 104px (-40px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep full-profile reserve\"): the /user/:id masthead skeleton (ProfileHeroSkeleton) reserves a COMPLETE profile, two bio lines and three detail lines (place, Since, last active), so complete profiles do not move and shorter ones shrink upward. The shared test accounts have an 18-character bio (one line) and the Helpr one fewer detail line, so they measure the shrink (loading-states-refresh 38323051459 onward: poster page row 144px -> 122px, Helpr page 144px -> 104px). Reserving the minimum instead was offered and declined: content above the fold would then push the page down for every profile with a bio."
+    },
+    {
+      "key": "customer /user/951264df-1e7c-4b6f-912e-a1be37e0dbfb #0",
+      "kind": "jump",
+      "was": "row 144px → 122px (-22px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep full-profile reserve\"): the /user/:id masthead skeleton (ProfileHeroSkeleton) reserves a COMPLETE profile, two bio lines and three detail lines (place, Since, last active), so complete profiles do not move and shorter ones shrink upward. The shared test accounts have an 18-character bio (one line) and the Helpr one fewer detail line, so they measure the shrink (loading-states-refresh 38323051459 onward: poster page row 144px -> 122px, Helpr page 144px -> 104px). Reserving the minimum instead was offered and declined: content above the fold would then push the page down for every profile with a bio."
+    },
+    {
+      "key": "helper /profile?tab=reviews #0",
+      "kind": "jump",
+      "was": "row 307px → 86px (-221px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep zero-state outline\"): a cold visit to the Reviews tab draws the \"No reviews yet\" outline until the review count is known (the Q722 rule ReviewsTab.tsx applies, TAB_SHAPES.reviews 307px), because most members have no reviews; an account WITH reviews then collapses into the rating card and list. The shared test accounts carry seed reviews since 2026-10-12 (prod-seed job \"SEED Trim two crepe myrtles\", c975aec8), so they measure that collapse (loading-states-refresh 38323051459 onward: row 307px -> 86px, 2 rows -> 3). An account with no reviews does not breach."
+    },
+    {
+      "key": "helper /profile?tab=reviews #0",
+      "kind": "rows",
+      "was": "2 placeholder row(s) → 3 real row(s)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep zero-state outline\"): a cold visit to the Reviews tab draws the \"No reviews yet\" outline until the review count is known (the Q722 rule ReviewsTab.tsx applies, TAB_SHAPES.reviews 307px), because most members have no reviews; an account WITH reviews then collapses into the rating card and list. The shared test accounts carry seed reviews since 2026-10-12 (prod-seed job \"SEED Trim two crepe myrtles\", c975aec8), so they measure that collapse (loading-states-refresh 38323051459 onward: row 307px -> 86px, 2 rows -> 3). An account with no reviews does not breach."
+    },
+    {
+      "key": "helper /user/7b923b19-aba5-44cb-8730-8c33ba2b9321 #0",
+      "kind": "jump",
+      "was": "row 144px → 104px (-40px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep full-profile reserve\"): the /user/:id masthead skeleton (ProfileHeroSkeleton) reserves a COMPLETE profile, two bio lines and three detail lines (place, Since, last active), so complete profiles do not move and shorter ones shrink upward. The shared test accounts have an 18-character bio (one line) and the Helpr one fewer detail line, so they measure the shrink (loading-states-refresh 38323051459 onward: poster page row 144px -> 122px, Helpr page 144px -> 104px). Reserving the minimum instead was offered and declined: content above the fold would then push the page down for every profile with a bio."
+    },
+    {
+      "key": "helper /user/951264df-1e7c-4b6f-912e-a1be37e0dbfb #0",
+      "kind": "jump",
+      "was": "row 144px → 122px (-22px)",
+      "ruling": "Owner decision 2026-10-17 (asked in the reds-guards lane, answer \"Keep full-profile reserve\"): the /user/:id masthead skeleton (ProfileHeroSkeleton) reserves a COMPLETE profile, two bio lines and three detail lines (place, Since, last active), so complete profiles do not move and shorter ones shrink upward. The shared test accounts have an 18-character bio (one line) and the Helpr one fewer detail line, so they measure the shrink (loading-states-refresh 38323051459 onward: poster page row 144px -> 122px, Helpr page 144px -> 104px). Reserving the minimum instead was offered and declined: content above the fold would then push the page down for every profile with a bio."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

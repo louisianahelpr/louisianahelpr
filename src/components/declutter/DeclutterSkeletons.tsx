@@ -33,7 +33,14 @@ export function DeclutterHomeSkeleton() {
       }
     >
       <p className="text-sm text-muted-foreground">Buy and sell used household items near you. Pick up in person.</p>
-      <Skeleton className="h-12 w-full rounded-full" aria-hidden />
+      {/* The view switcher: four segments since slice 3 (Browse, My
+          listings, Offers, Cart), layout="wrap", so on a phone each takes half
+          a row: two 44px rows + 2px gap + 2px track padding top and bottom +
+          the track's 0.5px border = 95px, rounded-2xl like the wrapped track.
+          From sm up the four sit in one 48px row. It was one 48px pill drawn
+          for the two-segment row (loading-states-refresh 38958608457,
+          2026-10-16: /declutter #0 68px -> 96px, both test accounts). */}
+      <Skeleton className="h-[95px] sm:h-12 w-full rounded-2xl sm:rounded-full" aria-hidden />
       <div className="space-y-4" role="status" aria-label="Loading items">
         {/* The distance choices wrap to three rows on a phone (140px at 375)
             and sit in one row from sm up. */}

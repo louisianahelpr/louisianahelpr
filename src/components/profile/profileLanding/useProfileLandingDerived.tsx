@@ -2,7 +2,7 @@ import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
   Coins, UserPlus, TrendingUp, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle, Type, Bug,
+  AlertTriangle, Type, Bug, Sofa,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeature } from "@/hooks/useFeature";
@@ -25,6 +25,15 @@ export function useProfileLandingDerived({
   // hidden "memberships" switch is on for this viewer, or for a member who
   // still holds a plan (so they can still see and manage it).
   const membershipsOn = useFeature("memberships");
+  // Declutter (hidden switch; docs/specs/declutter-auctions.md row 1): its
+  // phone entry is a row in this list while the switch is on for the viewer.
+  // It was a bordered card of its own between the payout row and this list,
+  // so the landing gained a column child the moment the switch read landed
+  // and the loading skeleton (which cannot know the switch) drew 4 rows for
+  // 5 (loading-states-refresh 38958608457, /profile #0). As a row in a group
+  // below the fold of the skeleton's first group it moves nothing (owner,
+  // 2026-10-17: "Make it a settings row").
+  const declutterOn = useFeature("declutter");
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
   // app bar. Home no longer has an app bar, and /admin is an account-level
 
@@ -181,6 +190,9 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.money,
           href: "/profile?tab=work_record",
         },
+        ...(declutterOn
+          ? [{ key: "declutter", label: "Declutter", icon: <Sofa className="w-5 h-5" />, desc: "Buy and sell used household items near you", tint: SECTION_TINT.money, href: "/declutter" }]
+          : []),
       ],
     },
     {

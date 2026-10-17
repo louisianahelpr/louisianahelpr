@@ -108,6 +108,10 @@
       "destination": "/api/missing-asset"
     },
     {
+      "source": "/unsubscribe",
+      "destination": "/api/share?_og=noindex&_id=unsubscribe"
+    },
+    {
       "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
       "destination": "/index.html"
     }

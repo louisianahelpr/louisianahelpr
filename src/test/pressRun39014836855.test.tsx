@@ -128,7 +128,11 @@ describe("press-every-control: a write on a job card lands on, and is remembered
     const src = readFileSync(resolve(repoRoot, "scripts/audit/press-every-control.mjs"), "utf8");
     expect(src).toMatch(/rowText: \(el\.closest\(rowSel\)\?\.innerText/);
     expect(src).toMatch(/rowSel: RECORD_ROW_SEL/);
-    // The press-time check sits on the mutating branch, after the gate.
-    expect(src).toMatch(/entry\.mutating = true;\n[\s\S]{0,600}pressTargetRecord\(\{ liveRowText, meta, now \}\)/);
+    // The press-time check reads the element about to be clicked, so it sits
+    // after `target` is resolved (ready/reds-1017-9 put it before the loop's
+    // `let target`: a TDZ throw on every gate-approved write, invisible to a
+    // source match like this one). The loop itself is driven, end to end, by
+    // src/test/pressDrivesTheRealPressPath.test.tsx.
+    expect(src).toMatch(/target = target\.first\(\);\n[\s\S]{0,1500}if \(entry\.mutating\) \{\n\s+const liveRowText = await target\.evaluate\(LIVE_ROW_TEXT, RECORD_ROW_SEL\)/);
   });
 });

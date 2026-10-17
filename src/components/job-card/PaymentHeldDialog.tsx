@@ -4,7 +4,7 @@ import {
   DialogHero,
   DialogBody,
   DialogFooter,
-  DialogPrimaryAction,
+  DialogAcknowledgeAction,
 } from "@/components/ui/dialog";
 
 /**
@@ -32,7 +32,7 @@ export function PaymentHeldDialog({ side, onClose }: { side: PaymentHeldSide | n
           <p data-payment-held="">{PAYMENT_HELD_SENTENCE}</p>
         </DialogBody>
         <DialogFooter>
-          <DialogPrimaryAction onClick={onClose}>Got it</DialogPrimaryAction>
+          <DialogAcknowledgeAction>Got it</DialogAcknowledgeAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

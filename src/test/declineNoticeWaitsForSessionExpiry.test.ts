@@ -17,7 +17,7 @@
  *     notice), and "expired" returns closed=false (checkoutSessionExpired
  *     handles that path).
  *
- * @mutate src/pages/post-job/useJobSubmit.ts | safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId); | void jobId;
+ * @mutate src/pages/post-job/useJobSubmit.ts | \n        safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId); | \n        void jobId;
  * @mutate src/pages/post-job/EntryChoice.tsx | form.hasDraft && draftCheckout !== "paid" && | form.hasDraft &&
  * @mutate src/pages/post-job/useDraftCheckoutState.ts | return row.stripe_session_id ? "open" : "none"; | return "none";
  * @mutate src/pages/post-job/useDraftCheckoutState.ts | safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) ? "open" : "none", | "none",
@@ -62,10 +62,13 @@ describe("Q769: the not-posted notice waits for session expiry", () => {
 describe("Q769: Load Draft knows the draft's last checkout", () => {
   it("the checkout redirect records the job the draft paid for", () => {
     const src = read("src/pages/post-job/useJobSubmit.ts");
-    const set = src.indexOf("safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId)");
     const open = src.indexOf("await openExternalUrl(paymentUrl)");
+    expect(open).toBeGreaterThan(-1);
+    // The write on the checkout redirect path itself, not the gift-paid retry's
+    // funded branch above it (that one ends in its own in-app redirect).
+    const set = src.lastIndexOf("safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId)", open);
     expect(set).toBeGreaterThan(-1);
-    expect(set).toBeLessThan(open);
+    expect(src.slice(set, open)).not.toContain("window.location.assign(");
   });
 
   it("Entry hides Load Draft for a paid job and reads the checkout state", () => {

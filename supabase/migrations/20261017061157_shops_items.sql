@@ -420,7 +420,7 @@ CREATE TRIGGER trg_reject_contact_leak_in_shop_item
   BEFORE INSERT OR UPDATE OF title, description ON public.shop_items
   FOR EACH ROW EXECUTE FUNCTION public.reject_contact_leak_in_shop_item();
 
---    8c'. Slice 1's shop-profile filter (newest body: 20261015123029), restated
+--    8c'. Slice 1's shop-profile filter (newest body: 20261017061155), restated
 --         verbatim but for its last words: it told members to use a Message
 --         button shops do not have yet (the Shops Message button item in docs/OPEN.md). The trigger
 --         itself is slice 1's and is not touched.
@@ -1490,7 +1490,7 @@ REVOKE ALL ON FUNCTION public.shops_admin_review_item(uuid, boolean, text, times
 GRANT EXECUTE ON FUNCTION public.shops_admin_review_item(uuid, boolean, text, timestamptz) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 12. Close the caller's own shop: slice 1's body (20261015123029), plus the
+-- 12. Close the caller's own shop: slice 1's body (20261017061155), plus the
 --     item photo paths, so the app removes those objects too (the item rows
 --     CASCADE with the shop; their objects would stay public by URL).
 CREATE OR REPLACE FUNCTION public.shops_close_my_shop()
@@ -1849,7 +1849,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_delivery_dropoffs', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_delivery_dropoffs t
       WHERE t.buyer_id = v_uid));
 
-  -- Shops slice 1 (20261015123029) and slice 2 (20261017060556): the
+  -- Shops slice 1 (20261017061155) and slice 2 (20261017061157): the
   -- member's own shop (who checked its registration and who hid it are staff
   -- ids, dropped; the hide reason is about them and stays), photo paths, the shops they follow, their items and item photos, the item
   -- review state (the AI and word-check reasons are staff-only, dropped; the

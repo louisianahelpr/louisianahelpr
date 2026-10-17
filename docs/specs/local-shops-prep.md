@@ -772,7 +772,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 ALL 92 local-shops questions answered (2026-10-14).
 
 ## Build defaults (Shops slice S2, items, 2026-10-16)
-Where the answers above leave a choice open, the S2 lane (migration 20261017060556_shops_items) took the safest
+Where the answers above leave a choice open, the S2 lane (migration 20261017061157_shops_items) took the safest
 default. Each row is a **default chosen by lane, owner to confirm**. Cited in the code as D<n>.
 
 | # | Question left open | Default chosen | When | Status |

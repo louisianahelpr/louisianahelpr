@@ -1,6 +1,6 @@
 /**
  * Shops: shared words and small pieces for the three screens
- * (docs/specs/local-shops-prep.md; migration 20261015123029_shops_profiles).
+ * (docs/specs/local-shops-prep.md; migration 20261017061155_shops_profiles).
  * Plain words only: no codes reach the member.
  */
 import { BadgeCheck, FileCheck2, IdCard, Landmark, ShieldCheck, Star } from "lucide-react";

@@ -15,7 +15,7 @@
  *          flagged listing to an admin (B19); the app runs `check` right
  *          before publishing.
  *
- * SHOP ITEMS (Shops slice 2, migration 20261017060556_shops_items; spec
+ * SHOP ITEMS (Shops slice 2, migration 20261017061157_shops_items; spec
  * docs/specs/local-shops-prep.md L51): the same two modes for a maker's DRAFT
  * shop item when the body says target: "shop_item". The model is told the
  * shop banned list and the low-risk home-food list (shopItemSanitize.ts), and

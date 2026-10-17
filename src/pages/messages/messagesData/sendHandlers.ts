@@ -17,7 +17,7 @@ import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
 import { classifySendRefusal } from "@/lib/messageSendRefusal";
 import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
 import { report } from "@/lib/errorLogger";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
   DELETED_ACCOUNT_NOTICE,
   DELETED_ACCOUNT_TOAST,
@@ -435,13 +435,14 @@ export function createSendHandlers({
       hapticError();
       const refusal = classifySendRefusal(error as { code?: string; message?: string } | null);
       // admin_only / no_team_thread: a send that can never succeed here.
-      // The RPC's own codes read the shared copy (RPC_ERROR_COPY). Any of them
-      // is final for this text (no thread / not staff / empty / too long), so
-      // the bubble offers no retry.
+      // The RPC's own codes read the shared copy (RPC_ERROR_COPY; the admin's
+      // side from ADMIN_RPC_ERROR_COPY, fetched only now). Any of them is final
+      // for this text (no thread / not staff / empty / too long), so the bubble
+      // offers no retry.
       const copy =
         teamUser === optimistic.sender_id
           ? rpcErrorMessage("send_team_reply", error)
-          : rpcErrorMessage("admin_send_team_message", error);
+          : ((await loadAdminRpcErrorCopy())?.rpcErrorMessage("admin_send_team_message", error) ?? null);
       const closed = copy !== null;
       toast.error(refusal?.toast ?? copy ?? "Message didn't go through — tap it to try again.");
       setMessages((prev) =>

@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { History, ShieldAlert, Bell, UserCheck, Undo2 } from "lucide-react";
 import { report } from "@/lib/errorLogger";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { formatName } from "@/lib/utils";
 import {
   Dialog,

@@ -6489,7 +6489,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 446,
+      "line": 447,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6499,7 +6499,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 505,
+      "line": 506,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -23,7 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { classifySendRefusal } from "@/lib/messageSendRefusal";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { TEAM_THREAD_NAME, teamThreadLink } from "@/lib/teamThread";

@@ -12,7 +12,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 
@@ -199,12 +199,12 @@ export async function adminDecideProblem(
   strike: boolean,
   note: string | null,
 ): Promise<Record<string, unknown>> {
-  return rpcData(
-    await supabase.rpc("declutter_admin_decide_problem", {
-      p_problem_id: problemId, p_decision: decision, p_fault: fault, p_strike: strike, p_note: note as string,
-    }),
-    (e) => rpcErrorMessage("declutter_admin_decide_problem", e),
-  ) as unknown as Record<string, unknown>;
+  const res = await supabase.rpc("declutter_admin_decide_problem", {
+    p_problem_id: problemId, p_decision: decision, p_fault: fault, p_strike: strike, p_note: note as string,
+  });
+  // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_problem", e) ?? null) as unknown as Record<string, unknown>;
 }
 
 /** Open problems for the admin card (RLS: admins read every problem). */

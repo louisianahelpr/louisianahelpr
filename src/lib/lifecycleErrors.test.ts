@@ -28,4 +28,4 @@ describe("rpcErrorMessage", () => {
 // match is the only thing keeping `not_authorized` from firing on a longer
 // code that merely contains it, which is how "Only the person who posted this
 // job can cancel it" ends up on a refusal that meant something else.
-// @mutate src/lib/lifecycleErrors.ts | if (new RegExp(`(^\|[^a-z0-9_])${code}($\|[^a-z0-9_])`).test(raw)) return code as RpcErrorCode<R>; | if (raw.includes(code)) return code as RpcErrorCode<R>;
+// @mutate src/lib/lifecycleErrors.ts | if (new RegExp(`(^\|[^a-z0-9_])${code}($\|[^a-z0-9_])`).test(raw)) return code; | if (raw.includes(code)) return code;

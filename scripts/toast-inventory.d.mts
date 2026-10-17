@@ -13,6 +13,10 @@ export interface CopyDescription {
   form: "literal" | "template" | "dynamic" | "jsx";
   text: string;
   branches?: CopyDescription[];
+  /** The src/ module a copy helper's returns were read from, when not this file. */
+  from?: string;
+  /** Each phrase a template's `${phrase}` hole can be. */
+  holes?: Record<string, CopyDescription[]>;
 }
 
 export interface ToastEntry {
@@ -52,11 +56,17 @@ export interface CopyLeaf {
   text: string;
   node: ts.Node;
   fragment: boolean;
+  /** Repo-relative file the leaf's text is written in (a copy helper's module, or the call site). */
+  src: string;
   line: number;
+  /** A template that ends in a phrase hole: each text that hole can end it with. */
+  endings?: string[];
 }
 
 export function walk(dir: string, out?: string[]): string[];
-export function describeCopy(node: ts.Node, sf: ts.SourceFile): CopyDescription | null;
+export function describeCopy(node: ts.Node, sf: ts.SourceFile, depth?: number): CopyDescription | null;
+export function importedFunction(sf: ts.SourceFile, name: string): { fn: ts.FunctionLikeDeclaration; sf: ts.SourceFile } | null;
+export function copyHelperOf(call: ts.CallExpression, sf: ts.SourceFile): { fn: ts.FunctionLikeDeclaration; sf: ts.SourceFile } | null;
 export function toastCalls(file: string, source: string): { sf: ts.SourceFile; rel: string; calls: ToastCall[] };
 export function scanFile(file: string, source: string): ToastEntry[];
 export function copyLeaves(node: ts.Node, sf: ts.SourceFile, depth?: number, seen?: Set<ts.Node>, fragment?: boolean): CopyLeaf[];

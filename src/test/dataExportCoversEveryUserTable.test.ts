@@ -34,7 +34,7 @@
  * @mutate supabase/migrations/20261017061157_shops_items.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
  * @mutate supabase/migrations/20261017061157_shops_items.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
  * @mutate supabase/migrations/20261017061157_shops_items.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
- * Reconcile (20261015084728): the export keeps main's category_suggestions AND the Declutter sections.
+ * Reconcile (20261015084728, restated by 20261016053541, 20261017044046 and the train's 20261017052701/052706/061157): the export keeps main's category_suggestions AND the Declutter sections.
  * Lane J (20261017052701): the second declutter_problems section stays scoped to the member's own orders and strips the reporter.
  * @mutate supabase/migrations/20261017061157_shops_items.sql | AND (o.buyer_id = v_uid OR o.seller_id = v_uid) | AND (o.buyer_id = v_uid OR true)
  * @mutate supabase/migrations/20261017061157_shops_items.sql | WHERE t.reporter_id IS DISTINCT FROM v_uid | WHERE true OR t.reporter_id IS DISTINCT FROM v_uid

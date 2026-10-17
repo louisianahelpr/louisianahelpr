@@ -95,6 +95,10 @@ const LOCKED_ELSEWHERE: Record<string, { fn: string; why: string }> = {
   helper_completed_at: { fn: "enforce_job_completion_server_owned", why: "server-owned in full; the Helpr's Done is rpc_helper_mark_done" },
   is_group_job: { fn: "enforce_group_job_has_no_lead", why: "the crew shape lock (money review HIGH-1, 20260925154606)" },
   helpers_needed: { fn: "enforce_group_job_has_no_lead", why: "the crew shape lock (money review HIGH-1, 20260925154606)" },
+  helper_fee_flat_cents: {
+    fn: "enforce_jobs_fee_model_lock",
+    why: "the F3 fee-model stamp is server-only (20261015023908); poster_cancel_job reads it to price the Helpr's share in its notice (Q1840)",
+  },
 };
 
 /** Read by the pricing code, but not a term of the price. */

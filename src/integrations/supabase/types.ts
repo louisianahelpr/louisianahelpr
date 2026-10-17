@@ -11154,6 +11154,10 @@ export type Database = {
           other_job_id: string
         }[]
       }
+      helpr_flat_fee_cents: {
+        Args: { p_flat_cents: number; p_percent: number; p_share_cents: number }
+        Returns: number
+      }
       helpr_my_tasks: {
         Args: never
         Returns: {

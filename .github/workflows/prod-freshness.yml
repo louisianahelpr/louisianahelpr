@@ -290,6 +290,14 @@ jobs:
           fi
           exit 1
 
+      # Q1737: once prod serves this commit, a missing /assets/ or /fonts/
+      # file must 404 with nothing a browser may keep, and a real hashed
+      # asset must stay immutable (vercel.json's missing-asset rewrites).
+      - name: Missing immutable files answer 404 no-store (Q1737)
+        env:
+          SITE: https://www.louisianahelpr.com
+        run: node scripts/check-missing-asset-headers.mjs
+
       - name: Report what prod is serving
         if: always()
         run: |

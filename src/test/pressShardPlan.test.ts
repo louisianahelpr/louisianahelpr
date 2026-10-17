@@ -37,6 +37,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
+// @ts-expect-error - plain .mjs tool script, no types
 import * as harness from "../../scripts/audit/press-every-control.mjs";
 import {
   PART_CAP_MIN, PART_OVERHEAD_MIN, PLAN_BUDGET_MIN, PLAN_MARGIN, PLAN_SHARDS, PLAN_WAVE_WIDTH,
@@ -57,7 +58,7 @@ function realRows(): PlanRow[] {
   const h = harness as unknown as { deriveRouteSet: (o: unknown) => Route[]; parseAdminViews: () => string[] };
   const jobIds = [1, 2, 3, 4, 5].map(id);
   const set = h.deriveRouteSet({ seedJobId: jobIds[0], jobIds, helperId: id(6), customerId: id(7), adminViews: h.parseAdminViews() });
-  return set.flatMap((r, routeIdx) => (r.redirect
+  return set.flatMap((r, routeIdx): PlanRow[] => (r.redirect
     ? [{ routeIdx, url: r.url, persona: "-", redirect: true }]
     : r.personas.map((persona) => ({ routeIdx, url: r.url, persona, redirect: false }))));
 }

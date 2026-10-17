@@ -26,9 +26,9 @@ const DECLUTTER_FILES = [
   "20261015042253_declutter_slice4_handover_payout.sql",
   "20261016053541_declutter_wanted_price_hint.sql",
   "20261016053625_declutter_moving_out.sql",
-  "20261016050402_declutter_porch_default.sql",
+  "20261017052704_declutter_porch_default.sql",
   // Slice 5, Helpr delivery and the shared Helpr task module.
-  "20261016053945_declutter_helpr_delivery.sql",
+  "20261017052705_declutter_helpr_delivery.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.

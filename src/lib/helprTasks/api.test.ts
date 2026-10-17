@@ -104,7 +104,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string): Result => ({ data: null, error: { message } });
-const MIGRATION = readFileSync(join(process.cwd(), "supabase/migrations/20261016053945_declutter_helpr_delivery.sql"), "utf8");
+const MIGRATION = readFileSync(join(process.cwd(), "supabase/migrations/20261017052705_declutter_helpr_delivery.sql"), "utf8");
 
 beforeEach(() => {
   h.queue.length = 0;

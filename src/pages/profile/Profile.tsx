@@ -19,6 +19,8 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { stripeConnectStatusKey } from "@/hooks/useStripeConnectStatus";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
@@ -98,6 +100,19 @@ const ProfilePage = () => {
   const [justSaved, setJustSaved] = useState(false);
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
+  // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). The
+  // landing shows rows only while a hidden switch is on: the Declutter row
+  // (DeclutterEntryRow) and the Membership row (useProfileLandingDerived).
+  // Painted before the answer, such a row lands later and pushes Settings
+  // down: measured on prod at 375, the Declutter row arrived ~50 ms after
+  // Settings and moved it 90px (CLS 0.0599, prod-audit run 39008504928). The
+  // reads start here, alongside the profile read, and the landing skeleton
+  // holds until both have answered, for at most ARRIVAL_CAP_MS, so a hung
+  // read never hides Log out.
+  const declutterSwitch = useFeatureStatus("declutter");
+  const membershipsSwitch = useFeatureStatus("memberships");
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled);
+  const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**
    * Back out of a tab — to the Profile landing when that is where you came
@@ -312,13 +327,13 @@ const ProfilePage = () => {
   // Pathname, not `key` — see profileScrollByKey above.
   const routeKey = routeLocation.pathname;
   useEffect(() => {
-    // `loading` is in the deps deliberately. Profile early-returns a SKELETON
-    // while loading, so PullToRefreshWrapper — and therefore containerRef — does
+    // `showSkeleton` is in the deps deliberately. Profile early-returns a SKELETON
+    // while it is set, so PullToRefreshWrapper — and therefore containerRef — does
     // not exist on first mount. Without this dep the effect bailed on the null
     // ref and never re-ran when the real list appeared, so the scroll listener
     // was never attached and nothing was ever saved. That is what defeated the
     // previous attempt at this fix, verified on device.
-    if (loading || tab !== "landing") return;
+    if (showSkeleton || tab !== "landing") return;
     const el = containerRef.current;
     if (!el) return;
 
@@ -342,7 +357,7 @@ const ProfilePage = () => {
       if (raf) cancelAnimationFrame(raf);
       el.removeEventListener("scroll", onScroll);
     };
-  }, [loading, tab, routeKey, containerRef]);
+  }, [showSkeleton, tab, routeKey, containerRef]);
 
   // Stripe payout status is fetched by `useStripeConnectStatus()` inside
   // <ProfileLanding />, not here — it used to be a `useState` + `useEffect`
@@ -545,7 +560,7 @@ const ProfilePage = () => {
   // broke deletion for 100% of users — see the hook's header.
   const deleteAccount = useDeleteAccount();
 
-  if (loading) {
+  if (showSkeleton) {
     // Loading state mirrors the loaded state's shell so there's no
     // header jump when the skeleton resolves. Uses AppShell + the same
     // DashboardHeader (which carries `.glass-header` → safe-area-top

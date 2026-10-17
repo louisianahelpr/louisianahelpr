@@ -121,9 +121,13 @@ export function readUseFeatureKeys(srcDir = path.join(ROOT, "src")): { keys: Set
     const raw = readSource(file);
     if (raw === null) continue;
     const code = blankComments(raw);
-    for (const m of code.matchAll(/\buseFeature\s*\(([^)]*)\)/g)) {
-      // The hook's own declaration `function useFeature(key: FeatureKey)`.
+    for (const m of code.matchAll(/\buseFeature(?:Status)?\s*\(([^)]*)\)/g)) {
+      // The hooks' own declarations `function useFeature(key: FeatureKey)`
+      // and `function useFeatureStatus(key: FeatureKey)`.
       if (/function\s+$/.test(code.slice(Math.max(0, m.index - 12), m.index))) continue;
+      // useFeature's own body delegates `useFeatureStatus(key)`; the key is
+      // checked at useFeature's call sites.
+      if (path.relative(ROOT, file) === path.join("src", "hooks", "useFeature.ts") && m[1].trim() === "key") continue;
       calls++;
       const arg = m[1].trim();
       const lit = /^(["'])([a-z][a-z0-9_]*)\1$/.exec(arg);

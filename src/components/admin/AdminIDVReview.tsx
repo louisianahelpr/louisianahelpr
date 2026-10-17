@@ -224,7 +224,7 @@ const AdminIDVReview = () => {
   return (
     <AdminViewShell>
       <AdminCard
-        title="Identity Review"
+        title="Pending Identity Reviews"
         subtitle="Helprs Stripe billed and could not verify. Approving grants access as an Admin Verified account — it does not claim Stripe passed them."
         action={
           waiting > 0 ? (
@@ -294,14 +294,21 @@ const AdminIDVReview = () => {
                   className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3"
                 >
                   <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
-                      checked={selected.has(r.user_id)}
-                      onChange={() => toggleSelected(r.user_id)}
-                      disabled={bulkRunning}
-                      aria-label={`Select ${r.full_name || r.email || "this Helpr"} for bulk approval`}
-                    />
+                    {/* The 44px tap target is the label; the box itself stays
+                        16px. Without min-h-0/min-w-0 the global touch floor
+                        (index.css, 44x44 on input[type=checkbox]) drew the
+                        box itself at 44px, an empty white square at 375
+                        (Q?idv-phone-row). */}
+                    <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--bark))]"
+                        checked={selected.has(r.user_id)}
+                        onChange={() => toggleSelected(r.user_id)}
+                        disabled={bulkRunning}
+                        aria-label={`Select ${r.full_name || r.email || "this Helpr"} for bulk approval`}
+                      />
+                    </label>
                     <div className="w-10 h-10 rounded-full bg-accent/20 text-[hsl(var(--accent-ink))] flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
@@ -364,7 +371,7 @@ const AdminIDVReview = () => {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      className="flex-1 min-w-[8rem]"
+                      className="flex-1 min-w-max"
                       disabled={busy === r.user_id || bulkRunning}
                       onClick={() => {
                         setConfirming({ row: r, decision: "manual_verify" });
@@ -376,7 +383,7 @@ const AdminIDVReview = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 min-w-[8rem]"
+                      className="flex-1 min-w-max"
                       disabled={busy === r.user_id || bulkRunning}
                       onClick={() => {
                         setConfirming({ row: r, decision: "request_id_reupload" });
@@ -389,7 +396,7 @@ const AdminIDVReview = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 min-w-[8rem] border-destructive/40 text-destructive hover:bg-destructive/10"
+                        className="flex-1 min-w-max border-destructive/40 text-destructive hover:bg-destructive/10"
                         disabled={busy === r.user_id || bulkRunning}
                         onClick={() => {
                           setConfirming({ row: r, decision: "idv_reject" });

@@ -126,7 +126,9 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/create-payment/index.ts", key: "refund-dispute-", kind: "keeps-fee", why: "Quick Refund of a dispute (card cost only)" },
   { file: "supabase/functions/create-payment/index.ts", key: "refund-general-", kind: "keeps-fee", why: "admin refund, full or partial" },
   { file: "supabase/functions/execute-dispute-split/index.ts", key: "poster_share", kind: "keeps-fee", why: "the poster's leg of a dispute split" },
-  { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "keeps-fee", why: "cancelled job settlement" },
+  // A10 (owner, 2026-10-17): a Declutter setup job cancelled because the seller backed out comes back in full
+  // (card fee included, the seller owes it); every other cancellation keeps the fee.
+  { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10)" },
   { file: "supabase/functions/process-scheduled-payouts/index.ts", key: "crew-dispute-refund-", kind: "keeps-fee", why: "crew unfilled spots / crew dispute" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "refunds.create(params, opts)", kind: "pass-through", why: "createRefundOnce: callers checked below" },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "visitRefundKey(stripe, intent.id)", kind: "own-mistake", why: "a second charge for one visit (our double charge; owner pop-up 2026-10-14 ~3 PM CT)" },
@@ -208,6 +210,8 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
+  // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
+  "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
 ];
 
 /**
@@ -305,6 +309,13 @@ const SQL_POLICIES = {
       declutter_refunds_due: "20261017052705_declutter_helpr_delivery.sql fcc24a16eaf31209",
       // Reads which order a refund belongs to and tells the seller the debt booked for it; writes no amount.
       declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql 5cbd77f0949a09ec",
+      // A10 (owner, 2026-10-17): the trigger on a seller-fault refund cancels the buyer's setup job (no fee) and
+      // marks it; it records no refund and changes no refund amount.
+      declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
+      // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
+      declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 9fb6ded3b0740512",
+      // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
+      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 4d24b4a83bd33864",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,
@@ -320,6 +331,8 @@ const SQL_POLICIES = {
       // Owner answer 7: the reason CHECK and the reason -> policy CHECK swapped to add 'seller_out' (seller pays);
       // slice 5's delivery_damage kept.
       "declutter_refunds 20261017060455_declutter_seller_out_pays_fee.sql": ["1192c0e245b11665", "47702b9f63c08805", "afb94a44f9fb4011", "12bd66289bce9d64"],
+      // A10: AFTER INSERT ... WHEN fee_policy = 'full_seller_pays_fee' -> declutter_refund_cancels_setup_jobs.
+      "declutter_refunds 20261017073146_declutter_add_a_helpr.sql": ["fcfe90bf2d9d7b5b"],
       "declutter_refunds 20261015042253_declutter_slice4_handover_payout.sql": ["997e0a466b670952", "1192c0e245b11665", "2fd39357580a2cf8", "4cf2e4567f6437bd", "7ba23fa882b28f10", "afb94a44f9fb4011", "97fe1330f0f7f13d", "9eb0bd77676aa5f0", "c63b7d95e91cc6a9", "6ca67d8b1161e8fe", "50ba5fd871e1f2c0", "acc8636c50c78d27"],
     } as Record<string, string[]>,
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */
@@ -397,7 +410,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "cancel-refund-": [
     "refundAmount",
     "refundAmount = voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents",
-    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, })",
+    "voidSplit = refundToPayerCents({ capturedCents, actualFeeCents: sellerFault ? 0 : actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: fullSeriesRefund || sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(job), otherKeptCents: Math.round(cancellationFee * 100) + blockFeeCents, alreadyRefundedCents: chargeRefundedCents, })",
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",

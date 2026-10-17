@@ -141,6 +141,13 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   vehicle_photo_required: "Add a photo of your truck.",
   not_picked_up_yet: "Take the \"Picked up\" photo first.",
   not_at_dropoff: "Take the photo at the drop-off address.",
+  // Add a Helpr (20261017073146): the link is for the job just posted, before its checkout.
+  job_already_funded: "This job is already paid for, so it can't be added to your Declutter purchase. It's under your posted jobs.",
+  // A10 (20261017073146): the seller-fault cancel's hand tool and the seller's fee debt (staff and server only).
+  not_seller_fault: "This refund was not the seller's fault, so the setup job keeps the normal cancel rules.",
+  order_gone: "This order no longer exists, so its setup jobs have to be settled by hand.",
+  invalid_fee: "That card fee amount isn't valid.",
+  setup_job_not_cancelled: "The setup job could not be cancelled. Try again.",
   // Service-only (a source or the money cron); worded for the ops log.
   invalid_result: "That payout or refund result couldn't be recorded.",
   invalid_status: "That delivery can't be closed that way.",

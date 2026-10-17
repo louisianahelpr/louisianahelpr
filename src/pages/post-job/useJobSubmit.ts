@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { linkSetupJob } from "@/lib/declutter/setupHelpr";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -153,6 +154,29 @@ async function jobIsFunded(jobId: string): Promise<boolean | null> {
 }
 
 /**
+ * Declutter "Add a Helpr": point the paid order at this job, so the order card
+ * shows the Helpr booked. Best effort: the job exists either way, but the
+ * buyer is told when the link fails (lh-silent-failure review #1), so a
+ * missing line on the order card never reads as "nothing booked yet".
+ */
+async function linkSetupJobOrTell(orderId: string, jobId: string): Promise<void> {
+  let linkErr: unknown = null;
+  try {
+    if (!(await linkSetupJob(orderId, jobId))) linkErr = new Error("declutter setup job not linked");
+  } catch (err) {
+    linkErr = err;
+  }
+  if (!linkErr) return;
+  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkDeclutterSetup" }, context: { job_id: jobId } });
+  // A refusal the server explains (banned, switch off, already paid)
+  // carries its words in userMessage (setupHelpr.ts, RPC_ERROR_COPY).
+  const why = (linkErr as { userMessage?: string } | null)?.userMessage;
+  toast.error("Your job posted, but it isn't showing on your Declutter purchase", {
+    description: why ?? "Find it under your posted jobs.",
+  });
+}
+
+/**
  * The job a post attempt created, found by its idempotency key (Q267), or null.
  * Used when the key's unique index refuses a retry (the first INSERT landed and
  * its response was lost) and when an edited form abandons an earlier attempt.
@@ -241,6 +265,8 @@ export interface UseJobSubmitParams {
   turnoverId?: string | null;
   /** Declutter haul-away: the seller's items this post hauls away (`?haulAway=`), linked to the new job. */
   haulAwayItemIds?: string[] | null;
+  /** Declutter "Add a Helpr": the paid order this post was opened from (`?declutterOrder=`), linked to the new job. */
+  declutterOrderId?: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -290,6 +316,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     giftCardId,
     turnoverId,
     haulAwayItemIds,
+    declutterOrderId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -583,6 +610,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           return;
         }
       }
+      // Declutter "Add a Helpr": link again first (lh-money-escrow review of
+      // 4f45a073f #4: the first link's answer may have been lost too, and a
+      // paid setup job must never be left off its order card). The server
+      // answers yes when the job is already linked to this order, whatever
+      // the job's payment state since; best effort, as on the first post.
+      if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, attempt.jobId);
       safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
       await startPayment(attempt.jobId, Promise.resolve());
       return;
@@ -745,6 +778,11 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         return;
       }
     }
+    /* Declutter "Add a Helpr": point the paid order at this job, so the order
+       card shows the Helpr booked. Best effort: the job exists either way, but
+       the buyer is told when the link fails (lh-silent-failure review #1), so a
+       missing line on the order card never reads as "nothing booked yet". */
+    if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this
@@ -926,10 +964,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // job is never saved anywhere in Posts). A cancelled checkout lands on
       // /post-job, where "Load Draft" brings the form back; PaymentSuccess
       // clears it once the job is actually paid.
-      // Not for a Declutter haul-away: a draft cannot carry its items, so a
-      // job posted again from it would be paid with no link (lh-money-escrow
-      // review 2026-10-16). The seller books it again from My listings.
-      if (!haulAwayItemIds || haulAwayItemIds.length === 0) {
+      // Not for a Declutter haul-away or "Add a Helpr" job: a draft cannot carry
+      // its items or its order, so a job posted again from it would be paid with
+      // no link (lh-money-escrow review 2026-10-16; review of 4f45a073f #4, the
+      // haul-away rule). The seller books a haul-away again from My listings, the
+      // buyer a setup Helpr from the order card.
+      if ((!haulAwayItemIds || haulAwayItemIds.length === 0) && !declutterOrderId) {
         flushDraft();
         // Q769: remember which job this draft is paying for, so Post a Job can
         // tell a paid or still-payable checkout apart from a cancelled one

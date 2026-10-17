@@ -44,8 +44,9 @@ export function usePostJobForm() {
   // drop straight into the pre-filled form. Everyone else sees the
   // start-fresh / draft / template choice first, which declutters the page.
   // Q768: an imported STR turnover (`turnover`) arrives pre-filled the same way.
-  // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too.
-  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("turnover") || searchParams.get("haulAway"));
+  // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too,
+  // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
 
   // Gift card — the gift card this post is being funded with, if any.
@@ -428,6 +429,7 @@ export function usePostJobForm() {
     giftCardId,
     turnoverId: searchParams.get("turnover"),
     haulAwayItemIds,
+    declutterOrderId: searchParams.get("declutterOrder"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

@@ -2253,24 +2253,6 @@
       "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
     },
     {
-      "id": "remote:origin/wip/declutter-1",
-      "sha": "389480f131e639c55bcc1885a713a7135ee3d922",
-      "reason": "Same as ready/declutter-1 (slice 1 on main, cd6e9a1046).",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
-    },
-    {
-      "id": "remote:origin/wip/declutter-2",
-      "sha": "328c91e271ff1448bb47d11054578d0782a7cd71",
-      "reason": "Same as ready/declutter-2 (slice 2 on main, f24caa4979).",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
-    },
-    {
-      "id": "remote:origin/wip/declutter-3",
-      "sha": "9d90c9977af95268411f27f7a3badb36f1fd14af",
-      "reason": "Same as ready/declutter-3 (slice 3 on main, 61c02d2145).",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
-    },
-    {
       "id": "remote:origin/wip/declutter-3b",
       "sha": "968ec5967d52c496411da5e1ee9e4db6ae425458",
       "reason": "Same as ready/declutter-3b (slice 3b on main, 3a36969e2e).",
@@ -2280,18 +2262,6 @@
       "id": "remote:origin/wip/declutter-4",
       "sha": "5025c13f43c42a6e3aedb2599b59952b48bb74d8",
       "reason": "Declutter slice 4 landed (main 8bf36edcdc, 837fb05d52); the 12 residual lines are the gate/handover lines main rewrote while merging it with declutter-loading (3f9217b92e, 4b807970fe).",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
-    },
-    {
-      "id": "remote:origin/wip/declutter-loading",
-      "sha": "d897d4348d2fe4964b82efd7d76f3b32478f7a34",
-      "reason": "Same as ready/declutter-loading (#3144).",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
-    },
-    {
-      "id": "remote:origin/wip/fee-flat",
-      "sha": "7f71730847f92efd768d9b60894f269aba10d58e",
-      "reason": "Same commits as ready/fee-flat, landed as #3147.",
       "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
     },
     {
@@ -2347,12 +2317,6 @@
       "sha": "7133adc735287a5f3b0518737e9d91c0ae7f2a43",
       "reason": "Unreviewed WIP of the Q1491 job payout hold. Superseded by the reviewed rebuild ready/sec-a-9 (15f30df50; lh-money-escrow + lh-authz-rls approve), carried by ready/sec-a-train (2cb76e0a0). Its 9 leftover lines are the older allowlist wording ('reviewed 2026-10-12 ... admin only') and error strings the rebuild replaced.",
       "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
-    },
-    {
-      "id": "remote:origin/wip/trades",
-      "sha": "79c40188491a6cab398949f39406931946d684a7",
-      "reason": "Same commits as ready/trades, landed as #3138.",
-      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
     }
   ]
 }

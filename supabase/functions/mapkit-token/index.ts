@@ -200,6 +200,10 @@ serve(async (req: Request) => {
         // Let the browser reuse it, but expire well before the token does so a
         // cached response can never be handed out after it stops working.
         "Cache-Control": `private, max-age=${TOKEN_TTL_SECONDS - 300}`,
+        // The token is locked to the caller's Origin, so a cached copy must
+        // never be handed to a page on another origin (www vs the apex share a
+        // browser cache entry otherwise; Q1670).
+        Vary: "Origin",
       },
     );
   } catch (err) {

@@ -118,6 +118,25 @@ describe("mapkit-token — which origins get a token (Q249)", () => {
     expect(claims?.origin).toBe(origin);
   });
 
+  // Q1670: the minted token is locked to the Origin and the response is
+  // browser-cacheable (private, max-age), so without Vary: Origin a www-locked
+  // token can be served from cache to an apex page.
+  // @mutate supabase/functions/mapkit-token/index.ts |         Vary: "Origin",\n |
+  it.each([
+    ["www", "https://www.louisianahelpr.com"],
+    ["the apex", "https://louisianahelpr.com"],
+    ["the Android app", "https://localhost"],
+    ["the iOS app", "capacitor://localhost"],
+    ["no Origin at all", null],
+  ])("a cacheable token for %s varies by Origin (Q1670)", async (_label, origin) => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(fn.request({ method: "GET", headers: origin === null ? {} : { origin } }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control") ?? "").toMatch(/max-age=\d+/);
+    const vary = (res.headers.get("vary") ?? "").split(",").map((v) => v.trim().toLowerCase());
+    expect(vary).toContain("origin");
+  });
+
   it.each([
     ["the iOS app (capacitor://localhost)", "capacitor://localhost"],
     ["no Origin at all", null],

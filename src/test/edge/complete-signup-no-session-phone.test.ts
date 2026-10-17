@@ -19,9 +19,11 @@
  * that reaches it is visible both in rpcCalls and as the 403 it returns.
  */
 //
-// Registered mutation: taking the phone from the body on every path again is
-// the defect exactly (the no-session phone reaches enforce_retained_ban).
-// @mutate supabase/functions/complete-signup/index.ts | const phone = signedIn ? bodyPhone : undefined; | const phone = bodyPhone;
+// Registered mutation: letting the phone through on the no-session path again
+// is the defect exactly (the no-session phone reaches enforce_retained_ban).
+// Since Q?signup-no-session the path is default-deny (NO_SESSION_FIELDS), so the defect
+// is the phone appearing in that allowlist.
+// @mutate supabase/functions/complete-signup/index.ts | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { phone: "mutant",
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

@@ -21,7 +21,9 @@
 //
 // Registered mutation: taking the birthday from the body on every path again
 // is the defect exactly (the no-session under-18 birthday is written).
-// @mutate supabase/functions/complete-signup/index.ts | const dateOfBirth = signedIn ? bodyDateOfBirth : undefined; | const dateOfBirth = bodyDateOfBirth;
+// Since Q?signup-no-session the no-session path is default-deny (NO_SESSION_FIELDS): the
+// defect is the birthday appearing in that allowlist.
+// @mutate supabase/functions/complete-signup/index.ts | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { dateOfBirth: "mutant",
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

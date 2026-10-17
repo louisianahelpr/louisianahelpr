@@ -60,7 +60,7 @@ const ChartFallback = () => (
 );
 
 // ─── Drill-down: Users ───
-export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {
+const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {
   // No approval-status filter (Q205c): there is no approval review (Q193), so
   // "pending" / "denied" tabs named states that no longer route anyone.
   // Email verification is the only entry gate (Q205b: this badge showed
@@ -101,7 +101,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 };
 
 // ─── Drill-down: Subscriptions ───
-export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
+const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
   const [tierFilter, setTierFilter] = useState<string>("all");
   // Derived, highest first. The literal list this replaces omitted Plus, so
   // an admin could not filter to the tier at all and its members were only
@@ -151,7 +151,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
 };
 
 // ─── Drill-down: Categories ───
-export const CategoriesDrillDown = ({ data }: { data: { name: string; count: number; revenue: number }[] }) => (
+const CategoriesDrillDown = ({ data }: { data: { name: string; count: number; revenue: number }[] }) => (
   <div className="space-y-3">
     <div className="h-[250px]">
       <Suspense fallback={<ChartFallback />}>
@@ -180,7 +180,7 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
 );
 
 // ─── Drill-down: Payouts ───
-export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
+const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
   const [filter, setFilter] = useState<string>("all");
   const statuses = ["all", "escrow", "payout_pending", "released", "refunded"];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.payment_status === filter);
@@ -243,7 +243,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
 };
 
 // ─── Drill-down: Jobs (existing, cleaned up) ───
-export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFinancials: boolean; showFees: boolean }) => {
+const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFinancials: boolean; showFees: boolean }) => {
   const [filter, setFilter] = useState<string>("all");
   const statusOptions = ["all", "open", "accepted", "in_progress", "completed", "cancelled"];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.status === filter);

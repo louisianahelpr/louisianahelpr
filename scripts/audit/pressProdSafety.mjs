@@ -32,6 +32,10 @@ import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession, resolveService
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
 

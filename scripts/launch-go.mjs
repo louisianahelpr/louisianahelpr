@@ -76,6 +76,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { supabaseBase } from "./lib/apiBase.mjs";
 import { parseSeedGateRegistry, countSeedGateRegistryKeys, discoverGateCallers, liveGateNeedle } from "./lib/seedGateRegistry.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = resolve(REPO, "supabase/migrations");

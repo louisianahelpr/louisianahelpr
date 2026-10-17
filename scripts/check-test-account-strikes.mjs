@@ -33,6 +33,10 @@ import { fileURLToPath } from "node:url";
 import { ACCOUNTS } from "./test-signin-link.mjs";
 import { supabaseBase } from "./lib/apiBase.mjs";
 import { SHARED_TEST_ACCOUNTS, findUnenrolled } from "./lib/testAccountEnrolment.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 // The list lives in scripts/lib/testAccountEnrolment.mjs, so the strike check,
 // the enrolment check below and the journeys' mint read ONE set of accounts.

@@ -28,6 +28,10 @@
  */
 import { writeFileSync } from "node:fs";
 import { STORAGE_REFERENCE_COLUMNS, foldersToList, gradeReferences, referencesFromRows } from "./lib/storageRefs.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {

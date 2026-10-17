@@ -51,6 +51,18 @@ export async function fetchUnits(propertyIds: string[]): Promise<RentalUnit[]> {
   if (propertyIds.length === 0) return [];
   return (unwrap(await supabase.from("rental_units").select("*").in("property_id", propertyIds).order("label")) ?? []) as RentalUnit[];
 }
+/** A unit's live tenancy rows (landlord only: the query names landlord_id = the caller). */
+export type UnitTenancy = Pick<Tables["rental_tenancies"]["Row"], "id" | "unit_id" | "status" | "accepted_at" | "invite_expires_at" | "created_at">;
+export async function fetchLiveTenancies(uid: string): Promise<UnitTenancy[]> {
+  return (unwrap(
+    await supabase
+      .from("rental_tenancies")
+      .select("id, unit_id, status, accepted_at, invite_expires_at, created_at")
+      .eq("landlord_id", uid)
+      .in("status", ["invited", "active"])
+      .order("created_at"),
+  ) ?? []) as UnitTenancy[];
+}
 export interface MyHome {
   tenancy_id: string;
   property_id: string;
@@ -152,6 +164,10 @@ export const setAutoApprove = (propertyId: string, limitCents: number | null) =>
   rpcVoid(supabase.rpc("rentals_set_auto_approve", { p_property_id: propertyId, p_limit_cents: limitCents as number }), (e) => rpcErrorMessage("rentals_set_auto_approve", e));
 
 export const inviteTenant = (unitId: string) => rpcValue(supabase.rpc("rentals_invite_tenant", { p_unit_id: unitId }), (e) => rpcErrorMessage("rentals_invite_tenant", e));
+
+/** Either side: active -> ended (a tenant leaves, or the landlord cuts off a former tenant); invited -> revoked (cancel an unused invite). */
+export const endTenancy = (tenancyId: string) =>
+  rpcVoid(supabase.rpc("rentals_end_tenancy", { p_tenancy_id: tenancyId }), (e) => rpcErrorMessage("rentals_end_tenancy", e));
 
 export const acceptInvite = (token: string) => rpcValue(supabase.rpc("rentals_accept_invite", { p_token: token }), (e) => rpcErrorMessage("rentals_accept_invite", e));
 

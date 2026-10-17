@@ -126,14 +126,23 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
     { h: 196, media: 2 },
   ],
   reviews: [{ h: 307 }],
-  subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
+  // Cycle pills, explainer, tier cards, fee note, and the Terms · Privacy line
+  // (MembershipLegalLinks, Q1795: one text-ds-12 line, 12px x 1.45). The
+  // links line had no bone (loading-states-refresh 38958608457, 2026-10-16:
+  // 5 placeholder rows -> 6 real, #0 and #2, both test accounts).
+  subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }, { h: 17 }],
   support: [{ h: 469 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
   credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],
   accessibility: [{ h: 99 }, { h: 76 }],
   pets: [{ h: 216, media: 2 }],
   home_history: [{ h: 384, media: 1 }],
-  str_settings: [{ h: 508, media: 1 }],
+  // The "Never scramble for a cleaner again" empty card (no calendars
+  // connected, both test accounts). 508px until 2026-10-12, when the card lost
+  // its eyebrow (Q1288, 74dc7248b: 8px) and its body and cadence copy were
+  // rewritten for drafts (Q768, 8e211b7d7); measured 479px since
+  // (loading-states-refresh 38323051459 onward, -29px).
+  str_settings: [{ h: 479, media: 1 }],
   auto_tip: [{ h: 527 }],
   saved_helpers: [{ h: 344, media: 1 }],
   analytics: [{ h: 481 }],

@@ -114,7 +114,8 @@
     {
       "id": "remote:origin/q975-red-proof",
       "sha": "c897919a372b393edaa03eca04afd4c68b582b88",
-      "reason": "Same red proof as pr:2444; kept on origin as the record of the run."
+      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
+      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
     },
     {
       "id": "pr:2449",
@@ -124,7 +125,8 @@
     {
       "id": "remote:origin/q975-probe7-red",
       "sha": "58d0378bd3c68baee59d8b53f0d0f285d8b378e3",
-      "reason": "RED PROOF, never to land: races 16-17 with the chargeback and transfer guards removed (runs 37514334669 and 37515559411: BAD 5/5 each), the proof that Q975 probe 7 can fail; kept on origin as the record of the run."
+      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
+      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
     },
     {
       "id": "pr:2385",
@@ -135,29 +137,12 @@
     {
       "id": "remote:origin/chore/generated-files-main-bot",
       "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
-      "reason": "Same unfinished WIP as pr:2385; tracked as Q1423."
-    },
-    {
-      "id": "remote:origin/chore/generated-files-main-bot",
-      "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
       "reason": "Unfinished 'one bot on main owns generated files' rework (wip, 2026-10-05); not superseded. Q1423 (post-launch) decides whether to finish or drop it.",
       "checked": "2026-10-08 (lead, content-checked against origin/main: 2/40 distinctive added lines on main)"
     },
     {
-      "id": "remote:origin/q975-probe7-red",
-      "sha": "58d0378bd3c68baee59d8b53f0d0f285d8b378e3",
-      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
-      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
-    },
-    {
       "id": "remote:origin/q975-race-proofs",
       "sha": "dc907f9f088bcf3675a8bbdbf0ed37b1939519de",
-      "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
-      "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
-    },
-    {
-      "id": "remote:origin/q975-red-proof",
-      "sha": "c897919a372b393edaa03eca04afd4c68b582b88",
       "reason": "Red-proof evidence for the Q975 race proofs (done): the branch carries deliberately broken code (e.g. 'RED PROOF: CAS removed') to show each proof fails without its fix. Never to land.",
       "checked": "2026-10-08 (lead, content-checked: every other added line is on main)"
     },
@@ -750,22 +735,10 @@
       "checked": "2026-10-12 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs, each leftover line read)"
     },
     {
-      "id": "remote:origin/feat/stripe-test-mode-test-accounts",
-      "sha": "909cbc76b1e1e0e7841a22f9f6bf169ca781a2f6",
-      "reason": "Superseded by ready/stripe-test-mode-r (landed in #2923, reviewed by lh-money-escrow and lh-authz-rls): the same feature rebuilt on main; this branch's leftover lines are the earlier version with stale @mutate registrations.",
-      "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs; leftover lines read)"
-    },
-    {
       "id": "pr:2805",
       "sha": "3907a9888960ed380ff98e717d9c15ffc20ad6cb",
       "reason": "Refund notice (owner report 2026-10-12): landed through money-h and money-n as item Q1731 (_shared/refundNotice.ts, every refund path calls sendRefundNotice, the e2e producer entry and the 04-admin-safety refund leg are on main). The leftover lines are this PR's earlier text: comments citing the old number Q1654 and the first version of the keptReason/sweep code main has since rewritten.",
       "checked": "2026-10-13 (lander, content-checked against origin/main with scripts/lib/strandedContent.mjs after #2918; leftover lines read)"
-    },
-    {
-      "id": "remote:origin/fixpr/2761-hidden-switches",
-      "sha": "51bd6b918e98eb14483f0cf020b444ad1f78cfd8",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards all byte-identical on main). Leftover lines are this branch's OLDER FeeModelCard copy (poster pays a tier service fee), superseded by main's owner 2026-10-11 no-poster-fee copy; landing them would revert it (lead agreed 2026-10-13). Its untracked OPEN item (the Q140 PGlite twin crash) is filed on main as Q1784.",
-      "checked": "2026-10-13 (lander2, content-checked against origin/main 74a7b4555 with scripts/lib/strandedContent.mjs)"
     },
     {
       "id": "branch:admin-hide-land",
@@ -1440,198 +1413,6 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/bot/refresh/morning-page",
-      "sha": "7bfb92ed806170494b0aec9a28b1730fb99d93d4",
-      "reason": "Obsolete: the 2026-10-12 morning page from the morning-page bot (its PR #2914 closed); a dated daily snapshot the bot regenerates every run, superseded by the next one.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/chore/automate-ticking",
-      "sha": "e8630e6173fb3e16d7d56fa5e148b52478560a6f",
-      "reason": "Superseded on main: Q936 done (src/test/uptimeHeartbeat.test.ts).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1327",
-      "sha": "c88854955dcf2a01f07561c52e7738798f9e88b6",
-      "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in 478f07d18) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1357",
-      "sha": "aa745ee33eb2cf7aae2dfc191ce6d4cfbefe2208",
-      "reason": "Superseded on main: Q1357 done; src/test/sweepClockProofs.test.ts on main is the landed version.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1402",
-      "sha": "4df605f9342276411081f524557d6e8f3c39af50",
-      "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in be0a493b1) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1498",
-      "sha": "a93ab3e91fc1389dd8beaecb4ca88485c122a9b2",
-      "reason": "Superseded: main's migration names the real guard (crewRefill.test.ts Q1498 cases).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1500",
-      "sha": "9ac59d7b5af21774a1c86b6c2c498af6c13625a7",
-      "reason": "Superseded on main: Q1499-Q1502 done (20261012045427_change_request_daily_cap.sql and its tests); leftover is this lane's earlier migration/proof (20261012044739).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1507",
-      "sha": "4c5e0676e7758ed3bcd61ea711a80e7aa03bdf4d",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 6f610ac64) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1594",
-      "sha": "f4955dc0013f1c597622d6b652c3a964766aa440",
-      "reason": "Superseded on main: Q1594's migration 20261012072223_stuck_payment_close_needs_money_moved.sql is on main; leftover is older comment wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1650",
-      "sha": "7dfbf99b843abf255c8800b19c48d8f8e4961958",
-      "reason": "Older copy of work that already landed: each of its 1 added line(s) not on main now was added on main earlier (newest additions in 8f0990fba) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/claim/Q1651",
-      "sha": "040727e8b838545a9525354054ab986abf837ee8",
-      "reason": "Superseded on main: Q1650 done (src/test/testAccountIdsLiveInOnePlace.test.ts).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/feat/leads-card-team-block",
-      "sha": "398968175d47666918ad5876230bda4a1cd2d257",
-      "reason": "Superseded on main: the leads card landed; the Q1652/Q1653 lines name items that were renumbered (main's Q1652/Q1653 are different items).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/feat/message-applicants",
-      "sha": "e9b6c6b0f8991c7cd519df1a76903a69c64ece05",
-      "reason": "Older copy of work that already landed: each of its 9 added line(s) not on main now was added on main earlier (newest additions in f3f86819f) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/feat/no-poster-fee",
-      "sha": "d9fdd2cf9fbbd6dcf2b959667671ec90f73a897b",
-      "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in 3ad4cbc90) and later reworded or removed there; 21 of its 21 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix-land/q1287",
-      "sha": "f530c17c3655b9d893bca23f5154270aecef1b72",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 9de317e9f) and later reworded or removed there; 4 of its 4 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fix/journeys-last-three",
-      "sha": "5b8ff6b1b50ae43150c1441952faaed95354d1cd",
-      "reason": "Older copy of work that already landed: each of its 3 added line(s) not on main now was added on main earlier (newest additions in 66b1c96cf, bd9dbb278) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2771-q1287",
-      "sha": "8591252f05fd58ae72142543f472388886ffd6c7",
-      "reason": "Superseded on main: Q1287 done; the pending-reading shape is adminHealth/Reading.tsx.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2774-q1463",
-      "sha": "38a0a13f82dc56ccc44f371cb47152cda4ba1121",
-      "reason": "Older copy of work that already landed: each of its 14 added line(s) not on main now was added on main earlier (newest additions in 9b51253db) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/fixpr/2775-profile-rows",
-      "sha": "72184eb62993d3d879af5b34407cd8fce649a973",
-      "reason": "Superseded on main: loadingStateShape asserts title={profileTabTitle(tab, ...)}.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/lane3/q1586",
-      "sha": "ff351249628117ff1efb67ed77f73cb7eff29e48",
-      "reason": "Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in a9ae42f95) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/items-a-series-end-by-platform",
-      "sha": "166e0d70c94d9eadbf7c0a2bab4044d77fc91ba7",
-      "reason": "Older copy of work that already landed: each of its 6 added line(s) not on main now was added on main earlier (newest additions in 31af48134) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/look-1",
-      "sha": "c848005aa719eb57da5fa1c5197910daabd1c15e",
-      "reason": "Older copy of work that already landed: each of its 15 added line(s) not on main now was added on main earlier (newest additions in 24fd2fa2b, 6f0d3caf1, 8e211b7d7) and later reworded or removed there; 2 of its 2 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/look-2",
-      "sha": "1448475a0e4c4410fe6798b8ffaa1bcd96e6594a",
-      "reason": "Older copy of work that already landed: each of its 4 added line(s) not on main now was added on main earlier (newest additions in 61d5efd1b, 74dc7248b) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/look-3",
-      "sha": "4b1ae9f52cdd04c4c2328857eacb27d29d95c5fe",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in f61b79d8b) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/ready/seed-fixtures",
-      "sha": "4c2bdcb7e68a7e11a32635bcacfda7b0f25455ed",
-      "reason": "Older copy of work that already landed: each of its 12 added line(s) not on main now was added on main earlier (newest additions in 10ac72ac1) and later reworded or removed there. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-2",
-      "sha": "a4d0d8126cceaee5b921c8973a6aa9300948246a",
-      "reason": "Older copy of work that already landed: each of its 85 added line(s) not on main now was added on main earlier (newest additions in 2a3b9b389, 9b51253db, 61002be6f, 9de317e9f) and later reworded or removed there; 11 of its 11 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-4",
-      "sha": "a95374579e7bef8f1c6662a6702d21bc5565decd",
-      "reason": "Superseded on main: the Q1429 name-heading fix lives in e2e via profileLanding/headingContract (PROFILE_NAME_HEADING_LEVEL); stranded-work reads closed PRs through the REST list (closedPullRequests). Leftover is the older wording.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-money-b",
-      "sha": "049b1afa592ebe2561dbdbcbe25f93ce49b695b7",
-      "reason": "Older copy of work that already landed: each of its 84 added line(s) not on main now was added on main earlier (newest additions in d56d78ab1, 806db7b58, b4dc2f1d3, 3ad4cbc90) and later reworded or removed there; 26 of its 26 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/wip/handoff-ready/items-b-stripe-test-mode",
-      "sha": "276c16325158e205faee7b5327254b55a6447781",
-      "reason": "Superseded on main by the rebuilt Stripe test mode 8feeeb629 (money-o #2923) and realPayoutTransfers.ts (seed payouts); the two review fixes it carried that main lacked (e6b31b848, 000ca9c1e) are re-landed by ready/stranded-1013-1.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/wip/lane4-q1500",
-      "sha": "9ac59d7b5af21774a1c86b6c2c498af6c13625a7",
-      "reason": "Superseded on main: Q1499-Q1502 done (20261012045427_change_request_daily_cap.sql and its tests); leftover is this lane's earlier migration/proof (20261012044739).",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/wip/money-lane-handoff",
-      "sha": "5eb7fcff55319632f98868fc6bc4d6561792e461",
-      "reason": "Superseded on main by the rebuilt Stripe test mode 8feeeb629 (money-o #2923) and realPayoutTransfers.ts (seed payouts); the two review fixes it carried that main lacked (e6b31b848, 000ca9c1e) are re-landed by ready/stranded-1013-1.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
-      "id": "remote:origin/wip/proof-handoff",
-      "sha": "1e124f872d0482bac6780d7562142cf1d3a73bb2",
-      "reason": "Older copy of work that already landed: each of its 5 added line(s) not on main now was added on main earlier (newest additions in 8e211b7d7) and later reworded or removed there; 2 of its 2 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
-      "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
-    },
-    {
       "id": "pr:2919",
       "sha": "b63ae59cac191453f26e280a4e355d7b14c8f52b",
       "reason": "Closed PR 'chore: refresh generated inventories' (land/train-2026-10-12-small3b-3bd9928c): Older copy of work that already landed: each of its 2 added line(s) not on main now was added on main earlier (newest additions in df59d7520, 7cc461591) and later reworded or removed there; 16 of its 16 deletion(s) main still holds were made or undone on main too. What is left is older wording of landed work, not new work.",
@@ -2028,32 +1809,14 @@
       "checked": "2026-10-13 (stranded-1013 lane: content-checked against origin/main c7e14d40a with scripts/lib/strandedContent.mjs; leftover lines matched against git log -p origin/main)"
     },
     {
-      "id": "remote:origin/claude/hidden-feature-switches",
-      "sha": "f4cd513bbad8cd6c12e960fef14c8b5984de1476",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is #2804's source branch. Its require_feature(text) allowlist line is on main reworded (definer-exec-allowlist Q14 and Q1284 entries). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "pr:2761",
       "sha": "f4cd513bbad8cd6c12e960fef14c8b5984de1476",
       "reason": "Closed PR 'auto-land: claude/hidden-feature-switches' (same head as origin/claude/hidden-feature-switches): Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). Its require_feature(text) allowlist line is on main reworded (definer-exec-allowlist Q14 and Q1284 entries). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-3",
-      "sha": "6ade8287d5c6db5227d5e9133cb53c8bbd9989fb",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:train/2026-10-12-3",
       "sha": "6ade8287d5c6db5227d5e9133cb53c8bbd9989fb",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-3b",
-      "sha": "8b1bab4972ce9a01a8c0149f3dfdf51dd25fecc7",
       "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
@@ -2064,20 +1827,8 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-3c",
-      "sha": "e23f6dd4ee2abeb54906a33e33e8b2897218b55c",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:train/2026-10-12-3c",
       "sha": "e23f6dd4ee2abeb54906a33e33e8b2897218b55c",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-3d",
-      "sha": "9e7d84f409f5b4ecadfabf1c76ef054dee2ce27f",
       "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
@@ -2088,32 +1839,14 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-3e",
-      "sha": "3a4fb8daa290e4f11c35bb7f9f7d8c503a9fda1c",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:train/2026-10-12-3e",
       "sha": "3a4fb8daa290e4f11c35bb7f9f7d8c503a9fda1c",
       "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/train/2026-10-12-4b",
-      "sha": "2ee906cccf13f9b4ac98cfde01a2db0412fb1bc7",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:train/2026-10-12-4b",
       "sha": "2ee906cccf13f9b4ac98cfde01a2db0412fb1bc7",
-      "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/train/2026-10-12-4c",
-      "sha": "036863854037c705bb2d6eab2191c2ba68a36f27",
       "reason": "Hidden feature switches (PR #2804) landed on main as 8f0990fba (migration 20261012031120, _shared/featureSwitch.ts, FeatureSwitchesCard, guards). This is a 2026-10-12 landing-train copy that carried #2804 plus that day's land-queue, CI, notification (Q1585) and stranded-tool commits; every other leftover line is older wording of files main has since rewritten (the deletions it still shows are lines main also holds, e.g. its NotificationPreferences.tsx is byte-identical to main's). Its only lines never on main are #2804's OLDER FeeModelCard header (a poster pays their tier's service fee), deliberately not landed: it contradicts the owner's 2026-10-11 no-poster-fee decision, which main's FeeModelCard states (posterCardCostFeeCents).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
@@ -2130,39 +1863,15 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/chore/proof-ticks-2026-10-12b",
-      "sha": "cb4ae8baba4d1205d73c17b5c06f28e51f2c2c75",
-      "reason": "Source of ready/stranded-1013-1, whose fixes landed through #2985 (00c5c09b1; Legal.tsx note shortened in 81ce7737e, usersEmptyBody.test in b5cec52f4). Leftover lines are that older wording, the framer-motion pill main dropped on purpose (Q1719), and a dated count comment in openPartlyDoneItemsSayDoneWhen.test.ts that main keeps current.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:chore/proof-ticks-2026-10-12b",
       "sha": "cb4ae8baba4d1205d73c17b5c06f28e51f2c2c75",
       "reason": "Source of ready/stranded-1013-1, whose fixes landed through #2985 (00c5c09b1; Legal.tsx note shortened in 81ce7737e, usersEmptyBody.test in b5cec52f4). Leftover lines are that older wording, the framer-motion pill main dropped on purpose (Q1719), and a dated count comment in openPartlyDoneItemsSayDoneWhen.test.ts that main keeps current.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/ready/stranded-1013-1",
-      "sha": "e824cfa9176e49bc940a898e35fbfe3206d9bad0",
-      "reason": "Landed on main through #2985 (small11) as 00c5c09b1 and c41d162be; the lander then shortened Legal.tsx's band note (81ce7737e, size ratchet) and tightened usersEmptyBody.test (b5cec52f4). Leftover lines are that older wording.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:stm-r2",
       "sha": "5843ee4644644d061c6469b713c79f6ccb587974",
       "reason": "Stripe test mode for test accounts: rebuilt on main as 8feeeb629 (money-o #2923) and fixed by #2987 money-r (10a0bb648, bf18427b8). Leftover lines are older wording of those files.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/stripe-test-mode-r",
-      "sha": "5843ee4644644d061c6469b713c79f6ccb587974",
-      "reason": "Stripe test mode for test accounts: rebuilt on main as 8feeeb629 (money-o #2923) and fixed by #2987 money-r (10a0bb648, bf18427b8). Leftover lines are older wording of those files.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/release-journeys",
-      "sha": "d845fee763841baba0781a3eb4500d19c2498bd3",
-      "reason": "Landed through #2986 (018fedd5e, 1c5244f9e); its stripeCheckoutCardOpener.test grep for the Stripe host was rewritten on main by c16b0f0dc (CodeQL), so the leftover line is that older wording.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
@@ -2184,25 +1893,7 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/claude/appstore-review-notes",
-      "sha": "677b8bcd626e113ae97f46e98b5e8e1313fe8c20",
-      "reason": "Reviewer-notes branch that landed through #2983 (release1). Its one leftover line is the older review_information/notes.txt wording; main rewrote that line to explain background location use (603c520ef, Q1790-Q1793).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/appstore-review-notes",
-      "sha": "677b8bcd626e113ae97f46e98b5e8e1313fe8c20",
-      "reason": "Reviewer-notes branch that landed through #2983 (release1). Its one leftover line is the older review_information/notes.txt wording; main rewrote that line to explain background location use (603c520ef, Q1790-Q1793).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main a89d4bc2a with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:ready/todo-a-2",
-      "sha": "775a8c43f4ea08f2f5d0cf233f91cd7ca573dcbf",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The refund email retry (e77a5c66b, 1b60c5da1); its two leftover lines are an older doc comment on the endpoint field in refundNotice.ts.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/todo-a-2",
       "sha": "775a8c43f4ea08f2f5d0cf233f91cd7ca573dcbf",
       "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The refund email retry (e77a5c66b, 1b60c5da1); its two leftover lines are an older doc comment on the endpoint field in refundNotice.ts.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
@@ -2214,19 +1905,7 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/ready/todo-a-4",
-      "sha": "602c70d26868c891cdd78fd0d0f4a72a1d527fa6",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:ready/todo-a-5",
-      "sha": "8a8e9b78ca8c0859c76fc5d900eef02b1b19602b",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/todo-a-5",
       "sha": "8a8e9b78ca8c0859c76fc5d900eef02b1b19602b",
       "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The crew block fee refusal and ban-review money work (709b04e9e and its train); its leftover lines import crewBlockFeeRefusal from _shared/crewBlockFees.ts, which main moved to the read-only crewBlockFeeRead.ts (0e3886aa3, Q231 guard).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
@@ -2262,31 +1941,7 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/land/train-2026-10-13-money-p-3bd9928c",
-      "sha": "c97ced27c034541f6b4d872d31dedf66fcd3b529",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/land/train-2026-10-13-money-p2-3bd9928c",
-      "sha": "3f634f89c7ba2cd2f892deda9229866efce47295",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/land/train-2026-10-13-money-p3-8e34fb2a",
-      "sha": "d34884adf5f040b0bcdcc539d22313ee3f7e301e",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:sr3",
-      "sha": "a8e02a44162b78bb48e0bc463c7f1bb0648dc991",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/items-a-series-refund-r2",
       "sha": "a8e02a44162b78bb48e0bc463c7f1bb0648dc991",
       "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). This is a money train build or rebuild of the same commits (lane A2 ban-review / crew block fee work, now on main as 709b04e9e, d237c6e04, 286356937, bd81f9164, 2e83f1ec1, fd86320e3, 0e3886aa3; the series full refund and test-mode dispute clear as 531fbf34b, dc0ac483f, 4b3cc6e9a; the refund email retry as e77a5c66b, 1b60c5da1). Its leftover lines are older wording of those files: an earlier import path (_shared/crewBlockFees.ts before the read-only half moved to crewBlockFeeRead.ts, Q231), pre-renumber Q tags (Q1733/Q1762/Q1770 became Q1735/Q1769), or deletions that main also keeps because main's files are newer.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
@@ -2304,19 +1959,7 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/wip/handoff-ready/items-a-series-admin-full-refund",
-      "sha": "be8e22aab4e870fd213cf451015693256b3c5fda",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
       "id": "branch:ready/items-a-series-refund-r",
-      "sha": "ce9929a77538023562b47149d6386fa985d4ab30",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/wip/limit-ac3c1fa4a7fe48006",
       "sha": "ce9929a77538023562b47149d6386fa985d4ab30",
       "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). An earlier iteration of the platform series-end full refund (Q1733, renumbered Q1735) and the test-mode dispute clear (Q1732): main has the final version (531fbf34b, dc0ac483f), whose migration is 20261012233226_platform_series_end_refunds_in_full.sql (this branch's 20261012205559 copy was re-timestamped) and whose edge tests are the same cases under Q1735. Leftover lines are that older wording.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
@@ -2332,30 +1975,6 @@
       "sha": "35ee0a9e7a52d49f0fbfa4a649838b34c9e49c22",
       "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The out-of-band refund-notice preflight (Q1731) landed as d528fa1d3 and its follow-ups; leftover lines are older wording of refundNotice.ts and its test.",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/ready/refund-email-1013",
-      "sha": "35ee0a9e7a52d49f0fbfa4a649838b34c9e49c22",
-      "reason": "Landed on main through #2984 (money-q2, merged 2026-10-14 08:18Z as b8123be1b). The out-of-band refund-notice preflight (Q1731) landed as d528fa1d3 and its follow-ups; leftover lines are older wording of refundNotice.ts and its test.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main b8123be1b with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/land/claude-q1418-gift-loose-ends-6e15e405",
-      "sha": "6698bedd3be23b8d129d1cabe7ecad7f19667720",
-      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/land/lane1-Q1418-6acb599a",
-      "sha": "2138826eecc0f76a2a6350fc8285f865fc06d58a",
-      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
-    },
-    {
-      "id": "remote:origin/land/lane1-Q1418-6acb599a-v2",
-      "sha": "f1dad3dda0ea8b72449edc9c7f35c538436d2e2c",
-      "reason": "Q1418 gift loose-ends build whose code landed on main earlier. It became stranded again on 2026-10-14 only because #2984 (b8123be1b) moved its guards' @mutate lines from migration 20261012081639_gift_funds_unfunded_abandoned_job.sql to the newer 20261012231646_gift_settle_clears_card_fee_stamp.sql (9f219cec4) and from AdminDisputes.tsx to settlementEscapes.ts. Its 7 leftover lines are those older @mutate registrations.",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
       "id": "pr:2831",
@@ -2376,16 +1995,364 @@
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "remote:origin/ready/items-a-dispute-refund-stamp",
+      "id": "branch:ready/items-a-dispute-refund-stamp",
       "sha": "a0ecf760b01885d26968da551dfee85951849e67",
       "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
       "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
     },
     {
-      "id": "branch:ready/items-a-dispute-refund-stamp",
-      "sha": "a0ecf760b01885d26968da551dfee85951849e67",
-      "reason": "Dispute refund-stamp clear (rpc_clear_test_mode_dispute_refund_stamp), which landed on main earlier. Its 3 leftover lines are the older test-mode refusal message and the two @mutate lines that quote it. Main extended that message to name the Clear test-mode records button (531fbf34b, Q1732, through #2984).",
-      "checked": "2026-10-14 (stranded2-1013 lane: content-checked against origin/main 838d8ac85 with scripts/lib/strandedContent.mjs; each leftover line matched against git log -p origin/main and diffed by hand)"
+      "id": "pr:2742",
+      "sha": "03ce47cb3b8a6fa2f5a944e16e82b62101d08996",
+      "reason": "One residual @mutate line against 20260923172405; main's firstPhoneAutoBan.test.ts mutates the newer 20261012042748 definition instead.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "pr:2776",
+      "sha": "fa54a53f22c4c36b48f9f2eaa1438e53e49a6c23",
+      "reason": "Closed PR 'auto-land: local/q1558' (fix-land/q1558): the Q1558 empty-page alignment work is on main (useSearchOnOwnLine.ts, src/test/mainTabEmptyPagesAlign.test.tsx, Q1558 [~]); its 2 leftover lines are the test's older import and doc line, which main reworded.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "pr:2780",
+      "sha": "cdf8df7cc4fd02fce5563c5656553c159ec4c8cd",
+      "reason": "Closed PR 'fix(tax): LA sales tax actually collected' (land/lane1-q1578-la-tax-code-6e15e405): Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "pr:2846",
+      "sha": "f5511680242b44a354933e14b20fc7039a2f63d7",
+      "reason": "Closed PR 'fix(tax): LA sales tax actually collected' (land/lane1-q1578-r2): Its one leftover line is the pre-fix Stripe Tax ops page that printed CENTS as dollars ('has 300 of 5,000 refunded'); main fixed that exact line by dividing by 100 in e4ceb0ca3 (Q1724 commit, 'the Stripe Tax pages printed cents as dollars'). The rest of the Q1578 LA tax code landed earlier. Not landed on purpose: landing it would bring the bug back.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "pr:2982",
+      "sha": "4fc559a67ec462a1d32c9000f41bc5d9735e6d31",
+      "reason": "Closed by the lead: the under-18 split landed in #2999, the phone half is held on ready/phone-save-after-review until Apple decides on 1.0.4 (Q1805).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "pr:3136",
+      "sha": "c67b49119bac8b1954c2c622cbeac30fd7ba75cd",
+      "reason": "Closed copy of the sec-c-6 landing; the same content landed as #3167; its 6 residual lines are main's later rewrite (see ready/sec-c-4).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/diag/proof2-wk",
+      "sha": "dbbe15faee75bfe7e34a94cebb7ed6032e15d26d",
+      "reason": "Temporary Linux WebKit stall bisect ('never merge; branch deleted after'); the stall is handled by holding Playwright at 1.63.0 (ready/sec-c-11, Q1816).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/land/land-sec-c-6-8f8597a8",
+      "sha": "c67b49119bac8b1954c2c622cbeac30fd7ba75cd",
+      "reason": "land.sh push branch of sec-c-6 (PR #3167 merged 2026-10-16); its 6 residual lines are the sec-c-4 copies main later rewrote (see ready/sec-c-4).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/land/ready-todo-a2-1u-f27d29b2",
+      "sha": "4fc559a67ec462a1d32c9000f41bc5d9735e6d31",
+      "reason": "a2-1u push branch; the under-18 half landed (#2999), the phone half is held on ready/phone-save-after-review (Q1805), which covers this content.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-1",
+      "sha": "389480f131e639c55bcc1885a713a7135ee3d922",
+      "reason": "Declutter slice 1 landed (main cd6e9a1046); residual lines are main's later Declutter edits.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-2",
+      "sha": "328c91e271ff1448bb47d11054578d0782a7cd71",
+      "reason": "Declutter slice 2 landed (main f24caa4979); residual lines are main's later Declutter edits.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-3",
+      "sha": "9d90c9977af95268411f27f7a3badb36f1fd14af",
+      "reason": "Declutter slice 3 landed (main 61c02d2145); residual lines are main's later Declutter edits.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-3b",
+      "sha": "f286f9b82580167e5eb08bbbfa1fb98b43b73b01",
+      "reason": "Declutter slice 3b landed (main 3a36969e2e); residual lines are main's later Declutter edits.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-4",
+      "sha": "ea76173d5298e1269b4c0867d5663e33157e5cf5",
+      "reason": "Declutter slice 4 landed as #3158 (main 8bf36edcd, 837fb05d5). Its 2 added lines (definer allowlist wording, SEED_TABLES list) and 2 deletions are lines later Declutter landings on main rewrote.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-coverage",
+      "sha": "fc26f41652c3af6695cd4897baecdd6f9db3585c",
+      "reason": "Coverage tests landed as #3141 (main ca39c6ddc3); its one residual line is the error-copy key list, which main extended (payment_unavailable, 4b9ae02e67).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-loading",
+      "sha": "d897d4348d2fe4964b82efd7d76f3b32478f7a34",
+      "reason": "Declutter loading fix landed as #3144 (main 7326eb76b8, f771a27bb2); residual gate lines were rewritten when merged with slice 4 (3f9217b92e, 4b807970fe).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/declutter-visual",
+      "sha": "8086ff5dad43d02b22e60a626ea2ce4f3d8aa3e8",
+      "reason": "Declutter screen fixes landed as #3143 (main af3a289f10); residue is fixture/test lines main later rewrote (5e836615ee, 2413c0f087).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/fee-flat",
+      "sha": "7f71730847f92efd768d9b60894f269aba10d58e",
+      "reason": "Flat job fee landed as #3147 (main 11c31742a3, 23e92dfd83); the residue is one @mutate comment and generic Stripe line-item lines that also occur elsewhere in create-payment.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/noprompt-1014",
+      "sha": "152e32eb05d65250427713d04689258f69819708",
+      "reason": "No-later-prompt work landed as #3118 (main 8d44b5aab). Its 5 added lines are write-contract.mjs lines main rewrote for Q1825 (c1bbac66f); its 8 deletions in ageGate.ts/CompleteProfile.tsx are lines the landed version kept.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/phone-save-after-review",
+      "sha": "cf023f8ba60dc28a9ea9097a9d59b128b9ef6efa",
+      "reason": "HELD on purpose until Apple decides on 1.0.4: Q1805, guarded by src/test/appReviewFreeze.test.ts (the phone migration 20261013012700 fails it while a build is with Apple).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/proof2-1014-rebuilt",
+      "sha": "c3b033f21dbb714349dec1bcb9de5acf9e94f58d",
+      "reason": "proof2 batch landed (main 8dd55faa40 Q1776/Q1809, 3729acd047, 5d23a351d5); 3 residual lines in void-cancelled-payments are main's later rewrite of the same test-mode orphan path.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/refund-keeps-card-fee",
+      "sha": "c424741c7548037fe722e063d26df8410f0a377e",
+      "reason": "Refund-keeps-card-fee landed via its r2 (main 9bf29e5bb5, 77b73ad838, 9d4ce2d25b, Q1735); residue is the pre-review formulas r2 replaced.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/refund-keeps-card-fee-r2",
+      "sha": "60a484579b605c967a9a9eb5a843819eae196e2c",
+      "reason": "Landed (main 9bf29e5bb5, 77b73ad838, 9d4ce2d25b, Q1735); the 11 residual lines are main's later edits of the same refund helpers.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/release-journeys-2",
+      "sha": "3761c9b22074582b16857811ab3dc31d3a2b941d",
+      "reason": "Release journeys fixes, all five commits carried by ready/train-big-1016 (9d6436a82, 4495edddf, b38990d3c, 7d9011a8c, 4ff7f2f04). Its 21 lines not in the train are the accept-offer comment blocks, which the train re-wrote citing Q1816 (train e2e/prod-lifecycle.spec.ts:896, scripts/e2e/settleForward.mjs:293).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-1",
+      "sha": "9495961865d95762b9b5fc299b3d473de763255a",
+      "reason": "Its one residual line is 'export const DUPLICATE_FUNDING_SOURCE'; main has the same constant un-exported (refundDuplicateFunding.ts:45), deliberately (dead-export ratchet).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-2",
+      "sha": "ef7b4768a8058341e9a368a65ee20295bf9635f3",
+      "reason": "Q1682 drop of the empty strikes table, reviewed (lh-authz-rls, lh-silent-failure clean): carried whole by ready/sec-a-train (5109f5029, its own stranded item until it lands). Its 1 line not in the train is a comment in migration 20261015000241 that the train's merge reworded.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-5",
+      "sha": "071fbe16ef67e238b1034ca59716f838a9dbefc4",
+      "reason": "Q1675 refund-after-refund + Q1817 auto-cancel email (lh-money-escrow clean): carried by ready/sec-a-train (5109f5029, its own stranded item until it lands). Its 4 lines not in the train are the first noticeLanded branch, which the train rewrote after the Q?notice-email-200-false review (24c77a67b).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-a-money",
+      "sha": "ea5fe071933e8594fb8593aeddc52f92d0f0e1c7",
+      "reason": "Same single residual line as ready/sec-a-1 (DUPLICATE_FUNDING_SOURCE un-exported on main).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-1",
+      "sha": "c34beb8534786852dee6fe924f285372da25aff9",
+      "reason": "sec-b batch 1, carried by ready/train-sec-b-10-1016 (its own stranded item until it lands). Its 1 line not in the train is the older @mutate in src/test/ageAttestationKeptOnDeletion.test.ts, which the train rewrote (df0c283e5, Q1826).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-2",
+      "sha": "90d1b38b9af02ba3905d72cefe75353cafdeacf5",
+      "reason": "sec-b batch 2, carried by ready/train-sec-b-10-1016. Its 1 line not in the train is the older @mutate in ageAttestationKeptOnDeletion.test.ts the train rewrote (df0c283e5, Q1826).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-3",
+      "sha": "f55f296673b7df43489b58d7b9a4eed4187c44c3",
+      "reason": "sec-b batch 3, carried by ready/train-sec-b-10-1016. Its 1 line not in the train is the older @mutate in ageAttestationKeptOnDeletion.test.ts the train rewrote (df0c283e5, Q1826).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-4",
+      "sha": "f6085480625142fffef971bc65e4b243b5ac308a",
+      "reason": "sec-b batch 4, carried by ready/train-sec-b-10-1016. Its 7 lines not in the train: adminRailBadges.ts's notDeployed() reading an error as 0, which the train removed on purpose (40253a149, Q?admin-badge-not-deployed), and the older ageAttestation @mutate (df0c283e5).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-5",
+      "sha": "bb23eba91d4372c51367987ea2f1c2316ee37152",
+      "reason": "sec-b batch 5, carried by ready/train-sec-b-10-1016. Its 10 lines not in the train: adminRailBadges notDeployed (removed by 40253a149), the 'You're subscribed again' resubscribe copy the train replaced (c66c56dce, Q?unsub-resubscribe-consent), the older ageAttestation @mutate (df0c283e5).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-b-5b",
+      "sha": "053ca16150056200a7180d30c68516eef2e895e3",
+      "reason": "Same as ready/sec-b-5 plus 6 lines, all in ready/train-sec-b-10-1016; same 10 superseded lines (40253a149, c66c56dce, df0c283e5).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-2",
+      "sha": "9ecb4515e5d06bbcb9cdfda7ca3a29ba43e8da92",
+      "reason": "sec-c Apple membership batch landed (7ac56366ef Q1794, 12b5c23804 Q1795/Q1797, b8db02ee46); the 4 residual lines are main's later rewrite (FunctionsClient spy, footnotes moved to MembershipFootnotes.tsx in 0c303d517e).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-3",
+      "sha": "f0c3fdb3f4547023d7b6e02ef2d08741de909265",
+      "reason": "Same sec-c batch, on main via 7ac56366ef (verify-apple-iap test-account rule, Q1794); residual lines are main's later refactor (caughtMessage 450152c842, shared helper in _shared/appleAppStore.ts).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-4",
+      "sha": "49161093a38ecd64da61b50800cce227157b7383",
+      "reason": "Landed (main c47d06744b 'refresh ... for sec-c-4', b8db02ee46); the 13 residual lines are console.error/test spy lines main rewrote with caughtMessage() (450152c842) and FunctionsClient.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-7",
+      "sha": "d257b7ff5ef52aba3210a66ba25a28b8cc152cea",
+      "reason": "Captcha-matches-client check, carried by ready/train-big-1016 (ae30528cf). Its 9 lines not in the train cite 'OPEN.md \"auth-captcha-matches-client\"'; the train re-cites those items by title phrase (336e22ebe) and recounts APIBASE_CALL_SITES (cd433f267).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/sec-c-8",
+      "sha": "38631e01b8bcc6270f000f1aeb210c712a55cb30",
+      "reason": "PaymentSuccess analytics fix, carried by ready/train-big-1016 (9c35e8908). Its 2 lines not in the train are the OPEN.md short-name cites the train rewrote by title phrase (336e22ebe; train PaymentSuccess.tsx:266).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a-1",
+      "sha": "6082aaa5751122feeeb8379c179fa50e43400a76",
+      "reason": "Lane A refund-notice/tax build (2026-10-12), superseded piece by piece: the gift fee stamp and sweep re-announce fixes landed (#2918 / items-c-refund-notice), the failed-refund tax page as 22dbd6caa, its cents-as-dollars fix as e4ceb0ca3, and Q1782(1) (a release a refund notice already announced is not told twice; a failed read still announces) as 7ce549414. KEPT because Q1782(2) cites its commit 2a6f3754d: it keys a re-issued refund's tax reversal on the refund id, while main chose the other rule (1b0f31114: the page says leave the reversal on a re-refund). Q1782 decides; delete this branch once it does.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/todo-a2-1v",
+      "sha": "e080660fc2e0c8283dc3c00e6b6f0098ca75bd18",
+      "reason": "Lane A2 under-18 build, final iteration. Its under-18 grey-out half landed through #2999; its phone-save half is held on ready/phone-save-after-review until Apple decides on 1.0.4 (review freeze), and wip/noprompt-1014 (the owner's 10-14 'no later prompt' work) is built on top of it. Its 2 lines covered by neither are PhotoPrompt's phone write, which the noprompt work removes. Decided by the held branch and ready/noprompt-1014.",
+      "checked": "2026-10-15 (stranded-1015 lane: content-checked against origin/main ce69a2e73 with scripts/lib/strandedContent.mjs; each leftover line read against main by hand)"
+    },
+    {
+      "id": "remote:origin/ready/trades",
+      "sha": "79c40188491a6cab398949f39406931946d684a7",
+      "reason": "Trades / Suggest a category landed as #3138; the 5 residual lines (toast copy, a count comment, one @mutate) are main's later edits.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-1",
+      "sha": "389480f131e639c55bcc1885a713a7135ee3d922",
+      "reason": "Same as ready/declutter-1 (slice 1 on main, cd6e9a1046).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-2",
+      "sha": "328c91e271ff1448bb47d11054578d0782a7cd71",
+      "reason": "Same as ready/declutter-2 (slice 2 on main, f24caa4979).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-3",
+      "sha": "9d90c9977af95268411f27f7a3badb36f1fd14af",
+      "reason": "Same as ready/declutter-3 (slice 3 on main, 61c02d2145).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-3b",
+      "sha": "968ec5967d52c496411da5e1ee9e4db6ae425458",
+      "reason": "Same as ready/declutter-3b (slice 3b on main, 3a36969e2e).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-4",
+      "sha": "5025c13f43c42a6e3aedb2599b59952b48bb74d8",
+      "reason": "Declutter slice 4 landed (main 8bf36edcdc, 837fb05d52); the 12 residual lines are the gate/handover lines main rewrote while merging it with declutter-loading (3f9217b92e, 4b807970fe).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/declutter-loading",
+      "sha": "d897d4348d2fe4964b82efd7d76f3b32478f7a34",
+      "reason": "Same as ready/declutter-loading (#3144).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/fee-flat",
+      "sha": "7f71730847f92efd768d9b60894f269aba10d58e",
+      "reason": "Same commits as ready/fee-flat, landed as #3147.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/lead-quotes-capfix-first-try",
+      "sha": "8c50930016a6819f12f307a84167dba1d080dc37",
+      "reason": "First try at the quote-cap fix: it edited the already-applied migration 20261015091114. Superseded by fix/quote-cap-live-only (d3e01b627, new migration 20261016062157, lh-authz-rls approve), which carries 20 of its 22 lines; the other 2 are the comment it added to the old migration.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/wip/lead-secc4-extras",
+      "sha": "36457831f48f84f75862dcc082d95f6f619747c1",
+      "reason": "Lead's WIP extras for sec-c-4, content covered by ready/sec-c-4, which landed; residue is main's later rewrite.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/noprompt-1014",
+      "sha": "38e41e2e2936eb75ad09905c3380d54d9579be36",
+      "reason": "WIP of the no-later-prompt lane; its final form landed as #3118 (main 8d44b5aab), which replaced this WIP's Google/Apple birthday-on-Complete-Profile approach with the same 18+ box for every sign-up (owner 2026-10-14). Leftover lines are that dropped approach.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/wip/proof2-1014-blur",
+      "sha": "f1441a694c4d760a6fff43d2010def34d0bb1d6d",
+      "reason": "Unfinished WIP ('guard + look NOT done'): dropping backdrop-blur on Filters-panel chips for the Linux WebKit stall. The stall is handled by holding Playwright at 1.63.0 (b68b2dd8d, in ready/train-big-1016; Q1816 tracks it), and the branch's Q1809 money fix landed as #3111. Q1816 decides whether the blur change is ever wanted.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/wip/quotes",
+      "sha": "86fcff4ca334ccf09af7d1f36e991615ecebe8a8",
+      "reason": "Older copy of the quotes lane; ready/quotes landed (main 232eb69a63..671fed4152) and rewrote these exact lines (allowlist wording, no role names, no Finish paying, header-only loading frame).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/refund-keeps-card-fee",
+      "sha": "63596f75d9ef7a03b064285c54a022bfb5b8eb5d",
+      "reason": "WIP handoff of the refund-keeps-card-fee lane, superseded by ready/refund-keeps-card-fee-r2, which landed (Q1735).",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-q1680-w9-held",
+      "sha": "b383d86756571beb3bb474c819d013d129bceb8a",
+      "reason": "Q1680's 'Require a W-9 From the Helpr' switch on Post a Job, built per the owner's 2026-10-14 call and held: the lh-authz-rls review found the W-9 behind it is only a typed name the poster can never see. Q1680 (docs/OPEN.md) decides it: the owner chooses a real W-9 first or plainer wording.",
+      "checked": "2026-10-14 (sec-b: held on purpose, nothing of it is on origin/main)"
+    },
+    {
+      "id": "remote:origin/wip/sec-b-train",
+      "sha": "5dbd360c0bf8b4e6de5d9168fb2fe895e90608a0",
+      "reason": "WIP copy of ready/sec-b-train, carried by ready/train-sec-b-10-1016. Its 3 lines not in the train are Q1810 comments in Signup.tsx that the train joined to pay back the size ratchet (6ae5e3434).",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/wip/stranded-1015-2-q1491",
+      "sha": "7133adc735287a5f3b0518737e9d91c0ae7f2a43",
+      "reason": "Unreviewed WIP of the Q1491 job payout hold. Superseded by the reviewed rebuild ready/sec-a-9 (15f30df50; lh-money-escrow + lh-authz-rls approve), carried by ready/sec-a-train (2cb76e0a0). Its 9 leftover lines are the older allowlist wording ('reviewed 2026-10-12 ... admin only') and error strings the rebuild replaced.",
+      "checked": "2026-10-17 (stranded-triage-1017 lane: content-checked against origin/main 379345970 and the 1016 trains with scripts/lib/strandedContent.mjs; residual lines read by hand)"
+    },
+    {
+      "id": "remote:origin/wip/trades",
+      "sha": "79c40188491a6cab398949f39406931946d684a7",
+      "reason": "Same commits as ready/trades, landed as #3138.",
+      "checked": "2026-10-16 (landing train, content-checked against origin/main with scripts/lib/strandedContent.mjs)"
     }
   ]
 }

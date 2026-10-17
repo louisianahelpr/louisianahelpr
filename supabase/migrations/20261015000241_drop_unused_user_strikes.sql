@@ -437,4 +437,7 @@ REVOKE ALL ON FUNCTION public.purge_old_seed_data(boolean, interval, integer) FR
 GRANT EXECUTE ON FUNCTION public.purge_old_seed_data(boolean, interval, integer) TO service_role;
 
 -- The table itself (its two policies and its trigger go with it).
+-- DESTRUCTIVE-DDL-ACK: DROP TABLE public.user_strikes
+-- ACK-REASON: Q1682: nothing writes user_strikes (strikes live in user_violations); every reader is removed above, so the table is dead schema.
+-- ACK-DATA-LOSS: none expected: prod held 0 rows (read-only count by the lander, 2026-10-17 12:5xZ); the drop takes its two policies and trigger.
 DROP TABLE IF EXISTS public.user_strikes;

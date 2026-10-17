@@ -6,10 +6,15 @@
 // client answering what each test queues.
 //
 // Red first (2026-10-17) against S1's useJobSubmit.ts (aad8aace3): no toast on
-// a refused link, a thrown link, or a chunk that cannot load.
+// a refused link, a thrown link, or a chunk that cannot load. The stop cases
+// (lh-money-escrow review of 01f8eab54 #2: a refusal because the repair is
+// already paid from another tab went on to pay a second job) were red against
+// 01f8eab54: payment started for job-1.
 //
-// @mutate src/pages/post-job/useJobSubmit.ts |   if (!linkErr) return;\n  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" } |   if (linkErr) return;\n  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkMaintenance" }
-// @mutate src/pages/post-job/useJobSubmit.ts |     if (!(await linkMaintenanceJob(requestId, jobId))) linkErr = new Error("maintenance link refused"); |     await linkMaintenanceJob(requestId, jobId);
+// @mutate src/pages/post-job/useJobSubmit.ts |   toast.error("Your job posted, but it isn't linked to the repair request", { |   void ("Your job posted, but it isn't linked to the repair request", {
+// @mutate src/pages/post-job/useJobSubmit.ts |     if (await mod.linkMaintenanceJob(requestId, jobId)) return "go"; |     await mod.linkMaintenanceJob(requestId, jobId); return "go";
+// @mutate src/pages/post-job/useJobSubmit.ts |     if (now === undefined \|\| now?.alreadyPosted) return "stop"; |     if (now?.alreadyPosted) return "stop";
+// @mutate src/pages/post-job/useJobSubmit.ts |     if (now === undefined \|\| now?.alreadyPosted) return "stop"; |     if (now === undefined) return "stop";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
@@ -136,12 +141,23 @@ vi.mock("./firstPostConfetti", () => ({ maybeFireFirstPostConfetti: async () => 
 vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn() }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => {}) }));
 vi.mock("@/lib/storageCleanup", () => ({ removeJobPhotos: async (id: string) => { server.photoRemovals.push(id); return 0; } }));
-const link = vi.hoisted(() => ({ calls: [] as Array<[string, string]>, answer: true as boolean | Error }));
+const link = vi.hoisted(() => ({
+  calls: [] as Array<[string, string]>,
+  answer: true as boolean | Error,
+  /** What a re-read of the request says after a refusal: already posted (paid or paying) or not; an Error = the read failed. */
+  recheck: { alreadyPosted: false } as { alreadyPosted: boolean } | null | Error,
+  rechecks: 0,
+}));
 vi.mock("./maintenancePrefill", () => ({
   linkMaintenanceJob: async (requestId: string, jobId: string) => {
     link.calls.push([requestId, jobId]);
     if (link.answer instanceof Error) throw link.answer;
     return link.answer;
+  },
+  fetchMaintenancePrefill: async () => {
+    link.rechecks += 1;
+    if (link.recheck instanceof Error) throw link.recheck;
+    return link.recheck;
   },
 }));
 
@@ -213,6 +229,9 @@ beforeEach(() => {
   server.photoRemovals = [];
   link.calls = [];
   link.answer = true;
+  link.recheck = { alreadyPosted: false };
+  link.rechecks = 0;
+  server.deletes = 0;
   vi.mocked(toast.error).mockClear();
   vi.mocked(report).mockClear();
   safeStorage.removeItem("helpr_last_job_submit");
@@ -232,7 +251,8 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     expect(link.calls).toEqual([[REQUEST, "job-1"]]);
     expect(errorToasts(), "a refused maintenance link showed the landlord nothing").toEqual([NOT_LINKED]);
     const opts = vi.mocked(toast.error).mock.calls[0][1] as { description?: string };
-    expect(opts.description).toMatch(/tenant won't see it booked/);
+    expect(opts.description).toMatch(/tenant won't see it on their request/);
+    expect(link.rechecks).toBe(1);
     expect(vi.mocked(report).mock.calls.some((c) => (c[1] as { tags?: { source?: string } }).tags?.source === "useJobSubmit.linkMaintenance")).toBe(true);
     expect(server.paymentCalls, "a refused link must not stop the payment hand-off").toEqual(["job-1"]);
     expect(server.photoRemovals, "a refused link must not clean up the posted job").toEqual([]);
@@ -243,5 +263,23 @@ describe("Rentals: Post a Job tells the landlord when the maintenance link fails
     await post();
     expect(errorToasts()).toEqual([NOT_LINKED]);
     expect(server.paymentCalls).toEqual(["job-1"]);
+  });
+
+  it("a refusal because the repair already has a paid or paying job (another tab) stops before payment and removes this unpaid job", async () => {
+    link.answer = false;
+    link.recheck = { alreadyPosted: true };
+    await post();
+    expect(server.paymentCalls, "it went on to pay for the same repair twice").toEqual([]);
+    expect(server.deletes, "the unpaid duplicate job was left behind").toBe(1);
+    expect(server.jobs).toHaveLength(0);
+    expect(errorToasts()).toEqual(["This repair already has a job"]);
+  });
+
+  it("a refusal whose reason cannot be read back also stops (never pay when it may already be paid)", async () => {
+    link.answer = false;
+    link.recheck = new Error("TypeError: Failed to fetch");
+    await post();
+    expect(server.paymentCalls).toEqual([]);
+    expect(errorToasts()).toEqual(["This repair already has a job"]);
   });
 });

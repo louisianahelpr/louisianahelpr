@@ -28,7 +28,7 @@ export class RentalsCopyError extends Error {
 }
 
 /** Shown when a refusal has no mapped words: says what to do next (toastCopy.test.ts "no vague failure"). */
-export const RENTALS_FALLBACK_COPY = "Couldn't do that just now. Check your connection and try again.";
+const RENTALS_FALLBACK_COPY = "Couldn't do that just now. Check your connection and try again.";
 
 /** The server RAISEs the code as the error MESSAGE; show it in plain words. */
 export function rentalsErrorMessage(err: unknown): string {

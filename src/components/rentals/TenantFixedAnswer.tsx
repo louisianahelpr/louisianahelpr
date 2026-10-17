@@ -26,7 +26,7 @@ export default function TenantFixedAnswer({ jobId, userId }: { jobId: string; us
   return (
     <div
       role="status"
-      className="rounded-xl border p-3 mb-3 font-sans text-ds-13 leading-snug"
+      className="rounded-xl border p-3 mt-3 font-sans text-ds-13 leading-snug"
       style={{ borderColor: a.saysFixed ? "hsl(var(--border))" : "hsl(var(--destructive) / 0.5)" }}
     >
       <p className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>

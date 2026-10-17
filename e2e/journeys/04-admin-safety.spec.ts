@@ -20,6 +20,7 @@ import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
 import { withChromium } from "./stripeInChromium";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
+import { moveSeedJobStart } from "../moveSeedJobStart";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
@@ -440,8 +441,12 @@ test.describe.serial("admin and safety journeys", () => {
       test.info().annotations.push({ type: "cleanup", description: `job ${after.status}/${after.payment_status}; ${n} notifications deleted` });
     });
 
-    const slot = slotAhead(4);
-    await test.step("poster-e2e funds a job starting in 4 minutes; a throwaway Helpr is hired and heads out", async () => {
+    // 20+ minutes out: accept_application refuses a hire within 15 minutes of
+    // the start (job_starts_too_soon, e2e-journeys 39071660168). Once hired,
+    // the harness moves the start to ~90 s ahead (moveSeedJobStart).
+    const slot = slotAhead(20);
+    let startAt = slot.at;
+    await test.step("poster-e2e funds a job starting in 20 minutes; a throwaway Helpr is hired, the start moves up, and the Helpr heads out", async () => {
       helpr = await createThrowaway(request, key!, `NoShow ${RUN}`);
       jobId = (await postJob(request, poster, JOB_TITLE, slot)).id;
       await fundJob(request, browser, poster, jobId, log);
@@ -469,6 +474,9 @@ test.describe.serial("admin and safety journeys", () => {
       expect(await acceptedOffer.json(), "the Helpr's accept did not complete").toEqual({ state: "accepted" });
       const told = (await (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&job_id=eq.${jobId}&select=title`, { headers: rest(poster) })).json()) as { title: string }[];
       expect(told.map((n) => n.title), "the poster was not told the offer was accepted").toContainEqual(expect.stringMatching(/ accepted your offer$/));
+      // Harness concession (moveSeedJobStart, is_seed only): the hire is
+      // done, so the start moves to ~90 s ahead instead of waiting 20 min.
+      startAt = await moveSeedJobStart(SUPABASE_URL, jobId, 90_000, "the no-show job");
       const otw = await request.post(`${SUPABASE_URL}/rest/v1/rpc/helper_mark_on_the_way`, { headers: rest(h), data: { p_job_id: jobId } });
       expect(otw.ok(), `helper_mark_on_the_way: ${otw.status()} ${await otw.text()}`).toBe(true);
       const job = await readJob(request, poster, jobId);
@@ -481,7 +489,7 @@ test.describe.serial("admin and safety journeys", () => {
 
     await test.step("before the start, No-Show is not offered", async () => {
       await openCard(pp, jobId, JOB_TITLE);
-      if (Date.now() < slot.at.getTime() - 20_000) {
+      if (Date.now() < startAt.getTime() - 20_000) {
         // On the row OR in More: a count on the card alone would pass with the
         // chip parked in the overflow (journeyChipsReachOverflow.test.ts).
         expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "No-Show offered before the scheduled start").toBeNull();
@@ -490,7 +498,7 @@ test.describe.serial("admin and safety journeys", () => {
     });
 
     await test.step("after the start, the poster reports the no-show", async () => {
-      const wait = slot.at.getTime() + 15_000 - Date.now();
+      const wait = startAt.getTime() + 15_000 - Date.now();
       if (wait > 0) await pp.waitForTimeout(wait);
       await openCard(pp, jobId, JOB_TITLE);
       const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000);

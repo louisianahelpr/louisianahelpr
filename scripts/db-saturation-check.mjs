@@ -25,6 +25,10 @@
 import { appendFileSync } from "node:fs";
 import { sql } from "./lib/opsAlertLedger.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const REF = process.env.SUPABASE_PROJECT_REF;

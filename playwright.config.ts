@@ -1,6 +1,31 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { assertFreshCheckout } from "./scripts/lib/freshCheckout.mjs";
+
+// The e2e files that write prod (service-role key, minted admin sessions,
+// test-signin-link). Every Playwright run from a checkout where origin/main has
+// changed one of them (or anything they import) since this checkout's base, or
+// that is too far behind, refuses to start: a stale copy once wrote an old Terms
+// version over the shared test accounts (Q?stale-shared-checkout-writes). One
+// call here guards every spec. Exactly the inventory in
+// src/test/prodWritersRefuseStaleCheckout.test.ts, both ways.
+const PROD_WRITING_E2E = [
+  "e2e/ageJobPastEarlyAccess.ts",
+  "e2e/helpers/mintedPasswordGrant.ts",
+  "e2e/journeys/01-browse.spec.ts",
+  "e2e/journeys/04-admin-safety.spec.ts",
+  "e2e/journeys/fixtures.ts",
+  "e2e/journeys/throwaway.ts",
+  "e2e/journeys/time-travel.spec.ts",
+  "e2e/privacy/privacy-requests.spec.ts",
+  "e2e/prod-audit/harness.ts",
+  "e2e/prod-audit/shellSpacing.ts",
+  "e2e/prod-gift-card.spec.ts",
+  "e2e/prod-lifecycle.spec.ts",
+  "e2e/prodSessions.ts",
+];
+assertFreshCheckout(import.meta.url, { entryOnly: false, also: PROD_WRITING_E2E });
 
 // Playwright config for the e2e/ suites.
 //

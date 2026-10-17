@@ -57,6 +57,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { supabaseBase } from "./lib/apiBase.mjs";
 import { mintAdminSession, PUBLIC_ANON_KEY } from "./lib/adminSession.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url, { also: ["src/lib/consent.ts"] });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");

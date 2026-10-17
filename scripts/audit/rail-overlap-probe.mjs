@@ -10,6 +10,10 @@
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const BASE = process.env.PROBE_BASE || "http://127.0.0.1:4173";
 const RAIL = 248;

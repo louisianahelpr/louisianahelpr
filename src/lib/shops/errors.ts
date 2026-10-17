@@ -7,7 +7,7 @@
  * written for the member, so it is shown as it is.
  *
  * EXACT: src/test/shopsProfiles.test.ts reads every RAISE EXCEPTION code in the
- * shops migrations (slice 1 and slice 2's 20261016212915_shops_items) and
+ * shops migrations (slice 1 and slice 2's 20261017060556_shops_items) and
  * fails on one with no line here, and on a line here no shops migration raises.
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
@@ -43,7 +43,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   not_admin: "Only an admin can do that.",
   hide_reason_required: "Say why the shop is hidden, so its owner knows what to fix.",
   invalid_hidden: "Choose hide or show.",
-  // Slice 2: items (20261016212915_shops_items).
+  // Slice 2: items (20261017060556_shops_items).
   rental_not_available: "Renting things out is coming later. For now, list things you made or grew.",
   invalid_kind: "Choose what kind of item this is: made by you, home-kitchen food, or from your farm.",
   invalid_subtype:
@@ -99,7 +99,7 @@ export function shopsErrorMessage(err: unknown): string {
   if (message && Object.prototype.hasOwnProperty.call(SHOPS_ERROR_COPY, message)) return SHOPS_ERROR_COPY[message];
   if (message && Object.prototype.hasOwnProperty.call(SHOP_ITEM_AI_COPY, message)) return SHOP_ITEM_AI_COPY[message];
   // The contact-leak filters (check_violation; reject_contact_leak_in_shop and
-  // _in_shop_item, 20261016212915) speak to the member already.
+  // _in_shop_item, 20261017060556) speak to the member already.
   if (e.code === "23514" && /does not allow contact details in Shops\.$/.test(message)) return message;
   if (e.code === "23514") return "Check the details: each field must be filled in.";
   return GENERIC;

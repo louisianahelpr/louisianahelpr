@@ -59,3 +59,24 @@ openRenumber and never opened a PR).
 - Nothing was checked against prod (the Supabase MCP failed: ERR_PROXY_TUNNEL).
 - No full vitest run on any final tree.
 - No screenshots.
+
+## Update ~06:50Z: shops-2 final (ready/shops-2 @ eb30a99b23)
+One squashed commit on ready/train-shops-1 @ d0d8aa296f. Fixed:
+- authz N1: `shops_admin_review_item(..., p_submitted_at)` refuses `item_changed`; the client passes the server string unchanged.
+- authz N3: the photo trigger clears admin_approved_at.
+- silent-failure: the ListingPhotoError branch; error shown only with no data, plus Try again; `removeShopObjects` reports short/failed deletes to Sentry; the contact-leak copy is truthful (slice 1's `reject_contact_leak_in_shop` is restated too); render tests for fixes 2-5 and nits 7 and 9.
+
+Filed, not built: `Q?shops-items-rejection-reset` (N2), an owner question.
+
+Verified:
+- PGlite 156/0 ×3, skip 0/156, pre-fix 130/26; slice 1's proof 98/0.
+- tsc 0; eslint clean; targeted vitest 13 files / 75 tests.
+- vacuity 43/43; inventories and counts OK.
+- Not run: the full suite.
+
+Still before landing:
+- the authz and silent-failure re-reviews of the fixes. The range is `git diff 603408318e eb30a99b23 -- <files listed in the agent report>`; the fix-only base 17747e0a9e exists only in the cloud worktree;
+- rebase onto main after the stack, restate export_my_data from 052706 plus the shop sections, and re-cut 20261016212915 newer than 20261017052706;
+- Sensitive-Review trailers.
+
+Reported, not changed: the hint text at ShopItemEditor.tsx:264 and ShopEditView.tsx:260 still says "members reach you in the app".

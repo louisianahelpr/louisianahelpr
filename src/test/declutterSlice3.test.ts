@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |         AND NOT public.declutter_seller_hidden(seller_id)) |         AND true)
- * @mutate supabase/migrations/20261016053945_declutter_helpr_delivery.sql |   v_premium := public.declutter_buyer_fee_cents(v_items); |   v_premium := greatest(round(v_items * 0.15)::integer, 100);
+ * @mutate supabase/migrations/20261017052705_declutter_helpr_delivery.sql |   v_premium := public.declutter_buyer_fee_cents(v_items); |   v_premium := greatest(round(v_items * 0.15)::integer, 100);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -55,7 +55,7 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     for (const fn of [...CLIENT_WRITES, ...CLIENT_READS].filter((f) => !FINISHING.includes(f))) {
       expect(body(fn), fn).toMatch(/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);/);
     }
-    // Slice 5 (20261016053945): Helpr delivery is NEW work for a Helpr, so checkout needs the switch for
+    // Slice 5 (20261017052705): Helpr delivery is NEW work for a Helpr, so checkout needs the switch for
     // that one handover only; pickup and porch still finish with the switch off.
     const DELIVERY_ONLY = /IF p_handover = 'delivery' THEN\s+PERFORM public\.require_feature\('declutter'\);\s+END IF;/;
     expect(body("declutter_start_checkout")).toMatch(DELIVERY_ONLY);

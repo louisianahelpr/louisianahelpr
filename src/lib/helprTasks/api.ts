@@ -1,6 +1,6 @@
 /**
  * The shared "a Helpr picks up an item at an address and takes it to another
- * address" job flow, client side (migration 20261016053945, PART A). Declutter
+ * address" job flow, client side (migration 20261017052705, PART A). Declutter
  * delivery is its first source; Add a Helpr and haul-away are meant to reuse it
  * unchanged (docs/specs/declutter-auctions.md, "Slice 5 build decisions").
  *
@@ -191,7 +191,7 @@ function nonce(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
 }
 
-/** Photos go to the PRIVATE bucket helpr-tasks (20261016053945 A5), served by signed URL only. */
+/** Photos go to the PRIVATE bucket helpr-tasks (20261017052705 A5), served by signed URL only. */
 async function uploadCleaned(path: string, file: File): Promise<string> {
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");

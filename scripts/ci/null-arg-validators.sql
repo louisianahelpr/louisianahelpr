@@ -70,18 +70,18 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
-  ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261015092723)'),
+  ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017052702)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
-  ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261016050402)'),
+  ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017052704)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
-  ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261016053945)'),
-  ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261016053945)'),
-  ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261016053945)'),
-  ('helpr_task_same_stripe_mode',   'allow',    'TRUE = the two members are the same Stripe kind (test vs real): the Helpr may take the task (20261016053945)'),
-  ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261016053945)'),
-  ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261016053945)'),
-  ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261016053945)'),
+  ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261017052705)'),
+  ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017052705)'),
+  ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261017052705)'),
+  ('helpr_task_same_stripe_mode',   'allow',    'TRUE = the two members are the same Stripe kind (test vs real): the Helpr may take the task (20261017052705)'),
+  ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261017052705)'),
+  ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261017052705)'),
+  ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261017052705)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
@@ -273,7 +273,7 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
         END IF;
       WHEN 'delivery' THEN
-        -- Slice 5 (20261016053945): order O, B's PAID delivery order from seller A (paid now: the 7-day
+        -- Slice 5 (20261017052705): order O, B's PAID delivery order from seller A (paid now: the 7-day
         -- deadline is a week away), and A's pickup windows on every other day (Monday exists above).
         IF to_regclass('public.declutter_order_deliveries') IS NOT NULL THEN
           EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, premium_cents,

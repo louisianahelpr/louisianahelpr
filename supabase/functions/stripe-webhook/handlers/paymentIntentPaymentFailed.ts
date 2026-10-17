@@ -28,6 +28,7 @@ async function unfundFailedEscrow(
   job: any,
   piId: string,
   { supabase, stripe, logStep }: WebhookContext,
+  giftCardId: string | null = null,
 ): Promise<void> {
   if (job.stripe_payment_intent_id !== piId) {
     // A different PI (an earlier declined attempt, a re-delivery) carrying the
@@ -65,6 +66,68 @@ async function unfundFailedEscrow(
     return;
   }
 
+  // Q1972 (owner, 2026-10-17): a hired job whose bank payment failed is
+  // CANCELLED, with no fee and no strike. The RPC does the whole sanctioned
+  // cancel in one transaction (offer retired, applications closed, poster and
+  // confirmed Helprs told) and decides under the row lock; it answers
+  // not_hired / not_cancellable for a job it leaves to the un-fund below.
+  const { data: cancelVerdict, error: cancelErr } = await supabase.rpc(
+    "cancel_job_after_failed_bank_payment",
+    { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId },
+  );
+  const cancelNotDeployed = cancelErr?.code === "PGRST202" || cancelErr?.code === "42883";
+  if (cancelErr && !cancelNotDeployed) {
+    // Throw: Stripe retries, and nothing was committed.
+    throw new Error(`Failed to cancel job ${job.id} after its payment failed: ${cancelErr.message}`);
+  }
+  const cancelOutcome = cancelErr ? null : (cancelVerdict as { outcome?: string } | null)?.outcome ?? null;
+  if (cancelNotDeployed) {
+    logStep("cancel_job_after_failed_bank_payment not deployed yet — taking the job out of escrow only", { jobId: job.id });
+  } else if (cancelOutcome === "cancelled") {
+    const told = (cancelVerdict as { helpers_told?: unknown[] }).helpers_told ?? [];
+    logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "A hired job's bank payment failed — job cancelled",
+      message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' / '${job.status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now cancelled (payment_status='failed'), with no fee and no strike; the poster${told.length > 0 ? ` and ${told.length} confirmed Helpr${told.length > 1 ? "s" : ""} were` : " was"} told.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null },
+      oncePerDayKey: `funded-job-payment-failed:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    // A gift the checkout spent goes back inside the RPC (exactly once, same
+    // transaction). Anything but returned / not_consumed means it is still
+    // spent on a cancelled job: a person must put it back.
+    const gift = (cancelVerdict as { gift?: { outcome?: string } | null }).gift ?? null;
+    if (giftCardId && gift?.outcome !== "returned" && gift?.outcome !== "not_consumed") {
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Cancelled bank-payment job — the poster's gift card was NOT returned",
+        message: `Job ${job.id} was cancelled because its bank payment failed, but gift card ${giftCardId} it spent was not given back (${gift?.outcome ?? "no answer"}). Run return_bounced_gift_card for this job and gift.`,
+        fields: { job_id: job.id, gift_card_id: giftCardId, payment_intent: piId, gift_outcome: gift?.outcome ?? null },
+        oncePerDayKey: `funded-job-payment-failed-gift-held:${job.id}`,
+        seed: job.is_seed ?? false,
+      });
+    }
+    return;
+  } else if (cancelOutcome === "moved_on" && (cancelVerdict as { payment_status?: string }).payment_status === "cancelling") {
+    // A poster refund holds the job in 'cancelling'. Its refund of this failed
+    // PaymentIntent fails and its put-back returns the job to 'escrow', which
+    // would be 7440a72d again with this event spent: retry later instead
+    // (lh-money-escrow review of 56346b5eb #5).
+    throw new Error(`Job ${job.id} is mid-refund ('cancelling') while its payment failed; retrying so the failure is not lost`);
+  } else if (cancelOutcome === "moved_on" || cancelOutcome === "not_found") {
+    logStep("payment_failed on a funded job: the job moved on before the cancel — nothing written", {
+      jobId: job.id, piId, outcome: cancelOutcome,
+    });
+    return;
+  } else if (cancelOutcome !== "not_hired" && cancelOutcome !== "not_cancellable") {
+    // An answer this code does not know: fail closed (retry) rather than
+    // guess which notices went out.
+    throw new Error(`cancel_job_after_failed_bank_payment returned an unknown outcome for job ${job.id}: ${JSON.stringify(cancelVerdict)}`);
+  }
+
   // Pinned to the PI and to the funded state we read: a concurrent refund,
   // cancel or release that moved the job first wins, and this matches 0 rows.
   // stripe_session_id is cleared (as for an unpaid ACH bounce) so the poster
@@ -87,6 +150,16 @@ async function unfundFailedEscrow(
     return;
   }
   logStep("Funded job's payment failed — taken out of escrow", { jobId: job.id, piId, from: job.payment_status, liveStatus });
+
+  // Q1971 + Q1876: a funded job nobody was hired on was, like an unpaid
+  // bounce, never paid for, so the gift its checkout spent goes back (the job
+  // is now 'failed' with no checkout, which return_bounced_gift_card needs).
+  // A hired job the RPC would not cancel (work done, a series, a crew part
+  // done) or an RPC that is not deployed keeps it for a person (Q1975).
+  // The return runs AFTER the notices and the page below, so a gift-return
+  // error (which throws for a Stripe retry) never swallows them (delta review
+  // of dcfde9884 #1).
+  const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired";
 
   // Copy follows where the job is (lh-money-escrow review): a 'failed' job is
   // hidden from My Posts and a hired or finished job cannot be checked out
@@ -130,11 +203,27 @@ async function unfundFailedEscrow(
     kind: "money_at_risk",
     severity: "critical",
     title: "A funded job's payment failed — taken out of escrow",
-    message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now payment_status='failed'; the poster${hired ? " and the confirmed Helpr were" : " was"} told. Its job status ('${job.status}') was left as it is.`,
-    fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null },
+    message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now payment_status='failed'; the poster${hired ? " and the confirmed Helpr were" : " was"} told. Its job status ('${job.status}') was left as it is.${!giftCardId ? "" : giftAsked ? ` Gift card ${giftCardId} its checkout spent is being returned (return_bounced_gift_card); a separate gift alert follows only if it is not.` : ` Its checkout spent gift card ${giftCardId}, which is NOT returned on this path (Q1975): run return_bounced_gift_card for this job and gift.`}`,
+    fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, job_status: job.status ?? null, gift_card_id: giftCardId, gift_return_asked: giftAsked ? "yes" : "no" },
     oncePerDayKey: `funded-job-payment-failed:${job.id}`,
     seed: job.is_seed ?? false,
   });
+
+  if (giftAsked) {
+    const giftBack = await returnBouncedGift(supabase, String(job.id), giftCardId as string, piId, logStep);
+    // Only a usable gift is worth a word (a refunded donation comes back
+    // unspendable); returnBouncedGift pages ops for every other outcome.
+    if (giftBack === "returned" && job.customer_id) {
+      await insertNotifications(supabase, {
+        user_id: job.customer_id,
+        job_id: job.id,
+        title: "Gift card returned",
+        message: cancelledGiftBackNotice(job.title),
+        type: "info",
+        link: null,
+      });
+    }
+  }
 }
 
 type BouncedGiftOutcome = "returned" | "returned_unspendable" | "none" | "held";
@@ -217,6 +306,10 @@ async function returnBouncedGift(
 
 function plainFailedNotice(title: unknown): string {
   return `Your payment for "${title}" didn't go through, so the job isn't posted. Open Post a Job and load your draft to try again.`;
+}
+
+function cancelledGiftBackNotice(title: unknown): string {
+  return `The gift card you used for "${String(title ?? "your job")}" is back in your account.`;
 }
 
 function bouncedGiftNotice(title: unknown): string {
@@ -346,8 +439,11 @@ export async function handlePaymentIntentPaymentFailed(
     throw new Error(`Job lookup failed for failed PI ${pi.id}: ${failedJobErr.message}`);
   }
 
+  // Q1971: the same giftCardId (create-payment stamps it on a gift-shortfall
+  // PaymentIntent and no other); the cancel RPC gives it back in SQL, the
+  // not-hired un-fund through returnBouncedGift.
   if (failedJob && FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status))) {
-    await unfundFailedEscrow(failedJob, pi.id, ctx);
+    await unfundFailedEscrow(failedJob, pi.id, ctx, giftCardId);
     return;
   }
 
@@ -425,6 +521,23 @@ export async function handlePaymentIntentPaymentFailed(
       // checkout, so the notice would only confuse them.
       if (giftCardId && failedJob.payment_status === "failed") {
         const back = await returnBouncedGift(supabase, String(failedJob.id), giftCardId, pi.id, logStep);
+        if (failedJob.status === "cancelled") {
+          // Q1971 (review of 56346b5eb #6): a job cancel_job_after_failed_bank_payment
+          // cancelled already told the poster it is cancelled; "isn't posted ...
+          // load your draft" would be wrong. Only a usable gift is worth a word.
+          if (back === "returned" && failedJob.customer_id) {
+            await insertNotifications(supabase, {
+              user_id: failedJob.customer_id,
+              job_id: failedJob.id,
+              title: "Gift card returned",
+              message: cancelledGiftBackNotice(failedJob.title),
+              type: "info",
+              link: null,
+            });
+          }
+          logStep("Retry on a cancelled bank-payment job: gift return asked", { jobId: failedJob.id, gift: back });
+          return;
+        }
         if ((back === "returned" || back === "returned_unspendable") && failedJob.customer_id) {
           await insertNotifications(supabase, {
             user_id: failedJob.customer_id,

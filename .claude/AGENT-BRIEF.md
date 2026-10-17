@@ -62,6 +62,9 @@ says more.
   on 2026-10-14 each turned a landing red after a lane reported "all green":
   `npx vitest run src/test/mutateRegistrationsResolve.test.ts src/test/mutateTargetsTheNewestDefinition.test.ts src/test/raceClassGuard.test.ts src/test/openPartlyDoneItemsSayDoneWhen.test.ts`
   A stale `@mutate` is rewritten to break the NEW code the same way, never deleted.
+- If you change UI, copy, forms or tests that read the source tree, ALSO run the
+  repo-wide guards CI caught late on 2026-10-15 (trades took 7 land tries, #3138):
+  `npx vitest run src/test/wrappingButtonTextAligns.test.ts src/test/q248HoverUnderlineRatchet.test.ts src/test/messyInputCoverageDecided.test.ts src/test/toastCopy.test.ts src/test/noSrcDirectoryWalksInTests.test.ts`
 
 ## Data and prod
 - Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;

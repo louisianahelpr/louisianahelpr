@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 156 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 685 (across 173 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 689 (across 174 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 23 |
 | Multi-step flows — probable | flow | 17 |
 | Back/next navigation only | flow | 40 |
-| Forms (submittable) | form | 46 |
+| Forms (submittable) | form | 47 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 132 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **500** |
-| **Copy surfaces** (strings a person may read) | mixed | **723** |
-| **Total auditable surface** | mixed | **1223** |
+| **Navigable surfaces** (places a person can stand) | mixed | **501** |
+| **Copy surfaces** (strings a person may read) | mixed | **727** |
+| **Total auditable surface** | mixed | **1228** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 0 | 14 | agree |
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 156 | 130 | agree within method (script counts every menu instance) |
-| Forms | 46 | ~38 | agree |
+| Forms | 47 | ~38 | agree |
 | Confirmed multi-step flows | 23 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -445,6 +445,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterItemView.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
+- [ ] `src/components/declutter/DeclutterWantedViews.tsx` (form tag)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)

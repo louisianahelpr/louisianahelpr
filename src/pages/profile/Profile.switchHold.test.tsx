@@ -19,7 +19,7 @@
  * switch added to the landing without being held here fails.
  */
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
-// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled); | const landingReady = useArrivalGate(!loading, declutterSwitch.settled);
+// @mutate src/pages/profile/Profile.tsx | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled); | const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled);
 // @mutate src/pages/profile/Profile.tsx |   const membershipsSwitch = useFeatureStatus("memberships"); |   const membershipsSwitch = { on: false, settled: true };
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

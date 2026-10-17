@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeature, useFeatureStatus } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
 import { ChevronRight, Truck } from "lucide-react";
 import {
   fetchLiveItems,
@@ -199,12 +199,12 @@ function BrowseView({ userId }: { userId: string }) {
   );
 }
 
-function MyListingsView({ userId }: { userId: string }) {
+function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
-  // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch.
-  const haulOn = useFeature("declutter_haul_away");
+  // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch,
+  // read by DeclutterHome so the page lands once (Q?declutter-settle).
   const haul = useQuery({
     queryKey: ["declutter", "haul-away", userId],
     enabled: haulOn,
@@ -334,8 +334,7 @@ function MyListingsView({ userId }: { userId: string }) {
 }
 
 /** Moving-out mode's way in (docs/specs/declutter-moving-out.md), only while its switch is on. */
-function MovingOutEntry() {
-  const on = useFeature("declutter_moving_out");
+function MovingOutEntry({ on }: { on: boolean }) {
   if (!on) return null;
   return (
     <Link
@@ -362,7 +361,11 @@ export default function DeclutterHome() {
   // third line that pushed the whole view 46px down. DeclutterPage starts the
   // read alongside the 'declutter' one, so the wait is usually nothing.
   const wanted = useFeatureStatus("declutter_wanted");
-  const tabsReady = useArrivalGate(true, wanted.settled);
+  // The haul-away and moving-out switches shape My listings the same way, so
+  // they are read here and waited for with it (one paint, no late card).
+  const haulAway = useFeatureStatus("declutter_haul_away");
+  const movingOut = useFeatureStatus("declutter_moving_out");
+  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled);
   const wantedOn = wanted.on;
   const asked = params.get("view") as View | null;
   const view: View = asked && VIEWS.includes(asked) && (asked !== "wanted" || wantedOn) ? asked : "browse";
@@ -394,9 +397,9 @@ export default function DeclutterHome() {
         ]}
       />
       <StrikeCount userId={user.id} />
-      {view === "mine" && <MovingOutEntry />}
+      {view === "mine" && <MovingOutEntry on={movingOut.on} />}
       {view === "browse" ? <BrowseView userId={user.id} />
-        : view === "mine" ? <MyListingsView userId={user.id} />
+        : view === "mine" ? <MyListingsView userId={user.id} haulOn={haulAway.on} />
           : view === "offers" ? <OffersView />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : view === "wanted" ? <WantedView />

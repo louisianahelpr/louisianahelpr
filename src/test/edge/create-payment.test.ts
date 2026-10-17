@@ -285,7 +285,7 @@ describe("create-payment edge function", () => {
           // `escrow-job-1` alone would replay the expired session's response
           // for 24h and hand the poster a url that leads nowhere.
           const opts = stripeMock.checkout.sessions.create.mock.calls[0][1];
-          expect(opts.idempotencyKey).toMatch(/^escrow-job-1-after-cs_dead-b\d+$/);
+          expect(opts.idempotencyKey).toMatch(/^escrow-job-1-p\d+u\d+-after-cs_dead-b\d+$/);
 
           // payment_status returns to the money-in-flight state: the
           // checkout.session.expired handler, void-cancelled-payments' sweep
@@ -448,7 +448,7 @@ describe("create-payment edge function", () => {
         const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
         // Q770: the key carries the 10-minute expiry bucket, and expires_at is
         // that bucket + 1h — so a double-tap sends identical params under one key.
-        const bucket = Number(/^escrow-job-1-b(\d+)$/.exec(opts.idempotencyKey)?.[1]);
+        const bucket = Number(/^escrow-job-1-p\d+u\d+-b(\d+)$/.exec(opts.idempotencyKey)?.[1]);
         expect(bucket % 600).toBe(0);
         expect(params.expires_at).toBe(bucket + 3600);
         const now = Math.floor(Date.now() / 1000);
@@ -1054,6 +1054,85 @@ describe("create-payment edge function", () => {
           // Nothing after the refused stamp touched the job row.
           expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(1);
         }
+      });
+
+      // Q1846 (lh-money-escrow review of c082d1a33, should-fix 1): a poster
+      // may edit budget / urgent bonus while the job is unpaid with no session
+      // stamped, so the two writes that commit this request's price re-assert
+      // the price it was computed from. Raised in the window and unpinned, the
+      // Helpr would be paid on more than the checkout collected.
+      // @mutate supabase/functions/create-payment/index.ts |         let pinned = q.eq("budget", job.budget); |         let pinned = q;
+      // @mutate supabase/functions/create-payment/index.ts | ? pinned.or("urgent_fee.is.null,urgent_fee.eq.0") | ? pinned
+      // @mutate supabase/functions/create-payment/index.ts | pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category); |
+      // @mutate supabase/functions/create-payment/index.ts |         pinned = job.is_urgent == null ? pinned.is("is_urgent", null) : pinned.eq("is_urgent", job.is_urgent); |
+      // @mutate supabase/functions/create-payment/index.ts | const guarded = () => pinnedToReadPrice(supabaseAdmin | const guarded = () => (supabaseAdmin
+      // @mutate supabase/functions/create-payment/index.ts | const { data: modelRows, error: modelErr } = await pinnedToReadPrice(supabaseAdmin | const { data: modelRows, error: modelErr } = await (supabaseAdmin
+      it("the fee-model stamp and the session stamp are both pinned to the price the request read (Q1846)", async () => {
+        const CASES: Array<Record<string, unknown>> = [
+          { budget: 100 },
+          { budget: 80, is_urgent: true, urgent_fee: 20 },
+          { budget: 100, is_urgent: false, urgent_fee: null },
+        ];
+        for (const extra of CASES) {
+          seedEscrowJob(Number(extra.budget), { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+          scenario.reads.jobs = { rows: [{ ...(scenario.reads.jobs.rows[0] as Record<string, unknown>), ...extra }] };
+          await escrow();
+          const updates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+          const modelStamp = updates.find((w) => "helper_fee_flat_cents" in (w.payload as object) && !("stripe_session_id" in (w.payload as object)));
+          const sessionStamp = updates.find((w) => "stripe_session_id" in (w.payload as object));
+          for (const [label, w] of [["fee-model stamp", modelStamp], ["session stamp", sessionStamp]] as const) {
+            const ctx = `${label} ${JSON.stringify(extra)}`;
+            expect(w, ctx).toBeDefined();
+            expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "eq", column: "budget", value: extra.budget }));
+            if (extra.urgent_fee == null || extra.urgent_fee === 0) {
+              expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "or", value: "urgent_fee.is.null,urgent_fee.eq.0" }));
+            } else {
+              expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "eq", column: "urgent_fee", value: extra.urgent_fee }));
+            }
+            expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "eq", column: "category", value: "cleaning" }));
+            if (extra.is_urgent == null) {
+              expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "is", column: "is_urgent", value: null }));
+            } else {
+              expect(w!.filters, ctx).toContainEqual(expect.objectContaining({ op: "eq", column: "is_urgent", value: extra.is_urgent }));
+            }
+          }
+        }
+      });
+
+      // Review of 91927c016 #1: the retry after a refused stamp is at a new
+      // price and must not reuse the old session's idempotency key.
+      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}${checkoutKeySuffix}`,
+      it("the checkout's idempotency key carries the price, so a new price never replays an old session (Q1846)", async () => {
+        const keys: string[] = [];
+        for (const budget of [100, 150]) {
+          seedEscrowJob(budget, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+          await escrow();
+          keys.push(String(stripeMock.checkout.sessions.create.mock.calls[0][1].idempotencyKey));
+        }
+        expect(keys[0]).toMatch(/-p10000u0-/);
+        expect(keys[1]).toMatch(/-p15000u0-/);
+        expect(keys[0]).not.toBe(keys[1]);
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |             throw new PublicError("This job's pay changed while checkout was opening. Please try again so you pay the new amount."); |
+      it("a price edited between the read and the fee-model stamp refuses the checkout and says the pay changed (Q1846)", async () => {
+        seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null });
+        scenario.reads.jobs = {
+          ...scenario.reads.jobs,
+          selectOverrides: [{ includes: "status, payment_status", result: { rows: [{ id: "job-cc", status: "open", payment_status: "unpaid", budget: 150, urgent_fee: null, is_urgent: false }] } }],
+        };
+        scenario.writeOverrides = [{
+          table: "jobs",
+          op: "update",
+          when: (p) => "helper_fee_flat_cents" in p && !("stripe_session_id" in p),
+          rows: [],
+        }];
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc" } }));
+        const body = await json(res);
+        expect(body.url).toBeUndefined();
+        expect(String(body.error)).toMatch(/pay changed while checkout was opening/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
       });
 
       it("the Helpr fee stamped at escrow is the flat 5% + 70c, whatever platform_settings or the tier says", async () => {

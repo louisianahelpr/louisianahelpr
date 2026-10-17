@@ -156,9 +156,12 @@ jobs:
     # 232 min, inside the 240 before open-done-when, prodWorkflowSpacing rule 5):
     #   1  messy-input part 1 (sweep, targeted, post-job, even explores)
     #   2  messy-input part 2 (odd explores + the coverage check, fed leg 1's
-    #      credit files through an artifact)
+    #      credit files through an artifact) + rail-inset (2026-10-17: leg 2
+    #      used 17 of its 42 minutes on 38181023758, and list B no longer fit
+    #      leg 4's 28: run 38689259675 timed out at test 133 of 162, rail-inset
+    #      alone 8.0 min)
     #   3  every other prod-audit spec, list A (~29 test-minutes)
-    #   4  list B (~22) + the Web Vitals lab (~13)
+    #   4  list B (~22) + the Web Vitals lab (~23)
     # Every prod-audit spec is named in exactly one leg
     # (src/test/prodAuditLegs.test.ts); a new spec named in none is also
     # caught by e2eSpecsReachableInCi.test.ts.
@@ -479,9 +482,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/messy-input.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/messy-input.spec.ts e2e/prod-audit/rail-inset.spec.ts
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/messy-input.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/messy-input.spec.ts e2e/prod-audit/rail-inset.spec.ts
           fi
 
       - name: Keep failure screenshots, samples and traces (leg 2)
@@ -863,9 +866,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts e2e/prod-audit/team-thread.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP" e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts e2e/prod-audit/team-thread.spec.ts
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/rail-inset.spec.ts e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts e2e/prod-audit/team-thread.spec.ts
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/prod-audit/page-settle.spec.ts e2e/prod-audit/profile-title-alignment.spec.ts e2e/prod-audit/search-x-off-center-press.spec.ts e2e/prod-audit/deep-links.spec.ts e2e/prod-audit/search-keeps-title.spec.ts e2e/prod-audit/interruptions.spec.ts e2e/prod-audit/account-reads-per-document.spec.ts e2e/prod-audit/admin-tabs-and-rows.spec.ts e2e/prod-audit/notification-panel-corners.spec.ts e2e/prod-audit/saved-helper-row.spec.ts e2e/prod-audit/search-close-one-press.spec.ts e2e/prod-audit/team-thread.spec.ts
           fi
 
       # Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,

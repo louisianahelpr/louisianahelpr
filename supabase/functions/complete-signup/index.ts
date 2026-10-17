@@ -167,7 +167,8 @@ serve(async (req) => {
       zipCode,
       parish,
       skills,
-      dateOfBirth,
+      // Q1804: read only from a signed-in member; see `dateOfBirth` below.
+      dateOfBirth: bodyDateOfBirth,
       availability,
       transportation,
       hearAboutUs,
@@ -216,6 +217,17 @@ serve(async (req) => {
         userId = authData.user.id;
       }
     }
+
+    // Q1804 (lh-authz-rls re-review of 44ca75e95, #3): a birthday comes only
+    // from a signed-in member. On the no-session path below, anyone who learned
+    // a brand-new account's id could otherwise save an under-18 birthday for it,
+    // which lock_under_18_birthday then keeps, locking the owner out of Apply
+    // and Post. No client sends a birthday there (the sign-up form sends the
+    // 18+ box, ageAttested), so it is dropped, not refused.
+    // Must stay ABOVE the no-session fallback below, which copies bodyUserId
+    // into userId: read after it, every caller would look signed in.
+    const signedIn = userId !== null;
+    const dateOfBirth = signedIn ? bodyDateOfBirth : undefined;
 
     // If no valid JWT, allow initial signup completion ONLY within a short
     // window after account creation, and only if the profile is still empty.

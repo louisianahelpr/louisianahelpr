@@ -253,6 +253,17 @@ export const GATE_MISS = "GATE MISS";
  * aborted and recorded apart; everything else, and everything while disarmed,
  * falls through to the routes registered before it.
  */
+/**
+ * How a caught request is named: METHOD and path, plus the grant_type or scope
+ * of a GoTrue call, so "POST /auth/v1/token?grant_type=password" and
+ * "POST /auth/v1/logout?scope=global" say which auth write it was.
+ */
+export function gateRequestLabel(method, url) {
+  let u;
+  try { u = new URL(String(url)); } catch { return `${method} ${String(url).slice(0, 120)}`; }
+  const q = u.pathname.startsWith("/auth/v1/") ? ["grant_type", "scope"].filter((k) => u.searchParams.has(k)).map((k) => `${k}=${u.searchParams.get(k)}`).join("&") : "";
+  return `${method} ${u.pathname}${q ? `?${q}` : ""}`;
+}
 export function networkGate() {
   let armed = null;
   return {
@@ -265,7 +276,7 @@ export function networkGate() {
     async handler(route, req) {
       const kind = pressWriteKind({ method: req.method(), url: req.url(), body: req.postData() });
       if (!armed || kind === "read") return route.fallback();
-      const request = `${req.method()} ${new URL(req.url()).pathname}`;
+      const request = gateRequestLabel(req.method(), req.url());
       (kind === "side-effect" ? armed.sideEffects : armed.misses).push(request);
       return route.abort("blockedbyclient");
     },

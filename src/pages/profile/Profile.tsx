@@ -102,7 +102,8 @@ const ProfilePage = () => {
   const [tab, setTab] = useState<Tab>(initialTab);
   // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). The
   // landing shows rows only while a hidden switch is on: the Declutter row
-  // (DeclutterEntryRow) and the Membership row (useProfileLandingDerived).
+  // (DeclutterEntryRow), the Membership row (useProfileLandingDerived) and the
+  // Shops row (ShopsEntryRow).
   // Painted before the answer, such a row lands later and pushes Settings
   // down: measured on prod at 375, the Declutter row arrived ~50 ms after
   // Settings and moved it 90px (CLS 0.0599, prod-audit run 39008504928). The
@@ -111,7 +112,8 @@ const ProfilePage = () => {
   // read never hides Log out.
   const declutterSwitch = useFeatureStatus("declutter");
   const membershipsSwitch = useFeatureStatus("memberships");
-  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled);
+  const shopsSwitch = useFeatureStatus("shops");
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && membershipsSwitch.settled && shopsSwitch.settled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   /**

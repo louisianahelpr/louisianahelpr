@@ -108,6 +108,7 @@ export const SETTLE_INIT = (placeholderSel) => {
       if (r.width > 8 && r.height > 8) { ph = true; break; }
     }
     let n = 0;
+    const labels = [];
     for (const parent of root.querySelectorAll("*")) {
       if (parent.childElementCount < 2) continue;
       const byKey = new Map();
@@ -133,6 +134,9 @@ export const SETTLE_INIT = (placeholderSel) => {
         for (let a = c; a && a !== document.body; a = a.parentElement) op *= Number(getComputedStyle(a).opacity);
         if (op < 0.9) continue;
         n++;
+        // WHAT arrived, so a breach names the rows of each wave (2026-10-17:
+        // "/profile waves 0->6 then 6->24" said how many, never which).
+        labels.push((c.textContent || "").replace(/\s+/g, " ").trim().slice(0, 24));
         const prev = lastTop.get(c);
         if (prev !== undefined && Math.abs(prev - r.top) > 2 && !w.__settleScrolled) {
           w.__settle.moves.push({ t: Math.round(performance.now()), dy: Math.round(r.top - prev) });
@@ -140,13 +144,19 @@ export const SETTLE_INIT = (placeholderSel) => {
         lastTop.set(c, r.top);
       }
     }
-    return { n, ph };
+    return { n, ph, labels };
   };
+  let seen = [];
   const tick = () => {
-    const { n, ph } = countItems();
+    const { n, ph, labels } = countItems();
     const t = Math.round(performance.now());
     const c = w.__settle.counts;
-    if (!c.length || c[c.length - 1].n !== n) c.push({ t, n });
+    if (!c.length || c[c.length - 1].n !== n) {
+      // The first few items that were not there at the previous change.
+      const was = new Set(seen);
+      c.push({ t, n, added: labels.filter((l) => !was.has(l)).slice(0, 4) });
+      seen = labels;
+    }
     if (ph) w.__settle.ph.push(t);
   };
   addEventListener("scroll", () => { w.__settleScrolled = true; }, { capture: true, passive: true });
@@ -158,11 +168,11 @@ export const SETTLE_INIT = (placeholderSel) => {
 export function wavesOf(counts, mergeMs = WAVE_MERGE_MS) {
   const waves = [];
   let prev = 0;
-  for (const { t, n } of counts) {
+  for (const { t, n, added } of counts) {
     if (n === prev) continue;
     const last = waves[waves.length - 1];
-    if (last && t - last.end < mergeMs) { last.end = t; last.to = n; }
-    else waves.push({ start: t, end: t, from: prev, to: n });
+    if (last && t - last.end < mergeMs) { last.end = t; last.to = n; if (added?.length) last.added = [...(last.added ?? []), ...added].slice(0, 4); }
+    else waves.push({ start: t, end: t, from: prev, to: n, ...(added?.length ? { added } : {}) });
     prev = n;
   }
   // A wave that returns the count to where it was (a flicker) is still a wave.

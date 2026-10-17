@@ -160,7 +160,33 @@ function readOverflowingControls(): { text: string; sw: number; cw: number }[] {
       hidden = c.clip === "rect(0px, 0px, 0px, 0px)" || /inset\(50%\)/.test(c.clipPath);
     }
     if (hidden) continue;
-    if (el.scrollWidth > el.clientWidth + 1) out.push({ text: (el.textContent || "").trim().slice(0, 60), sw: el.scrollWidth, cw: el.clientWidth });
+    // An icon-only control has no text: name it by its accessible name and
+    // classes, or the report reads `"" sw36/cw28` (run 38689259675) and says
+    // nothing about WHICH control.
+    const named = () => `${el.tagName.toLowerCase()}[${el.getAttribute("aria-label") ?? el.getAttribute("title") ?? ""}].${String(el.getAttribute("class") ?? "").split(/\s+/).slice(0, 6).join(".")}`;
+    if (el.scrollWidth <= el.clientWidth + 1) continue;
+    // AN INVISIBLE HIT AREA IS NOT A LABEL. JobTracking's step dot is a 28px
+    // button holding an aria-hidden, empty, unpainted 44x44 span centred on it
+    // (the WCAG 2.5.5 target without a 44px drawing), so its scrollWidth is
+    // 36: run 38689259675's `"" sw36/cw28` on /posts and /jobs/:id. Measure
+    // again with only such overlays taken out of layout; anything that
+    // paints (text, an icon, a fill, a border) still counts.
+    const ghosts = Array.from(el.querySelectorAll<HTMLElement>('[aria-hidden="true"]')).filter((g) => {
+      const c = getComputedStyle(g);
+      return (
+        !g.childElementCount &&
+        !(g.textContent || "").trim() &&
+        (c.backgroundColor === "rgba(0, 0, 0, 0)" || c.backgroundColor === "transparent") &&
+        c.backgroundImage === "none" &&
+        c.boxShadow === "none" &&
+        !(parseFloat(c.borderLeftWidth) || parseFloat(c.borderRightWidth) || parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth))
+      );
+    });
+    const was = ghosts.map((g) => g.style.display);
+    for (const g of ghosts) g.style.display = "none";
+    const sw = el.scrollWidth;
+    ghosts.forEach((g, i) => (g.style.display = was[i]));
+    if (sw > el.clientWidth + 1) out.push({ text: (el.textContent || "").trim().slice(0, 60) || named(), sw, cw: el.clientWidth });
   }
   return out;
 }

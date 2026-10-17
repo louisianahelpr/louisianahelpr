@@ -58,6 +58,9 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
   ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
   ('job_announceable_to',           'allow',    'job may be announced to this user (Q392: open_jobs_browse gate per recipient)'),
+  ('shop_owner_in_good_standing',   'allow',    'Shops slice 1: this shop owner may be seen by others (not banned, under 3 marketplace strikes)'),
+  ('shop_publicly_visible',         'allow',    'Shops slice 1: a member other than the owner may see this shop (switch, hidden, seed, standing)'),
+  ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
@@ -139,7 +142,11 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('toggle_thread_mute',            'action',   'RPC'),
   ('series_give_up_strike',         'action',   'writes a reliability strike (internal to the series give-up RPCs; true = a strike was recorded)'),
   ('choose_new_social_account',     'action',   'records a signed-out "I''m new here" choice for one social sign-in (Q446)'),
-  ('admin_release_payout_hold',     'action',   'admin-only: clears a payout hold, TRUE = a hold was cleared (Q764)');
+  ('admin_release_payout_hold',     'action',   'admin-only: clears a payout hold, TRUE = a hold was cleared (Q764)'),
+  ('shops_admin_check_registration','action',   'Shops slice 1: admin marks a Secretary of State number checked (writes; returns the new state)'),
+  ('shops_admin_set_hidden',        'action',   'Shops slice 1: admin hides or shows a shop (writes; returns the new state)'),
+  ('shops_set_follow',              'action',   'Shops slice 1: the caller follows or unfollows a shop (writes; returns the new state)'),
+  ('shops_set_paused',              'action',   'Shops slice 1: the caller pauses or reopens their own shop (writes; returns the new state)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);
@@ -194,7 +201,13 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
   -- A and B are both real (not test) accounts.
   ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
-  ('helpr_task_vehicle_fits',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''small'''], ARRAY[1,2]);
+  ('helpr_task_vehicle_fits',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''small'''], ARRAY[1,2]),
+  -- Shops slice 1: A owns shop S (the 'shop' fixture step), not hidden, not seed, A in good standing.
+  ('shop_owner_in_good_standing',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
+  -- The 'shops' switch is set to testers in the fixture and D is an admin, so S is visible to D.
+  ('shop_publicly_visible',         '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
+  -- A owns S, so the non-NULL call is TRUE (the owner branch).
+  ('shop_visible_to',               NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]);
 
 DO $q140$
 DECLARE
@@ -219,14 +232,14 @@ BEGIN
   -- the application notifier's pg_net call dies on a NULL url.
   FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
                               'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows',
-                              'public.declutter_orders'] LOOP
+                              'public.declutter_orders', 'public.shops', 'public.feature_switches'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'bucket', 'objects', 'shop']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -292,6 +305,16 @@ BEGIN
         -- Slice 5: B's photo for task T in the private helpr-tasks bucket (no bucket row needed for the check).
         INSERT INTO storage.objects (bucket_id, name) VALUES
           ('helpr-tasks', B::text || '/task/00000000-0000-4000-8140-000000000601/p.jpg');
+      WHEN 'shop' THEN
+        -- Shops slice 1 (20261015123029): shop S owned by A, and the 'shops'
+        -- switch on for testers (D is an admin). Rolled back with the rest.
+        IF to_regclass('public.shops') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.shops (id, owner_id, name, category, area_label, pin_lat, pin_lng)
+                   VALUES ('00000000-0000-4000-8140-000000000401', '00000000-0000-4000-8140-00000000000a',
+                           'q140 shop', 'bakery', 'Baton Rouge', 30.45, -91.15)$q$;
+          INSERT INTO public.feature_switches (key, audience, description) VALUES ('shops', 'testers', 'q140 fixture')
+          ON CONFLICT (key) DO UPDATE SET audience = 'testers';
+        END IF;
       END CASE;
     EXCEPTION WHEN OTHERS THEN
       INSERT INTO q140_out VALUES ('(fixture)', 'FIXTURE_FAILED', step || ': ' || SQLERRM);

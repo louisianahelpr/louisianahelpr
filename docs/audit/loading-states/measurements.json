@@ -25762,6 +25762,45 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/shops/mine",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fshops%2Fmine",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/shops",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fshops",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/shops/test",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fshops%2Ftest",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -25836,6 +25875,16 @@
         "customer /quotes/send/test",
         "helper /quotes/send/test",
         "anon /quotes/send/test"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-15T22:20:10.448Z",
+      "base": "http://127.0.0.1:4391",
+      "surfaces": [
+        "anon /shops/mine",
+        "anon /shops",
+        "anon /shops/test"
       ],
       "replaced": []
     }

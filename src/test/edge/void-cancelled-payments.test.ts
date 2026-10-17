@@ -262,6 +262,38 @@ describe("void-cancelled-payments — Q891: a test-mode Stripe object under the 
     ]);
   });
 
+  // Q1880 (by design): an ACH checkout that COMPLETED keeps the job 'unpaid'
+  // with its session stamped while the bank debit settles (1-4 days). Part B
+  // reads it (one sessions.retrieve per run) and must never abandon it: only
+  // a session Stripe EXPIRED unpaid is abandoned (Q771). Scoping the read on
+  // stripe_payment_intent_id IS NULL is not safe instead: create-payment's
+  // stampSession re-mints a failed/abandoned job to 'unpaid' and keeps the
+  // stale PaymentIntent, so its expired re-mint would never be abandoned.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (session.status === "expired" && session.payment_status === "unpaid") { | if (session.payment_status === "unpaid") {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (await markAbandoned(job, "unpaid")) abandonedCount++; |           abandonedCount += 0;
+  it("Q1880: Part B never abandons an ACH-pending job (session complete, debit settling); an expired unpaid one it does", async () => {
+    seedUnpaidCheckout("B");
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+      id: "cs_test_old", status: "complete", payment_status: "unpaid", payment_intent: "pi_ach_pending", mode: "payment",
+    });
+    const pending = await run();
+    expectCleanRun(pending.res, pending.body);
+    expect(pending.body.abandoned).toBe(0);
+    expect(abandonWrites()).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.retrieve).toHaveBeenCalledWith("cs_test_old");
+
+    // Control: the same job whose session Stripe expired unpaid is abandoned.
+    resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+    seedUnpaidCheckout("B");
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+      id: "cs_test_old", status: "expired", payment_status: "unpaid", payment_intent: null, mode: "payment",
+    });
+    const expired = await run();
+    expectCleanRun(expired.res, expired.body);
+    expect(expired.body.abandoned).toBe(1);
+    expect(abandonWrites()).toHaveLength(1);
+  });
+
   it("Part B control: a transient Stripe error (503) still leaves the job alone for the next run, and writes no test-mode line", async () => {
     seedUnpaidCheckout("B");
     stripeMock.checkout.sessions.retrieve.mockRejectedValue(

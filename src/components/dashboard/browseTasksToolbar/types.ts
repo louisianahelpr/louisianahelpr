@@ -30,6 +30,10 @@ export interface BrowseTasksToolbarProps {
   savedOnly?: boolean;
   onToggleSavedOnly?: () => void;
   savedCount?: number;
+  /** The "Wants Quotes" filter (owner answer 12): passed only while the
+   *  hidden 'quotes' switch is on; the sheet shows no row without it. */
+  wantsQuotes?: boolean;
+  onToggleWantsQuotes?: () => void;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */

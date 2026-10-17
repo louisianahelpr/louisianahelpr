@@ -3680,6 +3680,7 @@ export type Database = {
       job_quote_requests: {
         Row: {
           category: Database["public"]["Enums"]["job_category"]
+          close_notice_sent_at: string | null
           created_at: string
           date_needed: string
           description: string
@@ -3702,6 +3703,7 @@ export type Database = {
         }
         Insert: {
           category?: Database["public"]["Enums"]["job_category"]
+          close_notice_sent_at?: string | null
           created_at?: string
           date_needed: string
           description: string
@@ -3724,6 +3726,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["job_category"]
+          close_notice_sent_at?: string | null
           created_at?: string
           date_needed?: string
           description?: string
@@ -3780,6 +3783,7 @@ export type Database = {
           price_cents: number
           quoter_id: string | null
           request_id: string
+          reminder_sent_for: string | null
           respond_until: string
           status: string
           updated_at: string
@@ -3795,6 +3799,7 @@ export type Database = {
           price_cents: number
           quoter_id?: string | null
           request_id: string
+          reminder_sent_for?: string | null
           respond_until: string
           status?: string
           updated_at?: string
@@ -3810,6 +3815,7 @@ export type Database = {
           price_cents?: number
           quoter_id?: string | null
           request_id?: string
+          reminder_sent_for?: string | null
           respond_until?: string
           status?: string
           updated_at?: string
@@ -10443,6 +10449,16 @@ export type Database = {
         Args: { p_message: string; p_title: string; p_user: string }
         Returns: undefined
       }
+      quote_notify_about: {
+        Args: {
+          p_actor: string
+          p_email: boolean
+          p_message: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       quote_require_member: { Args: never; Returns: string }
       rate_limit_hit: {
         Args: {
@@ -10832,6 +10848,7 @@ export type Database = {
       sweep_old_notifications: { Args: never; Returns: number }
       sweep_open_ban_settlement_reviews: { Args: never; Returns: Json }
       sweep_payout_schedule_freezes: { Args: never; Returns: Json }
+      sweep_quote_alerts: { Args: never; Returns: Json }
       sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_signup_leads: { Args: never; Returns: Json }

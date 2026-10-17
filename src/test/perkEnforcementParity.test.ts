@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { Crown } from "lucide-react";
 import {
@@ -346,5 +346,73 @@ describe("VN-44 owner decision, stated once", () => {
       if (TIER_PERK_MATRIX.plus[perk]) expect(TIER_PERK_MATRIX.elite[perk], perk).toBe(true);
     }
     expect(TIER_PERK_MATRIX.elite.freeBoosts).toBe(true);
+  });
+});
+
+/**
+ * Q1844 (roadmap F4/F4a, owner 2026-10-15): every paid perk is OFF while the
+ * memberships switch is off for that member. The client hides the controls
+ * with useFeature("memberships"); a perk the SERVER still grants by tier alone
+ * is reachable by calling it directly. Two such reads remained: the Advanced
+ * Analytics gate (helper_has_advanced_analytics) and instant-job-match's tier
+ * tie-break.
+ *
+ * Inventory from source: every edge function that reads subscription_tier
+ * (comments blanked) either asks the switch (featureEnabledForUser(...,
+ * "memberships", ...)), keeps the billing record and grants no perk
+ * (BILLING_ONLY, each with its reason), or is a known open gap (KNOWN_UNGATED,
+ * exact both ways, each naming its OPEN.md item). Not covered here: tier
+ * reads through _shared modules (the legacy tier commission in helperFees.ts,
+ * which a job funded before F3 keeps by design) and SQL perks other than the
+ * Analytics gate (Q1848 lists them).
+ */
+// @mutate supabase/migrations/20261017085012_helper_advanced_analytics.sql |          AND public.feature_enabled_for_user('memberships', p_user_id) |          AND true
+// @mutate supabase/functions/instant-job-match/index.ts |         if (await featureEnabledForUser(supabase, "memberships", { id })) tierCounts.add(id); |         tierCounts.add(id);
+const BILLING_ONLY: Record<string, string> = {
+  "apple-app-store-notifications": "applies Apple's billing notices to the profile's tier; grants no perk",
+  "verify-apple-iap": "records a verified Apple purchase on the profile; the purchase gate is its own switch check (Q1849)",
+  "expire-subscriptions": "clears tiers whose billing period ended; grants no perk",
+  "subscription-reconciliation": "reconciles the billing record with Stripe; grants no perk",
+  "money-reconciliation": "grades a legacy job's stamped fee against the tier ladder it was paid at; an audit, grants nothing",
+};
+// @two-way src/test/perkEnforcementParity.test.ts:asks the switch now, drop it from the exemption lists
+const KNOWN_UNGATED: Record<string, string> = {
+  "weekly-helper-report": "Q1848 (4): the weekly report goes to tier holders",
+  "check-pro-subscription": "Q1848 (5): the $10 referral upgrade bonus is minted by tier",
+};
+
+describe("Memberships switch (F4a) — every edge function that reads a tier asks the switch, or is listed", () => {
+  const FN_ROOT = resolve(REPO, "supabase/functions");
+  const readers = readdirSync(FN_ROOT)
+    .filter((d) => !d.startsWith("_"))
+    .map((d) => ({ d, file: resolve(FN_ROOT, d, "index.ts") }))
+    .filter(({ file }) => existsSync(file))
+    .map(({ d, file }) => ({ d, code: blankComments(readFileSync(file, "utf8")) }))
+    .filter(({ code }) => /\bsubscription_tier\b/.test(code));
+  const asks = (code: string) => /featureEnabledForUser\(\s*\w+\s*,\s*"memberships"/.test(code);
+
+  it("finds the tier readers", () => {
+    expect(readers.length).toBeGreaterThan(5);
+  });
+
+  it("every edge function that reads a tier asks the switch, is billing-only, or is a named open gap", () => {
+    const wrong: string[] = [];
+    for (const { d, code } of readers) {
+      if (asks(code)) {
+        if (BILLING_ONLY[d] || KNOWN_UNGATED[d]) wrong.push(`${d}: asks the switch now, drop it from the exemption lists`);
+        continue;
+      }
+      if (!BILLING_ONLY[d] && !KNOWN_UNGATED[d]) wrong.push(`${d}: reads subscription_tier and never asks featureEnabledForUser(..., "memberships", ...)`);
+    }
+    for (const d of [...Object.keys(BILLING_ONLY), ...Object.keys(KNOWN_UNGATED)]) {
+      if (!readers.some((r) => r.d === d)) wrong.push(`${d}: no longer reads subscription_tier, drop it`);
+    }
+    expect(wrong).toEqual([]);
+    expect(asks(readers.find((r) => r.d === "instant-job-match")!.code)).toBe(true);
+  });
+
+  it("the Advanced Analytics gate asks the switch in its newest definition", () => {
+    const { body } = newestFunctionBody("helper_has_advanced_analytics");
+    expect(body).toMatch(/public\.feature_enabled_for_user\(\s*'memberships'\s*,\s*p_user_id\s*\)/);
   });
 });

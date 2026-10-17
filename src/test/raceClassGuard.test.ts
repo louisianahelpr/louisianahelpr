@@ -201,7 +201,8 @@ describe("race-class guard — edge functions (create-payment release, proven on
     // payment_status-CAS fixes the scanner cannot read are pinned by source, and
     // listed in baseline.safe — never in the grandfathered `allow`.
     const cpSrc = readFileSync(resolve(__dirname, "../..", CP), "utf8");
-    expect(cpSrc).toMatch(/\.eq\("id", jobId\)\s*\n\s*\.or\("payment_status\.is\.null,payment_status\.in\.\(unpaid,abandoned,failed\)"\)/);
+    // Q1846 wrapped the stamp in pinnedToReadPrice(...), so `.eq("id", jobId)` may close that call first.
+    expect(cpSrc).toMatch(/\.eq\("id", jobId\)\)?\s*\n\s*\.or\("payment_status\.is\.null,payment_status\.in\.\(unpaid,abandoned,failed\)"\)/);
     expect(cpSrc).toMatch(/\.eq\("id", jobId\)\.eq\("status", job\.status\)\.eq\("payment_status", "cancelling"\)\.select\("id"\)/);
     const cbSrc = readFileSync(resolve(__dirname, "../..", CB), "utf8");
     expect(cbSrc).toMatch(/\.eq\("id", chargebackJob\.id\)\s*\n\s*\.in\("payment_status", \["payout_pending", "escrow"\]\)\s*\n\s*\.select\("id"\)/);

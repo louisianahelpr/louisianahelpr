@@ -17,19 +17,25 @@ export { RENTALS_ERROR_COPY };
  */
 export class RentalsCopyError extends Error {
   readonly worded: boolean;
+  /** The app's own words for this refusal (null when none were mapped). Read by rentalsErrorMessage. */
+  readonly words: string | null;
   constructor(words: string | null, readonly cause: unknown) {
     super(words ?? (cause && typeof cause === "object" && "message" in cause ? String((cause as { message: unknown }).message) : "error"));
     this.name = "RentalsCopyError";
     this.worded = words != null;
+    this.words = words;
   }
 }
 
+/** Shown when a refusal has no mapped words: says what to do next (toastCopy.test.ts "no vague failure"). */
+export const RENTALS_FALLBACK_COPY = "Couldn't do that just now. Check your connection and try again.";
+
 /** The server RAISEs the code as the error MESSAGE; show it in plain words. */
 export function rentalsErrorMessage(err: unknown): string {
-  if (err instanceof RentalsCopyError && err.worded) return err.message;
+  if (err instanceof RentalsCopyError && err.words != null) return err.words;
   const msg = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : "";
   const code = msg.trim();
-  return RENTALS_ERROR_COPY[code] ?? "Something went wrong. Please try again.";
+  return RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY;
 }
 
 /**

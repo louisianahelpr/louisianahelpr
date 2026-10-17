@@ -21,6 +21,7 @@
  * guard counts reads by that name.
  */
 import { DECLUTTER_ERROR_COPY as DC } from "@/lib/declutter/errors";
+import { RENTALS_ERROR_COPY as RC } from "@/lib/rentals/errorCopy";
 import { codeNamedIn, RPC_ERROR_COPY, type MappedRpc } from "@/lib/lifecycleErrors";
 
 export const ADMIN_RPC_ERROR_COPY = {
@@ -179,6 +180,15 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_authorized: "Only admins can decide category suggestions.",
     note_too_long: "Keep the note under 300 characters.",
     unknown_suggestion: "That suggestion no longer exists.",
+  },
+  // Rentals S1 ownership review (20261017205605): RentalsOwnershipCard.
+  rentals_admin_review_property: {
+    account_restricted: RC.account_restricted,
+    decision_required: RC.decision_required,
+    feature_disabled: RC.feature_disabled,
+    not_authorized: RC.not_authorized,
+    not_pending_review: RC.not_pending_review,
+    reason_required: "Add a reason. The landlord will see it.",
   },
 } satisfies Record<string, Record<string, string>>;
 

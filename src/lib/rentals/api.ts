@@ -7,7 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { RENTALS_PROOF_TYPES, RENTALS_REQUEST_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
@@ -138,8 +138,12 @@ export async function submitOwnershipProof(uid: string, propertyId: string, file
   await rpcVoid(supabase.rpc("rentals_submit_ownership_proof", { p_property_id: propertyId, p_storage_path: path }), (e) => rpcErrorMessage("rentals_submit_ownership_proof", e));
 }
 
-export const reviewOwnership = (propertyId: string, approve: boolean, note: string) =>
-  rpcVoid(supabase.rpc("rentals_admin_review_property", { p_property_id: propertyId, p_approve: approve, p_note: note }), (e) => rpcErrorMessage("rentals_admin_review_property", e));
+/** Admin-only: its copy lives in ADMIN_RPC_ERROR_COPY and is fetched only on a refusal (loadAdminRpcErrorCopy). */
+export async function reviewOwnership(propertyId: string, approve: boolean, note: string): Promise<void> {
+  const res = await supabase.rpc("rentals_admin_review_property", { p_property_id: propertyId, p_approve: approve, p_note: note });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcVoid(Promise.resolve(res), (e) => admin?.rpcErrorMessage("rentals_admin_review_property", e) ?? null);
+}
 
 export const addUnit = (propertyId: string, label: string) =>
   rpcValue(supabase.rpc("rentals_add_unit", { p_property_id: propertyId, p_label: label }), (e) => rpcErrorMessage("rentals_add_unit", e));

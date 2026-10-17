@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
+import { safeStorage } from "@/lib/safeStorage";
 
 /**
  * The shape of a recently-posted job used by the entry-choice
@@ -129,9 +131,46 @@ export function useRecentPostedJobs(limit = DEFAULT_LIMIT): RecentPostedJob[] | 
     queryFn: () => fetchRecentPostedJobs(user!.id, limit),
   });
 
+  // Remember the answer on this device, so the next visit's skeleton can draw
+  // the Repost card before the read lands (usePostedBefore). Only a read that
+  // SUCCEEDED is remembered: a failed one is not evidence of no history.
+  const userId = user?.id;
+  const answered = !isPending && Array.isArray(data);
+  const posted = answered ? data.length > 0 : null;
+  useEffect(() => {
+    if (!userId || posted === null) return;
+    safeStorage.setItem(postedBeforeKey(userId), posted ? "1" : "0");
+  }, [userId, posted]);
+
   // A signed-out user is not "loading" — they simply have no posted jobs, and
   // the query never runs. Returning null there would leave the caller's
   // skeleton up forever.
   if (!user?.id) return [];
   return isPending ? null : (data ?? []);
+}
+
+/**
+ * Device memory of "this poster has job history", one key per account. A
+ * boolean, not the jobs: the rows themselves live in the query cache.
+ */
+export const postedBeforeKey = (userId: string) => `helpr_posted_before_${userId}`;
+
+/** What this device last learned: true, false, or null when it never asked. */
+export function readPostedBefore(userId: string | undefined): boolean | null {
+  if (!userId) return null;
+  const v = safeStorage.getItem(postedBeforeKey(userId));
+  return v === "1" ? true : v === "0" ? false : null;
+}
+
+/**
+ * Does this poster have job history? (owner, 2026-10-17: the Post a Job
+ * skeleton draws five cards when the poster has past jobs and four otherwise,
+ * so nobody sees a jump.) The read itself once it has landed; before that,
+ * what this device learned last time; null only when neither is known, i.e.
+ * the first visit on this device, before the read has answered.
+ */
+export function usePostedBefore(recentPosted: RecentPostedJob[] | null): boolean | null {
+  const { user } = useCurrentUser();
+  if (recentPosted !== null) return recentPosted.length > 0;
+  return readPostedBefore(user?.id);
 }

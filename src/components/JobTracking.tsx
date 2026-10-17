@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
-import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
+import type { CSSProperties } from "react";
+import { useStepTooltip } from "@/hooks/useStepTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -1520,9 +1521,7 @@ export function JobTracking({
     arrived: jobStamps.arrivedAt ?? jobStamps.arrivalVerifiedAt ?? jobStamps.posterConfirmedArrivalAt,
     done: jobStamps.helperCompletedAt ?? jobStamps.posterCompletedAt,
   };
-  const [openStepTooltip, setOpenStepTooltip] = useState<string | null>(null);
-  /** The step whose tooltip the pointer opened (not yet pinned by a click). */
-  const hoverOpenedStepRef = useRef<string | null>(null);
+  const stepTooltip = useStepTooltip();
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   // ONE definition of the offset, shared with the collapsed card's compact
@@ -1884,32 +1883,7 @@ export function JobTracking({
                     {...(showTooltip
                       ? {
                           type: "button" as const,
-                          onClick: (e: ReactMouseEvent) => {
-                            e.stopPropagation();
-                            /* A CLICK NEVER HIDES WHAT THE HOVER JUST SHOWED.
-                               A mouse reaches the dot before it clicks it, so
-                               the hover had already opened this tooltip and the
-                               toggle closed it again: clicking "Done — <date>"
-                               showed nothing (press-every-control 38536821617,
-                               shard 11, /jobs/d3034be8 "no observable change").
-                               A click on a hover-opened tooltip keeps it open
-                               (leaving the dot still closes it); a click on a
-                               tap- or click-opened one closes it, as before. */
-                            if (hoverOpenedStepRef.current === s.key) {
-                              hoverOpenedStepRef.current = null;
-                              setOpenStepTooltip(s.key);
-                              return;
-                            }
-                            setOpenStepTooltip((k) => (k === s.key ? null : s.key));
-                          },
-                          onMouseEnter: () => {
-                            hoverOpenedStepRef.current = s.key;
-                            setOpenStepTooltip(s.key);
-                          },
-                          onMouseLeave: () => {
-                            hoverOpenedStepRef.current = null;
-                            setOpenStepTooltip((k) => (k === s.key ? null : k));
-                          },
+                          ...stepTooltip.handlers(s.key),
                           "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
                         }
                       : {})}
@@ -1979,7 +1953,7 @@ export function JobTracking({
                       happened. `showTooltip` gates this to steps that both
                       have a timestamp and are actually done — see the
                       Wrapper/showTooltip logic above. */}
-                  {showTooltip && openStepTooltip === s.key && (
+                  {showTooltip && stepTooltip.open === s.key && (
                     <div
                       role="tooltip"
                       className="absolute top-8 z-20 px-2 py-1 rounded-ds-md text-ds-9 font-sans font-semibold whitespace-nowrap pointer-events-none"

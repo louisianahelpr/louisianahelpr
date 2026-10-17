@@ -2,7 +2,7 @@
 // press-every-control 38536821617 shard 11): a mouse reaches a step dot before
 // it clicks it, so the hover had opened the "Done — <date>" tooltip and the
 // click's toggle closed it again: the press read "no observable change".
-// @mutate src/components/JobTracking.tsx |                             if (hoverOpenedStepRef.current === s.key) { |                             if (false) {
+// @mutate src/hooks/useStepTooltip.ts |       if (hoverOpened.current === key) { |       if (false) {
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 

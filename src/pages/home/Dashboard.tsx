@@ -21,7 +21,9 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
-import { useFeature } from "@/hooks/useFeature";
+import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
+import { WantsQuotesSlot, JobsHeaderCount } from "@/components/quotes/WantsQuotesSlot";
+import { scrollFeedToTop } from "@/pages/home/scrollFeedToTop";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,8 +41,6 @@ const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 // Map column for the web-desktop two-pane (the map surface pulls Apple's
 // MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
 const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
-// Its own chunk: the quotes reader and copy stay off every signed-in first screen while the switch is off.
-const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed").then(m => ({ default: m.WantsQuotesFeed })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
@@ -143,14 +143,7 @@ const Dashboard = () => {
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
-  // "Wants Quotes" (owner answer 12, 2026-10-17): a lens like "Only saved",
-  // offered only while the hidden 'quotes' switch is on. Quote requests are not
-  // jobs yet, so it swaps the feed for their own list (WantsQuotesFeed) rather
-  // than narrowing the job read; the map column steps aside while it is on.
-  const quotesOn = useFeature("quotes");
-  const [wantsQuotesPicked, setWantsQuotesPicked] = useState(false);
-  const wantsQuotes = quotesOn && wantsQuotesPicked;
-  const toggleWantsQuotes = useCallback(() => setWantsQuotesPicked((v) => !v), []);
+  const { quotesOn, wantsQuotes, toggleWantsQuotes, showAllJobs } = useWantsQuotes();
 
   /**
    * ONE object, three surfaces. See src/pages/home/viewerFeedExclusions.ts.
@@ -618,15 +611,7 @@ const Dashboard = () => {
                             on the map). Fall back to the loaded count
                             while the true-total query is in flight so
                             the header never shows nothing. */}
-                        {wantsQuotes ? (
-                          "Jobs that want quotes"
-                        ) : (
-                          <>
-                            {headerCount}
-                            {headerCount === 1 ? " job" : " jobs"}
-                            {filters.hasFilters ? " match your filters" : ""}
-                          </>
-                        )}
+                        <JobsHeaderCount wantsQuotes={wantsQuotes} count={headerCount} hasFilters={filters.hasFilters} />
                       </span>
                       {filters.searchOpen && (
                         <BrowseSearchBar filters={filters} className="ml-auto" />
@@ -693,20 +678,10 @@ const Dashboard = () => {
                     savedCount={savedJobIds.size}
                     wantsQuotes={wantsQuotes}
                     onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}
-                    onClearAllFilters={() => {
-                      // After clearing filters, snap the feed back to the top
-                      // so the user lands on the fresh unfiltered head of the
-                      // list rather than mid-scroll where the old filter ended.
-                      const el = containerRef.current;
-                      if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClearAllFilters={() => scrollFeedToTop(containerRef.current)}
                   />
 
-                  {wantsQuotes ? (
-                    <Suspense fallback={<p role="status" className="px-4 pt-3 text-sm text-muted-foreground">Loading open requests…</p>}>
-                      <WantsQuotesFeed onShowAllJobs={() => setWantsQuotesPicked(false)} />
-                    </Suspense>
-                  ) : (
+                  <WantsQuotesSlot active={wantsQuotes} onShowAllJobs={showAllJobs}>
                   <BrowseTasksFeed
                     view={isWebDesktop ? "list" : view}
                     density={density}
@@ -748,7 +723,7 @@ const Dashboard = () => {
                     exclusions={exclusions}
                     mapRefreshKey={jobsUpdatedAt}
                   />
-                  )}
+                  </WantsQuotesSlot>
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
                     own column rather than hiding behind a toggle. The page

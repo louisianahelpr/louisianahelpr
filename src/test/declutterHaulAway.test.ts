@@ -151,7 +151,7 @@ describe("Declutter haul-away (20261017070827)", () => {
     // An ordinary job (owner ask): no helpr_task_* call and no helpr_tasks write.
     expect(MIG).not.toMatch(/helpr_task/i);
     const proof = readFileSync(join(process.cwd(), "src/test/pglite/declutterHaulAway.pglite.mjs"), "utf8");
-    expect(proof).toContain('"20261017052705_declutter_helpr_delivery.sql"');
+    expect(proof).toContain('"20261017055505_declutter_helpr_delivery.sql"');
     expect(proof).toContain('process.env.NEW_MIGRATION === "skip"');
   });
 

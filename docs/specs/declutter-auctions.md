@@ -539,17 +539,17 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   should-fixes. (1) money (a): a refund that gives up (12 tries) writes one error_logs row per refund row per day
   (source declutter-refund-gave-up -> ops ledger item, verify_kind manual, re-raised daily while unsettled) and tells
   the buyer once in-app "Your refund is being sent by hand" (declutter_refund_gave_up_check, from
-  declutter_refund_executed / _reversed and every declutter-money run; 20261017052700). (2) money (b): charge.refunded
+  declutter_refund_executed / _reversed and every declutter-money run; 20261017055500). (2) money (b): charge.refunded
   on a Declutter charge (transfer_group declutter_order_*, metadata kind declutter_order, or a Declutter refund on it)
   records a refund Declutter did not create in declutter_hand_refunds (idempotent per Stripe refund id); it settles the
   payment's unsettled refund row only when it covers the row's amount, else it is recorded and pages; nothing moves.
   (3) money (c): the webhook lists the PaymentIntent's refunds and adopts its row's refund before refunds.create (the
   cron's list-and-adopt), so a redelivery 25 h later is one refund (edge test). (4) authz (a): porch and problem
-  photos live in the PRIVATE bucket declutter-handover (20261017052702): a party writes into their own folder, the two
+  photos live in the PRIVATE bucket declutter-handover (20261017055502): a party writes into their own folder, the two
   parties and admins read (signed URL), no member update/delete; the two RPCs take photos only from it; account
   deletion purges it. Prod measured read-only 2026-10-15 ~09:30Z: 0 objects under */declutter/*, no Declutter tables.
   (5) export (a): export_my_data adds declutter_problems_about_me (problems filed against the member, minus
-  reporter_id, photo_paths, decided_by; 20261017052701, restated from 20261015084728).
+  reporter_id, photo_paths, decided_by; 20261017055501, restated from 20261015084728).
 - BUILT 2026-10-17 (lane J session 3, owner answer 7): a buyer who pays just as the SELLER can no longer sell
   (declutter_seller_out: banned, suspended, 3 strikes, under 18, flagged business-like) gets every cent back and the
   card fee is the SELLER's debt (new reason seller_out -> full_seller_pays_fee; declutter_seller_fee_debts, taken
@@ -582,7 +582,7 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   run concluded): that one bucket, by an exact allowlist (purgeBuckets.ts SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET), is
   "not created yet, nothing to erase", logged; every other missing bucket still fails the step (Q219;
   src/test/declutterPhotosPurged.test.ts, red on the old code). lh-authz-rls REVIEW-ONLY (e2d709110): approve-with-notes;
-  its should-fix for the lead: once 20261017052702 is live on prod (the bucket row exists), empty
+  its should-fix for the lead: once 20261017055502 is live on prod (the bucket row exists), empty
   SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET and set its EXACT test to [] in one commit (until then an out-of-band drop of
   that bucket would read as a note, not a failed step); better long-term: a nightly probe that goes red while an
   entry's bucket already exists;
@@ -682,7 +682,7 @@ function that moves money (Stripe transfer/refund), the webhook, sweeps (cron), 
   we keep (a kept buyer's fee or card fee stays taxed); reverse ONLY the tax on money returned to the buyer (the
   refunded item price and its own tax). Every order's tax is 0 today, so nothing changes until tax is built.
 
-### Slice 5 build decisions (agent declutter-delivery, 2026-10-16; migrations 20261017052705 + 20261017052706 (export))
+### Slice 5 build decisions (agent declutter-delivery, 2026-10-16; migrations 20261017055505 + 20261017055506 (export))
 Owner 2026-10-16: "Yes, launch with delivery" (row 102). Layers built: DB (tables, CHECKs, triggers), service-only
 RPCs, member RPCs, the sweep (cron `helpr-tasks`), the money queues (declutter-money), the checkout edge function
 (server-side geocoding + the delivery line), the webhook's refund-reversal branch, the screens, export_my_data.
@@ -690,7 +690,7 @@ Proof: src/test/pglite/declutterDelivery.pglite.mjs (applied 3x; NEW_MIGRATION=s
 136/136 with this migration on top (pickup and porch unchanged).
 
 **The shared piece (for Add a Helpr and haul-away).** "A Helpr picks up an item at an address and takes it to
-another address" is its own module, `helpr_tasks` + `helpr_task_*` (PART A of 20261017052705), with no Declutter
+another address" is its own module, `helpr_tasks` + `helpr_task_*` (PART A of 20261017055505), with no Declutter
 in it. A source creates a task with `helpr_task_create(kind, source_id, size, title, pickup area/address/point,
 drop-off area/address/point, miles, pay, customer, pickup contact, open_until, latest_pickup, is_seed)`; the
 module calls back through FOUR dispatchers only (`helpr_task_source_require_feature`, `_slot_ok`, `_held`,
@@ -728,7 +728,7 @@ reads the buyer's; open deliveries show area words and rough miles only (`helpr_
 |---|----------|--------|------|
 | B76 | A delivery that falls through (no Helpr, or a Helpr who backed out or missed late in the week) with under 48 h left before the 7-day deadline is closed as no one's fault, not left to become the buyer's no-show: the delivery fee back in full, the rest under the no-fault rule (row 100: card fee kept), no strike, the item back on sale. An item the Helpr has that is reported damaged or not received is decided "Damaged in delivery" (row 43) or "Pay the seller", never through "Refund the buyer" (which pays the Helpr for the trip, B69); an admin never decides a delivery they made. Payouts count only refunds Stripe confirmed on the order's own charge | default chosen by lane, owner to confirm (a full refund instead?) | 2026-10-16 |
 | B77 | While a problem is open on a delivery order the task is frozen: no unfilled close, no back-out, no pickup, no new Helpr, and the money waits for the admin. A Helpr holds at most 2 deliveries not yet picked up, and back-outs plus misses count toward the 3-in-7-days pause. After a Helpr's "the seller wasn't there" (photo shown to the admin) the admin can only refund the buyer, saying whose fault it was; "Pay the seller" is refused because the item never left the seller (a "deliver again" decision is not built) | default chosen by lane, owner to confirm (a redelivery option?) | 2026-10-16 |
-| B75 | Download My Data (20261017052706): the Helpr's vehicle, the deliveries they made (area words only: never the buyer's or seller's address, points, ids, the drop-off code or the staff close note), their own task steps, their delivery pay (no Stripe transfer id), and the drop-off addresses they typed as a buyer. Account deletion is refused while a Helpr holds a delivery (taken, picked up, at the door) or has delivery pay pending; the truck photo (`helpr-tasks/<uid>/vehicle/`) is erased with the account; the task photos stay as the delivery's evidence (the task row survives, helpr_id SET NULL), as proof-photos do | default chosen by lane, owner to confirm | 2026-10-16 |
+| B75 | Download My Data (20261017055506): the Helpr's vehicle, the deliveries they made (area words only: never the buyer's or seller's address, points, ids, the drop-off code or the staff close note), their own task steps, their delivery pay (no Stripe transfer id), and the drop-off addresses they typed as a buyer. Account deletion is refused while a Helpr holds a delivery (taken, picked up, at the door) or has delivery pay pending; the truck photo (`helpr-tasks/<uid>/vehicle/`) is erased with the account; the task photos stay as the delivery's evidence (the task row survives, helpr_id SET NULL), as proof-photos do | default chosen by lane, owner to confirm | 2026-10-16 |
 
 ### Open after slice 5 (for the lead; filed as OPEN.md placeholders)
 - From the three reviews of 88fa498a4, not fixed in this lane: Q?delivery-gave-up, Q?delivery-picked-up-deadline,

@@ -21,7 +21,7 @@
 --                                 own paid order.
 --
 -- Both are behind Declutter's own switch 'declutter' (like every Declutter RPC,
--- e.g. helpr_set_vehicle, 20261017052705) AND the hidden switch
+-- e.g. helpr_set_vehicle, 20261017055505) AND the hidden switch
 -- 'declutter_add_helpr' (created 'testers'): either one off refuses
 -- (feature_disabled). The link also refuses a banned caller
 -- (account_restricted, the is_caller_banned() class check Q281).

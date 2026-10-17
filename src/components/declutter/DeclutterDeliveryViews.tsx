@@ -10,7 +10,7 @@
  *     drop-off with the buyer's code or a door photo, backing out, "The seller
  *     wasn't there", and their pay.
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
- * is enforced in SQL (20261017052705), these screens only explain it.
+ * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

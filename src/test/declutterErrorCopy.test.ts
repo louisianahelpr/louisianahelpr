@@ -32,9 +32,9 @@ const DECLUTTER_FILES = [
   "20261015042253_declutter_slice4_handover_payout.sql",
   "20261016053541_declutter_wanted_price_hint.sql",
   "20261016053625_declutter_moving_out.sql",
-  "20261017052704_declutter_porch_default.sql",
+  "20261017055504_declutter_porch_default.sql",
   // Slice 5, Helpr delivery and the shared Helpr task module.
-  "20261017052705_declutter_helpr_delivery.sql",
+  "20261017055505_declutter_helpr_delivery.sql",
   "20261017070827_declutter_haul_away.sql",
   // Add a Helpr: account_restricted and job_already_funded on the link.
   "20261017073146_declutter_add_a_helpr.sql",

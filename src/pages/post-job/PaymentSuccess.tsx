@@ -24,7 +24,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { isJobPoster } from "@/lib/checkoutReturnOwner";
 import { safeStorage } from "@/lib/safeStorage";
-import { dropSpentDraft } from "@/hooks/useDraftJob";
+import { dropDraftPaidAs } from "@/hooks/useDraftJob";
 // formatPriceExact, not formatPrice: the sentences below state a sum of money
 // that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
 import { formatPriceExact } from "@/lib/format";
@@ -355,9 +355,11 @@ const PaymentSuccess = () => {
     if (isHeld && !celebrated.current) {
       celebrated.current = true;
       hapticSuccess();
-      dropSpentDraft(); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
+      // Paid: drop the draft kept through checkout, but only when it was sent to
+      // Checkout for THIS job (Q1873); a cancel keeps "Load Draft".
+      if (resolvedJobId) dropDraftPaidAs(resolvedJobId);
     }
-  }, [isHeld]);
+  }, [isHeld, resolvedJobId]);
 
   const heading = paymentHeading(confirmState);
   const unknownBody = unknownPaymentBody(unknownReason);

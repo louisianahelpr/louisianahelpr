@@ -8,15 +8,24 @@
  *
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
+ * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx | const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`; | const requestReturnPath = (requestId: string) => `/post-job?r=${requestId}`;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
  * @mutate src/components/quotes/QuoteAnswerControls.tsx |   return n >= MIN_QUOTE_DOLLARS && n <= MAX_QUOTE_DOLLARS ? n : null; |   return n;
  * @mutate src/pages/quotes/SendQuotePage.tsx |   const ready = dollarsTyped != null && note.trim().length > 0 && when.trim().length > 0 && !uploading; |   const ready = !uploading;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   const bookedJobId = request && (request.status === "agreed" \|\| request.status === "closed") ? request.job_id : null; |   const bookedJobId = request?.status === "agreed" ? request.job_id : null;
- * @mutate src/pages/quotes/QuoteRequestPage.tsx |     mutationFn: () => openEscrowCheckout(bookedJobId as string), |     mutationFn: () => bookAcceptedQuote(id),
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |     mutationFn: () => openEscrowCheckout(bookedJobId as string, { returnPath: requestReturnPath(id) }), |     mutationFn: () => bookAcceptedQuote(id),
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |             Book and pay\n |             Book and pay {dollars(accepted.price_cents)}\n
  * @mutate src/components/quotes/MyQuoteCard.tsx |   const myTurn = pending && quote.last_offer_side === "poster"; |   const myTurn = pending;
  * @mutate src/components/quotes/quotesUi.tsx |   return settled ? <NotFound /> : <QuotesGateFrame title={title} backTo={backTo} label={label} />; |   return settled ? <NotFound /> : null;
  * @mutate src/components/quotes/quotesUi.tsx |       <p role="status" className="sr-only"> |       <p role="status" className="sr-only animate-pulse">
+ * @mutate src/lib/quotes/api.ts |   if (s === "refunded") return "refunded"; |   if (s === "refunded") return "paid";
+ * @mutate src/lib/quotes/api.ts |   if (s === "cancelled") return "cancelled"; |   if (s === "cancelled") return "paid";
+ * @mutate src/lib/quotes/api.ts |   if (s === "cancelling") return "cancelling"; |   if (s === "cancelling") return "cancelled";
+ * @mutate src/lib/quotes/api.ts |   if (jobStatus === "cancelled" && (NEVER_PAID_STATUSES as readonly string[]).includes(s)) return "cancelled"; |   void jobStatus;
+ * @mutate src/lib/quotes/api.ts |   if (s === "chargeback") return "disputed"; |   if (s === "chargeback") return "paid";
+ * @mutate src/lib/quotes/api.ts |   return "unknown";\n} |   return "paid";\n}
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |   return ownPrice ? "Posted" : "Booked";\n} |   return ownPrice ? "Posted and paid" : "Booked and paid";\n}
  */
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -34,8 +43,8 @@ const state = {
   calls: [] as { fn: string; args: unknown }[],
   invokes: [] as { name: string; body: unknown }[],
   opened: [] as string[],
-  /** The jobs row fetchBookedJobPaid reads (payment_status), or an Error. */
-  job: null as null | { payment_status: string } | Error,
+  /** The jobs row fetchBookedJobPayment reads (payment_status), or an Error. */
+  job: null as null | { payment_status: string; status?: string } | Error,
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature }));
@@ -220,7 +229,8 @@ describe("the poster's quotes on a request", () => {
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.calls.find((c) => c.fn === "book_accepted_quote")?.args).toEqual({ p_request_id: "r1" });
     expect(state.invokes).toEqual([
-      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false } },
+      // Q1862: a cancelled quote checkout comes back to this request page.
+      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false, returnPath: "/quotes/request/r1" } },
     ]);
   });
 });
@@ -236,7 +246,8 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     fireEvent.click(screen.getByRole("button", { name: "Pay now" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.invokes).toEqual([
-      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false } },
+      // Q1862: a cancelled quote checkout comes back to this request page.
+      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false, returnPath: "/quotes/request/r1" } },
     ]);
     // A closed request refuses book_accepted_quote (no_agreed_quote): paying never goes through it.
     expect(state.calls.some((c) => c.fn === "book_accepted_quote")).toBe(false);
@@ -256,6 +267,51 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     expect(await screen.findByText("Booked and paid")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open the job" })).toHaveAttribute("href", "/jobs/job-77");
     expect(screen.queryByRole("button", { name: "Pay now" })).toBeNull();
+  });
+
+  // Q1874: every jobs_payment_status_check value gets its own words; only
+  // money held or paid out reads "paid". A status the client does not know is
+  // never called paid either.
+  it.each([
+    ["escrow", "Booked and paid"],
+    ["payout_pending", "Booked and paid"],
+    ["released", "Booked and paid"],
+    ["refunded", "Refunded"],
+    ["cancelled", "Cancelled"],
+    ["cancelling", "Being cancelled"],
+    ["chargeback", "Payment disputed"],
+    ["some_new_status", "Booked"],
+  ])("a booked job with payment_status %s reads %s, linked to the job", async (ps, title) => {
+    state.rpc.get_my_quote_requests = [{ ...REQ, status: "agreed", job_id: "job-66" }];
+    state.rpc.get_quotes_for_request = [{ ...QUOTE, status: "accepted" }];
+    state.job = { payment_status: ps };
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the job" })).toHaveAttribute("href", "/jobs/job-66");
+    if (title !== "Booked and paid") expect(screen.queryByText(/paid/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pay now" })).toBeNull();
+  });
+
+  // lh-money-escrow review should-fix 1: auto-expire cancels an open unpaid
+  // job and leaves payment_status 'unpaid'; create-payment refuses to fund it,
+  // so the screen says Cancelled and offers no Pay button.
+  it("a booked job cancelled while unpaid reads Cancelled, with no Pay now", async () => {
+    state.rpc.get_my_quote_requests = [{ ...REQ, status: "agreed", job_id: "job-66" }];
+    state.rpc.get_quotes_for_request = [{ ...QUOTE, status: "accepted" }];
+    state.job = { payment_status: "unpaid", status: "cancelled" };
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText("Cancelled")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay now" })).toBeNull();
+    expect(screen.queryByText("Not paid yet")).toBeNull();
+  });
+
+  it.each(["unpaid", "abandoned", "failed"])("a booked job with payment_status %s offers Pay now", async (ps) => {
+    state.rpc.get_my_quote_requests = [{ ...REQ, status: "agreed", job_id: "job-66" }];
+    state.rpc.get_quotes_for_request = [{ ...QUOTE, status: "accepted" }];
+    state.job = { payment_status: ps };
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByRole("button", { name: "Pay now" })).toBeInTheDocument();
+    expect(screen.queryByText("Booked and paid")).toBeNull();
   });
 
   it("when the paid check fails the screen says so and offers a retry, never a blank", async () => {

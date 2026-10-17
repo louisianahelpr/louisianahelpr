@@ -917,6 +917,112 @@ describe("create-payment edge function", () => {
     // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = 12;
     // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 1;
     // @mutate supabase/functions/create-payment/index.ts |         helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS,\n      }); |       });
+    // Q1867 + Q1862: a job booked from an agreed quote is charged only the
+    // accepted quote's price, and a quote checkout may come back to its request
+    // page; any other returnPath is refused before Stripe is called.
+    // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
+    // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
+    // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
+    // @mutate supabase/functions/create-payment/index.ts |         cancel_url: buildRedirectUrl(cancelPath, isNative), |         cancel_url: buildRedirectUrl(`/post-job`, isNative),
+    // @mutate supabase/functions/create-payment/index.ts |   if (typeof returnPath === "string" && ESCROW_RETURN_PATHS.some((re) => re.test(returnPath))) return returnPath; |   if (typeof returnPath === "string") return returnPath;
+    describe("a job booked from an agreed quote (Q1867, Q1862)", () => {
+      const REQ_ID = "6f1c2a0e-1b2c-4d5e-8f90-123456789abc";
+      function seedQuoteJob(budget: number, accepted: Array<{ price_cents: number }> | Error, links: Array<{ id: string }> | Error = [{ id: REQ_ID }]) {
+        resetSupabaseMock();
+        stripeMock.checkout.sessions.create.mockClear();
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open", payment_status: "unpaid" }],
+        };
+        scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
+        scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }] };
+        scenario.reads.job_quote_requests = links instanceof Error ? { error: { message: links.message } } : { rows: links };
+        scenario.reads.job_quotes = accepted instanceof Error ? { error: { message: accepted.message } } : { rows: accepted };
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_q", url: "https://checkout.stripe.test/cs_q" });
+      }
+      async function escrow(extra: Record<string, unknown> = {}) {
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-q", ...extra } }));
+        return { res, body: await json(res) };
+      }
+
+      it("charges a quote job whose budget equals the accepted quote", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        const { res } = await escrow();
+        expect(res.status).toBe(200);
+        expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+        const read = scenario.readQueries.find((q) => q.table === "job_quotes");
+        expect(read?.filters).toEqual(expect.arrayContaining([
+          expect.objectContaining({ op: "in", column: "request_id", value: [REQ_ID] }),
+          expect.objectContaining({ op: "eq", column: "status", value: "accepted" }),
+        ]));
+      });
+
+      it("refuses a quote job whose budget differs from the accepted quote, before Stripe", async () => {
+        seedQuoteJob(300, [{ price_cents: 25000 }]);
+        const { body } = await escrow();
+        expect(body.error).toMatch(/doesn't match the quote you agreed/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      // lh-money-escrow review of 9542ba1ba, nit 4: the refusal comes before
+      // every side effect, a gift redemption and a retired session included.
+      it("a mismatch refuses before redeeming a gift card or retiring the previous session", async () => {
+        seedQuoteJob(300, [{ price_cents: 25000 }]);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-q", customer_id: POSTER.id, budget: 300, category: "cleaning", title: "Quote job", status: "open",
+            payment_status: "abandoned", stripe_session_id: "cs_prev" }],
+        };
+        scenario.rpc.redeem_gift_card = { outcome: "partial", difference_cents: 4000 };
+        const { body } = await escrow({ giftCardId: "gc-1" });
+        expect(body.error).toMatch(/doesn't match the quote you agreed/);
+        expect((scenario.rpcCalls ?? []).some((c) => c.name === "redeem_gift_card")).toBe(false);
+        expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toEqual([]);
+      });
+
+      it("refuses when the quote tables cannot be read (fail closed)", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }], new Error("boom"));
+        expect((await escrow()).body.error).toMatch(/Could not check this job's agreed quote/);
+        seedQuoteJob(250, new Error("boom"));
+        expect((await escrow()).body.error).toMatch(/Could not check this job's agreed quote/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      it("a job with no quote, or a set-my-own-price job with no accepted quote, is charged as before", async () => {
+        seedQuoteJob(300, [], []);
+        expect((await escrow()).res.status).toBe(200);
+        seedQuoteJob(300, []);
+        expect((await escrow()).res.status).toBe(200);
+      });
+
+      it("a cancelled checkout returns to the allowlisted quote request page", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        await escrow({ returnPath: `/quotes/request/${REQ_ID}` });
+        expect(stripeMock.checkout.sessions.create.mock.calls[0][0].cancel_url).toMatch(new RegExp(`/quotes/request/${REQ_ID}$`));
+      });
+
+      it("without a returnPath a cancelled checkout returns to Post a Job", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        await escrow();
+        expect(stripeMock.checkout.sessions.create.mock.calls[0][0].cancel_url).toMatch(/\/post-job$/);
+      });
+
+      it.each([
+        "https://evil.example/quotes/request/x",
+        "//evil.example",
+        "/quotes/request/not-a-uuid",
+        `/quotes/request/${REQ_ID}?next=https://evil.example`,
+        "/admin",
+        42,
+      ])("refuses a non-allowlisted returnPath %s before Stripe", async (returnPath) => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        const { body } = await escrow({ returnPath });
+        expect(body.error).toMatch(/can't be used to come back from checkout/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+    });
+
     describe("poster checkout charges the job price only, on every tier (F3, owner 2026-10-14/15)", () => {
       const FUTURE = new Date(Date.now() + 30 * 864e5).toISOString();
       const PAST = new Date(Date.now() - 864e5).toISOString();

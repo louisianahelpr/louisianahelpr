@@ -21,7 +21,6 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
-import { WantsQuotesFeed } from "@/components/quotes/WantsQuotesFeed";
 import { useFeature } from "@/hooks/useFeature";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
@@ -40,6 +39,8 @@ const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 // Map column for the web-desktop two-pane (the map surface pulls Apple's
 // MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
 const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
+// Its own chunk: the quotes reader and copy stay off every signed-in first screen while the switch is off.
+const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed").then(m => ({ default: m.WantsQuotesFeed })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
@@ -702,7 +703,9 @@ const Dashboard = () => {
                   />
 
                   {wantsQuotes ? (
-                    <WantsQuotesFeed onShowAllJobs={() => setWantsQuotesPicked(false)} />
+                    <Suspense fallback={<p role="status" className="px-4 pt-3 text-sm text-muted-foreground">Loading open requests…</p>}>
+                      <WantsQuotesFeed onShowAllJobs={() => setWantsQuotesPicked(false)} />
+                    </Suspense>
                   ) : (
                   <BrowseTasksFeed
                     view={isWebDesktop ? "list" : view}

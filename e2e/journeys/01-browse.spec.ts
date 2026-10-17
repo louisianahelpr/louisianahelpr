@@ -2,6 +2,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 
 import { ANON, SUPABASE_URL, announceUncovered, test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { clickOrSayWhatMoves } from "./clickDiagnostics";
 import { HELPER_E2E_ID, POSTER_E2E_ID } from "./throwaway";
 import { ensureBrowseFixture } from "../../scripts/e2e/browseFixture.mjs";
 import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
@@ -217,7 +218,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await assertHealthy(page, "filter sheet");
     await journey.milestone(page, "filter-sheet");
     const sort = sheet.getByRole("group", { name: "Sort results" });
-    await sort.getByRole("button", { name: /high/i }).first().click();
+    await clickOrSayWhatMoves(sort.getByRole("button", { name: /high/i }).first());
     await expect(sort.getByRole("button", { name: /high/i }).first()).toHaveAttribute("aria-pressed", "true");
     await closeFilterSheet(page);
     const prices = await cards.evaluateAll((els) =>

@@ -8,7 +8,11 @@
 -- push token), once per waiting spell, and the alert closes itself the way
 -- every admin-queue alert must (src/test/adminQueueAlertsClose.test.ts, Q355):
 -- admin_alert_close_rule maps its title to 'rentals-ownership-review', and
--- admin_queue_still_pending answers it from rental_properties.
+-- admin_queue_still_pending answers it from rental_properties (test owners'
+-- properties excluded, as idv-review excludes test profiles). A test
+-- landlord's upload never pages a real admin: the insert asks
+-- notification_crosses_seed_boundary with the landlord as the actor, since
+-- the link names none (lh-authz-rls review of e4a59d029 #2).
 --
 -- SHARED RESTATEMENTS, on the NEWEST bodies (20261006030849 for both, read
 -- 2026-10-17 from origin/main and this branch): admin_alert_close_rule and
@@ -149,7 +153,11 @@ BEGIN
 
   -- Rentals slice 3: open while any property's ownership proof waits.
   ELSIF p_rule = 'rentals-ownership-review' THEN
-    RETURN EXISTS (SELECT 1 FROM public.rental_properties rp WHERE rp.ownership_status = 'pending_review');
+    -- Test (seed) owners never hold a real alert open (as idv-review and the job
+    -- rules); a LEFT JOIN, so an owner with no profile row keeps it open.
+    RETURN EXISTS (SELECT 1 FROM public.rental_properties rp
+                     LEFT JOIN public.profiles p ON p.user_id = rp.owner_id
+                    WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE);
 
   ELSIF p_rule = 'stuck-payment' THEN
     RETURN public.ops_alert_condition('detect_stuck_payments', '{}'::jsonb, p_since, false);
@@ -265,7 +273,10 @@ BEGIN
              'admin_alert',
              '/admin?view=settings'
         FROM public.user_roles ur
-       WHERE ur.role = 'admin';
+       WHERE ur.role = 'admin'
+         -- The seed boundary judged with the landlord as the actor (the link
+         -- names none): a test landlord never pages a real admin (Q137).
+         AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid);
     EXCEPTION WHEN OTHERS THEN
       RAISE WARNING 'rentals_submit_ownership_proof: admin alert failed: %', SQLERRM;
     END;

@@ -38,6 +38,9 @@
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |    WHERE j.id = p_job_id AND j.helper_id = v_uid AND j.helper_confirmed_at IS NOT NULL |    WHERE j.id = p_job_id AND j.helper_id = v_uid
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid) THEN
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF p_at <= now() THEN |   IF false THEN
+// @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF v_last IS NULL OR v_was_ok OR v_other_job OR | IF v_last IS NULL OR
+// @mutate supabase/migrations/20261017223352_rentals_ownership_review_alert.sql |          AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); |          ;
+// @mutate supabase/migrations/20261017223352_rentals_ownership_review_alert.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |     AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; |     FOR UPDATE;
@@ -164,6 +167,12 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     expect(flat(body("rentals_confirm_visit"))).toContain("WHERE j.id = v_job AND j.helper_confirmed_at IS NOT NULL");
     expect(flat(body("rentals_confirm_visit"))).toContain("WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN");
     expect(flat(body("rentals_confirm_visit"))).toContain("IF p_at <= now() THEN RAISE EXCEPTION 'visit_time_passed'");
+    // Re-review A2: a re-offer that voids the tenant's OK (or follows another job's offer) is always told.
+    expect(flat(body("rentals_propose_visit"))).toContain("IF v_last IS NULL OR v_was_ok OR v_other_job OR v_last < now() - interval '10 minutes' THEN");
+    // The ownership-proof alert (lh-authz-rls review of e4a59d029 #2): a test landlord pages no real admin, and a test
+    // owner's waiting proof never holds a real alert open.
+    expect(flat(body("rentals_submit_ownership_proof"))).toContain("AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid);");
+    expect(flat(body("admin_queue_still_pending"))).toContain("WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE);");
     // The job state the screen reads answers only the request's two parties.
     expect(flat(body("rentals_request_job_state"))).toContain("WHERE r.id = p_request_id AND (r.tenant_id = v_uid OR r.landlord_id = v_uid)");
     // Review fixes (lh-authz-rls of 3e84eea25): tenant deletion ends the tenancy; tenants never read the

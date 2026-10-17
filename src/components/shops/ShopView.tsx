@@ -4,9 +4,11 @@
  * photos, badges (L47, L55, L56), the owner's one star rating (G11), Follow
  * (L92). No phone, email or website (L49).
  *
+ * Items (slice 2): the live items, ShopItemsList.
+ *
  * NOT here yet (docs/OPEN.md): the Message button (L48: messages are
- * job-threaded today, so a shop thread needs its own backend), items and
- * orders (L17+), request-a-quote (L53), and a map for the pin (L50).
+ * job-threaded today, so a shop thread needs its own backend), orders
+ * (L17+), request-a-quote (L53), and a map for the pin (L50).
  */
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl, type ShopPage } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryLabel, ShopBadgeList, ShopRating, ShopsNotice, useShopCategories, WEEKDAYS } from "./shopsUi";
+import ShopItemsList from "./ShopItemsList";
 
 function hoursText(h: { opens: string; closes: string }): string {
   const fmt = (t: string) => {
@@ -181,6 +184,7 @@ export default function ShopView() {
             </ul>
           </section>
         )}
+        {s.offers_selling && <ShopItemsList shopId={s.id} />}
         <section className="space-y-1" aria-labelledby="shop-offers">
           <h2 id="shop-offers" className="text-sm font-semibold">What this shop offers</h2>
           <p className="text-sm text-muted-foreground">

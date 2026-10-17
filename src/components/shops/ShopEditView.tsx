@@ -3,7 +3,8 @@
  * category (the fixed list, L54), about, area (a town or neighborhood, never
  * an address; the pin is placed from it, L50), storefront, parishes served,
  * what the shop offers (selling, quotes, or both, L53), the optional
- * Secretary of State number (L56), opening hours, logo, cover and photos.
+ * Secretary of State number (L56), opening hours, logo, cover and photos;
+ * then the shop's items and daily order limit (slice 2, ShopItemsSection).
  * No phone, email or website field (L49); the server also rejects them typed
  * into the text.
  *
@@ -41,6 +42,7 @@ import {
 } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
+import ShopItemsSection from "./ShopItemsSection";
 
 interface Form {
   name: string;
@@ -387,6 +389,8 @@ export default function ShopEditView() {
           </Button>
         )}
       </form>
+      {/* Items (slice 2): outside the shop form, each item saves on its own. */}
+      {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       {/* The app's own confirm, never window.confirm (off-brand and
           unreliable inside the iOS WebView; SecurityTab). */}
       <BrandConfirmDialog

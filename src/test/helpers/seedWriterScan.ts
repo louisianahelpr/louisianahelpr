@@ -41,8 +41,10 @@ export type SeedSite = {
 // order's flag at birth (trigger declutter_order_rows_seed).
 // job_quote_requests (quotes, 20261015091114) carries is_seed.
 // shops (Shops slice 1, 20261015123029): shops_save_my_shop copies the
-// owner's profiles.is_seed at insert; no fixture writes it yet.
-export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "job_quote_requests", "jobs", "profiles", "shops"] as const;
+// owner's profiles.is_seed at insert; no fixture writes it yet. shop_items and
+// shop_cottage_sales (Shops slice 2, 20261016212915): trigger
+// shop_rows_seed_from_owner copies the owner's flag at insert.
+export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_items", "declutter_offers", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "deleted_jobs_log", "job_quote_requests", "jobs", "profiles", "shop_cottage_sales", "shop_items", "shops"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

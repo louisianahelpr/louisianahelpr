@@ -130,7 +130,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('toggle_thread_mute',            'action',   'RPC'),
   ('series_give_up_strike',         'action',   'writes a reliability strike (internal to the series give-up RPCs; true = a strike was recorded)'),
   ('choose_new_social_account',     'action',   'records a signed-out "I''m new here" choice for one social sign-in (Q446)'),
-  ('admin_release_payout_hold',     'action',   'admin-only: clears a payout hold, TRUE = a hold was cleared (Q764)');
+  ('admin_release_payout_hold',     'action',   'admin-only: clears a payout hold, TRUE = a hold was cleared (Q764)'),
+  ('admin_release_job_payout_hold', 'action',   'admin-only (or server context): clears a JOB payout hold, TRUE = a hold was cleared (Q1491)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);

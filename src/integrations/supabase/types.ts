@@ -3595,6 +3595,49 @@ export type Database = {
           },
         ]
       }
+      job_payout_holds: {
+        Row: {
+          held_at: string
+          held_by: string | null
+          job_id: string
+          reason: string
+        }
+        Insert: {
+          held_at?: string
+          held_by?: string | null
+          job_id: string
+          reason: string
+        }
+        Update: {
+          held_at?: string
+          held_by?: string | null
+          job_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_payout_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_payout_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_payout_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_pets: {
         Row: {
           created_at: string
@@ -8249,6 +8292,10 @@ export type Database = {
       }
       admin_queue_still_pending: {
         Args: { p_ref: Json; p_rule: string; p_since: string }
+        Returns: boolean
+      }
+      admin_release_job_payout_hold: {
+        Args: { p_job_id: string }
         Returns: boolean
       }
       admin_release_payout_hold: {

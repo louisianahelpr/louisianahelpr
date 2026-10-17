@@ -19,7 +19,7 @@ import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
 import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
 import { QUOTE_ERROR_COPY as QC } from "./quotes/errorCopy";
-import { RENTALS_ERROR_COPY as RC } from "./rentals/copy";
+import { RENTALS_ERROR_COPY as RC } from "./rentals/errorCopy";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -936,7 +936,7 @@ export const RPC_ERROR_COPY = {
     under_18: QC.under_18,
     unknown_quote: QC.unknown_quote,
   },
-  // Rentals S1 (20261017061457): the words live in src/lib/rentals/copy.ts
+  // Rentals S1 (20261017061457): the words live in src/lib/rentals/errorCopy.ts
   // (RENTALS_ERROR_COPY, exact against the migration, rentalsErrorCopy.test.ts);
   // each RPC maps exactly the codes it can raise (rpcErrorCopyCoverage).
   rentals_accept_invite: {

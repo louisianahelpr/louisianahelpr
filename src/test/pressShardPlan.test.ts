@@ -145,5 +145,7 @@ describe("press shards are planned by measured cost (lead ruling 2026-10-17)", (
     expect(fits).toBeLessThan(claim); // decided before the row is claimed, so it stays claimable
     expect(src).toContain('const queue = (await enumerate("page")).filter((_, i) => inPart(i, unit.part, unit.parts)).map((c) =>');
     expect(src).toContain("const rowKey = unit.key;");
+    // Unplanned units (no SHARD) carry req 0, so unitFits never judges a NaN estimate.
+    expect(src).toContain("part: 1, parts: 1, est: 0, req: 0 }));");
   });
 });

@@ -39,10 +39,10 @@
  * @mutate src/pages/post-job/useJobSubmit.ts |     description: why ?? "Find it under your posted jobs.", |     description: "Find it under your posted jobs.",
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql | REVOKE ALL ON FUNCTION public.declutter_link_setup_job(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_link_setup_job(uuid, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql | VALUES ('declutter_add_helpr', 'testers', | VALUES ('declutter_add_helpr', 'off',
- * @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("declutterOrder") |
+ * @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("declutterOrder") \|\| |  \|\|
  * @mutate src/pages/post-job/useJobSubmit.ts |     if (!(await linkSetupJob(orderId, jobId))) linkErr |     if (false) linkErr
  * @mutate src/pages/post-job/useJobSubmit.ts |       if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, attempt.jobId); |
- * @mutate src/pages/post-job/useJobSubmit.ts |       if (!declutterOrderId) { |       if (true) {
+ * @mutate src/pages/post-job/useJobSubmit.ts |       if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n        flushDraft(); |       if (true) {\n        flushDraft();
  * @mutate src/pages/post-job/useJobSubmit.ts |   toast.error("Your job posted, but it isn't showing on your Declutter purchase", { |   void ("Your job posted, but it isn't showing on your Declutter purchase", {
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   WHEN (NEW.fee_policy = 'full_seller_pays_fee') |   WHEN (NEW.fee_policy IS NOT NULL)
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |              cancellation_fee = 0, |              cancellation_fee = 20,

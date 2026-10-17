@@ -28,6 +28,7 @@
  * Guard: src/test/seatStripeAccounts.test.ts.
  */
 import { pathToFileURL } from "node:url";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 /** The fields stripe-connect `reset` clears, and what it clears them to. */
 export const RESET_FIELDS = Object.freeze({
@@ -45,7 +46,8 @@ export function stripeSeatViolations(rows) {
 }
 
 async function main() {
-  const base = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
+  // The service-role key only ever goes to the project's own host (or a loopback stub).
+  const base = supabaseBase(process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   if (!key) {
     console.error("FAIL: SUPABASE_SERVICE_ROLE_KEY is required (the whole test roster is read server-side).");

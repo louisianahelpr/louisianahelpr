@@ -225,14 +225,16 @@ describe("toast copy (Q228)", () => {
     expect(viaImport.filter((v) => !v.piece?.from || !v.piece.branches?.length).map((v) => v.at), "the inventory must record what the imported helper returns").toEqual([]);
 
     // The cancel toasts' own sentences: every string written in
-    // cancelRefundCopy.ts (bar its import) is a leaf the checks above read.
+    // cancelRefundCopy.ts that has a space in it (copy; a bare token such as a
+    // gift status is not), bar its import, is a leaf the checks above read.
     const helper = "src/lib/cancelRefundCopy.ts";
     const hsf = ts.createSourceFile(helper, readFileSync(path.join(ROOT, helper), "utf8"), ts.ScriptTarget.Latest, true);
     const written: string[] = [];
     const visit = (n: ts.Node) => {
       if (ts.isImportDeclaration(n)) return;
-      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) written.push(n.text);
-      else if (ts.isTemplateExpression(n)) written.push(n.head.text + n.templateSpans.map((s) => "${" + s.expression.getText(hsf) + "}" + s.literal.text).join(""));
+      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+        if (/\s/.test(n.text)) written.push(n.text);
+      } else if (ts.isTemplateExpression(n)) written.push(n.head.text + n.templateSpans.map((s) => "${" + s.expression.getText(hsf) + "}" + s.literal.text).join(""));
       ts.forEachChild(n, visit);
     };
     visit(hsf);

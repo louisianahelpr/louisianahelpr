@@ -55,6 +55,19 @@ export function actualOrEstimatedFeeCents(
   pi: { latest_charge?: unknown } | null | undefined,
   fallbackAmountCents: number,
 ): number {
+  return actualStripeFeeCents(pi) ?? stripeProcessingCostCents(fallbackAmountCents);
+}
+
+/**
+ * Stripe's REAL fee on the charge, in cents, or null when it cannot be read
+ * (a string charge id, an unexpanded or missing balance transaction). The
+ * `actualOrEstimatedFeeCents` read without its estimate fallback, so a caller
+ * can tell an actual fee from an estimated one (Q1827: a crew refund honours a
+ * fee stamped on its ledger row only when that fee was Stripe's actual one).
+ */
+export function actualStripeFeeCents(
+  pi: { latest_charge?: unknown } | null | undefined,
+): number | null {
   const charge = pi?.latest_charge as
     | { balance_transaction?: unknown }
     | null
@@ -66,7 +79,7 @@ export function actualOrEstimatedFeeCents(
   if (balanceTransaction && typeof balanceTransaction.fee === "number") {
     return balanceTransaction.fee;
   }
-  return stripeProcessingCostCents(fallbackAmountCents);
+  return null;
 }
 
 /**

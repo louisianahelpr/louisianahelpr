@@ -55,6 +55,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "helpr_tasks", column: "dropoff_photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_task_delivered RPC, the Helpr's photo at the drop-off (src/lib/helprTasks/api.ts uploads it; path <uid>/task/<task>/<file>)" },
   { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
   { table: "shop_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/api.ts addShopPhoto -> shops_attach_photo RPC (path <uid>/shops/<file>)" },
+  { table: "shop_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/items.ts addShopItemPhoto -> shops_add_item_photo RPC (path <uid>/shop-items/<item id>/<file>)" },
 ];
 
 /**

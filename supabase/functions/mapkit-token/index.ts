@@ -200,6 +200,11 @@ serve(async (req: Request) => {
         // Let the browser reuse it, but expire well before the token does so a
         // cached response can never be handed out after it stops working.
         "Cache-Control": `private, max-age=${TOKEN_TTL_SECONDS - 300}`,
+        // The token is locked to the caller's Origin, so the cached response
+        // is per Origin: without this the browser could hand a www-locked
+        // token to an apex page (same-site), which MapKit then rejects
+        // (Q1670, lh-authz-rls review of Q249).
+        Vary: "Origin",
       },
     );
   } catch (err) {

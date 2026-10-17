@@ -118,6 +118,16 @@ describe("mapkit-token — which origins get a token (Q249)", () => {
     expect(claims?.origin).toBe(origin);
   });
 
+  // Q1670: the cached 200 is per Origin, so it must say so.
+  // @mutate supabase/functions/mapkit-token/index.ts |         Vary: "Origin", |
+  it("a minted token's cached response varies by Origin (Q1670)", async () => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(fn.request({ method: "GET", headers: { origin: "https://www.louisianahelpr.com" } }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toMatch(/^private, max-age=\d+$/);
+    expect(res.headers.get("Vary")).toMatch(/(^|,\s*)Origin(\s*,|$)/);
+  });
+
   it.each([
     ["the iOS app (capacitor://localhost)", "capacitor://localhost"],
     ["no Origin at all", null],

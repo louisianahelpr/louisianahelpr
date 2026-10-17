@@ -1584,7 +1584,9 @@ describe("stripe-webhook edge function", () => {
     });
 
     it("a lost chargeback whose PaymentIntent cannot be found is paged for the tax check, never dropped (Q1724)", async () => {
-      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       oncePerDayKey: `visit-tax-dispute-nopi:${dispute.id}`,\n    });\n    return "failed_paged"; |       oncePerDayKey: `visit-tax-dispute-nopi:${dispute.id}`,\n    });\n    return "none";
+      // The caller ignores the return value, so the mutation drops the page
+      // itself (the pre-Q1724 behaviour), which is what this test observes.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!piId) {\n    // The handler could not find |   if (!piId) return "none";\n  if (false) {\n    // The handler could not find
       stripeMock.charges.retrieve.mockRejectedValue(new Error("stripe down"));
       scenario.reads.jobs = { rows: [] };
       const fn = await loadConfigured();
@@ -1593,7 +1595,8 @@ describe("stripe-webhook edge function", () => {
         data: { object: { id: "dp_nopi", status: "lost", amount: 5000, payment_intent: null, charge: "ch_x" } },
       });
       await fn.fetch(webhookRequest(fn, "{}"));
-      expect((slackAlerts as Array<{ title?: string }>).some((a) => /Lost chargeback: could not check/.test(a.title ?? ""))).toBe(true);
+      const page = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => /Lost chargeback: could not check/.test(a.title ?? ""));
+      expect(page?.message).toMatch(/dp_nopi was lost, but its PaymentIntent could not be found/);
     });
 
     it("leaves the job status unchanged on a PARTIAL refund (funds still in escrow)", async () => {

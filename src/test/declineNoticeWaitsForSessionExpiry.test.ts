@@ -71,7 +71,9 @@ describe("Q769: Load Draft knows the draft's last checkout", () => {
   it("Entry hides Load Draft for a paid job and reads the checkout state", () => {
     const src = read("src/pages/post-job/EntryChoice.tsx");
     expect(src).toContain("useDraftCheckout(form.hasDraft)");
-    expect(src).toContain('form.hasDraft && draftCheckout !== "paid"');
+    // The render gate itself (the readiness flag above it carries the same
+    // condition, so a bare substring would still match with the gate gone).
+    expect(src).toContain('{form.hasDraft && draftCheckout !== "paid" && (');
     expect(src).toMatch(/draftCheckout === "open"/);
   });
 

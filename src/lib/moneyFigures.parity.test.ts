@@ -164,7 +164,10 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
 });
 
 // Shown able to fail:
-// A missing/unknown tier resolves to the ELITE rate instead of the free one — the
-// never-undercharge default inverted, so every poster whose tier cannot be read is
-// charged 8% instead of 12%.
-// @mutate src/lib/subscriptionTiers.ts | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "elite").toLowerCase())].platformFeePercent
+// A platform percentage creeps back onto the poster's checkout. (This used to
+// mutate tierFeePercent's unknown-tier fallback, which this file stopped
+// exercising when posters stopped paying a tier rate on 2026-10-11; that
+// mutation now lives in helperFees.parity.test.ts, which calls it.)
+// @mutate src/lib/posterFees.ts | export const POSTER_SERVICE_FEE_PERCENT = 0; | export const POSTER_SERVICE_FEE_PERCENT = 5;
+// The $5 urgent-bonus floor drops.
+// @mutate src/lib/moneyLimits.ts | export const URGENT_FEE_FLOOR_DOLLARS = 5; | export const URGENT_FEE_FLOOR_DOLLARS = 1;

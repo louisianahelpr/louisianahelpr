@@ -58,15 +58,53 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const isInvoke = (e: ts.Expression | undefined, sf: ts.SourceFile): boolean => {
+/**
+ * An invoke call: `<x>.functions.invoke(...)`, or a call to a WRAPPER that
+ * returns one untouched (`requestEscrowCheckout(...)`, src/lib/escrowCheckout.ts).
+ * A wrapper hands its caller the same `{ data, error }`, so the caller's
+ * `error` is the same FunctionsHttpError. Without this, moving an invoke into
+ * a helper made useJobSubmit's `paymentError` invisible (vacuity, 2026-10-16).
+ */
+const isInvoke = (e: ts.Expression | undefined, sf: ts.SourceFile, wrappers: ReadonlySet<string> = new Set()): boolean => {
   if (!e) return false;
   const x = ts.isAwaitExpression(e) ? e.expression : e;
-  return ts.isCallExpression(x) && /\.functions\.invoke$/.test(x.expression.getText(sf));
+  if (!ts.isCallExpression(x)) return false;
+  const callee = x.expression.getText(sf);
+  return /\.functions\.invoke$/.test(callee) || wrappers.has(callee.replace(/^.*\./, ""));
 };
 
-function findRawFunctionErrors(file: string, src: string): string[] {
+/** Names of functions in `src` whose result IS an invoke call (a returned or arrow-bodied `functions.invoke(...)`). */
+function findInvokeWrappers(file: string, src: string): string[] {
   if (!src.includes("functions.invoke")) return [];
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const out: string[] = [];
+  const returnsInvoke = (body: ts.Node | undefined): boolean => {
+    if (!body) return false;
+    if (!ts.isBlock(body)) return isInvoke(body as ts.Expression, sf);
+    let hit = false;
+    const v = (n: ts.Node) => {
+      if (ts.isReturnStatement(n) && isInvoke(n.expression, sf)) hit = true;
+      if (!ts.isFunctionLike(n)) ts.forEachChild(n, v);
+    };
+    ts.forEachChild(body, v);
+    return hit;
+  };
+  const visit = (n: ts.Node) => {
+    if (ts.isFunctionDeclaration(n) && n.name && returnsInvoke(n.body)) out.push(n.name.text);
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer &&
+        (ts.isArrowFunction(n.initializer) || ts.isFunctionExpression(n.initializer)) && returnsInvoke(n.initializer.body)) {
+      out.push(n.name.text);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
+}
+
+function findRawFunctionErrors(file: string, src: string, wrappers: ReadonlySet<string> = new Set()): string[] {
+  if (!src.includes("functions.invoke") && ![...wrappers].some((w) => src.includes(`${w}(`))) return [];
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const isInvoke_ = (e: ts.Expression | undefined) => isInvoke(e, sf, wrappers);
   const out: string[] = [];
   const at = (n: ts.Node, what: string) =>
     out.push(`${path.relative(ROOT, file) || file}:${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1} ${what}`);
@@ -80,7 +118,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
   const invokeErrorNames = (scope: ts.Node): Set<string> => {
     const names = new Set<string>();
     own(scope, (n) => {
-      if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf)) {
+      if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke_(n.initializer)) {
         for (const el of n.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
       }
     });
@@ -108,7 +146,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
     if (ts.isTryStatement(n) && n.catchClause?.variableDeclaration) {
       const names = new Set<string>();
       own(n.tryBlock, (x) => {
-        if (ts.isVariableDeclaration(x) && ts.isObjectBindingPattern(x.name) && isInvoke(x.initializer, sf)) {
+        if (ts.isVariableDeclaration(x) && ts.isObjectBindingPattern(x.name) && isInvoke_(x.initializer)) {
           for (const el of x.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
         }
       });
@@ -141,7 +179,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
   // binding at all (it deliberately discards the error). A raw throw with no
   // enclosing try escapes to an unknown caller and is a finding too.
   const visitC = (n: ts.Node, names: Set<string>) => {
-    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf)) {
+    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke_(n.initializer)) {
       for (const el of n.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
     }
     if (ts.isThrowStatement(n) && n.expression && ts.isIdentifier(n.expression) && names.has(n.expression.text)) {
@@ -199,12 +237,25 @@ describe("an edge function's refusal reaches the user in its own words (run 3581
     expect(findRawFunctionErrors("i.ts", inCatch)).toHaveLength(1);
   });
 
+  it("follows an invoke through a wrapper that returns it", () => {
+    const lib = `export function requestThing(id: string) { return supabase.functions.invoke("x", { body: { id } }); }
+      export const requestOther = (id: string) => supabase.functions.invoke("y", {});
+      export async function notAWrapper() { const r = await supabase.functions.invoke("z", {}); return r.data; }`;
+    expect(findInvokeWrappers("lib.ts", lib).sort()).toEqual(["requestOther", "requestThing"]);
+    const caller = `async function f() { const { error: e } = await requestThing("1"); toast.error(e?.message ?? "x"); }`;
+    expect(findRawFunctionErrors("w.ts", caller, new Set(["requestThing"]))).toHaveLength(1);
+    expect(findRawFunctionErrors("w.ts", caller)).toHaveLength(0);
+  });
+
   it("no call site in src/ shows supabase-js's wrapper instead of the function's error", () => {
     const files = walk(path.join(ROOT, "src"));
     // Floor: 50 files call functions.invoke on 2026-09-22. If the scan stops
     // finding them it is checking nothing.
     expect(files.filter((f) => fs.readFileSync(f, "utf8").includes("functions.invoke")).length).toBeGreaterThan(40);
-    const hits = files.flatMap((f) => findRawFunctionErrors(f, fs.readFileSync(f, "utf8")));
+    const wrappers = new Set(files.flatMap((f) => findInvokeWrappers(f, fs.readFileSync(f, "utf8"))));
+    // Floor: the escrow checkout wrapper Post a Job and the quote screens share.
+    expect(wrappers.has("requestEscrowCheckout")).toBe(true);
+    const hits = files.flatMap((f) => findRawFunctionErrors(f, fs.readFileSync(f, "utf8"), wrappers));
     expect(hits).toEqual([]);
   });
 });

@@ -104,4 +104,6 @@ describe("getCategoryIcon — fallback behavior", () => {
 // a migration does) without touching CATEGORY_ICONS. The previous hand-typed
 // mirror could not see this at all: it iterated its own twelve strings, so a
 // thirteenth category rendered the Briefcase fallback with the suite green.
-// @mutate src/integrations/supabase/types.ts |       job_category: [ |       job_category: ["appliance_repair",
+// The added value must be one no migration will ever create: it used to be
+// "appliance_repair", which became a real category and made this a no-op.
+// @mutate src/integrations/supabase/types.ts |       job_category: [ |       job_category: ["vacuity_unmapped_category",

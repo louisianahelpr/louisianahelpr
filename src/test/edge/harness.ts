@@ -818,6 +818,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stalledCompletion.ts";`,
   );
 
+  // Skill-to-category match (Q1832): `_shared/categorySkillMatch.ts` has ZERO
+  // imports, so the REAL module serves and instant-job-match's scoring is
+  // tested against the real label table.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/categorySkillMatch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/categorySkillMatch.ts";`,
+  );
+
   return out;
 }
 

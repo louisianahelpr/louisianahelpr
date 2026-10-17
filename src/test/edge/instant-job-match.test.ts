@@ -17,6 +17,9 @@
  * verification of the feature on prod.
  *
  * @mutate supabase/functions/instant-job-match/index.ts |       .not("customer_id", "is", null)\n |
+ * @mutate supabase/functions/instant-job-match/index.ts | helperSkills.some((s: string) => skillMatchesCategory(s, jobCategory)) | helperSkills.some((s: string) => jobCategory.includes(s) \|\| s.includes(jobCategory))
+ * @mutate supabase/functions/_shared/categorySkillMatch.ts |   return s.toLowerCase().replace(/[_&]/g, " ") |   return s.toLowerCase().replace(/[&]/g, " ")
+ * @mutate supabase/functions/_shared/categorySkillMatch.ts |   events: "Event Help", |
  * @mutate supabase/functions/instant-job-match/index.ts |     addressOnly.delete("authorization"); |     addressOnly.has("authorization");
  * @mutate supabase/functions/instant-job-match/index.ts |     if (!isInternal) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000 |     if (false) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000
  * @mutate supabase/functions/instant-job-match/index.ts |       if (mutedMatches.has(h.user_id)) continue; |
@@ -28,6 +31,8 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, rateLimitCalls, rateLimitState, rateLimitAuthSeen } from "./mocks/shared";
+import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES, skillChipLabel } from "@/lib/jobCategories";
+import { CATEGORY_LABELS, SKILL_CHIP_LABELS } from "../../../supabase/functions/_shared/categorySkillMatch";
 
 const SERVICE = "service-key";
 const JOB = "11111111-2222-4333-8444-555555555555";
@@ -186,5 +191,45 @@ describe("instant-job-match edge function (Q392)", () => {
     const res = await fn.fetch(fn.request({ body: { jobId: JOB } }));
     expect(res.status).toBe(401);
     expect(enqueueCalls()).toEqual([]);
+  });
+
+  // Q1832: skills are saved as chip LABELS ("Yard Work"), the job carries the enum
+  // VALUE ("yard_work"); a bare substring test never matched a multi-word category.
+  // Each Helpr here is far away and the title names no skill, so the ONLY way they
+  // can match is the skill-to-category score.
+  it("a Helpr whose saved skill is the category's chip label matches that category's job, for EVERY category", async () => {
+    expect(JOB_CATEGORY_VALUES.length).toBeGreaterThan(20);
+    const missed: string[] = [];
+    const fn = await load();
+    for (const category of JOB_CATEGORY_VALUES) {
+      resetSupabaseMock();
+      resetSharedMocks();
+      seed();
+      scenario.reads.jobs = {
+        rows: [{
+          id: JOB, title: "Need a hand", category, location: "12 Canal St, New Orleans",
+          budget: 80, customer_id: POSTER, is_urgent: false, payment_status: "escrow",
+        }],
+      };
+      scenario.reads.profiles = {
+        rows: [
+          { user_id: "u-label", full_name: "L", skills: skillChipLabel(category), location: "Shreveport", subscription_tier: null, ban_status: "active" },
+          { user_id: "u-value", full_name: "V", skills: `Other thing, ${category}`, location: "Shreveport", subscription_tier: null, ban_status: "active" },
+        ],
+      };
+      scenario.reads.notification_preferences = { rows: [] };
+      const res = await call(fn, SERVICE);
+      const args = enqueueCalls()[0]?.args as { p_matches: Array<{ user_id: string }> } | undefined;
+      const ids = (args?.p_matches ?? []).map((m) => m.user_id).sort();
+      if (res.status !== 200 || ids.join() !== "u-label,u-value") missed.push(`${category}: ${ids.join() || "none"}`);
+    }
+    expect(missed).toEqual([]);
+  });
+
+  it("the edge label table is the app's category and skill-chip table", () => {
+    expect(CATEGORY_LABELS).toEqual(JOB_CATEGORY_LABELS);
+    for (const v of JOB_CATEGORY_VALUES) {
+      expect(SKILL_CHIP_LABELS[v] ?? CATEGORY_LABELS[v], v).toBe(skillChipLabel(v));
+    }
   });
 });

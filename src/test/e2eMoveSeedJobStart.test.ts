@@ -2,6 +2,7 @@
 // @mutate e2e/moveSeedJobStart.ts | rows[0].id !== jobId \|\| rows[0].is_seed !== true | rows[0].id !== jobId
 // @mutate e2e/moveSeedJobStart.ts | const ZONE = "America/Chicago"; | const ZONE = "UTC";
 // @mutate e2e/journeys/04-admin-safety.spec.ts | const slot = slotAhead(20); | const slot = slotAhead(4);
+// @mutate e2e/journeys/04-admin-safety.spec.ts | await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 }); | void progress;
 // @mutate e2e/journeys/04-admin-safety.spec.ts | startAt = await moveSeedJobStart(SUPABASE_URL, jobId, 90_000, "the no-show job"); | startAt = slot.at;
 
 /*
@@ -89,5 +90,13 @@ describe("the no-show journey hires outside the 15-minute window, then moves the
     const move = body.indexOf("moveSeedJobStart(");
     expect(hire).toBeGreaterThan(0);
     expect(move, "the start moves after the Helpr's accept, never before the hire").toBeGreaterThan(hire);
+  });
+
+  it("opens the card (its Job progress rail visible) before looking for No-Show: a shut card has no chips (e2e-journeys 39073227265)", () => {
+    const open = src.slice(src.indexOf("async function openCard("));
+    const fnBody = open.slice(0, open.indexOf("\n}\n") + 2);
+    expect(fnBody.length).toBeGreaterThan(40);
+    expect(fnBody).toMatch(/getByRole\("group", \{ name: \/Job progress\/ \}\)/);
+    expect(fnBody).toMatch(/expect\(progress[^)]*\)\.toBeVisible\(/);
   });
 });

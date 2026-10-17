@@ -1081,7 +1081,7 @@ async function main() {
   const shardPlan = QUEUE_DIR && shardNo ? planShards({ rows: planRows, times: loadRowTimes(), ceilingPerMinute: LOAD_CEILING }) : null;
   const walkUnits = shardPlan
     ? shardWalkOrder(shardPlan, shardNo, { lastWave: LAST_WAVE })
-    : planRows.map((r) => ({ ...r, key: r.redirect ? `${String(r.routeIdx).padStart(3, "0")}-redirect` : `${String(r.routeIdx).padStart(3, "0")}-${r.persona}`, part: 1, parts: 1, est: 0 }));
+    : planRows.map((r) => ({ ...r, key: r.redirect ? `${String(r.routeIdx).padStart(3, "0")}-redirect` : `${String(r.routeIdx).padStart(3, "0")}-${r.persona}`, part: 1, parts: 1, est: 0, req: 0 }));
   if (shardPlan) console.log(`press plan: shard ${shardNo} planned ${shardPlan.bins[shardNo - 1]?.minutes.toFixed(1)} min of work over ${shardPlan.bins[shardNo - 1]?.units.length} unit(s); ${walkUnits.length} unit(s) in its walk order`);
 
   let queueStopped = false;

@@ -121,3 +121,15 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.admin_release_job_payout_hold(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_release_job_payout_hold(uuid) TO authenticated, service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate
+-- (src/test/unconfirmedEmailWritesRefused.test.ts). job_payout_holds is
+-- service_role-only, so the gate refuses nothing it would otherwise allow;
+-- it is attached for the class, like every other table.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

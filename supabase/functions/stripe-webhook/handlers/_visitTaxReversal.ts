@@ -181,11 +181,17 @@ export async function reverseVisitTaxForRefund(args: {
 
   // What the transaction recorded: its labor and the tax on it (one line,
   // tax exclusive). Read from Stripe Tax itself, the record being reversed.
+  // Q1828 (the one part of sec-a-1017-13 that Q1782 (2) lacked): an INCLUSIVE
+  // line's amount already holds its tax (Stripe Tax API: "If tax_behavior=
+  // inclusive, then this amount includes taxes"), so its amount_tax is not
+  // added again. charge-recurring-visits writes exclusive lines today; this
+  // keeps a later inclusive one from inflating the total, which would turn a
+  // full refund's reversal into a partial one.
   let txTotalCents = 0;
   try {
     const items = await stripe.tax.transactions.listLineItems(txId, { limit: 100 });
-    for (const li of (items?.data ?? []) as Array<{ amount?: number | null; amount_tax?: number | null }>) {
-      txTotalCents += Math.abs(Number(li.amount ?? 0)) + Math.abs(Number(li.amount_tax ?? 0));
+    for (const li of (items?.data ?? []) as Array<{ amount?: number | null; amount_tax?: number | null; tax_behavior?: string | null }>) {
+      txTotalCents += Math.abs(Number(li.amount ?? 0)) + (li.tax_behavior === "inclusive" ? 0 : Math.abs(Number(li.amount_tax ?? 0)));
     }
     if (items?.has_more) throw new Error("more than 100 line items listed; refusing to read a partial total");
   } catch (e) {

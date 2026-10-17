@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261015061259_rentals_maintenance_requests (Rentals S1,
+ * PGlite proof for 20261017061457_rentals_maintenance_requests (Rentals S1,
  * docs/specs/landlord-hub-prep.md Q37-Q48, Q5-Q6, Q53, Q59).
  *
  *   node src/test/pglite/rentalsMaintenance.pglite.mjs
@@ -28,7 +28,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const SELF = "20261015061259";
+const SELF = "20261017061457";
 const MIGRATION = readFileSync(
   process.env.MIGRATION_PATH ?? `${MIG_DIR}${SELF}_rentals_maintenance_requests.sql`,
   "utf8",
@@ -473,27 +473,44 @@ await svc(`UPDATE auth.users SET email_confirmed_at = now() WHERE id = '${STRANG
 ok(typeof one(await as("authenticated", STRANGER, createProp("Confirmed place"))) === "string",
   "the same caller, once confirmed, creates it (the gate is the only thing that refused)");
 
-// --- export_my_data reconcile (20261017044117): 20261015061259 restates the
-// export from an OLDER body than main's 20261015084728 (Declutter reconcile),
-// so the newest-timestamp reconcile must leave the UNION: every section of
-// 20261015084728 plus the five Rentals sections, EXECUTE for service_role only.
+// --- export_my_data reconcile (20261017061504): the newest-timestamp restatement
+// of the export must leave the UNION: every section of main's newest OTHER
+// definition (read below, not hard-coded, so a later main restatement moves it)
+// plus the five Rentals sections, EXECUTE for service_role only.
 const RECONCILE = readFileSync(
-  process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017044117_export_my_data_rentals_reconcile.sql`,
+  process.env.RECONCILE_PATH ?? `${MIG_DIR}20261017061504_export_my_data_rentals_reconcile.sql`,
   "utf8",
 );
 const sectionKeys = (sql) => [...sql.matchAll(/jsonb_build_object\('([a-z_]+)'/g)].map((m) => m[1]);
-const mainKeys = [...new Set(sectionKeys(readFileSync(`${MIG_DIR}20261015084728_export_my_data_declutter_reconcile.sql`, "utf8")))];
+const RECONCILE_FILE = "20261017061504_export_my_data_rentals_reconcile.sql";
+const mainExport = (() => {
+  let found = null;
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql") && x !== RECONCILE_FILE && !x.startsWith(SELF)).sort()) {
+    const sql = readFileSync(`${MIG_DIR}${f}`, "utf8");
+    const at = sql.search(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.export_my_data\s*\(\s*p_user_id/i);
+    if (at < 0) continue;
+    const as = /\bAS\s+(\$\w*\$)/g;
+    as.lastIndex = at;
+    const t = as.exec(sql);
+    found = { file: f, sql: sql.slice(at, sql.indexOf(t[1], t.index + t[0].length)) };
+  }
+  return found;
+})();
+const mainKeys = [...new Set(sectionKeys(mainExport?.sql ?? ""))];
 ok(mainKeys.length > 40 && mainKeys.includes("declutter_bookings") && mainKeys.includes("category_suggestions"),
-  `main's newest export_my_data names its sections (${mainKeys.length})`);
+  `main's newest export_my_data (${mainExport?.file}) names its sections (${mainKeys.length})`);
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(RECONCILE);
 }
 const exportDef = one(await svc(`SELECT pg_get_functiondef('public.export_my_data(uuid)'::regprocedure)`)) ?? "";
 const liveKeys = new Set(sectionKeys(exportDef));
 ok(mainKeys.length > 0 && mainKeys.every((k) => liveKeys.has(k)),
-  `after the reconcile x3 the export keeps every section of 20261015084728 (missing: ${mainKeys.filter((k) => !liveKeys.has(k)).join(", ") || "none"})`);
+  `after the reconcile x3 the export keeps every section of ${mainExport?.file} (missing: ${mainKeys.filter((k) => !liveKeys.has(k)).join(", ") || "none"})`);
 const RENTAL_SECTIONS = ["rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos"];
 ok(RENTAL_SECTIONS.every((k) => liveKeys.has(k)), "and every Rentals section");
+const extraKeys = [...liveKeys].filter((k) => !mainKeys.includes(k) && !RENTAL_SECTIONS.includes(k));
+ok(liveKeys.size > 0 && extraKeys.length === 0,
+  `and nothing else: no section main's newest body dropped comes back (extra: ${extraKeys.join(", ") || "none"})`);
 const exportAcl = one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = 'public.export_my_data(uuid)'::regprocedure`)) ?? "";
 ok(/service_role=X/.test(exportAcl) && !/(^|[{,])(anon|authenticated)?=X/.test(exportAcl),
   `export_my_data EXECUTE is service_role only (proacl ${exportAcl || "none"})`);

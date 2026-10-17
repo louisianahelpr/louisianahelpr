@@ -1,27 +1,26 @@
 -- export_my_data RECONCILE (Rentals S1): Download My Data keeps every section
--- of main's newest definition (20261015084728_export_my_data_declutter_reconcile:
--- the Declutter sections AND "Suggest a category") AND the five Rentals sections
--- 20261015061259_rentals_maintenance_requests adds (rental_properties,
+-- of main's newest definition (20261017044046_export_my_data_drop_user_strikes_reconcile:
+-- 20261016053541's body with Declutter wanted posts, minus the dropped
+-- user_strikes section) AND the five Rentals sections for the tables
+-- 20261017061457_rentals_maintenance_requests creates (rental_properties,
 -- rental_units, rental_tenancies, maintenance_requests,
 -- maintenance_request_photos).
 --
--- WHY: 20261015061259 restates export_my_data from 20261015052622's body and is
--- OLDER than main's 20261015084728. db-deploy pushes with --include-all, so on
--- prod 20261015061259 would apply AFTER 20261015084728 and drop the Declutter
--- sections; on a fresh replay (version order) 20261015084728 would win and drop
--- the Rentals sections. This file has the newest timestamp, so it runs LAST on
--- both paths and its body is the union (scripts/check-out-of-order-restatements.mjs).
--- 20261015061259 stays as written (history; superseded by this file in the
--- same db-deploy run).
+-- WHY: export_my_data is restated by several branches landing the same night.
+-- The one that lands last must carry main's newest body plus its own sections
+-- at the newest timestamp, so it runs LAST on prod (--include-all) and on a
+-- fresh replay (version order) alike (scripts/check-out-of-order-restatements.mjs).
+-- 20261017061457 does not restate export_my_data at all: this file is the only
+-- place the Rentals sections are added.
 --
--- The body is 20261015084728's export_my_data VERBATIM with 20261015061259's
--- five Rentals lines added before RETURN (also verbatim). Any later restatement
--- must start from THIS body.
+-- The body is 20261017044046's export_my_data VERBATIM with the 12 Rentals
+-- lines (plus one blank line) added before RETURN, and nothing else. Any later
+-- restatement must start from THIS body.
 --
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
 -- door stays dropped (Q408); plpgsql does not resolve table names at CREATE
 -- time, and every table it reads is created by an earlier migration. Grants
--- restated exactly as 20261015084728 sets them: EXECUTE for service_role only,
+-- restated exactly as 20261017044046 sets them: EXECUTE for service_role only,
 -- revoked from PUBLIC, anon and authenticated.
 
 DROP FUNCTION IF EXISTS public.export_my_data();
@@ -153,8 +152,6 @@ BEGIN
   v_out := v_out || jsonb_build_object('user_blocks', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.user_blocks t
       WHERE t.blocker_id = v_uid));
   v_out := v_out || jsonb_build_object('user_bans', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'banned_by'), '[]'::jsonb) FROM public.user_bans t
-      WHERE t.user_id = v_uid));
-  v_out := v_out || jsonb_build_object('user_strikes', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'issued_by'), '[]'::jsonb) FROM public.user_strikes t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('user_violations', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'reported_by'), '[]'::jsonb) FROM public.user_violations t
       WHERE t.user_id = v_uid));
@@ -301,7 +298,12 @@ BEGIN
   v_out := v_out || jsonb_build_object('category_suggestions', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'reviewed_by' - 'admin_note'), '[]'::jsonb) FROM public.category_suggestions t
       WHERE t.user_id = v_uid));
 
-  -- Rentals S1 (20261015061259): the caller's properties, units, tenancies
+  -- Declutter wanted posts (20261016053541). The match ledger holds no person
+  -- column; a seller's alerts are in 'notifications' above.
+  v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
+      WHERE t.user_id = v_uid));
+
+  -- Rentals S1 (20261017061457): the caller's properties, units, tenancies
   -- (as landlord or tenant), maintenance requests and their photos.
   v_out := v_out || jsonb_build_object('rental_properties', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'ownership_reviewed_by'), '[]'::jsonb) FROM public.rental_properties t
       WHERE t.owner_id = v_uid));
@@ -313,7 +315,6 @@ BEGIN
       WHERE t.tenant_id = v_uid OR t.landlord_id = v_uid));
   v_out := v_out || jsonb_build_object('maintenance_request_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.maintenance_request_photos t
       WHERE t.tenant_id = v_uid));
-
   RETURN v_out;
 END;
 $function$;

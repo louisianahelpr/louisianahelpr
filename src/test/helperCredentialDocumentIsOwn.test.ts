@@ -7,7 +7,7 @@
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | REVOKE UPDATE (document_url, credential_type) ON | REVOKE UPDATE (credential_type) ON
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     USING ((SELECT auth.uid()) = user_id)\n    WITH CHECK ((SELECT auth.uid()) = user_id); |     USING ((SELECT auth.uid()) = user_id);
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     BEFORE INSERT OR UPDATE ON public.helper_credentials |     BEFORE INSERT ON public.helper_credentials
-// @mutate supabase/migrations/20261015061259_rentals_maintenance_requests.sql |      WHERE c.user_id = auth.uid() |      WHERE true
+// @mutate supabase/migrations/20261017061457_rentals_maintenance_requests.sql |      WHERE c.user_id = auth.uid() |      WHERE true
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon;
 // @mutate scripts/audit/prod-seed.mjs | document_url: await ensureSeedLicenseDocument(helperId) | document_url: PIXEL
 // @mutate e2e/prod-audit/harness.ts | license_state: "LA", document_url: docPath, | license_state: "LA", document_url: SEED_PIXEL,
@@ -179,7 +179,7 @@ describe("helper_credentials.document_url is the member's own uploaded document 
   });
 
   it("is_submitted_credential_object also freezes objects the caller's helper_credentials rows name", () => {
-    // No trailing ";": Rentals S1 (20261015061259) restates the function with two
+    // No trailing ";": Rentals S1 (20261017061457) restates the function with two
     // more OR EXISTS branches after this one; the closing paren still pins the clause.
     expect(sub!.body).toContain(
       "OR EXISTS ( SELECT 1 FROM public.helper_credentials c WHERE c.user_id = auth.uid() AND c.document_url = p_name )",

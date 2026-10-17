@@ -842,8 +842,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       attemptRef.current = null;
       safeStorage.removeItem(COOLDOWN_KEY);
       hapticError();
-      toast.error("This repair already has a job", {
-        description: "It was posted from another tab or device and is paid or being paid, so nothing was charged here. Find it under your posted jobs.",
+      // "may": a stop also follows a re-check that could not be read.
+      toast.error("This repair may already have a job", {
+        description: "Nothing was charged here. Open the repair request to see its job.",
       });
       setSaving(false);
       setRedirecting(false);

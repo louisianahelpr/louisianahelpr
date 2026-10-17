@@ -23,7 +23,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 // Shown able to fail: each line alone reds this test.
 // @mutate supabase/migrations/20260927012806_recurring_split_days.sql |           OR OLD.status::text = 'cancelled'\n |
-// @mutate supabase/migrations/20261008183640_schedule_change_lead_time_and_expiry_notice.sql |      OR v_job.status::text <> 'accepted'\n     OR v_job.date_needed IS DISTINCT FROM v_req.old_date |      OR v_job.date_needed IS DISTINCT FROM v_req.old_date
+// @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |      OR v_job.status::text <> 'accepted'\n     OR v_job.date_needed IS DISTINCT FROM v_req.old_date |      OR v_job.date_needed IS DISTINCT FROM v_req.old_date
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (fn: string) => blankSqlComments(defs.get(fn)?.stmt ?? "").replace(/\s+/g, " ");

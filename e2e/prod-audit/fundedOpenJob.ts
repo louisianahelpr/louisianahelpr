@@ -167,6 +167,24 @@ export async function retireFundedJob(api: APIRequestContext, poster: Session, j
   return `retired ${jobId} (cancel_escrow → refunded, ${after.status}/${after.payment_status})`;
 }
 
+/**
+ * Delete one never-paid fixture row (discardableNeverPaid) as poster-e2e,
+ * through the poster's own DELETE policy, and prove the row is gone. No money:
+ * the row is abandoned, or unpaid with no Checkout Session.
+ */
+async function discardNeverPaidFixture(api: APIRequestContext, poster: Session, row: FixtureRow): Promise<string> {
+  const gone = await readJson<Array<{ id: string }>>(
+    await api.delete(
+      `${SUPABASE_URL}/rest/v1/jobs?id=eq.${row.id}&customer_id=eq.${poster.user.id}&status=eq.open&payment_status=in.(abandoned,unpaid)&select=id`,
+      { headers: headers(poster, { Prefer: "return=representation" }) },
+    ),
+    `delete never-paid fixture ${row.id}`,
+  );
+  // Zero rows is a refusal (RLS or a state change since the read), not a delete.
+  if (gone.length !== 1) throw new Error(`funded fixture: DELETE of never-paid ${row.id} (${row.payment_status}) removed ${gone.length} rows`);
+  return `deleted never-paid ${row.id} (${row.payment_status}, created ${row.created_at})`;
+}
+
 /** `title` defaults to the un-applied fixture; the applicant fixture (fundedApplicantJob.ts) passes its own prefix. */
 export async function createFixtureRow(api: APIRequestContext, poster: Session, title = FUNDED_FIXTURE_TITLE): Promise<Row> {
   const rows = await readJson<Row[]>(
@@ -318,6 +336,7 @@ export async function ensureFundedOpenJob(
   const plan = planFundedOpenJob(rows, { today: centralDatePlus(0), appliedJobIds: new Set(apps.map((a) => a.job_id)), mode: stripeMode });
   for (const { row, why } of plan.preLive ?? []) log.push(`left ${row.id} untouched — ${why}`);
   for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
+  for (const row of plan.discard ?? []) log.push(await discardNeverPaidFixture(api, poster, row));
   if (plan.reuse) {
     log.push(`reused ${plan.reuse.id}`);
     await waitVisibleToHelper(api, helper, plan.reuse.id, plan.reuse.created_at, log);

@@ -216,6 +216,20 @@ try {
     }
     console.log(`  checkout session is TEST mode (cs_test_): ${String(url).split("/").pop().slice(0, 28)}…`);
     const page = await browser.newPage();
+    // Q1255: Stripe's return goes to create-payment's APP_URL, the DEPLOYED
+    // site. Answer that top-level navigation with an empty document so it is
+    // never loaded from Vercel (the same answer as answerStripeReturn in
+    // e2e/journeys/stripeInChromium.ts, which this .mjs cannot import).
+    await page.route("**/*", async (route) => {
+      const req = route.request();
+      const host = new URL(req.url()).host;
+      const stripe = /(^|\.)(stripe\.com|stripe\.network|stripecdn\.com|hcaptcha\.com)$/.test(host);
+      if (req.isNavigationRequest() && !req.frame().parentFrame() && !stripe) {
+        await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>returned</title>" });
+        return;
+      }
+      await route.fallback().catch(() => undefined);
+    });
     try {
       await page.goto(url, { waitUntil: "domcontentloaded" });
       // Same three layouts e2e/stripeCheckoutCard.ts knows (this .mjs cannot

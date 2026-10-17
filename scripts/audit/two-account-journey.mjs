@@ -17,6 +17,10 @@
  */
 import { chromium } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const BASE = process.env.BASE ?? "http://localhost:5183";
 const SUPABASE_URL = "https://fncmgoasalhdgfwzhsqa.supabase.co";

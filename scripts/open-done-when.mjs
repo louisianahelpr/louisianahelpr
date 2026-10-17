@@ -59,6 +59,10 @@ import { fileURLToPath } from "node:url";
 import { greenNightlyRunAfter, ledgerWorkflowKey, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { alertLabelOf, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
 import { SNAPSHOT, queueItems, tagsOf } from "./lib/openFeeds.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const PARTLY = /^- \[~\] /;
 const ITEM_START = /^(- \[|#)/;

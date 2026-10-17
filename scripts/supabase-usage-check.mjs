@@ -36,6 +36,10 @@
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 import { PLAN_LIMITS, PLANS } from "./lib/quotaMonitor.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const REF = process.env.SUPABASE_PROJECT_REF;

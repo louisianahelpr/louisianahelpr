@@ -75,6 +75,10 @@ import { fileURLToPath } from "node:url";
 import { DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY, mintAdminSession } from "../lib/adminSession.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 export const POSTER = { email: ACCOUNTS["poster-e2e"].email, userId: ACCOUNTS["poster-e2e"].userId };
 export const HELPER = { email: ACCOUNTS["helper-e2e"].email, userId: ACCOUNTS["helper-e2e"].userId };

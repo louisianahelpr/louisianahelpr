@@ -6,8 +6,9 @@
  * (loading-states-refresh 39008870955, poster-e2e at 375: 452px -> 574px).
  *
  * Shown able to fail: each @mutate below turns a case here red.
- * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore, |       repostCard: !!hasRecent,
- * @mutate src/pages/post-job/EntryChoice.tsx |     if (postedBefore === null) return <EntryChoiceSkeleton count={0} />; |
+ * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore === true, |       repostCard: !!hasRecent,
+ * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore === true, |       repostCard: postedBefore !== false,
+ * @mutate src/pages/post-job/EntryChoice.tsx |   if (!entryReady) { |   if (!entryReady) { if (postedBefore === null) return <EntryChoiceSkeleton count={0} />;
  * @mutate src/hooks/useRecentPostedJobs.ts |   return readPostedBefore(user?.id); |   return null;
  * @mutate src/hooks/useRecentPostedJobs.ts |     safeStorage.setItem(postedBeforeKey(userId), posted ? "1" : "0"); |
  * @mutate src/hooks/useRecentPostedJobs.ts |   const answered = !isPending && Array.isArray(data); |   const answered = !isPending;
@@ -89,8 +90,10 @@ describe("the Post a Job skeleton checks job history (owner, 2026-10-17)", () =>
     expect(bones()).toBe(4);
   });
 
-  it("never asked on this device: no guessed count, the column waits for the read", () => {
-    expect(bones()).toBe(0);
+  // Lead, 2026-10-17: a blank region during load is the defect class we
+  // avoid, so a device that never asked draws the first-time default.
+  it("never asked on this device: the first-time default of four, never an empty column", () => {
+    expect(bones()).toBe(4);
   });
 
   it("the landed read beats a stale memory", () => {

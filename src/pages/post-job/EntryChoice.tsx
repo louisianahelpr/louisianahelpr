@@ -43,9 +43,10 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * card, inserted second (loading-states-refresh 39008870955, poster-e2e at
  * 375: 452px -> 574px). The answer comes from the read once it lands and,
  * before that, from what this device learned last visit (usePostedBefore).
- * On a device that has never asked, the column draws NO bones until the read
- * answers (one indexed LIMIT-3 query): an empty column that then fills is not
- * a jump, while a guessed count is wrong for one of the two groups.
+ * On a device that has never asked (a returning poster on a new device, a
+ * cleared cache) the column draws the first-time default of FOUR (lead,
+ * 2026-10-17): a blank region during load is the defect class we avoid, and
+ * only that rare case then sees the Repost card arrive.
  */
 export const ENTRY_BASE_CARD_COUNT = 4;
 
@@ -199,13 +200,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
-  // Job history not known yet on this device: hold the bones (see
-  // ENTRY_BASE_CARD_COUNT) rather than guess a count.
+  // Job history not known yet on this device (postedBefore null): the
+  // first-time default of four, never an empty column (see
+  // ENTRY_BASE_CARD_COUNT).
   if (!entryReady) {
-    if (postedBefore === null) return <EntryChoiceSkeleton count={0} />;
     const count = entryCardCount({
       draftCard: form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid",
-      repostCard: postedBefore,
+      repostCard: postedBefore === true,
     });
     return <EntryChoiceSkeleton count={count} />;
   }

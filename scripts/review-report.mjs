@@ -61,9 +61,10 @@
  * evidence ageing out of `/tmp` is expected, and the surviving entries still
  * carry the run. Capture somewhere under $HOME if you need it to last.
  */
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { walkFiles } from "./lib/safeWalk.mjs";
 
 /**
  * One spelling per file. On macOS `/tmp` and `/var` are symlinks to
@@ -106,14 +107,20 @@ const roots = [...new Set([
   ...reviews.map((r) => canon(dirname(resolve(r.screenshot)))),
 ])];
 
-function walk(dir, out = []) {
-  if (!existsSync(dir)) return out;
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
-    else if (name.endsWith(".png")) out.push(canon(p));
+/**
+ * Broken links are FLAGGED, never fatal (2026-10-17: one dangling DerivedData
+ * link under ~/.lh-shots threw ENOENT out of statSync and the report could not
+ * run at all). They are listed under BROKEN LINK and do not change the exit.
+ */
+const brokenLinks = new Map();
+const walked = new Map();
+function walk(dir) {
+  if (!walked.has(dir)) {
+    const { files, broken } = walkFiles(dir, (p) => p.endsWith(".png"));
+    for (const b of broken) brokenLinks.set(b.path, b.reason);
+    walked.set(dir, files.map(canon));
   }
-  return out;
+  return walked.get(dir);
 }
 
 function kind(p) {
@@ -146,6 +153,11 @@ for (const d of roots) {
 }
 console.log("");
 console.log(rows.join("\n") || "(no screenshots found)");
+if (brokenLinks.size) {
+  console.log("");
+  console.log(`BROKEN LINK — skipped, not followed (${brokenLinks.size}):`);
+  for (const [p, why] of [...brokenLinks].sort()) console.log(`  ${p}  (${why})`);
+}
 if (missing.length) {
   console.log("");
   console.log(`MISSING — recorded as reviewed, file no longer on disk (${missing.length}):`);

@@ -369,7 +369,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
     // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
-    expect(emailers).toEqual(["deliver_job_match", "deliver_parish_match_alert", "deliver_saved_search_alert", "notify_on_application", "send_backout_email"]);
+    expect(emailers).toEqual(["deliver_job_match", "deliver_parish_match_alert", "deliver_saved_search_alert", "notify_on_application", "quote_notify_about", "send_backout_email"]);
     // Q1575: the back-out email rides beside the RPCs' own notifications row,
     // so it applies the row's seed boundary itself instead of writing a second row.
     for (const fn of emailers.filter((f) => f !== "send_backout_email")) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);

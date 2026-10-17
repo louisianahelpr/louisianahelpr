@@ -227,6 +227,8 @@ await step("8 an unready quoter's yes waits in job_accept_pending; the job stays
   await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_2' WHERE id = '${job}'`);
   const j = (await svc(`SELECT status::text, helper_id, direct_offer_status, payment_status FROM public.jobs WHERE id = '${job}'`))[0];
   const pend = (await svc(`SELECT helper_id FROM public.job_accept_pending WHERE job_id = '${job}'`));
+  // Redelivered while the quoter is still unready: told once, not twice.
+  await svc(`UPDATE public.jobs SET payment_status = 'escrow', stripe_payment_intent_id = 'pi_2' WHERE id = '${job}'`);
   const told = (await svc(`SELECT count(*)::int AS n FROM public.notifications WHERE user_id = '${QB}' AND title = 'Finish setup to start'`))[0].n;
   await db.exec(`DELETE FROM public.stub_unready`);
   check(

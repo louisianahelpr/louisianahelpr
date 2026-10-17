@@ -81,10 +81,10 @@ BEGIN
   IF p_user IS NULL THEN
     RETURN;
   END IF;
-  v_link := CASE WHEN p_actor IS NULL THEN '/quotes' ELSE '/quotes?user=' || p_actor::text END;
   INSERT INTO public.notifications (user_id, title, message, type, link)
-  VALUES (p_user, p_title, p_message, 'new_offers', v_link)
-  RETURNING id INTO v_id;
+  VALUES (p_user, p_title, p_message, 'new_offers',
+          CASE WHEN p_actor IS NULL THEN '/quotes' ELSE '/quotes?user=' || p_actor::text END)
+  RETURNING id, link INTO v_id, v_link;
   IF v_id IS NULL OR NOT COALESCE(p_email, false) THEN
     RETURN;
   END IF;

@@ -145,9 +145,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:poster_cancel_job": {
     uncovered: GAP("poster_cancel_job on an unfunded or unhired job (the notifying branches need a hired Helpr, which records a cancel_with_helper strike on the poster)"),
   },
-  "sql:quote_notify": {
+  "sql:quote_notify_about": {
     uncovered:
-      "the 'quotes' switch is created OFF (feature_switches, 20261015091114) and every caller (submit_job_quote, respond_to_job_quote) refuses with feature_disabled until it is on for the shared accounts; a two-account quote journey waits for the switch to be on for testers",
+      "the 'quotes' switch is created OFF (feature_switches, 20261015091114) and every caller (submit_job_quote, respond_to_job_quote, quote_notify) refuses with feature_disabled until it is on for the shared accounts; the hire-on-pay notice needs a live escrow payment (Stripe is LIVE, never paid by a journey) and sweep_quote_alerts a 4-hour reply deadline or a closed quote window, so a two-account quote journey waits for the switch to be on for testers (behaviour: src/test/pglite/quoteHireOnPay.pglite.mjs)",
   },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },

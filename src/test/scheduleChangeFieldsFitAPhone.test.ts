@@ -24,7 +24,7 @@
  * @mutate src/components/schedule/ScheduleChangeControl.tsx |           <label className="min-w-0 space-y-1 text-ds-12 text-foreground">\n            <span className="block font-semibold">Date</span> |           <label className="space-y-1 text-ds-12 text-foreground">\n            <span className="block font-semibold">Date</span>
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | px-3 py-2.5 bg-background text-left [&::-webkit-date-and-time-value]:text-left"\n            />\n          </label>\n        </div> | px-3 bg-background text-left [&::-webkit-date-and-time-value]:text-left"\n            />\n          </label>\n        </div>
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | py-2.5 bg-background text-left [&::-webkit-date-and-time-value]:text-left"\n            />\n          </label>\n          <label | py-2.5 bg-background text-left"\n            />\n          </label>\n          <label
- * @mutate src/components/admin/AdminCredentialQueue.tsx | className="w-full rounded-ds-sm border border-border bg-background/60 px-2 py-1.5 text-ds-11 text-foreground" | className="w-full min-w-0 rounded-ds-sm border border-border bg-background/60 px-2 py-1.5 text-ds-11 text-foreground"
+ * @mutate src/components/admin/credentialQueue/ExpiryField.tsx | className="w-full rounded-ds-sm border border-border bg-background/60 px-2 py-1.5 text-ds-11 text-foreground" | className="w-full min-w-0 rounded-ds-sm border border-border bg-background/60 px-2 py-1.5 text-ds-11 text-foreground"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -89,7 +89,7 @@ const KNOWN_NO_SHRINK: Record<string, string> = {
   "src/components/NotificationPreferences.tsx#1": "quiet-hours From: inline-flex label in a flex-wrap row, wraps instead of overlapping",
   "src/components/NotificationPreferences.tsx#2": "quiet-hours to: inline-flex label in a flex-wrap row, wraps instead of overlapping",
   "src/components/TimePickerWheel.tsx#1": "desktop-website-only native field (phones and the app keep the wheels)",
-  "src/components/admin/AdminCredentialQueue.tsx#1": "expiry date alone in its card; the card grid is one column below sm",
+  "src/components/admin/credentialQueue/ExpiryField.tsx#1": "AdminCredentialQueue's expiry date, alone in its card; the card grid is one column below sm",
   "src/components/admin/marketing/MarketingComposerDialog.tsx#1": "Scheduled for: alone in a space-y column",
   "src/pages/posts/EditJobDialog.tsx#1": "locked Date needed: alone in a space-y column",
 };

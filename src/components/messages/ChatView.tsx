@@ -27,6 +27,7 @@ import {
   buildTimeline,
   resolveLastOwnMessageId,
 } from "./chatView/chatViewHelpers";
+import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
 
 /**
  * The centred reading column for the safety banner and the message scroller.
@@ -109,18 +110,6 @@ interface ChatViewProps {
    *  host it as the right pane of a list+thread split. Defaults to false —
    *  mobile/native render the full standalone shell exactly as before. */
   embedded?: boolean;
-}
-
-/** localStorage key prefix for the per-user community-rules banner dismissal. */
-const CHAT_RULES_DISMISSED_KEY = "helpr.chatRulesBannerDismissed";
-
-function readBannerDismissed(key: string | null): boolean {
-  if (typeof window === "undefined" || !key) return false;
-  try {
-    return window.localStorage.getItem(key) === "1";
-  } catch {
-    return false;
-  }
 }
 
 /**

@@ -24,8 +24,8 @@
 -- DATE sits in declutter_item_private (no client role can read that table;
 -- it already holds the pickup address), and declutter_items carries only
 -- in_moving_sale (a yes/no that groups the listings). Other members get a
--- coarse label (the MONTH only) from declutter_seller_moving_sale(), behind
--- both switches; nothing they can see changes on the day itself. No new table:
+-- date from declutter_seller_moving_sale() only (owner 2026-10-17), behind
+-- both switches, and nothing once the date has passed. No new table:
 -- account deletion (cascade) and Download My Data (to_jsonb of both rows)
 -- already cover the two columns.
 --
@@ -284,14 +284,14 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_my_move_out_date() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_my_move_out_date() TO authenticated, service_role;
 
--- 8. A seller's moving sale as OTHER members see it: the move-out MONTH
---    (its first day), never the date. It depends on the calendar alone: the
---    row stays until that month is over, so checking daily cannot reveal the
---    day (lh-authz-rls re-review 1: a 'soon' flag flipping 14 days before, or
---    the row vanishing the day after, gave the date away). No row for a
+-- 8. A seller's moving sale as OTHER members see it: the exact move-out
+--    date (owner decision 2026-10-17, "show the exact date on the banner";
+--    the lh-authz-rls review's vacancy risk is the owner's accepted risk, see
+--    the spec M6). Only through this reader, behind both switches; nothing
+--    once the date has passed (never a "moved out" signal); no row for a
 --    hidden seller (banned, 3 strikes...) or a blocked pair.
 CREATE OR REPLACE FUNCTION public.declutter_seller_moving_sale(p_seller_id uuid)
-RETURNS TABLE(move_month date)
+RETURNS TABLE(move_out_on date)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -317,10 +317,10 @@ BEGIN
    WHERE i.seller_id = p_seller_id
      AND i.in_moving_sale
      AND i.status IN ('live', 'reserved');
-  IF v_date IS NULL OR v_date < date_trunc('month', v_today)::date THEN
+  IF v_date IS NULL OR v_date < v_today THEN
     RETURN;
   END IF;
-  move_month := date_trunc('month', v_date)::date;
+  move_out_on := v_date;
   RETURN NEXT;
 END;
 $fn$;

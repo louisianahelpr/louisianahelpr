@@ -8,26 +8,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import type { MoveItem } from "@/lib/declutter/moves";
+import { daysBetween, formatMoveDate } from "@/lib/declutter/moveDates";
+
+export { louisianaToday } from "@/lib/declutter/moveDates";
 
 const MOVE_ITEM_COLUMNS = "id, status, title, current_price_cents, area_label";
 
 /**
- * The banner's line, plain words. Other members never get the exact date
- * (declutter_seller_moving_sale returns the month only): a date and an
- * address together say when a home will be empty.
+ * The banner's line, plain words, with the exact move-out date (owner
+ * 2026-10-17). declutter_seller_moving_sale returns nothing once the date has
+ * passed, so there is never a "moved out" line.
  */
-export function movingSaleLine(moveMonth: string, count: number, more = false): string {
+export function movingSaleLine(moveOutOn: string, count: number, today: string, more = false): string {
   const items = more ? `${count}+ items for sale` : `${count} ${count === 1 ? "item" : "items"} for sale`;
-  const [y, m] = moveMonth.split("-").map(Number);
-  const month = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
-  return `Moving out in ${month}. ${items}.`;
+  const left = daysBetween(today, moveOutOn);
+  if (left <= 0) return `Moving out today. ${items}.`;
+  if (left === 1) return `Moving out tomorrow. ${items}.`;
+  return `Moving out ${formatMoveDate(moveOutOn)}. ${items}.`;
 }
 
 const MOVING_SALE_READ_LIMIT = 100;
 
 export interface SellerMovingSale {
-  /** First of the move-out month, YYYY-MM-DD. Never the date itself. */
-  moveMonth: string;
+  /** The move-out date, YYYY-MM-DD. */
+  moveOutOn: string;
   items: MoveItem[];
   more: boolean;
 }
@@ -41,7 +45,7 @@ export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMov
     if (words) e.userMessage = words;
     throw e;
   }
-  const sale = ((data ?? []) as { move_month: string }[])[0];
+  const sale = ((data ?? []) as { move_out_on: string }[])[0];
   if (!sale) return null;
   const rows = (unwrap(
     await supabase
@@ -54,5 +58,5 @@ export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMov
       .limit(MOVING_SALE_READ_LIMIT + 1),
   ) ?? []) as MoveItem[];
   if (rows.length === 0) return null;
-  return { moveMonth: sale.move_month, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
+  return { moveOutOn: sale.move_out_on, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
 }

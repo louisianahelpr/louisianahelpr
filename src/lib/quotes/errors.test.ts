@@ -21,6 +21,7 @@ import { quoteErrorMessage } from "./errors";
  * on, and quote_insert_job's INSERT must not write any of them.
  *
  * @mutate src/lib/quotes/errors.ts |   for (const r of JOB_INSERT_REFUSAL_COPY) if (r.match.test(code)) return r.copy; |   void JOB_INSERT_REFUSAL_COPY;
+ * The open-jobs limit below is the trigger's own text as of 2026-10-17.
  * @mutate src/lib/quotes/errors.ts |   { match: /maximum of 5 open jobs at a time/, | { match: /maximum of 6 open jobs at a time/,
  * @mutate src/lib/quotes/errors.ts |   { match: /^Minimum budget is \$/, | { match: /^Minimum price is \$/,
  */

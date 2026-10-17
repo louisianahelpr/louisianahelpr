@@ -18,7 +18,9 @@
  *       - a schema_migrations version newer than the cutoff with no receipt
  *         and no acknowledgement  (applied outside db-deploy),
  *       - a receipt whose run is not a db-deploy.yml run on main, or that
- *         names a version prod does not have  (a forged receipt),
+ *         names a version prod does not have  (a forged receipt); a run GitHub
+ *         no longer has is judged by the receipt itself (expiredRunVerdict:
+ *         old enough, head_sha on main and carrying the migration),
  *       - an acknowledgement that no longer matches  (stale; the list is exact).
  *     --plant-out-of-band adds a fake unreceipted prod version (proves red).
  *
@@ -28,7 +30,7 @@
  */
 import { apiBase } from "./lib/apiBase.mjs";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseAppliedVersions, provenanceFindings, receiptInsertSql } from "./lib/migrationProvenance.mjs";
@@ -50,30 +52,63 @@ async function query(sql, { readOnly }) {
   return res.json();
 }
 
-async function githubRun(runId) {
+/** GET one GitHub REST path under this repo; null on 404, throws on anything else. */
+async function githubGet(path) {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPOSITORY;
   if (token && repo) {
-    const res = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${runId}`, {
+    const res = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
       signal: AbortSignal.timeout(30_000),
     });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`GitHub runs/${runId}: ${res.status}`);
-    const j = await res.json();
-    return { path: j.path, head_branch: j.head_branch };
+    if (!res.ok) throw new Error(`GitHub ${path}: ${res.status}`);
+    return res.json();
   }
   try {
-    const out = execFileSync("gh", ["api", `repos/{owner}/{repo}/actions/runs/${runId}`, "--jq", "{path, head_branch}"], {
+    const out = execFileSync("gh", ["api", `repos/{owner}/{repo}/${path}`], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       cwd: ROOT,
+      maxBuffer: 64 * 1024 * 1024,
     });
     return JSON.parse(out);
   } catch (e) {
     if (/HTTP 404/.test(String(e.stderr ?? e.message))) return null;
     throw e;
   }
+}
+
+async function githubRun(runId) {
+  const j = await githubGet(`actions/runs/${runId}`);
+  return j ? { path: j.path, head_branch: j.head_branch } : null;
+}
+
+/**
+ * What a receipt whose run is gone still proves (expiredRunVerdict): is its
+ * head_sha a commit on main (compare sha...main: main is not behind it), and
+ * does that commit carry the version's migration file. One compare per sha.
+ */
+async function shaEvidenceFor(gone) {
+  const files = readdirSync(join(ROOT, "supabase/migrations"));
+  const onMainBySha = new Map();
+  const evidence = new Map();
+  for (const r of gone) {
+    const v = String(r.version);
+    const sha = String(r.head_sha ?? "");
+    if (!/^[0-9a-f]{40}$/.test(sha)) {
+      evidence.set(v, { onMain: false, fileAtSha: false });
+      continue;
+    }
+    if (!onMainBySha.has(sha)) {
+      const cmp = await githubGet(`compare/${sha}...main`);
+      onMainBySha.set(sha, !!cmp && cmp.behind_by === 0 && (cmp.status === "ahead" || cmp.status === "identical"));
+    }
+    const file = files.find((f) => f.startsWith(`${v}_`) && f.endsWith(".sql"));
+    const atSha = file ? await githubGet(`contents/supabase/migrations/${encodeURIComponent(file)}?ref=${sha}`) : null;
+    evidence.set(v, { onMain: onMainBySha.get(sha), fileAtSha: !!atSha });
+  }
+  return evidence;
 }
 
 async function record(file) {
@@ -125,14 +160,31 @@ async function check(plant) {
     console.error(`::error::read only ${prodVersions.length} schema_migrations versions — refusing to report clean.`);
     return 2;
   }
-  const ledger = await query("SELECT version, run_id FROM public.migration_deploy_ledger ORDER BY version", { readOnly: true });
+  const ledger = await query("SELECT version, run_id, head_sha, recorded_at FROM public.migration_deploy_ledger ORDER BY version", { readOnly: true });
   if (plant) prodVersions.push("29991231235959");
 
   const runs = new Map();
   for (const id of new Set(ledger.map((r) => String(r.run_id)))) runs.set(id, await githubRun(id));
 
-  const f = provenanceFindings({ prodVersions, ledger, cutoff: CONFIG.cutoff, acknowledged: CONFIG.acknowledged, runs });
+  const gone = ledger.filter((r) => runs.get(String(r.run_id)) === null);
+  const shaEvidence = gone.length ? await shaEvidenceFor(gone) : new Map();
+
+  const f = provenanceFindings({
+    prodVersions,
+    ledger,
+    cutoff: CONFIG.cutoff,
+    acknowledged: CONFIG.acknowledged,
+    runs,
+    expiredRun: CONFIG.expiredRun,
+    shaEvidence,
+  });
   console.log(`Judged ${f.judged} prod version(s) newer than cutoff ${CONFIG.cutoff}; ${ledger.length} receipt(s); ${CONFIG.acknowledged.length} acknowledged.`);
+  if (f.expired.length) {
+    console.log(
+      `${f.expired.length} receipt(s) name a run GitHub no longer has (runs ${[...new Set(f.expired.map((x) => x.run_id))].join(", ")}); ` +
+        `each is over ${CONFIG.expiredRun.minAgeDays} days old and its head_sha is on main carrying the migration, so it is judged by the receipt: ${f.expired.map((x) => x.version).join(", ")}.`,
+    );
+  }
   for (const v of f.unrecorded) {
     console.error(`::error::${v} is on prod with no db-deploy receipt — it was applied outside db-deploy.yml, skipping its gates.`);
   }

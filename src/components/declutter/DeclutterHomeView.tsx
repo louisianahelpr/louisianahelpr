@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeature, useFeatureStatus } from "@/hooks/useFeature";
 import { ChevronRight, Truck } from "lucide-react";
 import {
   fetchLiveItems,
@@ -30,6 +30,8 @@ import { ConditionStars, DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./de
 import { useDeclutterOrigin, type DeclutterOrigin } from "./useDeclutterOrigin";
 import { CartView, OffersView, StrikeCount } from "./DeclutterTradeViews";
 import { WantedView } from "./DeclutterWantedViews";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
+import { DeclutterBrowseBones, DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 
 type View = "browse" | "mine" | "offers" | "cart" | "wanted";
 const VIEWS: View[] = ["browse", "mine", "offers", "cart", "wanted"];
@@ -127,9 +129,14 @@ function BrowseView({ userId }: { userId: string }) {
   if (items.isError) {
     return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
   }
+  // ONE PAINT: the distance row, the origin line and the cards arrive
+  // together. Painting the list's "Loading items…" line before the origin was
+  // known let the distance row land above it later and push it down
+  // (Q?declutter-settle: CLS 0.0322 at 375 on prod).
+  if (listLoading) return <DeclutterBrowseBones />;
   return (
     <div className="space-y-4">
-      {origin.status === "pending" ? null : from ? (
+      {from ? (
         <>
           <SegmentedControl
             ariaLabel="How far away"
@@ -155,9 +162,7 @@ function BrowseView({ userId }: { userId: string }) {
           )}
         </DeclutterNotice>
       )}
-      {listLoading ? (
-        <p className="text-sm text-muted-foreground" role="status">Loading items…</p>
-      ) : rows.length === 0 ? (
+      {rows.length === 0 ? (
         <DeclutterNotice title={others.length === 0 ? "Nothing for sale yet." : "Nothing for sale this close."}>
           {others.length === 0 ? "Check back soon, or sell something of your own." : "Try a bigger distance."}
         </DeclutterNotice>
@@ -265,10 +270,17 @@ export default function DeclutterHome() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   // W14: "Wanted" exists only while its own switch is on for this member.
-  const wantedOn = useFeature("declutter_wanted");
+  // The tab row waits for that answer (Q?declutter-settle): painted before it,
+  // the Wanted tab arrived ~20 ms later and, at 375, wrapped the row onto a
+  // third line that pushed the whole view 46px down. DeclutterPage starts the
+  // read alongside the 'declutter' one, so the wait is usually nothing.
+  const wanted = useFeatureStatus("declutter_wanted");
+  const tabsReady = useArrivalGate(true, wanted.settled);
+  const wantedOn = wanted.on;
   const asked = params.get("view") as View | null;
   const view: View = asked && VIEWS.includes(asked) && (asked !== "wanted" || wantedOn) ? asked : "browse";
   if (!user) return null;
+  if (!tabsReady) return <DeclutterHomeSkeleton />;
   return (
     <AppPage
       title="Declutter"

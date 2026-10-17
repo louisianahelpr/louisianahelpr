@@ -529,7 +529,7 @@ export const RPC_ERROR_COPY = {
   // Shops (docs/specs/local-shops-prep.md): the words live in
   // src/lib/shops/errors.ts (SHOPS_ERROR_COPY, exact against the migration);
   // each RPC maps exactly the codes it can raise.
-  // Shops slice 2: items (20261016212915_shops_items), same words file.
+  // Shops slice 2: items (20261017060556_shops_items), same words file.
   shops_add_item_photo: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

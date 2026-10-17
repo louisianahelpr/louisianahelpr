@@ -1562,6 +1562,144 @@ describe("charge-recurring-visits edge function", () => {
     expect(reasons(b)).toContain("block check failed");
   });
 
+  // Q1802 (lh-authz-rls review of 30e7034c4, finding 2): a date held by a
+  // member who is now under 18 (claimed while their birthday was empty or
+  // adult) is never charged or booked; it is released through the give-up
+  // path, whose stored reason names no age, so the poster is told the date
+  // is open again and never why.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (minor === true) under18Holders.add(helperId); | if (false) under18Holders.add(helperId);
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (ageErr) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (under18Holders.has(holderId)) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (relErr) fail( | if (false) fail(
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | p_reason: "holder_ineligible", | p_reason: "under_18",
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (!dryRun) {\n        for (const helperId of under18Holders) { |       if (true) {\n        for (const helperId of under18Holders) {
+  const releaseCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "series_release_dates");
+
+  it("Q1802: a date held by a member now under 18 is never charged or booked; it is released and the poster is told, never the age", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.member_under_18 = (a?: unknown) => (a as { p_user_id: string }).p_user_id === HELPER_ID;
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(b.skippedIneligible).toBe(1);
+    expect(res.status).toBe(200);
+    // Asked about the holder, as the service role's own client.
+    expect((scenario.rpcCalls ?? []).filter((c) => c.name === "member_under_18").map((c) => c.args)).toEqual([{ p_user_id: HELPER_ID }]);
+    expect(releaseCalls()).toHaveLength(1);
+    const args = releaseCalls()[0].args as Record<string, unknown>;
+    expect(args).toMatchObject({ p_parent: PARENT_ID, p_helper: HELPER_ID, p_dates: [VISIT_DATE], p_customer: POSTER_ID });
+    expect(String(args.p_reason)).not.toMatch(/18|age|minor|birth/i);
+  });
+
+  it("Q1802: an adult holder is still funded, and nothing is released", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.member_under_18 = false;
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(b.funded).toBe(1);
+    expect(b.skippedIneligible).toBe(0);
+    expect(releaseCalls()).toHaveLength(0);
+  });
+
+  it("Q1802: the age check failing books nothing for the series — an unknown answer never books", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpcErrors = { member_under_18: { message: "connection reset", code: "08006" } };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(releaseCalls()).toHaveLength(0);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("age check failed");
+  });
+
+  it("Q1802: a failed release still charges nothing, and is a defect retried next run", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.member_under_18 = true;
+    scenario.rpcErrors = { series_release_dates: { message: "deadlock detected", code: "40P01" } };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(b.skippedIneligible).toBe(1);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("from an ineligible holder failed");
+  });
+
+  // lh-money-escrow review of c65928dec, notes 1, 5, 6.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (liveMinor.data === true) { | if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | ...((later ?? []) as Array<{ visit_date: string }>) | ...([] as Array<{ visit_date: string }>)
+  it("Q1802: every date the holder holds from today on is released in ONE call, so the poster gets one notice", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // A later date, outside the funding window.
+    wireHolds([
+      { id: HOLD_ID, visit_date: VISIT_DATE, helper_id: HELPER_ID },
+      { id: "hold-later", visit_date: "2026-09-25", helper_id: HELPER_ID },
+    ]);
+    scenario.rpc.member_under_18 = true;
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expectNothingBooked(b);
+    expect(releaseCalls()).toHaveLength(1);
+    expect((releaseCalls()[0].args as Record<string, unknown>).p_dates).toEqual([VISIT_DATE, "2026-09-25"]);
+  });
+
+  it("Q1802: a birthday saved between the age check and the charge still stops the charge (the pre-charge re-read asks again)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    let asked = 0;
+    scenario.rpc.member_under_18 = () => ++asked > 1;
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(asked).toBe(2);
+    expectNothingBooked(b);
+    expect(b.skippedIneligible).toBe(1);
+  });
+
+  it("Q1802: a visit the poster already PAID on-session is never booked for an under-18 holder", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    scenario.reads.recurring_visit_payments = {
+      rows: [],
+      selectOverrides: [{
+        includes: "budget_cents",
+        result: { rows: [{ id: "vp-1", visit_date: VISIT_DATE, status: "paid", budget_cents: 30000, fee_cents: 1500, tax_cents: 0, amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: "pi_paid" }] },
+      }],
+    };
+    scenario.rpc.member_under_18 = true;
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expectNothingBooked(b);
+    expect(b.skippedIneligible).toBe(1);
+    expect(releaseCalls()).toHaveLength(1);
+  });
+
+  it("Q1802: a dry run releases nothing", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.member_under_18 = true;
+
+    const b = await body(await runOn(fn, "2026-09-01", { dryRun: true }));
+
+    expect(b.funded).toBe(0);
+    expect(b.skippedIneligible).toBe(1);
+    expect(releaseCalls()).toHaveLength(0);
+  });
+
   it("dry run reports what it would charge and touches neither Stripe nor the database", async () => {
     const fn = await loadConfigured();
     seedHappyPath();

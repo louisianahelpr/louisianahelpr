@@ -87,7 +87,10 @@ describe('the "Wants Quotes" filter in Jobs browse (owner answer 12)', () => {
     expect(d).toContain('const quotesOn = useFeature("quotes");');
     expect(d).toContain("const wantsQuotes = quotesOn && wantsQuotesPicked;");
     expect(d).toContain("onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}");
-    expect(d).toMatch(/\{wantsQuotes \? \(\s*<WantsQuotesFeed /);
+    expect(d).toMatch(/\{wantsQuotes \? \(\s*<Suspense fallback=\{[^\n]*\}>\s*<WantsQuotesFeed /);
+    // Its own lazy chunk: the quotes reader never rides a signed-in first screen.
+    expect(d).toContain('const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed")');
+    expect(d).not.toMatch(/^import \{ WantsQuotesFeed \}/m);
     expect(d).toContain("{isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && (");
     // Not a job read: quote requests come from their own reader.
     expect(src("src/components/quotes/WantsQuotesFeed.tsx")).toContain("fetchOpenQuoteRequests");

@@ -32,6 +32,9 @@
  *       notification id), an accept is not; the sweep reminds once per reply
  *       window (a counter's new window reminds again), tells the poster how
  *       many quotes came in once, and sends nothing while the switch is off
+ *   Q1864 a block (a user_blocks row) closes the pair's pending quotes, both
+ *       ways round, and leaves other quoters' quotes pending; a failure there
+ *       never undoes the block, it is logged in error_logs
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -114,6 +117,13 @@ CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NU
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
 CREATE TABLE public.stub_blocks (a uuid, b uuid);
+CREATE TABLE public.user_blocks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), blocker_id uuid NOT NULL, blocked_id uuid NOT NULL,
+  reason text, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (blocker_id, blocked_id));
+-- As on prod (pg_policies, 2026-10-17): a member may write their own block row
+-- straight through PostgREST, never via block_user_and_settle.
+ALTER TABLE public.user_blocks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can create their own blocks" ON public.user_blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
+GRANT INSERT ON public.user_blocks TO authenticated;
 CREATE TABLE public.stub_unready (user_id uuid PRIMARY KEY);
 
 CREATE FUNCTION public.feature_enabled_for_user(p_key text, p_uid uuid) RETURNS boolean LANGUAGE sql STABLE AS
@@ -414,12 +424,60 @@ await step("10 the sweep sends nothing while the switch is off", async () => {
   check("10 the sweep sends nothing while the switch is off", r?.reminders === 0 && r?.closed_notices === 0, JSON.stringify(r));
 });
 
+// ---- Q1864: a block closes the pair's pending quotes
+await step("Q1864 a block closes the pair's pending quotes, both ways round; other quotes stay pending", async () => {
+  // The poster's earlier requests count toward the 5-open cap; close them. The
+  // switch on again: on main the switch-off step above throws before it is
+  // turned back on, and --before must fail on the block, not on the switch.
+  await svc("UPDATE public.job_quote_requests SET status = 'cancelled' WHERE status = 'open'");
+  await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'quotes'");
+  const req = await newRequest();
+  const qa = (await one(QA, `SELECT public.submit_job_quote('${req}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  const qc = (await one(QC, `SELECT public.submit_job_quote('${req}', 26000, 'Paint included', 'Sunday') AS id`)).id;
+  // The other way round: QA asks for quotes, the poster quotes.
+  const theirs = (await one(QA, `SELECT public.create_quote_request('Hedge trim', 'Trim a 40 ft privet hedge', 'yard_work',
+     (now() + interval '5 days')::date, NULL, 2, NULL, NULL, NULL, NULL) AS id`)).id;
+  const mine = (await one(POSTER, `SELECT public.submit_job_quote('${theirs}', 15000, 'Clippings hauled', 'Friday') AS id`)).id;
+  // As the member, through RLS: the direct-PostgREST path the trigger exists for.
+  await as(POSTER, `INSERT INTO public.user_blocks (blocker_id, blocked_id, reason) VALUES ('${POSTER}', '${QA}', 'test')`);
+  const st = Object.fromEntries((await svc(`SELECT id, status FROM public.job_quotes WHERE id IN ('${qa}', '${qc}', '${mine}')`)).map((r) => [r.id, r.status]));
+  await svc(`UPDATE public.job_quote_requests SET status = 'cancelled' WHERE id = '${theirs}'`);
+  check(
+    "Q1864 a block closes the pair's pending quotes, both ways round; other quotes stay pending",
+    st[qa] === "closed" && st[mine] === "closed" && st[qc] === "pending",
+    JSON.stringify(st),
+  );
+});
+
+await step("Q1864 a failure closing the quotes never undoes the block; it is logged and the quote stays pending", async () => {
+  await db.exec(`CREATE OR REPLACE FUNCTION public.stub_quote_boom() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN RAISE EXCEPTION 'boom'; END $$;
+    CREATE TRIGGER stub_quote_boom BEFORE UPDATE ON public.job_quotes FOR EACH ROW EXECUTE FUNCTION public.stub_quote_boom();`);
+  let blockErr = null;
+  try {
+    await as(POSTER, `INSERT INTO public.user_blocks (blocker_id, blocked_id, reason) VALUES ('${POSTER}', '${QC}', 'test')`);
+  } catch (e) {
+    blockErr = String(e.message);
+  }
+  await db.exec("DROP TRIGGER stub_quote_boom ON public.job_quotes");
+  const blocked = (await svc(`SELECT count(*)::int AS n FROM public.user_blocks WHERE blocker_id = '${POSTER}' AND blocked_id = '${QC}'`))[0].n;
+  const logged = (await svc(`SELECT count(*)::int AS n FROM public.error_logs WHERE tags->>'source' = 'quote_close_pending_across_block'
+    AND context->>'blocked_id' = '${QC}'`))[0].n;
+  const pending = (await svc(`SELECT count(*)::int AS n FROM public.job_quotes WHERE quoter_id = '${QC}' AND status = 'pending'`))[0].n;
+  check(
+    "Q1864 a failure closing the quotes never undoes the block; it is logged and the quote stays pending",
+    blockErr === null && blocked === 1 && logged === 1 && pending >= 1,
+    `err=${blockErr} blocked=${blocked} logged=${logged} pending=${pending}`,
+  );
+});
+
 await step("grants: the new helpers and the sweep are not client-callable", async () => {
   const rows = await svc(`SELECT p.proname, has_function_privilege('anon', p.oid, 'EXECUTE') AS a,
       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS u
     FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace
-      AND p.proname IN ('quote_notify_about', 'quote_job_funded_hires_quoter', 'sweep_quote_alerts', 'quote_notify')`);
-  check("grants: the new helpers and the sweep are not client-callable", rows.length === 4 && rows.every((r) => !r.a && !r.u), JSON.stringify(rows));
+      AND p.proname IN ('quote_notify_about', 'quote_job_funded_hires_quoter', 'sweep_quote_alerts', 'quote_notify',
+                        'quote_close_pending_across_block')`);
+  check("grants: the new helpers and the sweep are not client-callable", rows.length === 5 && rows.every((r) => !r.a && !r.u), JSON.stringify(rows));
 });
 
 const failed = results.filter((r) => !r.ok).length;

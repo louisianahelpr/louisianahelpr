@@ -24,6 +24,12 @@ export interface EscrowCheckoutOptions {
    * Build it with buildFeeQuote (src/lib/jobCheckout.ts).
    */
   feeQuote?: JobFeeQuote;
+  /**
+   * Where a cancelled checkout comes back to (Q1862). create-payment accepts
+   * only its allowlisted in-app paths (ESCROW_RETURN_PATHS) and refuses any
+   * other; omitted, it is Post a Job.
+   */
+  returnPath?: string;
 }
 
 /** create-payment's answer: a Checkout URL, or a refusal sentence in `error`. */
@@ -41,6 +47,7 @@ export function requestEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions
       saveCardForFuture: !!opts.saveCardForFuture,
       ...(opts.giftCardId ? { giftCardId: opts.giftCardId } : {}),
       ...(opts.feeQuote ? { feeQuote: opts.feeQuote, payInFour: opts.feeQuote.payInFour } : {}),
+      ...(opts.returnPath ? { returnPath: opts.returnPath } : {}),
     },
   });
 }
@@ -59,8 +66,8 @@ export class EscrowCheckoutError extends Error {
   }
 }
 
-export async function openEscrowCheckout(jobId: string, feeQuote?: JobFeeQuote): Promise<void> {
-  const { data, error } = await requestEscrowCheckout(jobId, { feeQuote });
+export async function openEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions = {}): Promise<void> {
+  const { data, error } = await requestEscrowCheckout(jobId, opts);
   const url = data?.url;
   const refusal = data?.error;
   if (error || typeof refusal === "string" || typeof url !== "string" || !url) {

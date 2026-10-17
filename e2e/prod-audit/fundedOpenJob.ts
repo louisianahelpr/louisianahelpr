@@ -407,7 +407,13 @@ async function driveToHired(
  * already confirmed on a previous run is left alone (the RPC would answer
  * offer_not_active); the row read after it is what proves the state.
  */
-async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: string, log: string[]): Promise<void> {
+async function helperConfirmsOffer(
+  api: APIRequestContext,
+  helper: Session,
+  id: string,
+  log: string[],
+  fixture: "accepted" | "dispute" = "accepted",
+): Promise<void> {
   const before = await readJson<{ helper_confirmed_at: string | null }[]>(
     await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=helper_confirmed_at`, { headers: headers(helper) }),
     `read helper_confirmed_at on ${id} before accepting`,
@@ -415,7 +421,7 @@ async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: 
   if (!before[0]?.helper_confirmed_at) {
     const answer = await rpc<{ state?: string; missing?: string[] } | null>(api, helper, "accept_job_offer", { p_job_id: id });
     if (answer?.state !== "accepted") {
-      throw new Error(`accepted fixture: accept_job_offer on ${id} answered ${JSON.stringify(answer)}, not "accepted" (helper-e2e's setup is no longer complete?)`);
+      throw new Error(`${fixture} fixture: accept_job_offer on ${id} answered ${JSON.stringify(answer)}, not "accepted" (helper-e2e's setup is no longer complete?)`);
     }
     log.push(`helper-e2e accepted the offer on ${id}`);
   }
@@ -424,7 +430,7 @@ async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: 
     `read helper_confirmed_at on ${id}`,
   );
   if (!confirmed[0]?.helper_confirmed_at) {
-    throw new Error(`accepted fixture: ${id} is still unconfirmed after helper-e2e's confirm; expire_unanswered_offers would strike helper-e2e`);
+    throw new Error(`${fixture} fixture: ${id} is still unconfirmed after helper-e2e's confirm; expire_unanswered_offers would strike helper-e2e`);
   }
 }
 
@@ -527,6 +533,14 @@ export async function ensureDisputedJob(
     log.push(`resuming ${id} at ${next}`);
   }
   if (next !== "dispute") await driveToHired(api, browser, poster, helper, id, next, "dispute", log);
+  // A hire is an OFFER until helper-e2e accepts it. enforce_helper_award_gate
+  // refuses `accepted -> disputed` on an unconfirmed offer (accept_required,
+  // 42501; prod-audit run 39008504928, job 54bdd391 accepted with
+  // helper_confirmed_at null), and an offer left unanswered is swept by
+  // expire_unanswered_offers at its deadline, striking helper-e2e. So the
+  // helper accepts first, exactly as the app's Accept Job button does; on a
+  // resumed row already confirmed this is a read and nothing else.
+  await helperConfirmsOffer(api, helper, id, log, "dispute");
   await rpc(api, poster, "rpc_open_dispute", {
     _job_id: id,
     _reason: "Prod-audit dispute fixture: the patch was left unsanded.",

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-17T13:55Z",
+  "measured_at": "2026-10-17T15:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -94,6 +94,13 @@
         "label": "nightly-red",
         "run": null,
         "runTruncated": true
+      },
+      {
+        "number": 3307,
+        "title": "nightly-red: staleness-watch",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039856658",
+        "runTruncated": false
       }
     ]
   },
@@ -130,7 +137,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: staleness-watch",
-        "issue": 2660
+        "issue": 3307
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -422,6 +429,7 @@
     "issue #2993": "Q1816",
     "issue #3154": "Q1816",
     "issue #3178": "Q1816",
+    "issue #3307": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

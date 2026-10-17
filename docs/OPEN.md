@@ -702,7 +702,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - expiry-monitor: issue #2993, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38982141882. notes: Q1807. feed: issue #2993
   - db-drift-detect: issue #3154, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/38939285895. feed: issue #3154 · feed: ledger 8018e82cb167
   - main: Sensitive review record: issue #3178, newest red run: see the issue's latest comment. feed: issue #3178 · feed: ledger e41c806b9175
-  - staleness-watch: no open issue. feed: ledger db0fb15c4ec3
+  - staleness-watch: issue #3307, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/39039856658. feed: issue #3307 · feed: ledger db0fb15c4ec3
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

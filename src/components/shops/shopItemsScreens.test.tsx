@@ -9,7 +9,9 @@
  *  2. ShopItemsList and ShopItemsReviewCard: a failed load has Try again.
  *  3. ShopItemsReviewCard: the decision sends back the submitted_at the admin
  *     saw, as the server's own string (lh-authz-rls re-review N1), and reloads
- *     the list after a refusal such as item_changed.
+ *     the list after a refusal such as item_changed; an item the 30-day hold
+ *     sent shows the owner's last rejection and reason (lh-silent-failure
+ *     review of 63a55df2c, finding 1).
  *  4. ShopItemEditor: an empty "days" box is refused, never saved as 0
  *     (should-fix 2); home food cannot publish while the yearly status is
  *     unknown (should-fix 5); the admin's note stays in view on a re-saved
@@ -26,6 +28,7 @@
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, row.submitted_at, approve, approve ? null : note.trim()), |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, null, approve, approve ? null : note.trim()),
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |       // item_changed / item_not_pending: show the version waiting now.\n      void qc.invalidateQueries | void 0;\n      void qc.getQueryData
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |           <Button variant="outline" size="sm" onClick={() => void pending.refetch()} disabled={pending.isFetching}> |           <Button variant="outline" size="sm" onClick={() => undefined} disabled={pending.isFetching}>
+ * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |   if (!row.owner_last_rejected_at) return null; |   return null;
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (!/^\d+$/.test(t)) throw new Error(code); |   if (!/^\d*$/.test(t)) throw new Error(code);
  * @mutate src/components/shops/ShopItemEditor.tsx |   const cottageUnknown = d.kind === "home_food" && !cottage.data; |   const cottageUnknown = false;
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
@@ -192,7 +195,24 @@ describe("ShopItemsReviewCard (admin)", () => {
     item_id: "it1", shop_id: "s1", shop_name: "Bayou Bakes", owner_id: "u2", kind: "made", subtype: "candles",
     title: "Fig candle", description: "Soy wax.", price_cents: 1800, submitted_at: "2026-10-17 10:00:00.123456+00",
     ai_checked_at: null, ai_flag_reason: null, text_flag_reason: null, approved_items: 0, photo_paths: [],
+    owner_last_rejected_at: null, owner_last_rejection_note: null,
   };
+
+  it("an item held by the 30-day hold shows the owner's last rejection and its reason", async () => {
+    api.fetchPendingShopItems.mockResolvedValue([
+      { ...row, approved_items: 3, ai_checked_at: "2026-10-17 10:00:00+00",
+        owner_last_rejected_at: "2026-10-17T12:00:00Z", owner_last_rejection_note: "Not a decoy we can list" },
+    ]);
+    renderWith(<ShopItemsReviewCard />);
+    expect(await screen.findByText("This owner had an item rejected on Oct 17: Not a decoy we can list")).toBeTruthy();
+  });
+
+  it("no recent rejection, no rejection line", async () => {
+    api.fetchPendingShopItems.mockResolvedValue([row]);
+    renderWith(<ShopItemsReviewCard />);
+    await screen.findByRole("button", { name: "Approve" });
+    expect(screen.queryByText(/had an item rejected/)).toBeNull();
+  });
 
   it("approving sends the submitted_at the admin saw, unchanged", async () => {
     api.fetchPendingShopItems.mockResolvedValue([row]);

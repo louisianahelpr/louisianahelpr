@@ -77,6 +77,13 @@ CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean L
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timestamptz NOT NULL DEFAULT now(), note text);
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
+-- prod's shape (pg_policies, 2026-10-17): RLS on, an admin-only INSERT and an
+-- admin-only SELECT, no UPDATE or DELETE policy, every table privilege granted
+-- to authenticated. So a member's UPDATE or DELETE reaches no row (the hold).
+ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can insert audit log" ON public.admin_audit_log FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins can view audit log" ON public.admin_audit_log FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+GRANT ALL ON public.admin_audit_log TO authenticated;
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
   stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
   ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
@@ -410,6 +417,14 @@ ok(one(await svc(`SELECT admin_rejected_at IS NULL FROM public.shop_item_private
   "N2 setup: the re-listed item is brand new (no rejection mark of its own), clean AI verdict, 3+ approvals");
 ok(one(await member(OWNER, `SELECT public.shops_publish_item('${c3again}')`)) === "pending_review",
   "within 30 days of a rejection, a NEW item from that owner waits for an admin (the rejection is not undone by withdraw + re-create)");
+ok(one(await member(ADMIN, `SELECT owner_last_rejection_note FROM public.shops_admin_pending_items() WHERE item_id = '${c3again}'`)) === "Not a decoy we can list",
+  "the admin queue shows a held item's owner's last rejection and its reason (lh-silent-failure review finding 1)");
+const eraseRej = await member(OWNER, `UPDATE public.admin_audit_log SET created_at = now() - interval '31 days' WHERE action = 'shop_item_rejected' RETURNING id`);
+const dropRej = await member(OWNER, `DELETE FROM public.admin_audit_log WHERE action = 'shop_item_rejected' RETURNING id`);
+ok((Array.isArray(eraseRej) ? eraseRej.length === 0 : refused(eraseRej, /permission denied|policy/))
+   && (Array.isArray(dropRej) ? dropRej.length === 0 : refused(dropRej, /permission denied|policy/))
+   && one(await svc(`SELECT count(*)::int FROM public.admin_audit_log WHERE action = 'shop_item_rejected' AND details->>'owner_id' = '${OWNER}' AND created_at > now() - interval '30 days'`)) === 1,
+  "the owner can neither age nor delete their rejection in the log (no UPDATE or DELETE policy)");
 await decide(ADMIN, c3again, false, "'Still not a decoy we can list'");
 await svc(`UPDATE public.admin_audit_log SET created_at = now() - interval '31 days'
   WHERE action = 'shop_item_rejected' AND details->>'owner_id' = '${OWNER}'`);
@@ -560,11 +575,30 @@ const leakShop = await svc(`UPDATE public.shops SET about = 'Text 337 555 1234' 
 ok(refused(leakShop, /does not allow contact details in Shops\.$/, "23514") && !/Message button/.test(leakShop.error),
   "the shop's contact-leak refusal (slice 1's trigger, restated) says the same");
 
+// --- the hold is the owner's, not the shop's: a fresh rejection, then close
+//     and re-open the shop (lh-silent-failure review of 63a55df2c, nit 2)
+const r1 = one(await member(OWNER, createSql({ kind: "made", subtype: "crafts", title: "Wood duck", description: "Hand carved." })));
+await readyToPublish(OWNER, r1, STATEMENTS.made);
+await member(OWNER, `SELECT public.shops_publish_item('${r1}')`);
+ok(one(await decide(ADMIN, r1, false, "'Too close to the decoy'")) === "rejected", "hold setup: a fresh rejection before the shop closes");
 // --- close the shop: item photo paths come back too
 const n2 = one(await svc(`SELECT count(*)::int FROM public.shop_item_photos WHERE owner_id = '${OWNER}'`));
 const closed = one(await member(OWNER, `SELECT public.shops_close_my_shop() AS p`));
 ok(Array.isArray(closed) && n2 > 0 && closed.length === n2, "closing the shop returns every item photo path for removal");
 ok(one(await svc(`SELECT count(*)::int FROM public.shop_items WHERE owner_id = '${OWNER}'`)) === 0 && n2 > 0, "its items go with it");
+const shopB = one(await saveShop(OWNER, "Bayou Bakes Again", 30.15, -91.96));
+await member(OWNER, `SELECT public.shops_set_hours('[{"weekday":1,"opens":"08:00","closes":"17:00"}]')`);
+ok(typeof shopB === "string" && shopB !== shopA, "the owner opens a new shop");
+await approvedItem("Bay candle 2");
+await approvedItem("Fig candle 2");
+await approvedItem("Pecan candle 2");
+ok(one(await svc(`SELECT count(*)::int FROM public.shop_items WHERE shop_id = '${shopB}' AND admin_approved_at IS NOT NULL`)) === 3,
+  "the new shop has three admin-approved items");
+const r2 = one(await member(OWNER, createSql({ kind: "made", subtype: "crafts", title: "Wood duck", description: "Hand carved." })));
+await readyToPublish(OWNER, r2, STATEMENTS.made);
+await recordAi(r2, "made", "crafts", "Wood duck", "Hand carved.", null);
+ok(one(await member(OWNER, `SELECT public.shops_publish_item('${r2}')`)) === "pending_review",
+  "closing and re-opening the shop does not clear the hold: a clean item from the new, established shop still waits");
 
 // --- structure
 const internal = await svc(`SELECT string_agg(p.proname || ':' || r.rolname, ',') AS w

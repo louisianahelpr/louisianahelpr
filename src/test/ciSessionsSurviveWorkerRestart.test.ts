@@ -17,7 +17,8 @@
  * @mutate e2e/journeys/fixtures.ts |     if (disk && disk.user?.email?.toLowerCase() === creds.email.toLowerCase()) { |     if (false) {
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

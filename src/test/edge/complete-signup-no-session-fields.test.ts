@@ -43,8 +43,12 @@
  * @mutate supabase/functions/complete-signup/index.ts | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { | const NO_SESSION_FIELDS: Readonly<Record<string, string>> = { licenseBase64: "mutant", licenseExt: "mutant", licenseContentType: "mutant", isLicensed: "mutant",
  * @mutate supabase/functions/complete-signup/index.ts |         existingProfile.terms_accepted_at\n | false\n
  * @mutate supabase/functions/complete-signup/index.ts |   referralCode: "?ref= from a share link; this function is the only place a referral can be recorded",\n | \n
+ * @mutate supabase/functions/complete-signup/index.ts |         .is("terms_accepted_at", null)\n | \n
+ * @mutate supabase/functions/complete-signup/index.ts | if (claim.release && !res?.ok) await claim.release(); | if (false) await claim.release?.();
+ * @mutate supabase/functions/complete-signup/index.ts |           .eq("terms_accepted_at", claimAt)\n | \n
+ * @mutate supabase/functions/complete-signup/index.ts | const body = signedIn ? rawBody : noSessionBody(rawBody); | const body = authHeader ? rawBody : noSessionBody(rawBody);
  */
-import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -53,6 +57,7 @@ import { completeSignupErrorCopy, isSignupAlreadyFinished } from "@/pages/auth/s
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
+import { claimUpdates, completionUpdate, completionUpdateFails, liveProfileRow, releaseUpdates } from "./mocks/completeSignupWrites";
 import { resetSharedMocks } from "./mocks/shared";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
@@ -209,7 +214,8 @@ function seedFreshSignup(profile: Record<string, unknown> = {}) {
 }
 
 function profileUpdate(): Record<string, unknown> | undefined {
-  const w = scenario.writes.find((x) => x.table === "profiles" && x.op === "update");
+  // The completion, not the no-session claim before it (Q?signup-one-shot-atomic).
+  const w = completionUpdate();
   return w?.payload as Record<string, unknown> | undefined;
 }
 
@@ -327,5 +333,127 @@ describe("Q?signup-no-session: complete-signup's no-session path reads only what
       const copy = await completeSignupErrorCopy(new FunctionsHttpError(res));
       expect(isSignupAlreadyFinished(new Error(copy)), copy).toBe(true);
     });
+  });
+
+  describe("Q?signup-one-shot-atomic: the one-shot rule holds under a race (lh-authz-rls review of a02d0cd80, #1 and #3)", () => {
+    /** The live row (see liveProfileRow): reads see writes, an UPDATE lands only when its WHERE matches. */
+    function liveFreshSignup() {
+      seedFreshSignup();
+      return liveProfileRow({ bio: null, date_of_birth: null, terms_accepted_at: null, full_name: "Dana R", user_id: USER_ID });
+    }
+
+    /** Every storage upload, in order (the Set alone cannot show a second upload to the same key). */
+    function recordUploads(): string[] {
+      const uploads: string[] = [];
+      const objects = scenario.storage.objects;
+      const add = objects.add.bind(objects);
+      objects.add = (key: string) => { uploads.push(key); return add(key); };
+      return uploads;
+    }
+
+    it("two overlapping no-session calls that BOTH pass the read: exactly one completes, the other is 'already finished'", async () => {
+      const row = liveFreshSignup();
+      const uploads = recordUploads();
+      const fn = await load();
+      // A Q1810 re-send arriving while the first send still runs, or a racing
+      // stranger holding the id: same account, overlapping in time.
+      const settled = await Promise.allSettled([
+        fn.fetch(fn.request({ body: { ...FIELD_VALUES, bio: "first" } })),
+        fn.fetch(fn.request({ body: { ...FIELD_VALUES, bio: "second", avatarContentType: "image/jpeg", avatarExt: "jpg" } })),
+      ]);
+      const responses = settled.map((r) => {
+        if (r.status !== "fulfilled") throw r.reason;
+        return r.value;
+      });
+      const statuses = responses.map((r) => r.status).sort();
+      expect(statuses, "exactly one completes").toEqual([200, 403]);
+      // Both got past the read check (the read-then-write gap was really open,
+      // so the read alone did not decide it): each one tried the claim.
+      expect(claimUpdates()).toHaveLength(2);
+      const loser = responses.find((r) => r.status === 403)!;
+      expect(((await loser.json()) as { error?: string }).error).toBe("Profile already completed. Please log in.");
+      // The loser wrote and uploaded nothing: one completion, one photo, one
+      // consent record, one referral attempt.
+      expect(scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" && "bio" in ((w.payload ?? {}) as object))).toHaveLength(1);
+      expect(uploads).toHaveLength(1);
+      expect(scenario.writes.filter((w) => w.table === "legal_acceptances")).toHaveLength(1);
+      expect(rpcNames().filter((n) => n === "record_referral_signup")).toHaveLength(1);
+      // And the row holds the winner's completion, never released.
+      expect(row.terms_accepted_at).toBeTruthy();
+      expect(releaseUpdates()).toEqual([]);
+    });
+
+    it("a no-session call refused AFTER it took the claim hands it back, so the member's own retry completes", async () => {
+      const row = liveFreshSignup();
+      const fn = await load();
+      const uploads = recordUploads();
+      // No 18+ box: refused (403) after the claim.
+      const refused = await fn.fetch(fn.request({ body: { ...FIELD_VALUES, ageAttested: false } }));
+      expect(refused.status).toBe(403);
+      // Refused BEFORE the photo upload (review note b): a stranger cannot
+      // claim, park a public photo under the id, get refused and repeat.
+      expect(uploads).toEqual([]);
+      expect(claimUpdates()).toHaveLength(1);
+      expect(releaseUpdates()).toHaveLength(1);
+      expect(row.terms_accepted_at, "the claim was released").toBeNull();
+      expect(completionUpdate()).toBeUndefined();
+      // The member's retry is not locked out by the failed attempt.
+      const retry = await fn.fetch(fn.request({ body: FIELD_VALUES }));
+      expect(retry.status).toBe(200);
+      expect(completionUpdate()).toBeDefined();
+      expect(row.terms_accepted_at).toBeTruthy();
+    });
+
+    it("the release is keyed on its OWN stamp: a completion that landed but whose answer failed is never cleared", async () => {
+      // Date only, advanced on every profiles write, so the claim's stamp and the
+      // completion's consent time differ as they do on a real server.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      try {
+        vi.setSystemTime(new Date());
+        const row = liveFreshSignup();
+        (scenario.writeOverrides ??= []).unshift({
+          table: "profiles",
+          op: "update",
+          when: () => { vi.setSystemTime(Date.now() + 5); return false; },
+        });
+        // The completion UPDATE is applied to the row (live model) and THEN answers an
+        // error: committed, answer lost.
+        completionUpdateFails({ message: "connection reset after commit" });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ body: FIELD_VALUES }));
+        expect(res.status).toBe(500);
+        const completedAt = (completionUpdate()?.payload as Record<string, unknown>)?.terms_accepted_at;
+        const claimedAt = (claimUpdates()[0]?.payload as Record<string, unknown>)?.terms_accepted_at;
+        expect(completedAt).toBeTruthy();
+        expect(completedAt, "the two stamps must differ or this proves nothing").not.toBe(claimedAt);
+        // The release ran, matched nothing, and the recorded completion stands.
+        expect(releaseUpdates()).toHaveLength(1);
+        expect(row.terms_accepted_at).toBe(completedAt);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("a Bearer token that is not a member's (the anon key; getUser fails) is the no-session path: body cut, claim taken", async () => {
+      seedFreshSignup();
+      scenario.authUser = undefined;
+      scenario.authError = { message: "invalid JWT: unable to parse or verify signature" };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ body: FIELD_VALUES, headers: { Authorization: "Bearer anon-key" } }));
+      expect(res.status).toBe(200);
+      expect(Object.keys(completionUpdate()?.payload ?? {}).sort()).toEqual(NO_SESSION_COLUMNS);
+      expect(rpcNames()).not.toContain("enforce_retained_ban");
+      expect(claimUpdates()).toHaveLength(1);
+    });
+
+    for (const rawBody of ["null", "\"userId\"", "[1,2]", "42"]) {
+      it(`a no-session call whose body is not an object (${rawBody}) is a 401, not a 500, and writes nothing`, async () => {
+        seedFreshSignup();
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ rawBody }));
+        expect(res.status).toBe(401);
+        expect(scenario.writes).toEqual([]);
+      });
+    }
   });
 });

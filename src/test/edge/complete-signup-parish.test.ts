@@ -39,6 +39,7 @@ import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
+import { completionUpdate } from "./mocks/completeSignupWrites";
 import { resetSharedMocks } from "./mocks/shared";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
@@ -92,7 +93,8 @@ function seedFreshSignup() {
 
 /** The profile UPDATE this function makes, or undefined if it never made one. */
 function profileUpdate(): Record<string, unknown> | undefined {
-  const w = scenario.writes.find((x) => x.table === "profiles" && x.op === "update");
+  // The completion, not the no-session claim before it (Q?signup-one-shot-atomic).
+  const w = completionUpdate();
   return w?.payload as Record<string, unknown> | undefined;
 }
 

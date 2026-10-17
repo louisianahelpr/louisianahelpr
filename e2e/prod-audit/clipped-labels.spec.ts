@@ -147,8 +147,56 @@ function readOverflowingControls(): { text: string; sw: number; cw: number }[] {
     if (r.width < 1 || r.height < 1 || cs.visibility === "hidden" || cs.display === "none") continue;
     // A scroller (overflow auto/scroll) is meant to be wider inside than out.
     if (/(auto|scroll)/.test(cs.overflowX)) continue;
+    // VISUALLY HIDDEN (Tailwind `sr-only`: clip rect(0 0 0 0), 1px box) paints
+    // nothing, so nothing of it can run past an edge on screen. Run 38689259675
+    // reported 116 of 169 rows from exactly these: App.tsx's "Skip to content"
+    // (sw124/cw1, every route), JobCardShell's "Expand Job Details" (cw44 from
+    // the button's min touch size, still clipped to nothing) and
+    // JobCardMetaRow's "Open <address> in Maps" (cw1). Each turns visible only
+    // on focus, which is measured on its own below.
+    let hidden = false;
+    for (let n: HTMLElement | null = el; n && !hidden; n = n.parentElement) {
+      const c = getComputedStyle(n);
+      hidden = c.clip === "rect(0px, 0px, 0px, 0px)" || /inset\(50%\)/.test(c.clipPath);
+    }
+    if (hidden) continue;
     if (el.scrollWidth > el.clientWidth + 1) out.push({ text: (el.textContent || "").trim().slice(0, 60), sw: el.scrollWidth, cw: el.clientWidth });
   }
+  return out;
+}
+
+/**
+ * Self-contained: every VISUALLY HIDDEN control measured the way a keyboard
+ * user sees it, focused (`focus:not-sr-only`). One that stays hidden when
+ * focused is skipped (a screen-reader-only label); one that shows and runs
+ * past its own box is a defect like any other. Focus and scroll are restored.
+ */
+function readFocusedHiddenControls(): { text: string; sw: number; cw: number }[] {
+  const CONTROL = 'a,button,[role="button"],[role="link"],[role="tab"],[role="menuitem"]';
+  const clipped = (el: HTMLElement) => {
+    for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+      const c = getComputedStyle(n);
+      if (c.clip === "rect(0px, 0px, 0px, 0px)" || /inset\(50%\)/.test(c.clipPath)) return true;
+    }
+    return false;
+  };
+  const out: { text: string; sw: number; cw: number }[] = [];
+  const x = window.scrollX;
+  const y = window.scrollY;
+  const before = document.activeElement as HTMLElement | null;
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(CONTROL))) {
+    if (!clipped(el)) continue;
+    el.focus({ preventScroll: true });
+    if (document.activeElement === el && !clipped(el)) {
+      const r = el.getBoundingClientRect();
+      if (r.width >= 1 && r.height >= 1 && el.scrollWidth > el.clientWidth + 1) {
+        out.push({ text: `focused: ${(el.textContent || "").trim().slice(0, 52)}`, sw: el.scrollWidth, cw: el.clientWidth });
+      }
+    }
+    el.blur();
+  }
+  before?.focus?.({ preventScroll: true });
+  window.scrollTo(x, y);
   return out;
 }
 
@@ -176,7 +224,7 @@ test("overflowing labels: no control's label runs past its own box at 320/375 (i
           .catch(() => {});
         await page.waitForTimeout(1500);
         measured++;
-        for (const c of await page.evaluate(readOverflowingControls)) {
+        for (const c of [...(await page.evaluate(readOverflowingControls)), ...(await page.evaluate(readFocusedHiddenControls))]) {
           const line = `${s.name}@${vw} "${c.text}" sw${c.sw}/cw${c.cw}`;
           console.log(`OVERFLOW ${line}`);
           wrong.push(line);

@@ -282,6 +282,11 @@ const NO_SECTION_STACK = new Set([
   "signup", "login", "forgot-password", "reset-password", "signup-pending", "account-banned", "support",
   "jobs", "user-profile", "user-profile-customer", "user-profile-missing",
   "profile-notifications", "profile-warnings", "analytics", "str-settings", "work-record", "wrapped",
+  // DeclutterItemUnavailable (src/components/declutter/DeclutterSkeletons.tsx):
+  // AppPage around ONE DeclutterNotice, "This item isn't available." poster-e2e
+  // is a tester, so the hidden 'declutter' switch shows it this page, not the
+  // 404 (prod-audit 38689259675: "no section stack found" at 320/375/390).
+  "declutter-item-missing",
 ]);
 
 /**

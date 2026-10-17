@@ -65,6 +65,9 @@ export const IDENTITY_SUBFOLDERS = [
   // delivery whose task row survives the account (helpr_id SET NULL), the
   // buyer's and seller's record of the handover, as proof-photos are.
   { bucket: "helpr-tasks", folder: "vehicle" },
+  // Shop logos, covers and photos (20261015123029): the shop CASCADEs away
+  // with the account, so nothing survives that would need them.
+  { bucket: "job-photos", folder: "shops" },
 ] as const;
 
 /**

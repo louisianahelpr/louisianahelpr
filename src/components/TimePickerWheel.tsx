@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
@@ -216,6 +216,16 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
   const parsed = parse24(value) || { hour12: 12, minute: "00", period: "AM" as const };
   const hasValue = !!value;
   const isWebDesktop = useIsWebDesktop();
+  // AM OR PM IS THE POSTER'S CHOICE (owner, 2026-10-14, Q1733: "make them
+  // pick AM/PM"). On an empty time, an hour or minute picked before AM/PM is
+  // held here and nothing is committed, so the form still reads "no time" and
+  // its gate asks for one; the first AM/PM tap commits the whole time. Before,
+  // update() filled the missing period with AM: tapping 3 and 30 committed
+  // 3:30 AM without the poster ever choosing AM (seen 2026-10-12, WebKit 390).
+  const [pending, setPending] = useState<{ hour12?: number; minute?: string }>({});
+  useEffect(() => {
+    if (value) setPending({});
+  }, [value]);
 
   // Desktop website: a native time field, not the phone wheels. Stretched
   // across a 1030px form column each wheel became a 500px-wide box showing
@@ -246,11 +256,17 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
   }
 
   const update = (field: "hour" | "minute" | "period", val: string) => {
-    const h = field === "hour" ? Number(val) : parsed.hour12;
-    const m = field === "minute" ? val : parsed.minute;
+    if (!hasValue && field !== "period") {
+      setPending((cur) => (field === "hour" ? { ...cur, hour12: Number(val) } : { ...cur, minute: val }));
+      return;
+    }
+    const base = hasValue ? parsed : { ...parsed, ...pending };
+    const h = field === "hour" ? Number(val) : base.hour12;
+    const m = field === "minute" ? val : base.minute;
     const p = (field === "period" ? (val as "AM" | "PM") : parsed.period);
     onChange(to24(h, m, p));
   };
+  const awaitingPeriod = !hasValue && (pending.hour12 != null || pending.minute != null);
 
   return (
     <div data-allow-scroll="true" className={cn("space-y-3 native-scroll-area", className)}>
@@ -258,7 +274,7 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         <Wheel
           ariaLabel="Hour"
           options={HOUR_OPTIONS}
-          value={hasValue ? parsed.hour12 : null}
+          value={hasValue ? parsed.hour12 : (pending.hour12 ?? null)}
           onChange={(v) => update("hour", v)}
           disabled={disabled}
         />
@@ -266,7 +282,7 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         <Wheel
           ariaLabel="Minute"
           options={MINUTE_OPTIONS}
-          value={hasValue ? parsed.minute : null}
+          value={hasValue ? parsed.minute : (pending.minute ?? null)}
           onChange={(v) => update("minute", v)}
           disabled={disabled}
         />
@@ -281,6 +297,11 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
         onChange={(v) => update("period", v)}
         disabled={disabled}
       />
+      {awaitingPeriod && (
+        <p role="status" className="text-ds-13 font-medium text-center" style={{ color: "hsl(var(--burnt-sienna))" }} data-testid="time-pick-period">
+          Pick AM or PM
+        </p>
+      )}
     </div>
   );
 }

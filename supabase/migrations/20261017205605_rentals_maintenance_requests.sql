@@ -1201,7 +1201,7 @@ CREATE POLICY "user-documents: landlord reads maintenance photos" ON storage.obj
 -- ---------------------------------------------------------------------------
 -- 10. Download My Data (Q290 / Declutter B9 lesson: the export ships in the
 --     same slice). The five Rentals sections are added by the very next
---     migration, 20261017061504_export_my_data_rentals_reconcile, which
+--     migration, 20261017205607_export_my_data_rentals_reconcile, which
 --     restates main's NEWEST export_my_data body plus those sections. This
 --     file no longer restates export_my_data itself: re-dated from
 --     20261015061259, its own copy would be an older body at a newer timestamp.

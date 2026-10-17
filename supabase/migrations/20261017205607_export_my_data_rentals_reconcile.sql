@@ -1,26 +1,25 @@
 -- export_my_data RECONCILE (Rentals S1): Download My Data keeps every section
--- of main's newest definition (20261017044046_export_my_data_drop_user_strikes_reconcile:
--- 20261016053541's body with Declutter wanted posts, minus the dropped
--- user_strikes section) AND the five Rentals sections for the tables
--- 20261017061457_rentals_maintenance_requests creates (rental_properties,
+-- of main's newest definition (20261017061157_shops_items: 20261017055506's
+-- body with the Shops sections) AND the five Rentals sections for the tables
+-- 20261017205605_rentals_maintenance_requests creates (rental_properties,
 -- rental_units, rental_tenancies, maintenance_requests,
 -- maintenance_request_photos).
 --
--- WHY: export_my_data is restated by several branches landing the same night.
+-- WHY: export_my_data is restated by several branches landing the same day.
 -- The one that lands last must carry main's newest body plus its own sections
 -- at the newest timestamp, so it runs LAST on prod (--include-all) and on a
 -- fresh replay (version order) alike (scripts/check-out-of-order-restatements.mjs).
--- 20261017061457 does not restate export_my_data at all: this file is the only
+-- 20261017205605 does not restate export_my_data at all: this file is the only
 -- place the Rentals sections are added.
 --
--- The body is 20261017044046's export_my_data VERBATIM with the 12 Rentals
+-- The body is 20261017061157's export_my_data VERBATIM with the 12 Rentals
 -- lines (plus one blank line) added before RETURN, and nothing else. Any later
 -- restatement must start from THIS body.
 --
 -- Replay-safe: CREATE OR REPLACE of the one (uuid) overload; the no-argument
 -- door stays dropped (Q408); plpgsql does not resolve table names at CREATE
 -- time, and every table it reads is created by an earlier migration. Grants
--- restated exactly as 20261017044046 sets them: EXECUTE for service_role only,
+-- restated exactly as 20261017061157 sets them: EXECUTE for service_role only,
 -- revoked from PUBLIC, anon and authenticated.
 
 DROP FUNCTION IF EXISTS public.export_my_data();
@@ -285,6 +284,14 @@ BEGIN
       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_problems', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'decided_by'), '[]'::jsonb) FROM public.declutter_problems t
       WHERE t.reporter_id = v_uid));
+  -- Problems the OTHER side of the member's order reported about them (RLS
+  -- already lets both sides read a problem). Without the reporter's private
+  -- fields: who reported it (reporter_id), the reporter's photo paths, and
+  -- which admin decided (decided_by, never exported).
+  v_out := v_out || jsonb_build_object('declutter_problems_about_me', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'decided_by' - 'reporter_id' - 'photo_paths'), '[]'::jsonb) FROM public.declutter_problems t
+      WHERE t.reporter_id IS DISTINCT FROM v_uid
+        AND EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id
+                     AND (o.buyer_id = v_uid OR o.seller_id = v_uid))));
   v_out := v_out || jsonb_build_object('declutter_payouts', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'stripe_transfer_id' - 'last_error'), '[]'::jsonb) FROM public.declutter_payouts t
       WHERE t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_reviews', (SELECT coalesce(jsonb_agg(CASE WHEN t.reviewer_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'reviewer_id' END), '[]'::jsonb) FROM public.declutter_reviews t
@@ -303,7 +310,52 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_wanted', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_wanted t
       WHERE t.user_id = v_uid));
 
-  -- Rentals S1 (20261017061457): the caller's properties, units, tenancies
+  -- Slice 5, Helpr delivery (20261017055505): the Helpr's vehicle, the
+  -- deliveries the member made as the Helpr (area words only: the buyer's and
+  -- the seller's exact addresses, points and ids, the drop-off code and the
+  -- staff close note belong to them or to us, not the Helpr),
+  -- the steps they took on any delivery, their delivery pay (the Stripe transfer
+  -- id is ours), and the drop-off addresses they typed as a buyer.
+  v_out := v_out || jsonb_build_object('helpr_vehicles', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_vehicles t
+      WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'dropoff_code' - 'pickup_address' - 'pickup_lat' - 'pickup_lng'
+      - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' - 'customer_id' - 'pickup_contact_id' - 'close_note'), '[]'::jsonb) FROM public.helpr_tasks t
+      WHERE t.helpr_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_task_events', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_task_events t
+      WHERE t.actor_id = v_uid));
+  v_out := v_out || jsonb_build_object('helpr_task_payouts', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'stripe_transfer_id' - 'last_error'), '[]'::jsonb) FROM public.helpr_task_payouts t
+      WHERE t.helpr_id = v_uid));
+  v_out := v_out || jsonb_build_object('declutter_delivery_dropoffs', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_delivery_dropoffs t
+      WHERE t.buyer_id = v_uid));
+
+  -- Shops slice 1 (20261017061155) and slice 2 (20261017061157): the
+  -- member's own shop (who checked its registration and who hid it are staff
+  -- ids, dropped; the hide reason is about them and stays), photo paths, the shops they follow, their items and item photos, the item
+  -- review state (the AI and word-check reasons are staff-only, dropped; the
+  -- admin's note stays), the confirmations they ticked, and the home-food
+  -- yearly confirmations and counted sales. Opening hours (shop_hours) carry
+  -- no person column and are public on the shop page, so they stay out, as
+  -- every table without one does.
+  v_out := v_out || jsonb_build_object('shops', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'sos_verified_by' - 'hidden_by'), '[]'::jsonb) FROM public.shops t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_photos t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_follows', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_follows t
+      WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_items', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_items t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_item_private', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'ai_flag_reason' - 'text_flag_reason'), '[]'::jsonb) FROM public.shop_item_private t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_item_photos', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_item_photos t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_item_attestations', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_item_attestations t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_cottage_confirmations', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_cottage_confirmations t
+      WHERE t.owner_id = v_uid));
+  v_out := v_out || jsonb_build_object('shop_cottage_sales', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.shop_cottage_sales t
+      WHERE t.owner_id = v_uid));
+
+  -- Rentals S1 (20261017205605): the caller's properties, units, tenancies
   -- (as landlord or tenant), maintenance requests and their photos.
   v_out := v_out || jsonb_build_object('rental_properties', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'ownership_reviewed_by'), '[]'::jsonb) FROM public.rental_properties t
       WHERE t.owner_id = v_uid));

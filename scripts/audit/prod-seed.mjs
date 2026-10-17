@@ -785,6 +785,46 @@ async function restoreEmptyInbox(adminId) {
   console.log(`admin seed inbox: removed ${ids.length} test message(s) (oldest ${rows.map((r) => r.created_at).sort()[0]})`);
 }
 
+/**
+ * POSTER-E2E'S INBOX HAS NO HIDDEN UNREAD THREAD (docs/OPEN.md
+ * Q?inbox-hidden-unread-residue). The prod-audit measures /messages as
+ * poster-e2e: page-settle, the web-vitals first screens and shell-spacing.
+ * Their numbers assume the inbox's hidden-unread bar ("1 unread conversation
+ * isn't in Active") is absent: page-settle models a returning device, and the
+ * bar's only remaining shift is a device's first visit (HiddenUnreadBar.tsx).
+ * prod-audit 39008504928 (2026-10-17) went red three ways on one unread
+ * message helper-e2e sent at 06:34:51Z on completed journey job c92f73d5
+ * ("[E2E DO NOT ACCEPT] J c0biv6"): /messages cls 0.0394 at 375, mobile LCP
+ * 6152 ms (the bar's text), section gaps [18]. So each --apply marks read
+ * the unread messages TO poster-e2e that the inbox would hide: on a seed job
+ * whose status is not one of liveThread.ts's LIVE_JOB_STATUSES, not a team
+ * thread, from a seed (is_seed) sender. A real person's message is never
+ * touched; a live thread's unread stays as it is.
+ * src/test/prodSeedNoHiddenUnread.test.ts holds this.
+ */
+const LIVE_JOB_STATUSES = ["accepted", "in_progress", "revision_requested", "disputed", "pending_approval"];
+async function restoreNoHiddenUnread(posterId) {
+  const unread = await select(
+    `messages?receiver_id=eq.${posterId}&read=eq.false&team_thread_user_id=is.null&job_id=not.is.null&select=id,sender_id,job_id,created_at`,
+  );
+  if (!unread.length) {
+    console.log("poster inbox: no unread message");
+    return;
+  }
+  const jobs = await select(`jobs?id=${inList([...new Set(unread.map((m) => m.job_id))])}&select=id,status,is_seed`);
+  const hiddenJob = new Set(jobs.filter((j) => j.is_seed === true && !LIVE_JOB_STATUSES.includes(j.status)).map((j) => j.id));
+  const senders = [...new Set(unread.map((m) => m.sender_id))];
+  const seedSender = new Set((await select(`profiles?user_id=${inList(senders)}&is_seed=is.true&select=user_id`)).map((p) => p.user_id));
+  const ids = unread.filter((m) => hiddenJob.has(m.job_id) && seedSender.has(m.sender_id)).map((m) => m.id);
+  if (!ids.length) {
+    console.log(`poster inbox: ${unread.length} unread, none hidden from Active on a seed job`);
+    return;
+  }
+  const done = await rest("PATCH", `messages?id=${inList(ids)}&read=eq.false&select=id`, { read: true, read_at: new Date().toISOString() }, { prefer: "return=representation" });
+  if (!Array.isArray(done) || done.length !== ids.length) throw new Error(`poster inbox: marked ${done?.length ?? 0} of ${ids.length} hidden unread messages read`);
+  console.log(`poster inbox: marked ${ids.length} hidden unread seed message(s) read (oldest ${unread.map((m) => m.created_at).sort()[0]})`);
+}
+
 async function apply() {
   const posterId = await requireSeed(POSTER.email);
   const helperId = await requireSeed(HELPER.email);
@@ -798,6 +838,7 @@ async function apply() {
   console.log(`accounts: poster, helper + ${Object.keys(ids).length} owned seed accounts`);
   await enrolTestAccounts([posterId, helperId, ...Object.values(ids)]);
   await restoreEmptyInbox(ids.admin);
+  await restoreNoHiddenUnread(posterId);
   await upsert("user_roles", Object.entries(OWNED).filter(([, s]) => s.role).map(([k, s]) => ({ id: sid(`role:${k}`), user_id: ids[k], role: s.role })), "id", { naturalKey: "user_id,role" });
 
   const posterJobs = [

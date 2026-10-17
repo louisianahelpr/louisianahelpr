@@ -16,8 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
-import { isStorageObjectPath } from "@/lib/storagePath";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "./errorCopy";
 
 export type TaskSize = "small" | "large" | "xl";
 type TaskStatus = "open" | "accepted" | "picked_up" | "delivered" | "confirmed" | "unfilled" | "cancelled" | "failed";
@@ -214,15 +213,7 @@ export function uploadVehiclePhoto(userId: string, file: File): Promise<string> 
   return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file);
 }
 
-/**
- * A signed URL (10 minutes) for a task photo the caller may read. A path that
- * is not one is null (nothing to show); a refusal or a storage error THROWS,
- * so the screen says the photo couldn't load instead of hiding the delivery's
- * evidence (lh-silent-failure review #6, 2026-10-16).
- */
-export async function taskPhotoUrl(path: string): Promise<string | null> {
-  if (!isStorageObjectPath(path)) return null;
-  const { data: signed, error } = await supabase.storage.from("helpr-tasks").createSignedUrl(path, 600);
-  if (error || !signed?.signedUrl) throw new Error("photo_unavailable");
-  return signed.signedUrl;
-}
+// taskPhotoUrl lives in ./photoUrl so the admin problem card can read a task
+// photo without importing this module (it would then be shared by two lazy
+// chunks and ride in signed-in-shared, on every signed-in page's boot path).
+export { taskPhotoUrl } from "./photoUrl";

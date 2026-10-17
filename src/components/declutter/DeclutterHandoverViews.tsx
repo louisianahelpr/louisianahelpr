@@ -20,7 +20,8 @@
  * NOT BUILT (needs a dependency decision first, see the handoff): drawing the
  * QR and scanning it with the camera. The 4-digit code does the same job.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -46,7 +47,10 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
-import { OrderDeliveryPanel } from "./DeclutterDeliveryViews";
+// The delivery screens load on their own (Q178, 2026-10-17): imported statically
+// from two Declutter screens, the shared Helpr task module rode in
+// signed-in-shared and put /posts over its critical-path budget.
+const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -161,7 +165,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         <>
           {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. */}
           {order.deliveryTaskId
-            ? <OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} />
+            ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
           <ProblemForm orderId={order.orderId} />
         </>

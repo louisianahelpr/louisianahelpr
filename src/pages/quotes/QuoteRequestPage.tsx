@@ -30,12 +30,13 @@ import {
   bookAcceptedQuote,
   cancelQuoteRequest,
   dollars,
-  fetchBookedJobPaid,
+  fetchBookedJobPayment,
   fetchMyQuoteRequests,
   fetchQuotesForRequest,
   offersOf,
   quotePhotoUrl,
   switchToSetPrice,
+  type BookedJobPayment,
   type MyQuoteRequest,
   type RequestQuote,
 } from "@/lib/quotes/api";
@@ -93,6 +94,9 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
   );
 }
 
+/** Q1862: a cancelled quote checkout comes back to its request page, not an empty Post a Job. */
+const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`;
+
 function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -102,7 +106,7 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
     mutationFn: async () => {
       const jobId = await switchToSetPrice(request.id, budget ?? 0);
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      await openEscrowCheckout(jobId);
+      await openEscrowCheckout(jobId, { returnPath: requestReturnPath(request.id) });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
@@ -140,6 +144,23 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
   );
 }
 
+/** Q1874: only a job whose money is held or paid out reads "paid". */
+function bookedNoticeTitle(p: Exclude<BookedJobPayment, "not_paid">, ownPrice: boolean): string {
+  if (p === "paid") return ownPrice ? "Posted and paid" : "Booked and paid";
+  if (p === "refunded") return "Refunded";
+  if (p === "cancelled") return "Cancelled";
+  if (p === "cancelling") return "Being cancelled";
+  if (p === "disputed") return "Payment disputed";
+  return ownPrice ? "Posted" : "Booked";
+}
+
+const BOOKED_NOTICE_BODY: Partial<Record<BookedJobPayment, string>> = {
+  refunded: "This job's payment was refunded.",
+  cancelled: "This job was cancelled.",
+  cancelling: "This job is being cancelled.",
+  disputed: "This job's payment is being disputed with the card's bank.",
+};
+
 function RequestView({ id }: { id: string }) {
   const qc = useQueryClient();
   const reqs = useQuery({ queryKey: ["quotes", "my-requests"], queryFn: fetchMyQuoteRequests });
@@ -150,21 +171,21 @@ function RequestView({ id }: { id: string }) {
   // did not finish.
   const bookedJobId = request && (request.status === "agreed" || request.status === "closed") ? request.job_id : null;
   const paid = useQuery({
-    queryKey: ["quotes", "booked-paid", bookedJobId],
+    queryKey: ["quotes", "booked-payment", bookedJobId],
     enabled: !!bookedJobId,
-    queryFn: () => fetchBookedJobPaid(bookedJobId as string),
+    queryFn: () => fetchBookedJobPayment(bookedJobId as string),
   });
 
   const book = useMutation({
     mutationFn: async () => {
       const jobId = await bookAcceptedQuote(id);
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      await openEscrowCheckout(jobId);
+      await openEscrowCheckout(jobId, { returnPath: requestReturnPath(id) });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
   const payJob = useMutation({
-    mutationFn: () => openEscrowCheckout(bookedJobId as string),
+    mutationFn: () => openEscrowCheckout(bookedJobId as string, { returnPath: requestReturnPath(id) }),
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
   const cancel = useMutation({
@@ -202,7 +223,7 @@ function RequestView({ id }: { id: string }) {
           </Button>
         </QuotesNotice>
       )}
-      {bookedJobId && paid.data === false && (
+      {bookedJobId && paid.data === "not_paid" && (
         <QuotesNotice title="Not paid yet">
           <p>
             {ownPrice ? "Pay to post your job." : "Pay to book it."} The money is held until the job is
@@ -216,8 +237,9 @@ function RequestView({ id }: { id: string }) {
       {bookedJobId && paid.isError && (
         <ErrorState variant="inline" title="We couldn't check whether this job is paid." onRetry={() => void paid.refetch()} />
       )}
-      {bookedJobId && paid.data === true && (
-        <QuotesNotice title={ownPrice ? "Posted and paid" : "Booked and paid"}>
+      {bookedJobId && paid.data && paid.data !== "not_paid" && (
+        <QuotesNotice title={bookedNoticeTitle(paid.data, ownPrice)}>
+          {BOOKED_NOTICE_BODY[paid.data] ? <p>{BOOKED_NOTICE_BODY[paid.data]}</p> : null}
           <Link to={`/jobs/${bookedJobId}`} className="font-medium text-foreground underline underline-offset-2">
             Open the job
           </Link>

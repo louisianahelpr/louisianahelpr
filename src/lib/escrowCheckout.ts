@@ -16,6 +16,12 @@ export interface EscrowCheckoutOptions {
   saveCardForFuture?: boolean;
   /** Gift card redemption: create-payment settles the gift instead of the full charge. */
   giftCardId?: string | null;
+  /**
+   * Where a cancelled checkout comes back to (Q1862). create-payment accepts
+   * only its allowlisted in-app paths (ESCROW_RETURN_PATHS) and refuses any
+   * other; omitted, it is Post a Job.
+   */
+  returnPath?: string;
 }
 
 /** create-payment's answer: a Checkout URL, or a refusal sentence in `error`. */
@@ -32,6 +38,7 @@ export function requestEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions
       native: isNativePlatform,
       saveCardForFuture: !!opts.saveCardForFuture,
       ...(opts.giftCardId ? { giftCardId: opts.giftCardId } : {}),
+      ...(opts.returnPath ? { returnPath: opts.returnPath } : {}),
     },
   });
 }
@@ -50,8 +57,8 @@ export class EscrowCheckoutError extends Error {
   }
 }
 
-export async function openEscrowCheckout(jobId: string): Promise<void> {
-  const { data, error } = await requestEscrowCheckout(jobId);
+export async function openEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions = {}): Promise<void> {
+  const { data, error } = await requestEscrowCheckout(jobId, opts);
   const url = data?.url;
   const refusal = data?.error;
   if (error || typeof refusal === "string" || typeof url !== "string" || !url) {

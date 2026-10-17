@@ -256,6 +256,35 @@ describe("PaymentSuccess", () => {
       };
     });
 
+    // Q1873: paying for a quote job (or any job the kept Post a Job draft was
+    // not sent to Checkout for) must not delete that unrelated draft.
+    // @mutate src/pages/post-job/PaymentSuccess.tsx | if (resolvedJobId) dropDraftPaidAs(resolvedJobId); | void resolvedJobId;
+    // @mutate src/hooks/useDraftJob.ts | if (safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) !== paidJobId) return; | void paidJobId;
+    it("keeps a Post a Job draft that was sent to Checkout for a DIFFERENT job (Q1873)", async () => {
+      localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unrelated draft" }));
+      localStorage.setItem("helpr_draft_checkout_job", "40000000-0000-4000-8000-000000000004");
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      expect(localStorage.getItem("helpr_draft_job")).toContain("Unrelated draft");
+      expect(localStorage.getItem("helpr_draft_checkout_job")).toBe("40000000-0000-4000-8000-000000000004");
+    });
+
+    it("keeps a Post a Job draft that was never sent to Checkout (Q1873)", async () => {
+      localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unsent draft" }));
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      expect(localStorage.getItem("helpr_draft_job")).toContain("Unsent draft");
+    });
+
+    it("drops the draft that WAS sent to Checkout for the paid job", async () => {
+      localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Spent draft" }));
+      localStorage.setItem("helpr_draft_checkout_job", JOB_ID);
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await waitFor(() => expect(localStorage.getItem("helpr_draft_job")).toBeNull());
+      expect(localStorage.getItem("helpr_draft_checkout_job")).toBeNull();
+    });
+
     it("renders the success claim and the amount", async () => {
       renderAt();
       const heading = await screen.findByRole("heading", { level: 1 });

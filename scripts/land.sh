@@ -353,6 +353,24 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # On the rebased tree, against the land base. Guard: src/test/outOfOrderRestatements.test.ts.
   node scripts/check-out-of-order-restatements.mjs --base origin/main
 
+  # migration-lint.yml's "Block unacknowledged destructive DDL" step, on the
+  # same file set it lints (migrations added or modified since the base). land.sh
+  # never ran it, so PR #3302 (2026-10-17, batch A) went red in CI on
+  # `DROP TABLE public.user_strikes` with no DESTRUCTIVE-DDL-ACK after a green
+  # land, and cost a ~15 min CI round. Any finding stops the land before the push.
+  # Guard: src/test/landChecksDestructiveDdl.test.ts (Q?land-destructive-ddl).
+  MIG_CHANGED=$(git diff --name-only --diff-filter=AM origin/main HEAD -- 'supabase/migrations/*.sql')
+  if [ -n "$MIG_CHANGED" ]; then
+    # shellcheck disable=SC2086 # one path per word; migration names carry no spaces
+    if ! node scripts/check-destructive-ddl.mjs $MIG_CHANGED; then
+      echo "land: unacknowledged destructive DDL (above); not pushing. Add the per-statement acknowledgement scripts/check-destructive-ddl.mjs asks for, or drop the statement." >&2
+      exit 1
+    fi
+  else
+    echo "land: no migration added or modified; skipping the destructive-DDL check."
+  fi
+  phase "destructive-DDL check"
+
   # The edge type check (`deno check` of every edge function, the required
   # "Lint, type-check, build, test" job's "Edge function type check" step).
   # land.sh never ran it, so PR #3294 (2026-10-17, declutter moving-out) went

@@ -10100,6 +10100,10 @@ export type Database = {
           other_job_id: string
         }[]
       }
+      helpr_flat_fee_cents: {
+        Args: { p_flat_cents: number; p_percent: number; p_share_cents: number }
+        Returns: number
+      }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
       identity_fingerprint: {
         Args: {

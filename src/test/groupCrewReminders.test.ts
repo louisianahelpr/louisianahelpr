@@ -31,10 +31,10 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
 // @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
 // @mutate supabase/migrations/20261015051301_declutter_shared_star_rating.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
-// @mutate supabase/migrations/20261012175545_earnings_export_withheld.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
+// @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
-// @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
+// @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
 // @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
 // @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
@@ -53,7 +53,8 @@ const MIGRATIONS = resolve(root, "supabase/migrations");
 const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
 /** Q731 + Q729 (2026-10-05): the last helper_id-only readers a crew needs. */
 const CREW_COUNTS = "20261005171601_crew_counts_exports_and_ban_alert.sql";
-const Q1324_FOLLOW_UP = "20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql";
+/** Q1840 (2026-10-17) restates the ban settlement (after Q1324's 20261006030849) and the export. */
+const Q1840 = "20261017104746_sql_notices_exports_flat_fee.sql";
 /** Q729 + Q1282 (2026-10-05): a block, and an unanswered spot, reach a crew member. */
 const CREW_BLOCK = "20261005172453_crew_block_and_unanswered_spot.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
@@ -102,11 +103,12 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       expect(body(fn), `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
       // settle_one_off_jobs_for_banned_account is restated by Q1324's follow-up
       // (the confirm's as-of price), body otherwise the Q731 one.
+      // Q1379 restated the export (one definition of net), Q1520 again (the
+      // withheld amounts in the fee); it still reads the roster.
+      // Q1840 restates both (the flat 70c on a notice / no-ledger row), roster
+      // reads unchanged.
       expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(
-        fn === "settle_one_off_jobs_for_banned_account" ? Q1324_FOLLOW_UP
-          // Q1379 restated the export (one definition of net), Q1520 again (the
-          // withheld amounts in the fee); it still reads the roster.
-          : fn === "get_helper_earnings_export" ? "20261012175545_earnings_export_withheld.sql"
+        fn === "settle_one_off_jobs_for_banned_account" || fn === "get_helper_earnings_export" ? Q1840
           : CREW_COUNTS,
       );
     }

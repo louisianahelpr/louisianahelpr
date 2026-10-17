@@ -136,8 +136,7 @@ const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/Declut
 const QuotesPage = lazyWithPreload(() => import("./pages/quotes/QuotesPage"));
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
 const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage"));
-// Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless
-// the hidden 'shops' switch is on for the member (ShopsGate).
+// Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless the hidden 'shops' switch is on for the member (ShopsGate).
 const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
 const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
 const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));

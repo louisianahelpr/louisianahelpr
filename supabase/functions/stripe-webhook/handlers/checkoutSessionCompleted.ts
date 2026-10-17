@@ -835,7 +835,78 @@ async function settleCheckoutSession(
   // duplicate-funding branch below can put it back if the job turns out to be
   // funded already (the gift must not stay spent on a job it did not pay for).
   let giftConsumedHere = false;
-  if (giftCardId) {
+  // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): a bank checkout D1
+  // whose first delivery consumed the gift and then threw is retried by
+  // Stripe for days. If D1's debit bounced meanwhile, return_bounced_gift_card
+  // gave the gift back and the poster may have reserved it again for a new
+  // checkout D2; D1's retry would then spend D2's reservation on a payment
+  // that failed. So a BANK checkout that is no longer the job's current one
+  // (another session is stamped, or none is: the bounce or an expiry cleared
+  // it) asks Stripe whether its payment failed, and if it did, leaves the
+  // reservation alone AND stops: a checkout whose payment failed has nothing
+  // to write to the job. Stamping its dead PaymentIntent on the job would
+  // hide a newer bank checkout's PaymentIntent from paymentIntentSucceeded
+  // (which finds the job by it), or send a funded job to the duplicate-funding
+  // refund of a PaymentIntent with no charge (review of b837455eb, #1). A CARD checkout (session paid) is never skipped:
+  // its money is captured, and a stale-but-paid D1 must still consume the
+  // gift it was priced against (the Q1417 race; the duplicate-funding branch
+  // below puts the gift back if the job turns out to be funded already).
+  let staleBouncedCheckout = false;
+  let staleJobHasSession = true;
+  const staleJobId = (session.metadata as any)?.job_id as string | undefined;
+  if (giftCardId && staleJobId && session.payment_status !== "paid") {
+    const { data: currentJob, error: currentJobErr } = await supabase
+      .from("jobs")
+      .select("stripe_session_id, payment_status")
+      .eq("id", staleJobId)
+      .maybeSingle();
+    if (currentJobErr) {
+      throw new Error(`jobs read failed before a gift consume for session ${session.id}: ${currentJobErr.message}`);
+    }
+    const cj = currentJob as { stripe_session_id?: string | null; payment_status?: string | null } | null;
+    // No session on the job counts as not current too: the failed-payment
+    // check below is the real gate (review of b837455eb, #3).
+    const notCurrent = !!cj && cj.stripe_session_id !== session.id;
+    staleJobHasSession = !!cj?.stripe_session_id;
+    const sessionPi = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent as any)?.id as string | undefined;
+    if (notCurrent && sessionPi) {
+      // A Stripe error throws: the retry asks again rather than guessing.
+      const sessionPiRow = await stripe.paymentIntents.retrieve(sessionPi);
+      staleBouncedCheckout = sessionPiRow?.status === "requires_payment_method" || sessionPiRow?.status === "canceled";
+    }
+  }
+  if (giftCardId && staleBouncedCheckout) {
+    logStep("Completion of a bank checkout whose payment failed and that is no longer the job's current one — nothing recorded, gift left as it is", {
+      giftCardId, sessionId: session.id, jobId: staleJobId ?? null,
+    });
+    // Review of b837455eb (#2): if the first delivery threw before its
+    // consume, the gift is still 'reserved' on this job, the bounce's return
+    // answered not_consumed, and nothing else frees it if the poster walks
+    // away. Say so when no newer checkout holds it (best-effort read: the
+    // skip itself is already decided).
+    const { data: heldGift, error: heldGiftErr } = await supabase
+      .from("gift_cards")
+      .select("status, job_id")
+      .eq("id", giftCardId)
+      .maybeSingle();
+    if (heldGiftErr) {
+      logStep("WARN: could not read the gift after skipping a failed bank checkout — no page sent", { giftCardId, error: heldGiftErr.message });
+    }
+    const hg = heldGift as { status?: string | null; job_id?: string | null } | null;
+    if (!staleJobHasSession && hg?.status === "reserved" && hg.job_id === staleJobId) {
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Gift card still reserved on a job whose bank payment failed",
+        message: "A bank checkout's payment failed and its completion was redelivered after a newer checkout took over (or none is open). The gift was never consumed and is still reserved on this job. If the poster does not pay again, un-reserve it (status 'sent', job_id NULL) so they can use it.",
+        fields: { session_id: session.id, gift_card_id: giftCardId, job_id: staleJobId ?? null },
+        oncePerDayKey: `gift-reserved-bounced:${giftCardId}`,
+      });
+    }
+    return;
+  } else if (giftCardId) {
     const consumeJobId = (session.metadata as any)?.job_id as string | undefined;
     let consumeQ = supabase
       .from("gift_cards")

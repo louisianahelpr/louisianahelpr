@@ -14,6 +14,7 @@
 // @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   "plumbing",\n  "hvac", |   "hvac",
 // @mutate src/components/postjob/DetailsSection.tsx |           <LicenseWarning category={category} />\n | \n
 // @mutate src/components/postjob/detailsSection/LicenseWarning.tsx |   if (!text) return null; |   if (text) return null;
+// @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   moving:\n | \n  _moving:\n
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,10 +28,26 @@ afterEach(cleanup);
 
 const LICENSED_TRADES = ["electrical", "plumbing", "hvac", "roofing", "carpentry", "flooring", "concrete_masonry", "fencing", "appliance_repair"];
 const UNLICENSED_TRADES = ["welding", "auto_repair", "pressure_washing"];
+// Every category the poster is warned on, by name: adding or dropping one is a
+// decision (Q1835: the owner said YES to Moving on 2026-10-17).
+const WARNED = ["appliance_repair", "electrical", "hvac", "moving", "plumbing", "yard_work"];
 
 describe("T2: licensed trades and the poster warning", () => {
   it("has warnings to check (inventory floor)", () => {
     expect(Object.keys(LICENSE_WARNINGS).length).toBeGreaterThan(3);
+  });
+
+  it("warns on exactly the decided categories, Moving included (Q1835)", () => {
+    expect(Object.keys(LICENSE_WARNINGS).sort()).toEqual(WARNED);
+  });
+
+  it("Moving's heads-up names the household-goods permit and speaks only of hauling", () => {
+    render(<LicenseWarning category="moving" />);
+    const text = screen.getByRole("note").textContent ?? "";
+    expect(text).toMatch(/Public Service Commission/);
+    expect(text).toMatch(/hauling/);
+    // Plain words to whoever posts: never addressed to Helprs or posters by role.
+    expect(text).not.toMatch(/\b(helprs?|helpers?|posters?)\b/i);
   });
 
   it("every warned category offers the Licensed tier the copy points at", () => {

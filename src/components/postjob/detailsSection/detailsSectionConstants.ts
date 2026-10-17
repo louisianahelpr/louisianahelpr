@@ -97,6 +97,12 @@ export const CREDENTIAL_TIER_CATEGORIES = new Set([
 //               nola.gov Class A electrical license).
 //   yard_work   R.S. 3:3804: tree removal, trimming or pruning for pay needs an
 //               LDAF arborist license (small pruning under 2 inches excepted).
+//   moving      R.S. 45:162 + 45:164(E): hauling household goods within
+//               Louisiana for pay needs a Public Service Commission certificate,
+//               with cargo insurance, workers' comp and a bond (T2 research,
+//               docs/OPEN.md Q1835; owner said YES to the warning 2026-10-17).
+//               Labor-only help (loading, carrying, no hauling) was not
+//               confirmed either way, so the copy speaks only of hauling.
 // Copy is a heads-up, not legal advice, and offers the "Licensed" tier as the
 // way to act on it.
 export const LICENSE_WARNINGS: Readonly<Record<string, string>> = {
@@ -110,6 +116,8 @@ export const LICENSE_WARNINGS: Readonly<Record<string, string>> = {
     "Heads up: some Louisiana cities, including New Orleans, require a licensed electrician for electrical work. Choose \"Licensed\" below to get only licensed pros.",
   yard_work:
     "Heads up: cutting, trimming or removing trees for pay needs a Louisiana arborist license. If your job includes tree work, choose \"Licensed\" below.",
+  moving:
+    "Heads up: hauling household goods for pay in Louisiana needs a state moving permit from the Public Service Commission, plus cargo insurance. If your job includes hauling your things, choose \"Licensed\" below.",
 };
 
 // The tier options rendered in the "Who can apply?" segmented control.

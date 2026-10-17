@@ -56,6 +56,17 @@ export const JOB_CATEGORY_VALUES = Object.keys(JOB_CATEGORY_LABELS) as JobCatego
 export const JOB_CATEGORIES: ReadonlyArray<{ value: JobCategory; label: string }> =
   JOB_CATEGORY_VALUES.map((value) => ({ value, label: JOB_CATEGORY_LABELS[value] }));
 
+/**
+ * The wording a category's SKILL chip uses on the profile editor (saved into
+ * profiles.skills). "Moving" and "Events" get a nudge ("Moving Help" / "Event
+ * Help") since they describe a skill offered, not a job being posted. Mirrored
+ * by supabase/functions/_shared/categorySkillMatch.ts SKILL_CHIP_LABELS, which
+ * job-match scoring reads (Q1832; src/test/edge/instant-job-match.test.ts).
+ */
+export function skillChipLabel(value: JobCategory): string {
+  return value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : JOB_CATEGORY_LABELS[value];
+}
+
 /** Label for a category value, falling back to the raw value. */
 export function jobCategoryLabel(value: string): string {
   return JOB_CATEGORY_LABELS[value as JobCategory] ?? formatCategory(value);

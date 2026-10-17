@@ -3,6 +3,7 @@ import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { skillMatchesCategory } from "../_shared/categorySkillMatch.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -254,8 +255,11 @@ serve(async (req) => {
         if (helperLoc && (jobLocation.includes(helperLoc) || helperLoc.includes(jobLocation))) {
           score += 3;
         }
-        // Category/skills match
-        if (helperSkills.some((s: string) => jobCategory.includes(s) || s.includes(jobCategory))) {
+        // Category/skills match. Skills are saved as chip LABELS ("Yard Work"),
+        // the job as the enum VALUE ("yard_work"): skillMatchesCategory knows
+        // both spellings (Q1832; a bare substring test never matched a
+        // multi-word category).
+        if (helperSkills.some((s: string) => skillMatchesCategory(s, jobCategory))) {
           score += 2;
         }
         // Title keyword match

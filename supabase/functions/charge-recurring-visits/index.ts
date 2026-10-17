@@ -1408,8 +1408,8 @@ serve(async (req) => {
         // and was already paid on the first visit.
 
         // Sales tax. Louisiana is an enumerated-services state, so only the
-        // `assembly` and `handyman` labor lines are taxable — every other
-        // category is $0 and needs no rate at all.
+        // labor lines in TAXABLE_CATEGORIES (assembly, handyman and the twelve
+        // trades) are taxable — every other category is $0 and needs no rate.
         //
         // This used to read `parish_tax_rates` for EVERY series, taxable or
         // not. That table was retired on 2026-08-23 (owner decision: quote

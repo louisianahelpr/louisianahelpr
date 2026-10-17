@@ -208,7 +208,10 @@ async function writeSeedJobs(rows) {
   for (const { diff, ids: gids } of groups.values()) {
     for (let i = 0; i < gids.length; i += 100) {
       const chunk = gids.slice(i, i + 100);
-      const out = await rest("PATCH", `jobs?id=${inList(chunk)}`, diff, { prefer: "return=representation" });
+      // `is_seed=eq.true`: a fixed seed id can only ever rewrite a seed row; a
+      // non-seed row with that id matches nothing and the count check throws
+      // (lh-money-escrow review of this seed, 2026-10-17, note 5).
+      const out = await rest("PATCH", `jobs?id=${inList(chunk)}&is_seed=eq.true`, diff, { prefer: "return=representation" });
       if (!Array.isArray(out) || out.length !== chunk.length) throw new Error(`jobs: PATCH ${Object.keys(diff).join(",")} matched ${out?.length ?? 0} of ${chunk.length}`);
       patched += chunk.length;
     }
@@ -216,7 +219,7 @@ async function writeSeedJobs(rows) {
   const missing = rows.filter((r) => !existing.has(r.id));
   if (missing.length) {
     try {
-      await upsert("jobs", missing);
+      await upsert("jobs", missing.map((r) => ({ ...r, is_seed: true })));
     } catch (e) {
       if (!/maximum of 5 open jobs/.test(String(e?.message))) throw e;
       // Name what holds the cap (the trigger's own WHERE), so the leak is found by its rows, not guessed at.

@@ -47,5 +47,6 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   visit_time_invalid: "Pick a time in the next 90 days.",
   no_visit_proposed: "The Helpr hasn't offered a time yet.",
   visit_time_changed: "The Helpr changed the time. Check the new one.",
+  visit_time_passed: "That time has passed. Ask the Helpr to offer a new one.",
   job_not_cancellable: "That job can't be cancelled here now. It may have just been paid. Refresh to see it.",
 };

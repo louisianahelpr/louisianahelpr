@@ -1051,6 +1051,8 @@ export const RPC_ERROR_COPY = {
     request_not_found: RC.request_not_found,
     under_18: RC.under_18,
     visit_time_changed: RC.visit_time_changed,
+    visit_time_passed: RC.visit_time_passed,
+    tenancy_not_found: RC.tenancy_not_found,
   },
   rentals_propose_visit: {
     account_restricted: RC.account_restricted,

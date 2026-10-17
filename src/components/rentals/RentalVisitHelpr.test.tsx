@@ -8,6 +8,7 @@
  * @mutate src/components/rentals/RentalVisitHelpr.tsx |     mutationFn: () => proposeVisit(jobId, new Date(when).toISOString()), |     mutationFn: async () => undefined,
  * @mutate src/components/rentals/RentalVisitHelpr.tsx |             ? `Rental repair: the tenant OK'd ${fmtDate(v.proposedFor)}.` |             ? `Rental repair: you offered ${fmtDate(v.proposedFor)}. Waiting for the tenant to OK it.`
  * @mutate src/pages/jobs/AppliedJobCard.tsx |                 <RentalVisitHelpr jobId={app.job_id} /> |                 {null}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | && !!job.helper_confirmed_at && VISIT | && VISIT
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -76,5 +77,7 @@ describe("RentalVisitHelpr", () => {
     const src = blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"));
     expect(src).toContain('import("@/components/rentals/RentalVisitHelpr")');
     expect(src).toContain("<RentalVisitHelpr jobId={app.job_id} />");
+    // Only a Helpr who said yes (lh-authz-rls review of 39ee72808 #1): never on an offer card.
+    expect(src).toMatch(/app\.status === "accepted" && !!job\.helper_confirmed_at && VISIT_STATUSES\.has/);
   });
 });

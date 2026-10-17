@@ -480,7 +480,7 @@ function AppliedJobCardInner({
               </section>
             )}
             {showNotes && notes}
-            {!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && VISIT_STATUSES.has(job.status ?? "") && (
+            {!isMinimalCard && expandedJobIds.has(app.job_id) && app.status === "accepted" && !!job.helper_confirmed_at && VISIT_STATUSES.has(job.status ?? "") && (
               <Suspense fallback={null}>
                 <RentalVisitHelpr jobId={app.job_id} />
               </Suspense>

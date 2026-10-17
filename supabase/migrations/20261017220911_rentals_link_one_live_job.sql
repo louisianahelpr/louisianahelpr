@@ -44,7 +44,10 @@
 -- but no cycle: a link waiting on the request holds only its NEW job, and the
 -- functions that hold a job before the request (rentals_tenant_answer_fixed,
 -- rentals_propose_visit) lock only jobs past 'open', which the cancel's
--- status = 'open' filter never locks.
+-- status = 'open' filter never locks. The one cycle is a link of the request
+-- to its OWN current job racing a cancel of that job; the app never sends it
+-- (the link runs only after a fresh insert) and the deadlock detector aborts
+-- one side, both outcomes money-safe (re-review nit 4).
 -- Two concurrent links serialize on the request row; under READ COMMITTED the
 -- second one's SELECT ... FOR UPDATE re-reads the committed job_id and is
 -- refused.

@@ -92,7 +92,7 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   license_url text, insurance_url text);
 CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, document_url text);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, status text NOT NULL DEFAULT 'open',
-  payment_status text, stripe_session_id text, helper_id uuid);
+  payment_status text, stripe_session_id text, helper_id uuid, helper_confirmed_at timestamptz);
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, title text, message text,
   type text, link text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.notification_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, category text, channel text,
@@ -457,6 +457,10 @@ const soon = one(await svc(`SELECT date_trunc('minute', now() + interval '2 days
 ok(refused(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', '${soon}')`), /job_not_found/, "P0002"),
   "visit: a member who is not the job's Helpr cannot propose");
 await svc(`UPDATE public.jobs SET helper_id = '${HELPR}' WHERE id = '${jobL}'`);
+ok(refused(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', '${soon}')`), /job_not_found/, "P0002"),
+  "visit: a Helpr only OFFERED the job (helper_confirmed_at NULL) cannot propose (lh-authz-rls #1)");
+ok(empty(await visit(HELPR)), "visit: nor read the job's visit");
+await svc(`UPDATE public.jobs SET helper_confirmed_at = now() WHERE id = '${jobL}'`);
 ok(refused(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', now() - interval '1 hour')`), /visit_time_invalid/, "22023"),
   "visit: a time in the past is refused");
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_confirm_visit('${req1}', '${soon}')`), /no_visit_proposed/, "P0002"),
@@ -484,6 +488,18 @@ ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id =
 const later = one(await svc(`SELECT date_trunc('minute', now() + interval '3 days')::text`));
 ok(Array.isArray(await as("authenticated", HELPR, `SELECT public.rentals_propose_visit('${jobL}', '${later}')`))
   && rows(await visit(HELPR))[0]?.c == null, "visit: a new proposal clears the old confirmation");
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${TENANT}' AND title = 'A Helpr offered a visit time'`)) === 1,
+  "visit: a new time within 10 minutes does not notify the tenant again (lh-authz-rls #4)");
+await svc(`UPDATE public.maintenance_requests SET visit_proposed_for = now() - interval '1 hour' WHERE id = '${req1}'`);
+const past = one(await svc(`SELECT visit_proposed_for::text FROM public.maintenance_requests WHERE id = '${req1}'`));
+ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_confirm_visit('${req1}', '${past}')`), /visit_time_passed/, "22023"),
+  "visit: a time that has already passed cannot be OK'd (lh-authz-rls #3)");
+await svc(`UPDATE public.maintenance_requests SET visit_proposed_for = '${later}' WHERE id = '${req1}'`);
+const tenancyOf = one(await svc(`SELECT tenancy_id::text FROM public.maintenance_requests WHERE id = '${req1}'`));
+await svc(`UPDATE public.rental_tenancies SET status = 'ended' WHERE id = '${tenancyOf}'`);
+ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_confirm_visit('${req1}', '${later}')`), /tenancy_not_found/, "P0002"),
+  "visit: a former tenant cannot OK someone coming in (lh-authz-rls #2)");
+await svc(`UPDATE public.rental_tenancies SET status = 'active' WHERE id = '${tenancyOf}'`);
 await svc(`UPDATE public.jobs SET status = 'completed' WHERE id = '${jobL}'`);
 ok(refused(await as("authenticated", TENANT, `SELECT public.rentals_confirm_visit('${req1}', '${later}')`), /request_not_found/, "P0002"),
   "visit: no confirming once the job is done");

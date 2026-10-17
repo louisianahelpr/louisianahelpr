@@ -193,6 +193,12 @@ async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promi
   if (now === undefined) return "stop";
   if (now?.linkedJobId === jobId) return "go";
   if (now?.alreadyPosted) return "stop";
+  // A failed CALL on a request that is still free: try the link once more, so a
+  // dropped call does not leave the repair offering a second post (re-review nit 3).
+  if (now && (linkErr as Error).message !== "maintenance link refused") {
+    const again = await mod.linkMaintenanceJob(requestId, jobId).catch(() => false);
+    if (again) return "go";
+  }
   toast.error("Your job posted, but it isn't linked to the repair request", {
     description: "Your tenant won't see it on their request. Tell them once a Helpr is booked.",
   });

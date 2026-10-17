@@ -83,3 +83,27 @@ Reported, not changed: the hint text at ShopItemEditor.tsx:264 and ShopEditView.
 
 ## Update: the stack's land-vitest-changed run finished
 fix/stack-export-wanted @ 113670a88c: `node scripts/land-vitest-changed.mjs origin/main` covered 319 related test files in 6 chunks, all passed, EXIT 0. Still not run: land's second (named-tests) set and the full suite.
+
+## Update: haul-away v2 lh-authz-rls re-review = pass-with-notes (a6b60cd85b)
+Both first-pass notes are fixed and proven:
+- the PGlite proof exits 2 on a foreign migration;
+- the allowlist reason at :227 matches the body.
+
+The new code holds (live pg_policies were read on prod, read-only):
+- the early-success path, :319-328: no IDOR, and someone else's job or items get the same answers as missing ones;
+- job_stuck matches the live jobs DELETE policy;
+- require_feature for both switches is first in all 3 RPCs;
+- is_caller_banned is on both writes;
+- grants and search_path are correct;
+- the null-arg class doesn't apply, since no boolean functions are added.
+
+Proofs: declutterHaulAway 83/0; nullArgNeverAllows ALL PASS.
+
+Notes:
+- the provenance check compares names, not contents;
+- a NULL jobs.payment_status reads as job_open but can't be deleted (0 rows on prod; the client reports the zero-row delete);
+- there is no direct member_under_18 check (the jobs INSERT trigger and the selling gate cover it).
+
+**Rebase needed:** the branch is based on 446e378eb5, one commit behind the stack tip 113670a88c. `git merge-tree` conflicts in toast-inventory.json, DeclutterHomeView.tsx, declutterErrorCopy.test.ts and rpcErrorCopyCoverage.test.ts.
+
+Trailer to add: `Sensitive-Review: lh-authz-rls: pass-with-notes`. Still owed: the lh-money-escrow verdict (running at handoff) and lh-silent-failure (not started).

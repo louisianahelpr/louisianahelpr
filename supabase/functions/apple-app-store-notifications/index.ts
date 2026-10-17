@@ -39,7 +39,9 @@ import {
   decodeJwsPayload,
   environmentVerdict,
   fetchAppleTransaction,
+  fetchLatestSubscriptionTransaction,
   isEntitled,
+  membershipsSwitchFor,
   resolveProduct,
 } from "../_shared/appleAppStore.ts";
 
@@ -98,8 +100,25 @@ serve(async (req) => {
       return ack("no_transaction_id", { notificationType });
     }
 
-    const tx = await fetchAppleTransaction(posted.transactionId);
-    const meta = resolveProduct(tx.productId);
+    const postedTx = await fetchAppleTransaction(posted.transactionId);
+    const postedMeta = resolveProduct(postedTx.productId);
+    if (!postedMeta) {
+      console.error(`[assn] unknown product ${postedTx.productId} — not one of ours`);
+      return ack("unknown_product", { productId: postedTx.productId });
+    }
+
+    // ── Grade the subscription as it stands NOW, not the posted transaction ──
+    // (Q1860) Apple retries a failed notice for up to three days, and anyone can
+    // POST an older transaction id of the same subscription. Either carries a
+    // past expiresDate, and grading it cleared the tier of a member who has
+    // since renewed. For an auto-renewable product, the subscription's LATEST
+    // transaction (App Store Server API, by originalTransactionId) decides; an
+    // Apple read failure throws to the 500 below, so nothing is written and
+    // Apple retries. A one-time pass has no later transaction to read.
+    const tx = postedMeta.kind === "auto"
+      ? await fetchLatestSubscriptionTransaction(postedTx)
+      : postedTx;
+    const meta = tx === postedTx ? postedMeta : resolveProduct(tx.productId);
     if (!meta) {
       console.error(`[assn] unknown product ${tx.productId} — not one of ours`);
       return ack("unknown_product", { productId: tx.productId });
@@ -185,14 +204,24 @@ serve(async (req) => {
         if (entitled) {
           // A member Apple is charging while Stripe holds their row: a double
           // subscription a human must settle. Never let the alert fail the ack.
+          //
+          // Q1859: worded by the arm that matched (only a live Stripe
+          // subscription id is certainly "paying twice"; a Stripe tier with no
+          // subscription behind it is a one-time pass or a tier with no end
+          // date), and posted once per day per member and subscription,
+          // because this endpoint is unauthenticated and a replayed POST of a
+          // real transaction id must not page ops once per request.
+          const message = profile.stripe_subscription_id
+            ? "An App Store notice says this member's Apple subscription is paid, but a live Stripe subscription bills their row, so the notice changed nothing. They are paying twice: settle which subscription to keep and refund the other."
+            : "An App Store notice says this member's Apple subscription is paid, but their row holds a Stripe-granted tier with no Stripe subscription behind it (a one-time pass, or a tier with no end date), so the notice changed nothing. Check what the Stripe tier was paid with before refunding either side; the member can tap Restore Purchases once the Stripe tier ends.";
           try {
             await postSlackOpsAlert({
               kind: "custom",
               severity: "warning",
               title: "Apple is billing a member whose tier Stripe holds",
-              message:
-                "An App Store notice says this member's Apple subscription is paid, but their row is billed by Stripe, so the notice changed nothing. They are paying twice: settle which subscription to keep and refund the other.",
+              message,
               fields: { user_id: profile.user_id, notification: notificationType, product: tx.productId },
+              oncePerDayKey: `apple-double-billing:${profile.user_id}:${tx.originalTransactionId}`,
             });
           } catch (e) {
             console.error("[assn] ops alert failed:", caughtMessage(e));
@@ -259,6 +288,30 @@ serve(async (req) => {
       console.error(`[assn] ${notificationType}: update matched ZERO rows for ${profile.user_id}`);
       // This one IS worth a retry — the row existed a moment ago.
       return jsonResponse({ ok: false, outcome: "zero_row_update" }, 500, corsHeaders);
+    }
+
+    // Q1849: Apple charged without asking our purchase gate (auto-renewal,
+    // iOS Settings, an offer code). The grant above stands (never refuse after
+    // Apple took the money); a member the memberships switch is off for is
+    // reported so a human refunds them. Never fails the ack.
+    if (entitled) {
+      const membershipsSwitch = await membershipsSwitchFor(admin, profile.user_id);
+      if (membershipsSwitch !== "on") {
+        try {
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "warning",
+            title: "Apple charged a member for a membership that is switched off",
+            message: membershipsSwitch === "off"
+              ? "An App Store notice granted a membership to someone the memberships switch is off for, so they are paying Apple for perks that are off. The grant was kept (Apple already charged). Refund them in App Store Connect or tell them how to cancel."
+              : "An App Store notice granted a membership, but whether the memberships switch is on for this member could not be read. The grant was kept (Apple already charged). Check the switch for this member; if it is off, refund them.",
+            fields: { user_id: profile.user_id, notification: notificationType, product: tx.productId },
+            oncePerDayKey: `apple-memberships-off:${profile.user_id}:${tx.originalTransactionId}`,
+          });
+        } catch (e) {
+          console.error("[assn] memberships-off alert failed:", caughtMessage(e));
+        }
+      }
     }
 
     console.log(

@@ -2,15 +2,18 @@ import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { corsHeadersFull as corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { PRO_PRICE_MAP } from "../_shared/proTiers.ts";
-import { requireFeature } from "../_shared/featureSwitch.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 
 // billing_cycle: "monthly" | "annual" | "one_time". Price IDs derive from the
 // single source of truth so the checkout can never drift from the displayed
 // subscription tiers (guarded by src/lib/proTiers.parity.test.ts).
 const PRICE_MAP = PRO_PRICE_MAP;
+
+/** Word for word the reason subscription_purchase_eligibility gives (20261015073024). */
+const MEMBERSHIPS_OFF_REASON = "Memberships are not available right now. Nothing was charged.";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,8 +59,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
     );
-    const membershipsOff = await requireFeature(serviceClient, "memberships", user, corsHeaders);
-    if (membershipsOff) return membershipsOff;
+    // Q1850: the refusal carries the SAME sentence subscription_purchase_eligibility
+    // gives (20261015073024), because 7119's functionErrorMessage shows the body's
+    // `error` verbatim and would otherwise print the words "feature_disabled".
+    // The machine code moves to `code`. Fails closed like requireFeature.
+    if (!(await featureEnabledForUser(serviceClient, "memberships", user))) {
+      return jsonResponse(
+        { error: MEMBERSHIPS_OFF_REASON, code: "feature_disabled" },
+        403,
+        corsHeaders,
+      );
+    }
 
     const proBody = await req.json();
     const { tier, billing_cycle = "monthly", billing_day } = proBody;

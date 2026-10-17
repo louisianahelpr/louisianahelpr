@@ -144,6 +144,10 @@
     // Its one-retry-on-busy wrapper, imported by
     // src/test/declutterAiModelRetry.test.ts.
     "supabase/functions/declutter-ai-draft/modelRetry.ts",
+    // Shop items' AI answer sanitizer and the shared type list (Shops slice
+    // 2): dependency-free, imported by src/lib/shops/items.ts and
+    // src/test/shopsItems.test.ts.
+    "supabase/functions/declutter-ai-draft/shopItemSanitize.ts",
     // Apple IAP. appleAppStore.ts is imported by src/test/appleIap.test.ts to
     // test the product registry and entitlement maths directly; jwt.ts comes
     // with it because appleAppStore mints the App Store Server API bearer

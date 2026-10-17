@@ -10,6 +10,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { removeShopObjects } from "./storageCleanup";
 
 /** Shop photos live in job-photos under <owner uid>/shops/ (purged with the account). */
 const SHOP_PHOTO_BUCKET = "job-photos";
@@ -185,13 +186,14 @@ function shopPhotoPath(ownerId: string, nonce: string): string {
   return `${ownerId}/shops/${safe}.jpg`;
 }
 
-/** Remove storage objects the server detached. */
+/**
+ * Remove storage objects the server detached. The rows are already gone; a
+ * failed or short object delete leaves an unattached object, public by URL,
+ * that the owner's account deletion still removes (<uid>/shops/), so it is
+ * counted and reported (removeShopObjects; lh-silent-failure re-review).
+ */
 async function removeObjects(paths: string[]): Promise<void> {
-  if (paths.length === 0) return;
-  const { error } = await supabase.storage.from(SHOP_PHOTO_BUCKET).remove(paths);
-  // The rows are already gone; a failed object delete leaves an unattached
-  // object that the owner's account deletion still removes (<uid>/shops/).
-  if (error) console.warn("[shops] photo objects not removed", error.message);
+  await removeShopObjects(SHOP_PHOTO_BUCKET, paths, "photo objects");
 }
 
 /**
@@ -214,8 +216,7 @@ export async function addShopPhoto(ownerId: string, kind: ShopPhotoKind, file: F
   if (upErr) throw new Error("photo_not_uploaded");
   const { data, error } = await supabase.rpc("shops_attach_photo", { p_kind: kind, p_storage_path: path });
   if (error) {
-    const { error: rmErr } = await bucket.remove([path]);
-    if (rmErr) console.warn("[shops] could not remove a refused photo upload", rmErr.message);
+    await removeShopObjects(SHOP_PHOTO_BUCKET, [path], "refused photo upload");
     const words = rpcErrorMessage("shops_attach_photo", error);
     throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
   }

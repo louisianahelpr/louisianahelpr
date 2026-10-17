@@ -86,6 +86,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261017052705)'),
   ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261017052705)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
+  ('shop_cottage_cap_reached',      'deny',     'Shops slice 2 (20261016212915): TRUE = the owner is at the yearly home-food limit, so new home-food listings (and orders) are refused; a NULL owner is TRUE (fails safe)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),

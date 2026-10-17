@@ -45,8 +45,10 @@ export type SeedSite = {
 // copy their source's flag (written only by service RPCs and triggers); a
 // Helpr's vehicle copies the Helpr's profile flag at birth.
 // shops (Shops slice 1, 20261015123029): shops_save_my_shop copies the
-// owner's profiles.is_seed at insert; no fixture writes it yet.
-export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_delivery_dropoffs", "declutter_delivery_refunds", "declutter_items", "declutter_offers", "declutter_order_deliveries", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "declutter_wanted", "deleted_jobs_log", "helpr_task_payouts", "helpr_tasks", "helpr_vehicles", "job_quote_requests", "jobs", "profiles", "shops"] as const;
+// owner's profiles.is_seed at insert; no fixture writes it yet. shop_items and
+// shop_cottage_sales (Shops slice 2, 20261016212915): trigger
+// shop_rows_seed_from_owner copies the owner's flag at insert.
+export const SEED_TABLES = ["declutter_bookings", "declutter_cart_items", "declutter_delivery_dropoffs", "declutter_delivery_refunds", "declutter_items", "declutter_offers", "declutter_order_deliveries", "declutter_orders", "declutter_payouts", "declutter_problems", "declutter_refunds", "declutter_reviews", "declutter_seller_fee_debts", "declutter_wanted", "deleted_jobs_log", "helpr_task_payouts", "helpr_tasks", "helpr_vehicles", "job_quote_requests", "jobs", "profiles", "shop_cottage_sales", "shop_items", "shops"] as const;
 const TABLES = SEED_TABLES.join("|");
 
 /** Index of the `(` that encloses `pos` (innermost unclosed), or -1. */

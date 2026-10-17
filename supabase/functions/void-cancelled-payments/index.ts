@@ -9,12 +9,12 @@ import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/he
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
-import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -655,8 +655,11 @@ serve(async (req) => {
       // use) is listed, and a live cancellation_fee transfer to this Helpr
       // repairs the ledger instead of paying again.
       const feeGroup = `job_${job.id}`;
+      /** Q1806: what is already linked to this job's charge (sourceChargeFor). */
+      let groupTransfers: Stripe.Transfer[] = [];
       try {
         const priorFeeTransfers = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
+        groupTransfers = priorFeeTransfers.data ?? [];
         const alreadyPaidFee = priorFeeTransfers.data.find(
           (t) =>
             t.metadata?.type === "cancellation_fee" && !t.reversed && !t.metadata?.share_id &&
@@ -740,11 +743,16 @@ serve(async (req) => {
             fee_transfer_id: String(feeRow.id),
           },
         };
-        // Link to the source charge so the transfer draws from these funds.
-        if (pi?.latest_charge) {
-          transferParams.source_transaction = typeof pi.latest_charge === "string"
-            ? pi.latest_charge
-            : pi.latest_charge.id;
+        // Link to the source charge so the transfer draws from these funds,
+        // only when it fits there (Q1806): a gift-plus-card job's card charge
+        // can be smaller than the fee, and Stripe refuses a linked transfer
+        // larger than its charge. One that does not fit goes from the platform
+        // balance the gift paid into; Part A kept that much from the gift.
+        const feeSource = sourceChargeFor(pi, transferParams.amount as number, groupTransfers);
+        if (feeSource) {
+          transferParams.source_transaction = feeSource;
+        } else if (pi?.latest_charge) {
+          console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} does not fit in its card charge; sent from the platform balance, unlinked.`);
         }
         const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
           // Q1381: a retry of a failed row is a new attempt, not Stripe's replay of the failure.
@@ -835,8 +843,13 @@ serve(async (req) => {
       if (owed.length === 0) return;
       const feeGroup = `job_${job.id}`;
       let priorByHelper: Map<string, string>;
+      /** Q1806: what is already linked to this job's charge (sourceChargeFor). */
+      let groupTransfers: Stripe.Transfer[] = [];
+      /** Q1806: what this call linked to the charge so far. */
+      let linkedThisRun = 0;
       try {
         const prior = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
+        groupTransfers = prior.data ?? [];
         priorByHelper = new Map(
           prior.data
             .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id)
@@ -963,8 +976,12 @@ serve(async (req) => {
             transfer_group: feeGroup,
             metadata: { job_id: job.id, helper_id: share.helper_id, share_id: share.id, type: "cancellation_fee", platform_cut: platformCut },
           };
-          if (pi?.latest_charge) {
-            transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
+          // Linked only when it fits in the charge (Q1806), as the single path.
+          const shareSource = sourceChargeFor(pi, transferParams.amount as number, groupTransfers, linkedThisRun);
+          // Counted before the call: a transfer whose outcome is unknown may exist.
+          if (shareSource) {
+            transferParams.source_transaction = shareSource;
+            linkedThisRun += transferParams.amount as number;
           }
           const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
             // Q1381: a retry of a failed share is a new attempt, not Stripe's replay of the failure.
@@ -1811,9 +1828,67 @@ serve(async (req) => {
       const payBlockFees = async (pi: Stripe.PaymentIntent): Promise<void> => {
         if (!blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) return;
         const chargeId = pi.latest_charge ? (typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id) : null;
-        const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, chargeId);
+        const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", linkPi: pi }, job, blockFeeRows, chargeId);
         for (const p of paid.problems) defects.record(p);
       };
+      /**
+       * Q1806: a job paid partly by gift and partly by card whose card payment
+       * is smaller than what this cancel keeps from it (the fees owed plus the
+       * card fee kept): the card pays first and the gift pays `shortCents`.
+       * Read BEFORE any money moves, and only when there is a shortfall.
+       * Null: the job stays in escrow (the gift is unreadable, its donation was
+       * reversed, or it paid less than the shortfall, which includes no gift at
+       * all: the fee is then not paid from the platform's own money, never
+       * absorb a fee). Otherwise what the gift can fund.
+       */
+      const giftCoversShortfall = async (shortCents: number, stage: string): Promise<{ cents: number } | null> => {
+        const funding = await giftFeeFunding(job.id);
+        if (funding === null) {
+          console.error(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and its gift could not be read; not settling this run (${stage}).`);
+          defects.record(`gift fee funding read ${job.id} (${stage}): unreadable — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "gift_fee_funding_unreadable" });
+          return null;
+        }
+        if (funding.donationReversed || funding.cents < shortCents) {
+          const why = funding.donationReversed
+            ? "the donation behind its gift was refunded or charged back"
+            : `its gift paid ${funding.cents}c`;
+          console.error(`CRITICAL: [void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and ${why}; not settling (${stage}).`);
+          defects.record(`gift fee funding ${job.id} (${stage}): card ${shortCents}c short, ${why} — not settled`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Cancelled job owes more in fees than its card and gift paid",
+            message: `Job ${job.id} ("${job.title}") was cancelled late. Its card payment is smaller than the cancellation fee plus the card fee kept, and ${why}, so the rest of the fee cannot come from the poster's money. No money moved and the job stays in escrow; settle it by hand.`,
+            fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no" },
+            oncePerDayKey: `gift-card-fee-shortfall:${job.id}`,
+          });
+          results.push({ job_id: job.id, title: job.title, status: "gift_fee_shortfall" });
+          return null;
+        }
+        return { cents: funding.cents };
+      };
+      /** Q1806: what the gift's kept cents paid, for the poster's "gift is back" notice. */
+      const giftKeptReason = (feeOwed: boolean, blockOwed: boolean) =>
+        [
+          feeOwed ? `the cancellation fee for your ${crewShares ? "crew" : "Helpr"}` : null,
+          blockOwed ? "the cancellation fee for the crew spots you closed" : null,
+        ].filter((x): x is string => !!x).join(" and ") || undefined;
+
+      /**
+       * Q1806: what a cancel keeps of a card capture besides the fees owed: the
+       * card fee (never less than Stripe's) and a first job's setup fee. ONE
+       * formula for the hold and the captured paths, so a run that captured a
+       * hold and died before settling prices the same shortfall on its retry
+       * (which takes the captured path): lh-money-escrow design review #1.
+       */
+      const cardNonRefundableCents = (capturedCents: number, actualFeeCents: number) =>
+        refundToPayerCents({
+          capturedCents,
+          actualFeeCents,
+          customerFeeCents: refundsSeriesVisitInFull(job) ? 0 : Math.round(Number(job.customer_fee_amount ?? 0) * 100),
+          setupFeeCents: setupFeeKeptCents(job),
+        }).nonRefundableCents;
 
       let paymentIntentId = job.stripe_payment_intent_id;
 
@@ -1961,7 +2036,21 @@ serve(async (req) => {
             // waiving every fee owed on an uncaptured hold. Q1390: plus the
             // crew's block fees.
             const feeCents = Math.round(cancellationFee * 100) + blockCents;
-            await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
+            // Q1806: never more than the hold. A gift-plus-card job's hold can
+            // be smaller than the fee: the whole hold is captured, so the card
+            // keeps what a captured charge would (cardNonRefundableCents) and
+            // the gift pays the rest. Checked before any money moves with a
+            // conservative fee estimate (a Klarna/Affirm hold costs ~6%), then
+            // priced from the charge's real fee after the capture.
+            const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
+            const captureCents = Math.min(feeCents, holdCents);
+            let holdGift: { cents: number } | null = null;
+            if (feeCents > holdCents) {
+              const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), Math.round(holdCents * 0.0599) + 30);
+              holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture");
+              if (!holdGift) continue;
+            }
+            await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: captureCents });
             // Q1714: the rest of the hold goes back; the poster is told what and
             // why once the job is settled below.
             const both = cancellationFee > 0 && blockCents > 0;
@@ -1971,9 +2060,30 @@ serve(async (req) => {
             ].filter((x): x is string => !!x);
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
-            const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
-            await payCancellationFee(cancellationFee, captured);
+            const captured = holdGift
+              ? await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] })
+              : await stripe.paymentIntents.retrieve(paymentIntentId);
+            const holdFeeOnLedger = await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
+            if (holdGift && !holdFeeOnLedger) {
+              // Review #4: the gift is not kept for a fee with no ledger row for
+              // Part E to pay it from. The hold is captured; the next run takes
+              // the captured path, prices the same shortfall and retries.
+              results.push({ job_id: job.id, title: job.title, status: "gift_fee_not_claimed" });
+              continue;
+            }
+            // Q1806: what the gift keeps, from the fees left after payBlockFees
+            // (a member whose account is gone is voided there) and the
+            // charge's real fee.
+            let holdGiftKeptCents = 0;
+            if (holdGift) {
+              const owedCents = Math.round(cancellationFee * 100) + crewBlockFeeCents(blockFeeRows);
+              const shortCents = Math.max(0, cardNonRefundableCents(captureCents, actualOrEstimatedFeeCents(captured, captureCents)) + owedCents - captureCents);
+              holdGiftKeptCents = Math.min(shortCents, holdGift.cents);
+              if (shortCents > holdGift.cents) {
+                defects.record(`gift fee funding ${job.id} (fee capture): ${shortCents}c short after capture, the gift paid ${holdGift.cents}c`);
+              }
+            }
             // Q1345: the fee this capture charged is stamped in the same write,
             // so the job row says what left the poster's card (Spent, the
             // fee pill) instead of the client-written figure. The crew block
@@ -1982,11 +2092,13 @@ serve(async (req) => {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
               cancellation_fee: cancellationFee,
-            }, "fee capture");
+            }, "fee capture", holdGiftKeptCents, giftKeptReason(cancellationFee > 0, blockCents > 0));
             if (settledFee) refunded++;
-            await tellPosterMoneyBack(job, pi, {
+            // Q1806: a hold captured whole sends nothing back to the card; the
+            // gift notice says what the gift paid.
+            if (!(holdGift && Number(pi.amount ?? 0) - captureCents <= 0)) await tellPosterMoneyBack(job, pi, {
               key: `release:${pi.id}`, kind: "release",
-              amountCents: Math.max(0, Number(pi.amount ?? 0) - feeCents), keptCents: feeCents,
+              amountCents: Math.max(0, Number(pi.amount ?? 0) - captureCents), keptCents: captureCents,
               keptReason: keptParts.join(" and ") || null,
             });
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
@@ -2037,11 +2149,11 @@ serve(async (req) => {
           // Q407 (12), 2026-09-25).
           // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept on a
           // cancel ("paid and done": never refunded, never charged again).
-          // Q1390: the crew's block fees are tried first and withheld from the refund.
-          await payBlockFees(pi);
-          const blockFeeCents = crewBlockFeeCents(blockFeeRows);
-          // THE refund amount (owner, 2026-10-14: never absorb a fee), from
-          // _shared/refundAmount.ts, the definition every refund path uses.
+          // Q1806: the card pays what this cancel keeps first; a gift-plus-card
+          // job whose card payment is smaller than that (fees owed + the kept
+          // card and setup fees) has the gift pay the rest. Checked before any
+          // money moves (the block fees below are the first).
+          const feeOwedCents = Math.round(cancellationFee * 100);
           // Q1675: what earlier refunds on this charge already returned (the
           // duplicate $2 setup fee settleOnboardingFee refunds, an admin's
           // partial refund) comes off what this refund may return:
@@ -2052,6 +2164,20 @@ serve(async (req) => {
               ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
               : 0) ?? 0,
           );
+          const keptOfCard = cardNonRefundableCents(capturedCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          const cardShortCents = Math.max(0, keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) - capturedCents);
+          let cardGift: { cents: number } | null = null;
+          if (cardShortCents > 0) {
+            // Review #2: an earlier refund on the charge left the card even
+            // less to pay with; the gift covers that too.
+            cardGift = await giftCoversShortfall(cardShortCents + Math.max(0, chargeRefundedCents), "refund");
+            if (!cardGift) continue;
+          }
+          // Q1390: the crew's block fees are tried first and withheld from the refund.
+          await payBlockFees(pi);
+          const blockFeeCents = crewBlockFeeCents(blockFeeRows);
+          // THE refund amount (owner, 2026-10-14: never absorb a fee), from
+          // _shared/refundAmount.ts, the definition every refund path uses.
           const voidSplit = refundToPayerCents({
             capturedCents,
             actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
@@ -2061,13 +2187,19 @@ serve(async (req) => {
             alreadyRefundedCents: chargeRefundedCents,
           });
           const nonRefundableCents = voidSplit.nonRefundableCents;
+          // Q1806: what the gift keeps, from the fees left after payBlockFees.
+          const cardGiftKeptCents = cardGift
+            ? Math.min(cardGift.cents, Math.max(0, nonRefundableCents + feeOwedCents + blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents))))
+            : 0;
           // Earlier refunds returned MORE than this cancel may (they ate into
           // the cancellation fee or the fees it keeps; lh-money-escrow review
           // of Q1675 #1). Settling would pay the Helpr's fee out of money that
           // already went back to the poster, a fee the platform absorbs. Page
           // and leave the job for a person; nothing more is moved (a crew's
           // block fees, paid just above, already went out).
-          if (chargeRefundedCents > voidSplit.ceilingCents + 1) {
+          // Q1806: on a gift-plus-card job the gift already covers an earlier
+          // refund (cardGift above), so it does not stop the settlement.
+          if (!cardGift && chargeRefundedCents > voidSplit.ceilingCents + 1) {
             console.error(`[void-cancelled-payments] job ${job.id}: charge already refunded ${chargeRefundedCents}¢, more than the ${voidSplit.ceilingCents}¢ this cancel may return — not settled`);
             defects.record(`refunded past kept fees ${job.id}: ${chargeRefundedCents}¢ > ${voidSplit.ceilingCents}¢`);
             await postSlackOpsAlert({
@@ -2199,6 +2331,11 @@ serve(async (req) => {
             console.log(
               `[void-cancelled-payments] job ${job.id} already has a cancellation refund on the ledger or the charge already shows it refunded (${chargeRefundedCents}¢); settling status only.`,
             );
+          } else if (cardGift) {
+            // Q1806: the card paid less than this cancel keeps and the gift
+            // pays the rest (kept in settleCancelledJob below), so nothing goes
+            // back to the card. Expected, not an ops alert.
+            console.log(`[void-cancelled-payments] job ${job.id}: the card payment goes to the fees; ${cardGiftKeptCents}c of them come from the gift.`);
           } else {
             // The cancellation fee + non-refundable service fee consumed the
             // whole capture, so the poster gets $0 back while the job still
@@ -2232,12 +2369,19 @@ serve(async (req) => {
           }
 
           // Transfer the agreed fee to the helper (minus platform commission).
-          await payCancellationFee(cancellationFee, pi);
+          const refundFeeOnLedger = await payCancellationFee(cancellationFee, pi);
+          if (cardGift && !refundFeeOnLedger) {
+            // Review #4: the gift is not kept for a fee with no ledger row for
+            // Part E to pay it from. Nothing went back to the card; the next
+            // run retries.
+            results.push({ job_id: job.id, title: job.title, status: "gift_fee_not_claimed" });
+            continue;
+          }
 
           const settledRefund = await settleCancelledJob(job, {
             payment_status: "refunded",
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
-          }, "refund");
+          }, "refund", cardGiftKeptCents, giftKeptReason(feeOwedCents > 0, blockFeeCents > 0));
           if (settledRefund) refunded++;
           results.push({
             job_id: job.id,
@@ -2367,9 +2511,12 @@ serve(async (req) => {
               continue;
             }
             let chargeId: string | null = null;
+            /** Q1806: the charge's PaymentIntent, so a fee is linked only while it fits. */
+            let linkPi: Stripe.PaymentIntent | undefined;
             if (fj.stripe_payment_intent_id) {
               try {
                 const fpi = await stripe.paymentIntents.retrieve(fj.stripe_payment_intent_id, { expand: ["latest_charge"] });
+                linkPi = fpi;
                 const ch = fpi.latest_charge;
                 // Link the charge only while it still holds money: a fully
                 // refunded charge (an admin full refund) cannot fund a
@@ -2387,7 +2534,7 @@ serve(async (req) => {
                 console.warn(`[void-cancelled-payments] block fee sweep could not link job ${fj.id}'s charge:`, (e as Error).message);
               }
             }
-            const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true }, fj, byJob.get(fj.id) ?? [], chargeId);
+            const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi }, fj, byJob.get(fj.id) ?? [], chargeId);
             for (const p of paid.problems) defects.record(p);
             blockFeesRetried++;
           }

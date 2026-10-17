@@ -131,3 +131,49 @@ export function payoutWithheldMetadata(
     rounding_remainder_cents: Math.max(0, Math.round(unroundedPayoutCents) - onboarding - Math.round(paidCents)),
   };
 }
+
+/**
+ * Q1806: the charge a fee transfer may name as its `source_transaction`, or
+ * undefined. Stripe: a linked transfer must not exceed its source charge, and
+ * the SUM of the transfers linked to one charge must not exceed it either. A
+ * job paid partly by gift has a card charge smaller than the fee it owes; a
+ * transfer that does not fit is sent unlinked, from the platform balance the
+ * gift paid into (the caller keeps that much from the gift first).
+ *
+ * `pi` is the job's PaymentIntent; `prior` the transfers already in the job's
+ * transfer group (gross amounts, reversed ones included: a reversal never
+ * makes room); `alsoLinkedCents` what this run already linked that `prior`
+ * does not list.
+ */
+export function sourceChargeFor(
+  pi: { amount?: number | null; amount_received?: number | null; latest_charge?: unknown } | null | undefined,
+  amountCents: number,
+  prior: ReadonlyArray<{ amount?: number | null; source_transaction?: unknown }> = [],
+  alsoLinkedCents = 0,
+): string | undefined {
+  const lc = pi?.latest_charge;
+  if (!lc) return undefined;
+  const charge = typeof lc === "string"
+    ? null
+    : (lc as { id?: string; amount?: number | null; amount_captured?: number | null; amount_refunded?: number | null });
+  const chargeId = typeof lc === "string" ? lc : charge?.id;
+  if (!chargeId) return undefined;
+  // What the charge actually captured: the smallest figure Stripe reports
+  // (the PaymentIntent's own amount only when it reports nothing else).
+  const num = (xs: Array<number | null | undefined>) =>
+    xs.filter((n) => n !== null && n !== undefined).map((n) => Number(n)).filter((n) => Number.isFinite(n) && n >= 0);
+  let figures = num([pi?.amount_received, charge?.amount_captured, charge?.amount]);
+  if (figures.length === 0) figures = num([pi?.amount]);
+  if (figures.length === 0) return undefined;
+  // Review nit: a refunded part of the charge is not counted as room either.
+  const chargeCents = Math.min(...figures) - Math.max(0, Math.round(Number(charge?.amount_refunded ?? 0)));
+  const linked = prior
+    .filter((t) => {
+      const src = t.source_transaction;
+      const id = typeof src === "string" ? src : (src as { id?: string } | null | undefined)?.id;
+      return id === chargeId;
+    })
+    .reduce((s, t) => s + Math.max(0, Math.round(Number(t.amount ?? 0))), 0);
+  const total = linked + Math.max(0, Math.round(alsoLinkedCents)) + Math.max(0, Math.round(amountCents));
+  return total <= chargeCents ? chargeId : undefined;
+}

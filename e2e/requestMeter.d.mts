@@ -10,6 +10,7 @@ export declare const PACE_MIN_RESERVE: number;
 export declare const PACE_EDGE_MS: number;
 export declare function ceilingFor(label: string, file?: string): number;
 export declare function priorMinutes(label: string, dir?: string): Record<string, number>;
+export declare function priorBursts(label: string, dir?: string): { bursts: Record<string, number>; reserve: number };
 export type RequestClass = "rest" | "rpc" | "auth" | "functions" | "storage" | "realtime" | "other";
 export declare function classify(url: string): RequestClass | null;
 export declare function isSignIn(url: string, method: string): boolean;
@@ -30,6 +31,10 @@ export interface RequestSample {
   paceWaitMs?: number;
   /** largest burst between two gates, per gate key (page path), top 5; absent before #1794. */
   topBursts?: Record<string, number>;
+  /** every gate key's largest burst, for the next process of the label (priorBursts); absent before 2026-10-17. */
+  learnedBursts?: Record<string, number>;
+  /** the learned reserve; absent before 2026-10-17. */
+  reserve?: number;
   startedAt: number;
   endedAt: number;
 }
@@ -50,9 +55,10 @@ export declare class RequestMeter {
   onPaceWait: ((ms: number) => void) | null;
   paceTo(
     ceilingPerMinute: number,
-    opts?: { workers?: number; prior?: Record<string, number>; now?: () => number; sleep?: (ms: number) => Promise<unknown> },
+    opts?: { workers?: number; prior?: Record<string, number>; learned?: { bursts: Record<string, number>; reserve: number }; now?: () => number; sleep?: (ms: number) => Promise<unknown> },
   ): this;
   pace(key?: string): Promise<number>;
+  currentBursts(): Record<string, number>;
   pacePage<P extends { goto: (...a: never[]) => unknown; reload: (...a: never[]) => unknown }>(page: P): P;
   record(url: string, method: string, now?: number, seen?: Map<string, number>): RequestClass | null;
   attach(context: BrowserContext): BrowserContext;

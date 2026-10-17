@@ -9,7 +9,7 @@
  * quote requests are not jobs yet) and steps the map column aside.
  *
  * @mutate src/pages/home/Dashboard.tsx |                     onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined} |                     onToggleWantsQuotes={toggleWantsQuotes}
- * @mutate src/pages/home/Dashboard.tsx |   const wantsQuotes = quotesOn && wantsQuotesPicked; |   const wantsQuotes = wantsQuotesPicked;
+ * @mutate src/pages/home/useWantsQuotes.ts |   const wantsQuotes = quotesOn && wantsQuotesPicked; |   const wantsQuotes = wantsQuotesPicked;
  * @mutate src/pages/home/Dashboard.tsx | {isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && ( | {isWebDesktop && mapVisible && !feedShowingLoadError && (
  * @mutate src/components/dashboard/FilterSheet.tsx | {onToggleWantsQuotes && <WantsQuotesRow | {false && <WantsQuotesRow
  * @mutate src/components/quotes/WantsQuotesFeed.tsx |             <OpenQuoteRequestRow key={r.id} r={r} /> |             null
@@ -84,13 +84,19 @@ describe('the "Wants Quotes" filter in Jobs browse (owner answer 12)', () => {
 
   it("the Dashboard offers it only behind the switch, swaps the feed, and steps the map aside", () => {
     const d = src("src/pages/home/Dashboard.tsx");
-    expect(d).toContain('const quotesOn = useFeature("quotes");');
-    expect(d).toContain("const wantsQuotes = quotesOn && wantsQuotesPicked;");
+    // The state lives in useWantsQuotes (Dashboard.tsx is a size-ratcheted god component).
+    const hook = src("src/pages/home/useWantsQuotes.ts");
+    expect(hook).toContain('const quotesOn = useFeature("quotes");');
+    expect(hook).toContain("const wantsQuotes = quotesOn && wantsQuotesPicked;");
+    expect(d).toContain("useWantsQuotes()");
     expect(d).toContain("onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}");
-    expect(d).toMatch(/\{wantsQuotes \? \(\s*<Suspense fallback=\{[^\n]*\}>\s*<WantsQuotesFeed /);
+    expect(d).toMatch(/<WantsQuotesSlot active=\{wantsQuotes\} onShowAllJobs=\{showAllJobs\}>\s*<BrowseTasksFeed/);
+    expect(d).toContain("<JobsHeaderCount wantsQuotes={wantsQuotes}");
     // Its own lazy chunk: the quotes reader never rides a signed-in first screen.
-    expect(d).toContain('const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed")');
-    expect(d).not.toMatch(/^import \{ WantsQuotesFeed \}/m);
+    const slot = src("src/components/quotes/WantsQuotesSlot.tsx");
+    expect(slot).toContain('const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed")');
+    expect(slot).not.toMatch(/^import \{ WantsQuotesFeed \}/m);
+    expect(d).not.toMatch(/WantsQuotesFeed/);
     expect(d).toContain("{isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && (");
     // Not a job read: quote requests come from their own reader.
     expect(src("src/components/quotes/WantsQuotesFeed.tsx")).toContain("fetchOpenQuoteRequests");

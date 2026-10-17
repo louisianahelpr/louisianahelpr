@@ -43,8 +43,16 @@ export function deriveAppliedJobCardState(
   // addressing an application id of `direct-<jobId>` that no table contains.
   // The stripe already said "Offered to you · respond" while the card below it
   // offered no way to respond.
+  //
+  // LIVE, by the server's own definition (respond_to_direct_offer,
+  // accept_job_offer; isHeldOffer in activityFilters): the job is still open
+  // and nobody holds it. poster_cancel_job leaves the `pending` marker on the
+  // row until the expiry sweep, so a cancelled job kept rendering Accept Job /
+  // Decline, and both answered "This job is no longer open." (press-every-
+  // control run 38536821617, shard 11, /jobs/fddf389d as the helper).
   const isDirectOffer =
-    job.direct_offer_status === "pending" && job.offered_to_helper_id === app.helper_id;
+    job.direct_offer_status === "pending" && job.offered_to_helper_id === app.helper_id &&
+    status === "open" && !job.helper_id;
   // A CREW MEMBER'S LIVE JOB (Q1382). A crew has no lead (Q407): this member's
   // steps are on their own roster row, so the three single-Helpr sections
   // below (which read and write the JOB's scalar stamps, nobody's on a crew)

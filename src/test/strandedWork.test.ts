@@ -185,7 +185,7 @@ describe("stranded-work: every place work sits", () => {
     const untracked = items.find((i: { kind: string }) => i.kind === "untracked");
     expect(untracked.files).toEqual(["notes.md"]);
   });
-  // @mutate scripts/stranded-work.mjs |     if (existsSync(realIndex)) copyFileSync(realIndex, env.GIT_INDEX_FILE); |     if (false) copyFileSync(realIndex, env.GIT_INDEX_FILE);
+  // @mutate scripts/stranded-work.mjs |       copyFileSync(realIndex, env.GIT_INDEX_FILE); |       throw Object.assign(new Error("planted"), { code: "ENOENT" });
   it("a worktree whose only change is a file STAGED AS NEW is reported, with that file (stranded-staged-new in docs/OPEN.md, 2026-10-17)", () => {
     const index = buildMainIndex(git, "origin/main");
     const items = localInventory(git, index, { cwdOf: () => [] });

@@ -27,6 +27,10 @@ try {
 }
 import fs from "node:fs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260914200051_message_attachments_path_scoped_read_and_voice_notes.sql", import.meta.url), "utf8");
 
 const A = ACCOUNTS["poster-e2e"].userId, B = ACCOUNTS["helper-e2e"].userId, ADM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

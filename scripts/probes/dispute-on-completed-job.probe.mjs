@@ -33,6 +33,10 @@ try {
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { ACCOUNTS } from "../test-signin-link.mjs";
+import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 const PRIOR = fs.readFileSync(new URL("../../supabase/migrations/20260912023326_system_open_dispute_on_undelivered_revision.sql", import.meta.url), "utf8");
 const MIG = fs.readFileSync(new URL("../../supabase/migrations/20260915025607_block_disputes_on_completed_jobs.sql", import.meta.url), "utf8");
 const LIVE_MD5 = "cf6308e7b2397381d528f1063341b494";

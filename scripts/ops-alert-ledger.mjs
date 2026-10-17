@@ -55,6 +55,10 @@ import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, failingRun
 import { missingSentryEnvIsAlert, realOccurrenceAt, sentryIssueTagUrl, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 import { ALERT_ISSUE_LABELS, ALERT_LABELS, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {

@@ -40,6 +40,10 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { nextFreeNumber } from "./lib/queueAllocator.mjs";
 import { FINDINGS, SNAPSHOT, LEDGER_SQL, snapshotText, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts, openAlertIssues } from "./lib/openFeeds.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+// Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
+assertFreshCheckout(import.meta.url);
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPEN = "docs/OPEN.md";

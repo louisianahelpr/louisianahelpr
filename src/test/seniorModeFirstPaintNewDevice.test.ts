@@ -1,8 +1,8 @@
 // @mutate src/lib/simpleMode.ts |     return flag === true; |     return false;
 // @mutate src/lib/simpleMode.ts |     profileSeniorMode = input.sessionSenior; |     void input.sessionSenior;
 // @mutate src/lib/simpleMode.ts |   return (sessionSeniorFlag(user) ?? false) === profileSenior ? null : { senior_mode: profileSenior }; |   return null;
-// @mutate src/App.tsx | sessionSenior: sessionSeniorFlag(user) | sessionSenior: null
-// @mutate src/App.tsx |     const patch = seniorModeMetadataPatch(user, profileSenior); |     const patch = null as { senior_mode: boolean } \| null;
+// @mutate src/components/SessionManager.tsx | sessionSenior: sessionSeniorFlag(user) | sessionSenior: null
+// @mutate src/components/SessionManager.tsx |     const patch = seniorModeMetadataPatch(user, profileSenior); |     const patch = null as { senior_mode: boolean } \| null;
 // @mutate src/pages/profile/Profile.tsx | updateUser({ data: { senior_mode: enabled } }) | getUser()
 // @mutate src/pages/profile/Profile.tsx | await refreshCurrentUser(); // Q200: before the hint | // Q200: before the hint
 /*
@@ -85,8 +85,8 @@ describe("Senior Mode from the account on a device's FIRST signed-in visit (Q200
     expect(m.seniorModeMetadataPatch(null, true)).toBeNull();
   });
 
-  it("App.tsx feeds the session flag to the resolver and mirrors the profile into it; every senior_mode writer also writes the hint", () => {
-    const app = blankComments(readFileSync(resolve(ROOT, "src/App.tsx"), "utf8"));
+  it("SessionManager (mounted by App.tsx) feeds the session flag to the resolver and mirrors the profile into it; every senior_mode writer also writes the hint", () => {
+    const app = blankComments(readFileSync(resolve(ROOT, "src/components/SessionManager.tsx"), "utf8"));
     expect(app).toContain("sessionSenior: sessionSeniorFlag(user)");
     expect(app).toMatch(/const patch = seniorModeMetadataPatch\(user, profileSenior\);[\s\S]{0,200}updateUser\(\{ data: patch \}\)/);
     // Every client write of profiles.senior_mode, found by what it IS.
